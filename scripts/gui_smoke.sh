@@ -57,6 +57,18 @@ done
 rg -q 'TIXUN_GENERATION_FINISHED status=complete' "$artifact_dir/app.log"
 sleep .8
 capture desktop-chat-answer
+xdotool key --clearmodifiers ctrl+5
+sleep 1
+capture desktop-knowledge
+xdotool mousemove --window "$window" 700 310 click 1
+sleep 1
+capture desktop-knowledge-detail
+xdotool key --clearmodifiers ctrl+4
+sleep 1
+capture desktop-mistakes
+xdotool mousemove --window "$window" 700 310 click 1
+sleep 1
+capture desktop-mistake-detail
 xdotool key --clearmodifiers ctrl+3
 sleep 1
 capture desktop-settings
@@ -69,5 +81,17 @@ capture phone-chat
 xdotool key --clearmodifiers ctrl+1
 sleep 1
 capture phone-study
+xdotool key --clearmodifiers ctrl+5
+sleep 1
+capture phone-knowledge
+xdotool mousemove --window "$window" 180 305 click 1
+sleep 1
+capture phone-knowledge-detail
+xdotool key --clearmodifiers ctrl+4
+sleep 1
+capture phone-mistakes
+xdotool mousemove --window "$window" 180 305 click 1
+sleep 1
+capture phone-mistake-detail
 if rg -n 'EXCEPTION CAUGHT|A RenderFlex overflowed|Unhandled Exception|Error while opening' "$artifact_dir/app.log"; then exit 1; fi
 printf 'GUI smoke passed. Screenshots require separate visual review: %s\n' "$artifact_dir"

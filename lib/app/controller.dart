@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../core/ai/chat_provider.dart';
+import '../core/ai/study_tools.dart';
+import '../features/library/study_store.dart';
 import '../core/database/database.dart';
 import '../core/platform/attachment_store.dart';
 import '../core/platform/key_store.dart';
@@ -31,6 +35,9 @@ class AppController extends ChangeNotifier {
   final KeyStore keys;
   final ChatProvider provider;
   final bool demo;
+  late final StudyStore study = StudyStore(db, files);
+  ToolApproval? pendingTool;
+  Completer<bool>? _toolDecision;
   late ProviderConfig config;
   List<ChatSession> sessions = [];
   List<ChatSession> allSessions = [];
@@ -138,6 +145,46 @@ class AppController extends ChangeNotifier {
         ),
       );
     }
+    final note = await study.saveKnowledge(
+      const KnowledgeDraft(
+        title: '从配方理解二次函数的顶点',
+        content: MockChatProvider.explanation,
+        kind: '解题方法',
+        chapter: '函数 · 二次函数',
+        tags: ['配方', '顶点', '代数'],
+      ),
+      sourceSessionId: s.id,
+      sourceMessageId: 'demo-answer',
+    );
+    final wrong = await study.saveMistake(
+      const MistakeDraft(
+        title: '顶点的纵坐标为什么不是常数项？',
+        question: r'已知 $g(x)=x^2-6x+5$，求顶点坐标与最小值。',
+        chapter: '函数 · 二次函数',
+        originalAnswer: '(3, 5)',
+        correctAnswer: '(3, -4)，最小值 -4',
+        ownAnalysis: '我用对称轴公式得到了3，但把常数5直接作为顶点的纵坐标。',
+        aiAnalysis: r'配方得到 $g(x)=(x-3)^2-4$。平方项为零时，函数取最小值。顶点为 $(3,-4)$。',
+        suggestedReason: '可能混淆常数项与顶点纵坐标，需要再独立尝试一道题确认。',
+        tags: ['二次函数', '易错点'],
+      ),
+      sourceSessionId: s.id,
+      sourceMessageId: 'demo-user',
+    );
+    await study.link(note.id, mistakeId: wrong.id);
+    final asset = await rootBundle.load('assets/demo/two_problems.png');
+    final file = files.resolve('attachments/demo-two-problems.png');
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(
+      asset.buffer.asUint8List(asset.offsetInBytes, asset.lengthInBytes),
+    );
+    await study.addImageReference(
+      wrong.id,
+      'attachments/demo-two-problems.png',
+      'image/png',
+      asset.lengthInBytes,
+      isMistake: true,
+    );
     await db.setPreference('selected_session', s.id);
   }
 
@@ -218,6 +265,60 @@ class AppController extends ChangeNotifier {
       await db.saveDraft(s.id, value);
     } catch (_) {
       error = '草稿保存失败，请检查可用存储空间。';
+      changed();
+    }
+  }
+
+  Future<void> setTools(bool enabled) async {
+    if (busy || selected == null) return;
+    if (enabled && (!config.supportsTools || config.thinking)) {
+      throw const AiFailure('资料工具需要支持工具调用的模型，并关闭深度思考。');
+    }
+    final row = selected!.copyWith(toolsEnabled: enabled);
+    await db.update(db.chatSessions).replace(row);
+    selected = row;
+    changed();
+  }
+
+  void decideTool(bool approve) {
+    if (_toolDecision?.isCompleted == false) _toolDecision!.complete(approve);
+  }
+
+  Future<bool> _confirmTool(
+    String name,
+    Map<String, dynamic> args,
+    CancelToken cancel, {
+    int imageCount = 0,
+  }) async {
+    cancel.checkCancelled();
+    var target = '';
+    if (name.endsWith('knowledge') && args['id'] is String) {
+      target = (await study.knowledge(args['id'] as String)).title;
+    }
+    if (name.endsWith('mistake') && args['id'] is String) {
+      target = (await study.mistake(args['id'] as String)).title;
+    }
+    if (name == 'link_mistake_to_knowledge') {
+      target =
+          '${(await study.mistake(args['mistake_id'] as String)).title} ↔ ${(await study.knowledge(args['knowledge_id'] as String)).title}';
+    }
+    final decision = Completer<bool>();
+    _toolDecision = decision;
+    pendingTool = ToolApproval(
+      name,
+      Map.unmodifiable(args),
+      target,
+      imageCount,
+    );
+    changed();
+    try {
+      return await Future.any([
+        decision.future,
+        cancel.whenCancel.then((_) => false),
+      ]);
+    } finally {
+      _toolDecision = null;
+      pendingTool = null;
       changed();
     }
   }
@@ -402,20 +503,91 @@ class AppController extends ChangeNotifier {
         );
       }
       cancel.checkCancelled();
-      await for (final chunk in provider.complete(
-        requestConfig,
-        key ?? '',
-        body,
-        cancel,
-      )) {
-        text += chunk.text;
-        tokens = chunk.tokens ?? tokens;
-        if (DateTime.now().difference(lastWrite).inMilliseconds >= 80) {
-          await _writeMessage(id, text, 'generating', null, tokens);
-          await _refreshSelected();
-          lastWrite = DateTime.now();
-        }
+      final toolsEnabled = selected!.toolsEnabled;
+      if (toolsEnabled &&
+          (!requestConfig.supportsTools || requestConfig.thinking)) {
+        throw const AiFailure('此会话启用了资料工具，请选择支持工具调用的模型并关闭深度思考，或关闭本会话资料工具。');
       }
+      if (toolsEnabled) {
+        body['tools'] = studyToolSchemas;
+        (body['messages'] as List).first['content'] = teachingPrompt(
+          selected!.mode,
+          toolsEnabled: true,
+        );
+      }
+      final contextIds = selectContextHistory(history).map((m) => m.id).toSet();
+      final sourceImages = attachments
+          .where((a) => a.messageId != null && contextIds.contains(a.messageId))
+          .toList();
+      final runner = StudyToolRunner(
+        study,
+        sessionId: sessionId,
+        runId: id,
+        authorized: toolsEnabled,
+        sourceImages: sourceImages,
+        confirm: (name, args) =>
+            _confirmTool(name, args, cancel, imageCount: sourceImages.length),
+      );
+      var finished = false;
+      var callsUsed = 0;
+      for (var round = 0; round < 4; round++) {
+        cancel.checkCancelled();
+        final collector = ToolCallCollector();
+        var roundText = '';
+        var roundTokens = 0;
+        String? finish;
+        await for (final chunk in provider.complete(
+          requestConfig,
+          key ?? '',
+          body,
+          cancel,
+        )) {
+          text += chunk.text;
+          roundText += chunk.text;
+          if (chunk.tokens != null) {
+            tokens = (tokens ?? 0) - roundTokens + chunk.tokens!;
+            roundTokens = chunk.tokens!;
+          }
+          finish = chunk.finish ?? finish;
+          if (chunk.toolParts.isNotEmpty) collector.add(chunk.toolParts);
+          if (DateTime.now().difference(lastWrite).inMilliseconds >= 80) {
+            await _writeMessage(id, text, 'generating', null, tokens);
+            await _refreshSelected();
+            lastWrite = DateTime.now();
+          }
+        }
+        final calls = collector.finish();
+        if (calls.isEmpty) {
+          if (finish == 'tool_calls') {
+            throw const AiFailure('模型声明调用工具，但没有提供完整调用。');
+          }
+          finished = true;
+          break;
+        }
+        if (!toolsEnabled) throw const AiFailure('模型尝试调用未授权的资料工具，已阻止。');
+        if (finish != 'tool_calls') {
+          throw const AiFailure('工具响应未正常结束，未执行本轮资料修改。');
+        }
+        callsUsed += calls.length;
+        if (callsUsed > 8) throw const AiFailure('已达到本次最多 8 个工具调用的限制。');
+        (body['messages'] as List).add({
+          'role': 'assistant',
+          'content': roundText,
+          'tool_calls': calls.map((c) => c.toJson()).toList(),
+        });
+        for (final call in calls) {
+          cancel.checkCancelled();
+          final result = await runner.execute(call, cancel);
+          cancel.checkCancelled();
+          (body['messages'] as List).add({
+            'role': 'tool',
+            'tool_call_id': call.id,
+            'content': jsonEncode(result),
+          });
+        }
+        if (text.isNotEmpty) text += '\n\n';
+      }
+      if (!finished) throw const AiFailure('已达到 4 轮工具调用限制。已完成的资料修改仍然保留，可继续提问。');
       if (text.trim().isEmpty) throw const AiFailure('模型没有返回可显示的正文，请重试。');
     } on AiFailure catch (e) {
       status = 'error';
@@ -430,6 +602,7 @@ class AppController extends ChangeNotifier {
       failure = '生成失败。请检查安全存储是否可用、图片文件及服务设置。';
     } finally {
       timer.cancel();
+      cancel.cancel('finished');
       try {
         await _writeMessage(id, text, status, failure, tokens);
         await (db.update(
@@ -477,16 +650,8 @@ class AppController extends ChangeNotifier {
 
   Future<void> regenerate() async {
     if (busy || selected == null || messages.isEmpty) return;
-    await _startRequest(() async {
-      final last = messages.last;
-      if (last.role == 'assistant') {
-        await (db.delete(
-          db.chatMessages,
-        )..where((m) => m.id.equals(last.id))).go();
-      }
-      await _refreshSelected();
-      return selected!.id;
-    });
+    final user = messages.where((m) => m.role == 'user').lastOrNull;
+    if (user != null) await editAndResend(user, user.content);
   }
 
   Future<void> editAndResend(ChatMessage message, String text) async {
@@ -496,8 +661,27 @@ class AppController extends ChangeNotifier {
     // Preserve original messages in a new branch so editing never destroys history.
     await _startRequest(() async {
       final originalImages = attachments;
+      final parent = selected!;
       final branch = await db.createSession(title: '${selected!.title} · 重问');
       await db.transaction(() async {
+        await db
+            .update(db.chatSessions)
+            .replace(
+              branch.copyWith(
+                mode: parent.mode,
+                toolsEnabled: parent.toolsEnabled,
+              ),
+            );
+        final links = await (db.select(
+          db.studyChatLinks,
+        )..where((t) => t.sessionId.equals(parent.id))).get();
+        for (final link in links) {
+          await db
+              .into(db.studyChatLinks)
+              .insert(
+                link.copyWith(id: const Uuid().v4(), sessionId: branch.id),
+              );
+        }
         for (final m in messages.take(index + 1)) {
           final newId = const Uuid().v4();
           await db
@@ -588,4 +772,16 @@ class AppController extends ChangeNotifier {
       await files.root.delete(recursive: true);
     }
   }
+}
+
+class ToolApproval {
+  const ToolApproval(
+    this.name,
+    this.arguments,
+    this.target, [
+    this.imageCount = 0,
+  ]);
+  final String name, target;
+  final int imageCount;
+  final Map<String, dynamic> arguments;
 }

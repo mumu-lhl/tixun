@@ -12,6 +12,7 @@ import '../../core/database/database.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/learning_markdown.dart';
 import 'session_list.dart';
+import '../library/chat_study_actions.dart';
 
 class ChatScreen extends ConsumerWidget {
   const ChatScreen({super.key});
@@ -81,6 +82,53 @@ class ChatScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      tooltip: c.selected?.toolsEnabled == true
+                          ? '关闭本会话资料工具'
+                          : '开启本会话资料工具',
+                      onPressed: c.busy || c.selected == null
+                          ? null
+                          : () => act(context, () async {
+                              if (c.selected!.toolsEnabled) {
+                                await c.setTools(false);
+                                return;
+                              }
+                              final approve = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('允许本会话使用学习资料？'),
+                                  content: const Text(
+                                    'AI 可以检索相关知识和错题，并读取选中的资料正文。新增、修改、删除和关联仍须由你逐项确认。图片不会通过检索工具自动上传。',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('取消'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text('允许'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (approve == true) await c.setTools(true);
+                            }),
+                      icon: Icon(
+                        c.selected?.toolsEnabled == true
+                            ? Icons.auto_stories
+                            : Icons.auto_stories_outlined,
+                        size: 21,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '关联学习资料',
+                      onPressed: () =>
+                          act(context, () => openChatStudyLinks(context, ref)),
+                      icon: const Icon(Icons.link, size: 21),
                     ),
                     IconButton(
                       tooltip: '模型设置',
@@ -304,17 +352,23 @@ class _ConversationState extends ConsumerState<Conversation> {
                         horizontal: 20,
                         vertical: 24,
                       ),
-                      itemCount: c.messages.length,
-                      itemBuilder: (context, index) => Align(
-                        alignment: Alignment.topCenter,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 790),
-                          child: MessageView(
-                            message: c.messages[index],
-                            isLast: index == c.messages.length - 1,
-                          ),
-                        ),
-                      ),
+                      itemCount:
+                          c.messages.length + (c.pendingTool != null ? 1 : 0),
+                      itemBuilder: (context, index) =>
+                          index == c.messages.length
+                          ? const ToolApprovalCard()
+                          : Align(
+                              alignment: Alignment.topCenter,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 790,
+                                ),
+                                child: MessageView(
+                                  message: c.messages[index],
+                                  isLast: index == c.messages.length - 1,
+                                ),
+                              ),
+                            ),
                     ),
             ),
             if (c.messages.isNotEmpty && !c.busy)
@@ -664,6 +718,7 @@ class MessageView extends ConsumerWidget {
                     ),
                   )
                 : LearningMarkdown(message.content),
+          if (!user) ToolHistory(message.id),
           if (message.status == 'generating')
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -672,14 +727,20 @@ class MessageView extends ConsumerWidget {
                   SizedBox(
                     width: 12,
                     height: 12,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colors.primary,
-                    ),
+                    child: c.pendingTool == null
+                        ? CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colors.primary,
+                          )
+                        : Icon(
+                            Icons.fact_check_outlined,
+                            size: 12,
+                            color: colors.primary,
+                          ),
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '正在思考与组织回答…',
+                    c.pendingTool == null ? '正在思考与组织回答…' : '等待确认资料操作…',
                     style: TextStyle(
                       fontSize: 12,
                       color: colors.onSurfaceVariant,
@@ -718,6 +779,7 @@ class MessageView extends ConsumerWidget {
                     }
                   },
                 ),
+                ChatStudyMenu(message: message),
                 if (user)
                   IconButton(
                     tooltip: '编辑并在新分支重问',

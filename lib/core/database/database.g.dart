@@ -47,6 +47,21 @@ class $ChatSessionsTable extends ChatSessions
     requiredDuringInsert: false,
     defaultValue: const Constant('diagnosing'),
   );
+  static const VerificationMeta _toolsEnabledMeta = const VerificationMeta(
+    'toolsEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> toolsEnabled = GeneratedColumn<bool>(
+    'tools_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("tools_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _draftMeta = const VerificationMeta('draft');
   @override
   late final GeneratedColumn<String> draft = GeneratedColumn<String>(
@@ -100,6 +115,7 @@ class $ChatSessionsTable extends ChatSessions
     title,
     mode,
     stage,
+    toolsEnabled,
     draft,
     createdAt,
     updatedAt,
@@ -140,6 +156,15 @@ class $ChatSessionsTable extends ChatSessions
       context.handle(
         _stageMeta,
         stage.isAcceptableOrUnknown(data['stage']!, _stageMeta),
+      );
+    }
+    if (data.containsKey('tools_enabled')) {
+      context.handle(
+        _toolsEnabledMeta,
+        toolsEnabled.isAcceptableOrUnknown(
+          data['tools_enabled']!,
+          _toolsEnabledMeta,
+        ),
       );
     }
     if (data.containsKey('draft')) {
@@ -195,6 +220,10 @@ class $ChatSessionsTable extends ChatSessions
         DriftSqlType.string,
         data['${effectivePrefix}stage'],
       )!,
+      toolsEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}tools_enabled'],
+      )!,
       draft: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}draft'],
@@ -225,6 +254,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
   final String title;
   final String mode;
   final String stage;
+  final bool toolsEnabled;
   final String draft;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -234,6 +264,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     required this.title,
     required this.mode,
     required this.stage,
+    required this.toolsEnabled,
     required this.draft,
     required this.createdAt,
     required this.updatedAt,
@@ -246,6 +277,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     map['title'] = Variable<String>(title);
     map['mode'] = Variable<String>(mode);
     map['stage'] = Variable<String>(stage);
+    map['tools_enabled'] = Variable<bool>(toolsEnabled);
     map['draft'] = Variable<String>(draft);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -259,6 +291,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       title: Value(title),
       mode: Value(mode),
       stage: Value(stage),
+      toolsEnabled: Value(toolsEnabled),
       draft: Value(draft),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -276,6 +309,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       title: serializer.fromJson<String>(json['title']),
       mode: serializer.fromJson<String>(json['mode']),
       stage: serializer.fromJson<String>(json['stage']),
+      toolsEnabled: serializer.fromJson<bool>(json['toolsEnabled']),
       draft: serializer.fromJson<String>(json['draft']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -290,6 +324,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       'title': serializer.toJson<String>(title),
       'mode': serializer.toJson<String>(mode),
       'stage': serializer.toJson<String>(stage),
+      'toolsEnabled': serializer.toJson<bool>(toolsEnabled),
       'draft': serializer.toJson<String>(draft),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -302,6 +337,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     String? title,
     String? mode,
     String? stage,
+    bool? toolsEnabled,
     String? draft,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -311,6 +347,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     title: title ?? this.title,
     mode: mode ?? this.mode,
     stage: stage ?? this.stage,
+    toolsEnabled: toolsEnabled ?? this.toolsEnabled,
     draft: draft ?? this.draft,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -322,6 +359,9 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       title: data.title.present ? data.title.value : this.title,
       mode: data.mode.present ? data.mode.value : this.mode,
       stage: data.stage.present ? data.stage.value : this.stage,
+      toolsEnabled: data.toolsEnabled.present
+          ? data.toolsEnabled.value
+          : this.toolsEnabled,
       draft: data.draft.present ? data.draft.value : this.draft,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -336,6 +376,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
           ..write('title: $title, ')
           ..write('mode: $mode, ')
           ..write('stage: $stage, ')
+          ..write('toolsEnabled: $toolsEnabled, ')
           ..write('draft: $draft, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -345,8 +386,17 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, mode, stage, draft, createdAt, updatedAt, deleted);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    mode,
+    stage,
+    toolsEnabled,
+    draft,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -355,6 +405,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
           other.title == this.title &&
           other.mode == this.mode &&
           other.stage == this.stage &&
+          other.toolsEnabled == this.toolsEnabled &&
           other.draft == this.draft &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -366,6 +417,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
   final Value<String> title;
   final Value<String> mode;
   final Value<String> stage;
+  final Value<bool> toolsEnabled;
   final Value<String> draft;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -376,6 +428,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     this.title = const Value.absent(),
     this.mode = const Value.absent(),
     this.stage = const Value.absent(),
+    this.toolsEnabled = const Value.absent(),
     this.draft = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -387,6 +440,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     required String title,
     this.mode = const Value.absent(),
     this.stage = const Value.absent(),
+    this.toolsEnabled = const Value.absent(),
     this.draft = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -401,6 +455,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     Expression<String>? title,
     Expression<String>? mode,
     Expression<String>? stage,
+    Expression<bool>? toolsEnabled,
     Expression<String>? draft,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -412,6 +467,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
       if (title != null) 'title': title,
       if (mode != null) 'mode': mode,
       if (stage != null) 'stage': stage,
+      if (toolsEnabled != null) 'tools_enabled': toolsEnabled,
       if (draft != null) 'draft': draft,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -425,6 +481,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     Value<String>? title,
     Value<String>? mode,
     Value<String>? stage,
+    Value<bool>? toolsEnabled,
     Value<String>? draft,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -436,6 +493,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
       title: title ?? this.title,
       mode: mode ?? this.mode,
       stage: stage ?? this.stage,
+      toolsEnabled: toolsEnabled ?? this.toolsEnabled,
       draft: draft ?? this.draft,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -458,6 +516,9 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     }
     if (stage.present) {
       map['stage'] = Variable<String>(stage.value);
+    }
+    if (toolsEnabled.present) {
+      map['tools_enabled'] = Variable<bool>(toolsEnabled.value);
     }
     if (draft.present) {
       map['draft'] = Variable<String>(draft.value);
@@ -484,6 +545,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
           ..write('title: $title, ')
           ..write('mode: $mode, ')
           ..write('stage: $stage, ')
+          ..write('toolsEnabled: $toolsEnabled, ')
           ..write('draft: $draft, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1539,6 +1601,21 @@ class $ProviderConfigsTable extends ProviderConfigs
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _supportsToolsMeta = const VerificationMeta(
+    'supportsTools',
+  );
+  @override
+  late final GeneratedColumn<bool> supportsTools = GeneratedColumn<bool>(
+    'supports_tools',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("supports_tools" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   static const VerificationMeta _thinkingMeta = const VerificationMeta(
     'thinking',
   );
@@ -1586,6 +1663,7 @@ class $ProviderConfigsTable extends ProviderConfigs
     baseUrl,
     model,
     vision,
+    supportsTools,
     thinking,
     supportsThinking,
     effort,
@@ -1627,6 +1705,15 @@ class $ProviderConfigsTable extends ProviderConfigs
       context.handle(
         _visionMeta,
         vision.isAcceptableOrUnknown(data['vision']!, _visionMeta),
+      );
+    }
+    if (data.containsKey('supports_tools')) {
+      context.handle(
+        _supportsToolsMeta,
+        supportsTools.isAcceptableOrUnknown(
+          data['supports_tools']!,
+          _supportsToolsMeta,
+        ),
       );
     }
     if (data.containsKey('thinking')) {
@@ -1679,6 +1766,10 @@ class $ProviderConfigsTable extends ProviderConfigs
         DriftSqlType.bool,
         data['${effectivePrefix}vision'],
       )!,
+      supportsTools: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}supports_tools'],
+      )!,
       thinking: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}thinking'],
@@ -1706,6 +1797,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
   final String baseUrl;
   final String model;
   final bool vision;
+  final bool supportsTools;
   final bool thinking;
   final bool supportsThinking;
   final String effort;
@@ -1715,6 +1807,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     required this.baseUrl,
     required this.model,
     required this.vision,
+    required this.supportsTools,
     required this.thinking,
     required this.supportsThinking,
     required this.effort,
@@ -1727,6 +1820,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     map['base_url'] = Variable<String>(baseUrl);
     map['model'] = Variable<String>(model);
     map['vision'] = Variable<bool>(vision);
+    map['supports_tools'] = Variable<bool>(supportsTools);
     map['thinking'] = Variable<bool>(thinking);
     map['supports_thinking'] = Variable<bool>(supportsThinking);
     map['effort'] = Variable<String>(effort);
@@ -1740,6 +1834,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
       baseUrl: Value(baseUrl),
       model: Value(model),
       vision: Value(vision),
+      supportsTools: Value(supportsTools),
       thinking: Value(thinking),
       supportsThinking: Value(supportsThinking),
       effort: Value(effort),
@@ -1757,6 +1852,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
       baseUrl: serializer.fromJson<String>(json['baseUrl']),
       model: serializer.fromJson<String>(json['model']),
       vision: serializer.fromJson<bool>(json['vision']),
+      supportsTools: serializer.fromJson<bool>(json['supportsTools']),
       thinking: serializer.fromJson<bool>(json['thinking']),
       supportsThinking: serializer.fromJson<bool>(json['supportsThinking']),
       effort: serializer.fromJson<String>(json['effort']),
@@ -1771,6 +1867,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
       'baseUrl': serializer.toJson<String>(baseUrl),
       'model': serializer.toJson<String>(model),
       'vision': serializer.toJson<bool>(vision),
+      'supportsTools': serializer.toJson<bool>(supportsTools),
       'thinking': serializer.toJson<bool>(thinking),
       'supportsThinking': serializer.toJson<bool>(supportsThinking),
       'effort': serializer.toJson<String>(effort),
@@ -1783,6 +1880,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     String? baseUrl,
     String? model,
     bool? vision,
+    bool? supportsTools,
     bool? thinking,
     bool? supportsThinking,
     String? effort,
@@ -1792,6 +1890,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     baseUrl: baseUrl ?? this.baseUrl,
     model: model ?? this.model,
     vision: vision ?? this.vision,
+    supportsTools: supportsTools ?? this.supportsTools,
     thinking: thinking ?? this.thinking,
     supportsThinking: supportsThinking ?? this.supportsThinking,
     effort: effort ?? this.effort,
@@ -1803,6 +1902,9 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
       baseUrl: data.baseUrl.present ? data.baseUrl.value : this.baseUrl,
       model: data.model.present ? data.model.value : this.model,
       vision: data.vision.present ? data.vision.value : this.vision,
+      supportsTools: data.supportsTools.present
+          ? data.supportsTools.value
+          : this.supportsTools,
       thinking: data.thinking.present ? data.thinking.value : this.thinking,
       supportsThinking: data.supportsThinking.present
           ? data.supportsThinking.value
@@ -1819,6 +1921,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
           ..write('baseUrl: $baseUrl, ')
           ..write('model: $model, ')
           ..write('vision: $vision, ')
+          ..write('supportsTools: $supportsTools, ')
           ..write('thinking: $thinking, ')
           ..write('supportsThinking: $supportsThinking, ')
           ..write('effort: $effort')
@@ -1833,6 +1936,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     baseUrl,
     model,
     vision,
+    supportsTools,
     thinking,
     supportsThinking,
     effort,
@@ -1846,6 +1950,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
           other.baseUrl == this.baseUrl &&
           other.model == this.model &&
           other.vision == this.vision &&
+          other.supportsTools == this.supportsTools &&
           other.thinking == this.thinking &&
           other.supportsThinking == this.supportsThinking &&
           other.effort == this.effort);
@@ -1857,6 +1962,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
   final Value<String> baseUrl;
   final Value<String> model;
   final Value<bool> vision;
+  final Value<bool> supportsTools;
   final Value<bool> thinking;
   final Value<bool> supportsThinking;
   final Value<String> effort;
@@ -1866,6 +1972,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     this.baseUrl = const Value.absent(),
     this.model = const Value.absent(),
     this.vision = const Value.absent(),
+    this.supportsTools = const Value.absent(),
     this.thinking = const Value.absent(),
     this.supportsThinking = const Value.absent(),
     this.effort = const Value.absent(),
@@ -1876,6 +1983,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     this.baseUrl = const Value.absent(),
     this.model = const Value.absent(),
     this.vision = const Value.absent(),
+    this.supportsTools = const Value.absent(),
     this.thinking = const Value.absent(),
     this.supportsThinking = const Value.absent(),
     this.effort = const Value.absent(),
@@ -1886,6 +1994,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     Expression<String>? baseUrl,
     Expression<String>? model,
     Expression<bool>? vision,
+    Expression<bool>? supportsTools,
     Expression<bool>? thinking,
     Expression<bool>? supportsThinking,
     Expression<String>? effort,
@@ -1896,6 +2005,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
       if (baseUrl != null) 'base_url': baseUrl,
       if (model != null) 'model': model,
       if (vision != null) 'vision': vision,
+      if (supportsTools != null) 'supports_tools': supportsTools,
       if (thinking != null) 'thinking': thinking,
       if (supportsThinking != null) 'supports_thinking': supportsThinking,
       if (effort != null) 'effort': effort,
@@ -1908,6 +2018,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     Value<String>? baseUrl,
     Value<String>? model,
     Value<bool>? vision,
+    Value<bool>? supportsTools,
     Value<bool>? thinking,
     Value<bool>? supportsThinking,
     Value<String>? effort,
@@ -1918,6 +2029,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
       baseUrl: baseUrl ?? this.baseUrl,
       model: model ?? this.model,
       vision: vision ?? this.vision,
+      supportsTools: supportsTools ?? this.supportsTools,
       thinking: thinking ?? this.thinking,
       supportsThinking: supportsThinking ?? this.supportsThinking,
       effort: effort ?? this.effort,
@@ -1942,6 +2054,9 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     if (vision.present) {
       map['vision'] = Variable<bool>(vision.value);
     }
+    if (supportsTools.present) {
+      map['supports_tools'] = Variable<bool>(supportsTools.value);
+    }
     if (thinking.present) {
       map['thinking'] = Variable<bool>(thinking.value);
     }
@@ -1962,6 +2077,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
           ..write('baseUrl: $baseUrl, ')
           ..write('model: $model, ')
           ..write('vision: $vision, ')
+          ..write('supportsTools: $supportsTools, ')
           ..write('thinking: $thinking, ')
           ..write('supportsThinking: $supportsThinking, ')
           ..write('effort: $effort')
@@ -2178,9 +2294,4586 @@ class PreferencesCompanion extends UpdateCompanion<Preference> {
   }
 }
 
+class $KnowledgeItemsTable extends KnowledgeItems
+    with TableInfo<$KnowledgeItemsTable, KnowledgeItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KnowledgeItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('个人笔记'),
+  );
+  static const VerificationMeta _chapterMeta = const VerificationMeta(
+    'chapter',
+  );
+  @override
+  late final GeneratedColumn<String> chapter = GeneratedColumn<String>(
+    'chapter',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _sourceSessionIdMeta = const VerificationMeta(
+    'sourceSessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceSessionId = GeneratedColumn<String>(
+    'source_session_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_sessions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _sourceMessageIdMeta = const VerificationMeta(
+    'sourceMessageId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceMessageId = GeneratedColumn<String>(
+    'source_message_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_messages (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    content,
+    subject,
+    kind,
+    chapter,
+    revision,
+    sourceSessionId,
+    sourceMessageId,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'knowledge_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KnowledgeItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
+    if (data.containsKey('chapter')) {
+      context.handle(
+        _chapterMeta,
+        chapter.isAcceptableOrUnknown(data['chapter']!, _chapterMeta),
+      );
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    }
+    if (data.containsKey('source_session_id')) {
+      context.handle(
+        _sourceSessionIdMeta,
+        sourceSessionId.isAcceptableOrUnknown(
+          data['source_session_id']!,
+          _sourceSessionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_message_id')) {
+      context.handle(
+        _sourceMessageIdMeta,
+        sourceMessageId.isAcceptableOrUnknown(
+          data['source_message_id']!,
+          _sourceMessageIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  KnowledgeItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KnowledgeItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      chapter: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chapter'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+      sourceSessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_session_id'],
+      ),
+      sourceMessageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_message_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $KnowledgeItemsTable createAlias(String alias) {
+    return $KnowledgeItemsTable(attachedDatabase, alias);
+  }
+}
+
+class KnowledgeItem extends DataClass implements Insertable<KnowledgeItem> {
+  final String id;
+  final String title;
+  final String content;
+  final String subject;
+  final String kind;
+  final String chapter;
+  final int revision;
+  final String? sourceSessionId;
+  final String? sourceMessageId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const KnowledgeItem({
+    required this.id,
+    required this.title,
+    required this.content,
+    required this.subject,
+    required this.kind,
+    required this.chapter,
+    required this.revision,
+    this.sourceSessionId,
+    this.sourceMessageId,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['content'] = Variable<String>(content);
+    map['subject'] = Variable<String>(subject);
+    map['kind'] = Variable<String>(kind);
+    map['chapter'] = Variable<String>(chapter);
+    map['revision'] = Variable<int>(revision);
+    if (!nullToAbsent || sourceSessionId != null) {
+      map['source_session_id'] = Variable<String>(sourceSessionId);
+    }
+    if (!nullToAbsent || sourceMessageId != null) {
+      map['source_message_id'] = Variable<String>(sourceMessageId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  KnowledgeItemsCompanion toCompanion(bool nullToAbsent) {
+    return KnowledgeItemsCompanion(
+      id: Value(id),
+      title: Value(title),
+      content: Value(content),
+      subject: Value(subject),
+      kind: Value(kind),
+      chapter: Value(chapter),
+      revision: Value(revision),
+      sourceSessionId: sourceSessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceSessionId),
+      sourceMessageId: sourceMessageId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceMessageId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory KnowledgeItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KnowledgeItem(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      content: serializer.fromJson<String>(json['content']),
+      subject: serializer.fromJson<String>(json['subject']),
+      kind: serializer.fromJson<String>(json['kind']),
+      chapter: serializer.fromJson<String>(json['chapter']),
+      revision: serializer.fromJson<int>(json['revision']),
+      sourceSessionId: serializer.fromJson<String?>(json['sourceSessionId']),
+      sourceMessageId: serializer.fromJson<String?>(json['sourceMessageId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'content': serializer.toJson<String>(content),
+      'subject': serializer.toJson<String>(subject),
+      'kind': serializer.toJson<String>(kind),
+      'chapter': serializer.toJson<String>(chapter),
+      'revision': serializer.toJson<int>(revision),
+      'sourceSessionId': serializer.toJson<String?>(sourceSessionId),
+      'sourceMessageId': serializer.toJson<String?>(sourceMessageId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  KnowledgeItem copyWith({
+    String? id,
+    String? title,
+    String? content,
+    String? subject,
+    String? kind,
+    String? chapter,
+    int? revision,
+    Value<String?> sourceSessionId = const Value.absent(),
+    Value<String?> sourceMessageId = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => KnowledgeItem(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    content: content ?? this.content,
+    subject: subject ?? this.subject,
+    kind: kind ?? this.kind,
+    chapter: chapter ?? this.chapter,
+    revision: revision ?? this.revision,
+    sourceSessionId: sourceSessionId.present
+        ? sourceSessionId.value
+        : this.sourceSessionId,
+    sourceMessageId: sourceMessageId.present
+        ? sourceMessageId.value
+        : this.sourceMessageId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  KnowledgeItem copyWithCompanion(KnowledgeItemsCompanion data) {
+    return KnowledgeItem(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      content: data.content.present ? data.content.value : this.content,
+      subject: data.subject.present ? data.subject.value : this.subject,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      chapter: data.chapter.present ? data.chapter.value : this.chapter,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      sourceSessionId: data.sourceSessionId.present
+          ? data.sourceSessionId.value
+          : this.sourceSessionId,
+      sourceMessageId: data.sourceMessageId.present
+          ? data.sourceMessageId.value
+          : this.sourceMessageId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeItem(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('subject: $subject, ')
+          ..write('kind: $kind, ')
+          ..write('chapter: $chapter, ')
+          ..write('revision: $revision, ')
+          ..write('sourceSessionId: $sourceSessionId, ')
+          ..write('sourceMessageId: $sourceMessageId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    title,
+    content,
+    subject,
+    kind,
+    chapter,
+    revision,
+    sourceSessionId,
+    sourceMessageId,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KnowledgeItem &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.content == this.content &&
+          other.subject == this.subject &&
+          other.kind == this.kind &&
+          other.chapter == this.chapter &&
+          other.revision == this.revision &&
+          other.sourceSessionId == this.sourceSessionId &&
+          other.sourceMessageId == this.sourceMessageId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class KnowledgeItemsCompanion extends UpdateCompanion<KnowledgeItem> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String> content;
+  final Value<String> subject;
+  final Value<String> kind;
+  final Value<String> chapter;
+  final Value<int> revision;
+  final Value<String?> sourceSessionId;
+  final Value<String?> sourceMessageId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const KnowledgeItemsCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.content = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.chapter = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.sourceSessionId = const Value.absent(),
+    this.sourceMessageId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  KnowledgeItemsCompanion.insert({
+    required String id,
+    required String title,
+    required String content,
+    required String subject,
+    this.kind = const Value.absent(),
+    this.chapter = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.sourceSessionId = const Value.absent(),
+    this.sourceMessageId = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       content = Value(content),
+       subject = Value(subject),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<KnowledgeItem> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? content,
+    Expression<String>? subject,
+    Expression<String>? kind,
+    Expression<String>? chapter,
+    Expression<int>? revision,
+    Expression<String>? sourceSessionId,
+    Expression<String>? sourceMessageId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (content != null) 'content': content,
+      if (subject != null) 'subject': subject,
+      if (kind != null) 'kind': kind,
+      if (chapter != null) 'chapter': chapter,
+      if (revision != null) 'revision': revision,
+      if (sourceSessionId != null) 'source_session_id': sourceSessionId,
+      if (sourceMessageId != null) 'source_message_id': sourceMessageId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  KnowledgeItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String>? content,
+    Value<String>? subject,
+    Value<String>? kind,
+    Value<String>? chapter,
+    Value<int>? revision,
+    Value<String?>? sourceSessionId,
+    Value<String?>? sourceMessageId,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return KnowledgeItemsCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      subject: subject ?? this.subject,
+      kind: kind ?? this.kind,
+      chapter: chapter ?? this.chapter,
+      revision: revision ?? this.revision,
+      sourceSessionId: sourceSessionId ?? this.sourceSessionId,
+      sourceMessageId: sourceMessageId ?? this.sourceMessageId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (chapter.present) {
+      map['chapter'] = Variable<String>(chapter.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (sourceSessionId.present) {
+      map['source_session_id'] = Variable<String>(sourceSessionId.value);
+    }
+    if (sourceMessageId.present) {
+      map['source_message_id'] = Variable<String>(sourceMessageId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('subject: $subject, ')
+          ..write('kind: $kind, ')
+          ..write('chapter: $chapter, ')
+          ..write('revision: $revision, ')
+          ..write('sourceSessionId: $sourceSessionId, ')
+          ..write('sourceMessageId: $sourceMessageId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $KnowledgeRevisionsTable extends KnowledgeRevisions
+    with TableInfo<$KnowledgeRevisionsTable, KnowledgeRevision> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KnowledgeRevisionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _knowledgeIdMeta = const VerificationMeta(
+    'knowledgeId',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeId = GeneratedColumn<String>(
+    'knowledge_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _chapterMeta = const VerificationMeta(
+    'chapter',
+  );
+  @override
+  late final GeneratedColumn<String> chapter = GeneratedColumn<String>(
+    'chapter',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tagsSnapshotMeta = const VerificationMeta(
+    'tagsSnapshot',
+  );
+  @override
+  late final GeneratedColumn<String> tagsSnapshot = GeneratedColumn<String>(
+    'tags_snapshot',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    knowledgeId,
+    revision,
+    title,
+    content,
+    subject,
+    kind,
+    chapter,
+    tagsSnapshot,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'knowledge_revisions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KnowledgeRevision> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('knowledge_id')) {
+      context.handle(
+        _knowledgeIdMeta,
+        knowledgeId.isAcceptableOrUnknown(
+          data['knowledge_id']!,
+          _knowledgeIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_knowledgeIdMeta);
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('chapter')) {
+      context.handle(
+        _chapterMeta,
+        chapter.isAcceptableOrUnknown(data['chapter']!, _chapterMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_chapterMeta);
+    }
+    if (data.containsKey('tags_snapshot')) {
+      context.handle(
+        _tagsSnapshotMeta,
+        tagsSnapshot.isAcceptableOrUnknown(
+          data['tags_snapshot']!,
+          _tagsSnapshotMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_tagsSnapshotMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {knowledgeId, revision};
+  @override
+  KnowledgeRevision map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KnowledgeRevision(
+      knowledgeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_id'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      chapter: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chapter'],
+      )!,
+      tagsSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags_snapshot'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $KnowledgeRevisionsTable createAlias(String alias) {
+    return $KnowledgeRevisionsTable(attachedDatabase, alias);
+  }
+}
+
+class KnowledgeRevision extends DataClass
+    implements Insertable<KnowledgeRevision> {
+  final String knowledgeId;
+  final int revision;
+  final String title;
+  final String content;
+  final String subject;
+  final String kind;
+  final String chapter;
+  final String tagsSnapshot;
+  final DateTime createdAt;
+  const KnowledgeRevision({
+    required this.knowledgeId,
+    required this.revision,
+    required this.title,
+    required this.content,
+    required this.subject,
+    required this.kind,
+    required this.chapter,
+    required this.tagsSnapshot,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['knowledge_id'] = Variable<String>(knowledgeId);
+    map['revision'] = Variable<int>(revision);
+    map['title'] = Variable<String>(title);
+    map['content'] = Variable<String>(content);
+    map['subject'] = Variable<String>(subject);
+    map['kind'] = Variable<String>(kind);
+    map['chapter'] = Variable<String>(chapter);
+    map['tags_snapshot'] = Variable<String>(tagsSnapshot);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  KnowledgeRevisionsCompanion toCompanion(bool nullToAbsent) {
+    return KnowledgeRevisionsCompanion(
+      knowledgeId: Value(knowledgeId),
+      revision: Value(revision),
+      title: Value(title),
+      content: Value(content),
+      subject: Value(subject),
+      kind: Value(kind),
+      chapter: Value(chapter),
+      tagsSnapshot: Value(tagsSnapshot),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory KnowledgeRevision.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KnowledgeRevision(
+      knowledgeId: serializer.fromJson<String>(json['knowledgeId']),
+      revision: serializer.fromJson<int>(json['revision']),
+      title: serializer.fromJson<String>(json['title']),
+      content: serializer.fromJson<String>(json['content']),
+      subject: serializer.fromJson<String>(json['subject']),
+      kind: serializer.fromJson<String>(json['kind']),
+      chapter: serializer.fromJson<String>(json['chapter']),
+      tagsSnapshot: serializer.fromJson<String>(json['tagsSnapshot']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'knowledgeId': serializer.toJson<String>(knowledgeId),
+      'revision': serializer.toJson<int>(revision),
+      'title': serializer.toJson<String>(title),
+      'content': serializer.toJson<String>(content),
+      'subject': serializer.toJson<String>(subject),
+      'kind': serializer.toJson<String>(kind),
+      'chapter': serializer.toJson<String>(chapter),
+      'tagsSnapshot': serializer.toJson<String>(tagsSnapshot),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  KnowledgeRevision copyWith({
+    String? knowledgeId,
+    int? revision,
+    String? title,
+    String? content,
+    String? subject,
+    String? kind,
+    String? chapter,
+    String? tagsSnapshot,
+    DateTime? createdAt,
+  }) => KnowledgeRevision(
+    knowledgeId: knowledgeId ?? this.knowledgeId,
+    revision: revision ?? this.revision,
+    title: title ?? this.title,
+    content: content ?? this.content,
+    subject: subject ?? this.subject,
+    kind: kind ?? this.kind,
+    chapter: chapter ?? this.chapter,
+    tagsSnapshot: tagsSnapshot ?? this.tagsSnapshot,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  KnowledgeRevision copyWithCompanion(KnowledgeRevisionsCompanion data) {
+    return KnowledgeRevision(
+      knowledgeId: data.knowledgeId.present
+          ? data.knowledgeId.value
+          : this.knowledgeId,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      title: data.title.present ? data.title.value : this.title,
+      content: data.content.present ? data.content.value : this.content,
+      subject: data.subject.present ? data.subject.value : this.subject,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      chapter: data.chapter.present ? data.chapter.value : this.chapter,
+      tagsSnapshot: data.tagsSnapshot.present
+          ? data.tagsSnapshot.value
+          : this.tagsSnapshot,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeRevision(')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('revision: $revision, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('subject: $subject, ')
+          ..write('kind: $kind, ')
+          ..write('chapter: $chapter, ')
+          ..write('tagsSnapshot: $tagsSnapshot, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    knowledgeId,
+    revision,
+    title,
+    content,
+    subject,
+    kind,
+    chapter,
+    tagsSnapshot,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KnowledgeRevision &&
+          other.knowledgeId == this.knowledgeId &&
+          other.revision == this.revision &&
+          other.title == this.title &&
+          other.content == this.content &&
+          other.subject == this.subject &&
+          other.kind == this.kind &&
+          other.chapter == this.chapter &&
+          other.tagsSnapshot == this.tagsSnapshot &&
+          other.createdAt == this.createdAt);
+}
+
+class KnowledgeRevisionsCompanion extends UpdateCompanion<KnowledgeRevision> {
+  final Value<String> knowledgeId;
+  final Value<int> revision;
+  final Value<String> title;
+  final Value<String> content;
+  final Value<String> subject;
+  final Value<String> kind;
+  final Value<String> chapter;
+  final Value<String> tagsSnapshot;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const KnowledgeRevisionsCompanion({
+    this.knowledgeId = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.title = const Value.absent(),
+    this.content = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.chapter = const Value.absent(),
+    this.tagsSnapshot = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  KnowledgeRevisionsCompanion.insert({
+    required String knowledgeId,
+    required int revision,
+    required String title,
+    required String content,
+    required String subject,
+    required String kind,
+    required String chapter,
+    required String tagsSnapshot,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : knowledgeId = Value(knowledgeId),
+       revision = Value(revision),
+       title = Value(title),
+       content = Value(content),
+       subject = Value(subject),
+       kind = Value(kind),
+       chapter = Value(chapter),
+       tagsSnapshot = Value(tagsSnapshot),
+       createdAt = Value(createdAt);
+  static Insertable<KnowledgeRevision> custom({
+    Expression<String>? knowledgeId,
+    Expression<int>? revision,
+    Expression<String>? title,
+    Expression<String>? content,
+    Expression<String>? subject,
+    Expression<String>? kind,
+    Expression<String>? chapter,
+    Expression<String>? tagsSnapshot,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (knowledgeId != null) 'knowledge_id': knowledgeId,
+      if (revision != null) 'revision': revision,
+      if (title != null) 'title': title,
+      if (content != null) 'content': content,
+      if (subject != null) 'subject': subject,
+      if (kind != null) 'kind': kind,
+      if (chapter != null) 'chapter': chapter,
+      if (tagsSnapshot != null) 'tags_snapshot': tagsSnapshot,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  KnowledgeRevisionsCompanion copyWith({
+    Value<String>? knowledgeId,
+    Value<int>? revision,
+    Value<String>? title,
+    Value<String>? content,
+    Value<String>? subject,
+    Value<String>? kind,
+    Value<String>? chapter,
+    Value<String>? tagsSnapshot,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return KnowledgeRevisionsCompanion(
+      knowledgeId: knowledgeId ?? this.knowledgeId,
+      revision: revision ?? this.revision,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      subject: subject ?? this.subject,
+      kind: kind ?? this.kind,
+      chapter: chapter ?? this.chapter,
+      tagsSnapshot: tagsSnapshot ?? this.tagsSnapshot,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (knowledgeId.present) {
+      map['knowledge_id'] = Variable<String>(knowledgeId.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (chapter.present) {
+      map['chapter'] = Variable<String>(chapter.value);
+    }
+    if (tagsSnapshot.present) {
+      map['tags_snapshot'] = Variable<String>(tagsSnapshot.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeRevisionsCompanion(')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('revision: $revision, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('subject: $subject, ')
+          ..write('kind: $kind, ')
+          ..write('chapter: $chapter, ')
+          ..write('tagsSnapshot: $tagsSnapshot, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MistakesTable extends Mistakes with TableInfo<$MistakesTable, Mistake> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MistakesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _questionMeta = const VerificationMeta(
+    'question',
+  );
+  @override
+  late final GeneratedColumn<String> question = GeneratedColumn<String>(
+    'question',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _chapterMeta = const VerificationMeta(
+    'chapter',
+  );
+  @override
+  late final GeneratedColumn<String> chapter = GeneratedColumn<String>(
+    'chapter',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _correctAnswerMeta = const VerificationMeta(
+    'correctAnswer',
+  );
+  @override
+  late final GeneratedColumn<String> correctAnswer = GeneratedColumn<String>(
+    'correct_answer',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _originalAnswerMeta = const VerificationMeta(
+    'originalAnswer',
+  );
+  @override
+  late final GeneratedColumn<String> originalAnswer = GeneratedColumn<String>(
+    'original_answer',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _ownAnalysisMeta = const VerificationMeta(
+    'ownAnalysis',
+  );
+  @override
+  late final GeneratedColumn<String> ownAnalysis = GeneratedColumn<String>(
+    'own_analysis',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _aiAnalysisMeta = const VerificationMeta(
+    'aiAnalysis',
+  );
+  @override
+  late final GeneratedColumn<String> aiAnalysis = GeneratedColumn<String>(
+    'ai_analysis',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _errorReasonMeta = const VerificationMeta(
+    'errorReason',
+  );
+  @override
+  late final GeneratedColumn<String> errorReason = GeneratedColumn<String>(
+    'error_reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('暂未确定'),
+  );
+  static const VerificationMeta _suggestedReasonMeta = const VerificationMeta(
+    'suggestedReason',
+  );
+  @override
+  late final GeneratedColumn<String> suggestedReason = GeneratedColumn<String>(
+    'suggested_reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _sourceSessionIdMeta = const VerificationMeta(
+    'sourceSessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceSessionId = GeneratedColumn<String>(
+    'source_session_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_sessions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _sourceMessageIdMeta = const VerificationMeta(
+    'sourceMessageId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceMessageId = GeneratedColumn<String>(
+    'source_message_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_messages (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    question,
+    subject,
+    chapter,
+    correctAnswer,
+    originalAnswer,
+    ownAnalysis,
+    aiAnalysis,
+    errorReason,
+    suggestedReason,
+    revision,
+    sourceSessionId,
+    sourceMessageId,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mistakes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Mistake> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('question')) {
+      context.handle(
+        _questionMeta,
+        question.isAcceptableOrUnknown(data['question']!, _questionMeta),
+      );
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    if (data.containsKey('chapter')) {
+      context.handle(
+        _chapterMeta,
+        chapter.isAcceptableOrUnknown(data['chapter']!, _chapterMeta),
+      );
+    }
+    if (data.containsKey('correct_answer')) {
+      context.handle(
+        _correctAnswerMeta,
+        correctAnswer.isAcceptableOrUnknown(
+          data['correct_answer']!,
+          _correctAnswerMeta,
+        ),
+      );
+    }
+    if (data.containsKey('original_answer')) {
+      context.handle(
+        _originalAnswerMeta,
+        originalAnswer.isAcceptableOrUnknown(
+          data['original_answer']!,
+          _originalAnswerMeta,
+        ),
+      );
+    }
+    if (data.containsKey('own_analysis')) {
+      context.handle(
+        _ownAnalysisMeta,
+        ownAnalysis.isAcceptableOrUnknown(
+          data['own_analysis']!,
+          _ownAnalysisMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ai_analysis')) {
+      context.handle(
+        _aiAnalysisMeta,
+        aiAnalysis.isAcceptableOrUnknown(data['ai_analysis']!, _aiAnalysisMeta),
+      );
+    }
+    if (data.containsKey('error_reason')) {
+      context.handle(
+        _errorReasonMeta,
+        errorReason.isAcceptableOrUnknown(
+          data['error_reason']!,
+          _errorReasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('suggested_reason')) {
+      context.handle(
+        _suggestedReasonMeta,
+        suggestedReason.isAcceptableOrUnknown(
+          data['suggested_reason']!,
+          _suggestedReasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    }
+    if (data.containsKey('source_session_id')) {
+      context.handle(
+        _sourceSessionIdMeta,
+        sourceSessionId.isAcceptableOrUnknown(
+          data['source_session_id']!,
+          _sourceSessionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_message_id')) {
+      context.handle(
+        _sourceMessageIdMeta,
+        sourceMessageId.isAcceptableOrUnknown(
+          data['source_message_id']!,
+          _sourceMessageIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Mistake map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Mistake(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      question: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+      chapter: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chapter'],
+      )!,
+      correctAnswer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}correct_answer'],
+      )!,
+      originalAnswer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_answer'],
+      )!,
+      ownAnalysis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}own_analysis'],
+      )!,
+      aiAnalysis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ai_analysis'],
+      )!,
+      errorReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_reason'],
+      )!,
+      suggestedReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}suggested_reason'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+      sourceSessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_session_id'],
+      ),
+      sourceMessageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_message_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $MistakesTable createAlias(String alias) {
+    return $MistakesTable(attachedDatabase, alias);
+  }
+}
+
+class Mistake extends DataClass implements Insertable<Mistake> {
+  final String id;
+  final String title;
+  final String question;
+  final String subject;
+  final String chapter;
+  final String correctAnswer;
+  final String originalAnswer;
+  final String ownAnalysis;
+  final String aiAnalysis;
+  final String errorReason;
+  final String suggestedReason;
+  final int revision;
+  final String? sourceSessionId;
+  final String? sourceMessageId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const Mistake({
+    required this.id,
+    required this.title,
+    required this.question,
+    required this.subject,
+    required this.chapter,
+    required this.correctAnswer,
+    required this.originalAnswer,
+    required this.ownAnalysis,
+    required this.aiAnalysis,
+    required this.errorReason,
+    required this.suggestedReason,
+    required this.revision,
+    this.sourceSessionId,
+    this.sourceMessageId,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['question'] = Variable<String>(question);
+    map['subject'] = Variable<String>(subject);
+    map['chapter'] = Variable<String>(chapter);
+    map['correct_answer'] = Variable<String>(correctAnswer);
+    map['original_answer'] = Variable<String>(originalAnswer);
+    map['own_analysis'] = Variable<String>(ownAnalysis);
+    map['ai_analysis'] = Variable<String>(aiAnalysis);
+    map['error_reason'] = Variable<String>(errorReason);
+    map['suggested_reason'] = Variable<String>(suggestedReason);
+    map['revision'] = Variable<int>(revision);
+    if (!nullToAbsent || sourceSessionId != null) {
+      map['source_session_id'] = Variable<String>(sourceSessionId);
+    }
+    if (!nullToAbsent || sourceMessageId != null) {
+      map['source_message_id'] = Variable<String>(sourceMessageId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  MistakesCompanion toCompanion(bool nullToAbsent) {
+    return MistakesCompanion(
+      id: Value(id),
+      title: Value(title),
+      question: Value(question),
+      subject: Value(subject),
+      chapter: Value(chapter),
+      correctAnswer: Value(correctAnswer),
+      originalAnswer: Value(originalAnswer),
+      ownAnalysis: Value(ownAnalysis),
+      aiAnalysis: Value(aiAnalysis),
+      errorReason: Value(errorReason),
+      suggestedReason: Value(suggestedReason),
+      revision: Value(revision),
+      sourceSessionId: sourceSessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceSessionId),
+      sourceMessageId: sourceMessageId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceMessageId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory Mistake.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Mistake(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      question: serializer.fromJson<String>(json['question']),
+      subject: serializer.fromJson<String>(json['subject']),
+      chapter: serializer.fromJson<String>(json['chapter']),
+      correctAnswer: serializer.fromJson<String>(json['correctAnswer']),
+      originalAnswer: serializer.fromJson<String>(json['originalAnswer']),
+      ownAnalysis: serializer.fromJson<String>(json['ownAnalysis']),
+      aiAnalysis: serializer.fromJson<String>(json['aiAnalysis']),
+      errorReason: serializer.fromJson<String>(json['errorReason']),
+      suggestedReason: serializer.fromJson<String>(json['suggestedReason']),
+      revision: serializer.fromJson<int>(json['revision']),
+      sourceSessionId: serializer.fromJson<String?>(json['sourceSessionId']),
+      sourceMessageId: serializer.fromJson<String?>(json['sourceMessageId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'question': serializer.toJson<String>(question),
+      'subject': serializer.toJson<String>(subject),
+      'chapter': serializer.toJson<String>(chapter),
+      'correctAnswer': serializer.toJson<String>(correctAnswer),
+      'originalAnswer': serializer.toJson<String>(originalAnswer),
+      'ownAnalysis': serializer.toJson<String>(ownAnalysis),
+      'aiAnalysis': serializer.toJson<String>(aiAnalysis),
+      'errorReason': serializer.toJson<String>(errorReason),
+      'suggestedReason': serializer.toJson<String>(suggestedReason),
+      'revision': serializer.toJson<int>(revision),
+      'sourceSessionId': serializer.toJson<String?>(sourceSessionId),
+      'sourceMessageId': serializer.toJson<String?>(sourceMessageId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  Mistake copyWith({
+    String? id,
+    String? title,
+    String? question,
+    String? subject,
+    String? chapter,
+    String? correctAnswer,
+    String? originalAnswer,
+    String? ownAnalysis,
+    String? aiAnalysis,
+    String? errorReason,
+    String? suggestedReason,
+    int? revision,
+    Value<String?> sourceSessionId = const Value.absent(),
+    Value<String?> sourceMessageId = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => Mistake(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    question: question ?? this.question,
+    subject: subject ?? this.subject,
+    chapter: chapter ?? this.chapter,
+    correctAnswer: correctAnswer ?? this.correctAnswer,
+    originalAnswer: originalAnswer ?? this.originalAnswer,
+    ownAnalysis: ownAnalysis ?? this.ownAnalysis,
+    aiAnalysis: aiAnalysis ?? this.aiAnalysis,
+    errorReason: errorReason ?? this.errorReason,
+    suggestedReason: suggestedReason ?? this.suggestedReason,
+    revision: revision ?? this.revision,
+    sourceSessionId: sourceSessionId.present
+        ? sourceSessionId.value
+        : this.sourceSessionId,
+    sourceMessageId: sourceMessageId.present
+        ? sourceMessageId.value
+        : this.sourceMessageId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  Mistake copyWithCompanion(MistakesCompanion data) {
+    return Mistake(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      question: data.question.present ? data.question.value : this.question,
+      subject: data.subject.present ? data.subject.value : this.subject,
+      chapter: data.chapter.present ? data.chapter.value : this.chapter,
+      correctAnswer: data.correctAnswer.present
+          ? data.correctAnswer.value
+          : this.correctAnswer,
+      originalAnswer: data.originalAnswer.present
+          ? data.originalAnswer.value
+          : this.originalAnswer,
+      ownAnalysis: data.ownAnalysis.present
+          ? data.ownAnalysis.value
+          : this.ownAnalysis,
+      aiAnalysis: data.aiAnalysis.present
+          ? data.aiAnalysis.value
+          : this.aiAnalysis,
+      errorReason: data.errorReason.present
+          ? data.errorReason.value
+          : this.errorReason,
+      suggestedReason: data.suggestedReason.present
+          ? data.suggestedReason.value
+          : this.suggestedReason,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      sourceSessionId: data.sourceSessionId.present
+          ? data.sourceSessionId.value
+          : this.sourceSessionId,
+      sourceMessageId: data.sourceMessageId.present
+          ? data.sourceMessageId.value
+          : this.sourceMessageId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Mistake(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('question: $question, ')
+          ..write('subject: $subject, ')
+          ..write('chapter: $chapter, ')
+          ..write('correctAnswer: $correctAnswer, ')
+          ..write('originalAnswer: $originalAnswer, ')
+          ..write('ownAnalysis: $ownAnalysis, ')
+          ..write('aiAnalysis: $aiAnalysis, ')
+          ..write('errorReason: $errorReason, ')
+          ..write('suggestedReason: $suggestedReason, ')
+          ..write('revision: $revision, ')
+          ..write('sourceSessionId: $sourceSessionId, ')
+          ..write('sourceMessageId: $sourceMessageId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    title,
+    question,
+    subject,
+    chapter,
+    correctAnswer,
+    originalAnswer,
+    ownAnalysis,
+    aiAnalysis,
+    errorReason,
+    suggestedReason,
+    revision,
+    sourceSessionId,
+    sourceMessageId,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Mistake &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.question == this.question &&
+          other.subject == this.subject &&
+          other.chapter == this.chapter &&
+          other.correctAnswer == this.correctAnswer &&
+          other.originalAnswer == this.originalAnswer &&
+          other.ownAnalysis == this.ownAnalysis &&
+          other.aiAnalysis == this.aiAnalysis &&
+          other.errorReason == this.errorReason &&
+          other.suggestedReason == this.suggestedReason &&
+          other.revision == this.revision &&
+          other.sourceSessionId == this.sourceSessionId &&
+          other.sourceMessageId == this.sourceMessageId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class MistakesCompanion extends UpdateCompanion<Mistake> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String> question;
+  final Value<String> subject;
+  final Value<String> chapter;
+  final Value<String> correctAnswer;
+  final Value<String> originalAnswer;
+  final Value<String> ownAnalysis;
+  final Value<String> aiAnalysis;
+  final Value<String> errorReason;
+  final Value<String> suggestedReason;
+  final Value<int> revision;
+  final Value<String?> sourceSessionId;
+  final Value<String?> sourceMessageId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const MistakesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.question = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.chapter = const Value.absent(),
+    this.correctAnswer = const Value.absent(),
+    this.originalAnswer = const Value.absent(),
+    this.ownAnalysis = const Value.absent(),
+    this.aiAnalysis = const Value.absent(),
+    this.errorReason = const Value.absent(),
+    this.suggestedReason = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.sourceSessionId = const Value.absent(),
+    this.sourceMessageId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MistakesCompanion.insert({
+    required String id,
+    required String title,
+    this.question = const Value.absent(),
+    required String subject,
+    this.chapter = const Value.absent(),
+    this.correctAnswer = const Value.absent(),
+    this.originalAnswer = const Value.absent(),
+    this.ownAnalysis = const Value.absent(),
+    this.aiAnalysis = const Value.absent(),
+    this.errorReason = const Value.absent(),
+    this.suggestedReason = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.sourceSessionId = const Value.absent(),
+    this.sourceMessageId = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       subject = Value(subject),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<Mistake> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? question,
+    Expression<String>? subject,
+    Expression<String>? chapter,
+    Expression<String>? correctAnswer,
+    Expression<String>? originalAnswer,
+    Expression<String>? ownAnalysis,
+    Expression<String>? aiAnalysis,
+    Expression<String>? errorReason,
+    Expression<String>? suggestedReason,
+    Expression<int>? revision,
+    Expression<String>? sourceSessionId,
+    Expression<String>? sourceMessageId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (question != null) 'question': question,
+      if (subject != null) 'subject': subject,
+      if (chapter != null) 'chapter': chapter,
+      if (correctAnswer != null) 'correct_answer': correctAnswer,
+      if (originalAnswer != null) 'original_answer': originalAnswer,
+      if (ownAnalysis != null) 'own_analysis': ownAnalysis,
+      if (aiAnalysis != null) 'ai_analysis': aiAnalysis,
+      if (errorReason != null) 'error_reason': errorReason,
+      if (suggestedReason != null) 'suggested_reason': suggestedReason,
+      if (revision != null) 'revision': revision,
+      if (sourceSessionId != null) 'source_session_id': sourceSessionId,
+      if (sourceMessageId != null) 'source_message_id': sourceMessageId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MistakesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String>? question,
+    Value<String>? subject,
+    Value<String>? chapter,
+    Value<String>? correctAnswer,
+    Value<String>? originalAnswer,
+    Value<String>? ownAnalysis,
+    Value<String>? aiAnalysis,
+    Value<String>? errorReason,
+    Value<String>? suggestedReason,
+    Value<int>? revision,
+    Value<String?>? sourceSessionId,
+    Value<String?>? sourceMessageId,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return MistakesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      question: question ?? this.question,
+      subject: subject ?? this.subject,
+      chapter: chapter ?? this.chapter,
+      correctAnswer: correctAnswer ?? this.correctAnswer,
+      originalAnswer: originalAnswer ?? this.originalAnswer,
+      ownAnalysis: ownAnalysis ?? this.ownAnalysis,
+      aiAnalysis: aiAnalysis ?? this.aiAnalysis,
+      errorReason: errorReason ?? this.errorReason,
+      suggestedReason: suggestedReason ?? this.suggestedReason,
+      revision: revision ?? this.revision,
+      sourceSessionId: sourceSessionId ?? this.sourceSessionId,
+      sourceMessageId: sourceMessageId ?? this.sourceMessageId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (question.present) {
+      map['question'] = Variable<String>(question.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (chapter.present) {
+      map['chapter'] = Variable<String>(chapter.value);
+    }
+    if (correctAnswer.present) {
+      map['correct_answer'] = Variable<String>(correctAnswer.value);
+    }
+    if (originalAnswer.present) {
+      map['original_answer'] = Variable<String>(originalAnswer.value);
+    }
+    if (ownAnalysis.present) {
+      map['own_analysis'] = Variable<String>(ownAnalysis.value);
+    }
+    if (aiAnalysis.present) {
+      map['ai_analysis'] = Variable<String>(aiAnalysis.value);
+    }
+    if (errorReason.present) {
+      map['error_reason'] = Variable<String>(errorReason.value);
+    }
+    if (suggestedReason.present) {
+      map['suggested_reason'] = Variable<String>(suggestedReason.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (sourceSessionId.present) {
+      map['source_session_id'] = Variable<String>(sourceSessionId.value);
+    }
+    if (sourceMessageId.present) {
+      map['source_message_id'] = Variable<String>(sourceMessageId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MistakesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('question: $question, ')
+          ..write('subject: $subject, ')
+          ..write('chapter: $chapter, ')
+          ..write('correctAnswer: $correctAnswer, ')
+          ..write('originalAnswer: $originalAnswer, ')
+          ..write('ownAnalysis: $ownAnalysis, ')
+          ..write('aiAnalysis: $aiAnalysis, ')
+          ..write('errorReason: $errorReason, ')
+          ..write('suggestedReason: $suggestedReason, ')
+          ..write('revision: $revision, ')
+          ..write('sourceSessionId: $sourceSessionId, ')
+          ..write('sourceMessageId: $sourceMessageId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $KnowledgeTagsTable extends KnowledgeTags
+    with TableInfo<$KnowledgeTagsTable, KnowledgeTag> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KnowledgeTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _knowledgeIdMeta = const VerificationMeta(
+    'knowledgeId',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeId = GeneratedColumn<String>(
+    'knowledge_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _tagMeta = const VerificationMeta('tag');
+  @override
+  late final GeneratedColumn<String> tag = GeneratedColumn<String>(
+    'tag',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [knowledgeId, tag];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'knowledge_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KnowledgeTag> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('knowledge_id')) {
+      context.handle(
+        _knowledgeIdMeta,
+        knowledgeId.isAcceptableOrUnknown(
+          data['knowledge_id']!,
+          _knowledgeIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_knowledgeIdMeta);
+    }
+    if (data.containsKey('tag')) {
+      context.handle(
+        _tagMeta,
+        tag.isAcceptableOrUnknown(data['tag']!, _tagMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {knowledgeId, tag};
+  @override
+  KnowledgeTag map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KnowledgeTag(
+      knowledgeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_id'],
+      )!,
+      tag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag'],
+      )!,
+    );
+  }
+
+  @override
+  $KnowledgeTagsTable createAlias(String alias) {
+    return $KnowledgeTagsTable(attachedDatabase, alias);
+  }
+}
+
+class KnowledgeTag extends DataClass implements Insertable<KnowledgeTag> {
+  final String knowledgeId;
+  final String tag;
+  const KnowledgeTag({required this.knowledgeId, required this.tag});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['knowledge_id'] = Variable<String>(knowledgeId);
+    map['tag'] = Variable<String>(tag);
+    return map;
+  }
+
+  KnowledgeTagsCompanion toCompanion(bool nullToAbsent) {
+    return KnowledgeTagsCompanion(
+      knowledgeId: Value(knowledgeId),
+      tag: Value(tag),
+    );
+  }
+
+  factory KnowledgeTag.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KnowledgeTag(
+      knowledgeId: serializer.fromJson<String>(json['knowledgeId']),
+      tag: serializer.fromJson<String>(json['tag']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'knowledgeId': serializer.toJson<String>(knowledgeId),
+      'tag': serializer.toJson<String>(tag),
+    };
+  }
+
+  KnowledgeTag copyWith({String? knowledgeId, String? tag}) => KnowledgeTag(
+    knowledgeId: knowledgeId ?? this.knowledgeId,
+    tag: tag ?? this.tag,
+  );
+  KnowledgeTag copyWithCompanion(KnowledgeTagsCompanion data) {
+    return KnowledgeTag(
+      knowledgeId: data.knowledgeId.present
+          ? data.knowledgeId.value
+          : this.knowledgeId,
+      tag: data.tag.present ? data.tag.value : this.tag,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeTag(')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('tag: $tag')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(knowledgeId, tag);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KnowledgeTag &&
+          other.knowledgeId == this.knowledgeId &&
+          other.tag == this.tag);
+}
+
+class KnowledgeTagsCompanion extends UpdateCompanion<KnowledgeTag> {
+  final Value<String> knowledgeId;
+  final Value<String> tag;
+  final Value<int> rowid;
+  const KnowledgeTagsCompanion({
+    this.knowledgeId = const Value.absent(),
+    this.tag = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  KnowledgeTagsCompanion.insert({
+    required String knowledgeId,
+    required String tag,
+    this.rowid = const Value.absent(),
+  }) : knowledgeId = Value(knowledgeId),
+       tag = Value(tag);
+  static Insertable<KnowledgeTag> custom({
+    Expression<String>? knowledgeId,
+    Expression<String>? tag,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (knowledgeId != null) 'knowledge_id': knowledgeId,
+      if (tag != null) 'tag': tag,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  KnowledgeTagsCompanion copyWith({
+    Value<String>? knowledgeId,
+    Value<String>? tag,
+    Value<int>? rowid,
+  }) {
+    return KnowledgeTagsCompanion(
+      knowledgeId: knowledgeId ?? this.knowledgeId,
+      tag: tag ?? this.tag,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (knowledgeId.present) {
+      map['knowledge_id'] = Variable<String>(knowledgeId.value);
+    }
+    if (tag.present) {
+      map['tag'] = Variable<String>(tag.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeTagsCompanion(')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('tag: $tag, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MistakeTagsTable extends MistakeTags
+    with TableInfo<$MistakeTagsTable, MistakeTag> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MistakeTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _mistakeIdMeta = const VerificationMeta(
+    'mistakeId',
+  );
+  @override
+  late final GeneratedColumn<String> mistakeId = GeneratedColumn<String>(
+    'mistake_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES mistakes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _tagMeta = const VerificationMeta('tag');
+  @override
+  late final GeneratedColumn<String> tag = GeneratedColumn<String>(
+    'tag',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [mistakeId, tag];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mistake_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MistakeTag> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('mistake_id')) {
+      context.handle(
+        _mistakeIdMeta,
+        mistakeId.isAcceptableOrUnknown(data['mistake_id']!, _mistakeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mistakeIdMeta);
+    }
+    if (data.containsKey('tag')) {
+      context.handle(
+        _tagMeta,
+        tag.isAcceptableOrUnknown(data['tag']!, _tagMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {mistakeId, tag};
+  @override
+  MistakeTag map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MistakeTag(
+      mistakeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mistake_id'],
+      )!,
+      tag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag'],
+      )!,
+    );
+  }
+
+  @override
+  $MistakeTagsTable createAlias(String alias) {
+    return $MistakeTagsTable(attachedDatabase, alias);
+  }
+}
+
+class MistakeTag extends DataClass implements Insertable<MistakeTag> {
+  final String mistakeId;
+  final String tag;
+  const MistakeTag({required this.mistakeId, required this.tag});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['mistake_id'] = Variable<String>(mistakeId);
+    map['tag'] = Variable<String>(tag);
+    return map;
+  }
+
+  MistakeTagsCompanion toCompanion(bool nullToAbsent) {
+    return MistakeTagsCompanion(mistakeId: Value(mistakeId), tag: Value(tag));
+  }
+
+  factory MistakeTag.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MistakeTag(
+      mistakeId: serializer.fromJson<String>(json['mistakeId']),
+      tag: serializer.fromJson<String>(json['tag']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'mistakeId': serializer.toJson<String>(mistakeId),
+      'tag': serializer.toJson<String>(tag),
+    };
+  }
+
+  MistakeTag copyWith({String? mistakeId, String? tag}) =>
+      MistakeTag(mistakeId: mistakeId ?? this.mistakeId, tag: tag ?? this.tag);
+  MistakeTag copyWithCompanion(MistakeTagsCompanion data) {
+    return MistakeTag(
+      mistakeId: data.mistakeId.present ? data.mistakeId.value : this.mistakeId,
+      tag: data.tag.present ? data.tag.value : this.tag,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MistakeTag(')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('tag: $tag')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(mistakeId, tag);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MistakeTag &&
+          other.mistakeId == this.mistakeId &&
+          other.tag == this.tag);
+}
+
+class MistakeTagsCompanion extends UpdateCompanion<MistakeTag> {
+  final Value<String> mistakeId;
+  final Value<String> tag;
+  final Value<int> rowid;
+  const MistakeTagsCompanion({
+    this.mistakeId = const Value.absent(),
+    this.tag = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MistakeTagsCompanion.insert({
+    required String mistakeId,
+    required String tag,
+    this.rowid = const Value.absent(),
+  }) : mistakeId = Value(mistakeId),
+       tag = Value(tag);
+  static Insertable<MistakeTag> custom({
+    Expression<String>? mistakeId,
+    Expression<String>? tag,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (mistakeId != null) 'mistake_id': mistakeId,
+      if (tag != null) 'tag': tag,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MistakeTagsCompanion copyWith({
+    Value<String>? mistakeId,
+    Value<String>? tag,
+    Value<int>? rowid,
+  }) {
+    return MistakeTagsCompanion(
+      mistakeId: mistakeId ?? this.mistakeId,
+      tag: tag ?? this.tag,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (mistakeId.present) {
+      map['mistake_id'] = Variable<String>(mistakeId.value);
+    }
+    if (tag.present) {
+      map['tag'] = Variable<String>(tag.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MistakeTagsCompanion(')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('tag: $tag, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $KnowledgeRelationsTable extends KnowledgeRelations
+    with TableInfo<$KnowledgeRelationsTable, KnowledgeRelation> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KnowledgeRelationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sourceIdMeta = const VerificationMeta(
+    'sourceId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceId = GeneratedColumn<String>(
+    'source_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _targetIdMeta = const VerificationMeta(
+    'targetId',
+  );
+  @override
+  late final GeneratedColumn<String> targetId = GeneratedColumn<String>(
+    'target_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [sourceId, targetId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'knowledge_relations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KnowledgeRelation> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('source_id')) {
+      context.handle(
+        _sourceIdMeta,
+        sourceId.isAcceptableOrUnknown(data['source_id']!, _sourceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceIdMeta);
+    }
+    if (data.containsKey('target_id')) {
+      context.handle(
+        _targetIdMeta,
+        targetId.isAcceptableOrUnknown(data['target_id']!, _targetIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_targetIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {sourceId, targetId};
+  @override
+  KnowledgeRelation map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KnowledgeRelation(
+      sourceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_id'],
+      )!,
+      targetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_id'],
+      )!,
+    );
+  }
+
+  @override
+  $KnowledgeRelationsTable createAlias(String alias) {
+    return $KnowledgeRelationsTable(attachedDatabase, alias);
+  }
+}
+
+class KnowledgeRelation extends DataClass
+    implements Insertable<KnowledgeRelation> {
+  final String sourceId;
+  final String targetId;
+  const KnowledgeRelation({required this.sourceId, required this.targetId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['source_id'] = Variable<String>(sourceId);
+    map['target_id'] = Variable<String>(targetId);
+    return map;
+  }
+
+  KnowledgeRelationsCompanion toCompanion(bool nullToAbsent) {
+    return KnowledgeRelationsCompanion(
+      sourceId: Value(sourceId),
+      targetId: Value(targetId),
+    );
+  }
+
+  factory KnowledgeRelation.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KnowledgeRelation(
+      sourceId: serializer.fromJson<String>(json['sourceId']),
+      targetId: serializer.fromJson<String>(json['targetId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sourceId': serializer.toJson<String>(sourceId),
+      'targetId': serializer.toJson<String>(targetId),
+    };
+  }
+
+  KnowledgeRelation copyWith({String? sourceId, String? targetId}) =>
+      KnowledgeRelation(
+        sourceId: sourceId ?? this.sourceId,
+        targetId: targetId ?? this.targetId,
+      );
+  KnowledgeRelation copyWithCompanion(KnowledgeRelationsCompanion data) {
+    return KnowledgeRelation(
+      sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
+      targetId: data.targetId.present ? data.targetId.value : this.targetId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeRelation(')
+          ..write('sourceId: $sourceId, ')
+          ..write('targetId: $targetId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(sourceId, targetId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KnowledgeRelation &&
+          other.sourceId == this.sourceId &&
+          other.targetId == this.targetId);
+}
+
+class KnowledgeRelationsCompanion extends UpdateCompanion<KnowledgeRelation> {
+  final Value<String> sourceId;
+  final Value<String> targetId;
+  final Value<int> rowid;
+  const KnowledgeRelationsCompanion({
+    this.sourceId = const Value.absent(),
+    this.targetId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  KnowledgeRelationsCompanion.insert({
+    required String sourceId,
+    required String targetId,
+    this.rowid = const Value.absent(),
+  }) : sourceId = Value(sourceId),
+       targetId = Value(targetId);
+  static Insertable<KnowledgeRelation> custom({
+    Expression<String>? sourceId,
+    Expression<String>? targetId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (sourceId != null) 'source_id': sourceId,
+      if (targetId != null) 'target_id': targetId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  KnowledgeRelationsCompanion copyWith({
+    Value<String>? sourceId,
+    Value<String>? targetId,
+    Value<int>? rowid,
+  }) {
+    return KnowledgeRelationsCompanion(
+      sourceId: sourceId ?? this.sourceId,
+      targetId: targetId ?? this.targetId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sourceId.present) {
+      map['source_id'] = Variable<String>(sourceId.value);
+    }
+    if (targetId.present) {
+      map['target_id'] = Variable<String>(targetId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeRelationsCompanion(')
+          ..write('sourceId: $sourceId, ')
+          ..write('targetId: $targetId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MistakeKnowledgeLinksTable extends MistakeKnowledgeLinks
+    with TableInfo<$MistakeKnowledgeLinksTable, MistakeKnowledgeLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MistakeKnowledgeLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _mistakeIdMeta = const VerificationMeta(
+    'mistakeId',
+  );
+  @override
+  late final GeneratedColumn<String> mistakeId = GeneratedColumn<String>(
+    'mistake_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES mistakes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _knowledgeIdMeta = const VerificationMeta(
+    'knowledgeId',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeId = GeneratedColumn<String>(
+    'knowledge_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [mistakeId, knowledgeId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mistake_knowledge_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MistakeKnowledgeLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('mistake_id')) {
+      context.handle(
+        _mistakeIdMeta,
+        mistakeId.isAcceptableOrUnknown(data['mistake_id']!, _mistakeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mistakeIdMeta);
+    }
+    if (data.containsKey('knowledge_id')) {
+      context.handle(
+        _knowledgeIdMeta,
+        knowledgeId.isAcceptableOrUnknown(
+          data['knowledge_id']!,
+          _knowledgeIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_knowledgeIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {mistakeId, knowledgeId};
+  @override
+  MistakeKnowledgeLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MistakeKnowledgeLink(
+      mistakeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mistake_id'],
+      )!,
+      knowledgeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_id'],
+      )!,
+    );
+  }
+
+  @override
+  $MistakeKnowledgeLinksTable createAlias(String alias) {
+    return $MistakeKnowledgeLinksTable(attachedDatabase, alias);
+  }
+}
+
+class MistakeKnowledgeLink extends DataClass
+    implements Insertable<MistakeKnowledgeLink> {
+  final String mistakeId;
+  final String knowledgeId;
+  const MistakeKnowledgeLink({
+    required this.mistakeId,
+    required this.knowledgeId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['mistake_id'] = Variable<String>(mistakeId);
+    map['knowledge_id'] = Variable<String>(knowledgeId);
+    return map;
+  }
+
+  MistakeKnowledgeLinksCompanion toCompanion(bool nullToAbsent) {
+    return MistakeKnowledgeLinksCompanion(
+      mistakeId: Value(mistakeId),
+      knowledgeId: Value(knowledgeId),
+    );
+  }
+
+  factory MistakeKnowledgeLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MistakeKnowledgeLink(
+      mistakeId: serializer.fromJson<String>(json['mistakeId']),
+      knowledgeId: serializer.fromJson<String>(json['knowledgeId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'mistakeId': serializer.toJson<String>(mistakeId),
+      'knowledgeId': serializer.toJson<String>(knowledgeId),
+    };
+  }
+
+  MistakeKnowledgeLink copyWith({String? mistakeId, String? knowledgeId}) =>
+      MistakeKnowledgeLink(
+        mistakeId: mistakeId ?? this.mistakeId,
+        knowledgeId: knowledgeId ?? this.knowledgeId,
+      );
+  MistakeKnowledgeLink copyWithCompanion(MistakeKnowledgeLinksCompanion data) {
+    return MistakeKnowledgeLink(
+      mistakeId: data.mistakeId.present ? data.mistakeId.value : this.mistakeId,
+      knowledgeId: data.knowledgeId.present
+          ? data.knowledgeId.value
+          : this.knowledgeId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MistakeKnowledgeLink(')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('knowledgeId: $knowledgeId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(mistakeId, knowledgeId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MistakeKnowledgeLink &&
+          other.mistakeId == this.mistakeId &&
+          other.knowledgeId == this.knowledgeId);
+}
+
+class MistakeKnowledgeLinksCompanion
+    extends UpdateCompanion<MistakeKnowledgeLink> {
+  final Value<String> mistakeId;
+  final Value<String> knowledgeId;
+  final Value<int> rowid;
+  const MistakeKnowledgeLinksCompanion({
+    this.mistakeId = const Value.absent(),
+    this.knowledgeId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MistakeKnowledgeLinksCompanion.insert({
+    required String mistakeId,
+    required String knowledgeId,
+    this.rowid = const Value.absent(),
+  }) : mistakeId = Value(mistakeId),
+       knowledgeId = Value(knowledgeId);
+  static Insertable<MistakeKnowledgeLink> custom({
+    Expression<String>? mistakeId,
+    Expression<String>? knowledgeId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (mistakeId != null) 'mistake_id': mistakeId,
+      if (knowledgeId != null) 'knowledge_id': knowledgeId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MistakeKnowledgeLinksCompanion copyWith({
+    Value<String>? mistakeId,
+    Value<String>? knowledgeId,
+    Value<int>? rowid,
+  }) {
+    return MistakeKnowledgeLinksCompanion(
+      mistakeId: mistakeId ?? this.mistakeId,
+      knowledgeId: knowledgeId ?? this.knowledgeId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (mistakeId.present) {
+      map['mistake_id'] = Variable<String>(mistakeId.value);
+    }
+    if (knowledgeId.present) {
+      map['knowledge_id'] = Variable<String>(knowledgeId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MistakeKnowledgeLinksCompanion(')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $StudyAttachmentsTable extends StudyAttachments
+    with TableInfo<$StudyAttachmentsTable, StudyAttachment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StudyAttachmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _knowledgeIdMeta = const VerificationMeta(
+    'knowledgeId',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeId = GeneratedColumn<String>(
+    'knowledge_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _mistakeIdMeta = const VerificationMeta(
+    'mistakeId',
+  );
+  @override
+  late final GeneratedColumn<String> mistakeId = GeneratedColumn<String>(
+    'mistake_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES mistakes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _relativePathMeta = const VerificationMeta(
+    'relativePath',
+  );
+  @override
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+    'relative_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mimeMeta = const VerificationMeta('mime');
+  @override
+  late final GeneratedColumn<String> mime = GeneratedColumn<String>(
+    'mime',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _byteLengthMeta = const VerificationMeta(
+    'byteLength',
+  );
+  @override
+  late final GeneratedColumn<int> byteLength = GeneratedColumn<int>(
+    'byte_length',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES study_attachments (id)',
+    ),
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('original'),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    knowledgeId,
+    mistakeId,
+    relativePath,
+    mime,
+    byteLength,
+    parentId,
+    role,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'study_attachments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StudyAttachment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('knowledge_id')) {
+      context.handle(
+        _knowledgeIdMeta,
+        knowledgeId.isAcceptableOrUnknown(
+          data['knowledge_id']!,
+          _knowledgeIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mistake_id')) {
+      context.handle(
+        _mistakeIdMeta,
+        mistakeId.isAcceptableOrUnknown(data['mistake_id']!, _mistakeIdMeta),
+      );
+    }
+    if (data.containsKey('relative_path')) {
+      context.handle(
+        _relativePathMeta,
+        relativePath.isAcceptableOrUnknown(
+          data['relative_path']!,
+          _relativePathMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_relativePathMeta);
+    }
+    if (data.containsKey('mime')) {
+      context.handle(
+        _mimeMeta,
+        mime.isAcceptableOrUnknown(data['mime']!, _mimeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mimeMeta);
+    }
+    if (data.containsKey('byte_length')) {
+      context.handle(
+        _byteLengthMeta,
+        byteLength.isAcceptableOrUnknown(data['byte_length']!, _byteLengthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_byteLengthMeta);
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StudyAttachment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StudyAttachment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      knowledgeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_id'],
+      ),
+      mistakeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mistake_id'],
+      ),
+      relativePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_path'],
+      )!,
+      mime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime'],
+      )!,
+      byteLength: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}byte_length'],
+      )!,
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $StudyAttachmentsTable createAlias(String alias) {
+    return $StudyAttachmentsTable(attachedDatabase, alias);
+  }
+}
+
+class StudyAttachment extends DataClass implements Insertable<StudyAttachment> {
+  final String id;
+  final String? knowledgeId;
+  final String? mistakeId;
+  final String relativePath;
+  final String mime;
+  final int byteLength;
+  final String? parentId;
+  final String role;
+  final bool deleted;
+  const StudyAttachment({
+    required this.id,
+    this.knowledgeId,
+    this.mistakeId,
+    required this.relativePath,
+    required this.mime,
+    required this.byteLength,
+    this.parentId,
+    required this.role,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || knowledgeId != null) {
+      map['knowledge_id'] = Variable<String>(knowledgeId);
+    }
+    if (!nullToAbsent || mistakeId != null) {
+      map['mistake_id'] = Variable<String>(mistakeId);
+    }
+    map['relative_path'] = Variable<String>(relativePath);
+    map['mime'] = Variable<String>(mime);
+    map['byte_length'] = Variable<int>(byteLength);
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    map['role'] = Variable<String>(role);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  StudyAttachmentsCompanion toCompanion(bool nullToAbsent) {
+    return StudyAttachmentsCompanion(
+      id: Value(id),
+      knowledgeId: knowledgeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(knowledgeId),
+      mistakeId: mistakeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mistakeId),
+      relativePath: Value(relativePath),
+      mime: Value(mime),
+      byteLength: Value(byteLength),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      role: Value(role),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory StudyAttachment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StudyAttachment(
+      id: serializer.fromJson<String>(json['id']),
+      knowledgeId: serializer.fromJson<String?>(json['knowledgeId']),
+      mistakeId: serializer.fromJson<String?>(json['mistakeId']),
+      relativePath: serializer.fromJson<String>(json['relativePath']),
+      mime: serializer.fromJson<String>(json['mime']),
+      byteLength: serializer.fromJson<int>(json['byteLength']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+      role: serializer.fromJson<String>(json['role']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'knowledgeId': serializer.toJson<String?>(knowledgeId),
+      'mistakeId': serializer.toJson<String?>(mistakeId),
+      'relativePath': serializer.toJson<String>(relativePath),
+      'mime': serializer.toJson<String>(mime),
+      'byteLength': serializer.toJson<int>(byteLength),
+      'parentId': serializer.toJson<String?>(parentId),
+      'role': serializer.toJson<String>(role),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  StudyAttachment copyWith({
+    String? id,
+    Value<String?> knowledgeId = const Value.absent(),
+    Value<String?> mistakeId = const Value.absent(),
+    String? relativePath,
+    String? mime,
+    int? byteLength,
+    Value<String?> parentId = const Value.absent(),
+    String? role,
+    bool? deleted,
+  }) => StudyAttachment(
+    id: id ?? this.id,
+    knowledgeId: knowledgeId.present ? knowledgeId.value : this.knowledgeId,
+    mistakeId: mistakeId.present ? mistakeId.value : this.mistakeId,
+    relativePath: relativePath ?? this.relativePath,
+    mime: mime ?? this.mime,
+    byteLength: byteLength ?? this.byteLength,
+    parentId: parentId.present ? parentId.value : this.parentId,
+    role: role ?? this.role,
+    deleted: deleted ?? this.deleted,
+  );
+  StudyAttachment copyWithCompanion(StudyAttachmentsCompanion data) {
+    return StudyAttachment(
+      id: data.id.present ? data.id.value : this.id,
+      knowledgeId: data.knowledgeId.present
+          ? data.knowledgeId.value
+          : this.knowledgeId,
+      mistakeId: data.mistakeId.present ? data.mistakeId.value : this.mistakeId,
+      relativePath: data.relativePath.present
+          ? data.relativePath.value
+          : this.relativePath,
+      mime: data.mime.present ? data.mime.value : this.mime,
+      byteLength: data.byteLength.present
+          ? data.byteLength.value
+          : this.byteLength,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      role: data.role.present ? data.role.value : this.role,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudyAttachment(')
+          ..write('id: $id, ')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('mime: $mime, ')
+          ..write('byteLength: $byteLength, ')
+          ..write('parentId: $parentId, ')
+          ..write('role: $role, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    knowledgeId,
+    mistakeId,
+    relativePath,
+    mime,
+    byteLength,
+    parentId,
+    role,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StudyAttachment &&
+          other.id == this.id &&
+          other.knowledgeId == this.knowledgeId &&
+          other.mistakeId == this.mistakeId &&
+          other.relativePath == this.relativePath &&
+          other.mime == this.mime &&
+          other.byteLength == this.byteLength &&
+          other.parentId == this.parentId &&
+          other.role == this.role &&
+          other.deleted == this.deleted);
+}
+
+class StudyAttachmentsCompanion extends UpdateCompanion<StudyAttachment> {
+  final Value<String> id;
+  final Value<String?> knowledgeId;
+  final Value<String?> mistakeId;
+  final Value<String> relativePath;
+  final Value<String> mime;
+  final Value<int> byteLength;
+  final Value<String?> parentId;
+  final Value<String> role;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const StudyAttachmentsCompanion({
+    this.id = const Value.absent(),
+    this.knowledgeId = const Value.absent(),
+    this.mistakeId = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.mime = const Value.absent(),
+    this.byteLength = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StudyAttachmentsCompanion.insert({
+    required String id,
+    this.knowledgeId = const Value.absent(),
+    this.mistakeId = const Value.absent(),
+    required String relativePath,
+    required String mime,
+    required int byteLength,
+    this.parentId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       relativePath = Value(relativePath),
+       mime = Value(mime),
+       byteLength = Value(byteLength);
+  static Insertable<StudyAttachment> custom({
+    Expression<String>? id,
+    Expression<String>? knowledgeId,
+    Expression<String>? mistakeId,
+    Expression<String>? relativePath,
+    Expression<String>? mime,
+    Expression<int>? byteLength,
+    Expression<String>? parentId,
+    Expression<String>? role,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (knowledgeId != null) 'knowledge_id': knowledgeId,
+      if (mistakeId != null) 'mistake_id': mistakeId,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (mime != null) 'mime': mime,
+      if (byteLength != null) 'byte_length': byteLength,
+      if (parentId != null) 'parent_id': parentId,
+      if (role != null) 'role': role,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StudyAttachmentsCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? knowledgeId,
+    Value<String?>? mistakeId,
+    Value<String>? relativePath,
+    Value<String>? mime,
+    Value<int>? byteLength,
+    Value<String?>? parentId,
+    Value<String>? role,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return StudyAttachmentsCompanion(
+      id: id ?? this.id,
+      knowledgeId: knowledgeId ?? this.knowledgeId,
+      mistakeId: mistakeId ?? this.mistakeId,
+      relativePath: relativePath ?? this.relativePath,
+      mime: mime ?? this.mime,
+      byteLength: byteLength ?? this.byteLength,
+      parentId: parentId ?? this.parentId,
+      role: role ?? this.role,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (knowledgeId.present) {
+      map['knowledge_id'] = Variable<String>(knowledgeId.value);
+    }
+    if (mistakeId.present) {
+      map['mistake_id'] = Variable<String>(mistakeId.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (mime.present) {
+      map['mime'] = Variable<String>(mime.value);
+    }
+    if (byteLength.present) {
+      map['byte_length'] = Variable<int>(byteLength.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudyAttachmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('mime: $mime, ')
+          ..write('byteLength: $byteLength, ')
+          ..write('parentId: $parentId, ')
+          ..write('role: $role, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AiToolOperationsTable extends AiToolOperations
+    with TableInfo<$AiToolOperationsTable, AiToolOperation> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AiToolOperationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _runIdMeta = const VerificationMeta('runId');
+  @override
+  late final GeneratedColumn<String> runId = GeneratedColumn<String>(
+    'run_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_sessions (id)',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _argumentsMeta = const VerificationMeta(
+    'arguments',
+  );
+  @override
+  late final GeneratedColumn<String> arguments = GeneratedColumn<String>(
+    'arguments',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _resultMeta = const VerificationMeta('result');
+  @override
+  late final GeneratedColumn<String> result = GeneratedColumn<String>(
+    'result',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    runId,
+    sessionId,
+    name,
+    arguments,
+    status,
+    result,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ai_tool_operations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AiToolOperation> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('run_id')) {
+      context.handle(
+        _runIdMeta,
+        runId.isAcceptableOrUnknown(data['run_id']!, _runIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_runIdMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('arguments')) {
+      context.handle(
+        _argumentsMeta,
+        arguments.isAcceptableOrUnknown(data['arguments']!, _argumentsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_argumentsMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('result')) {
+      context.handle(
+        _resultMeta,
+        result.isAcceptableOrUnknown(data['result']!, _resultMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AiToolOperation map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AiToolOperation(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      runId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}run_id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      arguments: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}arguments'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      result: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}result'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AiToolOperationsTable createAlias(String alias) {
+    return $AiToolOperationsTable(attachedDatabase, alias);
+  }
+}
+
+class AiToolOperation extends DataClass implements Insertable<AiToolOperation> {
+  final String id;
+  final String runId;
+  final String sessionId;
+  final String name;
+  final String arguments;
+  final String status;
+  final String? result;
+  final DateTime createdAt;
+  const AiToolOperation({
+    required this.id,
+    required this.runId,
+    required this.sessionId,
+    required this.name,
+    required this.arguments,
+    required this.status,
+    this.result,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['run_id'] = Variable<String>(runId);
+    map['session_id'] = Variable<String>(sessionId);
+    map['name'] = Variable<String>(name);
+    map['arguments'] = Variable<String>(arguments);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || result != null) {
+      map['result'] = Variable<String>(result);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  AiToolOperationsCompanion toCompanion(bool nullToAbsent) {
+    return AiToolOperationsCompanion(
+      id: Value(id),
+      runId: Value(runId),
+      sessionId: Value(sessionId),
+      name: Value(name),
+      arguments: Value(arguments),
+      status: Value(status),
+      result: result == null && nullToAbsent
+          ? const Value.absent()
+          : Value(result),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory AiToolOperation.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AiToolOperation(
+      id: serializer.fromJson<String>(json['id']),
+      runId: serializer.fromJson<String>(json['runId']),
+      sessionId: serializer.fromJson<String>(json['sessionId']),
+      name: serializer.fromJson<String>(json['name']),
+      arguments: serializer.fromJson<String>(json['arguments']),
+      status: serializer.fromJson<String>(json['status']),
+      result: serializer.fromJson<String?>(json['result']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'runId': serializer.toJson<String>(runId),
+      'sessionId': serializer.toJson<String>(sessionId),
+      'name': serializer.toJson<String>(name),
+      'arguments': serializer.toJson<String>(arguments),
+      'status': serializer.toJson<String>(status),
+      'result': serializer.toJson<String?>(result),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  AiToolOperation copyWith({
+    String? id,
+    String? runId,
+    String? sessionId,
+    String? name,
+    String? arguments,
+    String? status,
+    Value<String?> result = const Value.absent(),
+    DateTime? createdAt,
+  }) => AiToolOperation(
+    id: id ?? this.id,
+    runId: runId ?? this.runId,
+    sessionId: sessionId ?? this.sessionId,
+    name: name ?? this.name,
+    arguments: arguments ?? this.arguments,
+    status: status ?? this.status,
+    result: result.present ? result.value : this.result,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  AiToolOperation copyWithCompanion(AiToolOperationsCompanion data) {
+    return AiToolOperation(
+      id: data.id.present ? data.id.value : this.id,
+      runId: data.runId.present ? data.runId.value : this.runId,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      name: data.name.present ? data.name.value : this.name,
+      arguments: data.arguments.present ? data.arguments.value : this.arguments,
+      status: data.status.present ? data.status.value : this.status,
+      result: data.result.present ? data.result.value : this.result,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiToolOperation(')
+          ..write('id: $id, ')
+          ..write('runId: $runId, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('name: $name, ')
+          ..write('arguments: $arguments, ')
+          ..write('status: $status, ')
+          ..write('result: $result, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    runId,
+    sessionId,
+    name,
+    arguments,
+    status,
+    result,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AiToolOperation &&
+          other.id == this.id &&
+          other.runId == this.runId &&
+          other.sessionId == this.sessionId &&
+          other.name == this.name &&
+          other.arguments == this.arguments &&
+          other.status == this.status &&
+          other.result == this.result &&
+          other.createdAt == this.createdAt);
+}
+
+class AiToolOperationsCompanion extends UpdateCompanion<AiToolOperation> {
+  final Value<String> id;
+  final Value<String> runId;
+  final Value<String> sessionId;
+  final Value<String> name;
+  final Value<String> arguments;
+  final Value<String> status;
+  final Value<String?> result;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const AiToolOperationsCompanion({
+    this.id = const Value.absent(),
+    this.runId = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.arguments = const Value.absent(),
+    this.status = const Value.absent(),
+    this.result = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AiToolOperationsCompanion.insert({
+    required String id,
+    required String runId,
+    required String sessionId,
+    required String name,
+    required String arguments,
+    required String status,
+    this.result = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       runId = Value(runId),
+       sessionId = Value(sessionId),
+       name = Value(name),
+       arguments = Value(arguments),
+       status = Value(status),
+       createdAt = Value(createdAt);
+  static Insertable<AiToolOperation> custom({
+    Expression<String>? id,
+    Expression<String>? runId,
+    Expression<String>? sessionId,
+    Expression<String>? name,
+    Expression<String>? arguments,
+    Expression<String>? status,
+    Expression<String>? result,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (runId != null) 'run_id': runId,
+      if (sessionId != null) 'session_id': sessionId,
+      if (name != null) 'name': name,
+      if (arguments != null) 'arguments': arguments,
+      if (status != null) 'status': status,
+      if (result != null) 'result': result,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AiToolOperationsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? runId,
+    Value<String>? sessionId,
+    Value<String>? name,
+    Value<String>? arguments,
+    Value<String>? status,
+    Value<String?>? result,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return AiToolOperationsCompanion(
+      id: id ?? this.id,
+      runId: runId ?? this.runId,
+      sessionId: sessionId ?? this.sessionId,
+      name: name ?? this.name,
+      arguments: arguments ?? this.arguments,
+      status: status ?? this.status,
+      result: result ?? this.result,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (runId.present) {
+      map['run_id'] = Variable<String>(runId.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (arguments.present) {
+      map['arguments'] = Variable<String>(arguments.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (result.present) {
+      map['result'] = Variable<String>(result.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiToolOperationsCompanion(')
+          ..write('id: $id, ')
+          ..write('runId: $runId, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('name: $name, ')
+          ..write('arguments: $arguments, ')
+          ..write('status: $status, ')
+          ..write('result: $result, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $StudyChatLinksTable extends StudyChatLinks
+    with TableInfo<$StudyChatLinksTable, StudyChatLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StudyChatLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_sessions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _knowledgeIdMeta = const VerificationMeta(
+    'knowledgeId',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeId = GeneratedColumn<String>(
+    'knowledge_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _mistakeIdMeta = const VerificationMeta(
+    'mistakeId',
+  );
+  @override
+  late final GeneratedColumn<String> mistakeId = GeneratedColumn<String>(
+    'mistake_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES mistakes (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, sessionId, knowledgeId, mistakeId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'study_chat_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StudyChatLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('knowledge_id')) {
+      context.handle(
+        _knowledgeIdMeta,
+        knowledgeId.isAcceptableOrUnknown(
+          data['knowledge_id']!,
+          _knowledgeIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mistake_id')) {
+      context.handle(
+        _mistakeIdMeta,
+        mistakeId.isAcceptableOrUnknown(data['mistake_id']!, _mistakeIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {sessionId, knowledgeId},
+    {sessionId, mistakeId},
+  ];
+  @override
+  StudyChatLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StudyChatLink(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      knowledgeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_id'],
+      ),
+      mistakeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mistake_id'],
+      ),
+    );
+  }
+
+  @override
+  $StudyChatLinksTable createAlias(String alias) {
+    return $StudyChatLinksTable(attachedDatabase, alias);
+  }
+}
+
+class StudyChatLink extends DataClass implements Insertable<StudyChatLink> {
+  final String id;
+  final String sessionId;
+  final String? knowledgeId;
+  final String? mistakeId;
+  const StudyChatLink({
+    required this.id,
+    required this.sessionId,
+    this.knowledgeId,
+    this.mistakeId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['session_id'] = Variable<String>(sessionId);
+    if (!nullToAbsent || knowledgeId != null) {
+      map['knowledge_id'] = Variable<String>(knowledgeId);
+    }
+    if (!nullToAbsent || mistakeId != null) {
+      map['mistake_id'] = Variable<String>(mistakeId);
+    }
+    return map;
+  }
+
+  StudyChatLinksCompanion toCompanion(bool nullToAbsent) {
+    return StudyChatLinksCompanion(
+      id: Value(id),
+      sessionId: Value(sessionId),
+      knowledgeId: knowledgeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(knowledgeId),
+      mistakeId: mistakeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mistakeId),
+    );
+  }
+
+  factory StudyChatLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StudyChatLink(
+      id: serializer.fromJson<String>(json['id']),
+      sessionId: serializer.fromJson<String>(json['sessionId']),
+      knowledgeId: serializer.fromJson<String?>(json['knowledgeId']),
+      mistakeId: serializer.fromJson<String?>(json['mistakeId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sessionId': serializer.toJson<String>(sessionId),
+      'knowledgeId': serializer.toJson<String?>(knowledgeId),
+      'mistakeId': serializer.toJson<String?>(mistakeId),
+    };
+  }
+
+  StudyChatLink copyWith({
+    String? id,
+    String? sessionId,
+    Value<String?> knowledgeId = const Value.absent(),
+    Value<String?> mistakeId = const Value.absent(),
+  }) => StudyChatLink(
+    id: id ?? this.id,
+    sessionId: sessionId ?? this.sessionId,
+    knowledgeId: knowledgeId.present ? knowledgeId.value : this.knowledgeId,
+    mistakeId: mistakeId.present ? mistakeId.value : this.mistakeId,
+  );
+  StudyChatLink copyWithCompanion(StudyChatLinksCompanion data) {
+    return StudyChatLink(
+      id: data.id.present ? data.id.value : this.id,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      knowledgeId: data.knowledgeId.present
+          ? data.knowledgeId.value
+          : this.knowledgeId,
+      mistakeId: data.mistakeId.present ? data.mistakeId.value : this.mistakeId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudyChatLink(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('mistakeId: $mistakeId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, sessionId, knowledgeId, mistakeId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StudyChatLink &&
+          other.id == this.id &&
+          other.sessionId == this.sessionId &&
+          other.knowledgeId == this.knowledgeId &&
+          other.mistakeId == this.mistakeId);
+}
+
+class StudyChatLinksCompanion extends UpdateCompanion<StudyChatLink> {
+  final Value<String> id;
+  final Value<String> sessionId;
+  final Value<String?> knowledgeId;
+  final Value<String?> mistakeId;
+  final Value<int> rowid;
+  const StudyChatLinksCompanion({
+    this.id = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.knowledgeId = const Value.absent(),
+    this.mistakeId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StudyChatLinksCompanion.insert({
+    required String id,
+    required String sessionId,
+    this.knowledgeId = const Value.absent(),
+    this.mistakeId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       sessionId = Value(sessionId);
+  static Insertable<StudyChatLink> custom({
+    Expression<String>? id,
+    Expression<String>? sessionId,
+    Expression<String>? knowledgeId,
+    Expression<String>? mistakeId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sessionId != null) 'session_id': sessionId,
+      if (knowledgeId != null) 'knowledge_id': knowledgeId,
+      if (mistakeId != null) 'mistake_id': mistakeId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StudyChatLinksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sessionId,
+    Value<String?>? knowledgeId,
+    Value<String?>? mistakeId,
+    Value<int>? rowid,
+  }) {
+    return StudyChatLinksCompanion(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      knowledgeId: knowledgeId ?? this.knowledgeId,
+      mistakeId: mistakeId ?? this.mistakeId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (knowledgeId.present) {
+      map['knowledge_id'] = Variable<String>(knowledgeId.value);
+    }
+    if (mistakeId.present) {
+      map['mistake_id'] = Variable<String>(mistakeId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudyChatLinksCompanion(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
-  $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
   late final $ChatMessagesTable chatMessages = $ChatMessagesTable(this);
   late final $AttachmentsTable attachments = $AttachmentsTable(this);
@@ -2188,6 +6881,23 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $PreferencesTable preferences = $PreferencesTable(this);
+  late final $KnowledgeItemsTable knowledgeItems = $KnowledgeItemsTable(this);
+  late final $KnowledgeRevisionsTable knowledgeRevisions =
+      $KnowledgeRevisionsTable(this);
+  late final $MistakesTable mistakes = $MistakesTable(this);
+  late final $KnowledgeTagsTable knowledgeTags = $KnowledgeTagsTable(this);
+  late final $MistakeTagsTable mistakeTags = $MistakeTagsTable(this);
+  late final $KnowledgeRelationsTable knowledgeRelations =
+      $KnowledgeRelationsTable(this);
+  late final $MistakeKnowledgeLinksTable mistakeKnowledgeLinks =
+      $MistakeKnowledgeLinksTable(this);
+  late final $StudyAttachmentsTable studyAttachments = $StudyAttachmentsTable(
+    this,
+  );
+  late final $AiToolOperationsTable aiToolOperations = $AiToolOperationsTable(
+    this,
+  );
+  late final $StudyChatLinksTable studyChatLinks = $StudyChatLinksTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2198,6 +6908,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     attachments,
     providerConfigs,
     preferences,
+    knowledgeItems,
+    knowledgeRevisions,
+    mistakes,
+    knowledgeTags,
+    mistakeTags,
+    knowledgeRelations,
+    mistakeKnowledgeLinks,
+    studyAttachments,
+    aiToolOperations,
+    studyChatLinks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2222,1794 +6942,117 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       ),
       result: [TableUpdate('attachments', kind: UpdateKind.delete)],
     ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('knowledge_items', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('knowledge_items', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('knowledge_revisions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('mistakes', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('mistakes', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('knowledge_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'mistakes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('mistake_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('knowledge_relations', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('knowledge_relations', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'mistakes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('mistake_knowledge_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('mistake_knowledge_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('study_attachments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'mistakes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('study_attachments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('study_chat_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('study_chat_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'mistakes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('study_chat_links', kind: UpdateKind.delete)],
+    ),
   ]);
-}
-
-typedef $$ChatSessionsTableCreateCompanionBuilder =
-    ChatSessionsCompanion Function({
-      required String id,
-      required String title,
-      Value<String> mode,
-      Value<String> stage,
-      Value<String> draft,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      Value<bool> deleted,
-      Value<int> rowid,
-    });
-typedef $$ChatSessionsTableUpdateCompanionBuilder =
-    ChatSessionsCompanion Function({
-      Value<String> id,
-      Value<String> title,
-      Value<String> mode,
-      Value<String> stage,
-      Value<String> draft,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<bool> deleted,
-      Value<int> rowid,
-    });
-
-final class $$ChatSessionsTableReferences
-    extends BaseReferences<_$AppDatabase, $ChatSessionsTable, ChatSession> {
-  $$ChatSessionsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$ChatMessagesTable, List<ChatMessage>>
-  _chatMessagesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.chatMessages,
-    aliasName: 'chat_sessions__id__chat_messages__session_id',
-  );
-
-  $$ChatMessagesTableProcessedTableManager get chatMessagesRefs {
-    final manager = $$ChatMessagesTableTableManager(
-      $_db,
-      $_db.chatMessages,
-    ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_chatMessagesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$AttachmentsTable, List<Attachment>>
-  _attachmentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.attachments,
-    aliasName: 'chat_sessions__id__attachments__session_id',
-  );
-
-  $$AttachmentsTableProcessedTableManager get attachmentsRefs {
-    final manager = $$AttachmentsTableTableManager(
-      $_db,
-      $_db.attachments,
-    ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_attachmentsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$ChatSessionsTableFilterComposer
-    extends Composer<_$AppDatabase, $ChatSessionsTable> {
-  $$ChatSessionsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get title => $composableBuilder(
-    column: $table.title,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get mode => $composableBuilder(
-    column: $table.mode,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get stage => $composableBuilder(
-    column: $table.stage,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get draft => $composableBuilder(
-    column: $table.draft,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get deleted => $composableBuilder(
-    column: $table.deleted,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  Expression<bool> chatMessagesRefs(
-    Expression<bool> Function($$ChatMessagesTableFilterComposer f) f,
-  ) {
-    final $$ChatMessagesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.chatMessages,
-      getReferencedColumn: (t) => t.sessionId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatMessagesTableFilterComposer(
-            $db: $db,
-            $table: $db.chatMessages,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> attachmentsRefs(
-    Expression<bool> Function($$AttachmentsTableFilterComposer f) f,
-  ) {
-    final $$AttachmentsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.attachments,
-      getReferencedColumn: (t) => t.sessionId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$AttachmentsTableFilterComposer(
-            $db: $db,
-            $table: $db.attachments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$ChatSessionsTableOrderingComposer
-    extends Composer<_$AppDatabase, $ChatSessionsTable> {
-  $$ChatSessionsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get title => $composableBuilder(
-    column: $table.title,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get mode => $composableBuilder(
-    column: $table.mode,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get stage => $composableBuilder(
-    column: $table.stage,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get draft => $composableBuilder(
-    column: $table.draft,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get deleted => $composableBuilder(
-    column: $table.deleted,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$ChatSessionsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ChatSessionsTable> {
-  $$ChatSessionsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get title =>
-      $composableBuilder(column: $table.title, builder: (column) => column);
-
-  GeneratedColumn<String> get mode =>
-      $composableBuilder(column: $table.mode, builder: (column) => column);
-
-  GeneratedColumn<String> get stage =>
-      $composableBuilder(column: $table.stage, builder: (column) => column);
-
-  GeneratedColumn<String> get draft =>
-      $composableBuilder(column: $table.draft, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<bool> get deleted =>
-      $composableBuilder(column: $table.deleted, builder: (column) => column);
-
-  Expression<T> chatMessagesRefs<T extends Object>(
-    Expression<T> Function($$ChatMessagesTableAnnotationComposer a) f,
-  ) {
-    final $$ChatMessagesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.chatMessages,
-      getReferencedColumn: (t) => t.sessionId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatMessagesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.chatMessages,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> attachmentsRefs<T extends Object>(
-    Expression<T> Function($$AttachmentsTableAnnotationComposer a) f,
-  ) {
-    final $$AttachmentsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.attachments,
-      getReferencedColumn: (t) => t.sessionId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$AttachmentsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.attachments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$ChatSessionsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $ChatSessionsTable,
-          ChatSession,
-          $$ChatSessionsTableFilterComposer,
-          $$ChatSessionsTableOrderingComposer,
-          $$ChatSessionsTableAnnotationComposer,
-          $$ChatSessionsTableCreateCompanionBuilder,
-          $$ChatSessionsTableUpdateCompanionBuilder,
-          (ChatSession, $$ChatSessionsTableReferences),
-          ChatSession,
-          PrefetchHooks Function({bool chatMessagesRefs, bool attachmentsRefs})
-        > {
-  $$ChatSessionsTableTableManager(_$AppDatabase db, $ChatSessionsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$ChatSessionsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$ChatSessionsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$ChatSessionsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> title = const Value.absent(),
-                Value<String> mode = const Value.absent(),
-                Value<String> stage = const Value.absent(),
-                Value<String> draft = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<bool> deleted = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ChatSessionsCompanion(
-                id: id,
-                title: title,
-                mode: mode,
-                stage: stage,
-                draft: draft,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                deleted: deleted,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String title,
-                Value<String> mode = const Value.absent(),
-                Value<String> stage = const Value.absent(),
-                Value<String> draft = const Value.absent(),
-                required DateTime createdAt,
-                required DateTime updatedAt,
-                Value<bool> deleted = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ChatSessionsCompanion.insert(
-                id: id,
-                title: title,
-                mode: mode,
-                stage: stage,
-                draft: draft,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                deleted: deleted,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$ChatSessionsTable, ChatSession>(table),
-                  $$ChatSessionsTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback:
-              ({chatMessagesRefs = false, attachmentsRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (chatMessagesRefs) db.chatMessages,
-                    if (attachmentsRefs) db.attachments,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (chatMessagesRefs)
-                        await $_getPrefetchedDataByColumns<
-                          ChatSession,
-                          $ChatSessionsTable,
-                          ChatMessage,
-                          $ChatMessagesTable
-                        >(
-                          currentTable: table,
-                          referencedTable: $$ChatSessionsTableReferences
-                              ._chatMessagesRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$ChatSessionsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).chatMessagesRefs,
-                          currentColumn: 'id',
-                          referencedColumn: 'session_id',
-                          typedResults: items,
-                        ),
-                      if (attachmentsRefs)
-                        await $_getPrefetchedDataByColumns<
-                          ChatSession,
-                          $ChatSessionsTable,
-                          Attachment,
-                          $AttachmentsTable
-                        >(
-                          currentTable: table,
-                          referencedTable: $$ChatSessionsTableReferences
-                              ._attachmentsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$ChatSessionsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).attachmentsRefs,
-                          currentColumn: 'id',
-                          referencedColumn: 'session_id',
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
-        ),
-      );
-}
-
-typedef $$ChatSessionsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $ChatSessionsTable,
-      ChatSession,
-      $$ChatSessionsTableFilterComposer,
-      $$ChatSessionsTableOrderingComposer,
-      $$ChatSessionsTableAnnotationComposer,
-      $$ChatSessionsTableCreateCompanionBuilder,
-      $$ChatSessionsTableUpdateCompanionBuilder,
-      (ChatSession, $$ChatSessionsTableReferences),
-      ChatSession,
-      PrefetchHooks Function({bool chatMessagesRefs, bool attachmentsRefs})
-    >;
-typedef $$ChatMessagesTableCreateCompanionBuilder =
-    ChatMessagesCompanion Function({
-      required String id,
-      required String sessionId,
-      required String role,
-      required String content,
-      Value<String> status,
-      Value<String?> error,
-      Value<String?> model,
-      Value<int?> totalTokens,
-      required DateTime createdAt,
-      Value<int> rowid,
-    });
-typedef $$ChatMessagesTableUpdateCompanionBuilder =
-    ChatMessagesCompanion Function({
-      Value<String> id,
-      Value<String> sessionId,
-      Value<String> role,
-      Value<String> content,
-      Value<String> status,
-      Value<String?> error,
-      Value<String?> model,
-      Value<int?> totalTokens,
-      Value<DateTime> createdAt,
-      Value<int> rowid,
-    });
-
-final class $$ChatMessagesTableReferences
-    extends BaseReferences<_$AppDatabase, $ChatMessagesTable, ChatMessage> {
-  $$ChatMessagesTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $ChatSessionsTable _sessionIdTable(_$AppDatabase db) => db.chatSessions
-      .createAlias('chat_messages__session_id__chat_sessions__id');
-
-  $$ChatSessionsTableProcessedTableManager get sessionId {
-    final $_column = $_itemColumn<String>('session_id')!;
-
-    final manager = $$ChatSessionsTableTableManager(
-      $_db,
-      $_db.chatSessions,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static MultiTypedResultKey<$AttachmentsTable, List<Attachment>>
-  _attachmentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.attachments,
-    aliasName: 'chat_messages__id__attachments__message_id',
-  );
-
-  $$AttachmentsTableProcessedTableManager get attachmentsRefs {
-    final manager = $$AttachmentsTableTableManager(
-      $_db,
-      $_db.attachments,
-    ).filter((f) => f.messageId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_attachmentsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$ChatMessagesTableFilterComposer
-    extends Composer<_$AppDatabase, $ChatMessagesTable> {
-  $$ChatMessagesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get role => $composableBuilder(
-    column: $table.role,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get content => $composableBuilder(
-    column: $table.content,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get status => $composableBuilder(
-    column: $table.status,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get error => $composableBuilder(
-    column: $table.error,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get model => $composableBuilder(
-    column: $table.model,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get totalTokens => $composableBuilder(
-    column: $table.totalTokens,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$ChatSessionsTableFilterComposer get sessionId {
-    final $$ChatSessionsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.sessionId,
-      referencedTable: $db.chatSessions,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatSessionsTableFilterComposer(
-            $db: $db,
-            $table: $db.chatSessions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<bool> attachmentsRefs(
-    Expression<bool> Function($$AttachmentsTableFilterComposer f) f,
-  ) {
-    final $$AttachmentsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.attachments,
-      getReferencedColumn: (t) => t.messageId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$AttachmentsTableFilterComposer(
-            $db: $db,
-            $table: $db.attachments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$ChatMessagesTableOrderingComposer
-    extends Composer<_$AppDatabase, $ChatMessagesTable> {
-  $$ChatMessagesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get role => $composableBuilder(
-    column: $table.role,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get content => $composableBuilder(
-    column: $table.content,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get status => $composableBuilder(
-    column: $table.status,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get error => $composableBuilder(
-    column: $table.error,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get model => $composableBuilder(
-    column: $table.model,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get totalTokens => $composableBuilder(
-    column: $table.totalTokens,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$ChatSessionsTableOrderingComposer get sessionId {
-    final $$ChatSessionsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.sessionId,
-      referencedTable: $db.chatSessions,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatSessionsTableOrderingComposer(
-            $db: $db,
-            $table: $db.chatSessions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$ChatMessagesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ChatMessagesTable> {
-  $$ChatMessagesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get role =>
-      $composableBuilder(column: $table.role, builder: (column) => column);
-
-  GeneratedColumn<String> get content =>
-      $composableBuilder(column: $table.content, builder: (column) => column);
-
-  GeneratedColumn<String> get status =>
-      $composableBuilder(column: $table.status, builder: (column) => column);
-
-  GeneratedColumn<String> get error =>
-      $composableBuilder(column: $table.error, builder: (column) => column);
-
-  GeneratedColumn<String> get model =>
-      $composableBuilder(column: $table.model, builder: (column) => column);
-
-  GeneratedColumn<int> get totalTokens => $composableBuilder(
-    column: $table.totalTokens,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  $$ChatSessionsTableAnnotationComposer get sessionId {
-    final $$ChatSessionsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.sessionId,
-      referencedTable: $db.chatSessions,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatSessionsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.chatSessions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<T> attachmentsRefs<T extends Object>(
-    Expression<T> Function($$AttachmentsTableAnnotationComposer a) f,
-  ) {
-    final $$AttachmentsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.attachments,
-      getReferencedColumn: (t) => t.messageId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$AttachmentsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.attachments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$ChatMessagesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $ChatMessagesTable,
-          ChatMessage,
-          $$ChatMessagesTableFilterComposer,
-          $$ChatMessagesTableOrderingComposer,
-          $$ChatMessagesTableAnnotationComposer,
-          $$ChatMessagesTableCreateCompanionBuilder,
-          $$ChatMessagesTableUpdateCompanionBuilder,
-          (ChatMessage, $$ChatMessagesTableReferences),
-          ChatMessage,
-          PrefetchHooks Function({bool sessionId, bool attachmentsRefs})
-        > {
-  $$ChatMessagesTableTableManager(_$AppDatabase db, $ChatMessagesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$ChatMessagesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$ChatMessagesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$ChatMessagesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> sessionId = const Value.absent(),
-                Value<String> role = const Value.absent(),
-                Value<String> content = const Value.absent(),
-                Value<String> status = const Value.absent(),
-                Value<String?> error = const Value.absent(),
-                Value<String?> model = const Value.absent(),
-                Value<int?> totalTokens = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ChatMessagesCompanion(
-                id: id,
-                sessionId: sessionId,
-                role: role,
-                content: content,
-                status: status,
-                error: error,
-                model: model,
-                totalTokens: totalTokens,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String sessionId,
-                required String role,
-                required String content,
-                Value<String> status = const Value.absent(),
-                Value<String?> error = const Value.absent(),
-                Value<String?> model = const Value.absent(),
-                Value<int?> totalTokens = const Value.absent(),
-                required DateTime createdAt,
-                Value<int> rowid = const Value.absent(),
-              }) => ChatMessagesCompanion.insert(
-                id: id,
-                sessionId: sessionId,
-                role: role,
-                content: content,
-                status: status,
-                error: error,
-                model: model,
-                totalTokens: totalTokens,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$ChatMessagesTable, ChatMessage>(table),
-                  $$ChatMessagesTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback:
-              ({sessionId = false, attachmentsRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (attachmentsRefs) db.attachments,
-                  ],
-                  addJoins:
-                      <
-                        T extends TableManagerState<
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic
-                        >
-                      >(state) {
-                        if (sessionId) {
-                          state = state.withJoin(
-                            currentTable: table,
-                            currentColumn: table.sessionId,
-                            referencedTable: $$ChatMessagesTableReferences
-                                ._sessionIdTable(db),
-                            referencedColumn: $$ChatMessagesTableReferences
-                                ._sessionIdTable(db)
-                                .id,
-                          ) as T;
-                        }
-
-                        return state;
-                      },
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (attachmentsRefs)
-                        await $_getPrefetchedDataByColumns<
-                          ChatMessage,
-                          $ChatMessagesTable,
-                          Attachment,
-                          $AttachmentsTable
-                        >(
-                          currentTable: table,
-                          referencedTable: $$ChatMessagesTableReferences
-                              ._attachmentsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$ChatMessagesTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).attachmentsRefs,
-                          currentColumn: 'id',
-                          referencedColumn: 'message_id',
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
-        ),
-      );
-}
-
-typedef $$ChatMessagesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $ChatMessagesTable,
-      ChatMessage,
-      $$ChatMessagesTableFilterComposer,
-      $$ChatMessagesTableOrderingComposer,
-      $$ChatMessagesTableAnnotationComposer,
-      $$ChatMessagesTableCreateCompanionBuilder,
-      $$ChatMessagesTableUpdateCompanionBuilder,
-      (ChatMessage, $$ChatMessagesTableReferences),
-      ChatMessage,
-      PrefetchHooks Function({bool sessionId, bool attachmentsRefs})
-    >;
-typedef $$AttachmentsTableCreateCompanionBuilder =
-    AttachmentsCompanion Function({
-      required String id,
-      required String sessionId,
-      Value<String?> messageId,
-      required String relativePath,
-      required String mime,
-      required int byteLength,
-      Value<int> rowid,
-    });
-typedef $$AttachmentsTableUpdateCompanionBuilder =
-    AttachmentsCompanion Function({
-      Value<String> id,
-      Value<String> sessionId,
-      Value<String?> messageId,
-      Value<String> relativePath,
-      Value<String> mime,
-      Value<int> byteLength,
-      Value<int> rowid,
-    });
-
-final class $$AttachmentsTableReferences
-    extends BaseReferences<_$AppDatabase, $AttachmentsTable, Attachment> {
-  $$AttachmentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $ChatSessionsTable _sessionIdTable(_$AppDatabase db) =>
-      db.chatSessions.createAlias('attachments__session_id__chat_sessions__id');
-
-  $$ChatSessionsTableProcessedTableManager get sessionId {
-    final $_column = $_itemColumn<String>('session_id')!;
-
-    final manager = $$ChatSessionsTableTableManager(
-      $_db,
-      $_db.chatSessions,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static $ChatMessagesTable _messageIdTable(_$AppDatabase db) =>
-      db.chatMessages.createAlias('attachments__message_id__chat_messages__id');
-
-  $$ChatMessagesTableProcessedTableManager? get messageId {
-    final $_column = $_itemColumn<String>('message_id');
-    if ($_column == null) return null;
-    final manager = $$ChatMessagesTableTableManager(
-      $_db,
-      $_db.chatMessages,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_messageIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
-class $$AttachmentsTableFilterComposer
-    extends Composer<_$AppDatabase, $AttachmentsTable> {
-  $$AttachmentsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get relativePath => $composableBuilder(
-    column: $table.relativePath,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get mime => $composableBuilder(
-    column: $table.mime,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get byteLength => $composableBuilder(
-    column: $table.byteLength,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$ChatSessionsTableFilterComposer get sessionId {
-    final $$ChatSessionsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.sessionId,
-      referencedTable: $db.chatSessions,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatSessionsTableFilterComposer(
-            $db: $db,
-            $table: $db.chatSessions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$ChatMessagesTableFilterComposer get messageId {
-    final $$ChatMessagesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.messageId,
-      referencedTable: $db.chatMessages,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatMessagesTableFilterComposer(
-            $db: $db,
-            $table: $db.chatMessages,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$AttachmentsTableOrderingComposer
-    extends Composer<_$AppDatabase, $AttachmentsTable> {
-  $$AttachmentsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get relativePath => $composableBuilder(
-    column: $table.relativePath,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get mime => $composableBuilder(
-    column: $table.mime,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get byteLength => $composableBuilder(
-    column: $table.byteLength,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$ChatSessionsTableOrderingComposer get sessionId {
-    final $$ChatSessionsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.sessionId,
-      referencedTable: $db.chatSessions,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatSessionsTableOrderingComposer(
-            $db: $db,
-            $table: $db.chatSessions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$ChatMessagesTableOrderingComposer get messageId {
-    final $$ChatMessagesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.messageId,
-      referencedTable: $db.chatMessages,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatMessagesTableOrderingComposer(
-            $db: $db,
-            $table: $db.chatMessages,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$AttachmentsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $AttachmentsTable> {
-  $$AttachmentsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get relativePath => $composableBuilder(
-    column: $table.relativePath,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get mime =>
-      $composableBuilder(column: $table.mime, builder: (column) => column);
-
-  GeneratedColumn<int> get byteLength => $composableBuilder(
-    column: $table.byteLength,
-    builder: (column) => column,
-  );
-
-  $$ChatSessionsTableAnnotationComposer get sessionId {
-    final $$ChatSessionsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.sessionId,
-      referencedTable: $db.chatSessions,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatSessionsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.chatSessions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$ChatMessagesTableAnnotationComposer get messageId {
-    final $$ChatMessagesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.messageId,
-      referencedTable: $db.chatMessages,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatMessagesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.chatMessages,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$AttachmentsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $AttachmentsTable,
-          Attachment,
-          $$AttachmentsTableFilterComposer,
-          $$AttachmentsTableOrderingComposer,
-          $$AttachmentsTableAnnotationComposer,
-          $$AttachmentsTableCreateCompanionBuilder,
-          $$AttachmentsTableUpdateCompanionBuilder,
-          (Attachment, $$AttachmentsTableReferences),
-          Attachment,
-          PrefetchHooks Function({bool sessionId, bool messageId})
-        > {
-  $$AttachmentsTableTableManager(_$AppDatabase db, $AttachmentsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$AttachmentsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$AttachmentsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$AttachmentsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> sessionId = const Value.absent(),
-                Value<String?> messageId = const Value.absent(),
-                Value<String> relativePath = const Value.absent(),
-                Value<String> mime = const Value.absent(),
-                Value<int> byteLength = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => AttachmentsCompanion(
-                id: id,
-                sessionId: sessionId,
-                messageId: messageId,
-                relativePath: relativePath,
-                mime: mime,
-                byteLength: byteLength,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String sessionId,
-                Value<String?> messageId = const Value.absent(),
-                required String relativePath,
-                required String mime,
-                required int byteLength,
-                Value<int> rowid = const Value.absent(),
-              }) => AttachmentsCompanion.insert(
-                id: id,
-                sessionId: sessionId,
-                messageId: messageId,
-                relativePath: relativePath,
-                mime: mime,
-                byteLength: byteLength,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$AttachmentsTable, Attachment>(table),
-                  $$AttachmentsTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({sessionId = false, messageId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (sessionId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.sessionId,
-                        referencedTable: $$AttachmentsTableReferences
-                            ._sessionIdTable(db),
-                        referencedColumn: $$AttachmentsTableReferences
-                            ._sessionIdTable(db)
-                            .id,
-                      ) as T;
-                    }
-                    if (messageId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.messageId,
-                        referencedTable: $$AttachmentsTableReferences
-                            ._messageIdTable(db),
-                        referencedColumn: $$AttachmentsTableReferences
-                            ._messageIdTable(db)
-                            .id,
-                      ) as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$AttachmentsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $AttachmentsTable,
-      Attachment,
-      $$AttachmentsTableFilterComposer,
-      $$AttachmentsTableOrderingComposer,
-      $$AttachmentsTableAnnotationComposer,
-      $$AttachmentsTableCreateCompanionBuilder,
-      $$AttachmentsTableUpdateCompanionBuilder,
-      (Attachment, $$AttachmentsTableReferences),
-      Attachment,
-      PrefetchHooks Function({bool sessionId, bool messageId})
-    >;
-typedef $$ProviderConfigsTableCreateCompanionBuilder =
-    ProviderConfigsCompanion Function({
-      Value<int> id,
-      Value<String> kind,
-      Value<String> baseUrl,
-      Value<String> model,
-      Value<bool> vision,
-      Value<bool> thinking,
-      Value<bool> supportsThinking,
-      Value<String> effort,
-    });
-typedef $$ProviderConfigsTableUpdateCompanionBuilder =
-    ProviderConfigsCompanion Function({
-      Value<int> id,
-      Value<String> kind,
-      Value<String> baseUrl,
-      Value<String> model,
-      Value<bool> vision,
-      Value<bool> thinking,
-      Value<bool> supportsThinking,
-      Value<String> effort,
-    });
-
-class $$ProviderConfigsTableFilterComposer
-    extends Composer<_$AppDatabase, $ProviderConfigsTable> {
-  $$ProviderConfigsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get kind => $composableBuilder(
-    column: $table.kind,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get baseUrl => $composableBuilder(
-    column: $table.baseUrl,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get model => $composableBuilder(
-    column: $table.model,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get vision => $composableBuilder(
-    column: $table.vision,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get thinking => $composableBuilder(
-    column: $table.thinking,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get supportsThinking => $composableBuilder(
-    column: $table.supportsThinking,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get effort => $composableBuilder(
-    column: $table.effort,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$ProviderConfigsTableOrderingComposer
-    extends Composer<_$AppDatabase, $ProviderConfigsTable> {
-  $$ProviderConfigsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get kind => $composableBuilder(
-    column: $table.kind,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get baseUrl => $composableBuilder(
-    column: $table.baseUrl,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get model => $composableBuilder(
-    column: $table.model,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get vision => $composableBuilder(
-    column: $table.vision,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get thinking => $composableBuilder(
-    column: $table.thinking,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get supportsThinking => $composableBuilder(
-    column: $table.supportsThinking,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get effort => $composableBuilder(
-    column: $table.effort,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$ProviderConfigsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ProviderConfigsTable> {
-  $$ProviderConfigsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => column);
-
-  GeneratedColumn<String> get baseUrl =>
-      $composableBuilder(column: $table.baseUrl, builder: (column) => column);
-
-  GeneratedColumn<String> get model =>
-      $composableBuilder(column: $table.model, builder: (column) => column);
-
-  GeneratedColumn<bool> get vision =>
-      $composableBuilder(column: $table.vision, builder: (column) => column);
-
-  GeneratedColumn<bool> get thinking =>
-      $composableBuilder(column: $table.thinking, builder: (column) => column);
-
-  GeneratedColumn<bool> get supportsThinking => $composableBuilder(
-    column: $table.supportsThinking,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get effort =>
-      $composableBuilder(column: $table.effort, builder: (column) => column);
-}
-
-class $$ProviderConfigsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $ProviderConfigsTable,
-          ProviderConfig,
-          $$ProviderConfigsTableFilterComposer,
-          $$ProviderConfigsTableOrderingComposer,
-          $$ProviderConfigsTableAnnotationComposer,
-          $$ProviderConfigsTableCreateCompanionBuilder,
-          $$ProviderConfigsTableUpdateCompanionBuilder,
-          (
-            ProviderConfig,
-            BaseReferences<
-              _$AppDatabase,
-              $ProviderConfigsTable,
-              ProviderConfig
-            >,
-          ),
-          ProviderConfig,
-          PrefetchHooks Function()
-        > {
-  $$ProviderConfigsTableTableManager(
-    _$AppDatabase db,
-    $ProviderConfigsTable table,
-  ) : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$ProviderConfigsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$ProviderConfigsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$ProviderConfigsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> kind = const Value.absent(),
-                Value<String> baseUrl = const Value.absent(),
-                Value<String> model = const Value.absent(),
-                Value<bool> vision = const Value.absent(),
-                Value<bool> thinking = const Value.absent(),
-                Value<bool> supportsThinking = const Value.absent(),
-                Value<String> effort = const Value.absent(),
-              }) => ProviderConfigsCompanion(
-                id: id,
-                kind: kind,
-                baseUrl: baseUrl,
-                model: model,
-                vision: vision,
-                thinking: thinking,
-                supportsThinking: supportsThinking,
-                effort: effort,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> kind = const Value.absent(),
-                Value<String> baseUrl = const Value.absent(),
-                Value<String> model = const Value.absent(),
-                Value<bool> vision = const Value.absent(),
-                Value<bool> thinking = const Value.absent(),
-                Value<bool> supportsThinking = const Value.absent(),
-                Value<String> effort = const Value.absent(),
-              }) => ProviderConfigsCompanion.insert(
-                id: id,
-                kind: kind,
-                baseUrl: baseUrl,
-                model: model,
-                vision: vision,
-                thinking: thinking,
-                supportsThinking: supportsThinking,
-                effort: effort,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$ProviderConfigsTable, ProviderConfig>(table),
-                  BaseReferences<
-                    _$AppDatabase,
-                    $ProviderConfigsTable,
-                    ProviderConfig
-                  >(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$ProviderConfigsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $ProviderConfigsTable,
-      ProviderConfig,
-      $$ProviderConfigsTableFilterComposer,
-      $$ProviderConfigsTableOrderingComposer,
-      $$ProviderConfigsTableAnnotationComposer,
-      $$ProviderConfigsTableCreateCompanionBuilder,
-      $$ProviderConfigsTableUpdateCompanionBuilder,
-      (
-        ProviderConfig,
-        BaseReferences<_$AppDatabase, $ProviderConfigsTable, ProviderConfig>,
-      ),
-      ProviderConfig,
-      PrefetchHooks Function()
-    >;
-typedef $$PreferencesTableCreateCompanionBuilder =
-    PreferencesCompanion Function({
-      required String name,
-      required String value,
-      Value<int> rowid,
-    });
-typedef $$PreferencesTableUpdateCompanionBuilder =
-    PreferencesCompanion Function({
-      Value<String> name,
-      Value<String> value,
-      Value<int> rowid,
-    });
-
-class $$PreferencesTableFilterComposer
-    extends Composer<_$AppDatabase, $PreferencesTable> {
-  $$PreferencesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get value => $composableBuilder(
-    column: $table.value,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$PreferencesTableOrderingComposer
-    extends Composer<_$AppDatabase, $PreferencesTable> {
-  $$PreferencesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get value => $composableBuilder(
-    column: $table.value,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$PreferencesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $PreferencesTable> {
-  $$PreferencesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get value =>
-      $composableBuilder(column: $table.value, builder: (column) => column);
-}
-
-class $$PreferencesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $PreferencesTable,
-          Preference,
-          $$PreferencesTableFilterComposer,
-          $$PreferencesTableOrderingComposer,
-          $$PreferencesTableAnnotationComposer,
-          $$PreferencesTableCreateCompanionBuilder,
-          $$PreferencesTableUpdateCompanionBuilder,
-          (
-            Preference,
-            BaseReferences<_$AppDatabase, $PreferencesTable, Preference>,
-          ),
-          Preference,
-          PrefetchHooks Function()
-        > {
-  $$PreferencesTableTableManager(_$AppDatabase db, $PreferencesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$PreferencesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$PreferencesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$PreferencesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> name = const Value.absent(),
-            Value<String> value = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => PreferencesCompanion(name: name, value: value, rowid: rowid),
-          createCompanionCallback:
-              ({
-                required String name,
-                required String value,
-                Value<int> rowid = const Value.absent(),
-              }) => PreferencesCompanion.insert(
-                name: name,
-                value: value,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$PreferencesTable, Preference>(table),
-                  BaseReferences<_$AppDatabase, $PreferencesTable, Preference>(
-                    db,
-                    table,
-                    e,
-                  ),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$PreferencesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $PreferencesTable,
-      Preference,
-      $$PreferencesTableFilterComposer,
-      $$PreferencesTableOrderingComposer,
-      $$PreferencesTableAnnotationComposer,
-      $$PreferencesTableCreateCompanionBuilder,
-      $$PreferencesTableUpdateCompanionBuilder,
-      (
-        Preference,
-        BaseReferences<_$AppDatabase, $PreferencesTable, Preference>,
-      ),
-      Preference,
-      PrefetchHooks Function()
-    >;
-
-class $AppDatabaseManager {
-  final _$AppDatabase _db;
-  $AppDatabaseManager(this._db);
-  $$ChatSessionsTableTableManager get chatSessions =>
-      $$ChatSessionsTableTableManager(_db, _db.chatSessions);
-  $$ChatMessagesTableTableManager get chatMessages =>
-      $$ChatMessagesTableTableManager(_db, _db.chatMessages);
-  $$AttachmentsTableTableManager get attachments =>
-      $$AttachmentsTableTableManager(_db, _db.attachments);
-  $$ProviderConfigsTableTableManager get providerConfigs =>
-      $$ProviderConfigsTableTableManager(_db, _db.providerConfigs);
-  $$PreferencesTableTableManager get preferences =>
-      $$PreferencesTableTableManager(_db, _db.preferences);
 }

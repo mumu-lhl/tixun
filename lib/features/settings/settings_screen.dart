@@ -15,7 +15,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _base, _model;
   final _key = TextEditingController();
   late String _kind, _effort;
-  late bool _vision, _thinking, _supportsThinking;
+  late bool _vision, _thinking, _supportsThinking, _supportsTools;
   bool _working = false;
   String? _status;
   bool _failure = false;
@@ -30,6 +30,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _vision = c.vision;
     _thinking = c.thinking;
     _supportsThinking = c.supportsThinking;
+    _supportsTools = c.supportsTools;
   }
 
   @override
@@ -48,6 +49,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     vision: _vision,
     thinking: _supportsThinking && _thinking,
     supportsThinking: _supportsThinking,
+    supportsTools: _supportsTools,
     effort: _effort,
   );
   Future<void> _perform({bool test = false, bool remove = false}) async {
@@ -154,6 +156,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               : '';
                           _vision = kind == 'deepseek';
                           _supportsThinking = kind == 'deepseek';
+                          _supportsTools = kind == 'deepseek';
                           _thinking = false;
                         }),
                 ),
@@ -218,6 +221,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                if (_kind == 'compatible')
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('支持工具调用'),
+                    subtitle: const Text(
+                      '根据服务商文档确认后开启',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: _supportsTools,
+                    onChanged: _working
+                        ? null
+                        : (v) => setState(() => _supportsTools = v),
+                  ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('支持图片输入'),
@@ -276,6 +292,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                 ],
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    '资料工具需在对话中单独开启，当前仅支持非深度思考模式。每次资料写入都需要确认。',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
                 if (_status != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
@@ -336,7 +359,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _heading(context, '关于题训', Icons.school_outlined),
                 const SizedBox(height: 12),
                 const Text(
-                  'TiXun 0.1 · 开源 · 本地优先\n当前交付：双平台基础与 AI Chat。\n知识库、错题本、结构化训练、间隔复习和完整备份将在后续里程碑实现。',
+                  'TiXun 0.2 · 开源 · 本地优先\n已支持 AI Chat、知识库、错题本、图片裁剪分题及受控资料工具。\n结构化训练、间隔复习和完整备份将在后续里程碑实现。',
                   style: TextStyle(height: 1.9),
                 ),
                 const SizedBox(height: 12),

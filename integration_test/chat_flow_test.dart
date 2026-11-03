@@ -54,7 +54,7 @@ void main() {
         '明天继续的问题',
         reason: 'draft callback before navigation',
       );
-      await tester.tap(find.byKey(const Key('nav-2')));
+      await tester.tap(find.byKey(const Key('nav-4')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('nav-1')));
       await tester.pumpAndSettle();

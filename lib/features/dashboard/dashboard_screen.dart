@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
+import '../library/library_providers.dart';
 import '../../core/ui/actions.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -10,6 +11,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(appControllerProvider);
+    final counts = ref.watch(studyCountsProvider);
     final colors = Theme.of(context).colorScheme;
     final compact = MediaQuery.sizeOf(context).width < 700;
     return ListView(
@@ -102,14 +104,28 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      FilledButton.icon(
-                        key: const Key('start-chat'),
-                        onPressed: () => act(context, () async {
-                          await c.newSession();
-                          if (context.mounted) context.go('/chat');
-                        }),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('开始学习对话'),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 10,
+                        children: [
+                          FilledButton.icon(
+                            key: const Key('start-chat'),
+                            onPressed: () => act(context, () async {
+                              await c.newSession();
+                              if (context.mounted) context.go('/chat');
+                            }),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('开始学习对话'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => context.go('/mistakes'),
+                            icon: const Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 18,
+                            ),
+                            label: const Text('录入错题'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -135,20 +151,28 @@ class DashboardScreen extends ConsumerWidget {
                         width: compact
                             ? constraints.maxWidth
                             : (constraints.maxWidth - 32) / 3,
-                        label: '默认模型',
-                        value: c.demo ? '离线 Mock' : c.config.model,
-                        detail: '可在设置中切换模型',
-                        icon: Icons.tune_outlined,
+                        label: '知识积累',
+                        value: counts.when(
+                          data: (v) => '${v.knowledge}',
+                          loading: () => '…',
+                          error: (_, _) => '—',
+                        ),
+                        detail: '保存自己的理解与方法',
+                        icon: Icons.bookmarks_outlined,
                       ),
                       _info(
                         context,
                         width: compact
                             ? constraints.maxWidth
                             : (constraints.maxWidth - 32) / 3,
-                        label: '本地记录',
-                        value: '离线可读',
-                        detail: '无需账号 · 此设备保存',
-                        icon: Icons.offline_pin_outlined,
+                        label: '错题记录',
+                        value: counts.when(
+                          data: (v) => '${v.mistakes}',
+                          loading: () => '…',
+                          error: (_, _) => '—',
+                        ),
+                        detail: '保留原题与反思',
+                        icon: Icons.menu_book_outlined,
                       ),
                     ],
                   ),

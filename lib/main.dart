@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'app/app.dart';
 import 'app/controller.dart';
 import 'app/theme.dart';
+import 'features/library/study_photo_intake.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,14 +18,20 @@ Future<void> main() async {
       try {
         final lost = await ImagePicker().retrieveLostData();
         if (lost.files?.isNotEmpty == true) {
-          if (c.selected == null) await c.newSession();
-          for (final image in lost.files!) {
-            await c.addImage(image.path);
+          if (!await StudyPhotoIntake.recover(c, lost.files!)) {
+            if (c.selected == null) await c.newSession();
+            for (final image in lost.files!) {
+              await c.addImage(image.path);
+            }
+            c.notice = '已将中断选择的图片恢复到对话草稿，请检查后发送。';
           }
         }
-        if (lost.exception != null) c.error = '上次图片选择未完成，请重新选择。';
+        if (lost.files?.isNotEmpty != true) {
+          await c.db.setPreference(StudyPhotoIntake.preference, '');
+        }
+        if (lost.exception != null) c.notice = '上次图片选择未完成，请重新选择。';
       } catch (_) {
-        c.error = '未能恢复上次选取的图片，请重新选择。';
+        c.notice = '未能恢复上次选取的图片，请重新选择。已有学习记录未改变。';
       }
     }
     runApp(

@@ -62,11 +62,28 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        for (final route in ['/study', '/chat', '/settings']) {
+        for (final route in [
+          '/study',
+          '/chat',
+          '/settings',
+          '/knowledge',
+          '/mistakes',
+        ]) {
           container.read(routerProvider).go(route);
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull, reason: '$width $route');
         }
+      }
+      final note = await tester.runAsync(
+        () async => (await c.study.searchKnowledge()).first,
+      );
+      final wrong = await tester.runAsync(
+        () async => (await c.study.searchMistakes()).first,
+      );
+      for (final path in ['/knowledge/${note!.id}', '/mistakes/${wrong!.id}']) {
+        container.read(routerProvider).go(path);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: path);
       }
       await tester.runAsync(() => c.theme(ThemeMode.dark));
       await tester.pumpAndSettle();

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/chat/chat_screen.dart';
+import '../features/library/library_screen.dart';
+import '../features/library/study_detail_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../core/ui/actions.dart';
@@ -25,6 +27,32 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/study', builder: (_, _) => const DashboardScreen()),
           GoRoute(path: '/chat', builder: (_, _) => const ChatScreen()),
           GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+          GoRoute(
+            path: '/knowledge',
+            builder: (_, _) => const LibraryScreen(isMistake: false),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (_, state) => StudyDetailScreen(
+                  id: state.pathParameters['id']!,
+                  isMistake: false,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/mistakes',
+            builder: (_, _) => const LibraryScreen(isMistake: true),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (_, state) => StudyDetailScreen(
+                  id: state.pathParameters['id']!,
+                  isMistake: true,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     ],
@@ -53,17 +81,27 @@ class AppShell extends ConsumerWidget {
   const AppShell({required this.path, required this.child, super.key});
   final String path;
   final Widget child;
-  static const paths = ['/study', '/chat', '/settings'];
-  static const labels = ['学习', 'AI 对话', '设置'];
+  static const paths = [
+    '/study',
+    '/chat',
+    '/mistakes',
+    '/knowledge',
+    '/settings',
+  ];
+  static const labels = ['学习', 'AI 对话', '错题', '知识', '设置'];
   static const icons = [
     Icons.space_dashboard_outlined,
     Icons.forum_outlined,
+    Icons.menu_book_outlined,
+    Icons.bookmarks_outlined,
     Icons.tune_outlined,
   ];
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= 800;
-    final index = paths.indexOf(path).clamp(0, 2);
+    final index = paths
+        .indexWhere((p) => path == p || path.startsWith('$p/'))
+        .clamp(0, 4);
     final c = ref.watch(appControllerProvider);
     final colors = Theme.of(context).colorScheme;
     return CallbackShortcuts(
@@ -79,6 +117,10 @@ class AppShell extends ConsumerWidget {
             context.go('/chat'),
         const SingleActivator(LogicalKeyboardKey.digit3, control: true): () =>
             context.go('/settings'),
+        const SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
+            context.go('/mistakes'),
+        const SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
+            context.go('/knowledge'),
         const SingleActivator(LogicalKeyboardKey.escape): () {
           c.stop();
         },
@@ -103,6 +145,19 @@ class AppShell extends ConsumerWidget {
                       color: colors.onTertiaryContainer,
                     ),
                   ),
+                ),
+              if (c.notice != null)
+                MaterialBanner(
+                  content: Text(c.notice!),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        c.notice = null;
+                        c.changed();
+                      },
+                      child: const Text('知道了'),
+                    ),
+                  ],
                 ),
               Expanded(
                 child: Row(

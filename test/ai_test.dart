@@ -23,12 +23,12 @@ void main() {
     expect(chunks.any((c) => c.tokens == 42), true);
   });
   test(
-    'Malformed JSON, unexpected close and unsupported tools fail explicitly',
+    'Malformed JSON, unexpected close and malformed tools fail explicitly',
     () async {
       for (final data in [
         'data: {broken}\n\n',
         'data: {"choices":[{"delta":{"content":"部分"}}]}\n\n',
-        'data: {"choices":[{"delta":{"tool_calls":[]}}]}\n\n',
+        'data: {"choices":[{"delta":{"tool_calls":"bad"}}]}\n\n',
       ]) {
         await expectLater(
           decodeCompletion(bytes(data)).toList(),

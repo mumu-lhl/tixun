@@ -1,7 +1,7 @@
 name: tixun
 description: 题训 — 理解知识，独立练习，真正掌握。
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+2
 environment:
   sdk: '>=3.13.0 <4.0.0'
 dependencies:
@@ -33,6 +33,8 @@ dev_dependencies:
   drift_dev: ^2.35.2
 flutter:
   uses-material-design: true
+  assets:
+    - assets/demo/two_problems.png
   fonts:
     - family: NotoSansSC
       fonts:

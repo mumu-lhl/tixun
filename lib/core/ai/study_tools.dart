@@ -1,0 +1,562 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
+import 'package:drift/drift.dart';
+
+import '../../features/library/study_store.dart';
+import '../database/database.dart';
+import 'chat_provider.dart';
+
+class ToolCall {
+  const ToolCall(this.id, this.name, this.arguments);
+  final String id, name, arguments;
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'type': 'function',
+    'function': {'name': name, 'arguments': arguments},
+  };
+}
+
+class ToolCallCollector {
+  final _calls = <int, Map<String, String>>{};
+  void add(List<dynamic> parts) {
+    if (parts.length > 8) throw const AiFailure('一次最多允许 8 个工具调用。');
+    for (final raw in parts) {
+      if (raw is! Map ||
+          raw['index'] is! int ||
+          raw['index'] < 0 ||
+          raw['index'] > 7) {
+        throw const AiFailure('工具调用索引无效。');
+      }
+      final call = _calls.putIfAbsent(
+        raw['index'] as int,
+        () => {'id': '', 'name': '', 'arguments': ''},
+      );
+      if (raw['id'] != null) {
+        if (raw['id'] is! String) throw const AiFailure('工具调用 ID 无效。');
+        call['id'] = raw['id'] as String;
+      }
+      if (raw['function'] != null) {
+        if (raw['function'] is! Map) throw const AiFailure('工具调用格式无效。');
+        final f = raw['function'] as Map;
+        for (final key in ['name', 'arguments']) {
+          if (f[key] != null) {
+            if (f[key] is! String) throw const AiFailure('工具参数片段无效。');
+            call[key] = '${call[key]}${f[key]}';
+          }
+        }
+      }
+      if (call['arguments']!.length > 64000 ||
+          call['name']!.length > 100 ||
+          call['id']!.length > 200) {
+        throw const AiFailure('工具调用数据过长。');
+      }
+    }
+  }
+
+  List<ToolCall> finish() {
+    final sorted = _calls.keys.toList()..sort();
+    final ids = <String>{};
+    return sorted.map((i) {
+      final c = _calls[i]!;
+      if (c['id']!.isEmpty || c['name']!.isEmpty || !ids.add(c['id']!)) {
+        throw const AiFailure('工具调用不完整或 ID 重复。');
+      }
+      return ToolCall(c['id']!, c['name']!, c['arguments']!);
+    }).toList();
+  }
+}
+
+const _string = {'type': 'string'};
+const _integer = {'type': 'integer', 'minimum': 1};
+const _tags = {'type': 'array', 'items': _string, 'maxItems': 20};
+const _knowledgeFields = {
+  'title': _string,
+  'content': _string,
+  'subject': _string,
+  'kind': {'type': 'string', 'enum': knowledgeKinds},
+  'chapter': _string,
+  'tags': _tags,
+};
+const _mistakeFields = {
+  'title': _string,
+  'question': _string,
+  'subject': _string,
+  'chapter': _string,
+  'correct_answer': _string,
+  'ai_analysis': _string,
+  'suggested_reason': _string,
+  'tags': _tags,
+};
+Map<String, dynamic> _schema(
+  String name,
+  String description,
+  Map<String, dynamic> fields,
+  List<String> required,
+) => {
+  'type': 'function',
+  'function': {
+    'name': name,
+    'description': description,
+    'parameters': {
+      'type': 'object',
+      'properties': fields,
+      'required': required,
+      'additionalProperties': false,
+    },
+  },
+};
+final studyToolSchemas = [
+  _schema('search_knowledge', '搜索用户授权的本地知识，返回最多5条摘要。', {
+    'query': _string,
+    'subject': _string,
+  }, []),
+  _schema('get_knowledge', '读取一条知识和版本号，正文最多12000字符。', {'id': _string}, ['id']),
+  _schema('create_knowledge', '提出新增知识建议；必须由用户在应用内确认后才保存。', _knowledgeFields, [
+    'title',
+    'content',
+    'subject',
+  ]),
+  _schema(
+    'update_knowledge',
+    '提出知识修改建议，必须提供读取时的版本号，并由用户确认。',
+    {'id': _string, 'expected_revision': _integer, ..._knowledgeFields},
+    ['id', 'expected_revision'],
+  ),
+  _schema(
+    'delete_knowledge',
+    '将知识移入回收区，可恢复，必须经用户确认。',
+    {'id': _string, 'expected_revision': _integer},
+    ['id', 'expected_revision'],
+  ),
+  _schema('search_mistakes', '搜索错题，返回最多5条摘要。', {
+    'query': _string,
+    'subject': _string,
+  }, []),
+  _schema('get_mistake', '读取错题、AI解析、版本及用户明确记录的思路。', {'id': _string}, ['id']),
+  _schema(
+    'create_mistake',
+    '提出错题保存建议，未知原题和答案不要编造。错误原因仅填写为建议，等待用户确认。',
+    _mistakeFields,
+    ['title', 'subject'],
+  ),
+  _schema(
+    'update_mistake',
+    '提出错题资料修改建议，不能修改用户原答案、用户分析或已确认的错误原因。',
+    {'id': _string, 'expected_revision': _integer, ..._mistakeFields},
+    ['id', 'expected_revision'],
+  ),
+  _schema(
+    'delete_mistake',
+    '将错题移入回收区，可恢复，必须经用户确认。',
+    {'id': _string, 'expected_revision': _integer},
+    ['id', 'expected_revision'],
+  ),
+  _schema(
+    'link_mistake_to_knowledge',
+    '提出知识与错题关联建议，需用户确认。',
+    {'knowledge_id': _string, 'mistake_id': _string},
+    ['knowledge_id', 'mistake_id'],
+  ),
+  _schema('get_learning_progress', '读取真实资料数量；没有训练数据时不能给出掌握分数。', {}, []),
+];
+const _readTools = {
+  'search_knowledge',
+  'get_knowledge',
+  'search_mistakes',
+  'get_mistake',
+  'get_learning_progress',
+};
+
+String canonicalJson(Object? value) {
+  Object? sort(Object? v) {
+    if (v is Map) {
+      final keys = v.keys.cast<String>().toList()..sort();
+      return {for (final k in keys) k: sort(v[k])};
+    }
+    if (v is List) return v.map(sort).toList();
+    return v;
+  }
+
+  return jsonEncode(sort(value));
+}
+
+typedef ConfirmStudyTool = Future<bool> Function(
+  String name,
+  Map<String, dynamic> arguments,
+);
+
+class StudyToolRunner {
+  StudyToolRunner(
+    this.store, {
+    required this.sessionId,
+    required this.runId,
+    required this.authorized,
+    this.confirm,
+    this.sourceImages = const [],
+  });
+  final StudyStore store;
+  final String sessionId, runId;
+
+  /// Only set by the explicit app UI. Model/user text never sets this capability.
+  final bool authorized;
+  final ConfirmStudyTool? confirm;
+  final List<Attachment> sourceImages;
+  AppDatabase get db => store.db;
+  Future<Map<String, dynamic>> execute(
+    ToolCall call,
+    CancelToken cancel,
+  ) async {
+    if (!authorized) return {'ok': false, 'error': '此会话未获本地资料工具权限。'};
+    cancel.checkCancelled();
+    Map<String, dynamic> args;
+    try {
+      if (call.arguments.length > 64000) throw const FormatException('参数过长。');
+      args = (jsonDecode(call.arguments) as Map).cast<String, dynamic>();
+      final schema = studyToolSchemas
+          .where((t) => t['function']['name'] == call.name)
+          .firstOrNull;
+      if (schema == null) throw const FormatException('未知工具。');
+      final p = schema['function']['parameters'];
+      for (final key in args.keys) {
+        if (!(p['properties'] as Map).containsKey(key)) {
+          throw FormatException('未知参数：$key');
+        }
+      }
+      for (final key in p['required'] as List) {
+        if (!args.containsKey(key)) throw FormatException('缺少参数：$key');
+      }
+      for (final entry in args.entries) {
+        final type = p['properties'][entry.key]['type'];
+        final v = entry.value;
+        if ((type == 'string' && v is! String) ||
+            (type == 'integer' && (v is! int || v < 1)) ||
+            (type == 'array' && (v is! List || v.any((e) => e is! String)))) {
+          throw FormatException('参数 ${entry.key} 类型无效。');
+        }
+      }
+      // Validate sizes before approval, including fields ignored by any individual tool.
+      for (final e in args.entries) {
+        if (e.value is String) {
+          store.checked(
+            e.value,
+            e.key,
+            e.key == 'content' ||
+                    e.key == 'question' ||
+                    e.key == 'ai_analysis' ||
+                    e.key == 'correct_answer'
+                ? 60000
+                : 500,
+          );
+        }
+      }
+      if (args['tags'] != null) {
+        store.cleanTags((args['tags'] as List).cast<String>());
+      }
+    } catch (_) {
+      return {'ok': false, 'error': '工具名称或参数无效，请检查字段、类型和长度。'};
+    }
+    final encoded = canonicalJson(args);
+    final existing = await (db.select(
+      db.aiToolOperations,
+    )..where((t) => t.id.equals('$runId:${call.id}'))).getSingleOrNull();
+    if (existing != null) {
+      if (existing.name != call.name || existing.arguments != encoded) {
+        return {'ok': false, 'error': '工具调用 ID 已用于其他参数。'};
+      }
+      return existing.result == null
+          ? {'ok': false, 'error': '此操作已在处理中或被中断，请发起新的请求。'}
+          : (jsonDecode(existing.result!) as Map).cast<String, dynamic>();
+    }
+    if (!_readTools.contains(call.name)) {
+      final duplicate =
+          await (db.select(db.aiToolOperations)..where(
+                (t) =>
+                    t.runId.equals(runId) &
+                    t.name.equals(call.name) &
+                    t.arguments.equals(encoded) &
+                    t.status.isIn([
+                      'pending',
+                      'running',
+                      'succeeded',
+                      'rejected',
+                    ]),
+              ))
+              .getSingleOrNull();
+      if (duplicate != null) {
+        return duplicate.result == null
+            ? {'ok': false, 'error': '相同操作正在等待确认或执行，已阻止重复调用。'}
+            : (jsonDecode(duplicate.result!) as Map).cast<String, dynamic>();
+      }
+    }
+    final operationId = '$runId:${call.id}';
+    try {
+      await db
+          .into(db.aiToolOperations)
+          .insert(
+            AiToolOperationsCompanion.insert(
+              id: operationId,
+              runId: runId,
+              sessionId: sessionId,
+              name: call.name,
+              arguments: encoded,
+              status: 'pending',
+              createdAt: DateTime.now(),
+            ),
+          );
+    } catch (_) {
+      return {'ok': false, 'error': '无法登记操作，或检测到重复请求；未执行修改。'};
+    }
+
+    try {
+      if (!_readTools.contains(call.name)) {
+        final approved = confirm != null && await confirm!(call.name, args);
+        cancel.checkCancelled();
+        if (!approved) {
+          final result = {'ok': false, 'error': '用户未确认，未修改任何资料。'};
+          await _result(operationId, 'rejected', result);
+          return result;
+        }
+      }
+      cancel.checkCancelled();
+      final result = await db.transaction(() async {
+        final value = await _invoke(call.name, args);
+        cancel.checkCancelled();
+        final result = {'ok': true, ...value};
+        await _result(operationId, 'succeeded', result);
+        return result;
+      });
+      store.changed();
+      return result;
+    } on DioException {
+      await _result(operationId, 'cancelled', {
+        'ok': false,
+        'error': '已取消，未完成的修改已回滚。',
+      });
+      rethrow;
+    } catch (e) {
+      final result = {
+        'ok': false,
+        'error': e is FormatException ? e.message : '操作未完成，数据库修改已回滚。',
+      };
+      await _result(operationId, 'failed', result);
+      return result;
+    }
+  }
+
+  Future<void> _result(
+    String id,
+    String status,
+    Map<String, dynamic> result,
+  ) async {
+    await (db.update(db.aiToolOperations)..where((t) => t.id.equals(id))).write(
+      AiToolOperationsCompanion(
+        status: Value(status),
+        result: Value(jsonEncode(result)),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> _invoke(
+    String name,
+    Map<String, dynamic> a,
+  ) async {
+    String text(String key, [String fallback = '']) =>
+        a[key] as String? ?? fallback;
+    List<String> labels(List<String> fallback) =>
+        a['tags'] == null ? fallback : (a['tags'] as List).cast<String>();
+    switch (name) {
+      case 'search_knowledge':
+        final rows = await store.searchKnowledge(
+          query: text('query'),
+          subject: text('subject'),
+          limit: 5,
+        );
+        return {
+          'items': rows
+              .map(
+                (k) => {
+                  'id': k.id,
+                  'title': k.title,
+                  'subject': k.subject,
+                  'kind': k.kind,
+                  'revision': k.revision,
+                  'snippet': k.content.substring(
+                    0,
+                    k.content.length.clamp(0, 160),
+                  ),
+                },
+              )
+              .toList(),
+        };
+      case 'get_knowledge':
+        final k = await store.knowledge(text('id'));
+        return {
+          'id': k.id,
+          'title': k.title,
+          'content': k.content.substring(0, k.content.length.clamp(0, 12000)),
+          'truncated': k.content.length > 12000,
+          'subject': k.subject,
+          'kind': k.kind,
+          'chapter': k.chapter,
+          'tags': await store.tags(k.id, isMistake: false),
+          'revision': k.revision,
+        };
+      case 'create_knowledge':
+      case 'update_knowledge':
+        final old = name == 'update_knowledge'
+            ? await store.knowledge(text('id'))
+            : null;
+        if (old != null &&
+            a.keys.every((k) => ['id', 'expected_revision'].contains(k))) {
+          throw const FormatException('没有提供需要修改的字段。');
+        }
+        final row = await store.saveKnowledge(
+          KnowledgeDraft(
+            title: text('title', old?.title ?? ''),
+            content: text('content', old?.content ?? ''),
+            subject: text('subject', old?.subject ?? ''),
+            kind: text('kind', old?.kind ?? '个人笔记'),
+            chapter: text('chapter', old?.chapter ?? ''),
+            tags: labels(
+              old == null ? [] : await store.tags(old.id, isMistake: false),
+            ),
+          ),
+          id: old?.id,
+          expectedRevision: a['expected_revision'] as int?,
+          sourceSessionId: sessionId,
+          sourceMessageId: runId,
+        );
+        return {'id': row.id, 'revision': row.revision, 'title': row.title};
+      case 'delete_knowledge':
+        await store.setDeleted(
+          text('id'),
+          isMistake: false,
+          deleted: true,
+          expectedRevision: a['expected_revision'] as int,
+        );
+        return {'id': text('id'), 'recoverable': true};
+      case 'search_mistakes':
+        final rows = await store.searchMistakes(
+          query: text('query'),
+          subject: text('subject'),
+          limit: 5,
+        );
+        return {
+          'items': rows
+              .map(
+                (m) => {
+                  'id': m.id,
+                  'title': m.title,
+                  'subject': m.subject,
+                  'revision': m.revision,
+                  'snippet': m.question.substring(
+                    0,
+                    m.question.length.clamp(0, 160),
+                  ),
+                },
+              )
+              .toList(),
+        };
+      case 'get_mistake':
+        final m = await store.mistake(text('id'));
+        String bound(String v) => v.substring(0, v.length.clamp(0, 4000));
+        return {
+          'id': m.id,
+          'title': m.title,
+          'question': bound(m.question),
+          'subject': m.subject,
+          'chapter': m.chapter,
+          'correct_answer': bound(m.correctAnswer),
+          'original_answer': bound(m.originalAnswer),
+          'own_analysis': bound(m.ownAnalysis),
+          'ai_analysis': bound(m.aiAnalysis),
+          'error_reason': m.errorReason,
+          'suggested_reason': m.suggestedReason,
+          'tags': await store.tags(m.id, isMistake: true),
+          'revision': m.revision,
+          'image_access': '本工具未返回图片内容。需由用户从错题详情发送图片，才能进行视觉分析。',
+          'images_available': (await store.images(
+            m.id,
+            isMistake: true,
+          )).length,
+        };
+      case 'create_mistake':
+      case 'update_mistake':
+        final old = name == 'update_mistake'
+            ? await store.mistake(text('id'))
+            : null;
+        if (old != null &&
+            a.keys.every((k) => ['id', 'expected_revision'].contains(k))) {
+          throw const FormatException('没有提供需要修改的字段。');
+        }
+        final row = await store.saveMistake(
+          MistakeDraft(
+            title: text('title', old?.title ?? ''),
+            question: text('question', old?.question ?? ''),
+            subject: text('subject', old?.subject ?? ''),
+            chapter: text('chapter', old?.chapter ?? ''),
+            correctAnswer: text('correct_answer', old?.correctAnswer ?? ''),
+            originalAnswer: old?.originalAnswer ?? '',
+            ownAnalysis: old?.ownAnalysis ?? '',
+            aiAnalysis: text('ai_analysis', old?.aiAnalysis ?? ''),
+            errorReason: old?.errorReason ?? '暂未确定',
+            suggestedReason: text(
+              'suggested_reason',
+              old?.suggestedReason ?? '',
+            ),
+            tags: labels(
+              old == null ? [] : await store.tags(old.id, isMistake: true),
+            ),
+          ),
+          id: old?.id,
+          expectedRevision: a['expected_revision'] as int?,
+          sourceSessionId: sessionId,
+          sourceMessageId: runId,
+        );
+        if (old == null) {
+          for (final image in sourceImages) {
+            if (image.sessionId != sessionId) {
+              throw const FormatException('题目图片不属于当前授权对话。');
+            }
+            await store.addImageReference(
+              row.id,
+              image.relativePath,
+              image.mime,
+              image.byteLength,
+              isMistake: true,
+            );
+          }
+        }
+        return {'id': row.id, 'title': row.title, 'revision': row.revision};
+      case 'delete_mistake':
+        await store.setDeleted(
+          text('id'),
+          isMistake: true,
+          deleted: true,
+          expectedRevision: a['expected_revision'] as int,
+        );
+        return {'id': text('id'), 'recoverable': true};
+      case 'link_mistake_to_knowledge':
+        await store.link(text('knowledge_id'), mistakeId: text('mistake_id'));
+        return {'linked': true};
+      case 'get_learning_progress':
+        Future<int> count(String table) async =>
+            (await db
+                    .customSelect(
+                      'SELECT count(*) AS n FROM $table WHERE deleted = 0',
+                    )
+                    .getSingle())
+                .read<int>('n');
+        return {
+          'knowledge_count': await count('knowledge_items'),
+          'mistake_count': await count('mistakes'),
+          'chat_count': await count('chat_sessions'),
+          'mastery': null,
+          'note': '尚无结构化训练记录，不能推断掌握程度。',
+        };
+      default:
+        throw const FormatException('未知工具。');
+    }
+  }
+}

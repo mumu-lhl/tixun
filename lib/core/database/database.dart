@@ -5,12 +5,14 @@ import 'package:drift/native.dart';
 import 'package:uuid/uuid.dart';
 
 part 'database.g.dart';
+part 'study_tables.dart';
 
 class ChatSessions extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
   TextColumn get mode => text().withDefault(const Constant('guided'))();
   TextColumn get stage => text().withDefault(const Constant('diagnosing'))();
+  BoolColumn get toolsEnabled => boolean().withDefault(const Constant(false))();
   TextColumn get draft => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -60,6 +62,7 @@ class ProviderConfigs extends Table {
   TextColumn get model =>
       text().withDefault(const Constant('deepseek-flash'))();
   BoolColumn get vision => boolean().withDefault(const Constant(true))();
+  BoolColumn get supportsTools => boolean().withDefault(const Constant(true))();
   BoolColumn get thinking => boolean().withDefault(const Constant(false))();
   BoolColumn get supportsThinking =>
       boolean().withDefault(const Constant(true))();
@@ -82,6 +85,16 @@ class Preferences extends Table {
     Attachments,
     ProviderConfigs,
     Preferences,
+    KnowledgeItems,
+    KnowledgeRevisions,
+    Mistakes,
+    KnowledgeTags,
+    MistakeTags,
+    KnowledgeRelations,
+    MistakeKnowledgeLinks,
+    StudyAttachments,
+    AiToolOperations,
+    StudyChatLinks,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -90,11 +103,12 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+      await _createStudyIndexes();
       await customStatement(
         'CREATE INDEX messages_session_time ON chat_messages(session_id, created_at)',
       );
@@ -114,9 +128,41 @@ class AppDatabase extends _$AppDatabase {
         "CREATE TRIGGER messages_au AFTER UPDATE ON chat_messages BEGIN INSERT INTO message_search(message_search, rowid, content, session_id) VALUES ('delete', old.rowid, old.content, old.session_id); INSERT INTO message_search(rowid, content, session_id) VALUES (new.rowid, new.content, new.session_id); END",
       );
     },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(chatSessions, chatSessions.toolsEnabled);
+        await m.addColumn(providerConfigs, providerConfigs.supportsTools);
+        await customStatement(
+          "UPDATE provider_configs SET supports_tools = 0 WHERE kind <> 'deepseek'",
+        );
+        for (final table in <TableInfo>[
+          knowledgeItems,
+          knowledgeRevisions,
+          mistakes,
+          knowledgeTags,
+          mistakeTags,
+          knowledgeRelations,
+          mistakeKnowledgeLinks,
+          studyAttachments,
+          aiToolOperations,
+          studyChatLinks,
+        ]) {
+          await m.createTable(table);
+        }
+        await _createStudyIndexes();
+      }
+    },
     beforeOpen: (_) async {
       await customStatement('PRAGMA foreign_keys = ON');
       await customStatement('PRAGMA journal_mode = WAL');
+      await (update(
+        aiToolOperations,
+      )..where((t) => t.status.isIn(['pending', 'running']))).write(
+        const AiToolOperationsCompanion(
+          status: Value('cancelled'),
+          result: Value('{"ok":false,"error":"应用关闭，未完成的操作已取消。"}'),
+        ),
+      );
       await (update(
         chatMessages,
       )..where((t) => t.status.equals('generating'))).write(
@@ -127,6 +173,48 @@ class AppDatabase extends _$AppDatabase {
       );
     },
   );
+
+  Future<void> _createStudyIndexes() async {
+    await customStatement(
+      'CREATE INDEX knowledge_subject_updated ON knowledge_items(deleted, subject, updated_at)',
+    );
+    await customStatement(
+      'CREATE INDEX mistakes_subject_updated ON mistakes(deleted, subject, updated_at)',
+    );
+    await customStatement(
+      'CREATE INDEX study_attachments_knowledge ON study_attachments(knowledge_id)',
+    );
+    await customStatement(
+      'CREATE INDEX study_attachments_mistake ON study_attachments(mistake_id)',
+    );
+    await customStatement(
+      "CREATE UNIQUE INDEX tool_write_dedup ON ai_tool_operations(run_id, name, arguments) WHERE name IN ('create_knowledge','update_knowledge','delete_knowledge','create_mistake','update_mistake','delete_mistake','link_mistake_to_knowledge') AND status IN ('pending','running','succeeded')",
+    );
+    for (final (table, fts, content) in [
+      ('knowledge_items', 'knowledge_search', 'title, content, chapter'),
+      (
+        'mistakes',
+        'mistake_search',
+        'title, question, chapter, correct_answer, original_answer, own_analysis, ai_analysis, error_reason, suggested_reason',
+      ),
+    ]) {
+      final names = content.split(', ');
+      final newValues = names.map((n) => 'new.$n').join(', ');
+      final oldValues = names.map((n) => 'old.$n').join(', ');
+      await customStatement(
+        "CREATE VIRTUAL TABLE $fts USING fts5($content, content='$table', content_rowid='rowid', tokenize='trigram')",
+      );
+      await customStatement(
+        'CREATE TRIGGER ${fts}_ai AFTER INSERT ON $table BEGIN INSERT INTO $fts(rowid, $content) VALUES(new.rowid, $newValues); END',
+      );
+      await customStatement(
+        "CREATE TRIGGER ${fts}_ad AFTER DELETE ON $table BEGIN INSERT INTO $fts($fts, rowid, $content) VALUES('delete', old.rowid, $oldValues); END",
+      );
+      await customStatement(
+        "CREATE TRIGGER ${fts}_au AFTER UPDATE ON $table BEGIN INSERT INTO $fts($fts, rowid, $content) VALUES('delete', old.rowid, $oldValues); INSERT INTO $fts(rowid, $content) VALUES(new.rowid, $newValues); END",
+      );
+    }
+  }
 
   Future<List<ChatSession>> sessions([String query = '']) async {
     final rows =
