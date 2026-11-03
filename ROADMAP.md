@@ -30,7 +30,7 @@
 - [x] Mock GUI 验证：AI 工具确认保存知识、资料打开；多题图片手动拆分并保留原图。
 - [ ] AI 自动题目边界建议和可编辑分题结果（当前只能手动框选，不宣称已实现）。
 - [ ] 真实 DeepSeek + Android 真机的完整错题学习流程验收。
-- [ ] 本次 M2 提交的双平台 CI 与最终截图检查结果确认。
+- [x] M2 双平台 CI、APK、Linux Release、GUI 交互和最终截图审查：[41680879458](https://github.com/mumu-lhl/tixun/actions/runs/41680879458)。
 
 ## 后续阶段
 
@@ -44,8 +44,10 @@ M5：带版本和完整性校验的备份恢复（排除 Key）、搜索与批�
 
 - 静态分析通过；31 项单元、数据库、工具、图片、恢复与 Widget 测试通过。
 - 工具测试覆盖无授权/拒绝/取消不写入、参数错误、重复调用、过期版本、审计失败时数据一起回滚。
-- 真实 Linux GUI 的 M2 工具保存与手动分题两项集成测试通过；完整回归与当前版本 Release / 截图仍在最后确认。
-- Golden 随导航和消息操作变化有意更新；最终图像仍需逐张读取检查。
-- 无真实 API Key、无 Android 实机/模拟器，不能把 Mock 或 Linux 测试当作这些验证通过。
+- 真实 Linux GUI 的普通聊天、工具确认保存、手动分题共 3 项集成测试通过；Ctrl+Enter 发送也已验证。正式版与 Mock Linux Release 均构建并运行。
+- Golden 随导航、消息操作和行内公式排版有意更新；已读取数学、深色 Chat Golden 和桌面/手机知识、错题、聊天、设置截图，完成视觉检查。单图已扩大，公式与中文标点已合并为正常段落。
+- 无真实 API Key、无 Android 实机/模拟器，不能把 Mock 或 Linux 测试当作这些验证通过。Android APK 构建通过仍不能替代相机、密钥环和输入法的设备验收。
 
 早期本地 Android 构建因约 8 GiB 磁盘无法解压 NDK；现已通过磁盘充足的 GitHub Actions 成功构建基线 APK。本地 Linux debug/release 必须顺序构建，避免共享引擎临时目录被并发覆盖。
+
+当前验证代码提交：`a9f5640`（M2 核心 `8f10b4c`）。本地 Flutter SDK 位于 `/workspace/flutter`，Linux 工具链安装在 `tixun-dev` 容器；后续可用 `docker exec -e PUB_CACHE=/home/agent/.pub-cache -w /workspace/tixun tixun-dev flutter test` 继续验证。

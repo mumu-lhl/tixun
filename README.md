@@ -76,3 +76,9 @@ GitHub Actions 检查代码、构建 Debug APK、构建 Linux、执行真实 GUI
 ![桌面学习界面](docs/screenshots/chat-desktop.png)
 
 <img src="docs/screenshots/chat-phone.png" width="390" alt="手机宽度的聊天界面" />
+
+![知识详情与数学排版](docs/screenshots/knowledge-desktop.png)
+
+<img src="docs/screenshots/mistake-phone.png" width="390" alt="手机宽度的错题与原图" />
+
+当前 M2 验证构建：[Android APK、Linux bundle 与测试截图](https://github.com/mumu-lhl/tixun/actions/runs/41680879458)。
