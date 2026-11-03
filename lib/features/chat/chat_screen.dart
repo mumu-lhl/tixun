@@ -1,0 +1,840 @@
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../app/controller.dart';
+import '../../core/database/database.dart';
+import '../../core/ui/actions.dart';
+import '../../core/ui/learning_markdown.dart';
+import 'session_list.dart';
+
+class ChatScreen extends ConsumerWidget {
+  const ChatScreen({super.key});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = ref.watch(appControllerProvider);
+    final wide = MediaQuery.sizeOf(context).width >= 1100;
+    return Row(
+      children: [
+        if (wide) ...[
+          const SizedBox(width: 268, child: SessionList()),
+          const VerticalDivider(width: 1),
+        ],
+        Expanded(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Theme.of(context).dividerColor),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    if (!wide)
+                      IconButton(
+                        tooltip: '会话列表',
+                        icon: const Icon(Icons.menu_book_outlined),
+                        onPressed: () => showModalBottomSheet<void>(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          builder: (context) => SizedBox(
+                            height: MediaQuery.sizeOf(context).height * .85,
+                            child: SessionList(
+                              onSelected: () => Navigator.pop(context),
+                            ),
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            c.selected?.title ?? 'AI 学习助手',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          Text(
+                            c.demo
+                                ? 'Mock · 隔离数据 · 不连接 API'
+                                : '${c.config.model} · ${c.busy ? '正在回复' : '本地保存'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '模型设置',
+                      onPressed: () => context.go('/settings'),
+                      icon: const Icon(Icons.tune, size: 21),
+                    ),
+                  ],
+                ),
+              ),
+              if (c.error != null)
+                MaterialBanner(
+                  content: Text(c.error!),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        c.error = null;
+                        c.changed();
+                      },
+                      child: const Text('关闭'),
+                    ),
+                  ],
+                ),
+              Expanded(
+                child: c.selected == null
+                    ? _NoSession(onStart: () => act(context, c.newSession))
+                    : Conversation(key: ValueKey(c.selected!.id)),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NoSession extends StatelessWidget {
+  const _NoSession({required this.onStart});
+  final VoidCallback onStart;
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.forum_outlined,
+            size: 44,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 20),
+          Text('每个问题，都值得弄懂', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          const Text('输入文字或上传题目图片，和 AI 一起理清思路。', textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          FilledButton(onPressed: onStart, child: const Text('开始新的学习对话')),
+        ],
+      ),
+    ),
+  );
+}
+
+class Conversation extends ConsumerStatefulWidget {
+  const Conversation({super.key});
+  @override
+  ConsumerState<Conversation> createState() => _ConversationState();
+}
+
+class _ConversationState extends ConsumerState<Conversation> {
+  final _scroll = ScrollController();
+  late final TextEditingController _input;
+  final _focus = FocusNode();
+  bool _stick = true;
+  @override
+  void initState() {
+    super.initState();
+    _input = TextEditingController(
+      text: ref.read(appControllerProvider).selected?.draft ?? '',
+    );
+    _scroll.addListener(() {
+      _stick =
+          !_scroll.hasClients ||
+          _scroll.position.maxScrollExtent - _scroll.offset < 160;
+    });
+  }
+
+  @override
+  void dispose() {
+    _input.dispose();
+    _focus.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final c = ref.read(appControllerProvider);
+    final before = _input.text;
+    final future = c.send(before);
+    await future;
+    if (!mounted) return;
+    if (c.selected?.draft.isEmpty == true && _input.text == before) {
+      _input.clear();
+    }
+  }
+
+  Future<void> _import(String type) async {
+    final c = ref.read(appControllerProvider);
+    await act(context, () async {
+      if (type == 'camera') {
+        final image = await ImagePicker().pickImage(source: ImageSource.camera);
+        if (image != null) await c.addImage(image.path);
+      } else if (type == 'gallery') {
+        for (final image in await ImagePicker().pickMultiImage()) {
+          await c.addImage(image.path);
+        }
+      } else {
+        final images = await openFiles(
+          acceptedTypeGroups: [
+            const XTypeGroup(
+              label: '题目图片',
+              extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'],
+              mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+            ),
+          ],
+        );
+        for (final image in images) {
+          await c.addImage(image.path);
+        }
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = ref.watch(appControllerProvider);
+    final colors = Theme.of(context).colorScheme;
+    final pending = c.attachments.where((a) => a.messageId == null).toList();
+    if (_stick) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _scroll.hasClients && _stick) {
+          _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        }
+      });
+    }
+    // Clear immediately after the user message has committed, including during streaming.
+    if (c.selected?.draft.isEmpty == true && c.busy && _input.text.isNotEmpty) {
+      _input.clear();
+    }
+    return Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter, control: true): _SendIntent(),
+      },
+      child: Actions(
+        actions: {
+          _SendIntent: CallbackAction<_SendIntent>(
+            onInvoke: (_) {
+              if (!c.busy) _send();
+              return null;
+            },
+          ),
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: c.messages.isEmpty
+                  ? SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 560),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 24),
+                                Text(
+                                  '今天，想弄懂什么？',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  '不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。',
+                                  style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                    height: 1.8,
+                                  ),
+                                ),
+                                const SizedBox(height: 28),
+                                for (final prompt in [
+                                  '二次函数的顶点公式，怎样理解而不是死记？',
+                                  '我会做这道题，但不知道为什么要用这个方法。',
+                                ])
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: OutlinedButton(
+                                      onPressed: () {
+                                        _input.text = prompt;
+                                        c.draft(prompt);
+                                        _focus.requestFocus();
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        child: Text(prompt),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scroll,
+                      key: PageStorageKey('messages-${c.selected!.id}'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 24,
+                      ),
+                      itemCount: c.messages.length,
+                      itemBuilder: (context, index) => Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 790),
+                          child: MessageView(
+                            message: c.messages[index],
+                            isLast: index == c.messages.length - 1,
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+            if (c.messages.isNotEmpty && !c.busy)
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    for (final text in [
+                      '给我提示',
+                      '换种方式解释',
+                      '讲简单一点',
+                      '直接给答案',
+                      '再出一道题',
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          label: Text(
+                            text,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          onPressed: () {
+                            _input.text = text;
+                            c.draft(text);
+                            _focus.requestFocus();
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 850),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: c.selected!.mode,
+                              isDense: true,
+                              style: TextStyle(
+                                fontFamily: 'NotoSansSC',
+                                fontSize: 12,
+                                color: colors.primary,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'guided',
+                                  child: Text('引导教学'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'direct',
+                                  child: Text('直接解答'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'exam',
+                                  child: Text('考试对话'),
+                                ),
+                              ],
+                              onChanged: c.busy
+                                  ? null
+                                  : (v) => act(context, () => c.mode(v!)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              c.selected!.mode == 'exam'
+                                  ? '当前仅对话训练，尚不记录结构化成绩'
+                                  : '先理解，再独立尝试',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: colors.surfaceContainerLowest,
+                          border: Border.all(color: colors.outlineVariant),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Column(
+                          children: [
+                            if (pending.isNotEmpty)
+                              SizedBox(
+                                height: 96,
+                                child: ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.all(8),
+                                  children: pending
+                                      .map(
+                                        (a) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 8,
+                                          ),
+                                          child: Stack(
+                                            children: [
+                                              AttachmentImage(
+                                                attachment: a,
+                                                width: 88,
+                                                height: 80,
+                                              ),
+                                              Positioned(
+                                                right: 0,
+                                                top: 0,
+                                                child: IconButton.filledTonal(
+                                                  tooltip: '移除图片',
+                                                  onPressed: c.busy
+                                                      ? null
+                                                      : () => act(
+                                                          context,
+                                                          () =>
+                                                              c.removeImage(a),
+                                                        ),
+                                                  icon: const Icon(
+                                                    Icons.close,
+                                                    size: 16,
+                                                  ),
+                                                  constraints:
+                                                      const BoxConstraints.tightFor(
+                                                        width: 28,
+                                                        height: 28,
+                                                      ),
+                                                  padding: EdgeInsets.zero,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                              ),
+                            TextField(
+                              key: const Key('chat-input'),
+                              controller: _input,
+                              focusNode: _focus,
+                              enabled: !c.busy,
+                              onChanged: c.draft,
+                              minLines: 1,
+                              maxLines: 6,
+                              maxLength: 32000,
+                              decoration: const InputDecoration(
+                                hintText: '写下你的问题，或添加题目图片…',
+                                counterText: '',
+                                filled: false,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.fromLTRB(
+                                  16,
+                                  14,
+                                  16,
+                                  10,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(4, 0, 8, 8),
+                              child: Row(
+                                children: [
+                                  PopupMenuButton<String>(
+                                    tooltip: '添加图片',
+                                    enabled: !c.busy,
+                                    icon: const Icon(
+                                      Icons.add_photo_alternate_outlined,
+                                      size: 23,
+                                    ),
+                                    onSelected: _import,
+                                    itemBuilder: (_) => [
+                                      if (Platform.isAndroid) ...[
+                                        const PopupMenuItem(
+                                          value: 'camera',
+                                          child: Text('拍照'),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'gallery',
+                                          child: Text('从相册选择'),
+                                        ),
+                                      ],
+                                      const PopupMenuItem(
+                                        value: 'file',
+                                        child: Text('选择图片文件'),
+                                      ),
+                                    ],
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      pending.isNotEmpty
+                                          ? '发送时会将所选图片传给 AI'
+                                          : '原图保存在本地',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: colors.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                                  c.busy
+                                      ? IconButton.filled(
+                                          key: const Key('stop-generation'),
+                                          tooltip: '停止生成',
+                                          onPressed: c.stop,
+                                          icon: const Icon(Icons.stop_rounded),
+                                        )
+                                      : IconButton.filled(
+                                          key: const Key('send-message'),
+                                          tooltip: '发送（Ctrl+Enter）',
+                                          onPressed: () => act(context, _send),
+                                          icon: const Icon(
+                                            Icons.arrow_upward_rounded,
+                                          ),
+                                        ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Center(
+                        child: Text(
+                          c.demo
+                              ? '离线 Mock · 回复为固定测试内容'
+                              : 'AI 可能出错，请核对重要结论。最近 30 条消息 / 32000 字符参与上下文。',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SendIntent extends Intent {
+  const _SendIntent();
+}
+
+class MessageView extends ConsumerWidget {
+  const MessageView({required this.message, required this.isLast, super.key});
+  final ChatMessage message;
+  final bool isLast;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = ref.watch(appControllerProvider);
+    final user = message.role == 'user';
+    final colors = Theme.of(context).colorScheme;
+    final images = c.attachments.where((a) => a.messageId == message.id);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 27,
+                height: 27,
+                decoration: BoxDecoration(
+                  color: user ? colors.surfaceContainerHighest : colors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  user ? Icons.person_outline : Icons.auto_awesome_outlined,
+                  color: user ? colors.onSurfaceVariant : colors.onPrimary,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 9),
+              Text(
+                user ? '你' : '题训',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  user ? '' : message.model ?? '',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: colors.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (images.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: images
+                    .map(
+                      (a) => AttachmentImage(
+                        attachment: a,
+                        width: 190,
+                        height: 150,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          if (message.content.isNotEmpty)
+            user
+                ? Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SelectableText(
+                      message.content,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  )
+                : LearningMarkdown(message.content),
+          if (message.status == 'generating')
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '正在思考与组织回答…',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (message.error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                message.error!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: message.status == 'error'
+                      ? colors.error
+                      : colors.onSurfaceVariant,
+                ),
+              ),
+            ),
+          if (message.status != 'generating')
+            Row(
+              children: [
+                IconButton(
+                  tooltip: '复制消息',
+                  icon: const Icon(Icons.copy_outlined, size: 17),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () async {
+                    await Clipboard.setData(
+                      ClipboardData(text: message.content),
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(const SnackBar(content: Text('消息已复制')));
+                    }
+                  },
+                ),
+                if (user)
+                  IconButton(
+                    tooltip: '编辑并在新分支重问',
+                    icon: const Icon(Icons.edit_outlined, size: 17),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: c.busy
+                        ? null
+                        : () async {
+                            final text = await editText(
+                              context,
+                              title: '编辑并重问（保留原会话）',
+                              initial: message.content,
+                              multiline: true,
+                            );
+                            if (text != null && context.mounted) {
+                              await act(
+                                context,
+                                () => c.editAndResend(message, text),
+                              );
+                            }
+                          },
+                  ),
+                if (!user && isLast)
+                  TextButton.icon(
+                    onPressed: c.busy ? null : () => act(context, c.regenerate),
+                    icon: const Icon(Icons.refresh, size: 17),
+                    label: const Text('重新生成', style: TextStyle(fontSize: 12)),
+                  ),
+                if (!user && message.totalTokens != null)
+                  Expanded(
+                    child: Text(
+                      '${message.totalTokens} tokens',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class AttachmentImage extends ConsumerWidget {
+  const AttachmentImage({
+    required this.attachment,
+    required this.width,
+    required this.height,
+    super.key,
+  });
+  final Attachment attachment;
+  final double width, height;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final file = ref
+        .read(appControllerProvider)
+        .files
+        .resolve(attachment.relativePath);
+    Widget picture({bool preview = false}) => Image.file(
+      file,
+      width: preview ? null : width,
+      height: preview ? null : height,
+      fit: BoxFit.contain,
+      cacheWidth: preview ? 1600 : 500,
+      errorBuilder: (_, _, _) => SizedBox(
+        width: width,
+        height: height,
+        child: const Center(child: Text('图片无法读取', textAlign: TextAlign.center)),
+      ),
+    );
+    return Semantics(
+      label: '题目图片，点击预览',
+      button: true,
+      child: InkWell(
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (context) => Dialog(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    const Expanded(child: Text('原图预览')),
+                    IconButton(
+                      tooltip: '关闭预览',
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                Flexible(
+                  child: InteractiveViewer(child: picture(preview: true)),
+                ),
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text(
+                    '原图已保存在此设备 · 裁剪功能将在后续版本提供',
+                    style: TextStyle(fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: ColoredBox(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            child: picture(),
+          ),
+        ),
+      ),
+    );
+  }
+}
