@@ -30,3 +30,16 @@ M4：确定性间隔复习、真实数据的薄弱点分析与今日任务。没
 M5：带版本与完整性校验的备份恢复（不含 Key）、搜索和批量体验、无障碍与性能、Android 实机和 Linux 桌面稳定性。
 
 所有未勾选项均未达到完整验收；已接入的真实 API 不代表已通过真实凭据测试。
+
+## 本次验证（2026-11-03）
+
+- `flutter analyze` 无问题；18 项逻辑、数据库与 Widget 测试通过，包含固定字体的数学 Golden。
+- 真实 Linux GUI 集成测试通过：输入问题 → Mock 流式回复 → 数据库保存 → 切换页面 → 草稿恢复。
+- Linux 正式版与隔离 Mock Release 均成功构建；Xvfb + llvmpipe 实际完成鼠标键盘操作和桌面/手机尺寸截图，截图已读取并完成视觉检查。
+- 深色手机 Chat Golden 已生成并查看；公式错误回退、矩阵、多行公式均有渲染验证。
+- Git 推送及 GitHub 连接器写入均收到 403 `Resource not accessible by integration`。代码保存在本地 Git 提交；远程仓库尚未更新，Actions 尚未运行。
+- 无真实 API Key，真实 DeepSeek 文本/视觉问答未验证；无 Android 实机或模拟器，平台专属交互未验证。
+
+构建并发约束：Linux debug / release 共享 `linux/flutter/ephemeral`，必须顺序构建，防止调试引擎和 AOT 资源被混装。CI 已按顺序执行。
+
+Android 本地构建尝试：已安装 Java、Android 36 平台及 Build Tools 36；Gradle 配置推进至 NDK 安装。NDK 28.2 解压需要约 2.14 GiB，连同工具链和缓存超出当前约 8 GiB 工作区容量，两次清理重试仍返回 `No space left on device`。未生成 APK，不标记 Android 构建通过。已降低 Gradle 至 3 GiB 堆、2 个 worker；后续在磁盘充足的环境或具备写权限的 GitHub Actions 中继续验证。

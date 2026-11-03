@@ -73,6 +73,10 @@ void main() {
       expect(tester.takeException(), isNull);
       container.read(routerProvider).go('/chat');
       await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(Scaffold),
+        matchesGoldenFile('goldens/chat_dark_phone.png'),
+      );
       expect(find.byKey(const Key('chat-input')), findsOneWidget);
       await tester.enterText(find.byKey(const Key('chat-input')), '不会丢失的草稿');
       await tester.pump();

@@ -2,7 +2,7 @@
 
 理解知识，独立尝试，真正掌握。面向 Android 10+ 和 Linux 的开源 Flutter 学习应用，数据默认保存在本地，无需账号。
 
-当前为 **M0 / M1 开发版**。已接入真实 DeepSeek / OpenAI-compatible Chat、SSE 流式响应、会话搜索和管理、消息与草稿持久化、图片导入和预览、Markdown / LaTeX、教学模式、停止和重新生成。编辑消息会创建分支，保留原会话。删除会话可撤销。
+当前为 **M0 / M1 开发版**。已接入真实 DeepSeek / OpenAI-compatible Chat、SSE 流式响应、会话搜索和管理、消息与草稿持久化、图片导入和预览、Markdown / LaTeX、教学模式、停止和重新生成。编辑消息会创建分支，保留原会话。删除会话可撤销，也可从回收区恢复。
 
 知识库、错题本、交互式评分、复习、学习诊断和完整备份**尚未实现**。当前考试模式仅为对话教学，不产生训练成绩。真实 API 和 Android 实机验证状态见 [ROADMAP.md](ROADMAP.md)。
 
@@ -51,3 +51,11 @@ GitHub Actions 分别执行检查、Debug APK 构建、Linux 正式构建与隔�
 当前尚无完整备份/恢复功能。卸载前自行保留整个应用数据目录；**不要只复制开启状态的 SQLite 主文件**，需关闭应用后连同附件完整复制。删除采用软删除，不自动清空回收数据。
 
 架构与接口依据见 [DESIGN.md](DESIGN.md)，后续工作见 [ROADMAP.md](ROADMAP.md)。代码 MIT；字体采用随附 OFL 许可证。
+
+## 界面
+
+以下是隔离 Mock 构建的真实 Linux GUI 截图，回复内容为固定测试数据。
+
+![桌面聊天与数学公式](docs/screenshots/chat-desktop.png)
+
+<img src="docs/screenshots/chat-phone.png" width="390" alt="手机宽度的聊天界面" />

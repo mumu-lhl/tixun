@@ -55,6 +55,7 @@ for _ in $(seq 1 80); do
   sleep .1
 done
 rg -q 'TIXUN_GENERATION_FINISHED status=complete' "$artifact_dir/app.log"
+sleep .8
 capture desktop-chat-answer
 xdotool key --clearmodifiers ctrl+3
 sleep 1
