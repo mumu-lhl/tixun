@@ -59,7 +59,7 @@ class MathBuilder extends MarkdownElementBuilder {
     TextStyle? parentStyle,
   ) {
     final source = element.textContent;
-    return Tooltip(
+    final formula = Tooltip(
       message: '长按复制 LaTeX',
       child: GestureDetector(
         onLongPress: () => Clipboard.setData(ClipboardData(text: source)),
@@ -81,6 +81,16 @@ class MathBuilder extends MarkdownElementBuilder {
         ),
       ),
     );
+    if (block) return formula;
+    // A text span lets Markdown merge math into the surrounding paragraph.
+    // Returning an independent widget makes punctuation wrap as a separate run.
+    return Text.rich(
+      TextSpan(
+        children: [
+          WidgetSpan(alignment: PlaceholderAlignment.middle, child: formula),
+        ],
+      ),
+    );
   }
 }
 
@@ -90,38 +100,43 @@ class LearningMarkdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return MarkdownBody(
-      data: data,
-      selectable: true,
-      softLineBreak: true,
-      inlineSyntaxes: [MathInlineSyntax()],
-      blockSyntaxes: const [MathBlockSyntax()],
-      builders: {'math': MathBuilder(), 'mathblock': MathBuilder(block: true)},
-      imageBuilder: (_, _, _) => const Text('[外部图片未自动加载]'),
-      onTapLink: (_, href, _) async {
-        if (href == null) return;
-        await Clipboard.setData(ClipboardData(text: href));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('链接已复制')));
-        }
-      },
-      styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-        p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
-        blockSpacing: 14,
-        code: TextStyle(
-          fontFamily: 'TixunMono',
-          fontSize: 14,
-          color: theme.colorScheme.onSurface,
-        ),
-        codeblockDecoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        blockquoteDecoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
-          border: Border(
-            left: BorderSide(color: theme.colorScheme.primary, width: 3),
+    return SelectionArea(
+      child: MarkdownBody(
+        data: data,
+        selectable: false,
+        softLineBreak: true,
+        inlineSyntaxes: [MathInlineSyntax()],
+        blockSyntaxes: const [MathBlockSyntax()],
+        builders: {
+          'math': MathBuilder(),
+          'mathblock': MathBuilder(block: true),
+        },
+        imageBuilder: (_, _, _) => const Text('[外部图片未自动加载]'),
+        onTapLink: (_, href, _) async {
+          if (href == null) return;
+          await Clipboard.setData(ClipboardData(text: href));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('链接已复制')));
+          }
+        },
+        styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+          p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
+          blockSpacing: 14,
+          code: TextStyle(
+            fontFamily: 'TixunMono',
+            fontSize: 14,
+            color: theme.colorScheme.onSurface,
+          ),
+          codeblockDecoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          blockquoteDecoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow,
+            border: Border(
+              left: BorderSide(color: theme.colorScheme.primary, width: 3),
+            ),
           ),
         ),
       ),

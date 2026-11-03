@@ -260,6 +260,9 @@ class AppController extends ChangeNotifier {
   Future<void> draft(String value) async {
     final s = selected;
     if (s == null) return;
+    if (demo && s.draft.isEmpty && value.isNotEmpty) {
+      debugPrint('TIXUN_DRAFT_READY');
+    }
     selected = s.copyWith(draft: value);
     try {
       await db.saveDraft(s.id, value);

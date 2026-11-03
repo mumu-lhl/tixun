@@ -202,6 +202,7 @@ class _ConversationState extends ConsumerState<Conversation> {
   late final TextEditingController _input;
   final _focus = FocusNode();
   bool _stick = true;
+  Size? _reportedViewport;
   @override
   void initState() {
     super.initState();
@@ -265,6 +266,40 @@ class _ConversationState extends ConsumerState<Conversation> {
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
     final colors = Theme.of(context).colorScheme;
+    final viewport = MediaQuery.sizeOf(context);
+    if (c.demo && _reportedViewport != viewport) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        RenderBox? input, send;
+        void visit(Element e) {
+          if (e.widget.key == const Key('chat-input')) {
+            input = e.findRenderObject() as RenderBox?;
+          }
+          if (e.widget.key == const Key('send-message')) {
+            send = e.findRenderObject() as RenderBox?;
+          }
+          e.visitChildElements(visit);
+        }
+
+        context.visitChildElements(visit);
+        if (input?.hasSize == true && send?.hasSize == true) {
+          final ratio = MediaQuery.devicePixelRatioOf(context);
+          final p =
+              input!.localToGlobal(
+                Offset(input!.size.width / 2, input!.size.height / 2),
+              ) *
+              ratio;
+          final button =
+              send!.localToGlobal(send!.size.center(Offset.zero)) * ratio;
+          debugPrint('TIXUN_COMPOSER_POINT ${p.dx.round()} ${p.dy.round()}');
+          debugPrint(
+            'TIXUN_SEND_POINT ${button.dx.round()} ${button.dy.round()}',
+          );
+          _reportedViewport = viewport;
+        }
+      });
+    }
+
     final pending = c.attachments.where((a) => a.messageId == null).toList();
     if (_stick) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

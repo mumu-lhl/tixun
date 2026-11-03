@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:integration_test/integration_test.dart';
@@ -24,7 +25,9 @@ void main() {
       await tester.tap(find.byKey(const Key('start-chat')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key('chat-input')), '请解释二次函数的顶点');
-      await tester.tap(find.byKey(const Key('send-message')));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       await tester.pump(const Duration(milliseconds: 300));
       expect(c.busy, true);
       expect(find.byKey(const Key('stop-generation')), findsOneWidget);

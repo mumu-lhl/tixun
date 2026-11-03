@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 if [[ "${TIXUN_SMOKE_INNER:-}" != 1 ]]; then
   export TIXUN_SMOKE_INNER=1
   exec timeout 90s "$0" "$@"
@@ -15,6 +15,7 @@ binary="${1:-build/linux/x64/release/bundle/tixun}"
 app_pid=''
 cleanup() { if [[ -n "$app_pid" ]]; then kill -- "-$app_pid" 2>/dev/null || true; wait "$app_pid" 2>/dev/null || true; fi; }
 trap cleanup EXIT INT TERM
+trap 'status=$?; echo "GUI smoke failed at line $LINENO" >&2; capture failure 2>/dev/null || true; tail -60 "$artifact_dir/app.log" >&2; exit "$status"' ERR
 export LIBGL_ALWAYS_SOFTWARE=1
 export GDK_BACKEND=x11
 # A private session bus avoids requiring a logged-in desktop/keyring in Mock mode.
@@ -36,13 +37,27 @@ capture desktop-study
 xdotool key --clearmodifiers ctrl+2
 sleep 1
 capture desktop-chat-math
+previous_composers=$(rg -c TIXUN_COMPOSER_POINT "$artifact_dir/app.log" || true)
 xdotool key --clearmodifiers ctrl+n
-sleep .3
-# Focus composer through keyboard traversal is covered by integration_test; click
-# coordinates below are tied to the explicitly fixed desktop window size.
-xdotool mousemove --window "$window" 750 760 click 1
-xdotool type --clearmodifiers --delay 20 'Explain quadratic functions'
-xdotool key --clearmodifiers ctrl+Return
+for _ in $(seq 1 100); do
+  ready_composers=$(rg -c TIXUN_COMPOSER_POINT "$artifact_dir/app.log" || true)
+  if (( ${ready_composers:-0} > ${previous_composers:-0} )); then break; fi
+  sleep .1
+done
+(( ${ready_composers:-0} > ${previous_composers:-0} ))
+read -r _ input_x input_y < <(rg TIXUN_COMPOSER_POINT "$artifact_dir/app.log" | tail -1)
+xdotool windowfocus --sync "$window"
+xdotool mousemove --window "$window" "$input_x" "$input_y" click 1
+xdotool type --clearmodifiers --delay 25 'Explain quadratic functions'
+for _ in $(seq 1 50); do
+  rg -q TIXUN_DRAFT_READY "$artifact_dir/app.log" && break
+  sleep .1
+done
+rg -q TIXUN_DRAFT_READY "$artifact_dir/app.log"
+# Click the real rendered send control. Keyboard shortcuts are independently
+# exercised through Flutter's integration harness.
+read -r _ send_x send_y < <(rg TIXUN_SEND_POINT "$artifact_dir/app.log" | tail -1)
+xdotool mousemove --window "$window" "$send_x" "$send_y" click 1
 for _ in $(seq 1 40); do
   rg -q TIXUN_GENERATION_STARTED "$artifact_dir/app.log" && break
   sleep .1
