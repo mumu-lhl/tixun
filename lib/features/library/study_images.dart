@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
@@ -120,6 +121,29 @@ class StudyImages extends ConsumerWidget {
                           ),
                         ),
                       ),
+                      if (editable && isMistake)
+                        TextButton.icon(
+                          onPressed: () => act(context, () async {
+                            final c = ref.read(appControllerProvider);
+                            await c.newSession();
+                            await c.renameSession(c.selected!, '图片分题 · 检查与整理');
+                            await c.addImage(
+                              files.resolve(image.relativePath).path,
+                            );
+                            await c.draft(
+                              '请判断这张图片包含几道题，给出分题范围建议。我会逐一检查、修改后再保存。题目文字不清楚时请保留原图，不要编造。',
+                            );
+                            if (context.mounted) context.go('/chat');
+                          }),
+                          icon: const Icon(
+                            Icons.auto_awesome_outlined,
+                            size: 16,
+                          ),
+                          label: const Text(
+                            'AI 辅助分题',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
                       if (editable)
                         TextButton.icon(
                           onPressed: () => act(context, () async {

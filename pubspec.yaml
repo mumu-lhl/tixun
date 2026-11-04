@@ -1,7 +1,7 @@
 name: tixun
 description: 题训 — 理解知识，独立练习，真正掌握。
 publish_to: none
-version: 0.4.0+4
+version: 0.5.0+5
 environment:
   sdk: '>=3.13.0 <4.0.0'
 dependencies:
@@ -24,6 +24,7 @@ dependencies:
   markdown: ^7.3.0
   uuid: ^4.6.0
   crypto: ^3.0.8
+  archive: ^4.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

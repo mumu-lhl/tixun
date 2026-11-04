@@ -61,13 +61,18 @@ Future<Uint8List> renderStudyCrop(
 class StudyImageEditor extends ConsumerStatefulWidget {
   const StudyImageEditor({
     required this.attachment,
-    required this.ownerId,
+    this.ownerId = '',
     required this.isMistake,
+    this.initialCrop,
+    this.onCreate,
     super.key,
   });
   final StudyAttachment attachment;
   final String ownerId;
   final bool isMistake;
+  final Rect? initialCrop;
+  final Future<String> Function(Uint8List bytes, Rect crop, int turns)?
+  onCreate;
   @override
   ConsumerState<StudyImageEditor> createState() => _StudyImageEditorState();
 }
@@ -82,6 +87,7 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
   @override
   void initState() {
     super.initState();
+    _crop = widget.initialCrop ?? const Rect.fromLTRB(0, 0, 1, 1);
     _load();
   }
 
@@ -149,6 +155,11 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
       final bytes = await renderStudyCrop(_image!, _crop, _turns);
       if (bytes.length > 8 * 1024 * 1024) {
         throw const FormatException('编辑副本超过 8 MB，请框选更小区域后重试。');
+      }
+      if (widget.onCreate != null) {
+        final created = await widget.onCreate!(bytes, _crop, _turns);
+        if (mounted) Navigator.pop(context, created);
+        return;
       }
       await files.resolve(relative).writeAsBytes(bytes, flush: true);
       await store.db.transaction(() async {
@@ -333,19 +344,22 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                   runSpacing: 10,
                   alignment: WrapAlignment.center,
                   children: [
-                    OutlinedButton(
-                      onPressed: image == null || _saving
-                          ? null
-                          : () => _save(),
-                      child: Text(_saving ? '保存中…' : '保存编辑副本'),
-                    ),
+                    if (widget.onCreate == null)
+                      OutlinedButton(
+                        onPressed: image == null || _saving
+                            ? null
+                            : () => _save(),
+                        child: Text(_saving ? '保存中…' : '保存编辑副本'),
+                      ),
                     if (widget.isMistake)
                       FilledButton(
                         key: const Key('split-mistake'),
                         onPressed: image == null || _saving
                             ? null
                             : () => _save(split: true),
-                        child: const Text('框选区域存为新错题'),
+                        child: Text(
+                          widget.onCreate != null ? '确认范围并保存错题' : '框选区域存为新错题',
+                        ),
                       ),
                   ],
                 ),

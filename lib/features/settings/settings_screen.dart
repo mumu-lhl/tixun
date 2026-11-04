@@ -1,3 +1,4 @@
+import 'backup_panel.dart';
 import '../progress/profile_editor.dart';
 import '../review/review_providers.dart';
 
@@ -364,6 +365,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   padding: EdgeInsets.symmetric(vertical: 28),
                   child: Divider(),
                 ),
+                const BackupPanel(),
+                const SizedBox(height: 28),
                 _heading(context, '外观', Icons.contrast_outlined),
                 const SizedBox(height: 16),
                 SegmentedButton<ThemeMode>(
@@ -382,12 +385,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _heading(context, '关于题训', Icons.school_outlined),
                 const SizedBox(height: 12),
                 const Text(
-                  'TiXun 0.4 · 开源 · 本地优先\n已支持 AI Chat、知识库、错题本、图片裁剪分题及受控资料工具。\n已加入结构化交互题、确定性评分、历史作答和错题重做。已支持间隔复习、学习诊断与自由学习目标。完整备份正在继续开发。',
+                  'TiXun 0.5 · 开源 · 本地优先\n已支持 AI Chat、知识库、错题本、图片裁剪分题及受控资料工具。\n已加入结构化交互题、确定性评分、历史作答和错题重做。已支持间隔复习、学习诊断与自由学习目标。完整备份、恢复撤销与 AI 分题建议现已提供。',
                   style: TextStyle(height: 1.9),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '已有对话可离线查看，草稿和图片保存在此设备。当前尚无完整备份功能，卸载前请保留应用数据目录。',
+                  '已有资料与练习可离线使用。卸载前请导出完整备份；API Key 仅由系统安全存储保管。',
                   style: TextStyle(
                     color: colors.onSurfaceVariant,
                     fontSize: 12,

@@ -1,3 +1,5 @@
+import 'support/gui_capture.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +18,85 @@ Future<void> until(WidgetTester tester, bool Function() done) async {
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets(
+    'AI proposes question regions; user adjusts and confirms a persistent crop',
+    (tester) async {
+      final c = await AppController.open(demo: true);
+      final container = ProviderContainer(
+        overrides: [appControllerProvider.overrideWith((ref) => c)],
+      );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const TixunApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('nav-2')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('顶点的纵坐标为什么不是常数项？'));
+      await tester.pumpAndSettle();
+      await until(tester, () => find.text('AI 辅助分题').evaluate().isNotEmpty);
+      await tester.ensureVisible(find.text('AI 辅助分题'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('AI 辅助分题'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('send-message')));
+      await until(tester, () => !c.busy && c.messages.length == 2);
+      await until(
+        tester,
+        () => find.byKey(const Key('check-region-0')).evaluate().isNotEmpty,
+      );
+      expect(
+        (await c.study.searchMistakes()).length,
+        1,
+        reason: 'Suggestions do not silently save records',
+      );
+      await tester.ensureVisible(find.byKey(const Key('check-region-0')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('check-region-0')));
+      await tester.pumpAndSettle();
+      await until(
+        tester,
+        () => find.byKey(const Key('crop-canvas')).evaluate().isNotEmpty,
+      );
+      final canvas = tester.getRect(find.byKey(const Key('crop-canvas')));
+      final gesture = await tester.startGesture(
+        canvas.topLeft + Offset(canvas.width * .04, canvas.height * .11),
+      );
+      await gesture.moveTo(
+        canvas.topLeft + Offset(canvas.width * .96, canvas.height * .45),
+      );
+      await gesture.up();
+      await tester.pumpAndSettle();
+      await guiCapture('split', 'adjusted-ai-region');
+      await tester.tap(find.byKey(const Key('split-mistake')));
+      await until(
+        tester,
+        () => find.byKey(const Key('crop-canvas')).evaluate().isEmpty,
+      );
+      final saved = (await c.study.searchMistakes()).firstWhere(
+        (m) => m.title == '第1题 · 二次函数',
+      );
+      final images = await c.study.images(saved.id, isMistake: true);
+      expect(images.length, 2);
+      expect(images.any((a) => a.role == 'crop'), true);
+      await tester.pumpAndSettle();
+      await until(tester, () => find.text('查看错题').evaluate().isNotEmpty);
+      await tester.ensureVisible(find.text('查看错题'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('查看错题'));
+      await tester.pumpAndSettle();
+      await until(
+        tester,
+        () => find.byKey(const Key('edit-study')).evaluate().isNotEmpty,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      container.dispose();
+      await c.shutdown();
+    },
+  );
   testWidgets(
     'Chat tool approval writes a traceable knowledge record and UI opens it',
     (tester) async {

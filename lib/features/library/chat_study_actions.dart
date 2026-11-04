@@ -1,3 +1,5 @@
+import 'split_suggestions.dart';
+
 import 'dart:convert';
 
 import 'package:drift/drift.dart' hide Column;
@@ -16,6 +18,7 @@ import 'study_store.dart';
 const toolLabels = {
   'schedule_review': '加入复习',
   'create_quiz': '创建练习题',
+  'suggest_question_regions': '提出分题建议',
   'create_knowledge': '新增知识',
   'update_knowledge': '修改知识',
   'delete_knowledge': '知识移入回收区',
@@ -294,6 +297,9 @@ class ToolHistory extends ConsumerWidget {
               if (op.result != null) result = jsonDecode(op.result!) as Map;
             } catch (_) {
               /* Audit display must not break chat history. */
+            }
+            if (success && op.name == 'suggest_question_regions') {
+              return SplitSuggestionCard(op);
             }
             final name =
                 toolLabels[op.name] ??

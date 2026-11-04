@@ -357,6 +357,47 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
         return;
       }
       if (last['role'] == 'user' &&
+          names.contains('suggest_question_regions') &&
+          last['content'].toString().contains('分题')) {
+        yield AiChunk(
+          toolParts: [
+            {
+              'index': 0,
+              'id': 'mock-regions',
+              'type': 'function',
+              'function': {
+                'name': 'suggest_question_regions',
+                'arguments': jsonEncode({
+                  'image_index': 0,
+                  'regions': [
+                    {
+                      'label': '第1题 · 二次函数',
+                      'subject': '数学',
+                      'left': 0.03,
+                      'top': 0.08,
+                      'right': 0.97,
+                      'bottom': 0.48,
+                      'question': '',
+                    },
+                    {
+                      'label': '第2题 · 牛顿第二定律',
+                      'subject': '物理',
+                      'left': 0.03,
+                      'top': 0.49,
+                      'right': 0.97,
+                      'bottom': 0.85,
+                      'question': '',
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        );
+        yield const AiChunk(finish: 'tool_calls');
+        return;
+      }
+      if (last['role'] == 'user' &&
           names.contains('create_quiz') &&
           [
             '出题',

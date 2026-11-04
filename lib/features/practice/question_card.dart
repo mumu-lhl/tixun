@@ -103,9 +103,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
     final snapshot = List<String>.of(answers);
     final id = d!.latest!.id;
     final store = ref.read(practiceStoreProvider);
-    _writes = _writes.then((_) => store.draft(id, snapshot)).catchError((
-      Object e,
-    ) {
+    _writes = store.draft(id, snapshot).catchError((Object e) {
       if (mounted) setState(() => failure = '草稿保存失败，请检查可用存储空间。');
     });
   }

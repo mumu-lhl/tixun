@@ -1,3 +1,5 @@
+import 'support/gui_capture.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,18 +11,7 @@ import 'package:tixun/app/app.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/features/practice/question_card.dart';
 
-Future<void> capture(String name) async {
-  if (!Platform.isLinux) return;
-  await Directory('artifacts/gui-practice').create(recursive: true);
-  final magick = await Process.run('which', ['magick']);
-  final result = await Process.run(magick.exitCode == 0 ? 'magick' : 'import', [
-    if (magick.exitCode == 0) 'import',
-    '-window',
-    'root',
-    'artifacts/gui-practice/$name.png',
-  ]);
-  expect(result.exitCode, 0, reason: 'capture $name');
-}
+Future<void> capture(String name) => guiCapture('practice', name);
 
 Future<void> ready(WidgetTester tester, Finder finder) async {
   for (var i = 0; i < 100 && finder.evaluate().isEmpty; i++) {

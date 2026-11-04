@@ -14,6 +14,7 @@ import 'package:uuid/uuid.dart';
 import '../core/ai/chat_provider.dart';
 import '../core/ai/study_tools.dart';
 import '../core/ai/quiz_tool.dart';
+import '../core/ai/region_tool.dart';
 import '../features/practice/practice_store.dart';
 import '../features/review/review_store.dart';
 import '../features/progress/learning_profile.dart';
@@ -65,43 +66,53 @@ class AppController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  static Future<Directory> rootDirectory({required bool demo}) async {
+    if (demo) return Directory.systemTemp.createTemp('tixun-demo-');
+    return Directory(
+      p.join((await getApplicationSupportDirectory()).path, 'tixun'),
+    );
+  }
+
   static Future<AppController> open({required bool demo}) async {
-    final Directory root;
-    if (demo) {
-      root = await Directory.systemTemp.createTemp('tixun-demo-');
-    } else {
-      root = Directory(
-        p.join((await getApplicationSupportDirectory()).path, 'tixun'),
-      );
-      await root.create(recursive: true);
-    }
-    final db = demo
+    return openRoot(await rootDirectory(demo: demo), demo: demo, seed: true);
+  }
+
+  static Future<AppController> openRoot(
+    Directory root, {
+    required bool demo,
+    bool seed = false,
+    KeyStore? keyStore,
+    ChatProvider? chatProvider,
+  }) async {
+    await root.create(recursive: true);
+    final db = demo && seed
         ? AppDatabase.memory()
         : AppDatabase.file(File(p.join(root.path, 'tixun.sqlite')));
     final c = AppController(
       db,
       AttachmentStore(root),
-      demo ? MemoryKeyStore() : const SecureKeyStore(),
-      demo ? MockChatProvider() : OpenAiChatProvider(),
+      keyStore ?? (demo ? MemoryKeyStore() : const SecureKeyStore()),
+      chatProvider ?? (demo ? MockChatProvider() : OpenAiChatProvider()),
       demo: demo,
     );
     try {
-      await c.initialize();
+      await c.initialize(seed: seed);
     } catch (_) {
+      c.dispose();
       await db.close();
       rethrow;
     }
     return c;
   }
 
-  Future<void> initialize() async {
+  Future<void> initialize({bool seed = true}) async {
     config = await db.config();
     themeMode = switch (await db.preference('theme')) {
       'dark' => ThemeMode.dark,
       'light' => ThemeMode.light,
       _ => ThemeMode.system,
     };
-    if (demo) await seedDemo();
+    if (demo && seed) await seedDemo();
     await reload();
     final lastId = await db.preference('selected_session');
     final last = sessions.where((s) => s.id == lastId).firstOrNull;
@@ -487,6 +498,7 @@ class AppController extends ChangeNotifier {
     var lastWrite = DateTime.now();
     final exam = selected!.mode == 'exam';
     var quizCreated = false;
+    var regionsCreated = false;
     try {
       await db
           .into(db.chatMessages)
@@ -563,10 +575,15 @@ class AppController extends ChangeNotifier {
         (body['messages'] as List).first['content'] =
             '${teachingPrompt(selected!.mode, toolsEnabled: toolsEnabled)}\n可调用 create_quiz 生成交互题。出题必须使用此工具，正文不能包含正确答案或解析。结构校验不代表答案已验证，结果标为待核对。';
       }
-      final contextIds = selectContextHistory(history).map((m) => m.id).toSet();
-      final sourceImages = attachments
-          .where((a) => a.messageId != null && contextIds.contains(a.messageId))
-          .toList();
+      final sourceImages = <Attachment>[
+        for (final m in selectContextHistory(history))
+          ...attachments.where((a) => a.messageId == m.id),
+      ];
+      if (quizEnabled && !exam && sourceImages.isNotEmpty) {
+        (body['tools'] as List).add(regionToolSchema);
+        (body['messages'] as List).first['content'] +=
+            '\n用户请求分题时可调用 suggest_question_regions。只建议范围，不宣称已建立错题。';
+      }
       final runner = StudyToolRunner(
         study,
         reviews: review,
@@ -638,7 +655,19 @@ class AppController extends ChangeNotifier {
         });
         for (final call in calls) {
           cancel.checkCancelled();
-          final result = call.name == 'create_quiz'
+          final result =
+              call.name == 'suggest_question_regions' &&
+                  !exam &&
+                  sourceImages.isNotEmpty
+              ? await executeRegionTool(
+                  db,
+                  call,
+                  sessionId: sessionId,
+                  runId: id,
+                  sourceImages: sourceImages,
+                  cancel: cancel,
+                )
+              : call.name == 'create_quiz'
               ? await executeQuizTool(
                   practice,
                   call,
@@ -647,6 +676,9 @@ class AppController extends ChangeNotifier {
                   cancel: cancel,
                 )
               : await runner.execute(call, cancel);
+          if (call.name == 'suggest_question_regions' && result['ok'] == true) {
+            regionsCreated = true;
+          }
           if (call.name == 'create_quiz' && result['ok'] == true) {
             quizCreated = true;
           }
@@ -657,8 +689,11 @@ class AppController extends ChangeNotifier {
             'content': jsonEncode(result),
           });
         }
-        if (quizCreated) {
-          text = '先独立尝试下面的题目。提交后查看参考答案与解析。';
+        if (quizCreated || regionsCreated) {
+          text = quizCreated
+              ? '先独立尝试下面的题目。提交后查看参考答案与解析。'
+              : '下面是图片分题建议。请检查每个范围，必要时调整后保存；原图会保留。';
+          if (regionsCreated) study.changed();
           finished = true;
           break;
         }

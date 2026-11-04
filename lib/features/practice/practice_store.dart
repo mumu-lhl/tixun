@@ -292,7 +292,18 @@ class PracticeStore extends DatabaseNotifier {
   Future<PracticeAttempt> _attempt(String id) => (db.select(
     db.practiceAttempts,
   )..where((a) => a.id.equals(id))).getSingle();
-  Future<void> draft(String id, List<String> answers) async {
+  Future<void> _draftTail = Future.value();
+  Future<void> flushDrafts() => _draftTail;
+  Future<void> draft(String id, List<String> answers) {
+    final snapshot = List<String>.of(answers);
+    final next = _draftTail
+        .catchError((Object _) {})
+        .then((_) => _writeDraft(id, snapshot));
+    _draftTail = next;
+    return next;
+  }
+
+  Future<void> _writeDraft(String id, List<String> answers) async {
     await db.transaction(() async {
       final a = await _attempt(id);
       if (a.status != 'draft') return;
@@ -336,6 +347,7 @@ class PracticeStore extends DatabaseNotifier {
     List<String> answers, {
     DateTime? now,
   }) async {
+    await flushDrafts();
     final result = await db.transaction(() async {
       final a = await _attempt(id);
       if (a.status != 'draft') return a;
@@ -360,7 +372,7 @@ class PracticeStore extends DatabaseNotifier {
           (answers.length != 1 || parseNumber(answers.single) == null)) {
         throw const FormatException('请输入有限数值，支持小数或分数。');
       }
-      await draft(id, answers);
+      await _writeDraft(id, answers);
       final self = d.spec.kind == 'short_answer';
       final correct = self ? null : d.spec.grade(answers);
       final time = now ?? DateTime.now();

@@ -1,19 +1,58 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 
-import 'app/app.dart';
+import 'app/app_host.dart';
 import 'app/controller.dart';
 import 'app/theme.dart';
+import 'core/backup/backup_service.dart';
 import 'features/library/study_photo_intake.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   const demo = bool.fromEnvironment('TIXUN_DEMO');
+  final root = await AppController.rootDirectory(demo: demo);
+  RandomAccessFile? instance;
   try {
-    final c = await AppController.open(demo: demo);
+    await root.parent.create(recursive: true);
+    instance = await File(
+      p.join(root.parent.path, '.${p.basename(root.path)}.instance.lock'),
+    ).open(mode: FileMode.append);
+    await instance.lock(FileLock.exclusive);
+  } catch (_) {
+    await instance?.close();
+    runApp(
+      MaterialApp(
+        theme: appTheme(Brightness.light),
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '无法独占打开应用数据。请关闭其他题训窗口，并检查应用目录权限。',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(onPressed: main, child: const Text('重试')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return;
+  }
+  AppController? c;
+  String? failure;
+  try {
+    await BackupService.recoverPending(root);
+    c = await AppController.openRoot(root, demo: demo, seed: demo);
     if (Platform.isAndroid && !demo) {
       try {
         final lost = await ImagePicker().retrieveLostData();
@@ -34,39 +73,17 @@ Future<void> main() async {
         c.notice = '未能恢复上次选取的图片，请重新选择。已有学习记录未改变。';
       }
     }
-    runApp(
-      ProviderScope(
-        overrides: [appControllerProvider.overrideWith((ref) => c)],
-        child: const TixunApp(),
-      ),
-    );
-    // A non-sensitive readiness marker used by the GUI smoke test.
-    debugPrint('TIXUN_READY demo=$demo');
   } catch (_) {
-    runApp(
-      MaterialApp(
-        theme: appTheme(Brightness.light),
-        home: Scaffold(
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.storage_outlined, size: 40),
-                  const SizedBox(height: 20),
-                  const Text(
-                    '无法打开本地学习数据库。\n请检查存储空间与应用目录权限。\n应用不会自动删除或重置你的数据。',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  FilledButton(onPressed: main, child: const Text('重试')),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    failure = '无法打开本地学习数据库。请检查存储空间和目录权限，或从备份恢复。已有文件没有自动删除。';
   }
+  runApp(
+    TixunHost(
+      root: root,
+      demo: demo,
+      initialController: c,
+      instanceLock: instance,
+      initialError: failure,
+    ),
+  );
+  if (c != null) debugPrint('TIXUN_READY demo=$demo');
 }
