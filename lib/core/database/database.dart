@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 part 'database.g.dart';
 part 'study_tables.dart';
+part 'practice_tables.dart';
 
 class ChatSessions extends Table {
   TextColumn get id => text()();
@@ -95,6 +96,15 @@ class Preferences extends Table {
     StudyAttachments,
     AiToolOperations,
     StudyChatLinks,
+    LearningTopics,
+    PracticeQuestions,
+    PracticeOptions,
+    PracticeAnswerKeys,
+    PracticeQuestionTopics,
+    PracticeQuestionKnowledge,
+    PracticeAttempts,
+    PracticeResponses,
+    PracticeImages,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -103,12 +113,13 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
       await _createStudyIndexes();
+      await _createPracticeIndexes();
       await customStatement(
         'CREATE INDEX messages_session_time ON chat_messages(session_id, created_at)',
       );
@@ -151,6 +162,22 @@ class AppDatabase extends _$AppDatabase {
         }
         await _createStudyIndexes();
       }
+      if (from < 3) {
+        for (final table in <TableInfo>[
+          learningTopics,
+          practiceQuestions,
+          practiceOptions,
+          practiceAnswerKeys,
+          practiceQuestionTopics,
+          practiceQuestionKnowledge,
+          practiceAttempts,
+          practiceResponses,
+          practiceImages,
+        ]) {
+          await m.createTable(table);
+        }
+        await _createPracticeIndexes();
+      }
     },
     beforeOpen: (_) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -173,6 +200,24 @@ class AppDatabase extends _$AppDatabase {
       );
     },
   );
+
+  Future<void> _createPracticeIndexes() async {
+    await customStatement(
+      "CREATE UNIQUE INDEX one_pending_attempt ON practice_attempts(question_id) WHERE status IN ('draft','awaiting_self_grade')",
+    );
+    await customStatement(
+      'CREATE INDEX attempts_question_time ON practice_attempts(question_id, started_at)',
+    );
+    await customStatement(
+      'CREATE INDEX questions_source ON practice_questions(source_message_id, deleted)',
+    );
+    await customStatement(
+      'CREATE INDEX questions_subject ON practice_questions(deleted, subject, created_at)',
+    );
+    await customStatement(
+      'CREATE INDEX question_topic_lookup ON practice_question_topics(topic_id)',
+    );
+  }
 
   Future<void> _createStudyIndexes() async {
     await customStatement(

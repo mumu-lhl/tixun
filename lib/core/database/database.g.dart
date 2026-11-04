@@ -6872,6 +6872,3732 @@ class StudyChatLinksCompanion extends UpdateCompanion<StudyChatLink> {
   }
 }
 
+class $LearningTopicsTable extends LearningTopics
+    with TableInfo<$LearningTopicsTable, LearningTopic> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LearningTopicsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, subject];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'learning_topics';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LearningTopic> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {name, subject},
+  ];
+  @override
+  LearningTopic map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LearningTopic(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+    );
+  }
+
+  @override
+  $LearningTopicsTable createAlias(String alias) {
+    return $LearningTopicsTable(attachedDatabase, alias);
+  }
+}
+
+class LearningTopic extends DataClass implements Insertable<LearningTopic> {
+  final String id;
+  final String name;
+  final String subject;
+  const LearningTopic({
+    required this.id,
+    required this.name,
+    required this.subject,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['subject'] = Variable<String>(subject);
+    return map;
+  }
+
+  LearningTopicsCompanion toCompanion(bool nullToAbsent) {
+    return LearningTopicsCompanion(
+      id: Value(id),
+      name: Value(name),
+      subject: Value(subject),
+    );
+  }
+
+  factory LearningTopic.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LearningTopic(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      subject: serializer.fromJson<String>(json['subject']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'subject': serializer.toJson<String>(subject),
+    };
+  }
+
+  LearningTopic copyWith({String? id, String? name, String? subject}) =>
+      LearningTopic(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        subject: subject ?? this.subject,
+      );
+  LearningTopic copyWithCompanion(LearningTopicsCompanion data) {
+    return LearningTopic(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      subject: data.subject.present ? data.subject.value : this.subject,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningTopic(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('subject: $subject')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, subject);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LearningTopic &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.subject == this.subject);
+}
+
+class LearningTopicsCompanion extends UpdateCompanion<LearningTopic> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> subject;
+  final Value<int> rowid;
+  const LearningTopicsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LearningTopicsCompanion.insert({
+    required String id,
+    required String name,
+    required String subject,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       subject = Value(subject);
+  static Insertable<LearningTopic> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? subject,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (subject != null) 'subject': subject,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LearningTopicsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? subject,
+    Value<int>? rowid,
+  }) {
+    return LearningTopicsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      subject: subject ?? this.subject,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningTopicsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('subject: $subject, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PracticeQuestionsTable extends PracticeQuestions
+    with TableInfo<$PracticeQuestionsTable, PracticeQuestion> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PracticeQuestionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stemMeta = const VerificationMeta('stem');
+  @override
+  late final GeneratedColumn<String> stem = GeneratedColumn<String>(
+    'stem',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _explanationMeta = const VerificationMeta(
+    'explanation',
+  );
+  @override
+  late final GeneratedColumn<String> explanation = GeneratedColumn<String>(
+    'explanation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _hintMeta = const VerificationMeta('hint');
+  @override
+  late final GeneratedColumn<String> hint = GeneratedColumn<String>(
+    'hint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _originMeta = const VerificationMeta('origin');
+  @override
+  late final GeneratedColumn<String> origin = GeneratedColumn<String>(
+    'origin',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _verificationMeta = const VerificationMeta(
+    'verification',
+  );
+  @override
+  late final GeneratedColumn<String> verification = GeneratedColumn<String>(
+    'verification',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unverified'),
+  );
+  static const VerificationMeta _absoluteToleranceMeta = const VerificationMeta(
+    'absoluteTolerance',
+  );
+  @override
+  late final GeneratedColumn<double> absoluteTolerance =
+      GeneratedColumn<double>(
+        'absolute_tolerance',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0.000001),
+      );
+  static const VerificationMeta _relativeToleranceMeta = const VerificationMeta(
+    'relativeTolerance',
+  );
+  @override
+  late final GeneratedColumn<double> relativeTolerance =
+      GeneratedColumn<double>(
+        'relative_tolerance',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  static const VerificationMeta _caseSensitiveMeta = const VerificationMeta(
+    'caseSensitive',
+  );
+  @override
+  late final GeneratedColumn<bool> caseSensitive = GeneratedColumn<bool>(
+    'case_sensitive',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("case_sensitive" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _timeLimitSecondsMeta = const VerificationMeta(
+    'timeLimitSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> timeLimitSeconds = GeneratedColumn<int>(
+    'time_limit_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceSessionIdMeta = const VerificationMeta(
+    'sourceSessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceSessionId = GeneratedColumn<String>(
+    'source_session_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_sessions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _sourceMessageIdMeta = const VerificationMeta(
+    'sourceMessageId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceMessageId = GeneratedColumn<String>(
+    'source_message_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_messages (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _sourceOperationMeta = const VerificationMeta(
+    'sourceOperation',
+  );
+  @override
+  late final GeneratedColumn<String> sourceOperation = GeneratedColumn<String>(
+    'source_operation',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _mistakeIdMeta = const VerificationMeta(
+    'mistakeId',
+  );
+  @override
+  late final GeneratedColumn<String> mistakeId = GeneratedColumn<String>(
+    'mistake_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES mistakes (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _parentQuestionIdMeta = const VerificationMeta(
+    'parentQuestionId',
+  );
+  @override
+  late final GeneratedColumn<String> parentQuestionId = GeneratedColumn<String>(
+    'parent_question_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_questions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    kind,
+    stem,
+    subject,
+    explanation,
+    hint,
+    origin,
+    verification,
+    absoluteTolerance,
+    relativeTolerance,
+    caseSensitive,
+    timeLimitSeconds,
+    sourceSessionId,
+    sourceMessageId,
+    sourceOperation,
+    mistakeId,
+    parentQuestionId,
+    createdAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'practice_questions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PracticeQuestion> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('stem')) {
+      context.handle(
+        _stemMeta,
+        stem.isAcceptableOrUnknown(data['stem']!, _stemMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stemMeta);
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    if (data.containsKey('explanation')) {
+      context.handle(
+        _explanationMeta,
+        explanation.isAcceptableOrUnknown(
+          data['explanation']!,
+          _explanationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('hint')) {
+      context.handle(
+        _hintMeta,
+        hint.isAcceptableOrUnknown(data['hint']!, _hintMeta),
+      );
+    }
+    if (data.containsKey('origin')) {
+      context.handle(
+        _originMeta,
+        origin.isAcceptableOrUnknown(data['origin']!, _originMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_originMeta);
+    }
+    if (data.containsKey('verification')) {
+      context.handle(
+        _verificationMeta,
+        verification.isAcceptableOrUnknown(
+          data['verification']!,
+          _verificationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('absolute_tolerance')) {
+      context.handle(
+        _absoluteToleranceMeta,
+        absoluteTolerance.isAcceptableOrUnknown(
+          data['absolute_tolerance']!,
+          _absoluteToleranceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('relative_tolerance')) {
+      context.handle(
+        _relativeToleranceMeta,
+        relativeTolerance.isAcceptableOrUnknown(
+          data['relative_tolerance']!,
+          _relativeToleranceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('case_sensitive')) {
+      context.handle(
+        _caseSensitiveMeta,
+        caseSensitive.isAcceptableOrUnknown(
+          data['case_sensitive']!,
+          _caseSensitiveMeta,
+        ),
+      );
+    }
+    if (data.containsKey('time_limit_seconds')) {
+      context.handle(
+        _timeLimitSecondsMeta,
+        timeLimitSeconds.isAcceptableOrUnknown(
+          data['time_limit_seconds']!,
+          _timeLimitSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_session_id')) {
+      context.handle(
+        _sourceSessionIdMeta,
+        sourceSessionId.isAcceptableOrUnknown(
+          data['source_session_id']!,
+          _sourceSessionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_message_id')) {
+      context.handle(
+        _sourceMessageIdMeta,
+        sourceMessageId.isAcceptableOrUnknown(
+          data['source_message_id']!,
+          _sourceMessageIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_operation')) {
+      context.handle(
+        _sourceOperationMeta,
+        sourceOperation.isAcceptableOrUnknown(
+          data['source_operation']!,
+          _sourceOperationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mistake_id')) {
+      context.handle(
+        _mistakeIdMeta,
+        mistakeId.isAcceptableOrUnknown(data['mistake_id']!, _mistakeIdMeta),
+      );
+    }
+    if (data.containsKey('parent_question_id')) {
+      context.handle(
+        _parentQuestionIdMeta,
+        parentQuestionId.isAcceptableOrUnknown(
+          data['parent_question_id']!,
+          _parentQuestionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PracticeQuestion map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PracticeQuestion(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      stem: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stem'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+      explanation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}explanation'],
+      )!,
+      hint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hint'],
+      )!,
+      origin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}origin'],
+      )!,
+      verification: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}verification'],
+      )!,
+      absoluteTolerance: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}absolute_tolerance'],
+      )!,
+      relativeTolerance: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}relative_tolerance'],
+      )!,
+      caseSensitive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}case_sensitive'],
+      )!,
+      timeLimitSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}time_limit_seconds'],
+      ),
+      sourceSessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_session_id'],
+      ),
+      sourceMessageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_message_id'],
+      ),
+      sourceOperation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_operation'],
+      ),
+      mistakeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mistake_id'],
+      ),
+      parentQuestionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_question_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $PracticeQuestionsTable createAlias(String alias) {
+    return $PracticeQuestionsTable(attachedDatabase, alias);
+  }
+}
+
+class PracticeQuestion extends DataClass
+    implements Insertable<PracticeQuestion> {
+  final String id;
+  final String kind;
+  final String stem;
+  final String subject;
+  final String explanation;
+  final String hint;
+  final String origin;
+  final String verification;
+  final double absoluteTolerance;
+  final double relativeTolerance;
+  final bool caseSensitive;
+  final int? timeLimitSeconds;
+  final String? sourceSessionId;
+  final String? sourceMessageId;
+  final String? sourceOperation;
+  final String? mistakeId;
+  final String? parentQuestionId;
+  final DateTime createdAt;
+  final bool deleted;
+  const PracticeQuestion({
+    required this.id,
+    required this.kind,
+    required this.stem,
+    required this.subject,
+    required this.explanation,
+    required this.hint,
+    required this.origin,
+    required this.verification,
+    required this.absoluteTolerance,
+    required this.relativeTolerance,
+    required this.caseSensitive,
+    this.timeLimitSeconds,
+    this.sourceSessionId,
+    this.sourceMessageId,
+    this.sourceOperation,
+    this.mistakeId,
+    this.parentQuestionId,
+    required this.createdAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['kind'] = Variable<String>(kind);
+    map['stem'] = Variable<String>(stem);
+    map['subject'] = Variable<String>(subject);
+    map['explanation'] = Variable<String>(explanation);
+    map['hint'] = Variable<String>(hint);
+    map['origin'] = Variable<String>(origin);
+    map['verification'] = Variable<String>(verification);
+    map['absolute_tolerance'] = Variable<double>(absoluteTolerance);
+    map['relative_tolerance'] = Variable<double>(relativeTolerance);
+    map['case_sensitive'] = Variable<bool>(caseSensitive);
+    if (!nullToAbsent || timeLimitSeconds != null) {
+      map['time_limit_seconds'] = Variable<int>(timeLimitSeconds);
+    }
+    if (!nullToAbsent || sourceSessionId != null) {
+      map['source_session_id'] = Variable<String>(sourceSessionId);
+    }
+    if (!nullToAbsent || sourceMessageId != null) {
+      map['source_message_id'] = Variable<String>(sourceMessageId);
+    }
+    if (!nullToAbsent || sourceOperation != null) {
+      map['source_operation'] = Variable<String>(sourceOperation);
+    }
+    if (!nullToAbsent || mistakeId != null) {
+      map['mistake_id'] = Variable<String>(mistakeId);
+    }
+    if (!nullToAbsent || parentQuestionId != null) {
+      map['parent_question_id'] = Variable<String>(parentQuestionId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  PracticeQuestionsCompanion toCompanion(bool nullToAbsent) {
+    return PracticeQuestionsCompanion(
+      id: Value(id),
+      kind: Value(kind),
+      stem: Value(stem),
+      subject: Value(subject),
+      explanation: Value(explanation),
+      hint: Value(hint),
+      origin: Value(origin),
+      verification: Value(verification),
+      absoluteTolerance: Value(absoluteTolerance),
+      relativeTolerance: Value(relativeTolerance),
+      caseSensitive: Value(caseSensitive),
+      timeLimitSeconds: timeLimitSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(timeLimitSeconds),
+      sourceSessionId: sourceSessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceSessionId),
+      sourceMessageId: sourceMessageId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceMessageId),
+      sourceOperation: sourceOperation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceOperation),
+      mistakeId: mistakeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mistakeId),
+      parentQuestionId: parentQuestionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentQuestionId),
+      createdAt: Value(createdAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory PracticeQuestion.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PracticeQuestion(
+      id: serializer.fromJson<String>(json['id']),
+      kind: serializer.fromJson<String>(json['kind']),
+      stem: serializer.fromJson<String>(json['stem']),
+      subject: serializer.fromJson<String>(json['subject']),
+      explanation: serializer.fromJson<String>(json['explanation']),
+      hint: serializer.fromJson<String>(json['hint']),
+      origin: serializer.fromJson<String>(json['origin']),
+      verification: serializer.fromJson<String>(json['verification']),
+      absoluteTolerance: serializer.fromJson<double>(json['absoluteTolerance']),
+      relativeTolerance: serializer.fromJson<double>(json['relativeTolerance']),
+      caseSensitive: serializer.fromJson<bool>(json['caseSensitive']),
+      timeLimitSeconds: serializer.fromJson<int?>(json['timeLimitSeconds']),
+      sourceSessionId: serializer.fromJson<String?>(json['sourceSessionId']),
+      sourceMessageId: serializer.fromJson<String?>(json['sourceMessageId']),
+      sourceOperation: serializer.fromJson<String?>(json['sourceOperation']),
+      mistakeId: serializer.fromJson<String?>(json['mistakeId']),
+      parentQuestionId: serializer.fromJson<String?>(json['parentQuestionId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'kind': serializer.toJson<String>(kind),
+      'stem': serializer.toJson<String>(stem),
+      'subject': serializer.toJson<String>(subject),
+      'explanation': serializer.toJson<String>(explanation),
+      'hint': serializer.toJson<String>(hint),
+      'origin': serializer.toJson<String>(origin),
+      'verification': serializer.toJson<String>(verification),
+      'absoluteTolerance': serializer.toJson<double>(absoluteTolerance),
+      'relativeTolerance': serializer.toJson<double>(relativeTolerance),
+      'caseSensitive': serializer.toJson<bool>(caseSensitive),
+      'timeLimitSeconds': serializer.toJson<int?>(timeLimitSeconds),
+      'sourceSessionId': serializer.toJson<String?>(sourceSessionId),
+      'sourceMessageId': serializer.toJson<String?>(sourceMessageId),
+      'sourceOperation': serializer.toJson<String?>(sourceOperation),
+      'mistakeId': serializer.toJson<String?>(mistakeId),
+      'parentQuestionId': serializer.toJson<String?>(parentQuestionId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  PracticeQuestion copyWith({
+    String? id,
+    String? kind,
+    String? stem,
+    String? subject,
+    String? explanation,
+    String? hint,
+    String? origin,
+    String? verification,
+    double? absoluteTolerance,
+    double? relativeTolerance,
+    bool? caseSensitive,
+    Value<int?> timeLimitSeconds = const Value.absent(),
+    Value<String?> sourceSessionId = const Value.absent(),
+    Value<String?> sourceMessageId = const Value.absent(),
+    Value<String?> sourceOperation = const Value.absent(),
+    Value<String?> mistakeId = const Value.absent(),
+    Value<String?> parentQuestionId = const Value.absent(),
+    DateTime? createdAt,
+    bool? deleted,
+  }) => PracticeQuestion(
+    id: id ?? this.id,
+    kind: kind ?? this.kind,
+    stem: stem ?? this.stem,
+    subject: subject ?? this.subject,
+    explanation: explanation ?? this.explanation,
+    hint: hint ?? this.hint,
+    origin: origin ?? this.origin,
+    verification: verification ?? this.verification,
+    absoluteTolerance: absoluteTolerance ?? this.absoluteTolerance,
+    relativeTolerance: relativeTolerance ?? this.relativeTolerance,
+    caseSensitive: caseSensitive ?? this.caseSensitive,
+    timeLimitSeconds: timeLimitSeconds.present
+        ? timeLimitSeconds.value
+        : this.timeLimitSeconds,
+    sourceSessionId: sourceSessionId.present
+        ? sourceSessionId.value
+        : this.sourceSessionId,
+    sourceMessageId: sourceMessageId.present
+        ? sourceMessageId.value
+        : this.sourceMessageId,
+    sourceOperation: sourceOperation.present
+        ? sourceOperation.value
+        : this.sourceOperation,
+    mistakeId: mistakeId.present ? mistakeId.value : this.mistakeId,
+    parentQuestionId: parentQuestionId.present
+        ? parentQuestionId.value
+        : this.parentQuestionId,
+    createdAt: createdAt ?? this.createdAt,
+    deleted: deleted ?? this.deleted,
+  );
+  PracticeQuestion copyWithCompanion(PracticeQuestionsCompanion data) {
+    return PracticeQuestion(
+      id: data.id.present ? data.id.value : this.id,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      stem: data.stem.present ? data.stem.value : this.stem,
+      subject: data.subject.present ? data.subject.value : this.subject,
+      explanation: data.explanation.present
+          ? data.explanation.value
+          : this.explanation,
+      hint: data.hint.present ? data.hint.value : this.hint,
+      origin: data.origin.present ? data.origin.value : this.origin,
+      verification: data.verification.present
+          ? data.verification.value
+          : this.verification,
+      absoluteTolerance: data.absoluteTolerance.present
+          ? data.absoluteTolerance.value
+          : this.absoluteTolerance,
+      relativeTolerance: data.relativeTolerance.present
+          ? data.relativeTolerance.value
+          : this.relativeTolerance,
+      caseSensitive: data.caseSensitive.present
+          ? data.caseSensitive.value
+          : this.caseSensitive,
+      timeLimitSeconds: data.timeLimitSeconds.present
+          ? data.timeLimitSeconds.value
+          : this.timeLimitSeconds,
+      sourceSessionId: data.sourceSessionId.present
+          ? data.sourceSessionId.value
+          : this.sourceSessionId,
+      sourceMessageId: data.sourceMessageId.present
+          ? data.sourceMessageId.value
+          : this.sourceMessageId,
+      sourceOperation: data.sourceOperation.present
+          ? data.sourceOperation.value
+          : this.sourceOperation,
+      mistakeId: data.mistakeId.present ? data.mistakeId.value : this.mistakeId,
+      parentQuestionId: data.parentQuestionId.present
+          ? data.parentQuestionId.value
+          : this.parentQuestionId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeQuestion(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('stem: $stem, ')
+          ..write('subject: $subject, ')
+          ..write('explanation: $explanation, ')
+          ..write('hint: $hint, ')
+          ..write('origin: $origin, ')
+          ..write('verification: $verification, ')
+          ..write('absoluteTolerance: $absoluteTolerance, ')
+          ..write('relativeTolerance: $relativeTolerance, ')
+          ..write('caseSensitive: $caseSensitive, ')
+          ..write('timeLimitSeconds: $timeLimitSeconds, ')
+          ..write('sourceSessionId: $sourceSessionId, ')
+          ..write('sourceMessageId: $sourceMessageId, ')
+          ..write('sourceOperation: $sourceOperation, ')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('parentQuestionId: $parentQuestionId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    kind,
+    stem,
+    subject,
+    explanation,
+    hint,
+    origin,
+    verification,
+    absoluteTolerance,
+    relativeTolerance,
+    caseSensitive,
+    timeLimitSeconds,
+    sourceSessionId,
+    sourceMessageId,
+    sourceOperation,
+    mistakeId,
+    parentQuestionId,
+    createdAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PracticeQuestion &&
+          other.id == this.id &&
+          other.kind == this.kind &&
+          other.stem == this.stem &&
+          other.subject == this.subject &&
+          other.explanation == this.explanation &&
+          other.hint == this.hint &&
+          other.origin == this.origin &&
+          other.verification == this.verification &&
+          other.absoluteTolerance == this.absoluteTolerance &&
+          other.relativeTolerance == this.relativeTolerance &&
+          other.caseSensitive == this.caseSensitive &&
+          other.timeLimitSeconds == this.timeLimitSeconds &&
+          other.sourceSessionId == this.sourceSessionId &&
+          other.sourceMessageId == this.sourceMessageId &&
+          other.sourceOperation == this.sourceOperation &&
+          other.mistakeId == this.mistakeId &&
+          other.parentQuestionId == this.parentQuestionId &&
+          other.createdAt == this.createdAt &&
+          other.deleted == this.deleted);
+}
+
+class PracticeQuestionsCompanion extends UpdateCompanion<PracticeQuestion> {
+  final Value<String> id;
+  final Value<String> kind;
+  final Value<String> stem;
+  final Value<String> subject;
+  final Value<String> explanation;
+  final Value<String> hint;
+  final Value<String> origin;
+  final Value<String> verification;
+  final Value<double> absoluteTolerance;
+  final Value<double> relativeTolerance;
+  final Value<bool> caseSensitive;
+  final Value<int?> timeLimitSeconds;
+  final Value<String?> sourceSessionId;
+  final Value<String?> sourceMessageId;
+  final Value<String?> sourceOperation;
+  final Value<String?> mistakeId;
+  final Value<String?> parentQuestionId;
+  final Value<DateTime> createdAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const PracticeQuestionsCompanion({
+    this.id = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.stem = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.explanation = const Value.absent(),
+    this.hint = const Value.absent(),
+    this.origin = const Value.absent(),
+    this.verification = const Value.absent(),
+    this.absoluteTolerance = const Value.absent(),
+    this.relativeTolerance = const Value.absent(),
+    this.caseSensitive = const Value.absent(),
+    this.timeLimitSeconds = const Value.absent(),
+    this.sourceSessionId = const Value.absent(),
+    this.sourceMessageId = const Value.absent(),
+    this.sourceOperation = const Value.absent(),
+    this.mistakeId = const Value.absent(),
+    this.parentQuestionId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PracticeQuestionsCompanion.insert({
+    required String id,
+    required String kind,
+    required String stem,
+    required String subject,
+    this.explanation = const Value.absent(),
+    this.hint = const Value.absent(),
+    required String origin,
+    this.verification = const Value.absent(),
+    this.absoluteTolerance = const Value.absent(),
+    this.relativeTolerance = const Value.absent(),
+    this.caseSensitive = const Value.absent(),
+    this.timeLimitSeconds = const Value.absent(),
+    this.sourceSessionId = const Value.absent(),
+    this.sourceMessageId = const Value.absent(),
+    this.sourceOperation = const Value.absent(),
+    this.mistakeId = const Value.absent(),
+    this.parentQuestionId = const Value.absent(),
+    required DateTime createdAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       kind = Value(kind),
+       stem = Value(stem),
+       subject = Value(subject),
+       origin = Value(origin),
+       createdAt = Value(createdAt);
+  static Insertable<PracticeQuestion> custom({
+    Expression<String>? id,
+    Expression<String>? kind,
+    Expression<String>? stem,
+    Expression<String>? subject,
+    Expression<String>? explanation,
+    Expression<String>? hint,
+    Expression<String>? origin,
+    Expression<String>? verification,
+    Expression<double>? absoluteTolerance,
+    Expression<double>? relativeTolerance,
+    Expression<bool>? caseSensitive,
+    Expression<int>? timeLimitSeconds,
+    Expression<String>? sourceSessionId,
+    Expression<String>? sourceMessageId,
+    Expression<String>? sourceOperation,
+    Expression<String>? mistakeId,
+    Expression<String>? parentQuestionId,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (kind != null) 'kind': kind,
+      if (stem != null) 'stem': stem,
+      if (subject != null) 'subject': subject,
+      if (explanation != null) 'explanation': explanation,
+      if (hint != null) 'hint': hint,
+      if (origin != null) 'origin': origin,
+      if (verification != null) 'verification': verification,
+      if (absoluteTolerance != null) 'absolute_tolerance': absoluteTolerance,
+      if (relativeTolerance != null) 'relative_tolerance': relativeTolerance,
+      if (caseSensitive != null) 'case_sensitive': caseSensitive,
+      if (timeLimitSeconds != null) 'time_limit_seconds': timeLimitSeconds,
+      if (sourceSessionId != null) 'source_session_id': sourceSessionId,
+      if (sourceMessageId != null) 'source_message_id': sourceMessageId,
+      if (sourceOperation != null) 'source_operation': sourceOperation,
+      if (mistakeId != null) 'mistake_id': mistakeId,
+      if (parentQuestionId != null) 'parent_question_id': parentQuestionId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PracticeQuestionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? kind,
+    Value<String>? stem,
+    Value<String>? subject,
+    Value<String>? explanation,
+    Value<String>? hint,
+    Value<String>? origin,
+    Value<String>? verification,
+    Value<double>? absoluteTolerance,
+    Value<double>? relativeTolerance,
+    Value<bool>? caseSensitive,
+    Value<int?>? timeLimitSeconds,
+    Value<String?>? sourceSessionId,
+    Value<String?>? sourceMessageId,
+    Value<String?>? sourceOperation,
+    Value<String?>? mistakeId,
+    Value<String?>? parentQuestionId,
+    Value<DateTime>? createdAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return PracticeQuestionsCompanion(
+      id: id ?? this.id,
+      kind: kind ?? this.kind,
+      stem: stem ?? this.stem,
+      subject: subject ?? this.subject,
+      explanation: explanation ?? this.explanation,
+      hint: hint ?? this.hint,
+      origin: origin ?? this.origin,
+      verification: verification ?? this.verification,
+      absoluteTolerance: absoluteTolerance ?? this.absoluteTolerance,
+      relativeTolerance: relativeTolerance ?? this.relativeTolerance,
+      caseSensitive: caseSensitive ?? this.caseSensitive,
+      timeLimitSeconds: timeLimitSeconds ?? this.timeLimitSeconds,
+      sourceSessionId: sourceSessionId ?? this.sourceSessionId,
+      sourceMessageId: sourceMessageId ?? this.sourceMessageId,
+      sourceOperation: sourceOperation ?? this.sourceOperation,
+      mistakeId: mistakeId ?? this.mistakeId,
+      parentQuestionId: parentQuestionId ?? this.parentQuestionId,
+      createdAt: createdAt ?? this.createdAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (stem.present) {
+      map['stem'] = Variable<String>(stem.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (explanation.present) {
+      map['explanation'] = Variable<String>(explanation.value);
+    }
+    if (hint.present) {
+      map['hint'] = Variable<String>(hint.value);
+    }
+    if (origin.present) {
+      map['origin'] = Variable<String>(origin.value);
+    }
+    if (verification.present) {
+      map['verification'] = Variable<String>(verification.value);
+    }
+    if (absoluteTolerance.present) {
+      map['absolute_tolerance'] = Variable<double>(absoluteTolerance.value);
+    }
+    if (relativeTolerance.present) {
+      map['relative_tolerance'] = Variable<double>(relativeTolerance.value);
+    }
+    if (caseSensitive.present) {
+      map['case_sensitive'] = Variable<bool>(caseSensitive.value);
+    }
+    if (timeLimitSeconds.present) {
+      map['time_limit_seconds'] = Variable<int>(timeLimitSeconds.value);
+    }
+    if (sourceSessionId.present) {
+      map['source_session_id'] = Variable<String>(sourceSessionId.value);
+    }
+    if (sourceMessageId.present) {
+      map['source_message_id'] = Variable<String>(sourceMessageId.value);
+    }
+    if (sourceOperation.present) {
+      map['source_operation'] = Variable<String>(sourceOperation.value);
+    }
+    if (mistakeId.present) {
+      map['mistake_id'] = Variable<String>(mistakeId.value);
+    }
+    if (parentQuestionId.present) {
+      map['parent_question_id'] = Variable<String>(parentQuestionId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeQuestionsCompanion(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('stem: $stem, ')
+          ..write('subject: $subject, ')
+          ..write('explanation: $explanation, ')
+          ..write('hint: $hint, ')
+          ..write('origin: $origin, ')
+          ..write('verification: $verification, ')
+          ..write('absoluteTolerance: $absoluteTolerance, ')
+          ..write('relativeTolerance: $relativeTolerance, ')
+          ..write('caseSensitive: $caseSensitive, ')
+          ..write('timeLimitSeconds: $timeLimitSeconds, ')
+          ..write('sourceSessionId: $sourceSessionId, ')
+          ..write('sourceMessageId: $sourceMessageId, ')
+          ..write('sourceOperation: $sourceOperation, ')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('parentQuestionId: $parentQuestionId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PracticeOptionsTable extends PracticeOptions
+    with TableInfo<$PracticeOptionsTable, PracticeOption> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PracticeOptionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _questionIdMeta = const VerificationMeta(
+    'questionId',
+  );
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+    'question_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_questions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _optionIdMeta = const VerificationMeta(
+    'optionId',
+  );
+  @override
+  late final GeneratedColumn<String> optionId = GeneratedColumn<String>(
+    'option_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    questionId,
+    optionId,
+    content,
+    position,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'practice_options';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PracticeOption> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('question_id')) {
+      context.handle(
+        _questionIdMeta,
+        questionId.isAcceptableOrUnknown(data['question_id']!, _questionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('option_id')) {
+      context.handle(
+        _optionIdMeta,
+        optionId.isAcceptableOrUnknown(data['option_id']!, _optionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_optionIdMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {questionId, optionId};
+  @override
+  PracticeOption map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PracticeOption(
+      questionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_id'],
+      )!,
+      optionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}option_id'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $PracticeOptionsTable createAlias(String alias) {
+    return $PracticeOptionsTable(attachedDatabase, alias);
+  }
+}
+
+class PracticeOption extends DataClass implements Insertable<PracticeOption> {
+  final String questionId;
+  final String optionId;
+  final String content;
+  final int position;
+  const PracticeOption({
+    required this.questionId,
+    required this.optionId,
+    required this.content,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['question_id'] = Variable<String>(questionId);
+    map['option_id'] = Variable<String>(optionId);
+    map['content'] = Variable<String>(content);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  PracticeOptionsCompanion toCompanion(bool nullToAbsent) {
+    return PracticeOptionsCompanion(
+      questionId: Value(questionId),
+      optionId: Value(optionId),
+      content: Value(content),
+      position: Value(position),
+    );
+  }
+
+  factory PracticeOption.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PracticeOption(
+      questionId: serializer.fromJson<String>(json['questionId']),
+      optionId: serializer.fromJson<String>(json['optionId']),
+      content: serializer.fromJson<String>(json['content']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'questionId': serializer.toJson<String>(questionId),
+      'optionId': serializer.toJson<String>(optionId),
+      'content': serializer.toJson<String>(content),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  PracticeOption copyWith({
+    String? questionId,
+    String? optionId,
+    String? content,
+    int? position,
+  }) => PracticeOption(
+    questionId: questionId ?? this.questionId,
+    optionId: optionId ?? this.optionId,
+    content: content ?? this.content,
+    position: position ?? this.position,
+  );
+  PracticeOption copyWithCompanion(PracticeOptionsCompanion data) {
+    return PracticeOption(
+      questionId: data.questionId.present
+          ? data.questionId.value
+          : this.questionId,
+      optionId: data.optionId.present ? data.optionId.value : this.optionId,
+      content: data.content.present ? data.content.value : this.content,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeOption(')
+          ..write('questionId: $questionId, ')
+          ..write('optionId: $optionId, ')
+          ..write('content: $content, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(questionId, optionId, content, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PracticeOption &&
+          other.questionId == this.questionId &&
+          other.optionId == this.optionId &&
+          other.content == this.content &&
+          other.position == this.position);
+}
+
+class PracticeOptionsCompanion extends UpdateCompanion<PracticeOption> {
+  final Value<String> questionId;
+  final Value<String> optionId;
+  final Value<String> content;
+  final Value<int> position;
+  final Value<int> rowid;
+  const PracticeOptionsCompanion({
+    this.questionId = const Value.absent(),
+    this.optionId = const Value.absent(),
+    this.content = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PracticeOptionsCompanion.insert({
+    required String questionId,
+    required String optionId,
+    required String content,
+    required int position,
+    this.rowid = const Value.absent(),
+  }) : questionId = Value(questionId),
+       optionId = Value(optionId),
+       content = Value(content),
+       position = Value(position);
+  static Insertable<PracticeOption> custom({
+    Expression<String>? questionId,
+    Expression<String>? optionId,
+    Expression<String>? content,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (questionId != null) 'question_id': questionId,
+      if (optionId != null) 'option_id': optionId,
+      if (content != null) 'content': content,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PracticeOptionsCompanion copyWith({
+    Value<String>? questionId,
+    Value<String>? optionId,
+    Value<String>? content,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return PracticeOptionsCompanion(
+      questionId: questionId ?? this.questionId,
+      optionId: optionId ?? this.optionId,
+      content: content ?? this.content,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (optionId.present) {
+      map['option_id'] = Variable<String>(optionId.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeOptionsCompanion(')
+          ..write('questionId: $questionId, ')
+          ..write('optionId: $optionId, ')
+          ..write('content: $content, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PracticeAnswerKeysTable extends PracticeAnswerKeys
+    with TableInfo<$PracticeAnswerKeysTable, PracticeAnswerKey> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PracticeAnswerKeysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _questionIdMeta = const VerificationMeta(
+    'questionId',
+  );
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+    'question_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_questions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answerMeta = const VerificationMeta('answer');
+  @override
+  late final GeneratedColumn<String> answer = GeneratedColumn<String>(
+    'answer',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [questionId, position, answer];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'practice_answer_keys';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PracticeAnswerKey> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('question_id')) {
+      context.handle(
+        _questionIdMeta,
+        questionId.isAcceptableOrUnknown(data['question_id']!, _questionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('answer')) {
+      context.handle(
+        _answerMeta,
+        answer.isAcceptableOrUnknown(data['answer']!, _answerMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answerMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {questionId, position, answer};
+  @override
+  PracticeAnswerKey map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PracticeAnswerKey(
+      questionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      answer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}answer'],
+      )!,
+    );
+  }
+
+  @override
+  $PracticeAnswerKeysTable createAlias(String alias) {
+    return $PracticeAnswerKeysTable(attachedDatabase, alias);
+  }
+}
+
+class PracticeAnswerKey extends DataClass
+    implements Insertable<PracticeAnswerKey> {
+  final String questionId;
+  final int position;
+  final String answer;
+  const PracticeAnswerKey({
+    required this.questionId,
+    required this.position,
+    required this.answer,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['question_id'] = Variable<String>(questionId);
+    map['position'] = Variable<int>(position);
+    map['answer'] = Variable<String>(answer);
+    return map;
+  }
+
+  PracticeAnswerKeysCompanion toCompanion(bool nullToAbsent) {
+    return PracticeAnswerKeysCompanion(
+      questionId: Value(questionId),
+      position: Value(position),
+      answer: Value(answer),
+    );
+  }
+
+  factory PracticeAnswerKey.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PracticeAnswerKey(
+      questionId: serializer.fromJson<String>(json['questionId']),
+      position: serializer.fromJson<int>(json['position']),
+      answer: serializer.fromJson<String>(json['answer']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'questionId': serializer.toJson<String>(questionId),
+      'position': serializer.toJson<int>(position),
+      'answer': serializer.toJson<String>(answer),
+    };
+  }
+
+  PracticeAnswerKey copyWith({
+    String? questionId,
+    int? position,
+    String? answer,
+  }) => PracticeAnswerKey(
+    questionId: questionId ?? this.questionId,
+    position: position ?? this.position,
+    answer: answer ?? this.answer,
+  );
+  PracticeAnswerKey copyWithCompanion(PracticeAnswerKeysCompanion data) {
+    return PracticeAnswerKey(
+      questionId: data.questionId.present
+          ? data.questionId.value
+          : this.questionId,
+      position: data.position.present ? data.position.value : this.position,
+      answer: data.answer.present ? data.answer.value : this.answer,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeAnswerKey(')
+          ..write('questionId: $questionId, ')
+          ..write('position: $position, ')
+          ..write('answer: $answer')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(questionId, position, answer);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PracticeAnswerKey &&
+          other.questionId == this.questionId &&
+          other.position == this.position &&
+          other.answer == this.answer);
+}
+
+class PracticeAnswerKeysCompanion extends UpdateCompanion<PracticeAnswerKey> {
+  final Value<String> questionId;
+  final Value<int> position;
+  final Value<String> answer;
+  final Value<int> rowid;
+  const PracticeAnswerKeysCompanion({
+    this.questionId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.answer = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PracticeAnswerKeysCompanion.insert({
+    required String questionId,
+    required int position,
+    required String answer,
+    this.rowid = const Value.absent(),
+  }) : questionId = Value(questionId),
+       position = Value(position),
+       answer = Value(answer);
+  static Insertable<PracticeAnswerKey> custom({
+    Expression<String>? questionId,
+    Expression<int>? position,
+    Expression<String>? answer,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (questionId != null) 'question_id': questionId,
+      if (position != null) 'position': position,
+      if (answer != null) 'answer': answer,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PracticeAnswerKeysCompanion copyWith({
+    Value<String>? questionId,
+    Value<int>? position,
+    Value<String>? answer,
+    Value<int>? rowid,
+  }) {
+    return PracticeAnswerKeysCompanion(
+      questionId: questionId ?? this.questionId,
+      position: position ?? this.position,
+      answer: answer ?? this.answer,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (answer.present) {
+      map['answer'] = Variable<String>(answer.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeAnswerKeysCompanion(')
+          ..write('questionId: $questionId, ')
+          ..write('position: $position, ')
+          ..write('answer: $answer, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PracticeQuestionTopicsTable extends PracticeQuestionTopics
+    with TableInfo<$PracticeQuestionTopicsTable, PracticeQuestionTopic> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PracticeQuestionTopicsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _questionIdMeta = const VerificationMeta(
+    'questionId',
+  );
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+    'question_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_questions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _topicIdMeta = const VerificationMeta(
+    'topicId',
+  );
+  @override
+  late final GeneratedColumn<String> topicId = GeneratedColumn<String>(
+    'topic_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_topics (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [questionId, topicId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'practice_question_topics';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PracticeQuestionTopic> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('question_id')) {
+      context.handle(
+        _questionIdMeta,
+        questionId.isAcceptableOrUnknown(data['question_id']!, _questionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('topic_id')) {
+      context.handle(
+        _topicIdMeta,
+        topicId.isAcceptableOrUnknown(data['topic_id']!, _topicIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_topicIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {questionId, topicId};
+  @override
+  PracticeQuestionTopic map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PracticeQuestionTopic(
+      questionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_id'],
+      )!,
+      topicId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}topic_id'],
+      )!,
+    );
+  }
+
+  @override
+  $PracticeQuestionTopicsTable createAlias(String alias) {
+    return $PracticeQuestionTopicsTable(attachedDatabase, alias);
+  }
+}
+
+class PracticeQuestionTopic extends DataClass
+    implements Insertable<PracticeQuestionTopic> {
+  final String questionId;
+  final String topicId;
+  const PracticeQuestionTopic({
+    required this.questionId,
+    required this.topicId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['question_id'] = Variable<String>(questionId);
+    map['topic_id'] = Variable<String>(topicId);
+    return map;
+  }
+
+  PracticeQuestionTopicsCompanion toCompanion(bool nullToAbsent) {
+    return PracticeQuestionTopicsCompanion(
+      questionId: Value(questionId),
+      topicId: Value(topicId),
+    );
+  }
+
+  factory PracticeQuestionTopic.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PracticeQuestionTopic(
+      questionId: serializer.fromJson<String>(json['questionId']),
+      topicId: serializer.fromJson<String>(json['topicId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'questionId': serializer.toJson<String>(questionId),
+      'topicId': serializer.toJson<String>(topicId),
+    };
+  }
+
+  PracticeQuestionTopic copyWith({String? questionId, String? topicId}) =>
+      PracticeQuestionTopic(
+        questionId: questionId ?? this.questionId,
+        topicId: topicId ?? this.topicId,
+      );
+  PracticeQuestionTopic copyWithCompanion(
+    PracticeQuestionTopicsCompanion data,
+  ) {
+    return PracticeQuestionTopic(
+      questionId: data.questionId.present
+          ? data.questionId.value
+          : this.questionId,
+      topicId: data.topicId.present ? data.topicId.value : this.topicId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeQuestionTopic(')
+          ..write('questionId: $questionId, ')
+          ..write('topicId: $topicId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(questionId, topicId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PracticeQuestionTopic &&
+          other.questionId == this.questionId &&
+          other.topicId == this.topicId);
+}
+
+class PracticeQuestionTopicsCompanion
+    extends UpdateCompanion<PracticeQuestionTopic> {
+  final Value<String> questionId;
+  final Value<String> topicId;
+  final Value<int> rowid;
+  const PracticeQuestionTopicsCompanion({
+    this.questionId = const Value.absent(),
+    this.topicId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PracticeQuestionTopicsCompanion.insert({
+    required String questionId,
+    required String topicId,
+    this.rowid = const Value.absent(),
+  }) : questionId = Value(questionId),
+       topicId = Value(topicId);
+  static Insertable<PracticeQuestionTopic> custom({
+    Expression<String>? questionId,
+    Expression<String>? topicId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (questionId != null) 'question_id': questionId,
+      if (topicId != null) 'topic_id': topicId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PracticeQuestionTopicsCompanion copyWith({
+    Value<String>? questionId,
+    Value<String>? topicId,
+    Value<int>? rowid,
+  }) {
+    return PracticeQuestionTopicsCompanion(
+      questionId: questionId ?? this.questionId,
+      topicId: topicId ?? this.topicId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (topicId.present) {
+      map['topic_id'] = Variable<String>(topicId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeQuestionTopicsCompanion(')
+          ..write('questionId: $questionId, ')
+          ..write('topicId: $topicId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PracticeQuestionKnowledgeTable extends PracticeQuestionKnowledge
+    with
+        TableInfo<
+          $PracticeQuestionKnowledgeTable,
+          PracticeQuestionKnowledgeData
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PracticeQuestionKnowledgeTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _questionIdMeta = const VerificationMeta(
+    'questionId',
+  );
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+    'question_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_questions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _knowledgeIdMeta = const VerificationMeta(
+    'knowledgeId',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeId = GeneratedColumn<String>(
+    'knowledge_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [questionId, knowledgeId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'practice_question_knowledge';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PracticeQuestionKnowledgeData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('question_id')) {
+      context.handle(
+        _questionIdMeta,
+        questionId.isAcceptableOrUnknown(data['question_id']!, _questionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('knowledge_id')) {
+      context.handle(
+        _knowledgeIdMeta,
+        knowledgeId.isAcceptableOrUnknown(
+          data['knowledge_id']!,
+          _knowledgeIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_knowledgeIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {questionId, knowledgeId};
+  @override
+  PracticeQuestionKnowledgeData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PracticeQuestionKnowledgeData(
+      questionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_id'],
+      )!,
+      knowledgeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_id'],
+      )!,
+    );
+  }
+
+  @override
+  $PracticeQuestionKnowledgeTable createAlias(String alias) {
+    return $PracticeQuestionKnowledgeTable(attachedDatabase, alias);
+  }
+}
+
+class PracticeQuestionKnowledgeData extends DataClass
+    implements Insertable<PracticeQuestionKnowledgeData> {
+  final String questionId;
+  final String knowledgeId;
+  const PracticeQuestionKnowledgeData({
+    required this.questionId,
+    required this.knowledgeId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['question_id'] = Variable<String>(questionId);
+    map['knowledge_id'] = Variable<String>(knowledgeId);
+    return map;
+  }
+
+  PracticeQuestionKnowledgeCompanion toCompanion(bool nullToAbsent) {
+    return PracticeQuestionKnowledgeCompanion(
+      questionId: Value(questionId),
+      knowledgeId: Value(knowledgeId),
+    );
+  }
+
+  factory PracticeQuestionKnowledgeData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PracticeQuestionKnowledgeData(
+      questionId: serializer.fromJson<String>(json['questionId']),
+      knowledgeId: serializer.fromJson<String>(json['knowledgeId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'questionId': serializer.toJson<String>(questionId),
+      'knowledgeId': serializer.toJson<String>(knowledgeId),
+    };
+  }
+
+  PracticeQuestionKnowledgeData copyWith({
+    String? questionId,
+    String? knowledgeId,
+  }) => PracticeQuestionKnowledgeData(
+    questionId: questionId ?? this.questionId,
+    knowledgeId: knowledgeId ?? this.knowledgeId,
+  );
+  PracticeQuestionKnowledgeData copyWithCompanion(
+    PracticeQuestionKnowledgeCompanion data,
+  ) {
+    return PracticeQuestionKnowledgeData(
+      questionId: data.questionId.present
+          ? data.questionId.value
+          : this.questionId,
+      knowledgeId: data.knowledgeId.present
+          ? data.knowledgeId.value
+          : this.knowledgeId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeQuestionKnowledgeData(')
+          ..write('questionId: $questionId, ')
+          ..write('knowledgeId: $knowledgeId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(questionId, knowledgeId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PracticeQuestionKnowledgeData &&
+          other.questionId == this.questionId &&
+          other.knowledgeId == this.knowledgeId);
+}
+
+class PracticeQuestionKnowledgeCompanion
+    extends UpdateCompanion<PracticeQuestionKnowledgeData> {
+  final Value<String> questionId;
+  final Value<String> knowledgeId;
+  final Value<int> rowid;
+  const PracticeQuestionKnowledgeCompanion({
+    this.questionId = const Value.absent(),
+    this.knowledgeId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PracticeQuestionKnowledgeCompanion.insert({
+    required String questionId,
+    required String knowledgeId,
+    this.rowid = const Value.absent(),
+  }) : questionId = Value(questionId),
+       knowledgeId = Value(knowledgeId);
+  static Insertable<PracticeQuestionKnowledgeData> custom({
+    Expression<String>? questionId,
+    Expression<String>? knowledgeId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (questionId != null) 'question_id': questionId,
+      if (knowledgeId != null) 'knowledge_id': knowledgeId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PracticeQuestionKnowledgeCompanion copyWith({
+    Value<String>? questionId,
+    Value<String>? knowledgeId,
+    Value<int>? rowid,
+  }) {
+    return PracticeQuestionKnowledgeCompanion(
+      questionId: questionId ?? this.questionId,
+      knowledgeId: knowledgeId ?? this.knowledgeId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (knowledgeId.present) {
+      map['knowledge_id'] = Variable<String>(knowledgeId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeQuestionKnowledgeCompanion(')
+          ..write('questionId: $questionId, ')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PracticeAttemptsTable extends PracticeAttempts
+    with TableInfo<$PracticeAttemptsTable, PracticeAttempt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PracticeAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _questionIdMeta = const VerificationMeta(
+    'questionId',
+  );
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+    'question_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_questions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('draft'),
+  );
+  static const VerificationMeta _hintUsedMeta = const VerificationMeta(
+    'hintUsed',
+  );
+  @override
+  late final GeneratedColumn<bool> hintUsed = GeneratedColumn<bool>(
+    'hint_used',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("hint_used" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _correctMeta = const VerificationMeta(
+    'correct',
+  );
+  @override
+  late final GeneratedColumn<bool> correct = GeneratedColumn<bool>(
+    'correct',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("correct" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<double> score = GeneratedColumn<double>(
+    'score',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _gradingBasisMeta = const VerificationMeta(
+    'gradingBasis',
+  );
+  @override
+  late final GeneratedColumn<String> gradingBasis = GeneratedColumn<String>(
+    'grading_basis',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _submittedAtMeta = const VerificationMeta(
+    'submittedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> submittedAt = GeneratedColumn<DateTime>(
+    'submitted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _elapsedMillisecondsMeta =
+      const VerificationMeta('elapsedMilliseconds');
+  @override
+  late final GeneratedColumn<int> elapsedMilliseconds = GeneratedColumn<int>(
+    'elapsed_milliseconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    questionId,
+    status,
+    hintUsed,
+    correct,
+    score,
+    gradingBasis,
+    startedAt,
+    submittedAt,
+    elapsedMilliseconds,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'practice_attempts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PracticeAttempt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('question_id')) {
+      context.handle(
+        _questionIdMeta,
+        questionId.isAcceptableOrUnknown(data['question_id']!, _questionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('hint_used')) {
+      context.handle(
+        _hintUsedMeta,
+        hintUsed.isAcceptableOrUnknown(data['hint_used']!, _hintUsedMeta),
+      );
+    }
+    if (data.containsKey('correct')) {
+      context.handle(
+        _correctMeta,
+        correct.isAcceptableOrUnknown(data['correct']!, _correctMeta),
+      );
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    }
+    if (data.containsKey('grading_basis')) {
+      context.handle(
+        _gradingBasisMeta,
+        gradingBasis.isAcceptableOrUnknown(
+          data['grading_basis']!,
+          _gradingBasisMeta,
+        ),
+      );
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startedAtMeta);
+    }
+    if (data.containsKey('submitted_at')) {
+      context.handle(
+        _submittedAtMeta,
+        submittedAt.isAcceptableOrUnknown(
+          data['submitted_at']!,
+          _submittedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('elapsed_milliseconds')) {
+      context.handle(
+        _elapsedMillisecondsMeta,
+        elapsedMilliseconds.isAcceptableOrUnknown(
+          data['elapsed_milliseconds']!,
+          _elapsedMillisecondsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PracticeAttempt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PracticeAttempt(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      questionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_id'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      hintUsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}hint_used'],
+      )!,
+      correct: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}correct'],
+      ),
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}score'],
+      ),
+      gradingBasis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}grading_basis'],
+      ),
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      submittedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}submitted_at'],
+      ),
+      elapsedMilliseconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}elapsed_milliseconds'],
+      ),
+    );
+  }
+
+  @override
+  $PracticeAttemptsTable createAlias(String alias) {
+    return $PracticeAttemptsTable(attachedDatabase, alias);
+  }
+}
+
+class PracticeAttempt extends DataClass implements Insertable<PracticeAttempt> {
+  final String id;
+  final String questionId;
+  final String status;
+  final bool hintUsed;
+  final bool? correct;
+  final double? score;
+  final String? gradingBasis;
+  final DateTime startedAt;
+  final DateTime? submittedAt;
+  final int? elapsedMilliseconds;
+  const PracticeAttempt({
+    required this.id,
+    required this.questionId,
+    required this.status,
+    required this.hintUsed,
+    this.correct,
+    this.score,
+    this.gradingBasis,
+    required this.startedAt,
+    this.submittedAt,
+    this.elapsedMilliseconds,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['question_id'] = Variable<String>(questionId);
+    map['status'] = Variable<String>(status);
+    map['hint_used'] = Variable<bool>(hintUsed);
+    if (!nullToAbsent || correct != null) {
+      map['correct'] = Variable<bool>(correct);
+    }
+    if (!nullToAbsent || score != null) {
+      map['score'] = Variable<double>(score);
+    }
+    if (!nullToAbsent || gradingBasis != null) {
+      map['grading_basis'] = Variable<String>(gradingBasis);
+    }
+    map['started_at'] = Variable<DateTime>(startedAt);
+    if (!nullToAbsent || submittedAt != null) {
+      map['submitted_at'] = Variable<DateTime>(submittedAt);
+    }
+    if (!nullToAbsent || elapsedMilliseconds != null) {
+      map['elapsed_milliseconds'] = Variable<int>(elapsedMilliseconds);
+    }
+    return map;
+  }
+
+  PracticeAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return PracticeAttemptsCompanion(
+      id: Value(id),
+      questionId: Value(questionId),
+      status: Value(status),
+      hintUsed: Value(hintUsed),
+      correct: correct == null && nullToAbsent
+          ? const Value.absent()
+          : Value(correct),
+      score: score == null && nullToAbsent
+          ? const Value.absent()
+          : Value(score),
+      gradingBasis: gradingBasis == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gradingBasis),
+      startedAt: Value(startedAt),
+      submittedAt: submittedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(submittedAt),
+      elapsedMilliseconds: elapsedMilliseconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(elapsedMilliseconds),
+    );
+  }
+
+  factory PracticeAttempt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PracticeAttempt(
+      id: serializer.fromJson<String>(json['id']),
+      questionId: serializer.fromJson<String>(json['questionId']),
+      status: serializer.fromJson<String>(json['status']),
+      hintUsed: serializer.fromJson<bool>(json['hintUsed']),
+      correct: serializer.fromJson<bool?>(json['correct']),
+      score: serializer.fromJson<double?>(json['score']),
+      gradingBasis: serializer.fromJson<String?>(json['gradingBasis']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      submittedAt: serializer.fromJson<DateTime?>(json['submittedAt']),
+      elapsedMilliseconds: serializer.fromJson<int?>(
+        json['elapsedMilliseconds'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'questionId': serializer.toJson<String>(questionId),
+      'status': serializer.toJson<String>(status),
+      'hintUsed': serializer.toJson<bool>(hintUsed),
+      'correct': serializer.toJson<bool?>(correct),
+      'score': serializer.toJson<double?>(score),
+      'gradingBasis': serializer.toJson<String?>(gradingBasis),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'submittedAt': serializer.toJson<DateTime?>(submittedAt),
+      'elapsedMilliseconds': serializer.toJson<int?>(elapsedMilliseconds),
+    };
+  }
+
+  PracticeAttempt copyWith({
+    String? id,
+    String? questionId,
+    String? status,
+    bool? hintUsed,
+    Value<bool?> correct = const Value.absent(),
+    Value<double?> score = const Value.absent(),
+    Value<String?> gradingBasis = const Value.absent(),
+    DateTime? startedAt,
+    Value<DateTime?> submittedAt = const Value.absent(),
+    Value<int?> elapsedMilliseconds = const Value.absent(),
+  }) => PracticeAttempt(
+    id: id ?? this.id,
+    questionId: questionId ?? this.questionId,
+    status: status ?? this.status,
+    hintUsed: hintUsed ?? this.hintUsed,
+    correct: correct.present ? correct.value : this.correct,
+    score: score.present ? score.value : this.score,
+    gradingBasis: gradingBasis.present ? gradingBasis.value : this.gradingBasis,
+    startedAt: startedAt ?? this.startedAt,
+    submittedAt: submittedAt.present ? submittedAt.value : this.submittedAt,
+    elapsedMilliseconds: elapsedMilliseconds.present
+        ? elapsedMilliseconds.value
+        : this.elapsedMilliseconds,
+  );
+  PracticeAttempt copyWithCompanion(PracticeAttemptsCompanion data) {
+    return PracticeAttempt(
+      id: data.id.present ? data.id.value : this.id,
+      questionId: data.questionId.present
+          ? data.questionId.value
+          : this.questionId,
+      status: data.status.present ? data.status.value : this.status,
+      hintUsed: data.hintUsed.present ? data.hintUsed.value : this.hintUsed,
+      correct: data.correct.present ? data.correct.value : this.correct,
+      score: data.score.present ? data.score.value : this.score,
+      gradingBasis: data.gradingBasis.present
+          ? data.gradingBasis.value
+          : this.gradingBasis,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      submittedAt: data.submittedAt.present
+          ? data.submittedAt.value
+          : this.submittedAt,
+      elapsedMilliseconds: data.elapsedMilliseconds.present
+          ? data.elapsedMilliseconds.value
+          : this.elapsedMilliseconds,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeAttempt(')
+          ..write('id: $id, ')
+          ..write('questionId: $questionId, ')
+          ..write('status: $status, ')
+          ..write('hintUsed: $hintUsed, ')
+          ..write('correct: $correct, ')
+          ..write('score: $score, ')
+          ..write('gradingBasis: $gradingBasis, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('submittedAt: $submittedAt, ')
+          ..write('elapsedMilliseconds: $elapsedMilliseconds')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    questionId,
+    status,
+    hintUsed,
+    correct,
+    score,
+    gradingBasis,
+    startedAt,
+    submittedAt,
+    elapsedMilliseconds,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PracticeAttempt &&
+          other.id == this.id &&
+          other.questionId == this.questionId &&
+          other.status == this.status &&
+          other.hintUsed == this.hintUsed &&
+          other.correct == this.correct &&
+          other.score == this.score &&
+          other.gradingBasis == this.gradingBasis &&
+          other.startedAt == this.startedAt &&
+          other.submittedAt == this.submittedAt &&
+          other.elapsedMilliseconds == this.elapsedMilliseconds);
+}
+
+class PracticeAttemptsCompanion extends UpdateCompanion<PracticeAttempt> {
+  final Value<String> id;
+  final Value<String> questionId;
+  final Value<String> status;
+  final Value<bool> hintUsed;
+  final Value<bool?> correct;
+  final Value<double?> score;
+  final Value<String?> gradingBasis;
+  final Value<DateTime> startedAt;
+  final Value<DateTime?> submittedAt;
+  final Value<int?> elapsedMilliseconds;
+  final Value<int> rowid;
+  const PracticeAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.questionId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.hintUsed = const Value.absent(),
+    this.correct = const Value.absent(),
+    this.score = const Value.absent(),
+    this.gradingBasis = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.submittedAt = const Value.absent(),
+    this.elapsedMilliseconds = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PracticeAttemptsCompanion.insert({
+    required String id,
+    required String questionId,
+    this.status = const Value.absent(),
+    this.hintUsed = const Value.absent(),
+    this.correct = const Value.absent(),
+    this.score = const Value.absent(),
+    this.gradingBasis = const Value.absent(),
+    required DateTime startedAt,
+    this.submittedAt = const Value.absent(),
+    this.elapsedMilliseconds = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       questionId = Value(questionId),
+       startedAt = Value(startedAt);
+  static Insertable<PracticeAttempt> custom({
+    Expression<String>? id,
+    Expression<String>? questionId,
+    Expression<String>? status,
+    Expression<bool>? hintUsed,
+    Expression<bool>? correct,
+    Expression<double>? score,
+    Expression<String>? gradingBasis,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? submittedAt,
+    Expression<int>? elapsedMilliseconds,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (questionId != null) 'question_id': questionId,
+      if (status != null) 'status': status,
+      if (hintUsed != null) 'hint_used': hintUsed,
+      if (correct != null) 'correct': correct,
+      if (score != null) 'score': score,
+      if (gradingBasis != null) 'grading_basis': gradingBasis,
+      if (startedAt != null) 'started_at': startedAt,
+      if (submittedAt != null) 'submitted_at': submittedAt,
+      if (elapsedMilliseconds != null)
+        'elapsed_milliseconds': elapsedMilliseconds,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PracticeAttemptsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? questionId,
+    Value<String>? status,
+    Value<bool>? hintUsed,
+    Value<bool?>? correct,
+    Value<double?>? score,
+    Value<String?>? gradingBasis,
+    Value<DateTime>? startedAt,
+    Value<DateTime?>? submittedAt,
+    Value<int?>? elapsedMilliseconds,
+    Value<int>? rowid,
+  }) {
+    return PracticeAttemptsCompanion(
+      id: id ?? this.id,
+      questionId: questionId ?? this.questionId,
+      status: status ?? this.status,
+      hintUsed: hintUsed ?? this.hintUsed,
+      correct: correct ?? this.correct,
+      score: score ?? this.score,
+      gradingBasis: gradingBasis ?? this.gradingBasis,
+      startedAt: startedAt ?? this.startedAt,
+      submittedAt: submittedAt ?? this.submittedAt,
+      elapsedMilliseconds: elapsedMilliseconds ?? this.elapsedMilliseconds,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (hintUsed.present) {
+      map['hint_used'] = Variable<bool>(hintUsed.value);
+    }
+    if (correct.present) {
+      map['correct'] = Variable<bool>(correct.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<double>(score.value);
+    }
+    if (gradingBasis.present) {
+      map['grading_basis'] = Variable<String>(gradingBasis.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (submittedAt.present) {
+      map['submitted_at'] = Variable<DateTime>(submittedAt.value);
+    }
+    if (elapsedMilliseconds.present) {
+      map['elapsed_milliseconds'] = Variable<int>(elapsedMilliseconds.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('questionId: $questionId, ')
+          ..write('status: $status, ')
+          ..write('hintUsed: $hintUsed, ')
+          ..write('correct: $correct, ')
+          ..write('score: $score, ')
+          ..write('gradingBasis: $gradingBasis, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('submittedAt: $submittedAt, ')
+          ..write('elapsedMilliseconds: $elapsedMilliseconds, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PracticeResponsesTable extends PracticeResponses
+    with TableInfo<$PracticeResponsesTable, PracticeResponse> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PracticeResponsesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _attemptIdMeta = const VerificationMeta(
+    'attemptId',
+  );
+  @override
+  late final GeneratedColumn<String> attemptId = GeneratedColumn<String>(
+    'attempt_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_attempts (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answerMeta = const VerificationMeta('answer');
+  @override
+  late final GeneratedColumn<String> answer = GeneratedColumn<String>(
+    'answer',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [attemptId, position, answer];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'practice_responses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PracticeResponse> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('attempt_id')) {
+      context.handle(
+        _attemptIdMeta,
+        attemptId.isAcceptableOrUnknown(data['attempt_id']!, _attemptIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_attemptIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('answer')) {
+      context.handle(
+        _answerMeta,
+        answer.isAcceptableOrUnknown(data['answer']!, _answerMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answerMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {attemptId, position};
+  @override
+  PracticeResponse map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PracticeResponse(
+      attemptId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attempt_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      answer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}answer'],
+      )!,
+    );
+  }
+
+  @override
+  $PracticeResponsesTable createAlias(String alias) {
+    return $PracticeResponsesTable(attachedDatabase, alias);
+  }
+}
+
+class PracticeResponse extends DataClass
+    implements Insertable<PracticeResponse> {
+  final String attemptId;
+  final int position;
+  final String answer;
+  const PracticeResponse({
+    required this.attemptId,
+    required this.position,
+    required this.answer,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['attempt_id'] = Variable<String>(attemptId);
+    map['position'] = Variable<int>(position);
+    map['answer'] = Variable<String>(answer);
+    return map;
+  }
+
+  PracticeResponsesCompanion toCompanion(bool nullToAbsent) {
+    return PracticeResponsesCompanion(
+      attemptId: Value(attemptId),
+      position: Value(position),
+      answer: Value(answer),
+    );
+  }
+
+  factory PracticeResponse.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PracticeResponse(
+      attemptId: serializer.fromJson<String>(json['attemptId']),
+      position: serializer.fromJson<int>(json['position']),
+      answer: serializer.fromJson<String>(json['answer']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'attemptId': serializer.toJson<String>(attemptId),
+      'position': serializer.toJson<int>(position),
+      'answer': serializer.toJson<String>(answer),
+    };
+  }
+
+  PracticeResponse copyWith({
+    String? attemptId,
+    int? position,
+    String? answer,
+  }) => PracticeResponse(
+    attemptId: attemptId ?? this.attemptId,
+    position: position ?? this.position,
+    answer: answer ?? this.answer,
+  );
+  PracticeResponse copyWithCompanion(PracticeResponsesCompanion data) {
+    return PracticeResponse(
+      attemptId: data.attemptId.present ? data.attemptId.value : this.attemptId,
+      position: data.position.present ? data.position.value : this.position,
+      answer: data.answer.present ? data.answer.value : this.answer,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeResponse(')
+          ..write('attemptId: $attemptId, ')
+          ..write('position: $position, ')
+          ..write('answer: $answer')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(attemptId, position, answer);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PracticeResponse &&
+          other.attemptId == this.attemptId &&
+          other.position == this.position &&
+          other.answer == this.answer);
+}
+
+class PracticeResponsesCompanion extends UpdateCompanion<PracticeResponse> {
+  final Value<String> attemptId;
+  final Value<int> position;
+  final Value<String> answer;
+  final Value<int> rowid;
+  const PracticeResponsesCompanion({
+    this.attemptId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.answer = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PracticeResponsesCompanion.insert({
+    required String attemptId,
+    required int position,
+    required String answer,
+    this.rowid = const Value.absent(),
+  }) : attemptId = Value(attemptId),
+       position = Value(position),
+       answer = Value(answer);
+  static Insertable<PracticeResponse> custom({
+    Expression<String>? attemptId,
+    Expression<int>? position,
+    Expression<String>? answer,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (attemptId != null) 'attempt_id': attemptId,
+      if (position != null) 'position': position,
+      if (answer != null) 'answer': answer,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PracticeResponsesCompanion copyWith({
+    Value<String>? attemptId,
+    Value<int>? position,
+    Value<String>? answer,
+    Value<int>? rowid,
+  }) {
+    return PracticeResponsesCompanion(
+      attemptId: attemptId ?? this.attemptId,
+      position: position ?? this.position,
+      answer: answer ?? this.answer,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (attemptId.present) {
+      map['attempt_id'] = Variable<String>(attemptId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (answer.present) {
+      map['answer'] = Variable<String>(answer.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeResponsesCompanion(')
+          ..write('attemptId: $attemptId, ')
+          ..write('position: $position, ')
+          ..write('answer: $answer, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PracticeImagesTable extends PracticeImages
+    with TableInfo<$PracticeImagesTable, PracticeImage> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PracticeImagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _questionIdMeta = const VerificationMeta(
+    'questionId',
+  );
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+    'question_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_questions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _relativePathMeta = const VerificationMeta(
+    'relativePath',
+  );
+  @override
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+    'relative_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mimeMeta = const VerificationMeta('mime');
+  @override
+  late final GeneratedColumn<String> mime = GeneratedColumn<String>(
+    'mime',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _byteLengthMeta = const VerificationMeta(
+    'byteLength',
+  );
+  @override
+  late final GeneratedColumn<int> byteLength = GeneratedColumn<int>(
+    'byte_length',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    questionId,
+    relativePath,
+    mime,
+    byteLength,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'practice_images';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PracticeImage> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('question_id')) {
+      context.handle(
+        _questionIdMeta,
+        questionId.isAcceptableOrUnknown(data['question_id']!, _questionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('relative_path')) {
+      context.handle(
+        _relativePathMeta,
+        relativePath.isAcceptableOrUnknown(
+          data['relative_path']!,
+          _relativePathMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_relativePathMeta);
+    }
+    if (data.containsKey('mime')) {
+      context.handle(
+        _mimeMeta,
+        mime.isAcceptableOrUnknown(data['mime']!, _mimeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mimeMeta);
+    }
+    if (data.containsKey('byte_length')) {
+      context.handle(
+        _byteLengthMeta,
+        byteLength.isAcceptableOrUnknown(data['byte_length']!, _byteLengthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_byteLengthMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PracticeImage map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PracticeImage(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      questionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_id'],
+      )!,
+      relativePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_path'],
+      )!,
+      mime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime'],
+      )!,
+      byteLength: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}byte_length'],
+      )!,
+    );
+  }
+
+  @override
+  $PracticeImagesTable createAlias(String alias) {
+    return $PracticeImagesTable(attachedDatabase, alias);
+  }
+}
+
+class PracticeImage extends DataClass implements Insertable<PracticeImage> {
+  final String id;
+  final String questionId;
+  final String relativePath;
+  final String mime;
+  final int byteLength;
+  const PracticeImage({
+    required this.id,
+    required this.questionId,
+    required this.relativePath,
+    required this.mime,
+    required this.byteLength,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['question_id'] = Variable<String>(questionId);
+    map['relative_path'] = Variable<String>(relativePath);
+    map['mime'] = Variable<String>(mime);
+    map['byte_length'] = Variable<int>(byteLength);
+    return map;
+  }
+
+  PracticeImagesCompanion toCompanion(bool nullToAbsent) {
+    return PracticeImagesCompanion(
+      id: Value(id),
+      questionId: Value(questionId),
+      relativePath: Value(relativePath),
+      mime: Value(mime),
+      byteLength: Value(byteLength),
+    );
+  }
+
+  factory PracticeImage.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PracticeImage(
+      id: serializer.fromJson<String>(json['id']),
+      questionId: serializer.fromJson<String>(json['questionId']),
+      relativePath: serializer.fromJson<String>(json['relativePath']),
+      mime: serializer.fromJson<String>(json['mime']),
+      byteLength: serializer.fromJson<int>(json['byteLength']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'questionId': serializer.toJson<String>(questionId),
+      'relativePath': serializer.toJson<String>(relativePath),
+      'mime': serializer.toJson<String>(mime),
+      'byteLength': serializer.toJson<int>(byteLength),
+    };
+  }
+
+  PracticeImage copyWith({
+    String? id,
+    String? questionId,
+    String? relativePath,
+    String? mime,
+    int? byteLength,
+  }) => PracticeImage(
+    id: id ?? this.id,
+    questionId: questionId ?? this.questionId,
+    relativePath: relativePath ?? this.relativePath,
+    mime: mime ?? this.mime,
+    byteLength: byteLength ?? this.byteLength,
+  );
+  PracticeImage copyWithCompanion(PracticeImagesCompanion data) {
+    return PracticeImage(
+      id: data.id.present ? data.id.value : this.id,
+      questionId: data.questionId.present
+          ? data.questionId.value
+          : this.questionId,
+      relativePath: data.relativePath.present
+          ? data.relativePath.value
+          : this.relativePath,
+      mime: data.mime.present ? data.mime.value : this.mime,
+      byteLength: data.byteLength.present
+          ? data.byteLength.value
+          : this.byteLength,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeImage(')
+          ..write('id: $id, ')
+          ..write('questionId: $questionId, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('mime: $mime, ')
+          ..write('byteLength: $byteLength')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, questionId, relativePath, mime, byteLength);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PracticeImage &&
+          other.id == this.id &&
+          other.questionId == this.questionId &&
+          other.relativePath == this.relativePath &&
+          other.mime == this.mime &&
+          other.byteLength == this.byteLength);
+}
+
+class PracticeImagesCompanion extends UpdateCompanion<PracticeImage> {
+  final Value<String> id;
+  final Value<String> questionId;
+  final Value<String> relativePath;
+  final Value<String> mime;
+  final Value<int> byteLength;
+  final Value<int> rowid;
+  const PracticeImagesCompanion({
+    this.id = const Value.absent(),
+    this.questionId = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.mime = const Value.absent(),
+    this.byteLength = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PracticeImagesCompanion.insert({
+    required String id,
+    required String questionId,
+    required String relativePath,
+    required String mime,
+    required int byteLength,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       questionId = Value(questionId),
+       relativePath = Value(relativePath),
+       mime = Value(mime),
+       byteLength = Value(byteLength);
+  static Insertable<PracticeImage> custom({
+    Expression<String>? id,
+    Expression<String>? questionId,
+    Expression<String>? relativePath,
+    Expression<String>? mime,
+    Expression<int>? byteLength,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (questionId != null) 'question_id': questionId,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (mime != null) 'mime': mime,
+      if (byteLength != null) 'byte_length': byteLength,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PracticeImagesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? questionId,
+    Value<String>? relativePath,
+    Value<String>? mime,
+    Value<int>? byteLength,
+    Value<int>? rowid,
+  }) {
+    return PracticeImagesCompanion(
+      id: id ?? this.id,
+      questionId: questionId ?? this.questionId,
+      relativePath: relativePath ?? this.relativePath,
+      mime: mime ?? this.mime,
+      byteLength: byteLength ?? this.byteLength,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (mime.present) {
+      map['mime'] = Variable<String>(mime.value);
+    }
+    if (byteLength.present) {
+      map['byte_length'] = Variable<int>(byteLength.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeImagesCompanion(')
+          ..write('id: $id, ')
+          ..write('questionId: $questionId, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('mime: $mime, ')
+          ..write('byteLength: $byteLength, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -6898,6 +10624,24 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $StudyChatLinksTable studyChatLinks = $StudyChatLinksTable(this);
+  late final $LearningTopicsTable learningTopics = $LearningTopicsTable(this);
+  late final $PracticeQuestionsTable practiceQuestions =
+      $PracticeQuestionsTable(this);
+  late final $PracticeOptionsTable practiceOptions = $PracticeOptionsTable(
+    this,
+  );
+  late final $PracticeAnswerKeysTable practiceAnswerKeys =
+      $PracticeAnswerKeysTable(this);
+  late final $PracticeQuestionTopicsTable practiceQuestionTopics =
+      $PracticeQuestionTopicsTable(this);
+  late final $PracticeQuestionKnowledgeTable practiceQuestionKnowledge =
+      $PracticeQuestionKnowledgeTable(this);
+  late final $PracticeAttemptsTable practiceAttempts = $PracticeAttemptsTable(
+    this,
+  );
+  late final $PracticeResponsesTable practiceResponses =
+      $PracticeResponsesTable(this);
+  late final $PracticeImagesTable practiceImages = $PracticeImagesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6918,6 +10662,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     studyAttachments,
     aiToolOperations,
     studyChatLinks,
+    learningTopics,
+    practiceQuestions,
+    practiceOptions,
+    practiceAnswerKeys,
+    practiceQuestionTopics,
+    practiceQuestionKnowledge,
+    practiceAttempts,
+    practiceResponses,
+    practiceImages,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -7053,6 +10806,105 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('study_chat_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_questions', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_questions', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'mistakes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_questions', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_questions', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_options', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_answer_keys', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('practice_question_topics', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'learning_topics',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('practice_question_topics', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('practice_question_knowledge', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('practice_question_knowledge', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_attempts', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_attempts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_responses', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_images', kind: UpdateKind.delete)],
     ),
   ]);
 }

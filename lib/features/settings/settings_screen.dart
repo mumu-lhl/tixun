@@ -359,7 +359,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _heading(context, '关于题训', Icons.school_outlined),
                 const SizedBox(height: 12),
                 const Text(
-                  'TiXun 0.2 · 开源 · 本地优先\n已支持 AI Chat、知识库、错题本、图片裁剪分题及受控资料工具。\n结构化训练、间隔复习和完整备份将在后续里程碑实现。',
+                  'TiXun 0.3 · 开源 · 本地优先\n已支持 AI Chat、知识库、错题本、图片裁剪分题及受控资料工具。\n已加入结构化交互题、确定性评分、历史作答和错题重做。间隔复习和完整备份正在继续开发。',
                   style: TextStyle(height: 1.9),
                 ),
                 const SizedBox(height: 12),

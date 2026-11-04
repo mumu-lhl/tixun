@@ -13,6 +13,8 @@ import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/core/ui/learning_markdown.dart';
+import 'package:tixun/features/practice/question_card.dart';
+import 'package:tixun/features/practice/question_spec.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +29,100 @@ void main() {
       await loader.load();
     }
   });
+  testWidgets(
+    'Interactive quiz hides answers, persists submission and fits narrow phones',
+    (tester) async {
+      late AppController c;
+      late String id;
+      await tester.runAsync(() async {
+        final root = await Directory.systemTemp.createTemp('tixun-quiz-widget');
+        c = AppController(
+          AppDatabase.memory(),
+          AttachmentStore(root),
+          MemoryKeyStore(),
+          MockChatProvider(),
+        );
+        await c.initialize();
+        id = await c.practice.create(
+          const QuestionSpec(
+            kind: 'single_choice',
+            stem: r'函数 $y=x^2-4x+3$ 的顶点坐标是？',
+            options: {
+              'A': r'$(2,-1)$',
+              'B': r'$(-2,-1)$',
+              'C': r'$(2,3)$',
+              'D': r'$(-2,3)$',
+            },
+            answers: [
+              ['A'],
+            ],
+            explanation: '作答后才显示这段解析。',
+            hint: '先配方。',
+          ),
+          origin: 'ai',
+          verification: 'unverified',
+        );
+      });
+      final container = ProviderContainer(
+        overrides: [appControllerProvider.overrideWith((ref) => c)],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await c.shutdown();
+        await c.files.root.delete(recursive: true);
+      });
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 1000);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: appTheme(Brightness.light),
+            home: Scaffold(
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: QuestionCard(id),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 150)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('作答后才显示这段解析'), findsNothing);
+      await expectLater(
+        find.byType(Scaffold),
+        matchesGoldenFile('goldens/quiz_phone.png'),
+      );
+      await tester.tap(find.byKey(const Key('option-A')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('submit-quiz')));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 150)),
+      );
+      await tester.pumpAndSettle();
+      for (
+        var i = 0;
+        i < 20 && find.textContaining('作答后才显示这段解析').evaluate().isEmpty;
+        i++
+      ) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 30)),
+        );
+        await tester.pumpAndSettle();
+      }
+      expect(find.textContaining('作答后才显示这段解析'), findsOneWidget);
+      await tester.runAsync(() async {
+        expect((await c.practice.detail(id)).latest!.correct, true);
+      });
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   testWidgets(
     'Responsive real app navigation, long math and settings in light/dark',
     (tester) async {
@@ -68,6 +164,7 @@ void main() {
           '/settings',
           '/knowledge',
           '/mistakes',
+          '/practice',
         ]) {
           container.read(routerProvider).go(route);
           await tester.pumpAndSettle();

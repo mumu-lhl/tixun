@@ -117,6 +117,12 @@ class DashboardScreen extends ConsumerWidget {
                             icon: const Icon(Icons.add, size: 18),
                             label: const Text('开始学习对话'),
                           ),
+                          FilledButton.tonalIcon(
+                            key: const Key('start-practice'),
+                            onPressed: () => context.go('/practice'),
+                            icon: const Icon(Icons.edit_note),
+                            label: const Text('主动训练'),
+                          ),
                           OutlinedButton.icon(
                             onPressed: () => context.go('/mistakes'),
                             icon: const Icon(

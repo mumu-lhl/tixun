@@ -92,6 +92,9 @@ jobs:
       - run: xvfb-run -a -s '-screen 0 1280x900x24' dbus-run-session -- flutter test integration_test/learning_materials_test.dart -d linux --dart-define=TIXUN_DEMO=true | tee integration-materials.log
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
+      - run: xvfb-run -a -s '-screen 0 1280x900x24' dbus-run-session -- flutter test integration_test/practice_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true | tee integration-practice.log
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -101,3 +104,4 @@ jobs:
             doctor.log
             integration.log
             integration-materials.log
+            integration-practice.log

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/chat/chat_screen.dart';
+import '../features/practice/practice_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/library/study_detail_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
@@ -25,6 +26,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             AppShell(path: state.uri.path, child: child),
         routes: [
           GoRoute(path: '/study', builder: (_, _) => const DashboardScreen()),
+          GoRoute(
+            path: '/practice',
+            builder: (_, _) => const PracticeScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (_, s) =>
+                    PracticeDetailScreen(s.pathParameters['id']!),
+              ),
+            ],
+          ),
           GoRoute(path: '/chat', builder: (_, _) => const ChatScreen()),
           GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
           GoRoute(

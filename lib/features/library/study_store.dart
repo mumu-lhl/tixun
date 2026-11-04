@@ -115,6 +115,7 @@ class StudyStore extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_closed) return;
     _closed = true;
     super.dispose();
   }

@@ -10,7 +10,7 @@ import 'generated_migrations/schema.dart';
 
 void main() {
   test(
-    'Schema v1 upgrades to v2 without losing chats, drafts, images or settings',
+    'Schema v1 upgrades to v3 without losing chats, drafts, images or settings',
     () async {
       final verifier = SchemaVerifier(GeneratedHelper());
       final schema = await verifier.schemaAt(1);
@@ -42,7 +42,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 2);
+      await verifier.migrateAndValidate(db, 3);
       expect((await db.sessions()).single.draft, '未发送草稿');
       expect((await db.sessions('二次函数')).single.id, 's');
       expect(

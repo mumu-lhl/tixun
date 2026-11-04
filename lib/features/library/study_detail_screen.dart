@@ -1,3 +1,5 @@
+import '../practice/question_spec.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -173,6 +175,54 @@ class StudyDetailScreen extends ConsumerWidget {
                                     label: Text(
                                       isMistake ? '让 AI 引导我理解' : '向 AI 请教',
                                     ),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () => act(context, () async {
+                                      final id = await ref
+                                          .read(appControllerProvider)
+                                          .practice
+                                          .create(
+                                            QuestionSpec(
+                                              kind: 'short_answer',
+                                              subject:
+                                                  k?.item.subject ??
+                                                  m!.item.subject,
+                                              stem: m != null
+                                                  ? (m.item.question.isEmpty
+                                                        ? m.item.title
+                                                        : m.item.question)
+                                                  : '请先合上笔记，回忆并解释：${k!.item.title}',
+                                              answers: const [],
+                                              explanation:
+                                                  k?.item.content ??
+                                                  '${m!.item.correctAnswer}\n\n${m.item.ownAnalysis}\n\n${m.item.aiAnalysis}',
+                                              topics: k != null
+                                                  ? [
+                                                      k.item.title.length > 120
+                                                          ? k.item.title
+                                                                .substring(
+                                                                  0,
+                                                                  120,
+                                                                )
+                                                          : k.item.title,
+                                                    ]
+                                                  : [],
+                                            ),
+                                            origin: m != null
+                                                ? 'mistake'
+                                                : 'recall',
+                                            verification: 'unverified',
+                                            mistakeId: m?.item.id,
+                                            knowledgeIds: k == null
+                                                ? []
+                                                : [k.item.id],
+                                          );
+                                      if (context.mounted) {
+                                        context.go('/practice/$id');
+                                      }
+                                    }),
+                                    icon: const Icon(Icons.edit_note, size: 18),
+                                    label: Text(m != null ? '合上解析重做' : '回忆检测'),
                                   ),
                                   if (m != null)
                                     OutlinedButton(

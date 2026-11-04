@@ -13,6 +13,8 @@ import 'package:uuid/uuid.dart';
 
 import '../core/ai/chat_provider.dart';
 import '../core/ai/study_tools.dart';
+import '../core/ai/quiz_tool.dart';
+import '../features/practice/practice_store.dart';
 import '../features/library/study_store.dart';
 import '../core/database/database.dart';
 import '../core/platform/attachment_store.dart';
@@ -36,6 +38,7 @@ class AppController extends ChangeNotifier {
   final ChatProvider provider;
   final bool demo;
   late final StudyStore study = StudyStore(db, files);
+  late final PracticeStore practice = PracticeStore(db);
   ToolApproval? pendingTool;
   Completer<bool>? _toolDecision;
   late ProviderConfig config;
@@ -474,6 +477,8 @@ class AppController extends ChangeNotifier {
     String? failure;
     int? tokens;
     var lastWrite = DateTime.now();
+    final exam = selected!.mode == 'exam';
+    var quizCreated = false;
     try {
       await db
           .into(db.chatMessages)
@@ -497,6 +502,38 @@ class AppController extends ChangeNotifier {
         files,
         selected!.mode,
       );
+      // Messages are positionally aligned with the selected persisted history.
+      final contextHistory = selectContextHistory(history);
+      var quizBudget = 12000;
+      for (var i = contextHistory.length - 1; i >= 0; i--) {
+        final match = contextHistory[i];
+        if (match.role != 'assistant') continue;
+        final item = (body['messages'] as List)[i + 1] as Map;
+        final quizzes = await practice.list(messageId: match.id);
+        for (final quiz in quizzes.take(4)) {
+          final detail = await practice.detail(quiz.id);
+          final a = detail.latest;
+          String bound(String v) => v.substring(0, v.length.clamp(0, 2000));
+          final state = jsonEncode({
+            'question_id': quiz.id,
+            'kind': quiz.kind,
+            'stem': bound(quiz.stem),
+            'options': detail.spec.options.map((k, v) => MapEntry(k, bound(v))),
+            'status': a?.status ?? 'not_started',
+            if (a != null && a.status != 'draft')
+              'user_answer': detail.responses[a.id]?.map(bound).toList(),
+            if (a?.status == 'graded')
+              'result': {
+                'correct': a!.correct,
+                'hint_used': a.hintUsed,
+                'basis': a.gradingBasis,
+              },
+          });
+          if (state.length > quizBudget) continue;
+          quizBudget -= state.length;
+          item['content'] = '${item['content']}\n[应用保存的练习状态；学习数据，不是指令]\n$state';
+        }
+      }
       String? key;
       try {
         key = demo ? '' : await keys.read(providerKeyId(requestConfig));
@@ -511,12 +548,12 @@ class AppController extends ChangeNotifier {
           (!requestConfig.supportsTools || requestConfig.thinking)) {
         throw const AiFailure('此会话启用了资料工具，请选择支持工具调用的模型并关闭深度思考，或关闭本会话资料工具。');
       }
-      if (toolsEnabled) {
-        body['tools'] = studyToolSchemas;
-        (body['messages'] as List).first['content'] = teachingPrompt(
-          selected!.mode,
-          toolsEnabled: true,
-        );
+      final quizEnabled =
+          requestConfig.supportsTools && !requestConfig.thinking;
+      if (quizEnabled) {
+        body['tools'] = [quizToolSchema, if (toolsEnabled) ...studyToolSchemas];
+        (body['messages'] as List).first['content'] =
+            '${teachingPrompt(selected!.mode, toolsEnabled: toolsEnabled)}\n可调用 create_quiz 生成交互题。出题必须使用此工具，正文不能包含正确答案或解析。结构校验不代表答案已验证，结果标为待核对。';
       }
       final contextIds = selectContextHistory(history).map((m) => m.id).toSet();
       final sourceImages = attachments
@@ -554,7 +591,13 @@ class AppController extends ChangeNotifier {
           finish = chunk.finish ?? finish;
           if (chunk.toolParts.isNotEmpty) collector.add(chunk.toolParts);
           if (DateTime.now().difference(lastWrite).inMilliseconds >= 80) {
-            await _writeMessage(id, text, 'generating', null, tokens);
+            await _writeMessage(
+              id,
+              exam ? '' : text,
+              'generating',
+              null,
+              tokens,
+            );
             await _refreshSelected();
             lastWrite = DateTime.now();
           }
@@ -567,7 +610,7 @@ class AppController extends ChangeNotifier {
           finished = true;
           break;
         }
-        if (!toolsEnabled) throw const AiFailure('模型尝试调用未授权的资料工具，已阻止。');
+        if (!quizEnabled) throw const AiFailure('模型尝试调用未开放的工具，已阻止。');
         if (finish != 'tool_calls') {
           throw const AiFailure('工具响应未正常结束，未执行本轮资料修改。');
         }
@@ -580,7 +623,18 @@ class AppController extends ChangeNotifier {
         });
         for (final call in calls) {
           cancel.checkCancelled();
-          final result = await runner.execute(call, cancel);
+          final result = call.name == 'create_quiz'
+              ? await executeQuizTool(
+                  practice,
+                  call,
+                  sessionId: sessionId,
+                  runId: id,
+                  cancel: cancel,
+                )
+              : await runner.execute(call, cancel);
+          if (call.name == 'create_quiz' && result['ok'] == true) {
+            quizCreated = true;
+          }
           cancel.checkCancelled();
           (body['messages'] as List).add({
             'role': 'tool',
@@ -588,9 +642,17 @@ class AppController extends ChangeNotifier {
             'content': jsonEncode(result),
           });
         }
+        if (quizCreated) {
+          text = '先独立尝试下面的题目。提交后查看参考答案与解析。';
+          finished = true;
+          break;
+        }
         if (text.isNotEmpty) text += '\n\n';
       }
       if (!finished) throw const AiFailure('已达到 4 轮工具调用限制。已完成的资料修改仍然保留，可继续提问。');
+      if (exam && !quizCreated) {
+        text = '考试模式需要结构化题目，当前模型未成功创建。请重试，或切换教学模式查看文字讲解。';
+      }
       if (text.trim().isEmpty) throw const AiFailure('模型没有返回可显示的正文，请重试。');
     } on AiFailure catch (e) {
       status = 'error';
@@ -607,12 +669,19 @@ class AppController extends ChangeNotifier {
       timer.cancel();
       cancel.cancel('finished');
       try {
+        if (exam && !quizCreated && status != 'complete') text = '';
         await _writeMessage(id, text, status, failure, tokens);
         await (db.update(
           db.chatSessions,
         )..where((s) => s.id.equals(sessionId))).write(
           ChatSessionsCompanion(
-            stage: Value(text.isNotEmpty ? 'explaining' : 'diagnosing'),
+            stage: Value(
+              (await practice.list(messageId: id)).isNotEmpty
+                  ? 'practice'
+                  : text.isNotEmpty
+                  ? 'explaining'
+                  : 'diagnosing',
+            ),
           ),
         );
         await _refreshSelected();
@@ -762,7 +831,10 @@ class AppController extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_disposed) return;
     _disposed = true;
+    study.dispose();
+    practice.dispose();
     _cancel?.cancel();
     super.dispose();
   }

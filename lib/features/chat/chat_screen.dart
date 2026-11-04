@@ -1,3 +1,5 @@
+import '../practice/question_card.dart';
+
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -467,7 +469,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                                 ),
                                 DropdownMenuItem(
                                   value: 'exam',
-                                  child: Text('考试对话'),
+                                  child: Text('考试训练'),
                                 ),
                               ],
                               onChanged: c.busy
@@ -479,7 +481,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                           Expanded(
                             child: Text(
                               c.selected!.mode == 'exam'
-                                  ? '当前仅对话训练，尚不记录结构化成绩'
+                                  ? '先提交答案，再查看反馈与解析'
                                   : '先理解，再独立尝试',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -753,6 +755,7 @@ class MessageView extends ConsumerWidget {
                     ),
                   )
                 : LearningMarkdown(message.content),
+          if (!user) MessageQuestions(message.id),
           if (!user) ToolHistory(message.id),
           if (message.status == 'generating')
             Padding(
