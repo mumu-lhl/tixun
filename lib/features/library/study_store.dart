@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart';
+
+import '../../core/database/database_notifier.dart';
+
 import 'package:uuid/uuid.dart';
 
 import '../../core/database/database.dart';
@@ -101,23 +103,16 @@ class MistakeDetail {
 }
 
 /// One boundary for UI and AI writes: validation, version checks, history and links.
-class StudyStore extends ChangeNotifier {
+class StudyStore extends DatabaseNotifier {
   StudyStore(this.db, this.files);
   final AppDatabase db;
   final AttachmentStore files;
   int epoch = 0;
-  bool _closed = false;
-  void changed() {
-    if (_closed) return;
-    epoch++;
-    notifyListeners();
-  }
-
   @override
-  void dispose() {
-    if (_closed) return;
-    _closed = true;
-    super.dispose();
+  void changed() {
+    if (isDisposed) return;
+    epoch++;
+    super.changed();
   }
 
   String checked(

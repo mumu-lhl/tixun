@@ -165,6 +165,8 @@ void main() {
           '/knowledge',
           '/mistakes',
           '/practice',
+          '/review',
+          '/progress',
         ]) {
           container.read(routerProvider).go(route);
           await tester.pumpAndSettle();

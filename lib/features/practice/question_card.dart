@@ -1,3 +1,5 @@
+import '../review/review_screen.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -414,6 +416,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 ],
               ),
           ],
+          QuestionReviewStatus(widget.id),
           if (detail.attempts.length > 1)
             ExpansionTile(
               tilePadding: EdgeInsets.zero,

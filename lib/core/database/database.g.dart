@@ -10598,6 +10598,1248 @@ class PracticeImagesCompanion extends UpdateCompanion<PracticeImage> {
   }
 }
 
+class $ReviewSchedulesTable extends ReviewSchedules
+    with TableInfo<$ReviewSchedulesTable, ReviewSchedule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReviewSchedulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _questionIdMeta = const VerificationMeta(
+    'questionId',
+  );
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+    'question_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'UNIQUE REFERENCES practice_questions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dueAtMeta = const VerificationMeta('dueAt');
+  @override
+  late final GeneratedColumn<DateTime> dueAt = GeneratedColumn<DateTime>(
+    'due_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _repetitionsMeta = const VerificationMeta(
+    'repetitions',
+  );
+  @override
+  late final GeneratedColumn<int> repetitions = GeneratedColumn<int>(
+    'repetitions',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _intervalDaysMeta = const VerificationMeta(
+    'intervalDays',
+  );
+  @override
+  late final GeneratedColumn<int> intervalDays = GeneratedColumn<int>(
+    'interval_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _easeMeta = const VerificationMeta('ease');
+  @override
+  late final GeneratedColumn<double> ease = GeneratedColumn<double>(
+    'ease',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(2.5),
+  );
+  static const VerificationMeta _lapsesMeta = const VerificationMeta('lapses');
+  @override
+  late final GeneratedColumn<int> lapses = GeneratedColumn<int>(
+    'lapses',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    questionId,
+    dueAt,
+    repetitions,
+    intervalDays,
+    ease,
+    lapses,
+    enabled,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'review_schedules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReviewSchedule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('question_id')) {
+      context.handle(
+        _questionIdMeta,
+        questionId.isAcceptableOrUnknown(data['question_id']!, _questionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('due_at')) {
+      context.handle(
+        _dueAtMeta,
+        dueAt.isAcceptableOrUnknown(data['due_at']!, _dueAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dueAtMeta);
+    }
+    if (data.containsKey('repetitions')) {
+      context.handle(
+        _repetitionsMeta,
+        repetitions.isAcceptableOrUnknown(
+          data['repetitions']!,
+          _repetitionsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('interval_days')) {
+      context.handle(
+        _intervalDaysMeta,
+        intervalDays.isAcceptableOrUnknown(
+          data['interval_days']!,
+          _intervalDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ease')) {
+      context.handle(
+        _easeMeta,
+        ease.isAcceptableOrUnknown(data['ease']!, _easeMeta),
+      );
+    }
+    if (data.containsKey('lapses')) {
+      context.handle(
+        _lapsesMeta,
+        lapses.isAcceptableOrUnknown(data['lapses']!, _lapsesMeta),
+      );
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReviewSchedule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReviewSchedule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      questionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_id'],
+      )!,
+      dueAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_at'],
+      )!,
+      repetitions: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}repetitions'],
+      )!,
+      intervalDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}interval_days'],
+      )!,
+      ease: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}ease'],
+      )!,
+      lapses: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lapses'],
+      )!,
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReviewSchedulesTable createAlias(String alias) {
+    return $ReviewSchedulesTable(attachedDatabase, alias);
+  }
+}
+
+class ReviewSchedule extends DataClass implements Insertable<ReviewSchedule> {
+  final String id;
+  final String questionId;
+  final DateTime dueAt;
+  final int repetitions;
+  final int intervalDays;
+  final double ease;
+  final int lapses;
+  final bool enabled;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ReviewSchedule({
+    required this.id,
+    required this.questionId,
+    required this.dueAt,
+    required this.repetitions,
+    required this.intervalDays,
+    required this.ease,
+    required this.lapses,
+    required this.enabled,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['question_id'] = Variable<String>(questionId);
+    map['due_at'] = Variable<DateTime>(dueAt);
+    map['repetitions'] = Variable<int>(repetitions);
+    map['interval_days'] = Variable<int>(intervalDays);
+    map['ease'] = Variable<double>(ease);
+    map['lapses'] = Variable<int>(lapses);
+    map['enabled'] = Variable<bool>(enabled);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ReviewSchedulesCompanion toCompanion(bool nullToAbsent) {
+    return ReviewSchedulesCompanion(
+      id: Value(id),
+      questionId: Value(questionId),
+      dueAt: Value(dueAt),
+      repetitions: Value(repetitions),
+      intervalDays: Value(intervalDays),
+      ease: Value(ease),
+      lapses: Value(lapses),
+      enabled: Value(enabled),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ReviewSchedule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReviewSchedule(
+      id: serializer.fromJson<String>(json['id']),
+      questionId: serializer.fromJson<String>(json['questionId']),
+      dueAt: serializer.fromJson<DateTime>(json['dueAt']),
+      repetitions: serializer.fromJson<int>(json['repetitions']),
+      intervalDays: serializer.fromJson<int>(json['intervalDays']),
+      ease: serializer.fromJson<double>(json['ease']),
+      lapses: serializer.fromJson<int>(json['lapses']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'questionId': serializer.toJson<String>(questionId),
+      'dueAt': serializer.toJson<DateTime>(dueAt),
+      'repetitions': serializer.toJson<int>(repetitions),
+      'intervalDays': serializer.toJson<int>(intervalDays),
+      'ease': serializer.toJson<double>(ease),
+      'lapses': serializer.toJson<int>(lapses),
+      'enabled': serializer.toJson<bool>(enabled),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ReviewSchedule copyWith({
+    String? id,
+    String? questionId,
+    DateTime? dueAt,
+    int? repetitions,
+    int? intervalDays,
+    double? ease,
+    int? lapses,
+    bool? enabled,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ReviewSchedule(
+    id: id ?? this.id,
+    questionId: questionId ?? this.questionId,
+    dueAt: dueAt ?? this.dueAt,
+    repetitions: repetitions ?? this.repetitions,
+    intervalDays: intervalDays ?? this.intervalDays,
+    ease: ease ?? this.ease,
+    lapses: lapses ?? this.lapses,
+    enabled: enabled ?? this.enabled,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ReviewSchedule copyWithCompanion(ReviewSchedulesCompanion data) {
+    return ReviewSchedule(
+      id: data.id.present ? data.id.value : this.id,
+      questionId: data.questionId.present
+          ? data.questionId.value
+          : this.questionId,
+      dueAt: data.dueAt.present ? data.dueAt.value : this.dueAt,
+      repetitions: data.repetitions.present
+          ? data.repetitions.value
+          : this.repetitions,
+      intervalDays: data.intervalDays.present
+          ? data.intervalDays.value
+          : this.intervalDays,
+      ease: data.ease.present ? data.ease.value : this.ease,
+      lapses: data.lapses.present ? data.lapses.value : this.lapses,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewSchedule(')
+          ..write('id: $id, ')
+          ..write('questionId: $questionId, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('repetitions: $repetitions, ')
+          ..write('intervalDays: $intervalDays, ')
+          ..write('ease: $ease, ')
+          ..write('lapses: $lapses, ')
+          ..write('enabled: $enabled, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    questionId,
+    dueAt,
+    repetitions,
+    intervalDays,
+    ease,
+    lapses,
+    enabled,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReviewSchedule &&
+          other.id == this.id &&
+          other.questionId == this.questionId &&
+          other.dueAt == this.dueAt &&
+          other.repetitions == this.repetitions &&
+          other.intervalDays == this.intervalDays &&
+          other.ease == this.ease &&
+          other.lapses == this.lapses &&
+          other.enabled == this.enabled &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ReviewSchedulesCompanion extends UpdateCompanion<ReviewSchedule> {
+  final Value<String> id;
+  final Value<String> questionId;
+  final Value<DateTime> dueAt;
+  final Value<int> repetitions;
+  final Value<int> intervalDays;
+  final Value<double> ease;
+  final Value<int> lapses;
+  final Value<bool> enabled;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ReviewSchedulesCompanion({
+    this.id = const Value.absent(),
+    this.questionId = const Value.absent(),
+    this.dueAt = const Value.absent(),
+    this.repetitions = const Value.absent(),
+    this.intervalDays = const Value.absent(),
+    this.ease = const Value.absent(),
+    this.lapses = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReviewSchedulesCompanion.insert({
+    required String id,
+    required String questionId,
+    required DateTime dueAt,
+    this.repetitions = const Value.absent(),
+    this.intervalDays = const Value.absent(),
+    this.ease = const Value.absent(),
+    this.lapses = const Value.absent(),
+    this.enabled = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       questionId = Value(questionId),
+       dueAt = Value(dueAt),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ReviewSchedule> custom({
+    Expression<String>? id,
+    Expression<String>? questionId,
+    Expression<DateTime>? dueAt,
+    Expression<int>? repetitions,
+    Expression<int>? intervalDays,
+    Expression<double>? ease,
+    Expression<int>? lapses,
+    Expression<bool>? enabled,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (questionId != null) 'question_id': questionId,
+      if (dueAt != null) 'due_at': dueAt,
+      if (repetitions != null) 'repetitions': repetitions,
+      if (intervalDays != null) 'interval_days': intervalDays,
+      if (ease != null) 'ease': ease,
+      if (lapses != null) 'lapses': lapses,
+      if (enabled != null) 'enabled': enabled,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReviewSchedulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? questionId,
+    Value<DateTime>? dueAt,
+    Value<int>? repetitions,
+    Value<int>? intervalDays,
+    Value<double>? ease,
+    Value<int>? lapses,
+    Value<bool>? enabled,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ReviewSchedulesCompanion(
+      id: id ?? this.id,
+      questionId: questionId ?? this.questionId,
+      dueAt: dueAt ?? this.dueAt,
+      repetitions: repetitions ?? this.repetitions,
+      intervalDays: intervalDays ?? this.intervalDays,
+      ease: ease ?? this.ease,
+      lapses: lapses ?? this.lapses,
+      enabled: enabled ?? this.enabled,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (dueAt.present) {
+      map['due_at'] = Variable<DateTime>(dueAt.value);
+    }
+    if (repetitions.present) {
+      map['repetitions'] = Variable<int>(repetitions.value);
+    }
+    if (intervalDays.present) {
+      map['interval_days'] = Variable<int>(intervalDays.value);
+    }
+    if (ease.present) {
+      map['ease'] = Variable<double>(ease.value);
+    }
+    if (lapses.present) {
+      map['lapses'] = Variable<int>(lapses.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewSchedulesCompanion(')
+          ..write('id: $id, ')
+          ..write('questionId: $questionId, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('repetitions: $repetitions, ')
+          ..write('intervalDays: $intervalDays, ')
+          ..write('ease: $ease, ')
+          ..write('lapses: $lapses, ')
+          ..write('enabled: $enabled, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReviewRecordsTable extends ReviewRecords
+    with TableInfo<$ReviewRecordsTable, ReviewRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReviewRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scheduleIdMeta = const VerificationMeta(
+    'scheduleId',
+  );
+  @override
+  late final GeneratedColumn<String> scheduleId = GeneratedColumn<String>(
+    'schedule_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES review_schedules (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _attemptIdMeta = const VerificationMeta(
+    'attemptId',
+  );
+  @override
+  late final GeneratedColumn<String> attemptId = GeneratedColumn<String>(
+    'attempt_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_attempts (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _eventMeta = const VerificationMeta('event');
+  @override
+  late final GeneratedColumn<String> event = GeneratedColumn<String>(
+    'event',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _previousDueAtMeta = const VerificationMeta(
+    'previousDueAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> previousDueAt =
+      GeneratedColumn<DateTime>(
+        'previous_due_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _nextDueAtMeta = const VerificationMeta(
+    'nextDueAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextDueAt = GeneratedColumn<DateTime>(
+    'next_due_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _qualityMeta = const VerificationMeta(
+    'quality',
+  );
+  @override
+  late final GeneratedColumn<int> quality = GeneratedColumn<int>(
+    'quality',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _independentMeta = const VerificationMeta(
+    'independent',
+  );
+  @override
+  late final GeneratedColumn<bool> independent = GeneratedColumn<bool>(
+    'independent',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("independent" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordedAtMeta = const VerificationMeta(
+    'recordedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> recordedAt = GeneratedColumn<DateTime>(
+    'recorded_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    scheduleId,
+    attemptId,
+    event,
+    previousDueAt,
+    nextDueAt,
+    quality,
+    independent,
+    reason,
+    recordedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'review_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReviewRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('schedule_id')) {
+      context.handle(
+        _scheduleIdMeta,
+        scheduleId.isAcceptableOrUnknown(data['schedule_id']!, _scheduleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scheduleIdMeta);
+    }
+    if (data.containsKey('attempt_id')) {
+      context.handle(
+        _attemptIdMeta,
+        attemptId.isAcceptableOrUnknown(data['attempt_id']!, _attemptIdMeta),
+      );
+    }
+    if (data.containsKey('event')) {
+      context.handle(
+        _eventMeta,
+        event.isAcceptableOrUnknown(data['event']!, _eventMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventMeta);
+    }
+    if (data.containsKey('previous_due_at')) {
+      context.handle(
+        _previousDueAtMeta,
+        previousDueAt.isAcceptableOrUnknown(
+          data['previous_due_at']!,
+          _previousDueAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_previousDueAtMeta);
+    }
+    if (data.containsKey('next_due_at')) {
+      context.handle(
+        _nextDueAtMeta,
+        nextDueAt.isAcceptableOrUnknown(data['next_due_at']!, _nextDueAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nextDueAtMeta);
+    }
+    if (data.containsKey('quality')) {
+      context.handle(
+        _qualityMeta,
+        quality.isAcceptableOrUnknown(data['quality']!, _qualityMeta),
+      );
+    }
+    if (data.containsKey('independent')) {
+      context.handle(
+        _independentMeta,
+        independent.isAcceptableOrUnknown(
+          data['independent']!,
+          _independentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reasonMeta);
+    }
+    if (data.containsKey('recorded_at')) {
+      context.handle(
+        _recordedAtMeta,
+        recordedAt.isAcceptableOrUnknown(data['recorded_at']!, _recordedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {scheduleId, attemptId},
+  ];
+  @override
+  ReviewRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReviewRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      scheduleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}schedule_id'],
+      )!,
+      attemptId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attempt_id'],
+      ),
+      event: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event'],
+      )!,
+      previousDueAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}previous_due_at'],
+      )!,
+      nextDueAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_due_at'],
+      )!,
+      quality: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}quality'],
+      ),
+      independent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}independent'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      )!,
+      recordedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}recorded_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReviewRecordsTable createAlias(String alias) {
+    return $ReviewRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ReviewRecord extends DataClass implements Insertable<ReviewRecord> {
+  final String id;
+  final String scheduleId;
+  final String? attemptId;
+  final String event;
+  final DateTime previousDueAt;
+  final DateTime nextDueAt;
+  final int? quality;
+  final bool independent;
+  final String reason;
+  final DateTime recordedAt;
+  const ReviewRecord({
+    required this.id,
+    required this.scheduleId,
+    this.attemptId,
+    required this.event,
+    required this.previousDueAt,
+    required this.nextDueAt,
+    this.quality,
+    required this.independent,
+    required this.reason,
+    required this.recordedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['schedule_id'] = Variable<String>(scheduleId);
+    if (!nullToAbsent || attemptId != null) {
+      map['attempt_id'] = Variable<String>(attemptId);
+    }
+    map['event'] = Variable<String>(event);
+    map['previous_due_at'] = Variable<DateTime>(previousDueAt);
+    map['next_due_at'] = Variable<DateTime>(nextDueAt);
+    if (!nullToAbsent || quality != null) {
+      map['quality'] = Variable<int>(quality);
+    }
+    map['independent'] = Variable<bool>(independent);
+    map['reason'] = Variable<String>(reason);
+    map['recorded_at'] = Variable<DateTime>(recordedAt);
+    return map;
+  }
+
+  ReviewRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ReviewRecordsCompanion(
+      id: Value(id),
+      scheduleId: Value(scheduleId),
+      attemptId: attemptId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(attemptId),
+      event: Value(event),
+      previousDueAt: Value(previousDueAt),
+      nextDueAt: Value(nextDueAt),
+      quality: quality == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quality),
+      independent: Value(independent),
+      reason: Value(reason),
+      recordedAt: Value(recordedAt),
+    );
+  }
+
+  factory ReviewRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReviewRecord(
+      id: serializer.fromJson<String>(json['id']),
+      scheduleId: serializer.fromJson<String>(json['scheduleId']),
+      attemptId: serializer.fromJson<String?>(json['attemptId']),
+      event: serializer.fromJson<String>(json['event']),
+      previousDueAt: serializer.fromJson<DateTime>(json['previousDueAt']),
+      nextDueAt: serializer.fromJson<DateTime>(json['nextDueAt']),
+      quality: serializer.fromJson<int?>(json['quality']),
+      independent: serializer.fromJson<bool>(json['independent']),
+      reason: serializer.fromJson<String>(json['reason']),
+      recordedAt: serializer.fromJson<DateTime>(json['recordedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'scheduleId': serializer.toJson<String>(scheduleId),
+      'attemptId': serializer.toJson<String?>(attemptId),
+      'event': serializer.toJson<String>(event),
+      'previousDueAt': serializer.toJson<DateTime>(previousDueAt),
+      'nextDueAt': serializer.toJson<DateTime>(nextDueAt),
+      'quality': serializer.toJson<int?>(quality),
+      'independent': serializer.toJson<bool>(independent),
+      'reason': serializer.toJson<String>(reason),
+      'recordedAt': serializer.toJson<DateTime>(recordedAt),
+    };
+  }
+
+  ReviewRecord copyWith({
+    String? id,
+    String? scheduleId,
+    Value<String?> attemptId = const Value.absent(),
+    String? event,
+    DateTime? previousDueAt,
+    DateTime? nextDueAt,
+    Value<int?> quality = const Value.absent(),
+    bool? independent,
+    String? reason,
+    DateTime? recordedAt,
+  }) => ReviewRecord(
+    id: id ?? this.id,
+    scheduleId: scheduleId ?? this.scheduleId,
+    attemptId: attemptId.present ? attemptId.value : this.attemptId,
+    event: event ?? this.event,
+    previousDueAt: previousDueAt ?? this.previousDueAt,
+    nextDueAt: nextDueAt ?? this.nextDueAt,
+    quality: quality.present ? quality.value : this.quality,
+    independent: independent ?? this.independent,
+    reason: reason ?? this.reason,
+    recordedAt: recordedAt ?? this.recordedAt,
+  );
+  ReviewRecord copyWithCompanion(ReviewRecordsCompanion data) {
+    return ReviewRecord(
+      id: data.id.present ? data.id.value : this.id,
+      scheduleId: data.scheduleId.present
+          ? data.scheduleId.value
+          : this.scheduleId,
+      attemptId: data.attemptId.present ? data.attemptId.value : this.attemptId,
+      event: data.event.present ? data.event.value : this.event,
+      previousDueAt: data.previousDueAt.present
+          ? data.previousDueAt.value
+          : this.previousDueAt,
+      nextDueAt: data.nextDueAt.present ? data.nextDueAt.value : this.nextDueAt,
+      quality: data.quality.present ? data.quality.value : this.quality,
+      independent: data.independent.present
+          ? data.independent.value
+          : this.independent,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      recordedAt: data.recordedAt.present
+          ? data.recordedAt.value
+          : this.recordedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewRecord(')
+          ..write('id: $id, ')
+          ..write('scheduleId: $scheduleId, ')
+          ..write('attemptId: $attemptId, ')
+          ..write('event: $event, ')
+          ..write('previousDueAt: $previousDueAt, ')
+          ..write('nextDueAt: $nextDueAt, ')
+          ..write('quality: $quality, ')
+          ..write('independent: $independent, ')
+          ..write('reason: $reason, ')
+          ..write('recordedAt: $recordedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    scheduleId,
+    attemptId,
+    event,
+    previousDueAt,
+    nextDueAt,
+    quality,
+    independent,
+    reason,
+    recordedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReviewRecord &&
+          other.id == this.id &&
+          other.scheduleId == this.scheduleId &&
+          other.attemptId == this.attemptId &&
+          other.event == this.event &&
+          other.previousDueAt == this.previousDueAt &&
+          other.nextDueAt == this.nextDueAt &&
+          other.quality == this.quality &&
+          other.independent == this.independent &&
+          other.reason == this.reason &&
+          other.recordedAt == this.recordedAt);
+}
+
+class ReviewRecordsCompanion extends UpdateCompanion<ReviewRecord> {
+  final Value<String> id;
+  final Value<String> scheduleId;
+  final Value<String?> attemptId;
+  final Value<String> event;
+  final Value<DateTime> previousDueAt;
+  final Value<DateTime> nextDueAt;
+  final Value<int?> quality;
+  final Value<bool> independent;
+  final Value<String> reason;
+  final Value<DateTime> recordedAt;
+  final Value<int> rowid;
+  const ReviewRecordsCompanion({
+    this.id = const Value.absent(),
+    this.scheduleId = const Value.absent(),
+    this.attemptId = const Value.absent(),
+    this.event = const Value.absent(),
+    this.previousDueAt = const Value.absent(),
+    this.nextDueAt = const Value.absent(),
+    this.quality = const Value.absent(),
+    this.independent = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.recordedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReviewRecordsCompanion.insert({
+    required String id,
+    required String scheduleId,
+    this.attemptId = const Value.absent(),
+    required String event,
+    required DateTime previousDueAt,
+    required DateTime nextDueAt,
+    this.quality = const Value.absent(),
+    this.independent = const Value.absent(),
+    required String reason,
+    required DateTime recordedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       scheduleId = Value(scheduleId),
+       event = Value(event),
+       previousDueAt = Value(previousDueAt),
+       nextDueAt = Value(nextDueAt),
+       reason = Value(reason),
+       recordedAt = Value(recordedAt);
+  static Insertable<ReviewRecord> custom({
+    Expression<String>? id,
+    Expression<String>? scheduleId,
+    Expression<String>? attemptId,
+    Expression<String>? event,
+    Expression<DateTime>? previousDueAt,
+    Expression<DateTime>? nextDueAt,
+    Expression<int>? quality,
+    Expression<bool>? independent,
+    Expression<String>? reason,
+    Expression<DateTime>? recordedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (scheduleId != null) 'schedule_id': scheduleId,
+      if (attemptId != null) 'attempt_id': attemptId,
+      if (event != null) 'event': event,
+      if (previousDueAt != null) 'previous_due_at': previousDueAt,
+      if (nextDueAt != null) 'next_due_at': nextDueAt,
+      if (quality != null) 'quality': quality,
+      if (independent != null) 'independent': independent,
+      if (reason != null) 'reason': reason,
+      if (recordedAt != null) 'recorded_at': recordedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReviewRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? scheduleId,
+    Value<String?>? attemptId,
+    Value<String>? event,
+    Value<DateTime>? previousDueAt,
+    Value<DateTime>? nextDueAt,
+    Value<int?>? quality,
+    Value<bool>? independent,
+    Value<String>? reason,
+    Value<DateTime>? recordedAt,
+    Value<int>? rowid,
+  }) {
+    return ReviewRecordsCompanion(
+      id: id ?? this.id,
+      scheduleId: scheduleId ?? this.scheduleId,
+      attemptId: attemptId ?? this.attemptId,
+      event: event ?? this.event,
+      previousDueAt: previousDueAt ?? this.previousDueAt,
+      nextDueAt: nextDueAt ?? this.nextDueAt,
+      quality: quality ?? this.quality,
+      independent: independent ?? this.independent,
+      reason: reason ?? this.reason,
+      recordedAt: recordedAt ?? this.recordedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (scheduleId.present) {
+      map['schedule_id'] = Variable<String>(scheduleId.value);
+    }
+    if (attemptId.present) {
+      map['attempt_id'] = Variable<String>(attemptId.value);
+    }
+    if (event.present) {
+      map['event'] = Variable<String>(event.value);
+    }
+    if (previousDueAt.present) {
+      map['previous_due_at'] = Variable<DateTime>(previousDueAt.value);
+    }
+    if (nextDueAt.present) {
+      map['next_due_at'] = Variable<DateTime>(nextDueAt.value);
+    }
+    if (quality.present) {
+      map['quality'] = Variable<int>(quality.value);
+    }
+    if (independent.present) {
+      map['independent'] = Variable<bool>(independent.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (recordedAt.present) {
+      map['recorded_at'] = Variable<DateTime>(recordedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('scheduleId: $scheduleId, ')
+          ..write('attemptId: $attemptId, ')
+          ..write('event: $event, ')
+          ..write('previousDueAt: $previousDueAt, ')
+          ..write('nextDueAt: $nextDueAt, ')
+          ..write('quality: $quality, ')
+          ..write('independent: $independent, ')
+          ..write('reason: $reason, ')
+          ..write('recordedAt: $recordedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -10642,6 +11884,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PracticeResponsesTable practiceResponses =
       $PracticeResponsesTable(this);
   late final $PracticeImagesTable practiceImages = $PracticeImagesTable(this);
+  late final $ReviewSchedulesTable reviewSchedules = $ReviewSchedulesTable(
+    this,
+  );
+  late final $ReviewRecordsTable reviewRecords = $ReviewRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10671,6 +11917,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     practiceAttempts,
     practiceResponses,
     practiceImages,
+    reviewSchedules,
+    reviewRecords,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -10905,6 +12153,27 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('practice_images', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('review_schedules', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'review_schedules',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('review_records', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_attempts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('review_records', kind: UpdateKind.update)],
     ),
   ]);
 }

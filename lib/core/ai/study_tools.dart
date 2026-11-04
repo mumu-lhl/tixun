@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 
 import '../../features/library/study_store.dart';
+import '../../features/review/review_store.dart';
+import '../../features/progress/learning_progress.dart';
 import '../database/database.dart';
 import 'chat_provider.dart';
 
@@ -158,7 +160,13 @@ final studyToolSchemas = [
     {'knowledge_id': _string, 'mistake_id': _string},
     ['knowledge_id', 'mistake_id'],
   ),
-  _schema('get_learning_progress', '读取真实资料数量；没有训练数据时不能给出掌握分数。', {}, []),
+  _schema('get_learning_progress', '读取真实资料、训练与知识点检测证据；样本不足不能给出掌握分数。', {}, []),
+  _schema(
+    'schedule_review',
+    '将一条已存在的练习加入复习。需用户确认；日期由确定性调度代码管理，不能由模型指定。',
+    {'question_id': _string},
+    ['question_id'],
+  ),
 ];
 const _readTools = {
   'search_knowledge',
@@ -193,9 +201,11 @@ class StudyToolRunner {
     required this.runId,
     required this.authorized,
     this.confirm,
+    this.reviews,
     this.sourceImages = const [],
   });
   final StudyStore store;
+  final ReviewStore? reviews;
   final String sessionId, runId;
 
   /// Only set by the explicit app UI. Model/user text never sets this capability.
@@ -540,6 +550,19 @@ class StudyToolRunner {
       case 'link_mistake_to_knowledge':
         await store.link(text('knowledge_id'), mistakeId: text('mistake_id'));
         return {'linked': true};
+      case 'schedule_review':
+        final service = reviews ?? ReviewStore(db);
+        try {
+          final schedule = await service.enroll(text('question_id'));
+          return {
+            'schedule_id': schedule.id,
+            'question_id': schedule.questionId,
+            'due_at': schedule.dueAt.toIso8601String(),
+            'scheduler': 'deterministic',
+          };
+        } finally {
+          if (reviews == null) service.dispose();
+        }
       case 'get_learning_progress':
         Future<int> count(String table) async =>
             (await db
@@ -552,8 +575,7 @@ class StudyToolRunner {
           'knowledge_count': await count('knowledge_items'),
           'mistake_count': await count('mistakes'),
           'chat_count': await count('chat_sessions'),
-          'mastery': null,
-          'note': '尚无结构化训练记录，不能推断掌握程度。',
+          ...(await LearningProgress.load(db)).toJson(),
         };
       default:
         throw const FormatException('未知工具。');

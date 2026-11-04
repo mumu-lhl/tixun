@@ -9,8 +9,31 @@ import 'dart:io';
 import 'generated_migrations/schema.dart';
 
 void main() {
+  test('Schema v3 preserves pending answers when adding reviews', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(3);
+    schema.rawDatabase.execute(
+      "INSERT INTO practice_questions(id,kind,stem,subject,origin,created_at) VALUES('q','numeric','2+2','数学','manual',1)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO practice_answer_keys(question_id,position,answer) VALUES('q',0,'4')",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO practice_attempts(id,question_id,started_at) VALUES('a','q',1)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO practice_responses(attempt_id,position,answer) VALUES('a',0,'4')",
+    );
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 4);
+    expect((await db.select(db.practiceAttempts).get()).single.status, 'draft');
+    expect((await db.select(db.practiceResponses).get()).single.answer, '4');
+    expect(await db.select(db.reviewSchedules).get(), isEmpty);
+    expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+  });
   test(
-    'Schema v1 upgrades to v3 without losing chats, drafts, images or settings',
+    'Schema v1 upgrades to v4 without losing chats, drafts, images or settings',
     () async {
       final verifier = SchemaVerifier(GeneratedHelper());
       final schema = await verifier.schemaAt(1);
@@ -42,7 +65,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 3);
+      await verifier.migrateAndValidate(db, 4);
       expect((await db.sessions()).single.draft, '未发送草稿');
       expect((await db.sessions('二次函数')).single.id, 's');
       expect(

@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 part 'database.g.dart';
 part 'study_tables.dart';
 part 'practice_tables.dart';
+part 'review_tables.dart';
 
 class ChatSessions extends Table {
   TextColumn get id => text()();
@@ -105,6 +106,8 @@ class Preferences extends Table {
     PracticeAttempts,
     PracticeResponses,
     PracticeImages,
+    ReviewSchedules,
+    ReviewRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -113,13 +116,14 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
       await _createStudyIndexes();
       await _createPracticeIndexes();
+      await _createReviewIndexes();
       await customStatement(
         'CREATE INDEX messages_session_time ON chat_messages(session_id, created_at)',
       );
@@ -178,6 +182,15 @@ class AppDatabase extends _$AppDatabase {
         }
         await _createPracticeIndexes();
       }
+      if (from < 4) {
+        await customStatement('DROP INDEX IF EXISTS tool_write_dedup');
+        await customStatement(
+          "CREATE UNIQUE INDEX tool_write_dedup ON ai_tool_operations(run_id,name,arguments) WHERE name IN ('create_knowledge','update_knowledge','delete_knowledge','create_mistake','update_mistake','delete_mistake','link_mistake_to_knowledge','schedule_review') AND status IN ('pending','running','succeeded')",
+        );
+        await m.createTable(reviewSchedules);
+        await m.createTable(reviewRecords);
+        await _createReviewIndexes();
+      }
     },
     beforeOpen: (_) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -200,6 +213,15 @@ class AppDatabase extends _$AppDatabase {
       );
     },
   );
+
+  Future<void> _createReviewIndexes() async {
+    await customStatement(
+      'CREATE INDEX review_due ON review_schedules(enabled, due_at)',
+    );
+    await customStatement(
+      'CREATE INDEX review_history ON review_records(schedule_id, recorded_at)',
+    );
+  }
 
   Future<void> _createPracticeIndexes() async {
     await customStatement(
@@ -233,7 +255,7 @@ class AppDatabase extends _$AppDatabase {
       'CREATE INDEX study_attachments_mistake ON study_attachments(mistake_id)',
     );
     await customStatement(
-      "CREATE UNIQUE INDEX tool_write_dedup ON ai_tool_operations(run_id, name, arguments) WHERE name IN ('create_knowledge','update_knowledge','delete_knowledge','create_mistake','update_mistake','delete_mistake','link_mistake_to_knowledge') AND status IN ('pending','running','succeeded')",
+      "CREATE UNIQUE INDEX tool_write_dedup ON ai_tool_operations(run_id, name, arguments) WHERE name IN ('create_knowledge','update_knowledge','delete_knowledge','create_mistake','update_mistake','delete_mistake','link_mistake_to_knowledge','schedule_review') AND status IN ('pending','running','succeeded')",
     );
     for (final (table, fts, content) in [
       ('knowledge_items', 'knowledge_search', 'title, content, chapter'),
@@ -291,13 +313,20 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<ChatSession>> trash() =>
       (select(chatSessions)..where((s) => s.deleted.equals(true))).get();
-  Future<ChatSession> createSession({String title = '新的学习对话'}) async {
+  Future<ChatSession> createSession({
+    String title = '新的学习对话',
+    String mode = 'guided',
+  }) async {
+    if (!['guided', 'direct', 'exam'].contains(mode)) {
+      throw const FormatException('教学模式无效。');
+    }
     final id = const Uuid().v4();
     final now = DateTime.now();
     await into(chatSessions).insert(
       ChatSessionsCompanion.insert(
         id: id,
         title: title,
+        mode: Value(mode),
         createdAt: now,
         updatedAt: now,
       ),

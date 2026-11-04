@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart';
+
+import '../../core/database/database_notifier.dart';
+
 import 'package:uuid/uuid.dart';
 
 import '../../core/database/database.dart';
@@ -21,21 +23,10 @@ class QuestionDetail {
   PracticeAttempt? get latest => attempts.firstOrNull;
 }
 
-class PracticeStore extends ChangeNotifier {
+class PracticeStore extends DatabaseNotifier {
   PracticeStore(this.db);
   final AppDatabase db;
   Future<void> Function(PracticeAttempt attempt)? onGraded;
-  bool _closed = false;
-  void changed() {
-    if (!_closed) notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    if (_closed) return;
-    _closed = true;
-    super.dispose();
-  }
 
   Future<List<PracticeQuestion>> list({
     String query = '',

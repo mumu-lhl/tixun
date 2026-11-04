@@ -22,6 +22,13 @@ Future<void> capture(String name) async {
   expect(result.exitCode, 0, reason: 'capture $name');
 }
 
+Future<void> ready(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 100 && finder.evaluate().isEmpty; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  expect(finder, findsOneWidget);
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
@@ -128,11 +135,75 @@ void main() {
         final id = windows.stdout.toString().trim().split('\n').first;
         await Process.run('xdotool', ['windowsize', id, '390', '844']);
         await tester.pumpAndSettle();
+        final messages = find.byKey(
+          PageStorageKey('messages-${c.selected!.id}'),
+        );
+        await tester.scrollUntilVisible(
+          find.byType(QuestionCard),
+          300,
+          scrollable: find
+              .descendant(of: messages, matching: find.byType(Scrollable))
+              .first,
+          maxScrolls: 30,
+        );
+        await ready(tester, find.byType(QuestionCard));
         await tester.ensureVisible(find.byType(QuestionCard));
         await tester.pumpAndSettle();
         await tester.pumpAndSettle();
         await capture('chat-quiz-phone');
       }
+      // Due tasks and diagnostics consume the same persisted attempts.
+      final schedule = (await c.review.forQuestion(quiz.id))!;
+      await c.review.adjust(schedule.id, dueAt: DateTime.now());
+      container.read(routerProvider).go('/study');
+      await tester.pumpAndSettle();
+      expect(await c.review.dueCount(), 1);
+      await ready(tester, find.byKey(const Key('today-review')));
+      await capture('daily-learning-phone');
+      await tester.ensureVisible(find.byKey(const Key('today-review')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('today-review')));
+      await tester.pumpAndSettle();
+      await ready(tester, find.text('开始复习'));
+      await capture('review-phone');
+      await tester.tap(find.text('开始复习'));
+      await tester.pumpAndSettle();
+      for (
+        var i = 0;
+        i < 100 && find.byKey(const Key('option-A')).evaluate().isEmpty;
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.ensureVisible(find.byKey(const Key('option-A')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('option-A')));
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const Key('submit-quiz')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('submit-quiz')));
+      await tester.pumpAndSettle();
+      for (
+        var i = 0;
+        i < 100 &&
+            (await c.practice.detail(quiz.id)).latest!.status != 'graded';
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(
+        (await c.review.forQuestion(quiz.id))!.repetitions,
+        0,
+        reason: 'Unverified AI answer never advances independent mastery',
+      );
+      expect(await c.review.dueCount(), 0);
+      container.read(routerProvider).go('/progress');
+      await tester.pumpAndSettle();
+      await ready(tester, find.text('学习诊断'));
+      await capture('progress-phone');
+      await c.theme(ThemeMode.dark);
+      await tester.pumpAndSettle();
+      await capture('progress-dark-phone');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       container.dispose();

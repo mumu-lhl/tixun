@@ -14,6 +14,8 @@ import 'study_editor.dart';
 import 'study_store.dart';
 
 const toolLabels = {
+  'schedule_review': '加入复习',
+  'create_quiz': '创建练习题',
   'create_knowledge': '新增知识',
   'update_knowledge': '修改知识',
   'delete_knowledge': '知识移入回收区',
@@ -72,6 +74,8 @@ class ToolApprovalCard extends ConsumerWidget {
               '会同时保留本次上下文中的 ${request.imageCount} 张原题图片。',
               style: const TextStyle(fontSize: 12),
             ),
+          if (request.name == 'schedule_review')
+            const Text('加入后由应用根据作答安排日期。不会因阅读资料而增加掌握次数。'),
           const SizedBox(height: 8),
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 190),

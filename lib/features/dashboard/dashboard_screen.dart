@@ -1,3 +1,5 @@
+import 'daily_learning.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -65,78 +67,105 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 30),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(compact ? 24 : 32),
-                  decoration: BoxDecoration(
-                    color: colors.primaryContainer.withValues(alpha: .45),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '理解 · 尝试 · 掌握',
-                        style: TextStyle(
-                          color: colors.primary,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 2,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        '把不懂，\n变成真正会。',
-                        style: TextStyle(
-                          fontSize: compact ? 30 : 38,
-                          fontWeight: FontWeight.w700,
-                          height: 1.45,
-                          color: colors.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        '从一道题、一个概念开始。\n让 AI 帮你理清思路，把关键一步留给自己。',
-                        style: TextStyle(
-                          color: colors.onSurfaceVariant,
-                          height: 1.8,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 10,
-                        children: [
-                          FilledButton.icon(
-                            key: const Key('start-chat'),
-                            onPressed: () => act(context, () async {
-                              await c.newSession();
-                              if (context.mounted) context.go('/chat');
-                            }),
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('开始学习对话'),
+                const SizedBox(height: 24),
+                const DailyLearning(),
+                const SizedBox(height: 24),
+                if (c.allSessions.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(compact ? 24 : 32),
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer.withValues(alpha: .45),
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '理解 · 尝试 · 掌握',
+                          style: TextStyle(
+                            color: colors.primary,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 2,
+                            fontSize: 12,
                           ),
-                          FilledButton.tonalIcon(
-                            key: const Key('start-practice'),
-                            onPressed: () => context.go('/practice'),
-                            icon: const Icon(Icons.edit_note),
-                            label: const Text('主动训练'),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          '把不懂，\n变成真正会。',
+                          style: TextStyle(
+                            fontSize: compact ? 30 : 38,
+                            fontWeight: FontWeight.w700,
+                            height: 1.45,
+                            color: colors.onSurface,
                           ),
-                          OutlinedButton.icon(
-                            onPressed: () => context.go('/mistakes'),
-                            icon: const Icon(
-                              Icons.add_photo_alternate_outlined,
-                              size: 18,
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          '从一道题、一个概念开始。\n让 AI 帮你理清思路，把关键一步留给自己。',
+                          style: TextStyle(
+                            color: colors.onSurfaceVariant,
+                            height: 1.8,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 10,
+                          children: [
+                            FilledButton.icon(
+                              key: const Key('start-chat'),
+                              onPressed: () => act(context, () async {
+                                await c.newSession();
+                                if (context.mounted) context.go('/chat');
+                              }),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('开始学习对话'),
                             ),
-                            label: const Text('录入错题'),
-                          ),
-                        ],
+                            FilledButton.tonalIcon(
+                              key: const Key('start-practice'),
+                              onPressed: () => context.go('/practice'),
+                              icon: const Icon(Icons.edit_note),
+                              label: const Text('主动训练'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.go('/mistakes'),
+                              icon: const Icon(
+                                Icons.add_photo_alternate_outlined,
+                                size: 18,
+                              ),
+                              label: const Text('录入错题'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                if (c.allSessions.isNotEmpty)
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        key: const Key('start-chat'),
+                        onPressed: () => act(context, () async {
+                          await c.newSession();
+                          if (context.mounted) context.go('/chat');
+                        }),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('开始学习对话'),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => context.go('/mistakes'),
+                        icon: const Icon(
+                          Icons.add_photo_alternate_outlined,
+                          size: 18,
+                        ),
+                        label: const Text('录入错题'),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
                 LayoutBuilder(
                   builder: (context, constraints) => Wrap(
                     spacing: 16,

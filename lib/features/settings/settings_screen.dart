@@ -1,3 +1,6 @@
+import '../progress/profile_editor.dart';
+import '../review/review_providers.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -119,6 +122,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: TextStyle(color: colors.onSurfaceVariant),
                 ),
                 const SizedBox(height: 32),
+                _heading(context, '学习目标', Icons.school_outlined),
+                ref
+                    .watch(learningProfileProvider)
+                    .when(
+                      data: (p) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('${p.stage} · 每日 ${p.dailyMinutes} 分钟'),
+                        subtitle: Text(p.exam.isEmpty ? '自由学习' : p.exam),
+                        trailing: TextButton(
+                          onPressed: () => showDialog<void>(
+                            context: context,
+                            builder: (_) => ProfileEditor(p),
+                          ),
+                          child: const Text('修改'),
+                        ),
+                      ),
+                      loading: () => const LinearProgressIndicator(),
+                      error: (_, _) => const Text('学习设置读取失败'),
+                    ),
+                const SizedBox(height: 24),
                 _heading(context, 'AI 服务', Icons.hub_outlined),
                 const SizedBox(height: 8),
                 Text(
@@ -359,7 +382,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _heading(context, '关于题训', Icons.school_outlined),
                 const SizedBox(height: 12),
                 const Text(
-                  'TiXun 0.3 · 开源 · 本地优先\n已支持 AI Chat、知识库、错题本、图片裁剪分题及受控资料工具。\n已加入结构化交互题、确定性评分、历史作答和错题重做。间隔复习和完整备份正在继续开发。',
+                  'TiXun 0.4 · 开源 · 本地优先\n已支持 AI Chat、知识库、错题本、图片裁剪分题及受控资料工具。\n已加入结构化交互题、确定性评分、历史作答和错题重做。已支持间隔复习、学习诊断与自由学习目标。完整备份正在继续开发。',
                   style: TextStyle(height: 1.9),
                 ),
                 const SizedBox(height: 12),

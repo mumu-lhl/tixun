@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../features/chat/chat_screen.dart';
 import '../features/practice/practice_screen.dart';
+import '../features/review/review_screen.dart';
+import '../features/progress/progress_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/library/study_detail_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
@@ -26,6 +28,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             AppShell(path: state.uri.path, child: child),
         routes: [
           GoRoute(path: '/study', builder: (_, _) => const DashboardScreen()),
+          GoRoute(path: '/review', builder: (_, _) => const ReviewScreen()),
+          GoRoute(path: '/progress', builder: (_, _) => const ProgressScreen()),
           GoRoute(
             path: '/practice',
             builder: (_, _) => const PracticeScreen(),
