@@ -251,13 +251,7 @@ class ChatStudyMenu extends ConsumerWidget {
         for (final image in c.attachments.where(
           (a) => a.messageId == question.id,
         )) {
-          await store.addImageReference(
-            id,
-            image.relativePath,
-            image.mime,
-            image.byteLength,
-            isMistake: true,
-          );
+          await store.copyChatImage(id, image, isMistake: true);
         }
       } catch (_) {
         if (context.mounted) {

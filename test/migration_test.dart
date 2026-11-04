@@ -9,6 +9,44 @@ import 'dart:io';
 import 'generated_migrations/schema.dart';
 
 void main() {
+  test(
+    'Schema v4 backfills quiz chat links and preserves image references',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(4);
+      final raw = schema.rawDatabase;
+      raw.execute(
+        "INSERT INTO chat_sessions(id,title,draft,created_at,updated_at) VALUES('s','已有训练','草稿',1,1)",
+      );
+      raw.execute(
+        "INSERT INTO chat_messages(id,session_id,role,content,created_at) VALUES('m','s','assistant','请独立完成',1)",
+      );
+      raw.execute(
+        "INSERT INTO attachments(id,session_id,relative_path,mime,byte_length) VALUES('i','s','attachments/raw.png','image/png',12)",
+      );
+      raw.execute(
+        "INSERT INTO practice_questions(id,kind,stem,subject,origin,source_message_id,created_at) VALUES('q','numeric','2+2','数学','ai','m',1)",
+      );
+      raw.execute(
+        "INSERT INTO practice_attempts(id,question_id,started_at) VALUES('a','q',1)",
+      );
+      raw.execute(
+        "INSERT INTO practice_responses(attempt_id,position,answer) VALUES('a',0,'4')",
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, 5);
+      final link = (await db.select(db.practiceChatLinks).get()).single;
+      expect(link.messageId, 'm');
+      expect(link.questionId, 'q');
+      expect((await db.images('s')).single.originalPath, isNull);
+      expect((await db.images('s')).single.relativePath, 'attachments/raw.png');
+      expect((await db.select(db.practiceResponses).get()).single.answer, '4');
+      expect((await db.sessions()).single.draft, '草稿');
+      expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+    },
+  );
+
   test('Schema v3 preserves pending answers when adding reviews', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final schema = await verifier.schemaAt(3);
@@ -26,14 +64,14 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 4);
+    await verifier.migrateAndValidate(db, 5);
     expect((await db.select(db.practiceAttempts).get()).single.status, 'draft');
     expect((await db.select(db.practiceResponses).get()).single.answer, '4');
     expect(await db.select(db.reviewSchedules).get(), isEmpty);
     expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
   });
   test(
-    'Schema v1 upgrades to v4 without losing chats, drafts, images or settings',
+    'Schema v1 upgrades to v5 without losing chats, drafts, images or settings',
     () async {
       final verifier = SchemaVerifier(GeneratedHelper());
       final schema = await verifier.schemaAt(1);
@@ -65,7 +103,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 4);
+      await verifier.migrateAndValidate(db, 5);
       expect((await db.sessions()).single.draft, '未发送草稿');
       expect((await db.sessions('二次函数')).single.id, 's');
       expect(

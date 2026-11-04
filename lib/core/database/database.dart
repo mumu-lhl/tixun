@@ -50,6 +50,7 @@ class Attachments extends Table {
     onDelete: KeyAction.cascade,
   )();
   TextColumn get relativePath => text()();
+  TextColumn get originalPath => text().nullable()();
   TextColumn get mime => text()();
   IntColumn get byteLength => integer()();
   @override
@@ -108,6 +109,7 @@ class Preferences extends Table {
     PracticeImages,
     ReviewSchedules,
     ReviewRecords,
+    PracticeChatLinks,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -115,7 +117,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 4;
+  static const latestSchemaVersion = 5;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -125,6 +127,7 @@ class AppDatabase extends _$AppDatabase {
       await _createStudyIndexes();
       await _createPracticeIndexes();
       await _createReviewIndexes();
+      await _createPracticeLinkIndex();
       await customStatement(
         'CREATE INDEX messages_session_time ON chat_messages(session_id, created_at)',
       );
@@ -192,6 +195,14 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(reviewRecords);
         await _createReviewIndexes();
       }
+      if (from < 5) {
+        await m.addColumn(attachments, attachments.originalPath);
+        await m.createTable(practiceChatLinks);
+        await _createPracticeLinkIndex();
+        await customStatement(
+          'INSERT INTO practice_chat_links(question_id,message_id) SELECT id,source_message_id FROM practice_questions WHERE source_message_id IS NOT NULL',
+        );
+      }
     },
     beforeOpen: (_) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -214,6 +225,12 @@ class AppDatabase extends _$AppDatabase {
       );
     },
   );
+
+  Future<void> _createPracticeLinkIndex() async {
+    await customStatement(
+      'CREATE INDEX practice_chat_message ON practice_chat_links(message_id)',
+    );
+  }
 
   Future<void> _createReviewIndexes() async {
     await customStatement(

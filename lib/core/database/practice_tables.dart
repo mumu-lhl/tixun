@@ -126,3 +126,14 @@ class PracticeImages extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+/// A question can appear in several edited conversation branches without
+/// duplicating the question itself or its attempts.
+class PracticeChatLinks extends Table {
+  TextColumn get questionId =>
+      text().references(PracticeQuestions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get messageId =>
+      text().references(ChatMessages, #id, onDelete: KeyAction.cascade)();
+  @override
+  Set<Column> get primaryKey => {questionId, messageId};
+}

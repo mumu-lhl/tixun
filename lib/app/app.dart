@@ -1,3 +1,6 @@
+import '../features/practice/practice_history_screen.dart';
+import '../features/practice/practice_run_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -35,9 +38,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const PracticeScreen(),
             routes: [
               GoRoute(
+                path: 'run',
+                builder: (_, _) => const PracticeRunScreen(),
+              ),
+              GoRoute(
                 path: ':id',
-                builder: (_, s) =>
-                    PracticeDetailScreen(s.pathParameters['id']!),
+                builder: (_, s) => PracticeDetailScreen(
+                  s.pathParameters['id']!,
+                  attemptId: s.uri.queryParameters['attempt'],
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'history',
+                    builder: (_, s) =>
+                        PracticeHistoryScreen(s.pathParameters['id']!),
+                  ),
+                ],
               ),
             ],
           ),
@@ -273,7 +289,7 @@ class AppShell extends ConsumerWidget {
             ],
           ),
         ),
-        bottomNavigationBar: wide
+        bottomNavigationBar: wide || MediaQuery.viewInsetsOf(context).bottom > 0
             ? null
             : NavigationBar(
                 selectedIndex: index,

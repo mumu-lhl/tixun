@@ -31,6 +31,11 @@ void main() {
   });
   Future<String> fixture() async {
     await c.addImage('assets/demo/two_problems.png');
+    final original = c.attachments.single;
+    await c.replaceDraftImage(
+      original,
+      await c.files.resolve(original.relativePath).readAsBytes(),
+    );
     await c.send('请解释题目');
     await c.draft('待发送草稿');
     final note = await c.study.saveKnowledge(
@@ -72,7 +77,7 @@ void main() {
     final preview = await BackupService.export(c.db, c.files, backup);
     expect(preview.counts['attempts'], 1);
     expect(preview.counts['reviews'], 1);
-    expect(preview.files, 1);
+    expect(preview.files, 2);
     expect(
       latin1.decode(await backup.readAsBytes()),
       isNot(contains('test-key-never-exported-9837')),
@@ -113,6 +118,8 @@ void main() {
     expect((await c.db.select(c.db.mistakeKnowledgeLinks).get()).length, 1);
     for (final image in await c.db.select(c.db.attachments).get()) {
       expect(await c.files.resolve(image.relativePath).exists(), true);
+      expect(image.originalPath, isNotNull);
+      expect(await c.files.resolve(image.originalPath!).exists(), true);
     }
     expect(
       await c.keys.read(providerKeyId(c.config)),
@@ -131,6 +138,14 @@ void main() {
     );
     await BackupService.finish(undoReceipt);
     await undo.discard();
+    expect((await c.study.knowledge(note)).content, '备份后的改动');
+    expect(await BackupService.previousRoot(root), isNotNull);
+    await BackupService.clearPrevious(root);
+    expect(await BackupService.previousRoot(root), isNull);
+    await expectLater(
+      BackupService.preparePrevious(root),
+      throwsFormatException,
+    );
     expect((await c.study.knowledge(note)).content, '备份后的改动');
   });
   test('Damaged archives, traversal, duplicate paths and future versions never change live data', () async {

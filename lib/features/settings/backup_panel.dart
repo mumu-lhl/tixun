@@ -80,7 +80,7 @@ class BackupPanel extends ConsumerWidget {
         Text('备份与恢复', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         const Text(
-          '包含数据库、原图与编辑图片、对话、知识、错题、训练、复习和必要配置。文件带版本与 SHA-256 完整性校验，始终排除系统密钥。',
+          '包含数据库、原图与编辑图片、对话、知识、错题、训练、复习和必要配置。备份会检查文件和关联数据的完整性，始终排除系统密钥。',
           style: TextStyle(fontSize: 12),
         ),
         const SizedBox(height: 12),
@@ -110,15 +110,47 @@ class BackupPanel extends ConsumerWidget {
           future: BackupService.previousRoot(c.files.root),
           builder: (ctx, snapshot) => snapshot.data == null
               ? const SizedBox.shrink()
-              : TextButton(
-                  key: const Key('undo-restore'),
-                  onPressed: actions == null
-                      ? null
-                      : () => act(
-                          context,
-                          () => _import(context, actions, undo: true),
-                        ),
-                  child: const Text('撤销上次恢复'),
+              : Wrap(
+                  children: [
+                    TextButton(
+                      key: const Key('undo-restore'),
+                      onPressed: actions == null
+                          ? null
+                          : () => act(
+                              context,
+                              () => _import(context, actions, undo: true),
+                            ),
+                      child: const Text('撤销上次恢复'),
+                    ),
+                    TextButton(
+                      onPressed: actions == null
+                          ? null
+                          : () => act(context, () async {
+                              final ok = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('删除恢复安全副本？'),
+                                  content: const Text(
+                                    '只删除本设备为上次恢复保留的旧数据。当前学习数据及已导出的备份不受影响；删除后将无法撤销上次恢复。',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
+                                      child: const Text('取消'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('删除安全副本'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (ok == true) await actions.clearUndo();
+                            }),
+                      child: const Text('删除恢复安全副本'),
+                    ),
+                  ],
                 ),
         ),
       ],

@@ -529,13 +529,7 @@ class StudyToolRunner {
             if (image.sessionId != sessionId) {
               throw const FormatException('题目图片不属于当前授权对话。');
             }
-            await store.addImageReference(
-              row.id,
-              image.relativePath,
-              image.mime,
-              image.byteLength,
-              isMistake: true,
-            );
+            await store.copyChatImage(row.id, image, isMistake: true);
           }
         }
         return {'id': row.id, 'title': row.title, 'revision': row.revision};

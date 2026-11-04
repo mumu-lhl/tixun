@@ -13,9 +13,10 @@ import 'features/library/study_photo_intake.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   const demo = bool.fromEnvironment('TIXUN_DEMO');
-  final root = await AppController.rootDirectory(demo: demo);
+  late final Directory root;
   RandomAccessFile? instance;
   try {
+    root = await AppController.rootDirectory(demo: demo);
     await root.parent.create(recursive: true);
     instance = await File(
       p.join(root.parent.path, '.${p.basename(root.path)}.instance.lock'),

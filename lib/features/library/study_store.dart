@@ -7,6 +7,8 @@ import '../../core/database/database_notifier.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/database/database.dart';
+import '../../core/database/attachment_cleanup.dart';
+import '../../core/platform/attachment_selection.dart';
 import '../../core/platform/attachment_store.dart';
 
 const schoolSubjects = ['数学', '物理', '化学', '语文', '英语', '地理', '生物', '历史', '政治'];
@@ -226,7 +228,7 @@ class StudyStore extends DatabaseNotifier {
     int? expectedRevision,
     String? sourceSessionId,
     String? sourceMessageId,
-  }) async {
+  }) => runOperation(() async {
     final title = checked(draft.title, '标题', 160, required: true);
     final content = checked(draft.content, '正文', 60000);
     final subject = checked(draft.subject, '科目', 40, required: true);
@@ -279,7 +281,7 @@ class StudyStore extends DatabaseNotifier {
     });
     changed();
     return result;
-  }
+  });
 
   Future<Mistake> saveMistake(
     MistakeDraft draft, {
@@ -287,7 +289,7 @@ class StudyStore extends DatabaseNotifier {
     int? expectedRevision,
     String? sourceSessionId,
     String? sourceMessageId,
-  }) async {
+  }) => runOperation(() async {
     final title = checked(draft.title, '标题', 160, required: true);
     final subject = checked(draft.subject, '科目', 40, required: true);
     for (final text in [
@@ -351,41 +353,129 @@ class StudyStore extends DatabaseNotifier {
     });
     changed();
     return result;
-  }
+  });
 
   Future<void> setDeleted(
     String id, {
     required bool isMistake,
     required bool deleted,
     required int expectedRevision,
+  }) => runOperation(() async {
+    await db.transaction(
+      () => _setDeleted(
+        id,
+        isMistake: isMistake,
+        deleted: deleted,
+        expectedRevision: expectedRevision,
+      ),
+    );
+    changed();
+  });
+
+  Future<void> _setDeleted(
+    String id, {
+    required bool isMistake,
+    required bool deleted,
+    required int expectedRevision,
   }) async {
+    if (isMistake) {
+      final row = await mistake(id, includeDeleted: true);
+      if (row.revision != expectedRevision) throw const StudyConflict();
+      await db
+          .update(db.mistakes)
+          .replace(
+            row.copyWith(
+              deleted: deleted,
+              revision: row.revision + 1,
+              updatedAt: DateTime.now(),
+            ),
+          );
+    } else {
+      final row = await knowledge(id, includeDeleted: true);
+      if (row.revision != expectedRevision) throw const StudyConflict();
+      final next = row.copyWith(
+        deleted: deleted,
+        revision: row.revision + 1,
+        updatedAt: DateTime.now(),
+      );
+      await db.update(db.knowledgeItems).replace(next);
+      await _snapshot(next, await tags(id, isMistake: false));
+    }
+  }
+
+  Future<Map<String, int>> batchSetDeleted(
+    Map<String, int> revisions, {
+    required bool isMistake,
+    required bool deleted,
+  }) => runOperation(() async {
+    _checkBatch(revisions);
     await db.transaction(() async {
-      if (isMistake) {
-        final row = await mistake(id, includeDeleted: true);
-        if (row.revision != expectedRevision) throw const StudyConflict();
-        await db
-            .update(db.mistakes)
-            .replace(
-              row.copyWith(
-                deleted: deleted,
-                revision: row.revision + 1,
-                updatedAt: DateTime.now(),
-              ),
-            );
-      } else {
-        final row = await knowledge(id, includeDeleted: true);
-        if (row.revision != expectedRevision) throw const StudyConflict();
-        final next = row.copyWith(
+      for (final entry in revisions.entries) {
+        await _setDeleted(
+          entry.key,
+          isMistake: isMistake,
           deleted: deleted,
-          revision: row.revision + 1,
-          updatedAt: DateTime.now(),
+          expectedRevision: entry.value,
         );
-        await db.update(db.knowledgeItems).replace(next);
-        await _snapshot(next, await tags(id, isMistake: false));
       }
     });
     changed();
+    return {for (final e in revisions.entries) e.key: e.value + 1};
+  });
+
+  void _checkBatch(Map<String, int> revisions) {
+    if (revisions.isEmpty ||
+        revisions.length > 200 ||
+        revisions.values.any((v) => v < 1)) {
+      throw const FormatException('每次请选择 1–200 条资料。');
+    }
   }
+
+  Future<int> purge(Map<String, int> revisions, {required bool isMistake}) =>
+      runOperation(() async {
+        _checkBatch(revisions);
+        final paths = <String>[];
+        await db.transaction(() async {
+          for (final entry in revisions.entries) {
+            final row = isMistake
+                ? await mistake(entry.key, includeDeleted: true)
+                : await knowledge(entry.key, includeDeleted: true);
+            final deleted = isMistake
+                ? (row as Mistake).deleted
+                : (row as KnowledgeItem).deleted;
+            final revision = isMistake
+                ? (row as Mistake).revision
+                : (row as KnowledgeItem).revision;
+            if (!deleted || revision != entry.value) {
+              throw const StudyConflict();
+            }
+            paths.addAll(
+              (await images(
+                entry.key,
+                isMistake: isMistake,
+              )).map((i) => i.relativePath),
+            );
+            paths.addAll(
+              (await images(
+                entry.key,
+                isMistake: isMistake,
+                trash: true,
+              )).map((i) => i.relativePath),
+            );
+            if (isMistake) {
+              await (db.delete(
+                db.mistakes,
+              )..where((m) => m.id.equals(entry.key))).go();
+            } else {
+              await (db.delete(
+                db.knowledgeItems,
+              )..where((k) => k.id.equals(entry.key))).go();
+            }
+          }
+        });
+        changed();
+        return cleanupPurgedAttachments(db, files, paths);
+      });
 
   Future<List<KnowledgeRevision>> revisions(String id) =>
       (db.select(db.knowledgeRevisions)
@@ -396,7 +486,7 @@ class StudyStore extends DatabaseNotifier {
     String id,
     int version,
     int expectedRevision,
-  ) async {
+  ) => runOperation(() async {
     final r =
         await (db.select(db.knowledgeRevisions)..where(
               (t) => t.knowledgeId.equals(id) & t.revision.equals(version),
@@ -414,13 +504,14 @@ class StudyStore extends DatabaseNotifier {
       id: id,
       expectedRevision: expectedRevision,
     );
-  }
+  });
 
   Future<List<KnowledgeItem>> searchKnowledge({
     String query = '',
     String subject = '',
     bool trash = false,
     int limit = 100,
+    int offset = 0,
   }) async {
     final rows = await _search(
       'knowledge_items',
@@ -430,6 +521,7 @@ class StudyStore extends DatabaseNotifier {
       subject,
       trash,
       limit,
+      offset,
     );
     return Future.wait(rows.map(db.knowledgeItems.mapFromRow));
   }
@@ -439,6 +531,7 @@ class StudyStore extends DatabaseNotifier {
     String subject = '',
     bool trash = false,
     int limit = 100,
+    int offset = 0,
   }) async {
     final rows = await _search(
       'mistakes',
@@ -448,6 +541,7 @@ class StudyStore extends DatabaseNotifier {
       subject,
       trash,
       limit,
+      offset,
     );
     return Future.wait(rows.map(db.mistakes.mapFromRow));
   }
@@ -460,6 +554,7 @@ class StudyStore extends DatabaseNotifier {
     String subject,
     bool trash,
     int limit,
+    int offset,
   ) {
     final term = checked(query, '搜索词', 300);
     final tagTable = table == 'mistakes' ? 'mistake_tags' : 'knowledge_tags';
@@ -487,9 +582,10 @@ class StudyStore extends DatabaseNotifier {
       vars.add(Variable(term));
     }
     vars.add(Variable(limit.clamp(1, 200)));
+    vars.add(Variable(offset.clamp(0, 10000000)));
     return db
         .customSelect(
-          'SELECT t.* FROM $table t WHERE $where ORDER BY t.updated_at DESC, t.id LIMIT ?',
+          'SELECT t.* FROM $table t WHERE $where ORDER BY t.updated_at DESC, t.id LIMIT ? OFFSET ?',
           variables: vars,
           readsFrom: {db.knowledgeItems, db.mistakes},
         )
@@ -511,35 +607,20 @@ class StudyStore extends DatabaseNotifier {
             )
             ..orderBy([(t) => OrderingTerm.asc(t.rowId)]))
           .get();
-  List<StudyAttachment> preferredImages(List<StudyAttachment> images) {
-    final byId = {for (final image in images) image.id: image};
-    final selected = <String, StudyAttachment>{};
-    for (final image in images) {
-      var root = image;
-      var key = image.id;
-      final seen = <String>{};
-      while (root.parentId != null && seen.add(root.id)) {
-        key = root.parentId!;
-        final parent = byId[key];
-        if (parent == null) break;
-        root = parent;
-      }
-      selected[key] = image;
-    }
-    return selected.values.toList();
-  }
+  List<StudyAttachment> preferredImages(List<StudyAttachment> images) =>
+      preferredStudyImages(images);
 
-  Future<void> restoreImage(StudyAttachment image) async {
+  Future<void> restoreImage(StudyAttachment image) => runOperation(() async {
     await (db.update(db.studyAttachments)..where((t) => t.id.equals(image.id)))
         .write(const StudyAttachmentsCompanion(deleted: Value(false)));
     changed();
-  }
+  });
 
   Future<StudyAttachment> importImage(
     String id,
     String path, {
     required bool isMistake,
-  }) async {
+  }) => runOperation(() async {
     if (isMistake) {
       await mistake(id);
     } else {
@@ -558,7 +639,7 @@ class StudyStore extends DatabaseNotifier {
       await files.resolve(image.path).delete();
       rethrow;
     }
-  }
+  });
 
   Future<StudyAttachment> addImageReference(
     String id,
@@ -568,12 +649,12 @@ class StudyStore extends DatabaseNotifier {
     required bool isMistake,
     String? parentId,
     String role = 'original',
-  }) async {
+  }) => runOperation(() async {
     files.resolve(path);
-    if (!await files.resolve(path).exists()) {
-      throw const FormatException('图片文件缺失。');
-    }
     final row = await db.transaction(() async {
+      if (!await files.resolve(path).exists()) {
+        throw const FormatException('图片文件缺失。');
+      }
       if (isMistake) {
         await mistake(id);
       } else {
@@ -595,13 +676,41 @@ class StudyStore extends DatabaseNotifier {
     });
     changed();
     return row;
-  }
+  });
+
+  Future<void> copyChatImage(
+    String id,
+    Attachment image, {
+    required bool isMistake,
+  }) => runOperation(() async {
+    final original = await originalChatImage(image, files);
+    await db.transaction(() async {
+      final root = await addImageReference(
+        id,
+        original.path,
+        original.mime,
+        original.bytes,
+        isMistake: isMistake,
+      );
+      if (original.path != image.relativePath) {
+        await addImageReference(
+          id,
+          image.relativePath,
+          image.mime,
+          image.byteLength,
+          isMistake: isMistake,
+          parentId: root.id,
+          role: 'crop',
+        );
+      }
+    });
+  });
 
   Future<Mistake> importMistake(
     String path,
     String title, {
     String subject = '数学',
-  }) async {
+  }) => runOperation(() async {
     final image = await files.importFile(path);
     try {
       final row = await db.transaction(() async {
@@ -644,20 +753,20 @@ class StudyStore extends DatabaseNotifier {
       await files.resolve(image.path).delete();
       rethrow;
     }
-  }
+  });
 
-  Future<void> removeImage(StudyAttachment image) async {
+  Future<void> removeImage(StudyAttachment image) => runOperation(() async {
     await (db.update(db.studyAttachments)..where((t) => t.id.equals(image.id)))
         .write(const StudyAttachmentsCompanion(deleted: Value(true)));
     changed();
-  }
+  });
 
   Future<void> link(
     String knowledgeId, {
     String? otherKnowledgeId,
     String? mistakeId,
     bool remove = false,
-  }) async {
+  }) => runOperation(() async {
     await db.transaction(() async {
       await knowledge(knowledgeId);
       if (mistakeId != null) {
@@ -705,7 +814,7 @@ class StudyStore extends DatabaseNotifier {
       }
     });
     changed();
-  }
+  });
 
   Future<void> _chatLink(
     String session, {
@@ -726,12 +835,12 @@ class StudyStore extends DatabaseNotifier {
     String session, {
     String? knowledgeId,
     String? mistakeId,
-  }) async {
+  }) => runOperation(() async {
     if (knowledgeId != null) await knowledge(knowledgeId);
     if (mistakeId != null) await mistake(mistakeId);
     await _chatLink(session, knowledgeId: knowledgeId, mistakeId: mistakeId);
     changed();
-  }
+  });
 
   Future<KnowledgeDetail> knowledgeDetail(String id) async {
     final row = await knowledge(id, includeDeleted: true);

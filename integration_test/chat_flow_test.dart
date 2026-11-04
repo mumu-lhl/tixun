@@ -1,3 +1,7 @@
+import 'support/gui_capture.dart';
+
+import 'package:tixun/features/chat/chat_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -74,6 +78,52 @@ void main() {
         '明天继续的问题',
       );
       expect(find.text('明天继续的问题'), findsOneWidget);
+      await resizeGui(tester, 390, 844);
+      await c.addImage('assets/demo/two_problems.png');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(AttachmentImage));
+      await tester.pumpAndSettle();
+      await guiCapture('chat', 'phone-image-preview');
+      await tester.tap(find.text('裁剪 / 旋转 / 缩小'));
+      await tester.pumpAndSettle();
+      for (
+        var i = 0;
+        i < 100 && find.byKey(const Key('crop-canvas')).evaluate().isEmpty;
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      final canvas = tester.getRect(find.byKey(const Key('crop-canvas')));
+      final gesture = await tester.startGesture(
+        canvas.topLeft + Offset(canvas.width * .04, canvas.height * .1),
+      );
+      await gesture.moveTo(
+        canvas.topLeft + Offset(canvas.width * .96, canvas.height * .45),
+      );
+      await gesture.up();
+      await tester.pumpAndSettle();
+      await guiCapture('chat', 'phone-image-crop');
+      await tester.tap(find.text('保存图片编辑'));
+      for (
+        var i = 0;
+        i < 100 && c.attachments.single.originalPath == null;
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pumpAndSettle();
+      expect(c.attachments.single.originalPath, isNotNull);
+      await tester.tap(find.byType(AttachmentImage));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('查看保留的原图'));
+      await tester.pumpAndSettle();
+      expect(find.text('保留的原图'), findsOneWidget);
+      await guiCapture('chat', 'phone-original-retained');
+      await tester.tap(find.byTooltip('关闭原图'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('关闭预览'));
+      await tester.pumpAndSettle();
+      await resizeGui(tester, 1280, 900);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       container.dispose();

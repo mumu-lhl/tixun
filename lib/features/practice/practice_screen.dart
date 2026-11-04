@@ -1,3 +1,6 @@
+import 'practice_run_screen.dart';
+import 'practice_store.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,8 +13,10 @@ import 'question_card.dart';
 import 'question_spec.dart';
 
 final practiceListProvider = FutureProvider.autoDispose
-    .family<List<PracticeQuestion>, String>(
-      (ref, query) => ref.watch(practiceStoreProvider).list(query: query),
+    .family<List<PracticeQuestion>, ({String query, bool trash})>(
+      (ref, filter) => ref
+          .watch(practiceStoreProvider)
+          .list(query: filter.query, trash: filter.trash),
     );
 
 class PracticeScreen extends ConsumerStatefulWidget {
@@ -22,9 +27,11 @@ class PracticeScreen extends ConsumerStatefulWidget {
 
 class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   String query = '';
+  bool trash = false;
   @override
   Widget build(BuildContext context) {
-    final rows = ref.watch(practiceListProvider(query));
+    final filter = (query: query, trash: trash);
+    final rows = ref.watch(practiceListProvider(filter));
     final c = ref.watch(appControllerProvider);
     return Column(
       children: [
@@ -43,66 +50,118 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      '主动训练',
+                      trash ? '练习回收区' : '主动训练',
                       style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: trash ? '返回题库' : '练习回收区',
+                    onPressed: () => setState(() => trash = !trash),
+                    icon: Icon(
+                      trash
+                          ? Icons.edit_note
+                          : Icons.restore_from_trash_outlined,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              const Text('合上解析，独立尝试。作答记录在此设备保存，已有题目支持离线练习。'),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton.icon(
-                    key: const Key('ai-quiz'),
-                    onPressed: c.busy
-                        ? null
-                        : () => act(context, () async {
-                            await c.newSession();
-                            await c.mode('exam');
-                            await c.renameSession(c.selected!, '数学 · 检测训练');
-                            await c.draft('请给我出一道适合高中生的数学检测题，让我直接作答。不要提前透露答案。');
-                            if (context.mounted) context.go('/chat');
-                          }),
-                    icon: const Icon(Icons.auto_awesome, size: 18),
-                    label: const Text('AI 出题'),
-                  ),
-                  OutlinedButton(
-                    onPressed: () => showDialog<void>(
-                      context: context,
-                      builder: (_) => const QuestionEditor(),
-                    ),
-                    child: const Text('手动录题'),
-                  ),
-                  TextButton(
-                    key: const Key('basic-practice'),
-                    onPressed: () => act(context, () async {
-                      final id = await ref
-                          .read(practiceStoreProvider)
-                          .create(
-                            const QuestionSpec(
-                              kind: 'numeric',
-                              stem: r'解方程 $3x+5=20$，填写 $x$ 的值。',
-                              answers: [
-                                ['5'],
-                              ],
-                              explanation: r'$3x=20-5=15$，所以 $x=5$。',
-                              hint: '先将常数项移到等号另一边。',
-                              topics: ['一元一次方程'],
-                            ),
-                            origin: 'template',
-                            verification: 'template_checked',
-                          );
-                      if (context.mounted) context.go('/practice/$id');
-                    }),
-                    child: const Text('离线基础练习'),
-                  ),
-                ],
+              Text(
+                trash
+                    ? '恢复后可继续查看题目和作答；永久删除会一并删除该题的训练与复习记录。'
+                    : '合上解析，独立尝试。作答记录在此设备保存，已有题目支持离线练习。',
               ),
+              const SizedBox(height: 14),
+              if (!trash)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      key: const Key('ai-quiz'),
+                      onPressed: c.busy
+                          ? null
+                          : () => act(context, () async {
+                              await c.prepareQuickQuiz();
+                              if (context.mounted) context.go('/chat');
+                            }),
+                      icon: const Icon(Icons.auto_awesome, size: 18),
+                      label: const Text('AI 出题'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('random-practice'),
+                      onPressed: () => act(context, () async {
+                        final prior = await ref
+                            .read(practiceStoreProvider)
+                            .loadRun();
+                        if (prior != null && !prior.completed) {
+                          if (context.mounted) context.go('/practice/run');
+                          return;
+                        }
+                        await ref.read(practiceStoreProvider).startRandomRun();
+                        if (context.mounted) context.go('/practice/run');
+                      }),
+                      icon: const Icon(Icons.shuffle, size: 18),
+                      label: const Text('已有题随机小测'),
+                    ),
+                    OutlinedButton(
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) => const QuestionEditor(),
+                      ),
+                      child: const Text('手动录题'),
+                    ),
+                    TextButton(
+                      key: const Key('basic-practice'),
+                      onPressed: () => act(context, () async {
+                        final id = await ref
+                            .read(practiceStoreProvider)
+                            .create(
+                              const QuestionSpec(
+                                kind: 'numeric',
+                                stem: r'解方程 $3x+5=20$，填写 $x$ 的值。',
+                                answers: [
+                                  ['5'],
+                                ],
+                                explanation: r'$3x=20-5=15$，所以 $x=5$。',
+                                hint: '先将常数项移到等号另一边。',
+                                topics: ['一元一次方程'],
+                              ),
+                              origin: 'template',
+                              verification: 'template_checked',
+                              operation: 'template:linear-3x5-20',
+                            );
+                        await ref
+                            .read(practiceStoreProvider)
+                            .begin(id, retry: true);
+                        if (context.mounted) context.go('/practice/$id');
+                      }),
+                      child: const Text('离线基础练习'),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 12),
+              ref
+                  .watch(practiceRunProvider)
+                  .maybeWhen(
+                    data: (run) => run == null
+                        ? const SizedBox.shrink()
+                        : TextButton(
+                            onPressed: () => context.go('/practice/run'),
+                            child: Text(
+                              run.completed
+                                  ? '查看上一轮小测'
+                                  : '继续小测（第 ${run.index + 1}/${run.ids.length} 题）',
+                            ),
+                          ),
+                    error: (_, _) => TextButton(
+                      onPressed: () => act(context, () async {
+                        await ref.read(practiceStoreProvider).clearRun();
+                      }),
+                      child: const Text('结束无法恢复的小测，保留记录'),
+                    ),
+                    orElse: () => const SizedBox.shrink(),
+                  ),
               TextField(
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search),
@@ -118,7 +177,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => Center(
               child: TextButton(
-                onPressed: () => ref.invalidate(practiceListProvider(query)),
+                onPressed: () => ref.invalidate(practiceListProvider(filter)),
                 child: const Text('读取失败，点击重试'),
               ),
             ),
@@ -157,8 +216,72 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                         subtitle: Text(
                           '${q.subject} · ${questionKinds[q.kind]} · ${q.verification == 'unverified' ? '参考答案待核对' : '已核对答案'}',
                         ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.go('/practice/${q.id}'),
+                        trailing: PopupMenuButton<String>(
+                          tooltip: '题目操作',
+                          onSelected: (v) => act(context, () async {
+                            final store = ref.read(practiceStoreProvider);
+                            if (v == 'edit') {
+                              final detail = await store.detail(q.id);
+                              if (context.mounted) {
+                                await showDialog<void>(
+                                  context: context,
+                                  builder: (_) =>
+                                      QuestionEditor(initial: detail),
+                                );
+                              }
+                            } else if (v == 'trash') {
+                              await store.setDeleted(q.id, true);
+                            } else if (v == 'restore') {
+                              await store.setDeleted(q.id, false);
+                            } else if (v == 'purge') {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('永久删除练习？'),
+                                  content: Text(
+                                    '将永久删除“${q.stem}”及其所有作答和复习记录。该操作无法撤销，独立的知识、错题和其他题目仍保留。',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
+                                      child: const Text('取消'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('永久删除'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed == true) await store.purge(q.id);
+                            }
+                          }),
+                          itemBuilder: (_) => trash
+                              ? const [
+                                  PopupMenuItem(
+                                    value: 'restore',
+                                    child: Text('恢复题目'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'purge',
+                                    child: Text('永久删除题目与记录'),
+                                  ),
+                                ]
+                              : const [
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text('修订题目与答案'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'trash',
+                                    child: Text('移入回收区'),
+                                  ),
+                                ],
+                        ),
+                        onTap: trash
+                            ? null
+                            : () => context.go('/practice/${q.id}'),
                       );
                     },
                   ),
@@ -170,8 +293,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
 }
 
 class PracticeDetailScreen extends StatelessWidget {
-  const PracticeDetailScreen(this.id, {super.key});
+  const PracticeDetailScreen(this.id, {this.attemptId, super.key});
   final String id;
+  final String? attemptId;
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(20),
@@ -187,7 +311,11 @@ class PracticeDetailScreen extends StatelessWidget {
       Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 820),
-          child: QuestionCard(id, key: ValueKey(id)),
+          child: QuestionCard(
+            id,
+            attemptId: attemptId,
+            key: ValueKey('$id:$attemptId'),
+          ),
         ),
       ),
     ],
@@ -195,7 +323,8 @@ class PracticeDetailScreen extends StatelessWidget {
 }
 
 class QuestionEditor extends ConsumerStatefulWidget {
-  const QuestionEditor({super.key});
+  const QuestionEditor({this.initial, super.key});
+  final QuestionDetail? initial;
   @override
   ConsumerState<QuestionEditor> createState() => _QuestionEditorState();
 }
@@ -207,7 +336,45 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
       explanation = TextEditingController(),
       subject = TextEditingController(text: '数学'),
       hint = TextEditingController(),
-      topics = TextEditingController();
+      topics = TextEditingController(),
+      absoluteTolerance = TextEditingController(text: '0.000001'),
+      relativeTolerance = TextEditingController(text: '0'),
+      timeLimit = TextEditingController();
+  bool caseSensitive = true;
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial == null) return;
+    final q = initial.spec;
+    kind = q.kind;
+    stem.text = q.stem;
+    subject.text = q.subject;
+    explanation.text = q.explanation;
+    hint.text = q.hint;
+    topics.text = q.topics.join('、');
+    final ids = q.options.keys.toList();
+    options.text = q.options.values.join('\n');
+    final map = {
+      for (var i = 0; i < ids.length; i++) ids[i]: String.fromCharCode(65 + i),
+    };
+    answers.text = q.answers
+        .map(
+          (a) => a
+              .map(
+                (v) => kind == 'single_choice' || kind == 'multiple_choice'
+                    ? map[v] ?? v
+                    : v,
+              )
+              .join('|'),
+        )
+        .join('\n');
+    absoluteTolerance.text = '${q.absoluteTolerance}';
+    relativeTolerance.text = '${q.relativeTolerance}';
+    timeLimit.text = q.timeLimitSeconds?.toString() ?? '';
+    caseSensitive = q.caseSensitive;
+  }
+
   String kind = 'single_choice';
   bool saving = false;
   String? failure;
@@ -221,6 +388,9 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
       subject,
       hint,
       topics,
+      absoluteTolerance,
+      relativeTolerance,
+      timeLimit,
     ]) {
       c.dispose();
     }
@@ -258,6 +428,14 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
             .toList(),
         explanation: explanation.text,
         hint: hint.text,
+        absoluteTolerance:
+            double.tryParse(absoluteTolerance.text.trim()) ?? double.nan,
+        relativeTolerance:
+            double.tryParse(relativeTolerance.text.trim()) ?? double.nan,
+        timeLimitSeconds: timeLimit.text.trim().isEmpty
+            ? null
+            : int.tryParse(timeLimit.text.trim()) ?? -1,
+        caseSensitive: caseSensitive,
         topics: topics.text
             .split('、')
             .map((v) => v.trim())
@@ -265,7 +443,18 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
             .toSet()
             .toList(),
       );
-      final id = await ref.read(practiceStoreProvider).create(spec);
+      final store = ref.read(practiceStoreProvider), old = widget.initial;
+      final links = old == null
+          ? <PracticeQuestionKnowledgeData>[]
+          : await (store.db.select(
+              store.db.practiceQuestionKnowledge,
+            )..where((l) => l.questionId.equals(old.row.id))).get();
+      final id = await store.create(
+        spec,
+        parentId: old?.row.id,
+        mistakeId: old?.row.mistakeId,
+        knowledgeIds: links.map((l) => l.knowledgeId).toList(),
+      );
       if (mounted) {
         Navigator.pop(context);
         context.go('/practice/$id');
@@ -282,7 +471,7 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('录入练习题'),
+    title: Text(widget.initial == null ? '录入练习题' : '修订练习（保留旧版）'),
     scrollable: true,
     content: SizedBox(
       width: 600,
@@ -303,7 +492,7 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
             (subject, '科目', 1),
             (stem, '题干（支持 Markdown 和公式）', 3),
             if (['single_choice', 'multiple_choice'].contains(kind))
-              (options, '选项：每行一项，自动编号 A、B…', 3),
+              (options, '选项（每行一项，自动编号 A、B…）', 3),
             (
               answers,
               kind == 'true_false'
@@ -325,10 +514,55 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
               padding: const EdgeInsets.only(top: 12),
               child: TextField(
                 controller: ctrl,
+                key: ctrl == stem
+                    ? const Key('question-stem')
+                    : ctrl == answers
+                    ? const Key('question-answers')
+                    : null,
                 enabled: !saving,
                 minLines: lines,
                 maxLines: lines + 3,
                 decoration: InputDecoration(labelText: label),
+              ),
+            ),
+          ExpansionTile(
+            title: const Text('判分与时间设置'),
+            tilePadding: EdgeInsets.zero,
+            children: [
+              if (kind == 'numeric') ...[
+                TextField(
+                  controller: absoluteTolerance,
+                  decoration: const InputDecoration(labelText: '数值绝对容差（0–100）'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: relativeTolerance,
+                  decoration: const InputDecoration(labelText: '相对容差（0–0.1）'),
+                ),
+              ],
+              if (kind == 'fill_blank')
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('答案区分大小写'),
+                  value: caseSensitive,
+                  onChanged: saving
+                      ? null
+                      : (v) => setState(() => caseSensitive = v),
+                ),
+              TextField(
+                controller: timeLimit,
+                decoration: const InputDecoration(
+                  labelText: '建议答题秒数（可选，10–7200）',
+                ),
+              ),
+            ],
+          ),
+          if (widget.initial != null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                '保存为新版本，原题目与作答记录保留。新的作答使用修订后的答案。',
+                style: TextStyle(fontSize: 12),
               ),
             ),
           if (failure != null)

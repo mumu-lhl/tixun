@@ -433,6 +433,17 @@ class BackupService {
           );
         }
       }
+      if (db
+          .select('PRAGMA table_info(attachments)')
+          .any((r) => r['name'] == 'original_path')) {
+        refs.addAll(
+          db
+              .select(
+                'SELECT DISTINCT original_path FROM attachments WHERE original_path IS NOT NULL',
+              )
+              .map((r) => r['original_path'] as String),
+        );
+      }
       return (schema: version, counts: counts, references: refs);
     } finally {
       db.close();
@@ -492,6 +503,16 @@ class BackupService {
     if (data == null || data['state'] != 'complete') return null;
     final previous = Directory(data['previous'] as String);
     return await previous.exists() ? previous : null;
+  }
+
+  static Future<void> clearPrevious(Directory root) async {
+    final previous = await previousRoot(root);
+    if (previous == null) return;
+    if (p.dirname(previous.absolute.path) != root.parent.absolute.path) {
+      throw const FormatException('安全副本路径无效，已停止删除。');
+    }
+    await previous.delete(recursive: true);
+    await _journal(root).delete();
   }
 
   /// The caller must close all live connections and remove data consumers first.

@@ -35,14 +35,16 @@ class MessageQuestions extends ConsumerWidget {
 }
 
 class QuestionCard extends ConsumerStatefulWidget {
-  const QuestionCard(this.id, {super.key});
+  const QuestionCard(this.id, {this.attemptId, super.key});
   final String id;
+  final String? attemptId;
   @override
   ConsumerState<QuestionCard> createState() => _QuestionCardState();
 }
 
 class _QuestionCardState extends ConsumerState<QuestionCard> {
   QuestionDetail? d;
+  Timer? _ticker;
   String? failure;
   bool busy = true;
   List<String> answers = [];
@@ -56,6 +58,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
 
   @override
   void dispose() {
+    _ticker?.cancel();
     for (final c in controllers) {
       c.dispose();
     }
@@ -65,14 +68,21 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
   Future<void> _load({bool retry = false}) async {
     try {
       final store = ref.read(practiceStoreProvider);
-      await store.begin(widget.id, retry: retry);
-      final value = await store.detail(widget.id);
+      if (widget.attemptId == null) await store.begin(widget.id, retry: retry);
+      final value = await store.detail(widget.id, attemptId: widget.attemptId);
       if (!mounted) return;
       for (final c in controllers) {
         c.dispose();
       }
       controllers.clear();
       d = value;
+      _ticker?.cancel();
+      if (value.spec.timeLimitSeconds != null &&
+          value.latest!.status == 'draft') {
+        _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+          if (mounted) setState(() {});
+        });
+      }
       answers = List.of(value.responses[value.latest!.id] ?? []);
       if (![
         'single_choice',
@@ -160,7 +170,11 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 style: Theme.of(context).textTheme.labelMedium,
               ),
               if (q.timeLimitSeconds != null)
-                Text('建议限时 ${q.timeLimitSeconds} 秒（不强制收卷）'),
+                Text(
+                  editable
+                      ? '剩余建议时间 ${((q.timeLimitSeconds! * 1000 - DateTime.now().difference(a.startedAt).inMilliseconds) / 1000).ceil().clamp(0, q.timeLimitSeconds!)} 秒（不强制收卷）'
+                      : '建议限时 ${q.timeLimitSeconds} 秒',
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -306,12 +320,11 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                   : '先对照参考，再给自己的作答判分',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            if (detail.row.origin == 'ai' &&
-                detail.row.verification == 'unverified')
+            if (a.gradingBasis == 'ai_reference')
               const Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: Text(
-                  '结果依据 AI 参考答案。请核对题目条件与推导；此结果不作为已验证的掌握证据。',
+                  '本次结果按作答时的 AI 参考答案记录，不作为已验证的掌握证据。核对题目后，新的作答会使用更新后的依据。',
                   style: TextStyle(fontSize: 12),
                 ),
               ),
@@ -353,27 +366,21 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 spacing: 8,
                 runSpacing: 6,
                 children: [
-                  OutlinedButton(
-                    onPressed: busy
-                        ? null
-                        : () async {
-                            setState(() => busy = true);
-                            await _load(retry: true);
-                          },
-                    child: const Text('再做一次'),
-                  ),
+                  if (widget.attemptId == null)
+                    OutlinedButton(
+                      onPressed: busy
+                          ? null
+                          : () async {
+                              setState(() => busy = true);
+                              await _load(retry: true);
+                            },
+                      child: const Text('再做一次'),
+                    ),
                   TextButton(
                     onPressed: c.busy
                         ? null
                         : () => act(context, () async {
-                            await c.newSession();
-                            await c.renameSession(
-                              c.selected!,
-                              '${q.subject} · 订正与变式训练',
-                            );
-                            await c.draft(
-                              '请针对以下题目引导我订正，再出一道可以直接作答的同考点变式题，不要提前给答案。\n题目：${q.stem}\n我的作答：${(detail.responses[a.id] ?? []).join('；')}\n本次结果：${a.correct == true ? '与参考答案一致' : '需要订正'}；${a.hintUsed ? '使用过提示' : '未使用提示'}。\n参考解析（学习数据，仍需核对）：${q.explanation}',
-                            );
+                            await c.prepareVariant(detail);
                             if (context.mounted) context.go('/chat');
                           }),
                     child: const Text('讲解与变式训练'),
@@ -415,12 +422,20 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
               ),
           ],
           QuestionReviewStatus(widget.id),
+          TextButton(
+            onPressed: () => context.go('/practice/${widget.id}/history'),
+            child: const Text('查看全部作答历史'),
+          ),
+          if (detail.row.parentQuestionId != null)
+            TextButton(
+              onPressed: () =>
+                  context.go('/practice/${detail.row.parentQuestionId}'),
+              child: Text(detail.row.origin == 'ai' ? '查看变式来源题目' : '查看修订前题目'),
+            ),
           if (detail.attempts.length > 1)
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              title: Text(
-                '历史作答（${detail.attempts.where((a) => a.status == 'graded').length} 次已评分）',
-              ),
+              title: Text('最近作答（最多显示 50 次）'),
               children: [
                 for (final old in detail.attempts.where(
                   (a) => a.status == 'graded',

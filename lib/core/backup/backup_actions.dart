@@ -12,8 +12,10 @@ class BackupActions {
     required this.prepare,
     required this.prepareUndo,
     required this.restore,
+    required this.clearUndo,
   });
   final Future<void> Function() export;
+  final Future<void> Function() clearUndo;
   final Future<PreparedBackup> Function(File) prepare;
   final Future<PreparedBackup> Function() prepareUndo;
   final Future<void> Function(PreparedBackup) restore;

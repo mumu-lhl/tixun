@@ -201,16 +201,60 @@ class SessionList extends ConsumerWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: TextButton(
-                          onPressed: () => act(context, () async {
-                            await c.restoreSession(item);
+                        trailing: PopupMenuButton<String>(
+                          tooltip: '回收会话操作',
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                              value: 'restore',
+                              child: Text('恢复会话'),
+                            ),
+                            PopupMenuItem(
+                              value: 'purge',
+                              child: Text('永久删除会话'),
+                            ),
+                          ],
+                          onSelected: (action) => act(context, () async {
+                            if (action == 'restore') {
+                              await c.restoreSession(item);
+                            } else {
+                              final ok = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('永久删除会话？'),
+                                  content: Text(
+                                    '将永久删除“${item.title}”的消息、图片引用和工具执行记录。独立保存的知识、错题及训练记录仍保留，其他记录使用的图片也会保留。已导出的备份和恢复安全副本需另行管理。',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
+                                      child: const Text('取消'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('永久删除'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (ok != true) return;
+                              final failed = await c.purgeSession(item.id);
+                              if (context.mounted && failed > 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '记录已删除，$failed 个未引用图片未能清理，请检查目录权限。',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
                             if (context.mounted) {
                               update(
                                 () => items.removeWhere((s) => s.id == item.id),
                               );
                             }
                           }),
-                          child: const Text('恢复'),
                         ),
                       );
                     },

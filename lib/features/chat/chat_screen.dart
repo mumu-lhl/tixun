@@ -1,3 +1,4 @@
+import '../library/image_editor.dart';
 import '../practice/question_card.dart';
 
 import 'dart:io';
@@ -268,6 +269,8 @@ class _ConversationState extends ConsumerState<Conversation> {
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
     final colors = Theme.of(context).colorScheme;
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final shortInput = keyboard || MediaQuery.sizeOf(context).height < 700;
     final viewport = MediaQuery.sizeOf(context);
     if (c.demo && _reportedViewport != viewport) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -314,349 +317,389 @@ class _ConversationState extends ConsumerState<Conversation> {
     if (c.selected?.draft.isEmpty == true && c.busy && _input.text.isNotEmpty) {
       _input.clear();
     }
-    return Shortcuts(
-      shortcuts: const {
-        SingleActivator(LogicalKeyboardKey.enter, control: true): _SendIntent(),
-      },
-      child: Actions(
-        actions: {
-          _SendIntent: CallbackAction<_SendIntent>(
-            onInvoke: (_) {
-              if (!c.busy) _send();
-              return null;
-            },
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) => Shortcuts(
+        shortcuts: const {
+          SingleActivator(LogicalKeyboardKey.enter, control: true):
+              _SendIntent(),
         },
-        child: Column(
-          children: [
-            Expanded(
-              child: c.messages.isEmpty
-                  ? SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 560),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 24),
-                                Text(
-                                  '今天，想弄懂什么？',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  '不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。',
-                                  style: TextStyle(
-                                    color: colors.onSurfaceVariant,
-                                    height: 1.8,
+        child: Actions(
+          actions: {
+            _SendIntent: CallbackAction<_SendIntent>(
+              onInvoke: (_) {
+                if (!c.busy) _send();
+                return null;
+              },
+            ),
+          },
+          child: Column(
+            children: [
+              Expanded(
+                child: c.messages.isEmpty
+                    ? SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 560),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    '今天，想弄懂什么？',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium,
                                   ),
-                                ),
-                                const SizedBox(height: 28),
-                                for (final prompt in [
-                                  '二次函数的顶点公式，怎样理解而不是死记？',
-                                  '我会做这道题，但不知道为什么要用这个方法。',
-                                ])
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: OutlinedButton(
-                                      onPressed: () {
-                                        _input.text = prompt;
-                                        c.draft(prompt);
-                                        _focus.requestFocus();
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    '不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。',
+                                    style: TextStyle(
+                                      color: colors.onSurfaceVariant,
+                                      height: 1.8,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 28),
+                                  for (final prompt in [
+                                    '二次函数的顶点公式，怎样理解而不是死记？',
+                                    '我会做这道题，但不知道为什么要用这个方法。',
+                                  ])
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 12,
+                                      ),
+                                      child: OutlinedButton(
+                                        onPressed: () {
+                                          _input.text = prompt;
+                                          c.draft(prompt);
+                                          _focus.requestFocus();
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                          ),
+                                          child: Text(prompt),
                                         ),
-                                        child: Text(prompt),
                                       ),
                                     ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scroll,
+                        key: PageStorageKey('messages-${c.selected!.id}'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 24,
+                        ),
+                        itemCount:
+                            c.messages.length + (c.pendingTool != null ? 1 : 0),
+                        itemBuilder: (context, index) =>
+                            index == c.messages.length
+                            ? const ToolApprovalCard()
+                            : Align(
+                                alignment: Alignment.topCenter,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 790,
                                   ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scroll,
-                      key: PageStorageKey('messages-${c.selected!.id}'),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 24,
-                      ),
-                      itemCount:
-                          c.messages.length + (c.pendingTool != null ? 1 : 0),
-                      itemBuilder: (context, index) =>
-                          index == c.messages.length
-                          ? const ToolApprovalCard()
-                          : Align(
-                              alignment: Alignment.topCenter,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 790,
-                                ),
-                                child: MessageView(
-                                  message: c.messages[index],
-                                  isLast: index == c.messages.length - 1,
+                                  child: MessageView(
+                                    message: c.messages[index],
+                                    isLast: index == c.messages.length - 1,
+                                  ),
                                 ),
                               ),
-                            ),
-                    ),
-            ),
-            if (c.messages.isNotEmpty && !c.busy)
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    for (final text in [
-                      '给我提示',
-                      '换种方式解释',
-                      '讲简单一点',
-                      '直接给答案',
-                      '再出一道题',
-                    ])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ActionChip(
-                          label: Text(
-                            text,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          onPressed: () {
-                            _input.text = text;
-                            c.draft(text);
-                            _focus.requestFocus();
-                          },
-                        ),
                       ),
-                  ],
-                ),
               ),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 850),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              if (c.messages.isNotEmpty && !c.busy && !shortInput)
+                SizedBox(
+                  height: 40,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
-                      Row(
-                        children: [
-                          DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: c.selected!.mode,
-                              isDense: true,
-                              style: TextStyle(
-                                fontFamily: 'NotoSansSC',
-                                fontSize: 12,
-                                color: colors.primary,
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'guided',
-                                  child: Text('引导教学'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'direct',
-                                  child: Text('直接解答'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'exam',
-                                  child: Text('考试训练'),
-                                ),
-                              ],
-                              onChanged: c.busy
-                                  ? null
-                                  : (v) => act(context, () => c.mode(v!)),
+                      for (final text in [
+                        '给我提示',
+                        '换种方式解释',
+                        '讲简单一点',
+                        '直接给答案',
+                        '再出一道题',
+                      ])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ActionChip(
+                            label: Text(
+                              text,
+                              style: const TextStyle(fontSize: 12),
                             ),
+                            onPressed: () {
+                              _input.text = text;
+                              c.draft(text);
+                              _focus.requestFocus();
+                            },
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              c.selected!.mode == 'exam'
-                                  ? '先提交答案，再查看反馈与解析'
-                                  : '先理解，再独立尝试',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: colors.surfaceContainerLowest,
-                          border: Border.all(color: colors.outlineVariant),
-                          borderRadius: BorderRadius.circular(18),
                         ),
+                    ],
+                  ),
+                ),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: (constraints.maxHeight - 40).clamp(
+                    0.0,
+                    double.infinity,
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  reverse: true,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 850),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (pending.isNotEmpty)
-                              SizedBox(
-                                height: 96,
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  padding: const EdgeInsets.all(8),
-                                  children: pending
-                                      .map(
-                                        (a) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 8,
-                                          ),
-                                          child: Stack(
-                                            children: [
-                                              AttachmentImage(
-                                                attachment: a,
-                                                width: 88,
-                                                height: 80,
-                                              ),
-                                              Positioned(
-                                                right: 0,
-                                                top: 0,
-                                                child: IconButton.filledTonal(
-                                                  tooltip: '移除图片',
-                                                  onPressed: c.busy
-                                                      ? null
-                                                      : () => act(
-                                                          context,
-                                                          () =>
-                                                              c.removeImage(a),
-                                                        ),
-                                                  icon: const Icon(
-                                                    Icons.close,
-                                                    size: 16,
-                                                  ),
-                                                  constraints:
-                                                      const BoxConstraints.tightFor(
-                                                        width: 28,
-                                                        height: 28,
-                                                      ),
-                                                  padding: EdgeInsets.zero,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                ),
-                              ),
-                            TextField(
-                              key: const Key('chat-input'),
-                              controller: _input,
-                              focusNode: _focus,
-                              enabled: !c.busy,
-                              onChanged: c.draft,
-                              minLines: 1,
-                              maxLines: 6,
-                              maxLength: 32000,
-                              decoration: const InputDecoration(
-                                hintText: '写下你的问题，或添加题目图片…',
-                                counterText: '',
-                                filled: false,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                disabledBorder: InputBorder.none,
-                                contentPadding: EdgeInsets.fromLTRB(
-                                  16,
-                                  14,
-                                  16,
-                                  10,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(4, 0, 8, 8),
-                              child: Row(
+                            if (!keyboard)
+                              Row(
                                 children: [
-                                  PopupMenuButton<String>(
-                                    tooltip: '添加图片',
-                                    enabled: !c.busy,
-                                    icon: const Icon(
-                                      Icons.add_photo_alternate_outlined,
-                                      size: 23,
-                                    ),
-                                    onSelected: _import,
-                                    itemBuilder: (_) => [
-                                      if (Platform.isAndroid) ...[
-                                        const PopupMenuItem(
-                                          value: 'camera',
-                                          child: Text('拍照'),
+                                  DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: c.selected!.mode,
+                                      isDense: true,
+                                      style: TextStyle(
+                                        fontFamily: 'NotoSansSC',
+                                        fontSize: 12,
+                                        color: colors.primary,
+                                      ),
+                                      items: const [
+                                        DropdownMenuItem(
+                                          value: 'guided',
+                                          child: Text('引导教学'),
                                         ),
-                                        const PopupMenuItem(
-                                          value: 'gallery',
-                                          child: Text('从相册选择'),
+                                        DropdownMenuItem(
+                                          value: 'direct',
+                                          child: Text('直接解答'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'exam',
+                                          child: Text('考试训练'),
                                         ),
                                       ],
-                                      const PopupMenuItem(
-                                        value: 'file',
-                                        child: Text('选择图片文件'),
-                                      ),
-                                    ],
+                                      onChanged: c.busy
+                                          ? null
+                                          : (v) =>
+                                                act(context, () => c.mode(v!)),
+                                    ),
                                   ),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      pending.isNotEmpty
-                                          ? '发送时会将所选图片传给 AI'
-                                          : '原图保存在本地',
+                                      c.selected!.mode == 'exam'
+                                          ? '先提交答案，再查看反馈与解析'
+                                          : '先理解，再独立尝试',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: colors.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
-                                  c.busy
-                                      ? IconButton.filled(
-                                          key: const Key('stop-generation'),
-                                          tooltip: '停止生成',
-                                          onPressed: c.stop,
-                                          icon: const Icon(Icons.stop_rounded),
-                                        )
-                                      : IconButton.filled(
-                                          key: const Key('send-message'),
-                                          tooltip: '发送（Ctrl+Enter）',
-                                          onPressed: () => act(context, _send),
+                                ],
+                              ),
+                            if (!keyboard) const SizedBox(height: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: colors.surfaceContainerLowest,
+                                border: Border.all(
+                                  color: colors.outlineVariant,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Column(
+                                children: [
+                                  if (pending.isNotEmpty)
+                                    SizedBox(
+                                      height: shortInput ? 64 : 96,
+                                      child: ListView(
+                                        scrollDirection: Axis.horizontal,
+                                        padding: const EdgeInsets.all(8),
+                                        children: pending
+                                            .map(
+                                              (a) => Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: 8,
+                                                ),
+                                                child: Stack(
+                                                  children: [
+                                                    AttachmentImage(
+                                                      attachment: a,
+                                                      width: 88,
+                                                      height: shortInput
+                                                          ? 48
+                                                          : 80,
+                                                    ),
+                                                    Positioned(
+                                                      right: 0,
+                                                      top: 0,
+                                                      child: IconButton.filledTonal(
+                                                        tooltip: '移除图片',
+                                                        onPressed: c.busy
+                                                            ? null
+                                                            : () => act(
+                                                                context,
+                                                                () => c
+                                                                    .removeImage(
+                                                                      a,
+                                                                    ),
+                                                              ),
+                                                        icon: const Icon(
+                                                          Icons.close,
+                                                          size: 16,
+                                                        ),
+                                                        constraints:
+                                                            const BoxConstraints.tightFor(
+                                                              width: 28,
+                                                              height: 28,
+                                                            ),
+                                                        padding:
+                                                            EdgeInsets.zero,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                      ),
+                                    ),
+                                  TextField(
+                                    key: const Key('chat-input'),
+                                    scrollPadding: EdgeInsets.fromLTRB(
+                                      20,
+                                      20,
+                                      20,
+                                      keyboard ? 80 : 20,
+                                    ),
+                                    controller: _input,
+                                    focusNode: _focus,
+                                    enabled: !c.busy,
+                                    onChanged: c.draft,
+                                    minLines: 1,
+                                    maxLines: shortInput ? 2 : 6,
+                                    maxLength: 32000,
+                                    decoration: const InputDecoration(
+                                      hintText: '写下你的问题，或添加题目图片…',
+                                      counterText: '',
+                                      filled: false,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      disabledBorder: InputBorder.none,
+                                      contentPadding: EdgeInsets.fromLTRB(
+                                        16,
+                                        14,
+                                        16,
+                                        10,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      4,
+                                      0,
+                                      8,
+                                      8,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        PopupMenuButton<String>(
+                                          tooltip: '添加图片',
+                                          enabled: !c.busy,
                                           icon: const Icon(
-                                            Icons.arrow_upward_rounded,
+                                            Icons.add_photo_alternate_outlined,
+                                            size: 23,
+                                          ),
+                                          onSelected: _import,
+                                          itemBuilder: (_) => [
+                                            if (Platform.isAndroid) ...[
+                                              const PopupMenuItem(
+                                                value: 'camera',
+                                                child: Text('拍照'),
+                                              ),
+                                              const PopupMenuItem(
+                                                value: 'gallery',
+                                                child: Text('从相册选择'),
+                                              ),
+                                            ],
+                                            const PopupMenuItem(
+                                              value: 'file',
+                                              child: Text('选择图片文件'),
+                                            ),
+                                          ],
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            pending.isNotEmpty
+                                                ? '发送时会将所选图片传给 AI'
+                                                : '原图保存在本地',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: colors.onSurfaceVariant,
+                                            ),
                                           ),
                                         ),
+                                        c.busy
+                                            ? IconButton.filled(
+                                                key: const Key(
+                                                  'stop-generation',
+                                                ),
+                                                tooltip: '停止生成',
+                                                onPressed: c.stop,
+                                                icon: const Icon(
+                                                  Icons.stop_rounded,
+                                                ),
+                                              )
+                                            : IconButton.filled(
+                                                key: const Key('send-message'),
+                                                tooltip: '发送（Ctrl+Enter）',
+                                                onPressed: () =>
+                                                    act(context, _send),
+                                                icon: const Icon(
+                                                  Icons.arrow_upward_rounded,
+                                                ),
+                                              ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
+                            if (!shortInput) const SizedBox(height: 6),
+                            if (!shortInput)
+                              Center(
+                                child: Text(
+                                  c.demo ? '离线 Mock · 回复为固定测试内容' : 'AI 可能出错，请核对重要结论。最近 30 条消息 / 32000 字符参与上下文。',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Center(
-                        child: Text(
-                          c.demo
-                              ? '离线 Mock · 回复为固定测试内容'
-                              : 'AI 可能出错，请核对重要结论。最近 30 条消息 / 32000 字符参与上下文。',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -876,10 +919,8 @@ class AttachmentImage extends ConsumerWidget {
   final double width, height;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final file = ref
-        .read(appControllerProvider)
-        .files
-        .resolve(attachment.relativePath);
+    final c = ref.read(appControllerProvider);
+    final file = c.files.resolve(attachment.relativePath);
     Widget picture({bool preview = false}) => Image.file(
       file,
       width: preview ? null : width,
@@ -898,17 +939,21 @@ class AttachmentImage extends ConsumerWidget {
       child: InkWell(
         onTap: () => showDialog<void>(
           context: context,
-          builder: (context) => Dialog(
+          builder: (dialogContext) => Dialog(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
                     const SizedBox(width: 16),
-                    const Expanded(child: Text('原图预览')),
+                    Expanded(
+                      child: Text(
+                        attachment.originalPath == null ? '原图预览' : '发送图片预览',
+                      ),
+                    ),
                     IconButton(
                       tooltip: '关闭预览',
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(dialogContext),
                       icon: const Icon(Icons.close),
                     ),
                   ],
@@ -916,10 +961,80 @@ class AttachmentImage extends ConsumerWidget {
                 Flexible(
                   child: InteractiveViewer(child: picture(preview: true)),
                 ),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    if (attachment.originalPath != null)
+                      TextButton(
+                        onPressed: () => showDialog<void>(
+                          context: context,
+                          builder: (ctx) => Dialog(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    const SizedBox(width: 16),
+                                    const Expanded(child: Text('保留的原图')),
+                                    IconButton(
+                                      tooltip: '关闭原图',
+                                      onPressed: () => Navigator.pop(ctx),
+                                      icon: const Icon(Icons.close),
+                                    ),
+                                  ],
+                                ),
+                                Flexible(
+                                  child: InteractiveViewer(
+                                    child: Image.file(
+                                      c.files.resolve(attachment.originalPath!),
+                                      cacheWidth: 1600,
+                                      errorBuilder: (_, _, _) =>
+                                          const Text('原图无法读取。'),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        child: const Text('查看保留的原图'),
+                      ),
+                    if (attachment.messageId == null)
+                      TextButton.icon(
+                        key: Key('edit-draft-image-${attachment.id}'),
+                        onPressed: c.busy
+                            ? null
+                            : () => act(context, () async {
+                                Navigator.pop(dialogContext);
+                                await showDialog<String>(
+                                  context: context,
+                                  useSafeArea: false,
+                                  builder: (_) => StudyImageEditor(
+                                    attachment: StudyAttachment(
+                                      id: attachment.id,
+                                      relativePath: attachment.relativePath,
+                                      mime: attachment.mime,
+                                      byteLength: attachment.byteLength,
+                                      role: 'original',
+                                      deleted: false,
+                                    ),
+                                    isMistake: true,
+                                    title: '编辑题目图片',
+                                    createLabel: '保存图片编辑',
+                                    onCreate: (bytes, _, _) =>
+                                        c.replaceDraftImage(attachment, bytes),
+                                  ),
+                                );
+                              }),
+                        icon: const Icon(Icons.crop, size: 18),
+                        label: const Text('裁剪 / 旋转 / 缩小'),
+                      ),
+                  ],
+                ),
                 const Padding(
                   padding: EdgeInsets.all(12),
                   child: Text(
-                    '原图已保存在此设备 · 裁剪功能将在后续版本提供',
+                    '原图单独保留在此设备，发送时使用当前预览的图片。',
                     style: TextStyle(fontSize: 11),
                   ),
                 ),

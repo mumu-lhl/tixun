@@ -82,10 +82,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       setState(() {
         _failure = false;
         _status = test
-            ? '连接成功，已收到模型回复。'
+            ? (c.demo ? 'Mock 测试已完成，没有请求真实服务。' : '连接成功，已收到模型回复。')
             : remove
             ? '已删除此地址对应的密钥。'
-            : '配置已保存。密钥仅存于系统安全存储。';
+            : (c.demo ? '演示配置仅在本次运行中保留。' : '配置已保存。密钥仅存于系统安全存储。');
         if (!test) _key.clear();
       });
     } catch (e) {

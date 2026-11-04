@@ -65,12 +65,15 @@ class StudyImageEditor extends ConsumerStatefulWidget {
     required this.isMistake,
     this.initialCrop,
     this.onCreate,
+    this.createLabel = '确认范围并保存错题',
+    this.title = '裁剪与分题',
     super.key,
   });
   final StudyAttachment attachment;
   final String ownerId;
   final bool isMistake;
   final Rect? initialCrop;
+  final String createLabel, title;
   final Future<String> Function(Uint8List bytes, Rect crop, int turns)?
   onCreate;
   @override
@@ -232,7 +235,7 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
             onPressed: _saving ? null : () => Navigator.pop(context),
             icon: const Icon(Icons.close),
           ),
-          title: const Text('裁剪与分题'),
+          title: Text(widget.title),
           actions: [
             IconButton(
               tooltip: '顺时针旋转',
@@ -358,7 +361,9 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                             ? null
                             : () => _save(split: true),
                         child: Text(
-                          widget.onCreate != null ? '确认范围并保存错题' : '框选区域存为新错题',
+                          widget.onCreate != null
+                              ? widget.createLabel
+                              : '框选区域存为新错题',
                         ),
                       ),
                   ],

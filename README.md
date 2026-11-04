@@ -2,22 +2,22 @@
 
 理解知识，独立尝试，真正掌握。面向 Android 10+ 和 Linux 的开源 Flutter 学习应用，数据默认保存在本地，无需账号。
 
-当前为 **0.5 / M5 核心开发版（完善中）**：
+当前为 **0.5.1 开发版**，已实现 M0–M5 的核心学习闭环：
 
 - AI Chat：DeepSeek / OpenAI-compatible、SSE、图片、多会话、草稿、搜索、教学模式、Markdown / LaTeX。编辑和重新生成均创建分支，保留原对话和资料来源。
 - 知识库：自由正文及知识类型、科目、章节、标签、全文搜索、文本版本历史、恢复、知识关联和图片。
 - 错题本：原题、原答案、个人分析、AI 解析、错误原因、知识关联、多图录入。AI 建议与用户确认的错误原因分开保存。
-- 图片：原图长期保存；手动裁剪、旋转、缩小副本；框选区域可单独建立错题，保留原图和裁剪结果。已移除图片可撤销或恢复。
+- 图片：原图长期保存；发送前可预览、裁剪、旋转、缩小副本；框选区域可单独建立错题，保留原图和裁剪结果。已移除图片可撤销或恢复。
 - Chat 资料工具：按会话授权，检索、读取、提出新增/修改/删除/关联建议；写操作逐项确认，实际操作落库并保留审计结果。并发版本检查与重复调用限制保护数据。
 
-- 训练：Chat 内单选/多选/判断/填空/数值题、离线练习、手动录题、确定性判分、草稿/历史/提示记录、错题重做与知识回忆的自主判分、Chat 变式训练。AI 参考答案待核对，不能当作已验证的掌握证据。
+- 训练：Chat 内单选/多选/判断/填空/数值题、离线练习、手动录题、确定性判分、可续做的离线随机小测、草稿/分页历史/提示记录、题目修订与来源追溯、错题重做与知识回忆的自主判分、Chat 变式训练。AI 参考答案待核对，不能当作已验证的掌握证据。
 
 - 复习与诊断：根据实际作答安排间隔复习，应用内到期提醒、暂停/重置/调整日期；今日任务、不同判分依据统计和独立检测的知识点证据。学习目标与每日时间可配置，不预测考试分数。
 
 - 备份：版本化完整备份、SHA-256 校验、独立暂存验证、原子目录切换、恢复中断保全与一次恢复撤销，排除 API Key。Android 通过系统文档保存窗口导出，无需广泛存储权限。
 - AI 分题：支持视觉的模型提出结构化边界建议；用户逐题检查、改框和旋转后保存，原图与裁剪结果都保留。
 
-系统后台通知尚未提供；当前支持应用内到期提醒。真实 API 和 Android 设备验收状态见进度文档。平台与真实 API 验证状态见 [ROADMAP.md](ROADMAP.md)。
+支持分页检索、最多 200 条资料批量整理及撤销，回收区可恢复或确认永久删除；共享图片在最后一个引用删除后清理。真实 API 和 Android 设备验收仍待外部条件，系统通知以应用内提醒替代，状态见 [ROADMAP.md](ROADMAP.md)。
 
 ## 运行
 
@@ -54,11 +54,12 @@ flutter build linux --release --dart-define=TIXUN_DEMO=true
 scripts/gui_smoke.sh
 xvfb-run -a dbus-run-session -- flutter test integration_test/chat_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true
 xvfb-run -a dbus-run-session -- flutter test integration_test/learning_materials_test.dart -d linux --dart-define=TIXUN_DEMO=true
+# 另有 practice_flow_test.dart、practice_management_test.dart、backup_flow_test.dart，按 CI 顺序执行
 ```
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。截图和日志保存在 `artifacts/gui/`；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
-Golden 使用随包字体及固定环境；有意更新时运行 `flutter test --update-goldens test/ui_test.dart`，并检查图像。数据库 schema v1/v3 → v4 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
+Golden 使用随包字体及固定环境；有意更新时运行 `flutter test --update-goldens test/ui_test.dart`，并检查图像。数据库 schema v1/v3/v4 → v5 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
 
 ```bash
 dart run build_runner build
@@ -74,7 +75,7 @@ GitHub Actions 检查代码、构建 Debug APK、构建 Linux、执行真实 GUI
 
 数据库与附件位于 `path_provider` 的应用支持目录下 `tixun/`。API Key 按服务商与地址存放于系统安全存储，不进入数据库、日志或源码。无第三方应用分析与遥测。工具读取有范围和长度限制，不上传整个知识库；图片不经检索工具自动上传。Markdown 外部图片不自动联网加载。
 
-知识、错题、会话及图片删除均可恢复，不自动清空。知识历史目前覆盖文本和标签，图片通过独立的移除/恢复机制管理。在设置中导出完整备份，包含回收区、修订和受管理图片，始终排除密钥。恢复先检查格式、大小、路径、哈希、数据库和关联一致性，再替换数据，并保留最近一次原数据以便撤销。恢复后资料工具授权关闭，需重新开启。支持到 schema v4 的历史数据库迁移；备份采用流式 ZIP STORE，原始数据上限 8 GiB、10 万附件。勿仅复制打开状态的 SQLite 主文件。
+知识、错题、会话、练习及图片默认先移入回收区，不自动清空。永久删除需要确认，并只清理不再被其他记录引用的图片；导出备份需自行管理，恢复安全副本可在设置中单独删除。知识历史目前覆盖文本和标签，图片通过独立的移除/恢复机制管理。在设置中导出完整备份，包含回收区、修订和受管理图片，始终排除密钥。恢复先检查格式、大小、路径、哈希、数据库和关联一致性，再替换数据，并保留最近一次原数据以便撤销。恢复后资料工具授权关闭，需重新开启。支持到 schema v5 的历史数据库迁移；备份采用流式 ZIP STORE，原始数据上限 8 GiB、10 万附件。勿仅复制打开状态的 SQLite 主文件。
 
 架构见 [DESIGN.md](DESIGN.md)，进度见 [ROADMAP.md](ROADMAP.md)。代码 MIT，字体 OFL。
 
@@ -90,4 +91,4 @@ GitHub Actions 检查代码、构建 Debug APK、构建 Linux、执行真实 GUI
 
 <img src="docs/screenshots/mistake-phone.png" width="390" alt="手机宽度的错题与原图" />
 
-当前 M2 验证构建：[Android APK、Linux bundle 与测试截图](https://github.com/mumu-lhl/tixun/actions/runs/41680879458)。
+[下载最新通过验证的 Android APK、Linux bundle 与测试截图](https://github.com/mumu-lhl/tixun/actions/workflows/ci.yml)。CI Artifact 需要登录 GitHub；APK 为 Debug 开发包，尚未进行正式签名发布。

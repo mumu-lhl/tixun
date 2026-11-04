@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../../core/database/database_notifier.dart';
@@ -5,7 +7,11 @@ import '../../core/database/database_notifier.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/database/database.dart';
+import '../../core/database/attachment_cleanup.dart';
+import '../../core/platform/attachment_store.dart';
+import '../../core/platform/attachment_selection.dart';
 import 'question_spec.dart';
+import 'practice_run.dart';
 
 class QuestionDetail {
   const QuestionDetail(
@@ -24,7 +30,8 @@ class QuestionDetail {
 }
 
 class PracticeStore extends DatabaseNotifier {
-  PracticeStore(this.db);
+  PracticeStore(this.db, {this.files});
+  final AttachmentStore? files;
   final AppDatabase db;
   Future<void> Function(PracticeAttempt attempt)? onGraded;
 
@@ -32,11 +39,12 @@ class PracticeStore extends DatabaseNotifier {
     String query = '',
     String subject = '',
     String? messageId,
+    bool trash = false,
   }) =>
       (db.select(db.practiceQuestions)
             ..where(
               (q) =>
-                  q.deleted.equals(false) &
+                  q.deleted.equals(trash) &
                   (query.isEmpty
                       ? const Constant(true)
                       : q.stem.contains(query)) &
@@ -45,7 +53,16 @@ class PracticeStore extends DatabaseNotifier {
                       : q.subject.equals(subject)) &
                   (messageId == null
                       ? const Constant(true)
-                      : q.sourceMessageId.equals(messageId)),
+                      : q.sourceMessageId.equals(messageId) |
+                            q.id.isInQuery(
+                              db.selectOnly(db.practiceChatLinks)
+                                ..addColumns([db.practiceChatLinks.questionId])
+                                ..where(
+                                  db.practiceChatLinks.messageId.equals(
+                                    messageId,
+                                  ),
+                                ),
+                            )),
             )
             ..orderBy([(q) => OrderingTerm.desc(q.createdAt)])
             ..limit(200))
@@ -61,7 +78,8 @@ class PracticeStore extends DatabaseNotifier {
     String? mistakeId,
     List<String> knowledgeIds = const [],
     String? parentId,
-  }) async {
+    List<Attachment> sourceImages = const [],
+  }) => runOperation(() async {
     spec.validate();
     if (!['manual', 'ai', 'template', 'mistake', 'recall'].contains(origin) ||
         ![
@@ -77,7 +95,14 @@ class PracticeStore extends DatabaseNotifier {
         final old = await (db.select(
           db.practiceQuestions,
         )..where((q) => q.sourceOperation.equals(operation))).getSingleOrNull();
-        if (old != null) return old.id;
+        if (old != null) {
+          if (old.deleted) {
+            await (db.update(db.practiceQuestions)
+                  ..where((q) => q.id.equals(old.id)))
+                .write(const PracticeQuestionsCompanion(deleted: Value(false)));
+          }
+          return old.id;
+        }
       }
       final id = const Uuid().v4();
       await db
@@ -104,6 +129,16 @@ class PracticeStore extends DatabaseNotifier {
               createdAt: DateTime.now(),
             ),
           );
+      if (messageId != null) {
+        await db
+            .into(db.practiceChatLinks)
+            .insert(
+              PracticeChatLinksCompanion.insert(
+                questionId: id,
+                messageId: messageId,
+              ),
+            );
+      }
       var position = 0;
       for (final e in spec.options.entries) {
         await db
@@ -170,31 +205,54 @@ class PracticeStore extends DatabaseNotifier {
               ),
             );
       }
-      if (mistakeId != null) {
+      final imageRefs = <({String path, String mime, int bytes})>[];
+      if (origin == 'ai') {
+        imageRefs.addAll(
+          sourceImages.map(
+            (a) => (path: a.relativePath, mime: a.mime, bytes: a.byteLength),
+          ),
+        );
+      } else if (parentId != null) {
         final images = await (db.select(
-          db.studyAttachments,
-        )..where((a) => a.mistakeId.equals(mistakeId))).get();
-        for (final a in images) {
-          await db
-              .into(db.practiceImages)
-              .insert(
-                PracticeImagesCompanion.insert(
-                  id: const Uuid().v4(),
-                  questionId: id,
-                  relativePath: a.relativePath,
-                  mime: a.mime,
-                  byteLength: a.byteLength,
-                ),
-              );
-        }
+          db.practiceImages,
+        )..where((a) => a.questionId.equals(parentId))).get();
+        imageRefs.addAll(
+          images.map(
+            (a) => (path: a.relativePath, mime: a.mime, bytes: a.byteLength),
+          ),
+        );
+      } else if (mistakeId != null) {
+        final images =
+            await (db.select(db.studyAttachments)
+                  ..where((a) => a.mistakeId.equals(mistakeId))
+                  ..orderBy([(a) => OrderingTerm.asc(a.rowId)]))
+                .get();
+        imageRefs.addAll(
+          preferredStudyImages(images).map(
+            (a) => (path: a.relativePath, mime: a.mime, bytes: a.byteLength),
+          ),
+        );
+      }
+      for (final a in imageRefs) {
+        await db
+            .into(db.practiceImages)
+            .insert(
+              PracticeImagesCompanion.insert(
+                id: const Uuid().v4(),
+                questionId: id,
+                relativePath: a.path,
+                mime: a.mime,
+                byteLength: a.bytes,
+              ),
+            );
       }
       return id;
     });
     changed();
     return id;
-  }
+  });
 
-  Future<QuestionDetail> detail(String id) async {
+  Future<QuestionDetail> detail(String id, {String? attemptId}) async {
     final q = await (db.select(
       db.practiceQuestions,
     )..where((q) => q.id.equals(id) & q.deleted.equals(false))).getSingle();
@@ -236,22 +294,33 @@ class PracticeStore extends DatabaseNotifier {
       timeLimitSeconds: q.timeLimitSeconds,
     );
     spec.validate();
-    final attempts =
+    final storedAttempts =
         await (db.select(db.practiceAttempts)
               ..where((a) => a.questionId.equals(id))
-              ..orderBy([
-                (a) => OrderingTerm.desc(a.startedAt),
-                (a) => OrderingTerm.desc(a.rowId),
-              ]))
+              ..orderBy([(a) => OrderingTerm.desc(a.rowId)])
+              ..limit(50))
             .get();
+    final attempts = List<PracticeAttempt>.of(storedAttempts);
+    if (attemptId != null) {
+      final focused =
+          await (db.select(
+                db.practiceAttempts,
+              )..where((a) => a.id.equals(attemptId) & a.questionId.equals(id)))
+              .getSingle();
+      attempts.removeWhere((a) => a.id == attemptId);
+      attempts.insert(0, focused);
+      if (attempts.length > 50) attempts.removeLast();
+    }
     final responses = <String, List<String>>{};
-    for (final a in attempts) {
+    if (attempts.isNotEmpty) {
       final rows =
           await (db.select(db.practiceResponses)
-                ..where((r) => r.attemptId.equals(a.id))
+                ..where((r) => r.attemptId.isIn(attempts.map((a) => a.id)))
                 ..orderBy([(r) => OrderingTerm.asc(r.position)]))
               .get();
-      responses[a.id] = rows.map((r) => r.answer).toList();
+      for (final r in rows) {
+        responses.putIfAbsent(r.attemptId, () => []).add(r.answer);
+      }
     }
     return QuestionDetail(
       q,
@@ -264,30 +333,31 @@ class PracticeStore extends DatabaseNotifier {
     );
   }
 
-  Future<PracticeAttempt> begin(String id, {bool retry = false}) async {
-    final attempt = await db.transaction(() async {
-      final detail = await this.detail(id);
-      if (detail.latest != null &&
-          (!retry || detail.latest!.status != 'graded')) {
-        return detail.latest!;
-      }
-      final aid = const Uuid().v4();
-      await db
-          .into(db.practiceAttempts)
-          .insert(
-            PracticeAttemptsCompanion.insert(
-              id: aid,
-              questionId: id,
-              startedAt: DateTime.now(),
-            ),
-          );
-      return (db.select(
-        db.practiceAttempts,
-      )..where((a) => a.id.equals(aid))).getSingle();
-    });
-    changed();
-    return attempt;
-  }
+  Future<PracticeAttempt> begin(String id, {bool retry = false}) =>
+      runOperation(() async {
+        final attempt = await db.transaction(() async {
+          final detail = await this.detail(id);
+          if (detail.latest != null &&
+              (!retry || detail.latest!.status != 'graded')) {
+            return detail.latest!;
+          }
+          final aid = const Uuid().v4();
+          await db
+              .into(db.practiceAttempts)
+              .insert(
+                PracticeAttemptsCompanion.insert(
+                  id: aid,
+                  questionId: id,
+                  startedAt: DateTime.now(),
+                ),
+              );
+          return (db.select(
+            db.practiceAttempts,
+          )..where((a) => a.id.equals(aid))).getSingle();
+        });
+        changed();
+        return attempt;
+      });
 
   Future<PracticeAttempt> _attempt(String id) => (db.select(
     db.practiceAttempts,
@@ -331,22 +401,22 @@ class PracticeStore extends DatabaseNotifier {
     }
   }
 
-  Future<void> useHint(String id) async {
+  Future<void> useHint(String id) => runOperation(() async {
     await (db.update(db.practiceAttempts)
           ..where((a) => a.id.equals(id) & a.status.equals('draft')))
         .write(const PracticeAttemptsCompanion(hintUsed: Value(true)));
     final a = await _attempt(id);
     if (a.status == 'draft') {
-      await _stage((await detail(a.questionId)).row.sourceSessionId, 'hinting');
+      await _stage(a.questionId, 'hinting');
     }
     changed();
-  }
+  });
 
   Future<PracticeAttempt> submit(
     String id,
     List<String> answers, {
     DateTime? now,
-  }) async {
+  }) => runOperation(() async {
     await flushDrafts();
     final result = await db.transaction(() async {
       final a = await _attempt(id);
@@ -404,57 +474,204 @@ class PracticeStore extends DatabaseNotifier {
       );
       final saved = await _attempt(id);
       if (!self) await onGraded?.call(saved);
-      await _stage(d.row.sourceSessionId, self ? 'practice' : 'feedback');
+      await _stage(d.row.id, self ? 'practice' : 'feedback');
       return saved;
     });
     changed();
     return result;
-  }
+  });
 
-  Future<PracticeAttempt> selfGrade(String id, bool correct) async {
-    final result = await db.transaction(() async {
-      final a = await _attempt(id);
-      if (a.status != 'awaiting_self_grade') return a;
-      await (db.update(
-        db.practiceAttempts,
-      )..where((t) => t.id.equals(id))).write(
-        PracticeAttemptsCompanion(
-          status: const Value('graded'),
-          correct: Value(correct),
-          score: Value(correct ? 1 : 0),
-        ),
-      );
-      final saved = await _attempt(id);
-      await onGraded?.call(saved);
-      await _stage(
-        (await detail(a.questionId)).row.sourceSessionId,
-        'feedback',
-      );
-      return saved;
-    });
-    changed();
-    return result;
-  }
+  Future<PracticeAttempt> selfGrade(String id, bool correct) =>
+      runOperation(() async {
+        final result = await db.transaction(() async {
+          final a = await _attempt(id);
+          if (a.status != 'awaiting_self_grade') return a;
+          await (db.update(
+            db.practiceAttempts,
+          )..where((t) => t.id.equals(id))).write(
+            PracticeAttemptsCompanion(
+              status: const Value('graded'),
+              correct: Value(correct),
+              score: Value(correct ? 1 : 0),
+            ),
+          );
+          final saved = await _attempt(id);
+          await onGraded?.call(saved);
+          await _stage(a.questionId, 'feedback');
+          return saved;
+        });
+        changed();
+        return result;
+      });
 
-  Future<void> _stage(String? session, String stage) async {
-    if (session != null) {
-      await (db.update(db.chatSessions)..where((s) => s.id.equals(session)))
+  Future<void> _stage(String question, String stage) async {
+    final sessions = await db
+        .customSelect(
+          'SELECT DISTINCT m.session_id FROM practice_chat_links l JOIN chat_messages m ON m.id=l.message_id WHERE l.question_id=?',
+          variables: [Variable(question)],
+        )
+        .get();
+    for (final row in sessions) {
+      await (db.update(db.chatSessions)
+            ..where((s) => s.id.equals(row.read<String>('session_id'))))
           .write(ChatSessionsCompanion(stage: Value(stage)));
     }
   }
 
-  Future<void> verify(String id) async {
+  Future<void> linkFork(String sourceMessage, String targetMessage) async {
+    final questions = await db
+        .customSelect(
+          'SELECT question_id FROM practice_chat_links WHERE message_id=? UNION SELECT id FROM practice_questions WHERE source_message_id=?',
+          variables: [Variable(sourceMessage), Variable(sourceMessage)],
+        )
+        .get();
+    for (final row in questions) {
+      await db
+          .into(db.practiceChatLinks)
+          .insert(
+            PracticeChatLinksCompanion.insert(
+              questionId: row.read<String>('question_id'),
+              messageId: targetMessage,
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+    }
+  }
+
+  Future<List<PracticeAttempt>> history(String id, {int offset = 0}) =>
+      (db.select(db.practiceAttempts)
+            ..where((a) => a.questionId.equals(id))
+            ..orderBy([(a) => OrderingTerm.desc(a.rowId)])
+            ..limit(50, offset: offset.clamp(0, 10000000)))
+          .get();
+
+  Future<PracticeRun?> loadRun() async {
+    final raw = await db.preference('practice_run');
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final run = PracticeRun.fromJson(
+        (jsonDecode(raw) as Map).cast<String, dynamic>(),
+      );
+      final questions = await (db.select(
+        db.practiceQuestions,
+      )..where((q) => q.id.isIn(run.ids) & q.deleted.equals(false))).get();
+      if (questions.length != run.ids.length) {
+        throw const FormatException('小测中的题目已删除，请结束本轮后重新选择。已有记录保留。');
+      }
+      final known = run.attempts.whereType<String>().toList();
+      final attempts = await (db.select(
+        db.practiceAttempts,
+      )..where((a) => a.id.isIn(known))).get();
+      final byId = {for (final a in attempts) a.id: a};
+      for (var i = 0; i < run.ids.length; i++) {
+        if (i <= run.index) {
+          final a = byId[run.attempts[i]];
+          if (a == null ||
+              a.questionId != run.ids[i] ||
+              (i < run.index && a.status != 'graded')) {
+            throw const FormatException('小测作答状态不一致，请结束本轮；已有记录保留。');
+          }
+        } else if (run.attempts[i] != null) {
+          throw const FormatException('小测进度不一致，请结束本轮；已有记录保留。');
+        }
+      }
+      return run;
+    } on FormatException {
+      rethrow;
+    } catch (_) {
+      throw const FormatException('小测状态无法恢复，请结束本轮后重新开始；已有作答仍保留。');
+    }
+  }
+
+  Future<PracticeRun> startRandomRun({
+    String subject = '',
+  }) => runOperation(() async {
+    final rows = await db
+        .customSelect(
+          'SELECT id FROM practice_questions WHERE deleted=0 ${subject.isEmpty ? '' : 'AND subject=?'} ORDER BY RANDOM() LIMIT 5',
+          variables: [if (subject.isNotEmpty) Variable(subject)],
+        )
+        .get();
+    if (rows.isEmpty) {
+      throw const FormatException('还没有已有题目。请先手动录题、使用离线基础题，或让 AI 生成练习。');
+    }
+    final ids = rows.map((r) => r.read<String>('id')).toList();
+    final run = await db.transaction(() async {
+      final previous = await loadRun();
+      if (previous != null && !previous.completed) return previous;
+      final attempt = await begin(ids.first, retry: true);
+      final run = PracticeRun(
+        ids,
+        List<String?>.filled(ids.length, null)..[0] = attempt.id,
+        0,
+      );
+      await db.setPreference('practice_run', jsonEncode(run.toJson()));
+      return run;
+    });
+    changed();
+    return run;
+  });
+  Future<PracticeRun> advanceRun({String? expectedAttemptId}) => runOperation(
+    () async {
+      final next = await db.transaction(() async {
+        final run = await loadRun();
+        if (run == null) throw const FormatException('本轮小测不存在。');
+        if (run.completed) return run;
+        final a = run.attempts[run.index];
+        if (expectedAttemptId != null && a != expectedAttemptId) return run;
+        if (a == null || (await _attempt(a)).status != 'graded') {
+          throw const FormatException('请先提交答案并完成评分。');
+        }
+        final index = run.index + 1, attempts = List<String?>.of(run.attempts);
+        if (index < run.ids.length) {
+          attempts[index] = (await begin(run.ids[index], retry: true)).id;
+        }
+        final next = PracticeRun(run.ids, attempts, index);
+        await db.setPreference('practice_run', jsonEncode(next.toJson()));
+        return next;
+      });
+      changed();
+      return next;
+    },
+  );
+  Future<void> clearRun() => runOperation(() async {
+    await db.setPreference('practice_run', '');
+    changed();
+  });
+
+  Future<int> purge(String id) => runOperation(() async {
+    final paths = <String>[];
+    await db.transaction(() async {
+      await (db.select(
+        db.practiceQuestions,
+      )..where((q) => q.id.equals(id) & q.deleted.equals(true))).getSingle();
+      paths.addAll(
+        (await (db.select(
+          db.practiceImages,
+        )..where((a) => a.questionId.equals(id))).get()).map(
+          (a) => a.relativePath,
+        ),
+      );
+      await (db.delete(
+        db.practiceQuestions,
+      )..where((q) => q.id.equals(id))).go();
+    });
+    changed();
+    return files == null ? 0 : cleanupPurgedAttachments(db, files!, paths);
+  });
+
+  Future<void> verify(String id) => runOperation(() async {
     await (db.update(
       db.practiceQuestions,
     )..where((q) => q.id.equals(id))).write(
       const PracticeQuestionsCompanion(verification: Value('user_checked')),
     );
     changed();
-  }
+  });
 
-  Future<void> setDeleted(String id, bool value) async {
+  Future<void> setDeleted(String id, bool value) => runOperation(() async {
     await (db.update(db.practiceQuestions)..where((q) => q.id.equals(id)))
         .write(PracticeQuestionsCompanion(deleted: Value(value)));
     changed();
-  }
+  });
 }

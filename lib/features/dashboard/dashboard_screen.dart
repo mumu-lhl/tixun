@@ -166,52 +166,100 @@ class DashboardScreen extends ConsumerWidget {
                     ],
                   ),
                 const SizedBox(height: 24),
-                LayoutBuilder(
-                  builder: (context, constraints) => Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
+                if (compact)
+                  Row(
                     children: [
-                      _info(
-                        context,
-                        width: compact
-                            ? constraints.maxWidth
-                            : (constraints.maxWidth - 32) / 3,
-                        label: '学习对话',
-                        value: '${c.allSessions.length}',
-                        detail: c.demo ? '独立演示记录' : '此设备上保存的会话',
-                        icon: Icons.forum_outlined,
-                      ),
-                      _info(
-                        context,
-                        width: compact
-                            ? constraints.maxWidth
-                            : (constraints.maxWidth - 32) / 3,
-                        label: '知识积累',
-                        value: counts.when(
-                          data: (v) => '${v.knowledge}',
-                          loading: () => '…',
-                          error: (_, _) => '—',
+                      for (final (label, value) in [
+                        ('学习对话', '${c.allSessions.length}'),
+                        (
+                          '知识积累',
+                          counts.when(
+                            data: (v) => '${v.knowledge}',
+                            loading: () => '…',
+                            error: (_, _) => '—',
+                          ),
                         ),
-                        detail: '保存自己的理解与方法',
-                        icon: Icons.bookmarks_outlined,
-                      ),
-                      _info(
-                        context,
-                        width: compact
-                            ? constraints.maxWidth
-                            : (constraints.maxWidth - 32) / 3,
-                        label: '错题记录',
-                        value: counts.when(
-                          data: (v) => '${v.mistakes}',
-                          loading: () => '…',
-                          error: (_, _) => '—',
+                        (
+                          '错题记录',
+                          counts.when(
+                            data: (v) => '${v.mistakes}',
+                            loading: () => '…',
+                            error: (_, _) => '—',
+                          ),
                         ),
-                        detail: '保留原题与反思',
-                        icon: Icons.menu_book_outlined,
-                      ),
+                      ])
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                value,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                label,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: colors.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
+                  )
+                else
+                  LayoutBuilder(
+                    builder: (context, constraints) => Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        _info(
+                          context,
+                          width: compact
+                              ? constraints.maxWidth
+                              : (constraints.maxWidth - 32) / 3,
+                          label: '学习对话',
+                          value: '${c.allSessions.length}',
+                          detail: c.demo ? '独立演示记录' : '此设备上保存的会话',
+                          icon: Icons.forum_outlined,
+                        ),
+                        _info(
+                          context,
+                          width: compact
+                              ? constraints.maxWidth
+                              : (constraints.maxWidth - 32) / 3,
+                          label: '知识积累',
+                          value: counts.when(
+                            data: (v) => '${v.knowledge}',
+                            loading: () => '…',
+                            error: (_, _) => '—',
+                          ),
+                          detail: '保存自己的理解与方法',
+                          icon: Icons.bookmarks_outlined,
+                        ),
+                        _info(
+                          context,
+                          width: compact
+                              ? constraints.maxWidth
+                              : (constraints.maxWidth - 32) / 3,
+                          label: '错题记录',
+                          value: counts.when(
+                            data: (v) => '${v.mistakes}',
+                            loading: () => '…',
+                            error: (_, _) => '—',
+                          ),
+                          detail: '保留原题与反思',
+                          icon: Icons.menu_book_outlined,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
                 const SizedBox(height: 32),
                 Row(
                   children: [

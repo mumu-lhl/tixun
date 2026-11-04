@@ -24,6 +24,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String _query = '', _subject = '';
   bool _trash = false, _importing = false;
   int _epoch = -1;
+  bool _selecting = false,
+      _bulkBusy = false,
+      _loadingMore = false,
+      _hasMore = true;
+  int _nextOffset = 100;
+  final _selected = <String, int>{};
+  final _extra = <_Entry>[];
+  List<_Entry> _visible = [];
   Timer? _debounce;
   Future<List<_Entry>>? _future;
   @override
@@ -33,12 +41,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   void _refresh() => setState(() => _epoch = -1);
-  Future<List<_Entry>> _load(StudyStore store) async => widget.isMistake
+  Future<List<_Entry>> _load(StudyStore store, {int offset = 0}) async =>
+      widget.isMistake
       ? (await store.searchMistakes(
               query: _query,
               subject: _subject,
               trash: _trash,
-              limit: 200,
+              limit: 100,
+              offset: offset,
             ))
             .map(
               (m) => _Entry(
@@ -56,7 +66,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               query: _query,
               subject: _subject,
               trash: _trash,
-              limit: 200,
+              limit: 100,
+              offset: offset,
             ))
             .map(
               (k) => _Entry(
@@ -70,6 +81,136 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               ),
             )
             .toList();
+  void _toggle(_Entry e) {
+    if (_bulkBusy) return;
+    if (!_selected.containsKey(e.id) && _selected.length >= 200) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('每次最多选择 200 条，可分批整理。')));
+      return;
+    }
+    setState(() {
+      _selecting = true;
+      _selected.containsKey(e.id)
+          ? _selected.remove(e.id)
+          : _selected[e.id] = e.revision;
+    });
+  }
+
+  Future<void> _more() async {
+    if (_loadingMore) return;
+    final epoch = _epoch, query = _query, subject = _subject, trash = _trash;
+    setState(() => _loadingMore = true);
+    try {
+      final rows = await _load(
+        ref.read(studyStoreProvider),
+        offset: _nextOffset,
+      );
+      if (mounted &&
+          epoch == _epoch &&
+          query == _query &&
+          subject == _subject &&
+          trash == _trash) {
+        setState(() {
+          _nextOffset += rows.length;
+          _hasMore = rows.length == 100;
+          final ids = _visible.map((e) => e.id).toSet();
+          _extra.addAll(rows.where((e) => !ids.contains(e.id)));
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  Future<void> _batch({bool permanent = false}) async {
+    if (_bulkBusy || _selected.isEmpty) return;
+    final revisions = Map<String, int>.of(_selected),
+        store = ref.read(studyStoreProvider);
+    final wasTrash = _trash;
+    if (permanent) {
+      final names = _visible
+          .where((e) => revisions.containsKey(e.id))
+          .take(3)
+          .map((e) => '• ${e.title}')
+          .join('\n');
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('永久删除 ${revisions.length} 条资料？'),
+          scrollable: true,
+          content: Text(
+            '$names\n\n资料、修订和附件引用将永久删除。独立的 Chat 与训练记录会保留；其他记录仍引用的图片也会保留。已导出备份与恢复安全副本需另行管理。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('永久删除'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+    if (!mounted) return;
+    setState(() => _bulkBusy = true);
+    try {
+      if (permanent) {
+        final failed = await store.purge(
+          revisions,
+          isMistake: widget.isMistake,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                failed == 0
+                    ? '已永久删除 ${revisions.length} 条资料。'
+                    : '资料记录已删除，$failed 个未引用图片未能清理，请检查目录权限。',
+              ),
+            ),
+          );
+        }
+      } else {
+        final next = await store.batchSetDeleted(
+          revisions,
+          isMistake: widget.isMistake,
+          deleted: !wasTrash,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '已${wasTrash ? '恢复' : '移入回收区'} ${revisions.length} 条资料。',
+              ),
+              action: SnackBarAction(
+                label: '撤销',
+                onPressed: () => act(context, () async {
+                  await store.batchSetDeleted(
+                    next,
+                    isMistake: widget.isMistake,
+                    deleted: wasTrash,
+                  );
+                }),
+              ),
+            ),
+          );
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _selected.clear();
+          _selecting = false;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _bulkBusy = false);
+    }
+  }
+
   Future<void> _create() async {
     final id = await showDialog<String>(
       context: context,
@@ -141,6 +282,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final name = widget.isMistake ? '错题本' : '知识库';
     if (_epoch != store.epoch) {
       _epoch = store.epoch;
+      _extra.clear();
+      _visible = [];
+      _nextOffset = 100;
+      _hasMore = true;
+      _selected.clear();
       _future = _load(store);
     }
     final small = MediaQuery.sizeOf(context).width < 700;
@@ -165,11 +311,29 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     ),
                   ),
                   IconButton(
+                    tooltip: '选择多条资料',
+                    onPressed: _bulkBusy
+                        ? null
+                        : () {
+                            FocusScope.of(context).unfocus();
+                            setState(() {
+                              _selecting = !_selecting;
+                              _selected.clear();
+                            });
+                          },
+                    icon: Icon(_selecting ? Icons.close : Icons.checklist),
+                  ),
+                  IconButton(
                     tooltip: _trash ? '返回资料' : '打开回收区',
-                    onPressed: () => setState(() {
-                      _trash = !_trash;
-                      _epoch = -1;
-                    }),
+                    onPressed: _bulkBusy
+                        ? null
+                        : () {
+                            FocusScope.of(context).unfocus();
+                            setState(() {
+                              _trash = !_trash;
+                              _epoch = -1;
+                            });
+                          },
                     icon: Icon(
                       _trash
                           ? Icons.inventory_2_outlined
@@ -178,7 +342,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   ),
                   FilledButton.icon(
                     key: const Key('create-study'),
-                    onPressed: _trash ? null : () => act(context, _create),
+                    onPressed: _trash || _bulkBusy
+                        ? null
+                        : () => act(context, _create),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('新建'),
                   ),
@@ -301,6 +467,56 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             ],
           ),
         ),
+        if (_selecting)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('已选 ${_selected.length} 条'),
+                TextButton(
+                  onPressed: _bulkBusy
+                      ? null
+                      : () => setState(() {
+                          for (final e in _visible.take(200)) {
+                            _selected[e.id] = e.revision;
+                          }
+                        }),
+                  child: const Text('全选已加载'),
+                ),
+                FilledButton.tonal(
+                  onPressed: _bulkBusy || _selected.isEmpty
+                      ? null
+                      : () => act(context, _batch),
+                  child: Text(_trash ? '恢复所选' : '移入回收区'),
+                ),
+                if (!_trash && !widget.isMistake)
+                  TextButton(
+                    onPressed:
+                        _bulkBusy || _selected.isEmpty || _selected.length > 5
+                        ? null
+                        : () => act(context, () async {
+                            await ref
+                                .read(appControllerProvider)
+                                .prepareKnowledgePractice(
+                                  _selected.keys.toList(),
+                                );
+                            if (context.mounted) context.go('/chat');
+                          }),
+                    child: const Text('知识检测（最多5条）'),
+                  ),
+                if (_trash)
+                  TextButton(
+                    onPressed: _bulkBusy || _selected.isEmpty
+                        ? null
+                        : () => act(context, () => _batch(permanent: true)),
+                    child: const Text('永久删除'),
+                  ),
+              ],
+            ),
+          ),
         const Divider(),
         Expanded(
           child: FutureBuilder<List<_Entry>>(
@@ -315,10 +531,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   ),
                 );
               }
-              if (!snapshot.hasData) {
+              if (!snapshot.hasData ||
+                  snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final entries = snapshot.data!;
+              final entries = [...snapshot.data!, ..._extra];
+              _visible = entries;
+              final canLoadMore = snapshot.data!.length == 100 && _hasMore;
               if (entries.isEmpty) {
                 return Center(
                   child: Padding(
@@ -375,18 +594,31 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   horizontal: small ? 12 : 28,
                   vertical: 8,
                 ),
-                itemCount: entries.length + (entries.length == 200 ? 1 : 0),
+                itemCount: entries.length + (canLoadMore ? 1 : 0),
                 separatorBuilder: (_, _) => const Divider(),
                 itemBuilder: (context, index) {
                   if (index == entries.length) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('当前显示最近 200 条，请使用搜索缩小范围。'),
+                    return Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: TextButton(
+                        onPressed: _loadingMore
+                            ? null
+                            : () => act(context, _more),
+                        child: Text(_loadingMore ? '正在读取…' : '加载更多'),
+                      ),
                     );
                   }
                   final e = entries[index];
                   return ListTile(
                     key: ValueKey(e.id),
+                    selected: _selected.containsKey(e.id),
+                    leading: _selecting
+                        ? Checkbox(
+                            value: _selected.containsKey(e.id),
+                            onChanged: _bulkBusy ? null : (_) => _toggle(e),
+                          )
+                        : null,
+                    onLongPress: () => _toggle(e),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 12,
@@ -422,7 +654,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         ],
                       ),
                     ),
-                    trailing: _trash
+                    trailing: _selecting
+                        ? null
+                        : _trash
                         ? TextButton(
                             onPressed: () => act(
                               context,
@@ -436,7 +670,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             child: const Text('恢复'),
                           )
                         : const Icon(Icons.chevron_right),
-                    onTap: _trash
+                    onTap: _selecting
+                        ? () => _toggle(e)
+                        : _trash
                         ? null
                         : () => context.push(
                             '${widget.isMistake ? '/mistakes' : '/knowledge'}/${e.id}',

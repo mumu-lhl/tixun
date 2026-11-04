@@ -67,9 +67,13 @@ void main() {
         overrides: [appControllerProvider.overrideWith((ref) => c)],
       );
       addTearDown(() async {
-        container.dispose();
-        await c.shutdown();
-        await c.files.root.delete(recursive: true);
+        await tester.runAsync(() async {
+          container.dispose();
+          await c.db.close();
+          if (await c.files.root.exists()) {
+            await c.files.root.delete(recursive: true);
+          }
+        });
       });
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(390, 1000);
@@ -200,6 +204,32 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 30));
       });
       expect(c.selected!.draft, '不会丢失的草稿');
+      tester.view.physicalSize = const Size(360, 760);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 360);
+      addTearDown(tester.view.resetViewInsets);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.runAsync(() => c.addImage('assets/demo/two_problems.png'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('chat-input')),
+        '第一行\n第二行\n第三行\n第四行\n第五行\n第六行',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Keyboard, image preview, long draft and large text must fit together',
+      );
+      expect(
+        tester.getRect(find.byKey(const Key('chat-input'))).bottom,
+        lessThanOrEqualTo(400),
+      );
+      expect(
+        tester.getRect(find.byKey(const Key('send-message'))).bottom,
+        lessThanOrEqualTo(400),
+        reason: 'Send stays above the keyboard',
+      );
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );

@@ -45,6 +45,10 @@ class _TixunHostState extends State<TixunHost> {
     prepareUndo: () =>
         _work('正在检查安全副本…', () => BackupService.preparePrevious(widget.root)),
     restore: _restore,
+    clearUndo: () => _work('正在删除恢复安全副本…', () async {
+      await BackupService.clearPrevious(widget.root);
+      _controller?.changed();
+    }),
   );
   @override
   void initState() {
@@ -91,6 +95,9 @@ class _TixunHostState extends State<TixunHost> {
     final c = _controller!;
     await c.stop();
     await c.practice.flushDrafts();
+    await c.study.whenIdle;
+    await c.practice.whenIdle;
+    await c.review.whenIdle;
     final temp = await Directory(
       p.join((await getTemporaryDirectory()).path, 'tixun-backup-export'),
     ).create(recursive: true);
@@ -118,6 +125,9 @@ class _TixunHostState extends State<TixunHost> {
         try {
           await old?.stop();
           await old?.practice.flushDrafts();
+          await old?.study.whenIdle;
+          await old?.practice.whenIdle;
+          await old?.review.whenIdle;
           if (old != null &&
               !await File(p.join(widget.root.path, 'tixun.sqlite')).exists()) {
             await old.db.customStatement('VACUUM INTO ?', [

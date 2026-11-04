@@ -1172,6 +1172,17 @@ class $AttachmentsTable extends Attachments
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _originalPathMeta = const VerificationMeta(
+    'originalPath',
+  );
+  @override
+  late final GeneratedColumn<String> originalPath = GeneratedColumn<String>(
+    'original_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _mimeMeta = const VerificationMeta('mime');
   @override
   late final GeneratedColumn<String> mime = GeneratedColumn<String>(
@@ -1198,6 +1209,7 @@ class $AttachmentsTable extends Attachments
     sessionId,
     messageId,
     relativePath,
+    originalPath,
     mime,
     byteLength,
   ];
@@ -1243,6 +1255,15 @@ class $AttachmentsTable extends Attachments
     } else if (isInserting) {
       context.missing(_relativePathMeta);
     }
+    if (data.containsKey('original_path')) {
+      context.handle(
+        _originalPathMeta,
+        originalPath.isAcceptableOrUnknown(
+          data['original_path']!,
+          _originalPathMeta,
+        ),
+      );
+    }
     if (data.containsKey('mime')) {
       context.handle(
         _mimeMeta,
@@ -1284,6 +1305,10 @@ class $AttachmentsTable extends Attachments
         DriftSqlType.string,
         data['${effectivePrefix}relative_path'],
       )!,
+      originalPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_path'],
+      ),
       mime: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}mime'],
@@ -1306,6 +1331,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   final String sessionId;
   final String? messageId;
   final String relativePath;
+  final String? originalPath;
   final String mime;
   final int byteLength;
   const Attachment({
@@ -1313,6 +1339,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     required this.sessionId,
     this.messageId,
     required this.relativePath,
+    this.originalPath,
     required this.mime,
     required this.byteLength,
   });
@@ -1325,6 +1352,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       map['message_id'] = Variable<String>(messageId);
     }
     map['relative_path'] = Variable<String>(relativePath);
+    if (!nullToAbsent || originalPath != null) {
+      map['original_path'] = Variable<String>(originalPath);
+    }
     map['mime'] = Variable<String>(mime);
     map['byte_length'] = Variable<int>(byteLength);
     return map;
@@ -1338,6 +1368,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           ? const Value.absent()
           : Value(messageId),
       relativePath: Value(relativePath),
+      originalPath: originalPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(originalPath),
       mime: Value(mime),
       byteLength: Value(byteLength),
     );
@@ -1353,6 +1386,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       sessionId: serializer.fromJson<String>(json['sessionId']),
       messageId: serializer.fromJson<String?>(json['messageId']),
       relativePath: serializer.fromJson<String>(json['relativePath']),
+      originalPath: serializer.fromJson<String?>(json['originalPath']),
       mime: serializer.fromJson<String>(json['mime']),
       byteLength: serializer.fromJson<int>(json['byteLength']),
     );
@@ -1365,6 +1399,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       'sessionId': serializer.toJson<String>(sessionId),
       'messageId': serializer.toJson<String?>(messageId),
       'relativePath': serializer.toJson<String>(relativePath),
+      'originalPath': serializer.toJson<String?>(originalPath),
       'mime': serializer.toJson<String>(mime),
       'byteLength': serializer.toJson<int>(byteLength),
     };
@@ -1375,6 +1410,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     String? sessionId,
     Value<String?> messageId = const Value.absent(),
     String? relativePath,
+    Value<String?> originalPath = const Value.absent(),
     String? mime,
     int? byteLength,
   }) => Attachment(
@@ -1382,6 +1418,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     sessionId: sessionId ?? this.sessionId,
     messageId: messageId.present ? messageId.value : this.messageId,
     relativePath: relativePath ?? this.relativePath,
+    originalPath: originalPath.present ? originalPath.value : this.originalPath,
     mime: mime ?? this.mime,
     byteLength: byteLength ?? this.byteLength,
   );
@@ -1393,6 +1430,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       relativePath: data.relativePath.present
           ? data.relativePath.value
           : this.relativePath,
+      originalPath: data.originalPath.present
+          ? data.originalPath.value
+          : this.originalPath,
       mime: data.mime.present ? data.mime.value : this.mime,
       byteLength: data.byteLength.present
           ? data.byteLength.value
@@ -1407,6 +1447,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           ..write('sessionId: $sessionId, ')
           ..write('messageId: $messageId, ')
           ..write('relativePath: $relativePath, ')
+          ..write('originalPath: $originalPath, ')
           ..write('mime: $mime, ')
           ..write('byteLength: $byteLength')
           ..write(')'))
@@ -1414,8 +1455,15 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, sessionId, messageId, relativePath, mime, byteLength);
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    messageId,
+    relativePath,
+    originalPath,
+    mime,
+    byteLength,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1424,6 +1472,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           other.sessionId == this.sessionId &&
           other.messageId == this.messageId &&
           other.relativePath == this.relativePath &&
+          other.originalPath == this.originalPath &&
           other.mime == this.mime &&
           other.byteLength == this.byteLength);
 }
@@ -1433,6 +1482,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   final Value<String> sessionId;
   final Value<String?> messageId;
   final Value<String> relativePath;
+  final Value<String?> originalPath;
   final Value<String> mime;
   final Value<int> byteLength;
   final Value<int> rowid;
@@ -1441,6 +1491,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     this.sessionId = const Value.absent(),
     this.messageId = const Value.absent(),
     this.relativePath = const Value.absent(),
+    this.originalPath = const Value.absent(),
     this.mime = const Value.absent(),
     this.byteLength = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1450,6 +1501,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     required String sessionId,
     this.messageId = const Value.absent(),
     required String relativePath,
+    this.originalPath = const Value.absent(),
     required String mime,
     required int byteLength,
     this.rowid = const Value.absent(),
@@ -1463,6 +1515,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     Expression<String>? sessionId,
     Expression<String>? messageId,
     Expression<String>? relativePath,
+    Expression<String>? originalPath,
     Expression<String>? mime,
     Expression<int>? byteLength,
     Expression<int>? rowid,
@@ -1472,6 +1525,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
       if (sessionId != null) 'session_id': sessionId,
       if (messageId != null) 'message_id': messageId,
       if (relativePath != null) 'relative_path': relativePath,
+      if (originalPath != null) 'original_path': originalPath,
       if (mime != null) 'mime': mime,
       if (byteLength != null) 'byte_length': byteLength,
       if (rowid != null) 'rowid': rowid,
@@ -1483,6 +1537,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     Value<String>? sessionId,
     Value<String?>? messageId,
     Value<String>? relativePath,
+    Value<String?>? originalPath,
     Value<String>? mime,
     Value<int>? byteLength,
     Value<int>? rowid,
@@ -1492,6 +1547,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
       sessionId: sessionId ?? this.sessionId,
       messageId: messageId ?? this.messageId,
       relativePath: relativePath ?? this.relativePath,
+      originalPath: originalPath ?? this.originalPath,
       mime: mime ?? this.mime,
       byteLength: byteLength ?? this.byteLength,
       rowid: rowid ?? this.rowid,
@@ -1513,6 +1569,9 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     if (relativePath.present) {
       map['relative_path'] = Variable<String>(relativePath.value);
     }
+    if (originalPath.present) {
+      map['original_path'] = Variable<String>(originalPath.value);
+    }
     if (mime.present) {
       map['mime'] = Variable<String>(mime.value);
     }
@@ -1532,6 +1591,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
           ..write('sessionId: $sessionId, ')
           ..write('messageId: $messageId, ')
           ..write('relativePath: $relativePath, ')
+          ..write('originalPath: $originalPath, ')
           ..write('mime: $mime, ')
           ..write('byteLength: $byteLength, ')
           ..write('rowid: $rowid')
@@ -11840,6 +11900,233 @@ class ReviewRecordsCompanion extends UpdateCompanion<ReviewRecord> {
   }
 }
 
+class $PracticeChatLinksTable extends PracticeChatLinks
+    with TableInfo<$PracticeChatLinksTable, PracticeChatLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PracticeChatLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _questionIdMeta = const VerificationMeta(
+    'questionId',
+  );
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+    'question_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_questions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _messageIdMeta = const VerificationMeta(
+    'messageId',
+  );
+  @override
+  late final GeneratedColumn<String> messageId = GeneratedColumn<String>(
+    'message_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_messages (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [questionId, messageId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'practice_chat_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PracticeChatLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('question_id')) {
+      context.handle(
+        _questionIdMeta,
+        questionId.isAcceptableOrUnknown(data['question_id']!, _questionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('message_id')) {
+      context.handle(
+        _messageIdMeta,
+        messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_messageIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {questionId, messageId};
+  @override
+  PracticeChatLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PracticeChatLink(
+      questionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_id'],
+      )!,
+      messageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_id'],
+      )!,
+    );
+  }
+
+  @override
+  $PracticeChatLinksTable createAlias(String alias) {
+    return $PracticeChatLinksTable(attachedDatabase, alias);
+  }
+}
+
+class PracticeChatLink extends DataClass
+    implements Insertable<PracticeChatLink> {
+  final String questionId;
+  final String messageId;
+  const PracticeChatLink({required this.questionId, required this.messageId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['question_id'] = Variable<String>(questionId);
+    map['message_id'] = Variable<String>(messageId);
+    return map;
+  }
+
+  PracticeChatLinksCompanion toCompanion(bool nullToAbsent) {
+    return PracticeChatLinksCompanion(
+      questionId: Value(questionId),
+      messageId: Value(messageId),
+    );
+  }
+
+  factory PracticeChatLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PracticeChatLink(
+      questionId: serializer.fromJson<String>(json['questionId']),
+      messageId: serializer.fromJson<String>(json['messageId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'questionId': serializer.toJson<String>(questionId),
+      'messageId': serializer.toJson<String>(messageId),
+    };
+  }
+
+  PracticeChatLink copyWith({String? questionId, String? messageId}) =>
+      PracticeChatLink(
+        questionId: questionId ?? this.questionId,
+        messageId: messageId ?? this.messageId,
+      );
+  PracticeChatLink copyWithCompanion(PracticeChatLinksCompanion data) {
+    return PracticeChatLink(
+      questionId: data.questionId.present
+          ? data.questionId.value
+          : this.questionId,
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeChatLink(')
+          ..write('questionId: $questionId, ')
+          ..write('messageId: $messageId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(questionId, messageId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PracticeChatLink &&
+          other.questionId == this.questionId &&
+          other.messageId == this.messageId);
+}
+
+class PracticeChatLinksCompanion extends UpdateCompanion<PracticeChatLink> {
+  final Value<String> questionId;
+  final Value<String> messageId;
+  final Value<int> rowid;
+  const PracticeChatLinksCompanion({
+    this.questionId = const Value.absent(),
+    this.messageId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PracticeChatLinksCompanion.insert({
+    required String questionId,
+    required String messageId,
+    this.rowid = const Value.absent(),
+  }) : questionId = Value(questionId),
+       messageId = Value(messageId);
+  static Insertable<PracticeChatLink> custom({
+    Expression<String>? questionId,
+    Expression<String>? messageId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (questionId != null) 'question_id': questionId,
+      if (messageId != null) 'message_id': messageId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PracticeChatLinksCompanion copyWith({
+    Value<String>? questionId,
+    Value<String>? messageId,
+    Value<int>? rowid,
+  }) {
+    return PracticeChatLinksCompanion(
+      questionId: questionId ?? this.questionId,
+      messageId: messageId ?? this.messageId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (messageId.present) {
+      map['message_id'] = Variable<String>(messageId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PracticeChatLinksCompanion(')
+          ..write('questionId: $questionId, ')
+          ..write('messageId: $messageId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -11888,6 +12175,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $ReviewRecordsTable reviewRecords = $ReviewRecordsTable(this);
+  late final $PracticeChatLinksTable practiceChatLinks =
+      $PracticeChatLinksTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11919,6 +12208,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     practiceImages,
     reviewSchedules,
     reviewRecords,
+    practiceChatLinks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -12174,6 +12464,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('review_records', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_chat_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('practice_chat_links', kind: UpdateKind.delete)],
     ),
   ]);
 }
