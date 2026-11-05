@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 
-def check(tag: str, pubspec: str) -> tuple[str, bool]:
+def parse_tag(tag: str) -> tuple[str, bool]:
     core = r'(?:0|[1-9][0-9]*)'
     pattern = rf'v({core}\.{core}\.{core}(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)'
     match = re.fullmatch(pattern, tag)
@@ -17,6 +17,11 @@ def check(tag: str, pubspec: str) -> tuple[str, bool]:
         for part in version.split('-', 1)[1].split('.'):
             if part.isdigit() and len(part) > 1 and part.startswith('0'):
                 raise ValueError('预发布版本中的数字不能包含前导零。')
+    return version, prerelease
+
+
+def check(tag: str, pubspec: str) -> tuple[str, bool]:
+    version, prerelease = parse_tag(tag)
     found = re.search(r'^version:\s*[\'"]?([^\s\'"#]+)', pubspec, re.MULTILINE)
     if not found or found[1].split('+', 1)[0] != version:
         raise ValueError(f'{tag} 与 pubspec.yaml 的 version 不一致，请先更新应用版本。')

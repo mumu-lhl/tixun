@@ -27,9 +27,7 @@ flutter build linux --release
 # GUI 检查必须使用隔离 Mock 构建
 flutter build linux --release --dart-define=TIXUN_DEMO=true
 scripts/gui_smoke.sh
-xvfb-run -a dbus-run-session -- flutter test integration_test/chat_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true
-xvfb-run -a dbus-run-session -- flutter test integration_test/learning_materials_test.dart -d linux --dart-define=TIXUN_DEMO=true
-# 另有 practice_flow_test.dart、practice_management_test.dart、backup_flow_test.dart，按 CI 顺序执行
+scripts/gui_tests.sh
 ```
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。截图和日志保存在 `artifacts/gui/`；脚本通过不代表视觉审查完成，仍需读取截图检查。
@@ -44,25 +42,40 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-GitHub Actions 执行静态分析、自动测试、Android Debug APK 构建、Linux 正式构建和真实 GUI 测试，并上传程序、截图与日志。五个 GUI 测试入口及执行顺序见 [.github/workflows/ci.yml](.github/workflows/ci.yml)。纯文档修改不触发完整构建。
+GitHub Actions 执行静态分析、自动测试、Android Debug APK 构建、Linux 正式构建和真实 GUI 测试，并上传程序、截图与日志。五个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
 
 ## 按版本标签发布
 
 推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用完整 CI，最后将 Android Release APK、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
 
-例如，发布当前应用版本：
+例如，发布下一个版本（先更新并提交版本号）：
 
 ```bash
-# 先确认 pubspec.yaml 为 version: 0.5.1+6，且代码已提交到远程仓库
+# 先将 pubspec.yaml 更新为 version: 0.5.3+8，并将代码提交到远程仓库
 # 后续版本需要先更新 pubspec.yaml 的版本号及构建号
-git tag -a v0.5.1 -m 'TiXun 0.5.1'
-git push origin v0.5.1
+git tag -a v0.5.3 -m 'TiXun 0.5.3'
+git push origin v0.5.3
 ```
 
 标签必须与 `pubspec.yaml` 的版本名一致，不包含 `+` 后的构建号。预发布可使用 `v0.6.0-rc.1`，对应 `version: 0.6.0-rc.1+7`；此类标签会自动标记为 GitHub Prerelease。
 
-更新说明由 git-cliff 2.14.2 和 [cliff.toml](cliff.toml) 生成，使用 GitHub 风格的 What's Changed、贡献者信息及 Full Changelog 比较链接。包含普通提交和 Conventional Commits；第一版列出截至该标签的历史，后续只列出与上一版本之间的变更。生成的是 Release 正文，不自动提交 CHANGELOG 文件。
+更新说明由 git-cliff 2.14.2 和 [cliff.toml](cliff.toml) 生成，使用 GitHub 风格的 What's Changed、贡献者信息及 Full Changelog 比较链接。包含普通提交和 Conventional Commits；第一版列出完整历史；后续以当前标签可达、最近公开发布的版本为基线（包括公开的预发布版本）。草稿、失败构建和未发布标签不会截断记录，Full Changelog 链接也使用这个基线。生成的是 Release 正文，不自动提交 CHANGELOG 文件。
 
 所有构建通过后才创建草稿；附件全部上传成功才公开。失败时可在 Actions 重跑同一次标签工作流，或从该标签手动运行 Publish release。未完成的草稿可继续上传；已经公开的版本不会被覆盖。
 
 标签发布使用 `flutter build apk --release`，普通 CI 仍构建 Debug APK。当前 Android Release APK 采用开发签名。不同构建的签名可能不同，覆盖安装失败时应先导出数据，再卸载安装和恢复；正式发布签名尚未配置。Linux 使用 tar.gz 保留程序执行权限，下载包只包含正式构建，不含 Mock 数据和测试截图。
+
+## 自动化脚本的维护
+
+- `scripts/build_artifacts.py` 是产物约定的唯一来源：构建模式、原始文件名、Artifact 名及发布文件后缀统一生成。可复用 CI 将实际产物名作为输出交给发布流程，Linux 正式程序与 GUI 截图日志分开上传。
+- 每次 Android 构建都会调用 `verify-apk`：实际读取 Manifest 信息和 ZIP 内容，Release 必须包含 AOT 代码、没有 Debug kernel 且未启用 debuggable，不能通过改文件名混入调试包。
+- 并发组包含调用工作流名称、Git 引用与 Android 构建模式，普通 CI、发布验证以及手动 Release 验证不会互相取消；同场景的新运行仍可取消旧运行。
+- `scripts/release_notes.py` 查询公开 Release 并验证 Git 祖先关系。网络错误或已发布标签缺失会报错，不静默生成错误范围。不要删除已公开版本的标签。
+
+脚本回归测试无需 Flutter 或 API Key：
+
+```bash
+python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+```
+
+在 Actions 手动运行 Build and verify 时，可以勾选 `android_release`，验证完整的 Release 构建而不创建新发布。已有 Release 和版本标签不会被修改。

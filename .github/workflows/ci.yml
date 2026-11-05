@@ -2,23 +2,39 @@ name: Build and verify
 on:
   push:
     branches: ['**']
-    paths: ['lib/**', 'test/**', 'integration_test/**', 'assets/**', 'pubspec.*', 'build.yaml', 'analysis_options.yaml', 'android/**', 'linux/**', 'scripts/**', '.github/workflows/**']
+    paths: ['lib/**', 'test/**', 'integration_test/**', 'assets/**', 'pubspec.*', 'build.yaml', 'analysis_options.yaml', 'android/**', 'linux/**', 'scripts/**', 'cliff.toml', '.github/workflows/**']
   pull_request:
-    paths: ['lib/**', 'test/**', 'integration_test/**', 'assets/**', 'pubspec.*', 'build.yaml', 'analysis_options.yaml', 'android/**', 'linux/**', 'scripts/**', '.github/workflows/**']
+    paths: ['lib/**', 'test/**', 'integration_test/**', 'assets/**', 'pubspec.*', 'build.yaml', 'analysis_options.yaml', 'android/**', 'linux/**', 'scripts/**', 'cliff.toml', '.github/workflows/**']
   workflow_dispatch:
+    inputs:
+      android_release:
+        description: Build an optimized Android Release APK
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       android_release:
         description: Build an optimized Android Release APK
         type: boolean
         default: false
+    outputs:
+      android_artifact:
+        value: ${{ jobs.android.outputs.artifact_name }}
+      android_apk:
+        value: ${{ jobs.android.outputs.apk_name }}
+      android_suffix:
+        value: ${{ jobs.android.outputs.release_suffix }}
+      linux_artifact:
+        value: ${{ jobs.linux.outputs.artifact_name }}
+      linux_suffix:
+        value: ${{ jobs.linux.outputs.release_suffix }}
 defaults:
   run:
     shell: bash
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.android_release && 'release' || 'debug' }}
   cancel-in-progress: true
 env:
   FLUTTER_VERSION: '3.47.9'
@@ -28,6 +44,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -45,6 +62,10 @@ jobs:
             test.log
             test/failures/
   android:
+    outputs:
+      artifact_name: ${{ steps.artifact.outputs.artifact_name }}
+      apk_name: ${{ steps.artifact.outputs.apk_name }}
+      release_suffix: ${{ steps.artifact.outputs.release_suffix }}
     needs: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -70,15 +91,29 @@ jobs:
           restore-keys: gradle-${{ runner.os }}-
       - run: flutter config --no-analytics
       - run: flutter pub get --enforce-lockfile
-      - if: ${{ !inputs.android_release }}
-        run: flutter build apk --debug
-      - if: ${{ inputs.android_release }}
-        run: flutter build apk --release
+      - name: Resolve Android artifact
+        id: artifact
+        env:
+          BUILD_MODE: ${{ inputs.android_release && 'release' || 'debug' }}
+        run: python3 scripts/build_artifacts.py metadata android --mode "$BUILD_MODE" >> "$GITHUB_OUTPUT"
+      - name: Build Android APK
+        env:
+          BUILD_MODE: ${{ steps.artifact.outputs.mode }}
+        run: flutter build apk --"$BUILD_MODE"
+      - name: Verify actual APK build mode
+        env:
+          BUILD_MODE: ${{ steps.artifact.outputs.mode }}
+          APK_PATH: ${{ steps.artifact.outputs.apk_path }}
+        run: python3 scripts/build_artifacts.py verify-apk "$APK_PATH" --mode "$BUILD_MODE"
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.android_release && 'tixun-android-release' || 'tixun-android-debug' }}
-          path: build/app/outputs/flutter-apk/${{ inputs.android_release && 'app-release.apk' || 'app-debug.apk' }}
+          name: ${{ steps.artifact.outputs.artifact_name }}
+          path: ${{ steps.artifact.outputs.apk_path }}
+          if-no-files-found: error
   linux:
+    outputs:
+      artifact_name: ${{ steps.artifact.outputs.artifact_name }}
+      release_suffix: ${{ steps.artifact.outputs.release_suffix }}
     needs: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -92,34 +127,27 @@ jobs:
       - run: flutter config --no-analytics
       - run: flutter pub get --enforce-lockfile
       - run: flutter doctor -v | tee doctor.log
+      - name: Resolve Linux artifact
+        id: artifact
+        run: python3 scripts/build_artifacts.py metadata linux >> "$GITHUB_OUTPUT"
       - run: flutter build linux --release
-      - run: mkdir -p artifacts && cp -a build/linux/x64/release/bundle artifacts/linux-production
+      - name: Preserve production bundle
+        env:
+          BUNDLE_PATH: ${{ steps.artifact.outputs.bundle_path }}
+        run: mkdir -p "$(dirname "$BUNDLE_PATH")" && cp -a build/linux/x64/release/bundle "$BUNDLE_PATH"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.artifact_name }}
+          path: ${{ steps.artifact.outputs.bundle_path }}
+          if-no-files-found: error
       - run: flutter build linux --release --dart-define=TIXUN_DEMO=true
       - run: scripts/gui_smoke.sh
-      - run: xvfb-run -a -s '-screen 0 1280x900x24' dbus-run-session -- flutter test integration_test/chat_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true | tee integration.log
-        env:
-          LIBGL_ALWAYS_SOFTWARE: '1'
-      - run: xvfb-run -a -s '-screen 0 1280x900x24' dbus-run-session -- flutter test integration_test/learning_materials_test.dart -d linux --dart-define=TIXUN_DEMO=true | tee integration-materials.log
-        env:
-          LIBGL_ALWAYS_SOFTWARE: '1'
-      - run: xvfb-run -a -s '-screen 0 1280x900x24' dbus-run-session -- flutter test integration_test/practice_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true | tee integration-practice.log
-        env:
-          LIBGL_ALWAYS_SOFTWARE: '1'
-      - run: xvfb-run -a -s '-screen 0 1280x900x24' dbus-run-session -- flutter test integration_test/backup_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true | tee integration-backup.log
-        env:
-          LIBGL_ALWAYS_SOFTWARE: '1'
-      - run: xvfb-run -a -s '-screen 0 1280x900x24' dbus-run-session -- flutter test integration_test/practice_management_test.dart -d linux --dart-define=TIXUN_DEMO=true | tee integration-management.log
-        env:
-          LIBGL_ALWAYS_SOFTWARE: '1'
+      - run: scripts/gui_tests.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: tixun-linux-and-gui
+          name: tixun-linux-gui
           path: |
-            artifacts/
+            artifacts/gui*/
             doctor.log
-            integration.log
-            integration-materials.log
-            integration-practice.log
-            integration-backup.log
-            integration-management.log
+            integration*.log

@@ -48,35 +48,41 @@ jobs:
       PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
+      ANDROID_APK: ${{ needs.verify-and-build.outputs.android_apk }}
+      ANDROID_SUFFIX: ${{ needs.verify-and-build.outputs.android_suffix }}
+      LINUX_SUFFIX: ${{ needs.verify-and-build.outputs.linux_suffix }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: tixun-android-release
+          name: ${{ needs.verify-and-build.outputs.android_artifact }}
           path: downloaded/android
       - uses: actions/download-artifact@v4
         with:
-          name: tixun-linux-and-gui
+          name: ${{ needs.verify-and-build.outputs.linux_artifact }}
           path: downloaded/linux
       - name: Package applications and checksums
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp downloaded/android/app-release.apk "dist/tixun-${RELEASE_TAG}-android-release.apk"
-          mapfile -t bundles < <(find downloaded/linux -type d -name linux-production)
-          [[ "${#bundles[@]}" == 1 ]]
-          test -f "${bundles[0]}/tixun"
-          chmod u+x "${bundles[0]}/tixun"
-          tar -czf "dist/tixun-${RELEASE_TAG}-linux-x64.tar.gz" -C "${bundles[0]}" .
+          cp "downloaded/android/${ANDROID_APK}" "dist/tixun-${RELEASE_TAG}-${ANDROID_SUFFIX}"
+          test -f downloaded/linux/tixun
+          chmod u+x downloaded/linux/tixun
+          tar -czf "dist/tixun-${RELEASE_TAG}-${LINUX_SUFFIX}" -C downloaded/linux .
           (cd dist && sha256sum ./*.apk ./*.tar.gz > SHA256SUMS)
+      - name: Resolve previous published release
+        id: base
+        run: python3 scripts/release_notes.py --tag "$RELEASE_TAG" --repo "$GH_REPO" >> "$GITHUB_OUTPUT"
       - name: Generate GitHub-style changelog
         uses: orhun/git-cliff-action@v4
         with:
           version: v2.14.2
           config: cliff.toml
-          args: --current --github-repo ${{ github.repository }} --output release-notes.md
+          args: >-
+            --current --tag-pattern '${{ steps.base.outputs.tag_pattern }}'
+            --github-repo ${{ github.repository }} --output release-notes.md
       - name: Add installation notes
         run: |
           cat >> release-notes.md <<'NOTES'
