@@ -48,6 +48,12 @@
 - [x] 已下载并检查 CI APK：`org.tixun.tixun`、版本 `0.5.1`/6、minSdk 29、targetSdk 36、arm64-v8a/armeabi-v7a/x86_64，APK v2 签名校验通过。Manifest 无相机或广泛存储权限；硬件行为另行验收。
 - [x] 最终 0.5.1 双平台 CI：[41879876725](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)。56 项测试、Android Debug APK、Linux Release 和 7 项真实 GUI 集成测试全部通过，构建与截图日志 Artifact 已上传。
 
+## 0.5.2 发布
+
+- [x] [GitHub Release v0.5.2](https://github.com/mumu-lhl/tixun/releases/tag/v0.5.2) 已公开发布，附 Android Release APK、Linux Release 压缩包和 SHA256SUMS；更新日志由 git-cliff 生成。
+- [x] [标签发布工作流 42061568956](https://github.com/mumu-lhl/tixun/actions/runs/42061568956) 全部通过，代码提交 `8f4ca35`。APK 已确认包含 AOT 代码、不含 Debug kernel，且未启用 debuggable；发布文件摘要与核验产物一致。
+- Android 当前仍采用开发签名；Release 构建模式与正式发布签名分别验收。`v0.5.1` 的旧发布流程已取消，未公开 Release。
+
 ## 必须单独完成的外部验收
 
 - [ ] 用实际 DeepSeek API Key 验证文本、Flash 图片理解、非思考工具调用与教学质量。当前已验证请求格式、能力限制、本地 HTTP/SSE、错误与 Mock；未发送付费真实模型请求。
