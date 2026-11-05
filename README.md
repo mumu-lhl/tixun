@@ -87,8 +87,12 @@ GitHub Actions 检查代码、构建 Debug APK、构建 Linux、执行真实 GUI
 
 <img src="docs/screenshots/chat-phone.png" width="390" alt="手机宽度的聊天界面" />
 
+<img src="docs/screenshots/study-phone.png" width="390" alt="手机学习主页与真实本地数据计数" />
+
+<img src="docs/screenshots/practice-phone.png" width="390" alt="可暂停续做的离线随机小测" />
+
 ![知识详情与数学排版](docs/screenshots/knowledge-desktop.png)
 
 <img src="docs/screenshots/mistake-phone.png" width="390" alt="手机宽度的错题与原图" />
 
-[下载最新通过验证的 Android APK、Linux bundle 与测试截图](https://github.com/mumu-lhl/tixun/actions/workflows/ci.yml)。CI Artifact 需要登录 GitHub；APK 为 Debug 开发包，尚未进行正式签名发布。
+[下载 0.5.1 验证产物：Android APK、Linux bundle 与测试截图](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)。CI Artifact 需要登录 GitHub；APK 为 Debug 开发包，尚未进行正式签名发布。

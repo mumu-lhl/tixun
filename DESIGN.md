@@ -8,7 +8,7 @@
 - **附件**：稳定相对路径，应用目录保存原始字节，拒绝目录穿越和超大输入；缩略显示限制解码宽度。Chat 发送前及资料中均支持有界裁剪、旋转、缩小副本与手动分题；AI 可建议边界，必须经用户确认。复杂题目不依赖 OCR，原图始终保留。
 - **Provider 边界**：业务依赖 ChatProvider。DeepSeek 与兼容接口共用 OpenAI Chat Completions 传输；模型能力在构造请求时验证。API Key 由平台 KeyStore 读取，与 SQLite 隔离。只有一个活动 Provider 配置，地址对应密钥分别保存。
 - **运行边界**：SSE 按 UTF-8、行和事件解帧，不假设 HTTP chunk 边界。超时、限流、异常 JSON、未完成输出、无正文和取消独立处理；未收到响应前最多重试一次，生成后不自动重发。上下文最多 30 条/32000 字符，明确展示限制；未来再按需求增加摘要。
-- **教学**：guided/direct/exam 三种提示策略，持久化 diagnosing/hinting/explaining/practicing/feedback/completed 阶段，由练习提示、提交和评分驱动恢复状态。资料工具必须由用户授权，写入逐项确认；未获成功工具结果时不能声称完成数据修改。
+- **教学**：guided/direct/exam 三种提示策略，持久化 diagnosing/hinting/explaining/practice/feedback 阶段，由练习提示、提交和评分驱动恢复状态。资料工具必须由用户授权，写入逐项确认；未获成功工具结果时不能声称完成数据修改。
 - **隔离**：编译期开启 TIXUN_DEMO 后使用内存数据库、独立临时附件目录和固定 Mock Provider。默认生产构建没有演示记录。现阶段不提供运行时混入真实数据库的 Mock 开关。
 - **验证**：纯逻辑/数据库测试、真实本地 HTTP SSE 测试、Widget/Golden、Linux integration_test 和 Xvfb GUI 截图分别覆盖不同层面。截图生成与视觉检查分别记录。
 
