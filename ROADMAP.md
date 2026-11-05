@@ -54,6 +54,13 @@
 - [x] [标签发布工作流 42061568956](https://github.com/mumu-lhl/tixun/actions/runs/42061568956) 全部通过，代码提交 `8f4ca35`。APK 已确认包含 AOT 代码、不含 Debug kernel，且未启用 debuggable；发布文件摘要与核验产物一致。
 - Android 当前仍采用开发签名；Release 构建模式与正式发布签名分别验收。`v0.5.1` 的旧发布流程已取消，未公开 Release。
 
+## 工作流优化
+
+- [x] 并发组隔离普通 CI、发布验证和手动 Release 验证；产物命名统一生成并通过可复用工作流输出传递。
+- [x] Android APK 自动核验实际构建模式；Linux 正式程序与 GUI 截图日志分别上传，发布不再依赖测试目录结构。
+- [x] GUI 测试统一脚本顺序执行，独立日志、超时和首错停止；更新日志按最近公开且可达的 Release 生成，忽略未发布标签及草稿。
+- [x] 提交 `6834838` 的 [Release 验证 CI 42065457302](https://github.com/mumu-lhl/tixun/actions/runs/42065457302) 通过：16 项脚本回归、56 项 Flutter 测试、7 项真实 GUI 测试、双平台 Release 构建及 APK 模式核验。已下载核对正式程序与测试 Artifact 的分离和五份 GUI 日志；此验证没有创建或覆盖发布版本。
+
 ## 必须单独完成的外部验收
 
 - [ ] 用实际 DeepSeek API Key 验证文本、Flash 图片理解、非思考工具调用与教学质量。当前已验证请求格式、能力限制、本地 HTTP/SSE、错误与 Mock；未发送付费真实模型请求。
