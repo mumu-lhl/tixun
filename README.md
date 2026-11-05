@@ -1,98 +1,124 @@
 # 题训 TiXun
 
-理解知识，独立尝试，真正掌握。面向 Android 10+ 和 Linux 的开源 Flutter 学习应用，数据默认保存在本地，无需账号。
+**把不懂的题，练到自己会做。**
 
-当前为 **0.5.1 开发版**，已实现 M0–M5 的核心学习闭环：
+题训是一款面向 Android 和 Linux 的开源学习应用。你可以向 AI 请教，整理知识和错题，再通过独立作答与间隔复习检查自己是否真正掌握。
 
-- AI Chat：DeepSeek / OpenAI-compatible、SSE、图片、多会话、草稿、搜索、教学模式、Markdown / LaTeX。编辑和重新生成均创建分支，保留原对话和资料来源。
-- 知识库：自由正文及知识类型、科目、章节、标签、全文搜索、文本版本历史、恢复、知识关联和图片。
-- 错题本：原题、原答案、个人分析、AI 解析、错误原因、知识关联、多图录入。AI 建议与用户确认的错误原因分开保存。
-- 图片：原图长期保存；发送前可预览、裁剪、旋转、缩小副本；框选区域可单独建立错题，保留原图和裁剪结果。已移除图片可撤销或恢复。
-- Chat 资料工具：按会话授权，检索、读取、提出新增/修改/删除/关联建议；写操作逐项确认，实际操作落库并保留审计结果。并发版本检查与重复调用限制保护数据。
+无需注册题训账号，学习资料保存在自己的设备上。已有资料和练习可以离线使用；使用 AI 时，需要联网并填写自己的 API Key。
 
-- 训练：Chat 内单选/多选/判断/填空/数值题、离线练习、手动录题、确定性判分、可续做的离线随机小测、草稿/分页历史/提示记录、题目修订与来源追溯、错题重做与知识回忆的自主判分、Chat 变式训练。AI 参考答案待核对，不能当作已验证的掌握证据。
+[下载安装](#下载安装) · [开始使用](#开始使用) · [界面预览](#界面预览) · [反馈问题](https://github.com/mumu-lhl/tixun/issues)
 
-- 复习与诊断：根据实际作答安排间隔复习，应用内到期提醒、暂停/重置/调整日期；今日任务、不同判分依据统计和独立检测的知识点证据。学习目标与每日时间可配置，不预测考试分数。
+## 题训能帮你做什么？
 
-- 备份：版本化完整备份、SHA-256 校验、独立暂存验证、原子目录切换、恢复中断保全与一次恢复撤销，排除 API Key。Android 通过系统文档保存窗口导出，无需广泛存储权限。
-- AI 分题：支持视觉的模型提出结构化边界建议；用户逐题检查、改框和旋转后保存，原图与裁剪结果都保留。
+- **弄懂一道题。** 输入问题或添加题目图片，让 AI 直接讲解，或一步步给提示。遇到难懂的解释，可以让它换种方式、讲简单一点。
+- **留下自己的理解。** 把对话中的知识保存下来，按科目、章节和标签整理；记下公式、方法，也可以写成自由笔记。
+- **整理错题。** 保存原题图片、自己的答案、解析和错误原因。整张试卷可以手动框选分题，也可以先让 AI 建议范围，再逐题检查和保存。
+- **合上解析，再试一次。** 重做错题、检测知识点，或让 AI 出一道变式题。选择题可以直接点击作答，提交后查看反馈；已有题目也能组成离线随机小测，未完成时可以暂停续做。
+- **知道接下来复习什么。** 根据实际作答安排复习，在学习首页查看到期任务和近期表现。数据不足时会明确提示，方便你判断还需要哪些练习。
 
-支持分页检索、最多 200 条资料批量整理及撤销，回收区可恢复或确认永久删除；共享图片在最后一个引用删除后清理。真实 API 和 Android 设备验收仍待外部条件，系统通知以应用内提醒替代，状态见 [ROADMAP.md](ROADMAP.md)。
+数学公式、中文长文、图片和深浅色主题都有对应支持。最初面向高中学习，也允许自行设置科目、学习阶段和目标考试。
 
-## 运行
+## 下载安装
 
-使用 Flutter **3.47.9**（Dart 3.13.7），依赖锁定于 `pubspec.lock`。
+当前版本为 **0.5.1 开发测试版**，支持 Android 10 及以上版本，以及 Linux 桌面。
 
-```bash
-flutter pub get --enforce-lockfile
-flutter run -d linux
-# 隔离 Mock：内存数据库 + 独立临时附件目录，不需要 API Key
-flutter run -d linux --dart-define=TIXUN_DEMO=true
-# Android 手机连接调试后
-flutter run -d <设备ID>
-```
+**[前往下载页面](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)**，登录 GitHub 后，在页面下方的 **Artifacts** 中选择：
 
-Linux 系统依赖：`sudo bash scripts/install_linux_deps.sh`。保存 API Key 需要可用且已解锁的 Secret Service（例如 GNOME Keyring）；没有密钥环时不回退到明文存储，仍可浏览本地学习资料。
+| 使用平台 | 下载文件 | 如何启动 |
+| --- | --- | --- |
+| Android | `tixun-android-debug` | 解压后，将其中的 `app-debug.apk` 传到手机上安装。系统询问时，允许当前下载或文件管理应用安装此 APK。 |
+| Linux（x86_64） | `tixun-linux-and-gui` | 解压后找到 `linux-production` 文件夹，运行其中的 `tixun`。请保留同目录的 `lib`、`data` 等文件，不要只复制可执行文件。 |
 
-在设置中输入地址、模型和 API Key，测试连接会发送短消息并产生少量 API 用量。DeepSeek 默认 `https://api.deepseek.com` / `deepseek-flash`；Pro 不支持图片。自定义服务需明确声明视觉、推理参数和工具能力。
-
-结构化出题在模型支持工具调用且关闭深度思考时可用，不授予资料检索权限。考试模式只展示工具生成的交互题，提交后揭示参考解析。
-
-资料工具默认为关闭。在对话标题栏开启资料工具后，AI 才能检索相关资料；新增、覆盖、删除和关联均需应用内确认。当前资料工具仅在关闭深度思考时开放。也可直接通过消息菜单保存资料，不依赖工具调用。资料详情中的“向 AI 请教”会填入可检查的对话草稿，用户发送后才上传。
-
-单次 Chat 上下文最多最近 30 条消息、32000 字符和 4 张图片；单张图片最多 8 MB。图片编辑副本最长边为 2048 像素，使用 PNG，原文件不变。资料发送优先使用每张原图最新的编辑副本。
-
-## 验证与构建
+Linux 解压后，在 `tixun` 所在文件夹打开终端，赋予运行权限并启动：
 
 ```bash
-flutter analyze
-flutter test
-flutter build apk --debug
-flutter build linux --release
-# GUI 检查必须使用隔离 Mock 构建
-flutter build linux --release --dart-define=TIXUN_DEMO=true
-scripts/gui_smoke.sh
-xvfb-run -a dbus-run-session -- flutter test integration_test/chat_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true
-xvfb-run -a dbus-run-session -- flutter test integration_test/learning_materials_test.dart -d linux --dart-define=TIXUN_DEMO=true
-# 另有 practice_flow_test.dart、practice_management_test.dart、backup_flow_test.dart，按 CI 顺序执行
+chmod u+x tixun
+./tixun
 ```
 
-Linux debug / release 共享临时引擎目录，**必须顺序构建**。截图和日志保存在 `artifacts/gui/`；脚本通过不代表视觉审查完成，仍需读取截图检查。
+Linux 需要 GTK 3 等运行库。保存 API Key 还需要已解锁的系统密钥环，例如 GNOME Keyring；密钥环不可用时，应用不会改为明文保存密钥，本地资料仍可使用。
 
-Golden 使用随包字体及固定环境；有意更新时运行 `flutter test --update-goldens test/ui_test.dart`，并检查图像。数据库 schema v1/v3/v4 → v5 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
+目前提供的是开发包，尚未正式上架应用商店。构建和自动化测试已通过；真实 DeepSeek 调用及 Android 实机体验仍待验收，详细状态见[开发进度](ROADMAP.md)。
 
-```bash
-dart run build_runner build
-dart run drift_dev schema dump lib/core/database/database.dart test/fixtures
-dart run drift_dev schema generate test/fixtures test/generated_migrations
-```
+## 开始使用
 
-桌面快捷键：Ctrl+1 学习、Ctrl+2 对话、Ctrl+3 设置、Ctrl+4 错题、Ctrl+5 知识；Ctrl+N 新会话，Ctrl+Enter 发送，Esc 停止。Android 使用底部导航、系统照片选择器和拍照入口；中断选择后会尝试恢复原目标。
+### 1. 配置 AI
 
-GitHub Actions 检查代码、构建 Debug APK、构建 Linux、执行真实 GUI 集成测试及截图检查，上传 APK、Linux bundle、截图和日志；纯文档修改不触发完整构建。
+打开「设置」，选择 AI 服务，填写自己的 API Key，点击「保存配置」，再用「测试连接」检查是否可用。
 
-## 数据与隐私
+默认使用 DeepSeek，无需修改默认地址和模型。**DeepSeek Flash 支持图片，DeepSeek V4 Pro 仅支持文字。** 也可以选择兼容服务，填写对应的接口地址、模型名称和密钥。
 
-数据库与附件位于 `path_provider` 的应用支持目录下 `tixun/`。API Key 按服务商与地址存放于系统安全存储，不进入数据库、日志或源码。无第三方应用分析与遥测。工具读取有范围和长度限制，不上传整个知识库；图片不经检索工具自动上传。Markdown 外部图片不自动联网加载。
+API Key 需要向所选服务商申请，模型调用由服务商计费；测试连接也会发送一条简短消息，可能产生少量费用。不配置 AI，也可以先手动整理资料和练习已有题目。
 
-知识、错题、会话、练习及图片默认先移入回收区，不自动清空。永久删除需要确认，并只清理不再被其他记录引用的图片；导出备份需自行管理，恢复安全副本可在设置中单独删除。知识历史目前覆盖文本和标签，图片通过独立的移除/恢复机制管理。在设置中导出完整备份，包含回收区、修订和受管理图片，始终排除密钥。恢复先检查格式、大小、路径、哈希、数据库和关联一致性，再替换数据，并保留最近一次原数据以便撤销。恢复后资料工具授权关闭，需重新开启。支持到 schema v5 的历史数据库迁移；备份采用流式 ZIP STORE，原始数据上限 8 GiB、10 万附件。勿仅复制打开状态的 SQLite 主文件。
+### 2. 从一个问题开始
 
-架构见 [DESIGN.md](DESIGN.md)，进度见 [ROADMAP.md](ROADMAP.md)。代码 MIT，字体 OFL。
+在「学习」页点击「开始学习对话」，输入问题或添加图片。默认的「引导教学」会尽量留下让你自己思考的空间；想看完整步骤时，可以切换到「直接解答」，或直接说“给我完整解析”。
 
-## 界面
+图片发送前可以预览、裁剪和旋转，原图会保留。一次最多添加 4 张图片，每张不超过 8 MB。
 
-以下为隔离 Mock 构建的真实 Linux GUI 截图，回复为固定测试数据。
+### 3. 保存，再练习
 
-![桌面学习界面](docs/screenshots/chat-desktop.png)
+弄懂之后，通过消息菜单把知识或题目保存到知识库、错题本。之后可以从资料详情继续向 AI 请教，也可以合上解析重做。
 
-<img src="docs/screenshots/chat-phone.png" width="390" alt="手机宽度的聊天界面" />
+例如，你可以这样开始一轮学习：
 
-<img src="docs/screenshots/study-phone.png" width="390" alt="手机学习主页与真实本地数据计数" />
+1. 上传一道做错的题，告诉 AI 自己卡在哪一步。
+2. 按提示重新推导，把关键方法保存下来。
+3. 独立完成一道检测题或变式题，再查看反馈。
+4. 之后从学习首页进入到期复习，检查自己是否还会做。
 
-<img src="docs/screenshots/practice-phone.png" width="390" alt="可暂停续做的离线随机小测" />
+AI 生成的题目会标记为“参考答案待核对”。即使作答与参考答案一致，也不代表题目一定正确；简答题和错题重做还可以由你自己判分。
 
-![知识详情与数学排版](docs/screenshots/knowledge-desktop.png)
+### 让 AI 帮你整理资料
 
-<img src="docs/screenshots/mistake-phone.png" width="390" alt="手机宽度的错题与原图" />
+在对话标题栏开启「资料工具」后，可以说：“查找我保存的配方法笔记”或“总结刚才的知识点并保存”。AI 才能读取相关学习资料，新增、修改、删除和关联操作都需要你确认。
 
-[下载 0.5.1 验证产物：Android APK、Linux bundle 与测试截图](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)。CI Artifact 需要登录 GitHub；APK 为 Debug 开发包，尚未进行正式签名发布。
+当前在聊天中生成可作答题目、使用资料工具和建议分题，需要关闭「深度思考」。也可以随时通过知识库、错题本的独立页面手动操作。
+
+## 数据由你保管
+
+对话、知识、错题、图片和作答记录默认保存在本地，不自动云同步，也不加入第三方行为分析。使用 AI 时，会向你选择的服务商发送当前请求所需的对话、图片或资料；不会默认上传整个知识库。
+
+API Key 保存在系统安全存储中，不写入学习数据库，也不包含在导出的备份里。
+
+建议定期在「设置 → 备份与恢复」中导出完整备份，尤其是在卸载应用、更换设备之前。备份包括对话、资料、图片、训练和复习记录；换设备后需要重新配置 API Key。
+
+恢复备份会替换当前学习数据。题训会保留最近一次恢复前的数据，供你撤销恢复；不再需要时，也可以单独删除这份安全副本。
+
+学习资料误删后可到回收区恢复，回收区不会自动清空。永久删除需要确认，但不会同时删除你已导出到其他位置的备份。
+
+## 常见问题
+
+**没有网络还能用吗？**
+
+可以查看和编辑已有资料、浏览历史对话、练习已有题目，以及查看学习记录。生成 AI 回复、解析和新题目需要联网。
+
+**为什么图片问答或聊天出题不可用？**
+
+先检查所选模型是否支持图片或工具调用。DeepSeek V4 Pro 不支持图片；当前交互出题和资料工具需要关闭「深度思考」。自定义服务还需要正确设置模型能力。
+
+**复习会发送系统通知吗？**
+
+目前在应用内显示到期提醒，还没有后台系统通知。打开「学习」页或复习列表即可查看待办。
+
+**电脑上有哪些快捷键？**
+
+`Ctrl+N` 新建对话，`Ctrl+Enter` 发送，`Esc` 停止生成。`Ctrl+1` 至 `Ctrl+5` 分别打开学习、对话、设置、错题和知识页面。
+
+## 界面预览
+
+以下是应用的实际界面截图，使用独立的演示资料和固定 AI 回复，不代表真实模型的回答质量。
+
+![桌面聊天与数学公式](docs/screenshots/chat-desktop.png)
+
+<img src="docs/screenshots/study-phone.png" width="320" alt="手机学习首页：今日任务、学习记录和快捷入口" /> <img src="docs/screenshots/practice-phone.png" width="320" alt="手机上的离线小测：填写答案并提交" />
+
+![知识笔记与公式排版](docs/screenshots/knowledge-desktop.png)
+
+## 反馈与参与
+
+使用中遇到问题，或有希望改进的学习体验，欢迎[提交反馈](https://github.com/mumu-lhl/tixun/issues)。描述使用平台、操作步骤和实际现象会更有帮助；请勿附上 API Key 或不希望公开的个人学习资料。
+
+想参与开发，可以阅读[开发指南](DEVELOPMENT.md)、[设计说明](DESIGN.md)和[开发进度](ROADMAP.md)。
+
+代码采用 [MIT 许可证](LICENSE)，随附字体采用 OFL 许可证。

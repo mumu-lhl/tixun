@@ -57,6 +57,6 @@
 
 ## 可重复验证
 
-Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI 参照 README 与 CI 的五个测试入口，截图/日志保存在 `artifacts/`，生成截图与完成视觉审查分别记录。约 8 GiB 的当前云盘无法解压 Android NDK，APK 由磁盘充足的 GitHub Actions 构建。
+Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI 参照 [开发指南](DEVELOPMENT.md)与 CI 的五个测试入口，截图/日志保存在 `artifacts/`，生成截图与完成视觉审查分别记录。约 8 GiB 的当前云盘无法解压 Android NDK，APK 由磁盘充足的 GitHub Actions 构建。
 
 已验证代码提交：`341542d`（0.5.1）。最终双平台 CI：[41879876725](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)。[最新工作流与产物](https://github.com/mumu-lhl/tixun/actions/workflows/ci.yml)。
