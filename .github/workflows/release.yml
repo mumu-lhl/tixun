@@ -1,0 +1,101 @@
+name: Publish release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require a tag and matching application version
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$REF_TYPE" != tag ]]; then
+            echo '请从版本标签运行此工作流。' >&2
+            exit 1
+          fi
+          python3 scripts/check_release_tag.py "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+  verify-and-build:
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: [prepare, verify-and-build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+      PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: tixun-android-debug
+          path: downloaded/android
+      - uses: actions/download-artifact@v4
+        with:
+          name: tixun-linux-and-gui
+          path: downloaded/linux
+      - name: Package applications and checksums
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp downloaded/android/app-debug.apk "dist/tixun-${RELEASE_TAG}-android-debug.apk"
+          mapfile -t bundles < <(find downloaded/linux -type d -name linux-production)
+          [[ "${#bundles[@]}" == 1 ]]
+          test -f "${bundles[0]}/tixun"
+          chmod u+x "${bundles[0]}/tixun"
+          tar -czf "dist/tixun-${RELEASE_TAG}-linux-x64.tar.gz" -C "${bundles[0]}" .
+          (cd dist && sha256sum ./*.apk ./*.tar.gz > SHA256SUMS)
+      - name: Generate GitHub-style changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          version: v2.14.2
+          config: cliff.toml
+          args: --current --github-repo ${{ github.repository }} --output release-notes.md
+      - name: Add installation notes
+        run: |
+          cat >> release-notes.md <<'NOTES'
+
+          ## 下载与安装
+
+          - **Android 10+**：下载 `android-debug.apk` 结尾的文件安装。当前提供开发签名的调试包，更换签名后无法直接覆盖安装；卸载前请导出学习数据备份。
+          - **Linux x86_64**：解压 `linux-x64.tar.gz`，运行其中的 `tixun`，保留同目录下的 `lib` 和 `data`。需要 GTK 3，保存密钥需要可用的系统密钥环。
+          - `SHA256SUMS` 用于检查下载文件是否完整。
+
+          学习数据默认保存在本地。AI 功能需要自行配置 API Key。
+          NOTES
+      - name: Create or resume a draft, then publish complete assets
+        run: |
+          set -euo pipefail
+          # A rerun may resume an incomplete draft, but must never replace a published release.
+          if gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
+            python3 -c 'import json; assert json.load(open("existing-release.json"))["isDraft"], "该版本已发布，停止覆盖。"'
+            gh release edit "$RELEASE_TAG" --notes-file release-notes.md
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "题训 ${RELEASE_TAG}" --notes-file release-notes.md
+          fi
+          gh release upload "$RELEASE_TAG" dist/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease="$PRERELEASE"

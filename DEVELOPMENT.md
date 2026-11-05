@@ -45,3 +45,24 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 ## 持续集成
 
 GitHub Actions 执行静态分析、自动测试、Android Debug APK 构建、Linux 正式构建和真实 GUI 测试，并上传程序、截图与日志。五个 GUI 测试入口及执行顺序见 [.github/workflows/ci.yml](.github/workflows/ci.yml)。纯文档修改不触发完整构建。
+
+## 按版本标签发布
+
+推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用完整 CI，最后将 Android 开发 APK、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
+
+例如，发布当前应用版本：
+
+```bash
+# 先确认 pubspec.yaml 为 version: 0.5.1+6，且代码已提交到远程仓库
+# 后续版本需要先更新 pubspec.yaml 的版本号及构建号
+git tag -a v0.5.1 -m 'TiXun 0.5.1'
+git push origin v0.5.1
+```
+
+标签必须与 `pubspec.yaml` 的版本名一致，不包含 `+` 后的构建号。预发布可使用 `v0.6.0-rc.1`，对应 `version: 0.6.0-rc.1+7`；此类标签会自动标记为 GitHub Prerelease。
+
+更新说明由 git-cliff 2.14.2 和 [cliff.toml](cliff.toml) 生成，使用 GitHub 风格的 What's Changed、贡献者信息及 Full Changelog 比较链接。包含普通提交和 Conventional Commits；第一版列出截至该标签的历史，后续只列出与上一版本之间的变更。生成的是 Release 正文，不自动提交 CHANGELOG 文件。
+
+所有构建通过后才创建草稿；附件全部上传成功才公开。失败时可在 Actions 重跑同一次标签工作流，或从该标签手动运行 Publish release。未完成的草稿可继续上传；已经公开的版本不会被覆盖。
+
+当前 Android 发布附件仍是开发签名的 Debug APK。不同构建的签名可能不同，覆盖安装失败时应先导出数据，再卸载安装和恢复；正式发布签名尚未配置。Linux 使用 tar.gz 保留程序执行权限，下载包只包含正式构建，不含 Mock 数据和测试截图。
