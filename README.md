@@ -20,14 +20,16 @@
 
 ## 下载安装
 
-当前版本为 **0.5.1 开发测试版**，支持 Android 10 及以上版本，以及 Linux 桌面。
+当前版本为 **0.5.2**，支持 Android 10 及以上版本，以及 Linux 桌面。
 
-**[前往下载页面](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)**，登录 GitHub 后，在页面下方的 **Artifacts** 中选择：
+前往 **[GitHub Releases](https://github.com/mumu-lhl/tixun/releases/latest)**，在 **Assets** 中下载对应平台的文件，无需登录 GitHub：
 
 | 使用平台 | 下载文件 | 如何启动 |
 | --- | --- | --- |
-| Android | `tixun-android-debug` | 解压后，将其中的 `app-debug.apk` 传到手机上安装。系统询问时，允许当前下载或文件管理应用安装此 APK。 |
-| Linux（x86_64） | `tixun-linux-and-gui` | 解压后找到 `linux-production` 文件夹，运行其中的 `tixun`。请保留同目录的 `lib`、`data` 等文件，不要只复制可执行文件。 |
+| Android | `tixun-v版本号-android-release.apk` | 将 APK 传到手机上安装。系统询问时，允许当前下载或文件管理应用安装此 APK。 |
+| Linux（x86_64） | `tixun-v版本号-linux-x64.tar.gz` | 解压后运行其中的 `tixun`，保留同目录的 `lib`、`data` 等文件，不要只复制可执行文件。 |
+
+发布附件均使用 Release 模式构建。Android 目前采用开发签名，更换签名时可能无法直接覆盖安装；卸载前请先导出学习资料备份。`SHA256SUMS` 可用于校验下载文件。
 
 Linux 解压后，在 `tixun` 所在文件夹打开终端，赋予运行权限并启动：
 

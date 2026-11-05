@@ -48,7 +48,7 @@ GitHub Actions 执行静态分析、自动测试、Android Debug APK 构建、Li
 
 ## 按版本标签发布
 
-推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用完整 CI，最后将 Android 开发 APK、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
+推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用完整 CI，最后将 Android Release APK、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
 
 例如，发布当前应用版本：
 
@@ -65,4 +65,4 @@ git push origin v0.5.1
 
 所有构建通过后才创建草稿；附件全部上传成功才公开。失败时可在 Actions 重跑同一次标签工作流，或从该标签手动运行 Publish release。未完成的草稿可继续上传；已经公开的版本不会被覆盖。
 
-当前 Android 发布附件仍是开发签名的 Debug APK。不同构建的签名可能不同，覆盖安装失败时应先导出数据，再卸载安装和恢复；正式发布签名尚未配置。Linux 使用 tar.gz 保留程序执行权限，下载包只包含正式构建，不含 Mock 数据和测试截图。
+标签发布使用 `flutter build apk --release`，普通 CI 仍构建 Debug APK。当前 Android Release APK 采用开发签名。不同构建的签名可能不同，覆盖安装失败时应先导出数据，再卸载安装和恢复；正式发布签名尚未配置。Linux 使用 tar.gz 保留程序执行权限，下载包只包含正式构建，不含 Mock 数据和测试截图。
