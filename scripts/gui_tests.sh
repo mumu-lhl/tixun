@@ -11,6 +11,7 @@ tests=(
   'practice_flow:integration-practice.log'
   'backup_flow:integration-backup.log'
   'practice_management:integration-management.log'
+  'ai_preferences:integration-ai-preferences.log'
 )
 for entry in "${tests[@]}"; do
   test_name="${entry%%:*}"

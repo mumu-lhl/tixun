@@ -1,3 +1,4 @@
+import 'reasoning_menu.dart';
 import '../library/image_editor.dart';
 import '../practice/question_card.dart';
 
@@ -133,6 +134,7 @@ class ChatScreen extends ConsumerWidget {
                           act(context, () => openChatStudyLinks(context, ref)),
                       icon: const Icon(Icons.link, size: 21),
                     ),
+                    const ReasoningMenu(),
                     IconButton(
                       tooltip: '模型设置',
                       onPressed: () => context.go('/settings'),

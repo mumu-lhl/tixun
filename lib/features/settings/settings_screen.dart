@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+
 import 'backup_panel.dart';
 import '../progress/profile_editor.dart';
 import '../review/review_providers.dart';
@@ -142,6 +144,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       loading: () => const LinearProgressIndicator(),
                       error: (_, _) => const Text('学习设置读取失败'),
                     ),
+                const SizedBox(height: 24),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.edit_note_outlined),
+                  title: const Text('提示词管理'),
+                  subtitle: const Text('自定义教学风格、讲解、出题与分题提示词'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.go('/settings/prompts'),
+                ),
                 const SizedBox(height: 24),
                 _heading(context, 'AI 服务', Icons.hub_outlined),
                 const SizedBox(height: 8),
@@ -291,7 +302,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(_kind == 'deepseek' ? '深度思考' : '发送推理强度参数'),
                     subtitle: const Text(
-                      '可能增加响应时间与 token 用量',
+                      '用于未单独设置的会话；聊天标题栏可覆盖。可能增加响应时间与用量。',
                       style: TextStyle(fontSize: 12),
                     ),
                     value: _thinking,
@@ -304,7 +315,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: DropdownButtonFormField<String>(
                         initialValue: _effort,
-                        decoration: const InputDecoration(labelText: '推理强度'),
+                        decoration: const InputDecoration(labelText: '默认思考强度'),
                         items: const [
                           DropdownMenuItem(value: 'low', child: Text('低')),
                           DropdownMenuItem(value: 'high', child: Text('高')),

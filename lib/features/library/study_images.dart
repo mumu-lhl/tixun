@@ -130,9 +130,8 @@ class StudyImages extends ConsumerWidget {
                             await c.addImage(
                               files.resolve(image.relativePath).path,
                             );
-                            await c.draft(
-                              '请判断这张图片包含几道题，给出分题范围建议。我会逐一检查、修改后再保存。题目文字不清楚时请保留原图，不要编造。',
-                            );
+                            await c.useToolReasoning();
+                            await c.draft(c.prompts.text('split'));
                             if (context.mounted) context.go('/chat');
                           }),
                           icon: const Icon(

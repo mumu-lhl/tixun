@@ -166,6 +166,8 @@ void main() {
           '/study',
           '/chat',
           '/settings',
+          '/settings/prompts',
+          '/settings/prompts/guided',
           '/knowledge',
           '/mistakes',
           '/practice',

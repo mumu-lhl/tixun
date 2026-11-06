@@ -1,3 +1,4 @@
+import '../features/settings/prompt_screen.dart';
 import '../features/practice/practice_history_screen.dart';
 import '../features/practice/practice_run_screen.dart';
 
@@ -58,7 +59,23 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(path: '/chat', builder: (_, _) => const ChatScreen()),
-          GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+          GoRoute(
+            path: '/settings',
+            builder: (_, _) => const SettingsScreen(),
+            routes: [
+              GoRoute(
+                path: 'prompts',
+                builder: (_, _) => const PromptScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) =>
+                        PromptEditorScreen(state.pathParameters['id']!),
+                  ),
+                ],
+              ),
+            ],
+          ),
           GoRoute(
             path: '/knowledge',
             builder: (_, _) => const LibraryScreen(isMistake: false),
