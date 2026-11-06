@@ -69,6 +69,7 @@
 - [x] 动态配色：Android 12+ 壁纸色与 Linux 桌面强调色，支持关闭及无系统色时回退；保持深浅主题和独立 Mock 的确定性。
 - [x] 本地静态分析、62 项 Flutter 测试、16 项脚本测试；另跑备份与语言 7 项回归。新增真实 Linux GUI 流程通过，已读取审查中英文、手机、桌面和深浅色截图。上述功能的 Android 实机验证仍待完成。
 - [x] 本地 Linux Release 构建和隔离数据目录的正式 GUI 启动通过（`demo=false`）；已读取桌面截图，无演示资料。
+- [x] 提交 `3a27f55` 的[完整双平台 CI 42260109254](https://github.com/mumu-lhl/tixun/actions/runs/42260109254) 全部通过：62 项 Flutter 测试、16 项脚本测试、Android Debug APK、Linux Release、Mock GUI 启动及六组原生 GUI 回归。正式程序与截图/日志分别上传；本次没有创建新 Release。
 - [ ] ChatGPT Plus/Pro 订阅授权 Provider：已核对官方开源本地应用 OAuth 路线，尚未实现登录、令牌生命周期和 Responses 适配，不能当作现有 API Key 入口使用。见[接入说明](docs/CHATGPT_PROVIDER.md)。
 
 ## 必须单独完成的外部验收
