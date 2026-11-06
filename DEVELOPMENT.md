@@ -42,7 +42,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-GitHub Actions 执行静态分析、自动测试、Android Debug APK 构建、Linux 正式构建和真实 GUI 测试，并上传程序、截图与日志。五个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
+GitHub Actions 执行静态分析、自动测试、Android Debug APK 构建、Linux 正式构建和真实 GUI 测试，并上传程序、截图与日志。六个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
 
 ## 按版本标签发布
 
@@ -79,3 +79,18 @@ python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 ```
 
 在 Actions 手动运行 Build and verify 时，可以勾选 `android_release`，验证完整的 Release 构建而不创建新发布。已有 Release 和版本标签不会被修改。
+
+## 界面语言与配色
+
+界面使用同步 Flutter Localizations delegate，支持 `zh` 和 `en`。`context.tr` 只处理应用文案；不要把笔记正文、消息、用户标题或自定义提示词交给翻译。内置科目用稳定的中文标识保存，界面可显示英文名称，自定义科目原样保留。
+
+新增文案时编辑 [assets/l10n/en.json](assets/l10n/en.json)，再生成 Dart 字典：
+
+```bash
+python3 scripts/generate_l10n.py
+flutter test test/localization_test.dart
+```
+
+测试会核对源字典、生成结果及参数占位符，检查中英文切换、偏好重启保留和窄屏布局。默认提示词随界面语言切换，覆盖内容原样保存；安全规则由应用追加。
+
+动态配色使用 [`dynamic_color` 1.9.0](https://pub.dev/packages/dynamic_color/versions/1.9.0)（兼容当前 Flutter ColorScheme；Android 和 Linux 原生插件），系统未提供颜色时回退到默认绿色。独立 Mock 默认关闭动态配色以固定截图；测试可以显式开启。`integration_test/ai_preferences_test.dart` 覆盖提示词编辑/预览/恢复、会话思考强度、中英文切换及动态配色，并保留手机/桌面和深浅色截图。

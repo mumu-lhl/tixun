@@ -1,14 +1,14 @@
-import 'practice_run_screen.dart';
-import 'practice_store.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import 'practice_providers.dart';
+import 'practice_run_screen.dart';
+import 'practice_store.dart';
 import 'question_card.dart';
 import 'question_spec.dart';
 
@@ -43,19 +43,19 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
               Row(
                 children: [
                   IconButton(
-                    tooltip: '返回学习',
+                    tooltip: context.tr("返回学习"),
                     onPressed: () => context.go('/study'),
                     icon: const Icon(Icons.arrow_back),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      trash ? '练习回收区' : '主动训练',
+                      trash ? context.tr("练习回收区") : context.tr("主动训练"),
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
                   IconButton(
-                    tooltip: trash ? '返回题库' : '练习回收区',
+                    tooltip: trash ? context.tr("返回题库") : context.tr("练习回收区"),
                     onPressed: () => setState(() => trash = !trash),
                     icon: Icon(
                       trash
@@ -68,8 +68,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
               const SizedBox(height: 10),
               Text(
                 trash
-                    ? '恢复后可继续查看题目和作答；永久删除会一并删除该题的训练与复习记录。'
-                    : '合上解析，独立尝试。作答记录在此设备保存，已有题目支持离线练习。',
+                    ? context.tr("恢复后可继续查看题目和作答；永久删除会一并删除该题的训练与复习记录。")
+                    : context.tr("合上解析，独立尝试。作答记录在此设备保存，已有题目支持离线练习。"),
               ),
               const SizedBox(height: 14),
               if (!trash)
@@ -86,7 +86,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                               if (context.mounted) context.go('/chat');
                             }),
                       icon: const Icon(Icons.auto_awesome, size: 18),
-                      label: const Text('AI 出题'),
+                      label: Text(context.tr("AI 出题")),
                     ),
                     OutlinedButton.icon(
                       key: const Key('random-practice'),
@@ -102,14 +102,14 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                         if (context.mounted) context.go('/practice/run');
                       }),
                       icon: const Icon(Icons.shuffle, size: 18),
-                      label: const Text('已有题随机小测'),
+                      label: Text(context.tr("已有题随机小测")),
                     ),
                     OutlinedButton(
                       onPressed: () => showDialog<void>(
                         context: context,
                         builder: (_) => const QuestionEditor(),
                       ),
-                      child: const Text('手动录题'),
+                      child: Text(context.tr("手动录题")),
                     ),
                     TextButton(
                       key: const Key('basic-practice'),
@@ -136,7 +136,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                             .begin(id, retry: true);
                         if (context.mounted) context.go('/practice/$id');
                       }),
-                      child: const Text('离线基础练习'),
+                      child: Text(context.tr("离线基础练习")),
                     ),
                   ],
                 ),
@@ -150,22 +150,25 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                             onPressed: () => context.go('/practice/run'),
                             child: Text(
                               run.completed
-                                  ? '查看上一轮小测'
-                                  : '继续小测（第 ${run.index + 1}/${run.ids.length} 题）',
+                                  ? context.tr("查看上一轮小测")
+                                  : context.tr("继续小测（第 {0}/{1} 题）", [
+                                      run.index + 1,
+                                      run.ids.length,
+                                    ]),
                             ),
                           ),
                     error: (_, _) => TextButton(
                       onPressed: () => act(context, () async {
                         await ref.read(practiceStoreProvider).clearRun();
                       }),
-                      child: const Text('结束无法恢复的小测，保留记录'),
+                      child: Text(context.tr("结束无法恢复的小测，保留记录")),
                     ),
                     orElse: () => const SizedBox.shrink(),
                   ),
               TextField(
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   prefixIcon: Icon(Icons.search),
-                  hintText: '搜索题干',
+                  hintText: context.tr("搜索题干"),
                 ),
                 onChanged: (v) => setState(() => query = v.trim()),
               ),
@@ -178,14 +181,16 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             error: (_, _) => Center(
               child: TextButton(
                 onPressed: () => ref.invalidate(practiceListProvider(filter)),
-                child: const Text('读取失败，点击重试'),
+                child: Text(context.tr("读取失败，点击重试")),
               ),
             ),
             data: (rows) => rows.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
-                      child: Text('还没有练习题。可以请 AI 出题、手动录入，或从错题与知识详情开始训练。'),
+                      child: Text(
+                        context.tr("还没有练习题。可以请 AI 出题、手动录入，或从错题与知识详情开始训练。"),
+                      ),
                     ),
                   )
                 : ListView.separated(
@@ -214,10 +219,16 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         subtitle: Text(
-                          '${q.subject} · ${questionKinds[q.kind]} · ${q.verification == 'unverified' ? '参考答案待核对' : '已核对答案'}',
+                          context.tr("{0} · {1} · {2}", [
+                            context.subjectName(q.subject),
+                            context.tr(questionKinds[q.kind]!),
+                            q.verification == 'unverified'
+                                ? context.tr("参考答案待核对")
+                                : context.tr("已核对答案"),
+                          ]),
                         ),
                         trailing: PopupMenuButton<String>(
-                          tooltip: '题目操作',
+                          tooltip: context.tr("题目操作"),
                           onSelected: (v) => act(context, () async {
                             final store = ref.read(practiceStoreProvider);
                             if (v == 'edit') {
@@ -237,19 +248,22 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                               final confirmed = await showDialog<bool>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: const Text('永久删除练习？'),
+                                  title: Text(context.tr("永久删除练习？")),
                                   content: Text(
-                                    '将永久删除“${q.stem}”及其所有作答和复习记录。该操作无法撤销，独立的知识、错题和其他题目仍保留。',
+                                    context.tr(
+                                      "将永久删除“{0}”及其所有作答和复习记录。该操作无法撤销，独立的知识、错题和其他题目仍保留。",
+                                      [q.stem],
+                                    ),
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(ctx, false),
-                                      child: const Text('取消'),
+                                      child: Text(context.tr("取消")),
                                     ),
                                     FilledButton(
                                       onPressed: () => Navigator.pop(ctx, true),
-                                      child: const Text('永久删除'),
+                                      child: Text(context.tr("永久删除")),
                                     ),
                                   ],
                                 ),
@@ -258,24 +272,24 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                             }
                           }),
                           itemBuilder: (_) => trash
-                              ? const [
+                              ? [
                                   PopupMenuItem(
                                     value: 'restore',
-                                    child: Text('恢复题目'),
+                                    child: Text(context.tr("恢复题目")),
                                   ),
                                   PopupMenuItem(
                                     value: 'purge',
-                                    child: Text('永久删除题目与记录'),
+                                    child: Text(context.tr("永久删除题目与记录")),
                                   ),
                                 ]
-                              : const [
+                              : [
                                   PopupMenuItem(
                                     value: 'edit',
-                                    child: Text('修订题目与答案'),
+                                    child: Text(context.tr("修订题目与答案")),
                                   ),
                                   PopupMenuItem(
                                     value: 'trash',
-                                    child: Text('移入回收区'),
+                                    child: Text(context.tr("移入回收区")),
                                   ),
                                 ],
                         ),
@@ -305,7 +319,7 @@ class PracticeDetailScreen extends StatelessWidget {
         child: TextButton.icon(
           onPressed: () => context.go('/practice'),
           icon: const Icon(Icons.arrow_back),
-          label: const Text('全部训练'),
+          label: Text(context.tr("全部训练")),
         ),
       ),
       Center(
@@ -471,7 +485,9 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.initial == null ? '录入练习题' : '修订练习（保留旧版）'),
+    title: Text(
+      widget.initial == null ? context.tr("录入练习题") : context.tr("修订练习（保留旧版）"),
+    ),
     scrollable: true,
     content: SizedBox(
       width: 600,
@@ -479,11 +495,15 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: kind,
-            decoration: const InputDecoration(labelText: '题型'),
+            decoration: InputDecoration(labelText: context.tr("题型")),
             items: questionKinds.entries
                 .map(
-                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  (e) => DropdownMenuItem(
+                    value: e.key,
+                    child: Text(context.tr(e.value)),
+                  ),
                 )
                 .toList(),
             onChanged: saving ? null : (v) => setState(() => kind = v!),
@@ -522,28 +542,32 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
                 enabled: !saving,
                 minLines: lines,
                 maxLines: lines + 3,
-                decoration: InputDecoration(labelText: label),
+                decoration: InputDecoration(labelText: context.tr(label)),
               ),
             ),
           ExpansionTile(
-            title: const Text('判分与时间设置'),
+            title: Text(context.tr("判分与时间设置")),
             tilePadding: EdgeInsets.zero,
             children: [
               if (kind == 'numeric') ...[
                 TextField(
                   controller: absoluteTolerance,
-                  decoration: const InputDecoration(labelText: '数值绝对容差（0–100）'),
+                  decoration: InputDecoration(
+                    labelText: context.tr("数值绝对容差（0–100）"),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: relativeTolerance,
-                  decoration: const InputDecoration(labelText: '相对容差（0–0.1）'),
+                  decoration: InputDecoration(
+                    labelText: context.tr("相对容差（0–0.1）"),
+                  ),
                 ),
               ],
               if (kind == 'fill_blank')
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('答案区分大小写'),
+                  title: Text(context.tr("答案区分大小写")),
                   value: caseSensitive,
                   onChanged: saving
                       ? null
@@ -551,17 +575,17 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
                 ),
               TextField(
                 controller: timeLimit,
-                decoration: const InputDecoration(
-                  labelText: '建议答题秒数（可选，10–7200）',
+                decoration: InputDecoration(
+                  labelText: context.tr("建议答题秒数（可选，10–7200）"),
                 ),
               ),
             ],
           ),
           if (widget.initial != null)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
               child: Text(
-                '保存为新版本，原题目与作答记录保留。新的作答使用修订后的答案。',
+                context.tr("保存为新版本，原题目与作答记录保留。新的作答使用修订后的答案。"),
                 style: TextStyle(fontSize: 12),
               ),
             ),
@@ -571,8 +595,8 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           const SizedBox(height: 12),
-          const Text(
-            '请自行核对答案与题目。手动录入的答案会标记为用户已核对。',
+          Text(
+            context.tr("请自行核对答案与题目。手动录入的答案会标记为用户已核对。"),
             style: TextStyle(fontSize: 12),
           ),
         ],
@@ -581,11 +605,11 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
     actions: [
       TextButton(
         onPressed: saving ? null : () => Navigator.pop(context),
-        child: const Text('取消'),
+        child: Text(context.tr("取消")),
       ),
       FilledButton(
         onPressed: saving ? null : save,
-        child: Text(saving ? '保存中…' : '保存题目'),
+        child: Text(saving ? context.tr("保存中…") : context.tr("保存题目")),
       ),
     ],
   );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/controller.dart';
+import '../../core/l10n/app_strings.dart';
 import '../review/review_providers.dart';
 import 'learning_profile.dart';
 
@@ -31,7 +32,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('学习设置'),
+    title: Text(context.tr("学习设置")),
     scrollable: true,
     content: SizedBox(
       width: 520,
@@ -51,16 +52,23 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                 enabled: !saving,
                 minLines: lines,
                 maxLines: lines + 2,
-                decoration: InputDecoration(labelText: label),
+                decoration: InputDecoration(labelText: context.tr(label)),
               ),
             ),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: teaching,
-            decoration: const InputDecoration(labelText: '新对话的教学方式'),
-            items: const [
-              DropdownMenuItem(value: 'guided', child: Text('引导教学')),
-              DropdownMenuItem(value: 'direct', child: Text('直接解答')),
-              DropdownMenuItem(value: 'exam', child: Text('考试训练')),
+            decoration: InputDecoration(labelText: context.tr("新对话的教学方式")),
+            items: [
+              DropdownMenuItem(
+                value: 'guided',
+                child: Text(context.tr("引导教学")),
+              ),
+              DropdownMenuItem(
+                value: 'direct',
+                child: Text(context.tr("直接解答")),
+              ),
+              DropdownMenuItem(value: 'exam', child: Text(context.tr("考试训练"))),
             ],
             onChanged: saving ? null : (v) => setState(() => teaching = v!),
           ),
@@ -92,14 +100,14 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                 icon: const Icon(Icons.calendar_today, size: 18),
                 label: Text(
                   date == null
-                      ? '设置考试日期'
+                      ? context.tr("设置考试日期")
                       : '${date!.year}-${date!.month}-${date!.day}',
                 ),
               ),
               if (date != null)
                 TextButton(
                   onPressed: saving ? null : () => setState(() => date = null),
-                  child: const Text('清除日期'),
+                  child: Text(context.tr("清除日期")),
                 ),
             ],
           ),
@@ -114,7 +122,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
     actions: [
       TextButton(
         onPressed: saving ? null : () => Navigator.pop(context),
-        child: const Text('取消'),
+        child: Text(context.tr("取消")),
       ),
       FilledButton(
         onPressed: saving
@@ -145,7 +153,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                 }
                 if (mounted) setState(() => saving = false);
               },
-        child: Text(saving ? '保存中…' : '保存'),
+        child: Text(saving ? context.tr("保存中…") : context.tr("保存")),
       ),
     ],
   );

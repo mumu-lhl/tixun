@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 
 const reasoningLabels = {
@@ -20,11 +21,14 @@ class ReasoningMenu extends ConsumerWidget {
     final c = ref.watch(appControllerProvider);
     final effective = c.sessionConfig;
     final label = effective.thinking
-        ? reasoningLabels[effective.effort] ?? effective.effort
-        : '关闭';
+        ? context.tr(reasoningLabels[effective.effort] ?? effective.effort)
+        : context.tr('关闭');
     return PopupMenuButton<String>(
       key: const Key('reasoning-menu'),
-      tooltip: '本会话思考强度：$label${c.sessionReasoning.isEmpty ? '（跟随默认）' : ''}',
+      tooltip: context.tr("本会话思考强度：{0}{1}", [
+        label,
+        c.sessionReasoning.isEmpty ? context.tr("（跟随默认）") : '',
+      ]),
       icon: Icon(
         Icons.psychology_outlined,
         color: effective.thinking
@@ -42,7 +46,9 @@ class ReasoningMenu extends ConsumerWidget {
         PopupMenuItem<String>(
           enabled: false,
           child: Text(
-            c.config.supportsThinking ? '仅影响本会话；强度越高通常越慢' : '当前模型未声明支持思考参数',
+            c.config.supportsThinking
+                ? context.tr("仅影响本会话；强度越高通常越慢")
+                : context.tr("当前模型未声明支持思考参数"),
           ),
         ),
         for (final entry in reasoningLabels.entries)
@@ -56,10 +62,10 @@ class ReasoningMenu extends ConsumerWidget {
                 (entry.key.isEmpty ||
                     entry.key == 'off' ||
                     c.config.supportsThinking),
-            child: Text(entry.value),
+            child: Text(context.tr(entry.value)),
           ),
         const PopupMenuDivider(),
-        const PopupMenuItem(value: 'prompts', child: Text('管理提示词')),
+        PopupMenuItem(value: 'prompts', child: Text(context.tr("管理提示词"))),
       ],
     );
   }

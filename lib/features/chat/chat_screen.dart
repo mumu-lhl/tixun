@@ -1,7 +1,3 @@
-import 'reasoning_menu.dart';
-import '../library/image_editor.dart';
-import '../practice/question_card.dart';
-
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -13,10 +9,14 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/learning_markdown.dart';
-import 'session_list.dart';
 import '../library/chat_study_actions.dart';
+import '../library/image_editor.dart';
+import '../practice/question_card.dart';
+import 'reasoning_menu.dart';
+import 'session_list.dart';
 
 class ChatScreen extends ConsumerWidget {
   const ChatScreen({super.key});
@@ -47,7 +47,7 @@ class ChatScreen extends ConsumerWidget {
                   children: [
                     if (!wide)
                       IconButton(
-                        tooltip: '会话列表',
+                        tooltip: context.tr("会话列表"),
                         icon: const Icon(Icons.menu_book_outlined),
                         onPressed: () => showModalBottomSheet<void>(
                           context: context,
@@ -66,15 +66,20 @@ class ChatScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            c.selected?.title ?? 'AI 学习助手',
+                            c.selected?.title ?? context.tr("AI 学习助手"),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           Text(
                             c.demo
-                                ? 'Mock · 隔离数据 · 不连接 API'
-                                : '${c.config.model} · ${c.busy ? '正在回复' : '本地保存'}',
+                                ? context.tr("Mock · 隔离数据 · 不连接 API")
+                                : context.tr("{0} · {1}", [
+                                    c.config.model,
+                                    c.busy
+                                        ? context.tr("正在回复")
+                                        : context.tr("本地保存"),
+                                  ]),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -89,8 +94,8 @@ class ChatScreen extends ConsumerWidget {
                     ),
                     IconButton(
                       tooltip: c.selected?.toolsEnabled == true
-                          ? '关闭本会话资料工具'
-                          : '开启本会话资料工具',
+                          ? context.tr("关闭本会话资料工具")
+                          : context.tr("开启本会话资料工具"),
                       onPressed: c.busy || c.selected == null
                           ? null
                           : () => act(context, () async {
@@ -101,20 +106,22 @@ class ChatScreen extends ConsumerWidget {
                               final approve = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
-                                  title: const Text('允许本会话使用学习资料？'),
-                                  content: const Text(
-                                    'AI 可以检索相关知识和错题，并读取选中的资料正文。新增、修改、删除和关联仍须由你逐项确认。图片不会通过检索工具自动上传。',
+                                  title: Text(context.tr("允许本会话使用学习资料？")),
+                                  content: Text(
+                                    context.tr(
+                                      "AI 可以检索相关知识和错题，并读取选中的资料正文。新增、修改、删除和关联仍须由你逐项确认。图片不会通过检索工具自动上传。",
+                                    ),
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(context, false),
-                                      child: const Text('取消'),
+                                      child: Text(context.tr("取消")),
                                     ),
                                     FilledButton(
                                       onPressed: () =>
                                           Navigator.pop(context, true),
-                                      child: const Text('允许'),
+                                      child: Text(context.tr("允许")),
                                     ),
                                   ],
                                 ),
@@ -129,14 +136,14 @@ class ChatScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: '关联学习资料',
+                      tooltip: context.tr("关联学习资料"),
                       onPressed: () =>
                           act(context, () => openChatStudyLinks(context, ref)),
                       icon: const Icon(Icons.link, size: 21),
                     ),
                     const ReasoningMenu(),
                     IconButton(
-                      tooltip: '模型设置',
+                      tooltip: context.tr("模型设置"),
                       onPressed: () => context.go('/settings'),
                       icon: const Icon(Icons.tune, size: 21),
                     ),
@@ -145,14 +152,14 @@ class ChatScreen extends ConsumerWidget {
               ),
               if (c.error != null)
                 MaterialBanner(
-                  content: Text(c.error!),
+                  content: Text(context.tr(c.error!)),
                   actions: [
                     TextButton(
                       onPressed: () {
                         c.error = null;
                         c.changed();
                       },
-                      child: const Text('关闭'),
+                      child: Text(context.tr("关闭")),
                     ),
                   ],
                 ),
@@ -185,11 +192,17 @@ class _NoSession extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: 20),
-          Text('每个问题，都值得弄懂', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            context.tr("每个问题，都值得弄懂"),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
-          const Text('输入文字或上传题目图片，和 AI 一起理清思路。', textAlign: TextAlign.center),
+          Text(
+            context.tr("输入文字或上传题目图片，和 AI 一起理清思路。"),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 24),
-          FilledButton(onPressed: onStart, child: const Text('开始新的学习对话')),
+          FilledButton(onPressed: onStart, child: Text(context.tr("开始新的学习对话"))),
         ],
       ),
     ),
@@ -253,8 +266,8 @@ class _ConversationState extends ConsumerState<Conversation> {
       } else {
         final images = await openFiles(
           acceptedTypeGroups: [
-            const XTypeGroup(
-              label: '题目图片',
+            XTypeGroup(
+              label: context.tr("题目图片"),
               extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'],
               mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
             ),
@@ -349,14 +362,16 @@ class _ConversationState extends ConsumerState<Conversation> {
                                 children: [
                                   const SizedBox(height: 24),
                                   Text(
-                                    '今天，想弄懂什么？',
+                                    context.tr("今天，想弄懂什么？"),
                                     style: Theme.of(context)
                                         .textTheme
                                         .headlineMedium,
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    '不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。',
+                                    context.tr(
+                                      "不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。",
+                                    ),
                                     style: TextStyle(
                                       color: colors.onSurfaceVariant,
                                       height: 1.8,
@@ -477,18 +492,18 @@ class _ConversationState extends ConsumerState<Conversation> {
                                         fontSize: 12,
                                         color: colors.primary,
                                       ),
-                                      items: const [
+                                      items: [
                                         DropdownMenuItem(
                                           value: 'guided',
-                                          child: Text('引导教学'),
+                                          child: Text(context.tr("引导教学")),
                                         ),
                                         DropdownMenuItem(
                                           value: 'direct',
-                                          child: Text('直接解答'),
+                                          child: Text(context.tr("直接解答")),
                                         ),
                                         DropdownMenuItem(
                                           value: 'exam',
-                                          child: Text('考试训练'),
+                                          child: Text(context.tr("考试训练")),
                                         ),
                                       ],
                                       onChanged: c.busy
@@ -501,8 +516,8 @@ class _ConversationState extends ConsumerState<Conversation> {
                                   Expanded(
                                     child: Text(
                                       c.selected!.mode == 'exam'
-                                          ? '先提交答案，再查看反馈与解析'
-                                          : '先理解，再独立尝试',
+                                          ? context.tr("先提交答案，再查看反馈与解析")
+                                          : context.tr("先理解，再独立尝试"),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
@@ -549,7 +564,9 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                       right: 0,
                                                       top: 0,
                                                       child: IconButton.filledTonal(
-                                                        tooltip: '移除图片',
+                                                        tooltip: context.tr(
+                                                          "移除图片",
+                                                        ),
                                                         onPressed: c.busy
                                                             ? null
                                                             : () => act(
@@ -594,8 +611,8 @@ class _ConversationState extends ConsumerState<Conversation> {
                                     minLines: 1,
                                     maxLines: shortInput ? 2 : 6,
                                     maxLength: 32000,
-                                    decoration: const InputDecoration(
-                                      hintText: '写下你的问题，或添加题目图片…',
+                                    decoration: InputDecoration(
+                                      hintText: context.tr("写下你的问题，或添加题目图片…"),
                                       counterText: '',
                                       filled: false,
                                       border: InputBorder.none,
@@ -620,7 +637,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                                     child: Row(
                                       children: [
                                         PopupMenuButton<String>(
-                                          tooltip: '添加图片',
+                                          tooltip: context.tr("添加图片"),
                                           enabled: !c.busy,
                                           icon: const Icon(
                                             Icons.add_photo_alternate_outlined,
@@ -629,26 +646,28 @@ class _ConversationState extends ConsumerState<Conversation> {
                                           onSelected: _import,
                                           itemBuilder: (_) => [
                                             if (Platform.isAndroid) ...[
-                                              const PopupMenuItem(
+                                              PopupMenuItem(
                                                 value: 'camera',
-                                                child: Text('拍照'),
+                                                child: Text(context.tr("拍照")),
                                               ),
-                                              const PopupMenuItem(
+                                              PopupMenuItem(
                                                 value: 'gallery',
-                                                child: Text('从相册选择'),
+                                                child: Text(
+                                                  context.tr("从相册选择"),
+                                                ),
                                               ),
                                             ],
-                                            const PopupMenuItem(
+                                            PopupMenuItem(
                                               value: 'file',
-                                              child: Text('选择图片文件'),
+                                              child: Text(context.tr("选择图片文件")),
                                             ),
                                           ],
                                         ),
                                         Expanded(
                                           child: Text(
                                             pending.isNotEmpty
-                                                ? '发送时会将所选图片传给 AI'
-                                                : '原图保存在本地',
+                                                ? context.tr("发送时会将所选图片传给 AI")
+                                                : context.tr("原图保存在本地"),
                                             style: TextStyle(
                                               fontSize: 11,
                                               color: colors.onSurfaceVariant,
@@ -660,7 +679,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                 key: const Key(
                                                   'stop-generation',
                                                 ),
-                                                tooltip: '停止生成',
+                                                tooltip: context.tr("停止生成"),
                                                 onPressed: c.stop,
                                                 icon: const Icon(
                                                   Icons.stop_rounded,
@@ -668,7 +687,9 @@ class _ConversationState extends ConsumerState<Conversation> {
                                               )
                                             : IconButton.filled(
                                                 key: const Key('send-message'),
-                                                tooltip: '发送（Ctrl+Enter）',
+                                                tooltip: context.tr(
+                                                  "发送（Ctrl+Enter）",
+                                                ),
                                                 onPressed: () =>
                                                     act(context, _send),
                                                 icon: const Icon(
@@ -685,7 +706,11 @@ class _ConversationState extends ConsumerState<Conversation> {
                             if (!shortInput)
                               Center(
                                 child: Text(
-                                  c.demo ? '离线 Mock · 回复为固定测试内容' : 'AI 可能出错，请核对重要结论。最近 30 条消息 / 32000 字符参与上下文。',
+                                  c.demo
+                                      ? context.tr("离线 Mock · 回复为固定测试内容")
+                                      : context.tr(
+                                          "AI 可能出错，请核对重要结论。最近 30 条消息 / 32000 字符参与上下文。",
+                                        ),
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 10,
@@ -744,7 +769,7 @@ class MessageView extends ConsumerWidget {
               ),
               const SizedBox(width: 9),
               Text(
-                user ? '你' : '题训',
+                user ? context.tr("你") : context.tr("题训"),
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -823,7 +848,9 @@ class MessageView extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    c.pendingTool == null ? '正在思考与组织回答…' : '等待确认资料操作…',
+                    c.pendingTool == null
+                        ? context.tr("正在思考与组织回答…")
+                        : context.tr("等待确认资料操作…"),
                     style: TextStyle(
                       fontSize: 12,
                       color: colors.onSurfaceVariant,
@@ -836,7 +863,7 @@ class MessageView extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Text(
-                message.error!,
+                context.tr(message.error!),
                 style: TextStyle(
                   fontSize: 12,
                   color: message.status == 'error'
@@ -849,7 +876,7 @@ class MessageView extends ConsumerWidget {
             Row(
               children: [
                 IconButton(
-                  tooltip: '复制消息',
+                  tooltip: context.tr("复制消息"),
                   icon: const Icon(Icons.copy_outlined, size: 17),
                   visualDensity: VisualDensity.compact,
                   onPressed: () async {
@@ -857,15 +884,16 @@ class MessageView extends ConsumerWidget {
                       ClipboardData(text: message.content),
                     );
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(const SnackBar(content: Text('消息已复制')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(context.tr("消息已复制"))),
+                      );
                     }
                   },
                 ),
                 ChatStudyMenu(message: message),
                 if (user)
                   IconButton(
-                    tooltip: '编辑并在新分支重问',
+                    tooltip: context.tr("编辑并在新分支重问"),
                     icon: const Icon(Icons.edit_outlined, size: 17),
                     visualDensity: VisualDensity.compact,
                     onPressed: c.busy
@@ -873,7 +901,7 @@ class MessageView extends ConsumerWidget {
                         : () async {
                             final text = await editText(
                               context,
-                              title: '编辑并重问（保留原会话）',
+                              title: context.tr("编辑并重问（保留原会话）"),
                               initial: message.content,
                               multiline: true,
                             );
@@ -889,7 +917,10 @@ class MessageView extends ConsumerWidget {
                   TextButton.icon(
                     onPressed: c.busy ? null : () => act(context, c.regenerate),
                     icon: const Icon(Icons.refresh, size: 17),
-                    label: const Text('重新生成', style: TextStyle(fontSize: 12)),
+                    label: Text(
+                      context.tr("重新生成"),
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                 if (!user && message.totalTokens != null)
                   Expanded(
@@ -932,11 +963,13 @@ class AttachmentImage extends ConsumerWidget {
       errorBuilder: (_, _, _) => SizedBox(
         width: width,
         height: height,
-        child: const Center(child: Text('图片无法读取', textAlign: TextAlign.center)),
+        child: Center(
+          child: Text(context.tr("图片无法读取"), textAlign: TextAlign.center),
+        ),
       ),
     );
     return Semantics(
-      label: '题目图片，点击预览',
+      label: context.tr("题目图片，点击预览"),
       button: true,
       child: InkWell(
         onTap: () => showDialog<void>(
@@ -950,11 +983,13 @@ class AttachmentImage extends ConsumerWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        attachment.originalPath == null ? '原图预览' : '发送图片预览',
+                        attachment.originalPath == null
+                            ? context.tr("原图预览")
+                            : context.tr("发送图片预览"),
                       ),
                     ),
                     IconButton(
-                      tooltip: '关闭预览',
+                      tooltip: context.tr("关闭预览"),
                       onPressed: () => Navigator.pop(dialogContext),
                       icon: const Icon(Icons.close),
                     ),
@@ -977,9 +1012,9 @@ class AttachmentImage extends ConsumerWidget {
                                 Row(
                                   children: [
                                     const SizedBox(width: 16),
-                                    const Expanded(child: Text('保留的原图')),
+                                    Expanded(child: Text(context.tr("保留的原图"))),
                                     IconButton(
-                                      tooltip: '关闭原图',
+                                      tooltip: context.tr("关闭原图"),
                                       onPressed: () => Navigator.pop(ctx),
                                       icon: const Icon(Icons.close),
                                     ),
@@ -991,7 +1026,7 @@ class AttachmentImage extends ConsumerWidget {
                                       c.files.resolve(attachment.originalPath!),
                                       cacheWidth: 1600,
                                       errorBuilder: (_, _, _) =>
-                                          const Text('原图无法读取。'),
+                                          Text(context.tr("原图无法读取。")),
                                     ),
                                   ),
                                 ),
@@ -999,7 +1034,7 @@ class AttachmentImage extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        child: const Text('查看保留的原图'),
+                        child: Text(context.tr("查看保留的原图")),
                       ),
                     if (attachment.messageId == null)
                       TextButton.icon(
@@ -1029,14 +1064,14 @@ class AttachmentImage extends ConsumerWidget {
                                 );
                               }),
                         icon: const Icon(Icons.crop, size: 18),
-                        label: const Text('裁剪 / 旋转 / 缩小'),
+                        label: Text(context.tr("裁剪 / 旋转 / 缩小")),
                       ),
                   ],
                 ),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(12),
                   child: Text(
-                    '原图单独保留在此设备，发送时使用当前预览的图片。',
+                    context.tr("原图单独保留在此设备，发送时使用当前预览的图片。"),
                     style: TextStyle(fontSize: 11),
                   ),
                 ),

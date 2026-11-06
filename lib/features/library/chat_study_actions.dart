@@ -1,5 +1,3 @@
-import 'split_suggestions.dart';
-
 import 'dart:convert';
 
 import 'package:drift/drift.dart' hide Column;
@@ -9,9 +7,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/learning_markdown.dart';
 import 'library_providers.dart';
+import 'split_suggestions.dart';
 import 'study_editor.dart';
 import 'study_store.dart';
 
@@ -60,7 +60,7 @@ class ToolApprovalCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            '请确认：${toolLabels[request.name] ?? '修改资料'}',
+            context.tr("请确认：{0}", [toolLabels[request.name] ?? '修改资料']),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           if (request.target.isNotEmpty)
@@ -74,11 +74,11 @@ class ToolApprovalCard extends ConsumerWidget {
             ),
           if (request.name == 'create_mistake' && request.imageCount > 0)
             Text(
-              '会同时保留本次上下文中的 ${request.imageCount} 张原题图片。',
+              context.tr("会同时保留本次上下文中的 {0} 张原题图片。", [request.imageCount]),
               style: const TextStyle(fontSize: 12),
             ),
           if (request.name == 'schedule_review')
-            const Text('加入后由应用根据作答安排日期。不会因阅读资料而增加掌握次数。'),
+            Text(context.tr("加入后由应用根据作答安排日期。不会因阅读资料而增加掌握次数。")),
           const SizedBox(height: 8),
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 190),
@@ -111,7 +111,7 @@ class ToolApprovalCard extends ConsumerWidget {
                       ),
                     ),
                   if (request.name.startsWith('delete'))
-                    const Text('资料将移入回收区，可随时恢复。'),
+                    Text(context.tr("资料将移入回收区，可随时恢复。")),
                 ],
               ),
             ),
@@ -123,13 +123,13 @@ class ToolApprovalCard extends ConsumerWidget {
               TextButton(
                 key: const Key('reject-tool'),
                 onPressed: () => c.decideTool(false),
-                child: const Text('不执行'),
+                child: Text(context.tr("不执行")),
               ),
               const SizedBox(width: 8),
               FilledButton(
                 key: const Key('approve-tool'),
                 onPressed: () => c.decideTool(true),
-                child: const Text('确认执行'),
+                child: Text(context.tr("确认执行")),
               ),
             ],
           ),
@@ -144,14 +144,17 @@ class ChatStudyMenu extends ConsumerWidget {
   final ChatMessage message;
   @override
   Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<String>(
-    tooltip: '保存学习资料',
+    tooltip: context.tr("保存学习资料"),
     icon: const Icon(Icons.bookmark_add_outlined, size: 18),
     enabled: message.status != 'generating',
     itemBuilder: (_) => [
-      const PopupMenuItem(value: 'knowledge', child: Text('保存到知识库')),
-      const PopupMenuItem(value: 'mistake', child: Text('保存到错题本')),
+      PopupMenuItem(value: 'knowledge', child: Text(context.tr("保存到知识库"))),
+      PopupMenuItem(value: 'mistake', child: Text(context.tr("保存到错题本"))),
       if (message.role == 'assistant')
-        const PopupMenuItem(value: 'analysis', child: Text('写入关联错题的 AI 解析')),
+        PopupMenuItem(
+          value: 'analysis',
+          child: Text(context.tr("写入关联错题的 AI 解析")),
+        ),
     ],
     onSelected: (type) => act(context, () => _save(context, ref, type)),
   );
@@ -191,7 +194,7 @@ class ChatStudyMenu extends ConsumerWidget {
         final chosen = await showDialog<MistakeDetail>(
           context: context,
           builder: (context) => SimpleDialog(
-            title: const Text('选择要更新的错题'),
+            title: Text(context.tr("选择要更新的错题")),
             children: candidates
                 .map(
                   (m) => SimpleDialogOption(
@@ -256,7 +259,7 @@ class ChatStudyMenu extends ConsumerWidget {
       } catch (_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('文字已保存，部分图片关联失败，请在详情中补充。')),
+            SnackBar(content: Text(context.tr("文字已保存，部分图片关联失败，请在详情中补充。"))),
           );
         }
       }
@@ -310,13 +313,16 @@ class ToolHistory extends ConsumerWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   Text(
-                    '$name · ${success
-                        ? '已执行'
-                        : op.status == 'pending'
-                        ? '等待确认'
-                        : op.status == 'rejected'
-                        ? '未执行'
-                        : '未完成'}',
+                    context.tr("{0} · {1}", [
+                      name,
+                      success
+                          ? context.tr("已执行")
+                          : op.status == 'pending'
+                          ? context.tr("等待确认")
+                          : op.status == 'rejected'
+                          ? context.tr("未执行")
+                          : context.tr("未完成"),
+                    ]),
                     style: const TextStyle(fontSize: 11),
                   ),
                   if (success &&
@@ -327,7 +333,10 @@ class ToolHistory extends ConsumerWidget {
                       onPressed: () => context.push(
                         '${op.name.endsWith('knowledge') ? '/knowledge' : '/mistakes'}/${result['id']}',
                       ),
-                      child: const Text('查看资料', style: TextStyle(fontSize: 11)),
+                      child: Text(
+                        context.tr("查看资料"),
+                        style: TextStyle(fontSize: 11),
+                      ),
                     ),
                 ],
               ),
@@ -363,14 +372,14 @@ Future<void> openChatStudyLinks(BuildContext context, WidgetRef ref) async {
   final path = await showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('关联学习资料'),
+      title: Text(context.tr("关联学习资料")),
       content: SizedBox(
         width: 480,
         height: 280,
         child: entries.isEmpty
-            ? const Center(
+            ? Center(
                 child: Text(
-                  '还没有关联资料。\n可以从消息菜单保存知识或错题。',
+                  context.tr("还没有关联资料。\n可以从消息菜单保存知识或错题。"),
                   textAlign: TextAlign.center,
                 ),
               )
@@ -389,7 +398,7 @@ Future<void> openChatStudyLinks(BuildContext context, WidgetRef ref) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('关闭'),
+          child: Text(context.tr("关闭")),
         ),
       ],
     ),

@@ -1,12 +1,12 @@
-import 'daily_learning.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
-import '../library/library_providers.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../library/library_providers.dart';
+import 'daily_learning.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -32,12 +32,12 @@ class DashboardScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '学习',
+                            context.tr("学习"),
                             style: Theme.of(context).textTheme.headlineMedium,
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            '每一次独立思考，都在向前一步。',
+                            context.tr("每一次独立思考，都在向前一步。"),
                             style: TextStyle(color: colors.onSurfaceVariant),
                           ),
                         ],
@@ -61,7 +61,10 @@ class DashboardScreen extends ConsumerWidget {
                               color: colors.primary,
                             ),
                             const SizedBox(width: 6),
-                            const Text('本地优先', style: TextStyle(fontSize: 12)),
+                            Text(
+                              context.tr("本地优先"),
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ],
                         ),
                       ),
@@ -82,7 +85,7 @@ class DashboardScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '理解 · 尝试 · 掌握',
+                          context.tr("理解 · 尝试 · 掌握"),
                           style: TextStyle(
                             color: colors.primary,
                             fontWeight: FontWeight.w600,
@@ -92,7 +95,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          '把不懂，\n变成真正会。',
+                          context.tr("把不懂，\n变成真正会。"),
                           style: TextStyle(
                             fontSize: compact ? 30 : 38,
                             fontWeight: FontWeight.w700,
@@ -102,7 +105,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          '从一道题、一个概念开始。\n让 AI 帮你理清思路，把关键一步留给自己。',
+                          context.tr("从一道题、一个概念开始。\n让 AI 帮你理清思路，把关键一步留给自己。"),
                           style: TextStyle(
                             color: colors.onSurfaceVariant,
                             height: 1.8,
@@ -120,13 +123,13 @@ class DashboardScreen extends ConsumerWidget {
                                 if (context.mounted) context.go('/chat');
                               }),
                               icon: const Icon(Icons.add, size: 18),
-                              label: const Text('开始学习对话'),
+                              label: Text(context.tr("开始学习对话")),
                             ),
                             FilledButton.tonalIcon(
                               key: const Key('start-practice'),
                               onPressed: () => context.go('/practice'),
                               icon: const Icon(Icons.edit_note),
-                              label: const Text('主动训练'),
+                              label: Text(context.tr("主动训练")),
                             ),
                             OutlinedButton.icon(
                               onPressed: () => context.go('/mistakes'),
@@ -134,7 +137,7 @@ class DashboardScreen extends ConsumerWidget {
                                 Icons.add_photo_alternate_outlined,
                                 size: 18,
                               ),
-                              label: const Text('录入错题'),
+                              label: Text(context.tr("录入错题")),
                             ),
                           ],
                         ),
@@ -153,7 +156,7 @@ class DashboardScreen extends ConsumerWidget {
                           if (context.mounted) context.go('/chat');
                         }),
                         icon: const Icon(Icons.add, size: 18),
-                        label: const Text('开始学习对话'),
+                        label: Text(context.tr("开始学习对话")),
                       ),
                       TextButton.icon(
                         onPressed: () => context.go('/mistakes'),
@@ -161,7 +164,7 @@ class DashboardScreen extends ConsumerWidget {
                           Icons.add_photo_alternate_outlined,
                           size: 18,
                         ),
-                        label: const Text('录入错题'),
+                        label: Text(context.tr("录入错题")),
                       ),
                     ],
                   ),
@@ -201,7 +204,7 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                label,
+                                context.tr(label),
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: colors.onSurfaceVariant,
@@ -224,7 +227,7 @@ class DashboardScreen extends ConsumerWidget {
                           width: compact
                               ? constraints.maxWidth
                               : (constraints.maxWidth - 32) / 3,
-                          label: '学习对话',
+                          label: context.tr("学习对话"),
                           value: '${c.allSessions.length}',
                           detail: c.demo ? '独立演示记录' : '此设备上保存的会话',
                           icon: Icons.forum_outlined,
@@ -234,7 +237,7 @@ class DashboardScreen extends ConsumerWidget {
                           width: compact
                               ? constraints.maxWidth
                               : (constraints.maxWidth - 32) / 3,
-                          label: '知识积累',
+                          label: context.tr("知识积累"),
                           value: counts.when(
                             data: (v) => '${v.knowledge}',
                             loading: () => '…',
@@ -248,7 +251,7 @@ class DashboardScreen extends ConsumerWidget {
                           width: compact
                               ? constraints.maxWidth
                               : (constraints.maxWidth - 32) / 3,
-                          label: '错题记录',
+                          label: context.tr("错题记录"),
                           value: counts.when(
                             data: (v) => '${v.mistakes}',
                             loading: () => '…',
@@ -265,13 +268,13 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        '继续探索',
+                        context.tr("继续探索"),
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ),
                     TextButton(
                       onPressed: () => context.go('/chat'),
-                      child: const Text('全部对话'),
+                      child: Text(context.tr("全部对话")),
                     ),
                   ],
                 ),
@@ -285,7 +288,7 @@ class DashboardScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
-                      '还没有学习记录。开始第一段对话，内容会自动保存在这里。',
+                      context.tr("还没有学习记录。开始第一段对话，内容会自动保存在这里。"),
                       style: TextStyle(color: colors.onSurfaceVariant),
                     ),
                   )
@@ -311,7 +314,10 @@ class DashboardScreen extends ConsumerWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               subtitle: Text(
-                                '${s.updatedAt.month}月${s.updatedAt.day}日 · 点击继续学习',
+                                context.tr("{0}月{1}日 · 点击继续学习", [
+                                  s.updatedAt.month,
+                                  s.updatedAt.day,
+                                ]),
                                 style: const TextStyle(fontSize: 12),
                               ),
                               trailing: const Icon(
@@ -339,7 +345,7 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '学习小提示：看懂解析之后，合上答案再做一次。能独立完成，才是更可靠的掌握证据。',
+                        context.tr("学习小提示：看懂解析之后，合上答案再做一次。能独立完成，才是更可靠的掌握证据。"),
                         style: TextStyle(
                           fontSize: 12,
                           color: colors.onSurfaceVariant,
@@ -383,7 +389,12 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 Icon(icon, size: 18, color: colors.onSurfaceVariant),
                 const SizedBox(width: 8),
-                Text(label, style: const TextStyle(fontSize: 13)),
+                Expanded(
+                  child: Text(
+                    context.tr(label),
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -400,7 +411,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              detail,
+              context.tr(detail),
               style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
             ),
           ],

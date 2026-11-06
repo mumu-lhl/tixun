@@ -1,5 +1,3 @@
-import '../review/review_screen.dart';
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -7,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/learning_markdown.dart';
-import 'practice_store.dart';
+import '../review/review_screen.dart';
 import 'practice_providers.dart';
+import 'practice_store.dart';
 import 'question_spec.dart';
 
 class MessageQuestions extends ConsumerWidget {
@@ -21,7 +21,7 @@ class MessageQuestions extends ConsumerWidget {
       .watch(messageQuestionsProvider(messageId))
       .when(
         loading: () => const SizedBox.shrink(),
-        error: (_, _) => const Text('练习读取失败，请重新打开对话。'),
+        error: (_, _) => Text(context.tr("练习读取失败，请重新打开对话。")),
         data: (rows) => Column(
           children: [
             for (final q in rows)
@@ -131,7 +131,9 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
   @override
   Widget build(BuildContext context) {
     if (d == null) {
-      return failure != null ? Text(failure!) : const LinearProgressIndicator();
+      return failure != null
+          ? Text(context.tr(failure!))
+          : const LinearProgressIndicator();
     }
     final detail = d!, q = detail.spec, a = detail.latest!;
     final editable = a.status == 'draft';
@@ -155,7 +157,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
             runSpacing: 4,
             children: [
               Text(
-                '${questionKinds[q.kind]} · ${q.subject}',
+                '${context.tr(questionKinds[q.kind]!)} · ${context.subjectName(q.subject)}',
                 style: TextStyle(
                   color: colors.primary,
                   fontWeight: FontWeight.w600,
@@ -163,17 +165,27 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
               ),
               Text(
                 detail.row.verification == 'unverified'
-                    ? (detail.row.origin == 'ai' ? 'AI 参考答案待核对' : '参考资料 · 自主判分')
+                    ? (detail.row.origin == 'ai'
+                          ? context.tr("AI 参考答案待核对")
+                          : context.tr("参考资料 · 自主判分"))
                     : detail.row.origin == 'template'
-                    ? '已校验的基础练习'
-                    : '用户已核对答案',
+                    ? context.tr("已校验的基础练习")
+                    : context.tr("用户已核对答案"),
                 style: Theme.of(context).textTheme.labelMedium,
               ),
               if (q.timeLimitSeconds != null)
                 Text(
                   editable
-                      ? '剩余建议时间 ${((q.timeLimitSeconds! * 1000 - DateTime.now().difference(a.startedAt).inMilliseconds) / 1000).ceil().clamp(0, q.timeLimitSeconds!)} 秒（不强制收卷）'
-                      : '建议限时 ${q.timeLimitSeconds} 秒',
+                      ? context.tr("剩余建议时间 {0} 秒（不强制收卷）", [
+                          ((q.timeLimitSeconds! * 1000 -
+                                      DateTime.now()
+                                          .difference(a.startedAt)
+                                          .inMilliseconds) /
+                                  1000)
+                              .ceil()
+                              .clamp(0, q.timeLimitSeconds!),
+                        ])
+                      : context.tr("建议限时 {0} 秒", [q.timeLimitSeconds]),
                 ),
             ],
           ),
@@ -187,7 +199,8 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 height: 240,
                 fit: BoxFit.contain,
                 cacheWidth: 1000,
-                errorBuilder: (_, _, _) => const Text('题目图片无法解码，其他内容仍可使用。'),
+                errorBuilder: (_, _, _) =>
+                    Text(context.tr("题目图片无法解码，其他内容仍可使用。")),
               ),
             ),
           if (q.topics.isNotEmpty)
@@ -271,10 +284,10 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 maxLines: q.kind == 'short_answer' ? 8 : 2,
                 decoration: InputDecoration(
                   labelText: q.kind == 'fill_blank'
-                      ? '第 ${i + 1} 空'
+                      ? context.tr("第 {0} 空", [i + 1])
                       : q.kind == 'numeric'
-                      ? '数值答案（可填写分数）'
-                      : '我的独立作答',
+                      ? context.tr("数值答案（可填写分数）")
+                      : context.tr("我的独立作答"),
                 ),
                 onChanged: (v) {
                   answers[i] = v;
@@ -288,7 +301,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
               child: LearningMarkdown('提示：${q.hint}'),
             ),
           if (failure != null)
-            Text(failure!, style: TextStyle(color: colors.error)),
+            Text(context.tr(failure!), style: TextStyle(color: colors.error)),
           if (editable)
             Wrap(
               spacing: 8,
@@ -301,14 +314,14 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                       : () => _action(() async {
                           await store.submit(a.id, answers);
                         }),
-                  child: Text(busy ? '正在保存…' : '提交答案'),
+                  child: Text(busy ? context.tr("正在保存…") : context.tr("提交答案")),
                 ),
                 if (q.hint.isNotEmpty && !a.hintUsed)
                   TextButton(
                     onPressed: busy
                         ? null
                         : () => _action(() => store.useHint(a.id)),
-                    child: const Text('给我提示'),
+                    child: Text(context.tr("给我提示")),
                   ),
               ],
             ),
@@ -316,15 +329,19 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
             const Divider(height: 28),
             Text(
               graded
-                  ? (a.correct == true ? '本次作答正确' : '本次作答需要订正')
-                  : '先对照参考，再给自己的作答判分',
+                  ? (a.correct == true
+                        ? context.tr("本次作答正确")
+                        : context.tr("本次作答需要订正"))
+                  : context.tr("先对照参考，再给自己的作答判分"),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             if (a.gradingBasis == 'ai_reference')
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: Text(
-                  '本次结果按作答时的 AI 参考答案记录，不作为已验证的掌握证据。核对题目后，新的作答会使用更新后的依据。',
+                  context.tr(
+                    "本次结果按作答时的 AI 参考答案记录，不作为已验证的掌握证据。核对题目后，新的作答会使用更新后的依据。",
+                  ),
                   style: TextStyle(fontSize: 12),
                 ),
               ),
@@ -336,7 +353,13 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
             if (q.explanation.isNotEmpty) LearningMarkdown(q.explanation),
             if (graded)
               Text(
-                '${a.hintUsed ? '使用了提示' : '未使用提示'} · ${a.gradingBasis == 'self' ? '自主判分' : '规则判分'} · 用时 ${((a.elapsedMilliseconds ?? 0) / 1000).round()} 秒',
+                context.tr("{0} · {1} · 用时 {2} 秒", [
+                  a.hintUsed ? context.tr("使用了提示") : context.tr("未使用提示"),
+                  a.gradingBasis == 'self'
+                      ? context.tr("自主判分")
+                      : context.tr("规则判分"),
+                  ((a.elapsedMilliseconds ?? 0) / 1000).round(),
+                ]),
                 style: Theme.of(context).textTheme.labelMedium,
               ),
             if (a.status == 'awaiting_self_grade')
@@ -349,7 +372,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                         : () => _action(() async {
                             await store.selfGrade(a.id, true);
                           }),
-                    child: const Text('独立做对了'),
+                    child: Text(context.tr("独立做对了")),
                   ),
                   OutlinedButton(
                     onPressed: busy
@@ -357,7 +380,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                         : () => _action(() async {
                             await store.selfGrade(a.id, false);
                           }),
-                    child: const Text('还需要练习'),
+                    child: Text(context.tr("还需要练习")),
                   ),
                 ],
               ),
@@ -374,7 +397,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                               setState(() => busy = true);
                               await _load(retry: true);
                             },
-                      child: const Text('再做一次'),
+                      child: Text(context.tr("再做一次")),
                     ),
                   TextButton(
                     onPressed: c.busy
@@ -383,7 +406,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                             await c.prepareVariant(detail);
                             if (context.mounted) context.go('/chat');
                           }),
-                    child: const Text('讲解与变式训练'),
+                    child: Text(context.tr("讲解与变式训练")),
                   ),
                   if (detail.row.origin == 'ai' &&
                       detail.row.verification == 'unverified')
@@ -394,19 +417,21 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                               final ok = await showDialog<bool>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: const Text('确认已独立核对'),
-                                  content: const Text(
-                                    '请核对题目条件、答案和推导。确认只影响今后的作答统计，不会追溯修改已有记录。',
+                                  title: Text(context.tr("确认已独立核对")),
+                                  content: Text(
+                                    context.tr(
+                                      "请核对题目条件、答案和推导。确认只影响今后的作答统计，不会追溯修改已有记录。",
+                                    ),
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(ctx, false),
-                                      child: const Text('取消'),
+                                      child: Text(context.tr("取消")),
                                     ),
                                     FilledButton(
                                       onPressed: () => Navigator.pop(ctx, true),
-                                      child: const Text('已核对'),
+                                      child: Text(context.tr("已核对")),
                                     ),
                                   ],
                                 ),
@@ -416,7 +441,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                                 await _load();
                               }
                             }),
-                      child: const Text('核对参考答案'),
+                      child: Text(context.tr("核对参考答案")),
                     ),
                 ],
               ),
@@ -424,18 +449,22 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
           QuestionReviewStatus(widget.id),
           TextButton(
             onPressed: () => context.go('/practice/${widget.id}/history'),
-            child: const Text('查看全部作答历史'),
+            child: Text(context.tr("查看全部作答历史")),
           ),
           if (detail.row.parentQuestionId != null)
             TextButton(
               onPressed: () =>
                   context.go('/practice/${detail.row.parentQuestionId}'),
-              child: Text(detail.row.origin == 'ai' ? '查看变式来源题目' : '查看修订前题目'),
+              child: Text(
+                detail.row.origin == 'ai'
+                    ? context.tr("查看变式来源题目")
+                    : context.tr("查看修订前题目"),
+              ),
             ),
           if (detail.attempts.length > 1)
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              title: Text('最近作答（最多显示 50 次）'),
+              title: Text(context.tr("最近作答（最多显示 50 次）")),
               children: [
                 for (final old in detail.attempts.where(
                   (a) => a.status == 'graded',
@@ -443,14 +472,23 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                   ListTile(
                     dense: true,
                     title: Text(
-                      '${old.submittedAt?.toLocal().toString().substring(0, 16)} · ${old.correct == true ? '正确' : '需订正'}${old.hintUsed ? ' · 有提示' : ''}',
+                      context.tr("{0} · {1}{2}", [
+                        old.submittedAt?.toLocal().toString().substring(0, 16),
+                        old.correct == true
+                            ? context.tr("正确")
+                            : context.tr("需订正"),
+                        old.hintUsed ? context.tr(" · 有提示") : '',
+                      ]),
                     ),
                     subtitle: Text(
-                      '我的答案：${(detail.responses[old.id] ?? []).join('；')}\n依据：${old.gradingBasis == 'ai_reference'
-                          ? 'AI 待核对参考'
-                          : old.gradingBasis == 'self'
-                          ? '自主判分'
-                          : '已核对答案的确定性判分'}',
+                      context.tr("我的答案：{0}\n依据：{1}", [
+                        (detail.responses[old.id] ?? []).join('；'),
+                        old.gradingBasis == 'ai_reference'
+                            ? context.tr("AI 待核对参考")
+                            : old.gradingBasis == 'self'
+                            ? context.tr("自主判分")
+                            : context.tr("已核对答案的确定性判分"),
+                      ]),
                     ),
                   ),
               ],

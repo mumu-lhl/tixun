@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
-import 'study_store.dart';
 import 'library_providers.dart';
+import 'study_store.dart';
 
 class StudyEditor extends ConsumerStatefulWidget {
   const StudyEditor({
@@ -84,16 +85,16 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('放弃未保存的修改？'),
-            content: const Text('当前修改尚未保存。'),
+            title: Text(context.tr("放弃未保存的修改？")),
+            content: Text(context.tr("当前修改尚未保存。")),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('继续编辑'),
+                child: Text(context.tr("继续编辑")),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('放弃修改'),
+                child: Text(context.tr("放弃修改")),
               ),
             ],
           ),
@@ -154,7 +155,9 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e is FormatException ? e.message : '保存失败，请检查可用存储空间。'),
+            content: Text(
+              e is FormatException ? e.message : context.tr("保存失败，请检查可用存储空间。"),
+            ),
           ),
         );
       }
@@ -176,7 +179,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            tooltip: '关闭编辑',
+            tooltip: context.tr("关闭编辑"),
             onPressed: _saving
                 ? null
                 : () async {
@@ -187,14 +190,16 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                   },
             icon: const Icon(Icons.close),
           ),
-          title: Text(widget.isMistake ? '整理错题' : '编辑知识'),
+          title: Text(
+            widget.isMistake ? context.tr("整理错题") : context.tr("编辑知识"),
+          ),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: FilledButton(
                 key: const Key('save-study'),
                 onPressed: _saving ? null : () => act(context, _save),
-                child: Text(_saving ? '保存中…' : '保存'),
+                child: Text(_saving ? context.tr("保存中…") : context.tr("保存")),
               ),
             ),
           ],
@@ -219,12 +224,17 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue: _kind,
-                          decoration: const InputDecoration(labelText: '知识类型'),
+                          decoration: InputDecoration(
+                            labelText: context.tr("知识类型"),
+                          ),
                           items: knowledgeKinds
                               .map(
-                                (v) =>
-                                    DropdownMenuItem(value: v, child: Text(v)),
+                                (v) => DropdownMenuItem(
+                                  value: v,
+                                  child: Text(context.tr(v)),
+                                ),
                               )
                               .toList(),
                           onChanged: (v) => setState(() {
@@ -260,7 +270,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                             .map(
                               (r) => ActionChip(
                                 label: Text(
-                                  r,
+                                  context.tr(r),
                                   style: const TextStyle(fontSize: 11),
                                 ),
                                 onPressed: () => field('errorReason').text = r,
@@ -276,8 +286,8 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                         maxLength: 500,
                       ),
                     ],
-                    const Text(
-                      '图片可在保存后的详情页添加。知识的文本版本会自动保留，修改不会覆盖历史。',
+                    Text(
+                      context.tr("图片可在保存后的详情页添加。知识的文本版本会自动保留，修改不会覆盖历史。"),
                       style: TextStyle(fontSize: 12),
                     ),
                     const SizedBox(height: 30),
@@ -306,7 +316,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       maxLines: lines == 1 ? 1 : lines + 4,
       maxLength: maxLength,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: context.tr(label),
         alignLabelWithHint: lines > 1,
         counterText: '',
       ),

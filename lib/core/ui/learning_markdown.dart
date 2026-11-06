@@ -4,6 +4,8 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:markdown/markdown.dart' as md;
 
+import '../l10n/app_strings.dart';
+
 class MathInlineSyntax extends md.InlineSyntax {
   MathInlineSyntax()
     : super(r'\$\$([^$]+?)\$\$|\$([^\n$]+?)\$|\\\((.+?)\\\)|\\\[([^\]]+?)\\\]');
@@ -111,13 +113,13 @@ class LearningMarkdown extends StatelessWidget {
           'math': MathBuilder(),
           'mathblock': MathBuilder(block: true),
         },
-        imageBuilder: (_, _, _) => const Text('[外部图片未自动加载]'),
+        imageBuilder: (_, _, _) => Text(context.tr("[外部图片未自动加载]")),
         onTapLink: (_, href, _) async {
           if (href == null) return;
           await Clipboard.setData(ClipboardData(text: href));
           if (context.mounted) {
             ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('链接已复制')));
+                .showSnackBar(SnackBar(content: Text(context.tr("链接已复制"))));
           }
         },
         styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(

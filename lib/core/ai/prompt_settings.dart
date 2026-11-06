@@ -62,8 +62,22 @@ const promptDefinitions = [
   ),
 ];
 
+const englishPromptContent = <String, String>{
+  'global': 'You are TiXun, a learning assistant. Be accurate, clear and respectful. Adapt to the learner’s stage and understand their difficulty first. Use examples, counterexamples and analogies when helpful.',
+  'guided': 'Find where the learner is stuck. Ask one or two diagnostic questions when needed, offer an appropriate hint, and let them try independently before giving feedback. Use examples and checks as needed without forcing a fixed workflow. Respect requests for a direct answer.',
+  'direct': 'Explain the principles and provide the complete derivation and answer. Clarify the key steps and when the method applies.',
+  'exam': 'Create practice and support the learner. Let them answer independently before giving feedback. Distinguish verified answers from unchecked references.',
+  'knowledge': 'Help me understand this knowledge and check my understanding with an example.',
+  'mistake': 'Guide me through this mistake. Diagnose my difficulty before showing the complete answer.',
+  'quiz': 'Create one question appropriate for my learning stage that I can answer interactively. Include all necessary conditions and do not reveal the answer before I submit.',
+  'variant': 'Guide me to correct the following question, then create an interactive variation testing the same ideas. Do not reveal the answer early. Include all conditions and do not refer to missing figures or tables.',
+  'split': 'Identify the questions in this image and suggest their boundaries. I will check and adjust each region before saving. Preserve the image when text is unclear, and do not invent content.',
+};
+
 class PromptSettings {
   PromptSettings([Map<String, String> values = const {}])
+    : this._(values, 'zh');
+  PromptSettings._(Map<String, String> values, this.language)
     : overrides = Map.unmodifiable(values) {
     for (final entry in overrides.entries) {
       if (!promptDefinitions.any((p) => p.id == entry.key) ||
@@ -78,17 +92,22 @@ class PromptSettings {
   }
   static const preference = 'ai_prompts_v1';
   final Map<String, String> overrides;
-  String text(String id) =>
-      overrides[id] ?? promptDefinitions.firstWhere((p) => p.id == id).content;
+  final String language;
+  PromptSettings withLanguage(String value) =>
+      PromptSettings._(overrides, value == 'zh' ? 'zh' : 'en');
+  String defaultText(String id) => language == 'en'
+      ? englishPromptContent[id]!
+      : promptDefinitions.firstWhere((p) => p.id == id).content;
+  String text(String id) => overrides[id] ?? defaultText(id);
   PromptSettings update(String id, String value) {
-    final definition = promptDefinitions.firstWhere((p) => p.id == id);
+    promptDefinitions.firstWhere((p) => p.id == id);
     final next = Map<String, String>.of(overrides);
-    if (value.trim() == definition.content) {
+    if (value.trim() == defaultText(id)) {
       next.remove(id);
     } else {
       next[id] = value.trim();
     }
-    return PromptSettings(next);
+    return PromptSettings._(next, language);
   }
 
   String encode() => jsonEncode({'version': 1, 'overrides': overrides});

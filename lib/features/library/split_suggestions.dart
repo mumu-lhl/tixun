@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../app/controller.dart';
 import '../../core/ai/region_tool.dart';
 import '../../core/database/database.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import 'image_editor.dart';
 import 'study_store.dart';
@@ -169,10 +170,10 @@ class SplitSuggestionCard extends ConsumerWidget {
           .watch(_splitImageProvider(data['image_id'] as String))
           .when(
             loading: () => const LinearProgressIndicator(),
-            error: (_, _) => const Text('分题原图读取失败。'),
+            error: (_, _) => Text(context.tr("分题原图读取失败。")),
             data: (image) {
               if (image == null || image.sessionId != operation.sessionId) {
-                return const Text('原图记录不存在，无法继续分题。');
+                return Text(context.tr("原图记录不存在，无法继续分题。"));
               }
               return Container(
                 margin: const EdgeInsets.only(top: 14),
@@ -187,12 +188,12 @@ class SplitSuggestionCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '分题建议 · ${regions.length} 个范围',
+                      context.tr("分题建议 · {0} 个范围", [regions.length]),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'AI 边界可能不准确。逐题打开检查，可重新框选、旋转后保存；原图与裁剪结果都会保留。',
+                    Text(
+                      context.tr("AI 边界可能不准确。逐题打开检查，可重新框选、旋转后保存；原图与裁剪结果都会保留。"),
                       style: TextStyle(fontSize: 12),
                     ),
                     const SizedBox(height: 12),
@@ -201,13 +202,13 @@ class SplitSuggestionCard extends ConsumerWidget {
                       height: 200,
                       cacheWidth: 700,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => const Text('图片无法解码。'),
+                      errorBuilder: (_, _, _) => Text(context.tr("图片无法解码。")),
                     ),
                     for (var i = 0; i < regions.length; i++)
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(regions[i].label),
-                        subtitle: Text(regions[i].subject),
+                        subtitle: Text(context.subjectName(regions[i].subject)),
                         trailing: TextButton(
                           key: Key('check-region-$i'),
                           onPressed: () => act(context, () async {
@@ -253,9 +254,9 @@ class SplitSuggestionCard extends ConsumerWidget {
                             if (selected != null && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: const Text('分题已保存，原图已保留。'),
+                                  content: Text(context.tr("分题已保存，原图已保留。")),
                                   action: SnackBarAction(
-                                    label: '查看',
+                                    label: context.tr("查看"),
                                     onPressed: () =>
                                         context.push('/mistakes/$selected'),
                                   ),
@@ -264,7 +265,9 @@ class SplitSuggestionCard extends ConsumerWidget {
                             }
                           }),
                           child: Text(
-                            accepted['$i'] is String ? '查看错题' : '检查并保存',
+                            accepted['$i'] is String
+                                ? context.tr("查看错题")
+                                : context.tr("检查并保存"),
                           ),
                         ),
                       ),
@@ -274,7 +277,7 @@ class SplitSuggestionCard extends ConsumerWidget {
             },
           );
     } catch (_) {
-      return const Text('分题建议数据不完整，请重新请求；已有资料未改变。');
+      return Text(context.tr("分题建议数据不完整，请重新请求；已有资料未改变。"));
     }
   }
 }

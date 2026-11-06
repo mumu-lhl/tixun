@@ -1,30 +1,31 @@
-import '../core/ai/prompt_settings.dart';
-
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/ai/chat_provider.dart';
-import '../core/ai/study_tools.dart';
+import '../core/ai/prompt_settings.dart';
 import '../core/ai/quiz_tool.dart';
 import '../core/ai/region_tool.dart';
-import '../features/practice/practice_store.dart';
-import '../features/review/review_store.dart';
-import '../features/progress/learning_profile.dart';
-import '../features/library/study_store.dart';
-import '../core/database/database.dart';
+import '../core/ai/study_tools.dart';
 import '../core/database/attachment_cleanup.dart';
+import '../core/database/database.dart';
+import '../core/l10n/app_strings.dart';
 import '../core/platform/attachment_store.dart';
 import '../core/platform/key_store.dart';
+import '../features/library/study_store.dart';
+import '../features/practice/practice_store.dart';
+import '../features/progress/learning_profile.dart';
+import '../features/review/review_store.dart';
 
 final appControllerProvider = ChangeNotifierProvider<AppController>(
   (ref) => throw StateError('AppController must be initialized'),
@@ -50,8 +51,25 @@ class AppController extends ChangeNotifier {
   ToolApproval? pendingTool;
   Completer<bool>? _toolDecision;
   late ProviderConfig config;
-  PromptSettings prompts = PromptSettings();
+  PromptSettings _prompts = PromptSettings();
+  PromptSettings get prompts {
+    if (_prompts.language != promptLanguage) {
+      _prompts = _prompts.withLanguage(promptLanguage);
+    }
+    return _prompts;
+  }
+
+  set prompts(PromptSettings value) => _prompts = value;
   String sessionReasoning = '';
+  String languageChoice = 'zh';
+  bool dynamicColors = true;
+  Locale? get appLocale =>
+      languageChoice == 'system' ? null : Locale(languageChoice);
+  String get promptLanguage => languageChoice == 'system'
+      ? resolveAppLocale(PlatformDispatcher.instance.locales).languageCode
+      : languageChoice;
+  String uiText(String key, [List<Object?> arguments = const []]) =>
+      AppStrings(Locale(promptLanguage)).text(key, arguments);
   ProviderConfig get sessionConfig => sessionReasoning.isEmpty
       ? config
       : config.copyWith(
@@ -119,11 +137,19 @@ class AppController extends ChangeNotifier {
 
   Future<void> initialize({bool seed = true}) async {
     config = await db.config();
+    final language = await db.preference('app_language') ?? 'zh';
+    languageChoice = ['zh', 'en', 'system'].contains(language)
+        ? language
+        : 'zh';
+    dynamicColors =
+        (await db.preference('dynamic_colors') ?? (demo ? 'false' : 'true')) ==
+        'true';
     try {
       prompts = PromptSettings.decode(
         await db.preference(PromptSettings.preference),
-      );
+      ).withLanguage(promptLanguage);
     } catch (_) {
+      prompts = PromptSettings().withLanguage(promptLanguage);
       notice = '提示词配置无法读取，暂用默认值；可在提示词管理中重新保存。';
     }
     themeMode = switch (await db.preference('theme')) {
@@ -270,7 +296,9 @@ class AppController extends ChangeNotifier {
   Future<void> newSession() async {
     await stop();
     final profile = await LearningProfile.load(db);
-    await selectSession(await db.createSession(mode: profile.teaching));
+    await selectSession(
+      await db.createSession(mode: profile.teaching, title: uiText('新的学习对话')),
+    );
     search = '';
     await reload();
   }
@@ -341,6 +369,22 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<void> setLanguage(String value) => study.runOperation(() async {
+    if (!['zh', 'en', 'system'].contains(value)) {
+      throw const FormatException('Unsupported language');
+    }
+    await db.setPreference('app_language', value);
+    languageChoice = value;
+    prompts = prompts.withLanguage(promptLanguage);
+    changed();
+  });
+
+  Future<void> setDynamicColors(bool value) => study.runOperation(() async {
+    await db.setPreference('dynamic_colors', value.toString());
+    dynamicColors = value;
+    changed();
+  });
+
   Future<void> savePrompt(String id, String value) =>
       study.runOperation(() async {
         final saved = await db.transaction(() async {
@@ -348,7 +392,7 @@ class AppController extends ChangeNotifier {
           try {
             current = PromptSettings.decode(
               await db.preference(PromptSettings.preference),
-            );
+            ).withLanguage(promptLanguage);
           } catch (_) {
             current = prompts;
           }

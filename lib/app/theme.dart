@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
-ThemeData appTheme(Brightness brightness) {
+ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
   final dark = brightness == Brightness.dark;
-  final colors = ColorScheme.fromSeed(
-    seedColor: const Color(0xff226450),
-    brightness: brightness,
-    surface: dark ? const Color(0xff151c1a) : const Color(0xfffafbf8),
-  );
+  final colors =
+      scheme ??
+      ColorScheme.fromSeed(
+        seedColor: const Color(0xff226450),
+        brightness: brightness,
+        surface: dark ? const Color(0xff151c1a) : const Color(0xfffafbf8),
+      );
   return ThemeData(
     useMaterial3: true,
     colorScheme: colors,

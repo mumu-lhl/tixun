@@ -1,22 +1,23 @@
-import '../features/settings/prompt_screen.dart';
-import '../features/practice/practice_history_screen.dart';
-import '../features/practice/practice_run_screen.dart';
-
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/l10n/app_strings.dart';
+import '../core/ui/actions.dart';
 import '../features/chat/chat_screen.dart';
-import '../features/practice/practice_screen.dart';
-import '../features/review/review_screen.dart';
-import '../features/progress/progress_screen.dart';
+import '../features/dashboard/dashboard_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/library/study_detail_screen.dart';
-import '../features/dashboard/dashboard_screen.dart';
+import '../features/practice/practice_history_screen.dart';
+import '../features/practice/practice_run_screen.dart';
+import '../features/practice/practice_screen.dart';
+import '../features/progress/progress_screen.dart';
+import '../features/review/review_screen.dart';
+import '../features/settings/prompt_screen.dart';
 import '../features/settings/settings_screen.dart';
-import '../core/ui/actions.dart';
 import 'controller.dart';
 import 'theme.dart';
 
@@ -113,16 +114,33 @@ final routerProvider = Provider<GoRouter>((ref) {
 class TixunApp extends ConsumerWidget {
   const TixunApp({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
-    title: '题训 TiXun',
-    debugShowCheckedModeBanner: false,
-    theme: appTheme(Brightness.light),
-    darkTheme: appTheme(Brightness.dark),
-    themeMode: ref.watch(appControllerProvider.select((c) => c.themeMode)),
-    locale: const Locale('zh', 'CN'),
-    supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
-    localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    routerConfig: ref.watch(routerProvider),
+  Widget build(BuildContext context, WidgetRef ref) => DynamicColorBuilder(
+    builder: (lightDynamic, darkDynamic) => MaterialApp.router(
+      title: '题训 TiXun',
+      debugShowCheckedModeBanner: false,
+      theme: appTheme(
+        Brightness.light,
+        scheme: ref.watch(appControllerProvider).dynamicColors
+            ? lightDynamic
+            : null,
+      ),
+      darkTheme: appTheme(
+        Brightness.dark,
+        scheme: ref.watch(appControllerProvider).dynamicColors
+            ? darkDynamic
+            : null,
+      ),
+      themeMode: ref.watch(appControllerProvider.select((c) => c.themeMode)),
+      locale: ref.watch(appControllerProvider).appLocale,
+      supportedLocales: const [Locale('zh'), Locale('en')],
+      localizationsDelegates: const [
+        AppStrings.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
+      localeListResolutionCallback: (requested, supported) =>
+          resolveAppLocale(requested ?? []),
+      routerConfig: ref.watch(routerProvider),
+    ),
   );
 }
 
@@ -187,7 +205,7 @@ class AppShell extends ConsumerWidget {
                     vertical: 5,
                   ),
                   child: Text(
-                    'MOCK 体验 · 固定测试回复 · 与真实数据隔离',
+                    context.tr("MOCK 体验 · 固定测试回复 · 与真实数据隔离"),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,
@@ -197,14 +215,14 @@ class AppShell extends ConsumerWidget {
                 ),
               if (c.notice != null)
                 MaterialBanner(
-                  content: Text(c.notice!),
+                  content: Text(context.tr(c.notice!)),
                   actions: [
                     TextButton(
                       onPressed: () {
                         c.notice = null;
                         c.changed();
                       },
-                      child: const Text('知道了'),
+                      child: Text(context.tr("知道了")),
                     ),
                   ],
                 ),
@@ -245,7 +263,7 @@ class AppShell extends ConsumerWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '题训',
+                                        context.tr("题训"),
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleLarge,
@@ -278,7 +296,7 @@ class AppShell extends ConsumerWidget {
                                   selectedTileColor: colors.primaryContainer
                                       .withValues(alpha: .65),
                                   leading: Icon(icons[i], size: 22),
-                                  title: Text(labels[i]),
+                                  title: Text(context.tr(labels[i])),
                                   onTap: () => context.go(paths[i]),
                                 ),
                               ),
@@ -286,7 +304,7 @@ class AppShell extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.all(24),
                               child: Text(
-                                '理解知识\n独立练习\n真正掌握',
+                                context.tr("理解知识\n独立练习\n真正掌握"),
                                 style: TextStyle(
                                   fontSize: 12,
                                   height: 2,
@@ -316,7 +334,7 @@ class AppShell extends ConsumerWidget {
                     NavigationDestination(
                       key: Key('nav-$i'),
                       icon: Icon(icons[i]),
-                      label: labels[i],
+                      label: context.tr(labels[i]),
                     ),
                 ],
               ),

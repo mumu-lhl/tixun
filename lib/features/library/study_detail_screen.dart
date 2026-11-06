@@ -1,12 +1,12 @@
-import '../practice/question_spec.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/learning_markdown.dart';
+import '../practice/question_spec.dart';
 import 'library_providers.dart';
 import 'study_editor.dart';
 import 'study_images.dart';
@@ -31,11 +31,11 @@ class StudyDetailScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(e is FormatException ? e.message : '资料加载失败'),
+            Text(e is FormatException ? e.message : context.tr("资料加载失败")),
             TextButton(
               onPressed: () =>
                   context.go(isMistake ? '/mistakes' : '/knowledge'),
-              child: const Text('返回列表'),
+              child: Text(context.tr("返回列表")),
             ),
           ],
         ),
@@ -60,7 +60,7 @@ class StudyDetailScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   IconButton(
-                    tooltip: '返回列表',
+                    tooltip: context.tr("返回列表"),
                     onPressed: () =>
                         context.go(isMistake ? '/mistakes' : '/knowledge'),
                     icon: const Icon(Icons.arrow_back),
@@ -68,14 +68,14 @@ class StudyDetailScreen extends ConsumerWidget {
                   const Spacer(),
                   if (k != null && !deleted)
                     IconButton(
-                      tooltip: '文本版本历史',
+                      tooltip: context.tr("文本版本历史"),
                       onPressed: () =>
                           act(context, () => _history(context, ref, k)),
                       icon: const Icon(Icons.history),
                     ),
                   IconButton(
                     key: const Key('edit-study'),
-                    tooltip: '编辑资料',
+                    tooltip: context.tr("编辑资料"),
                     onPressed: deleted
                         ? null
                         : () => showDialog<String>(
@@ -90,7 +90,7 @@ class StudyDetailScreen extends ConsumerWidget {
                     icon: const Icon(Icons.edit_outlined),
                   ),
                   IconButton(
-                    tooltip: deleted ? '恢复资料' : '移入回收区',
+                    tooltip: deleted ? context.tr("恢复资料") : context.tr("移入回收区"),
                     onPressed: () => act(context, () async {
                       await store.setDeleted(
                         id,
@@ -104,7 +104,11 @@ class StudyDetailScreen extends ConsumerWidget {
                         }
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(deleted ? '资料已恢复' : '已移入回收区，可随时恢复'),
+                            content: Text(
+                              deleted
+                                  ? context.tr("资料已恢复")
+                                  : context.tr("已移入回收区，可随时恢复"),
+                            ),
                           ),
                         );
                       }
@@ -146,14 +150,15 @@ class StudyDetailScreen extends ConsumerWidget {
                               Chip(label: Text(subject)),
                               if (chapter.isNotEmpty)
                                 Chip(label: Text(chapter)),
-                              if (k != null) Chip(label: Text(k.item.kind)),
+                              if (k != null)
+                                Chip(label: Text(context.tr(k.item.kind))),
                               ...tags.map((t) => Chip(label: Text('#$t'))),
                             ],
                           ),
                           if (deleted)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 16),
-                              child: Text('此资料位于回收区。恢复后可以继续编辑和学习。'),
+                              child: Text(context.tr("此资料位于回收区。恢复后可以继续编辑和学习。")),
                             ),
                           if (!deleted)
                             Padding(
@@ -173,7 +178,9 @@ class StudyDetailScreen extends ConsumerWidget {
                                       size: 18,
                                     ),
                                     label: Text(
-                                      isMistake ? '让 AI 引导我理解' : '向 AI 请教',
+                                      isMistake
+                                          ? context.tr("让 AI 引导我理解")
+                                          : context.tr("向 AI 请教"),
                                     ),
                                   ),
                                   OutlinedButton.icon(
@@ -222,7 +229,11 @@ class StudyDetailScreen extends ConsumerWidget {
                                       }
                                     }),
                                     icon: const Icon(Icons.edit_note, size: 18),
-                                    label: Text(m != null ? '合上解析重做' : '回忆检测'),
+                                    label: Text(
+                                      m != null
+                                          ? context.tr("合上解析重做")
+                                          : context.tr("回忆检测"),
+                                    ),
                                   ),
                                   if (m != null)
                                     OutlinedButton(
@@ -236,7 +247,7 @@ class StudyDetailScreen extends ConsumerWidget {
                                           direct: true,
                                         ),
                                       ),
-                                      child: const Text('请求完整解析'),
+                                      child: Text(context.tr("请求完整解析")),
                                     ),
                                   if (source != null)
                                     TextButton.icon(
@@ -245,7 +256,7 @@ class StudyDetailScreen extends ConsumerWidget {
                                         () => _source(context, ref, source),
                                       ),
                                       icon: const Icon(Icons.link, size: 18),
-                                      label: const Text('来源对话'),
+                                      label: Text(context.tr("来源对话")),
                                     ),
                                 ],
                               ),
@@ -253,7 +264,7 @@ class StudyDetailScreen extends ConsumerWidget {
                           if (k != null) ...[
                             if (k.item.content.isEmpty)
                               Text(
-                                '尚未填写正文，点击编辑补充。',
+                                context.tr("尚未填写正文，点击编辑补充。"),
                                 style: TextStyle(
                                   color: colors.onSurfaceVariant,
                                 ),
@@ -269,7 +280,7 @@ class StudyDetailScreen extends ConsumerWidget {
                             ),
                           ] else ...[
                             Text(
-                              '原题',
+                              context.tr("原题"),
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 12),
@@ -288,7 +299,7 @@ class StudyDetailScreen extends ConsumerWidget {
                             if (m.item.ownAnalysis.isNotEmpty)
                               _section(context, '我的思路', m.item.ownAnalysis),
                             Text(
-                              '错误原因',
+                              context.tr("错误原因"),
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 8),
@@ -297,7 +308,9 @@ class StudyDetailScreen extends ConsumerWidget {
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
                                 child: Text(
-                                  'AI 建议（尚未确认）：${m.item.suggestedReason}',
+                                  context.tr("AI 建议（尚未确认）：{0}", [
+                                    m.item.suggestedReason,
+                                  ]),
                                   style: TextStyle(
                                     color: colors.onSurfaceVariant,
                                   ),
@@ -306,9 +319,9 @@ class StudyDetailScreen extends ConsumerWidget {
                             const SizedBox(height: 20),
                             ExpansionTile(
                               tilePadding: EdgeInsets.zero,
-                              title: const Text('答案与解析'),
-                              subtitle: const Text(
-                                '建议先独立尝试，再展开核对',
+                              title: Text(context.tr("答案与解析")),
+                              subtitle: Text(
+                                context.tr("建议先独立尝试，再展开核对"),
                                 style: TextStyle(fontSize: 12),
                               ),
                               childrenPadding: const EdgeInsets.only(
@@ -329,10 +342,12 @@ class StudyDetailScreen extends ConsumerWidget {
                                   ),
                                 if (m.item.correctAnswer.isEmpty &&
                                     m.item.aiAnalysis.isEmpty)
-                                  const Padding(
+                                  Padding(
                                     padding: EdgeInsets.all(16),
                                     child: Text(
-                                      '尚未填写答案或解析。可编辑补充，或发送给 AI 继续学习。',
+                                      context.tr(
+                                        "尚未填写答案或解析。可编辑补充，或发送给 AI 继续学习。",
+                                      ),
                                     ),
                                   ),
                               ],
@@ -343,7 +358,7 @@ class StudyDetailScreen extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  '关联知识',
+                                  context.tr("关联知识"),
                                   style: Theme.of(context).textTheme.titleLarge,
                                 ),
                               ),
@@ -352,7 +367,7 @@ class StudyDetailScreen extends ConsumerWidget {
                                   onPressed: () =>
                                       act(context, () => _link(context, ref)),
                                   icon: const Icon(Icons.add, size: 17),
-                                  label: const Text('关联'),
+                                  label: Text(context.tr("关联")),
                                 ),
                             ],
                           ),
@@ -360,9 +375,9 @@ class StudyDetailScreen extends ConsumerWidget {
                             ListTile(
                               contentPadding: EdgeInsets.zero,
                               title: Text(item.title),
-                              subtitle: Text(item.subject),
+                              subtitle: Text(context.subjectName(item.subject)),
                               trailing: IconButton(
-                                tooltip: '解除关联',
+                                tooltip: context.tr("解除关联"),
                                 onPressed: deleted
                                     ? null
                                     : () => act(
@@ -383,33 +398,37 @@ class StudyDetailScreen extends ConsumerWidget {
                             ),
                           if ((k?.related ?? m!.knowledge).isEmpty)
                             Text(
-                              '还没有关联的知识。',
+                              context.tr("还没有关联的知识。"),
                               style: TextStyle(color: colors.onSurfaceVariant),
                             ),
                           if (k != null) ...[
                             const SizedBox(height: 24),
                             Text(
-                              '关联错题',
+                              context.tr("关联错题"),
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             for (final item in k.mistakes)
                               ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 title: Text(item.title),
-                                subtitle: Text(item.subject),
+                                subtitle: Text(
+                                  context.subjectName(item.subject),
+                                ),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () =>
                                     context.push('/mistakes/${item.id}'),
                               ),
                             if (k.mistakes.isEmpty)
-                              const Padding(
+                              Padding(
                                 padding: EdgeInsets.only(top: 8),
-                                child: Text('在错题详情中可以关联这条知识。'),
+                                child: Text(context.tr("在错题详情中可以关联这条知识。")),
                               ),
                           ],
                           const SizedBox(height: 28),
                           Text(
-                            '版本 $revision · 保存在此设备\n阅读解析不会自动标记为已掌握。',
+                            context.tr("版本 {0} · 保存在此设备\n阅读解析不会自动标记为已掌握。", [
+                              revision,
+                            ]),
                             style: TextStyle(
                               fontSize: 11,
                               color: colors.onSurfaceVariant,
@@ -489,8 +508,8 @@ class StudyDetailScreen extends ConsumerWidget {
         SnackBar(
           content: Text(
             selectedImages.length > 4
-                ? '已填入文字和前 4 张图片，请检查后发送。'
-                : '资料已填入新对话，请检查后发送。',
+                ? context.tr("已填入文字和前 4 张图片，请检查后发送。")
+                : context.tr("资料已填入新对话，请检查后发送。"),
           ),
         ),
       );
@@ -504,19 +523,19 @@ class StudyDetailScreen extends ConsumerWidget {
     final selected = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('选择关联知识'),
+        title: Text(context.tr("选择关联知识")),
         content: SizedBox(
           width: 500,
           height: 380,
           child: items.where((k) => isMistake || k.id != id).isEmpty
-              ? const Center(child: Text('请先创建其他知识记录。'))
+              ? Center(child: Text(context.tr("请先创建其他知识记录。")))
               : ListView(
                   children: items
                       .where((k) => isMistake || k.id != id)
                       .map(
                         (k) => ListTile(
                           title: Text(k.title),
-                          subtitle: Text(k.subject),
+                          subtitle: Text(context.subjectName(k.subject)),
                           onTap: () => Navigator.pop(context, k.id),
                         ),
                       )
@@ -526,7 +545,7 @@ class StudyDetailScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(context.tr("取消")),
           ),
         ],
       ),
@@ -551,7 +570,7 @@ class StudyDetailScreen extends ConsumerWidget {
     final selected = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('文本版本历史'),
+        title: Text(context.tr("文本版本历史")),
         content: SizedBox(
           width: 560,
           height: 420,
@@ -559,17 +578,19 @@ class StudyDetailScreen extends ConsumerWidget {
             children: items
                 .map(
                   (r) => ListTile(
-                    title: Text('版本 ${r.revision} · ${r.title}'),
+                    title: Text(
+                      context.tr("版本 {0} · {1}", [r.revision, r.title]),
+                    ),
                     subtitle: Text(
                       r.content,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: r.revision == detail.item.revision
-                        ? const Text('当前')
+                        ? Text(context.tr("当前"))
                         : TextButton(
                             onPressed: () => Navigator.pop(context, r.revision),
-                            child: const Text('恢复为新版本'),
+                            child: Text(context.tr("恢复为新版本")),
                           ),
                   ),
                 )
@@ -579,7 +600,7 @@ class StudyDetailScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('关闭'),
+            child: Text(context.tr("关闭")),
           ),
         ],
       ),

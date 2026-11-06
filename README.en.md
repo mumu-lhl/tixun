@@ -1,0 +1,46 @@
+# TiXun
+
+English · [简体中文](README.md)
+
+**Understand a question. Practise until you can solve it yourself.**
+
+TiXun is an open-source learning app for Android and Linux. Ask AI for help, keep your notes and mistakes, then check your understanding through practice and spaced review.
+
+No TiXun account is needed. Your learning data stays on your device. Saved material and existing exercises work offline; AI requests need an internet connection and your own provider API key.
+
+## Get the app
+
+Download the latest package from [GitHub Releases](https://github.com/mumu-lhl/tixun/releases/latest):
+
+- **Android 10 or later:** install the `android-release.apk` attachment.
+- **Linux x86_64:** extract the `linux-x64.tar.gz` attachment and run `./tixun`. Keep its `lib` and `data` folders alongside the executable. GTK 3 and an unlocked Secret Service keyring are required for the desktop app and secure key storage.
+
+Packages use Release build mode. Android currently uses a development signing key; back up your data before uninstalling or changing builds. Physical Android device checks and real provider acceptance tests are still pending.
+
+## Start learning
+
+1. Open Settings, choose a provider, save your API key and test the connection. DeepSeek Flash accepts images; DeepSeek V4 Pro is text-only. OpenAI-compatible services can use a custom URL, model and declared capabilities.
+2. Ask a question or attach an image. Guided teaching offers hints and lets you try; switch to direct answers when you want the complete explanation.
+3. Save useful knowledge or a mistake from the conversation. Keep the original image, your answer and your own explanation.
+4. Answer a practice question before viewing its solution. Review tasks are scheduled from actual answers, rather than from reading explanations.
+
+AI answers and generated questions can be wrong. Check important results; unchecked AI reference answers do not count as verified mastery evidence.
+
+## New on the main branch
+
+These settings are not included in the published v0.5.2 package yet:
+
+- **Chinese and English:** select either language or follow the system under Settings → Appearance. Existing notes, conversations and custom prompts retain their original content.
+- **Dynamic colors:** use Android 12+ wallpaper colors or a supported Linux desktop accent. TiXun falls back to its default palette when system colors are unavailable. Light and dark themes remain available.
+- **Reasoning effort:** set a global default in Settings or override it for one conversation using the reasoning button. Interactive quizzes and data tools currently require reasoning off; this does not change your global preference.
+- **Prompt management:** edit, search, preview and reset prompts for teaching and study tasks under Settings → Prompts. Changes apply to future requests. Application permissions and answer-submission rules remain in force.
+
+ChatGPT Plus/Pro plan sign-in is **not implemented yet**. The current OpenAI-compatible provider uses an API key. See [the official integration findings](docs/CHATGPT_PROVIDER.md).
+
+## Keep your data safe
+
+Use Settings → Backup to export your database, images, notes, conversations and practice history. API keys are excluded. Restore requires checking the backup before it replaces the active data; a recovery copy is retained.
+
+Only the conversation and material needed for an AI request are sent to the chosen provider. TiXun does not automatically upload your entire library or collect analytics. Keys use system secure storage and are never silently saved as plain text.
+
+[Report a problem](https://github.com/mumu-lhl/tixun/issues) · [Development guide](DEVELOPMENT.md) · [Project status](ROADMAP.md)

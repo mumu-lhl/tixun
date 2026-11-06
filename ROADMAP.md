@@ -61,6 +61,16 @@
 - [x] GUI 测试统一脚本顺序执行，独立日志、超时和首错停止；更新日志按最近公开且可达的 Release 生成，忽略未发布标签及草稿。
 - [x] 提交 `6834838` 的 [Release 验证 CI 42065457302](https://github.com/mumu-lhl/tixun/actions/runs/42065457302) 通过：16 项脚本回归、56 项 Flutter 测试、7 项真实 GUI 测试、双平台 Release 构建及 APK 模式核验。已下载核对正式程序与测试 Artifact 的分离和五份 GUI 日志；此验证没有创建或覆盖发布版本。
 
+## 主分支新增（尚未发布）
+
+- [x] 思考强度：Provider 全局默认、会话独立覆盖、分支继承。工具任务明确提示并只关闭当前会话思考，不改全局默认。
+- [x] 独立提示词管理：九类场景、搜索、编辑、预览、恢复默认；版本化持久化、长度校验及备份恢复；应用权限和提交规则保留。
+- [x] 中文 / English / 跟随系统，662 条英文界面文案；Material 控件与日期本地化，中文学习资料和自定义内容保持原样。增加英文用户 README。
+- [x] 动态配色：Android 12+ 壁纸色与 Linux 桌面强调色，支持关闭及无系统色时回退；保持深浅主题和独立 Mock 的确定性。
+- [x] 本地静态分析、62 项 Flutter 测试、16 项脚本测试；另跑备份与语言 7 项回归。新增真实 Linux GUI 流程通过，已读取审查中英文、手机、桌面和深浅色截图。上述功能的 Android 实机验证仍待完成。
+- [x] 本地 Linux Release 构建和隔离数据目录的正式 GUI 启动通过（`demo=false`）；已读取桌面截图，无演示资料。
+- [ ] ChatGPT Plus/Pro 订阅授权 Provider：已核对官方开源本地应用 OAuth 路线，尚未实现登录、令牌生命周期和 Responses 适配，不能当作现有 API Key 入口使用。见[接入说明](docs/CHATGPT_PROVIDER.md)。
+
 ## 必须单独完成的外部验收
 
 - [ ] 用实际 DeepSeek API Key 验证文本、Flash 图片理解、非思考工具调用与教学质量。当前已验证请求格式、能力限制、本地 HTTP/SSE、错误与 Mock；未发送付费真实模型请求。
@@ -70,6 +80,6 @@
 
 ## 可重复验证
 
-Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI 参照 [开发指南](DEVELOPMENT.md)与 CI 的五个测试入口，截图/日志保存在 `artifacts/`，生成截图与完成视觉审查分别记录。约 8 GiB 的当前云盘无法解压 Android NDK，APK 由磁盘充足的 GitHub Actions 构建。
+Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI 参照 [开发指南](DEVELOPMENT.md)与 CI 的六个测试入口，截图/日志保存在 `artifacts/`，生成截图与完成视觉审查分别记录。约 8 GiB 的当前云盘无法解压 Android NDK，APK 由磁盘充足的 GitHub Actions 构建。
 
 已验证代码提交：`341542d`（0.5.1）。最终双平台 CI：[41879876725](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)。[最新工作流与产物](https://github.com/mumu-lhl/tixun/actions/workflows/ci.yml)。

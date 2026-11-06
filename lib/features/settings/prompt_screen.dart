@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/controller.dart';
 import '../../core/ai/chat_provider.dart';
 import '../../core/ai/prompt_settings.dart';
+import '../../core/l10n/app_strings.dart';
 
 class PromptScreen extends ConsumerStatefulWidget {
   const PromptScreen({super.key});
@@ -18,9 +19,10 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
     final rows = promptDefinitions.where(
-      (p) => '${p.title}${p.description}${c.prompts.text(p.id)}'
-          .toLowerCase()
-          .contains(query.toLowerCase()),
+      (p) =>
+          '${context.tr(p.title)}${context.tr(p.description)}${c.prompts.text(p.id)}'
+              .toLowerCase()
+              .contains(query.toLowerCase()),
     );
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -34,35 +36,39 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: '返回设置',
+                      tooltip: context.tr("返回设置"),
                       onPressed: () => context.go('/settings'),
                       icon: const Icon(Icons.arrow_back),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      '提示词管理',
-                      style: Theme.of(context).textTheme.headlineSmall,
+                    Expanded(
+                      child: Text(
+                        context.tr("提示词管理"),
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  '调整教学方式和不同学习任务的提示词。保存后用于后续请求，不修改已有消息；应用的工具权限、保存确认和答题规则始终保留。',
+                Text(
+                  context.tr(
+                    "调整教学方式和不同学习任务的提示词。保存后用于后续请求，不修改已有消息；应用的工具权限、保存确认和答题规则始终保留。",
+                  ),
                 ),
                 const SizedBox(height: 18),
                 TextField(
                   key: const Key('prompt-search'),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     prefixIcon: Icon(Icons.search),
-                    hintText: '搜索提示词',
+                    hintText: context.tr("搜索提示词"),
                   ),
                   onChanged: (v) => setState(() => query = v.trim()),
                 ),
                 const SizedBox(height: 16),
                 if (rows.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(24),
-                    child: Text('没有找到匹配的提示词。'),
+                    child: Text(context.tr("没有找到匹配的提示词。")),
                   ),
                 for (final p in rows) ...[
                   ListTile(
@@ -71,9 +77,14 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                       vertical: 8,
                       horizontal: 4,
                     ),
-                    title: Text(p.title),
+                    title: Text(context.tr(p.title)),
                     subtitle: Text(
-                      '${c.prompts.overrides.containsKey(p.id) ? '已自定义' : '默认'} · ${p.description}',
+                      context.tr("{0} · {1}", [
+                        context.tr(
+                          c.prompts.overrides.containsKey(p.id) ? '已自定义' : '默认',
+                        ),
+                        context.tr(p.description),
+                      ]),
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.go('/settings/prompts/${p.id}'),
@@ -121,8 +132,9 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
     try {
       await ref.read(appControllerProvider).savePrompt(widget.id, input.text);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('提示词已保存，将用于后续请求。')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.tr("提示词已保存，将用于后续请求。"))));
         context.go('/settings/prompts');
       }
     } catch (error) {
@@ -146,23 +158,32 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
           .update(widget.id, input.text);
       final mode = ['guided', 'direct', 'exam'].contains(widget.id)
           ? widget.id
+          : widget.id == 'quiz'
+          ? 'exam'
           : 'guided';
       final system = teachingPrompt(mode, prompts: settings);
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('提示词预览'),
+          title: Text(context.tr("提示词预览")),
           scrollable: true,
           content: SizedBox(
             width: 700,
             child: SelectableText(
-              '$system${['global', 'guided', 'direct', 'exam'].contains(widget.id) ? '' : '\n\n【任务请求；发送前可编辑】\n${settings.text(widget.id)}'}\n\n实际请求还会按当前工具授权、学习状态及所选资料补入必要内容。',
+              context.tr("{0}{1}\n\n实际请求还会按当前工具授权、学习状态及所选资料补入必要内容。", [
+                system,
+                ['global', 'guided', 'direct', 'exam'].contains(widget.id)
+                    ? ''
+                    : context.tr("\n\n【任务请求；发送前可编辑】\n{0}", [
+                        settings.text(widget.id),
+                      ]),
+              ]),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('关闭'),
+              child: Text(context.tr("关闭")),
             ),
           ],
         ),
@@ -183,7 +204,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
       return Center(
         child: TextButton(
           onPressed: () => context.go('/settings/prompts'),
-          child: const Text('提示词不存在，返回管理页'),
+          child: Text(context.tr("提示词不存在，返回管理页")),
         ),
       );
     }
@@ -199,7 +220,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: '返回提示词管理',
+                      tooltip: context.tr("返回提示词管理"),
                       onPressed: saving
                           ? null
                           : () => context.go('/settings/prompts'),
@@ -208,17 +229,17 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        p.title,
+                        context.tr(p.title),
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                Text(p.description),
+                Text(context.tr(p.description)),
                 const SizedBox(height: 8),
-                const Text(
-                  '提示词会发送给模型，并随学习数据备份保存，请勿填写 API Key 等密钥。',
+                Text(
+                  context.tr("提示词会发送给模型，并随学习数据备份保存，请勿填写 API Key 等密钥。"),
                   style: TextStyle(fontSize: 12),
                 ),
                 const SizedBox(height: 18),
@@ -229,8 +250,8 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                   minLines: 12,
                   maxLines: 24,
                   maxLength: 6000,
-                  decoration: const InputDecoration(
-                    labelText: '提示词内容',
+                  decoration: InputDecoration(
+                    labelText: context.tr("提示词内容"),
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -238,7 +259,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(
-                      failure!,
+                      context.tr(failure!),
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
                       ),
@@ -251,11 +272,13 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                     FilledButton(
                       key: const Key('save-prompt'),
                       onPressed: saving ? null : save,
-                      child: Text(saving ? '保存中…' : '保存提示词'),
+                      child: Text(
+                        saving ? context.tr("保存中…") : context.tr("保存提示词"),
+                      ),
                     ),
                     OutlinedButton(
                       onPressed: saving ? null : preview,
-                      child: const Text('预览效果'),
+                      child: Text(context.tr("预览效果")),
                     ),
                     TextButton(
                       onPressed: saving
@@ -264,29 +287,34 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                               final reset = await showDialog<bool>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: const Text('恢复默认提示词？'),
-                                  content: const Text('将替换当前编辑内容，点击保存后生效。'),
+                                  title: Text(context.tr("恢复默认提示词？")),
+                                  content: Text(
+                                    context.tr("将替换当前编辑内容，点击保存后生效。"),
+                                  ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(ctx, false),
-                                      child: const Text('取消'),
+                                      child: Text(context.tr("取消")),
                                     ),
                                     FilledButton(
                                       onPressed: () => Navigator.pop(ctx, true),
-                                      child: const Text('恢复默认'),
+                                      child: Text(context.tr("恢复默认")),
                                     ),
                                   ],
                                 ),
                               );
                               if (reset == true && mounted) {
                                 setState(() {
-                                  input.text = p.content;
+                                  input.text = ref
+                                      .read(appControllerProvider)
+                                      .prompts
+                                      .defaultText(p.id);
                                   failure = null;
                                 });
                               }
                             },
-                      child: const Text('恢复默认'),
+                      child: Text(context.tr("恢复默认")),
                     ),
                   ],
                 ),

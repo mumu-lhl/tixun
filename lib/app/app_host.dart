@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/backup/backup_actions.dart';
 import '../core/backup/backup_service.dart';
+import '../core/l10n/app_strings.dart';
 import '../core/platform/backup_file_picker.dart';
 import '../core/ui/actions.dart';
 import 'app.dart';
@@ -201,6 +204,14 @@ class _TixunHostState extends State<TixunHost> {
   });
   Widget _errorPage() => MaterialApp(
     theme: appTheme(Brightness.light),
+    locale:
+        _controller?.appLocale ??
+        resolveAppLocale(PlatformDispatcher.instance.locales),
+    supportedLocales: const [Locale('zh'), Locale('en')],
+    localizationsDelegates: const [
+      AppStrings.delegate,
+      ...GlobalMaterialLocalizations.delegates,
+    ],
     home: Scaffold(
       body: Builder(
         builder: (ctx) => Center(
@@ -209,7 +220,10 @@ class _TixunHostState extends State<TixunHost> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_failure ?? '正在切换数据…', textAlign: TextAlign.center),
+                Text(
+                  ctx.tr(_failure ?? "正在切换数据…"),
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 16),
                 if (!_detached)
                   Wrap(
@@ -218,7 +232,7 @@ class _TixunHostState extends State<TixunHost> {
                     children: [
                       OutlinedButton(
                         onPressed: _working ? null : () => act(ctx, _retry),
-                        child: const Text('重试打开'),
+                        child: Text(ctx.tr("重试打开")),
                       ),
                       FilledButton(
                         onPressed: _working
@@ -233,20 +247,27 @@ class _TixunHostState extends State<TixunHost> {
                                   final ok = await showDialog<bool>(
                                     context: ctx,
                                     builder: (dialog) => AlertDialog(
-                                      title: const Text('恢复备份？'),
+                                      title: Text(ctx.tr("恢复备份？")),
                                       content: Text(
-                                        '包含 ${info.counts['chats'] ?? 0} 段对话、${info.counts['knowledge'] ?? 0} 条知识和 ${info.counts['mistakes'] ?? 0} 道错题。当前目录保留为最近一次安全副本；已有系统密钥不会更改。',
+                                        ctx.tr(
+                                          "包含 {0} 段对话、{1} 条知识和 {2} 道错题。当前目录保留为最近一次安全副本；已有系统密钥不会更改。",
+                                          [
+                                            info.counts['chats'] ?? 0,
+                                            info.counts['knowledge'] ?? 0,
+                                            info.counts['mistakes'] ?? 0,
+                                          ],
+                                        ),
                                       ),
                                       actions: [
                                         TextButton(
                                           onPressed: () =>
                                               Navigator.pop(dialog, false),
-                                          child: const Text('取消'),
+                                          child: Text(ctx.tr("取消")),
                                         ),
                                         FilledButton(
                                           onPressed: () =>
                                               Navigator.pop(dialog, true),
-                                          child: const Text('恢复数据'),
+                                          child: Text(ctx.tr("恢复数据")),
                                         ),
                                       ],
                                     ),
@@ -256,7 +277,7 @@ class _TixunHostState extends State<TixunHost> {
                                   await prepared.discard();
                                 }
                               }),
-                        child: const Text('从备份恢复'),
+                        child: Text(ctx.tr("从备份恢复")),
                       ),
                     ],
                   ),
@@ -297,7 +318,14 @@ class _TixunHostState extends State<TixunHost> {
                       const CircularProgressIndicator(),
                       const SizedBox(height: 20),
                       Text(
-                        _operation,
+                        AppStrings(
+                          Locale(
+                            _controller?.promptLanguage ??
+                                resolveAppLocale(
+                                  PlatformDispatcher.instance.locales,
+                                ).languageCode,
+                          ),
+                        ).text(_operation),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Color(0xff1b2521),

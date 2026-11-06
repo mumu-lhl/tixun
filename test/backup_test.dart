@@ -67,6 +67,10 @@ void main() {
     );
     await c.practice.submit((await c.practice.begin(q)).id, ['4']);
     await c.setTools(true);
+    await c.savePrompt('guided', '保留我的教学偏好。');
+    await c.setLanguage('en');
+    await c.setDynamicColors(false);
+    await c.setSessionReasoning('off');
     await c.keys.write(providerKeyId(c.config), 'test-key-never-exported-9837');
     return note.id;
   }
@@ -108,6 +112,11 @@ void main() {
     await prepared.discard();
     expect((await c.study.knowledge(note)).content, '恢复前的内容');
     expect(c.selected!.draft, '待发送草稿');
+    expect(c.languageChoice, 'en');
+    expect(c.dynamicColors, false);
+    expect(c.sessionReasoning, 'off');
+    expect(c.prompts.text('guided'), '保留我的教学偏好。');
+    expect(c.prompts.text('global'), startsWith('You are TiXun'));
     expect(c.selected!.toolsEnabled, false);
     expect(c.messages.length, 2);
     expect(

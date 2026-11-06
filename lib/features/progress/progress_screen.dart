@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/app_strings.dart';
 import '../review/review_providers.dart';
 import '../review/review_screen.dart';
 
@@ -15,7 +16,7 @@ class ProgressScreen extends ConsumerWidget {
         error: (_, _) => Center(
           child: TextButton(
             onPressed: () => ref.invalidate(progressProvider),
-            child: const Text('记录读取失败，点击重试'),
+            child: Text(context.tr("记录读取失败，点击重试")),
           ),
         ),
         data: (p) => ListView(
@@ -26,12 +27,15 @@ class ProgressScreen extends ConsumerWidget {
               child: TextButton.icon(
                 onPressed: () => context.go('/study'),
                 icon: const Icon(Icons.arrow_back),
-                label: const Text('返回学习'),
+                label: Text(context.tr("返回学习")),
               ),
             ),
-            Text('学习诊断', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              context.tr("学习诊断"),
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 12),
-            const Text('只依据此设备上的真实记录。阅读解析不会增加掌握程度；暂不预测考试分数。'),
+            Text(context.tr("只依据此设备上的真实记录。阅读解析不会增加掌握程度；暂不预测考试分数。")),
             const SizedBox(height: 20),
             Wrap(
               spacing: 28,
@@ -45,45 +49,63 @@ class ProgressScreen extends ConsumerWidget {
               ],
             ),
             const Divider(height: 40),
-            Text('知识点检测证据', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.tr("知识点检测证据"),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 10),
-            const Text(
-              '每道题仅取最近一次已评分作答；以下只纳入已核对答案、未用提示的规则判分。题量少于 3 道不显示比例，反复重做同一题不扩充样本数。',
+            Text(
+              context.tr(
+                "每道题仅取最近一次已评分作答；以下只纳入已核对答案、未用提示的规则判分。题量少于 3 道不显示比例，反复重做同一题不扩充样本数。",
+              ),
               style: TextStyle(fontSize: 12),
             ),
             if (p.topics.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text('暂时没有足够的独立检测证据。可以先核对参考答案，再独立做几道不同的题。'),
+                child: Text(context.tr("暂时没有足够的独立检测证据。可以先核对参考答案，再独立做几道不同的题。")),
               ),
             for (final t in p.topics)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text('${t.subject} · ${t.name}'),
-                subtitle: Text(t.description),
+                title: Text('${context.subjectName(t.subject)} · ${t.name}'),
+                subtitle: Text(
+                  t.questions < 3
+                      ? context.tr('样本不足：{0} 道独立检测题', [t.questions])
+                      : context.tr('最近独立检测 {0} / {1} 道正确', [
+                          t.correct,
+                          t.questions,
+                        ]),
+                ),
                 trailing: t.questions >= 3 && t.correct < t.questions
                     ? const Icon(Icons.priority_high)
                     : null,
               ),
             const Divider(height: 32),
-            Text('已记录的错误原因', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.tr("已记录的错误原因"),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             if (p.errorReasons.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('还没有用户确认的错误原因。AI 的建议不会直接当作结论。'),
+                child: Text(context.tr("还没有用户确认的错误原因。AI 的建议不会直接当作结论。")),
               ),
             for (final e in p.errorReasons.entries)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(e.key),
-                trailing: Text('${e.value} 道错题'),
+                title: Text(context.tr(e.key)),
+                trailing: Text(context.tr("{0} 道错题", [e.value])),
               ),
             const Divider(height: 32),
-            Text('最近训练', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.tr("最近训练"),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             if (p.recent.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('完成第一次训练后，这里会出现真实记录。'),
+                child: Text(context.tr("完成第一次训练后，这里会出现真实记录。")),
               ),
             for (final a in p.recent)
               ListTile(
@@ -94,13 +116,19 @@ class ProgressScreen extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Text(
-                  '${reviewDate(a.time)} · ${a.basis == 'self'
-                      ? '自主判分'
-                      : a.basis == 'ai_reference'
-                      ? 'AI 参考待核对'
-                      : '规则评分'}${a.hint ? ' · 有提示' : ''}',
+                  context.tr("{0} · {1}{2}", [
+                    reviewDate(a.time, context: context),
+                    a.basis == 'self'
+                        ? context.tr("自主判分")
+                        : a.basis == 'ai_reference'
+                        ? context.tr("AI 参考待核对")
+                        : context.tr("规则评分"),
+                    a.hint ? context.tr(" · 有提示") : '',
+                  ]),
                 ),
-                trailing: Text(a.correct ? '正确' : '需订正'),
+                trailing: Text(
+                  a.correct ? context.tr("正确") : context.tr("需订正"),
+                ),
               ),
           ],
         ),
@@ -112,7 +140,10 @@ class ProgressScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(value, style: Theme.of(context).textTheme.headlineMedium),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              context.tr(label),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
         ),
       );

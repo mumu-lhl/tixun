@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
+import '../../core/l10n/app_strings.dart';
 import 'library_providers.dart';
 import 'study_store.dart';
 
@@ -231,14 +232,14 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            tooltip: '取消编辑',
+            tooltip: context.tr("取消编辑"),
             onPressed: _saving ? null : () => Navigator.pop(context),
             icon: const Icon(Icons.close),
           ),
           title: Text(widget.title),
           actions: [
             IconButton(
-              tooltip: '顺时针旋转',
+              tooltip: context.tr("顺时针旋转"),
               onPressed: image == null || _saving
                   ? null
                   : () => setState(() {
@@ -252,10 +253,10 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
         body: SafeArea(
           child: Column(
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  '拖动框选要保留的区域。原图始终保留，编辑副本最长边为 2048 像素。',
+                  context.tr("拖动框选要保留的区域。原图始终保留，编辑副本最长边为 2048 像素。"),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12),
                 ),
@@ -352,7 +353,9 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                         onPressed: image == null || _saving
                             ? null
                             : () => _save(),
-                        child: Text(_saving ? '保存中…' : '保存编辑副本'),
+                        child: Text(
+                          _saving ? context.tr("保存中…") : context.tr("保存编辑副本"),
+                        ),
                       ),
                     if (widget.isMistake)
                       FilledButton(
@@ -363,7 +366,7 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                         child: Text(
                           widget.onCreate != null
                               ? widget.createLabel
-                              : '框选区域存为新错题',
+                              : context.tr("框选区域存为新错题"),
                         ),
                       ),
                   ],

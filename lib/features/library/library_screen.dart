@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/ui/actions.dart';
 import '../../app/controller.dart';
+import '../../core/l10n/app_strings.dart';
+import '../../core/ui/actions.dart';
 import 'library_providers.dart';
 import 'study_editor.dart';
 import 'study_images.dart';
-import 'study_store.dart';
 import 'study_photo_intake.dart';
+import 'study_store.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({required this.isMistake, super.key});
@@ -84,8 +85,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void _toggle(_Entry e) {
     if (_bulkBusy) return;
     if (!_selected.containsKey(e.id) && _selected.length >= 200) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('每次最多选择 200 条，可分批整理。')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("每次最多选择 200 条，可分批整理。"))),
+      );
       return;
     }
     setState(() {
@@ -136,19 +138,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text('永久删除 ${revisions.length} 条资料？'),
+          title: Text(context.tr("永久删除 {0} 条资料？", [revisions.length])),
           scrollable: true,
           content: Text(
-            '$names\n\n资料、修订和附件引用将永久删除。独立的 Chat 与训练记录会保留；其他记录仍引用的图片也会保留。已导出备份与恢复安全副本需另行管理。',
+            context.tr(
+              "{0}\n\n资料、修订和附件引用将永久删除。独立的 Chat 与训练记录会保留；其他记录仍引用的图片也会保留。已导出备份与恢复安全副本需另行管理。",
+              [names],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消'),
+              child: Text(context.tr("取消")),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('永久删除'),
+              child: Text(context.tr("永久删除")),
             ),
           ],
         ),
@@ -168,8 +173,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             SnackBar(
               content: Text(
                 failed == 0
-                    ? '已永久删除 ${revisions.length} 条资料。'
-                    : '资料记录已删除，$failed 个未引用图片未能清理，请检查目录权限。',
+                    ? context.tr("已永久删除 {0} 条资料。", [revisions.length])
+                    : context.tr("资料记录已删除，{0} 个未引用图片未能清理，请检查目录权限。", [failed]),
               ),
             ),
           );
@@ -184,10 +189,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                '已${wasTrash ? '恢复' : '移入回收区'} ${revisions.length} 条资料。',
+                context.tr("已{0} {1} 条资料。", [
+                  wasTrash ? context.tr("恢复") : context.tr("移入回收区"),
+                  revisions.length,
+                ]),
               ),
               action: SnackBarAction(
-                label: '撤销',
+                label: context.tr("撤销"),
                 onPressed: () => act(context, () async {
                   await store.batchSetDeleted(
                     next,
@@ -224,7 +232,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   Future<void> _import() async {
     if (_importing) return;
-    final picked = await pickStudyImages();
+    final picked = await pickStudyImages(context);
     if (picked.isEmpty || !mounted) return;
     setState(() => _importing = true);
     var imported = 0;
@@ -241,7 +249,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已录入 $imported 道图片错题，可分别补充答案与解析。')),
+          SnackBar(
+            content: Text(context.tr("已录入 {0} 道图片错题，可分别补充答案与解析。", [imported])),
+          ),
         );
       }
     } catch (e) {
@@ -249,7 +259,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '已保存 $imported 道；${e is FormatException ? e.message : '其余图片导入失败，请重试。'}',
+              context.tr("已保存 {0} 道；{1}", [
+                imported,
+                e is FormatException ? e.message : context.tr("其余图片导入失败，请重试。"),
+              ]),
             ),
           ),
         );
@@ -306,12 +319,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      _trash ? '$name · 回收区' : name,
+                      _trash ? context.tr("{0} · 回收区", [name]) : name,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                   ),
                   IconButton(
-                    tooltip: '选择多条资料',
+                    tooltip: context.tr("选择多条资料"),
                     onPressed: _bulkBusy
                         ? null
                         : () {
@@ -324,7 +337,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     icon: Icon(_selecting ? Icons.close : Icons.checklist),
                   ),
                   IconButton(
-                    tooltip: _trash ? '返回资料' : '打开回收区',
+                    tooltip: _trash ? context.tr("返回资料") : context.tr("打开回收区"),
                     onPressed: _bulkBusy
                         ? null
                         : () {
@@ -346,15 +359,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         ? null
                         : () => act(context, _create),
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text('新建'),
+                    label: Text(context.tr("新建")),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
                 widget.isMistake
-                    ? '保留原题，记录思路，让每次错误都有收获。'
-                    : '概念、公式和自己的理解，都值得留下。',
+                    ? context.tr("保留原题，记录思路，让每次错误都有收获。")
+                    : context.tr("概念、公式和自己的理解，都值得留下。"),
                 style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
               ),
               const SizedBox(height: 18),
@@ -371,8 +384,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     }
                   });
                 },
-                decoration: const InputDecoration(
-                  hintText: '搜索标题、正文、章节或标签',
+                decoration: InputDecoration(
+                  hintText: context.tr("搜索标题、正文、章节或标签"),
                   prefixIcon: Icon(Icons.search),
                   isDense: true,
                 ),
@@ -397,7 +410,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                   (s) => DropdownMenuItem(
                                     value: s,
                                     child: Text(
-                                      s.isEmpty ? '全部科目' : s,
+                                      s.isEmpty
+                                          ? context.tr("全部科目")
+                                          : context.subjectName(s),
                                       style: const TextStyle(fontSize: 13),
                                     ),
                                   ),
@@ -414,7 +429,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     onPressed: () async {
                       final subject = await editText(
                         context,
-                        title: '按自定义科目筛选',
+                        title: context.tr("按自定义科目筛选"),
                         initial: _subject,
                       );
                       if (subject != null && mounted) {
@@ -424,31 +439,37 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         });
                       }
                     },
-                    child: const Text('自定义科目', style: TextStyle(fontSize: 12)),
+                    child: Text(
+                      context.tr("自定义科目"),
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                   if (widget.isMistake && !_trash)
                     if (Platform.isAndroid)
                       PopupMenuButton<String>(
-                        tooltip: '快速录入错题',
+                        tooltip: context.tr("快速录入错题"),
                         enabled: !_importing,
                         icon: const Icon(Icons.add_a_photo_outlined),
                         onSelected: (kind) =>
                             act(context, () => _nativeImport(kind)),
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'camera', child: Text('拍照录题')),
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'camera',
+                            child: Text(context.tr("拍照录题")),
+                          ),
                           PopupMenuItem(
                             value: 'gallery',
-                            child: Text('相册录题（每张独立）'),
+                            child: Text(context.tr("相册录题（每张独立）")),
                           ),
                           PopupMenuItem(
                             value: 'file',
-                            child: Text('文件录题（每张独立）'),
+                            child: Text(context.tr("文件录题（每张独立）")),
                           ),
                         ],
                       )
                     else
                       IconButton(
-                        tooltip: '多图录入（每张独立建题）',
+                        tooltip: context.tr("多图录入（每张独立建题）"),
                         onPressed: _importing
                             ? null
                             : () => act(context, _import),
@@ -475,7 +496,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               runSpacing: 6,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text('已选 ${_selected.length} 条'),
+                Text(context.tr("已选 {0} 条", [_selected.length])),
                 TextButton(
                   onPressed: _bulkBusy
                       ? null
@@ -484,13 +505,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             _selected[e.id] = e.revision;
                           }
                         }),
-                  child: const Text('全选已加载'),
+                  child: Text(context.tr("全选已加载")),
                 ),
                 FilledButton.tonal(
                   onPressed: _bulkBusy || _selected.isEmpty
                       ? null
                       : () => act(context, _batch),
-                  child: Text(_trash ? '恢复所选' : '移入回收区'),
+                  child: Text(
+                    _trash ? context.tr("恢复所选") : context.tr("移入回收区"),
+                  ),
                 ),
                 if (!_trash && !widget.isMistake)
                   TextButton(
@@ -505,14 +528,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 );
                             if (context.mounted) context.go('/chat');
                           }),
-                    child: const Text('知识检测（最多5条）'),
+                    child: Text(context.tr("知识检测（最多5条）")),
                   ),
                 if (_trash)
                   TextButton(
                     onPressed: _bulkBusy || _selected.isEmpty
                         ? null
                         : () => act(context, () => _batch(permanent: true)),
-                    child: const Text('永久删除'),
+                    child: Text(context.tr("永久删除")),
                   ),
               ],
             ),
@@ -527,7 +550,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   child: TextButton.icon(
                     onPressed: _refresh,
                     icon: const Icon(Icons.refresh),
-                    label: const Text('加载失败，点击重试'),
+                    label: Text(context.tr("加载失败，点击重试")),
                   ),
                 );
               }
@@ -555,19 +578,27 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         const SizedBox(height: 16),
                         Text(
                           _trash
-                              ? '回收区为空'
+                              ? context.tr("回收区为空")
                               : _query.isNotEmpty || _subject.isNotEmpty
-                              ? '没有找到相关资料'
-                              : '从${widget.isMistake ? '一道错题' : '一个知识点'}开始',
+                              ? context.tr("没有找到相关资料")
+                              : context.tr("从{0}开始", [
+                                  widget.isMistake
+                                      ? context.tr("一道错题")
+                                      : context.tr("一个知识点"),
+                                ]),
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 10),
                         Text(
                           _trash
-                              ? '删除的资料可在这里恢复。'
+                              ? context.tr("删除的资料可在这里恢复。")
                               : widget.isMistake
-                              ? '手动记录题目、导入图片，或从对话保存。\n多张图片导入后，每张建立独立记录。'
-                              : '自由记录自己的理解，支持 Markdown 与数学公式。\n也可以从对话中保存内容，再补充自己的思考。',
+                              ? context.tr(
+                                  "手动记录题目、导入图片，或从对话保存。\n多张图片导入后，每张建立独立记录。",
+                                )
+                              : context.tr(
+                                  "自由记录自己的理解，支持 Markdown 与数学公式。\n也可以从对话中保存内容，再补充自己的思考。",
+                                ),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: colors.onSurfaceVariant,
@@ -580,7 +611,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             child: OutlinedButton(
                               onPressed: () => act(context, _create),
                               child: Text(
-                                '新建${widget.isMistake ? '错题' : '知识'}',
+                                context.tr("新建{0}", [
+                                  widget.isMistake
+                                      ? context.tr("错题")
+                                      : context.tr("知识"),
+                                ]),
                               ),
                             ),
                           ),
@@ -604,7 +639,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         onPressed: _loadingMore
                             ? null
                             : () => act(context, _more),
-                        child: Text(_loadingMore ? '正在读取…' : '加载更多'),
+                        child: Text(
+                          _loadingMore
+                              ? context.tr("正在读取…")
+                              : context.tr("加载更多"),
+                        ),
                       ),
                     );
                   }
@@ -667,7 +706,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 expectedRevision: e.revision,
                               ),
                             ),
-                            child: const Text('恢复'),
+                            child: Text(context.tr("恢复")),
                           )
                         : const Icon(Icons.chevron_right),
                     onTap: _selecting

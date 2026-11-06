@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 
 class SessionList extends ConsumerWidget {
@@ -19,14 +20,14 @@ class SessionList extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
           child: Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  '学习对话',
+                  context.tr("学习对话"),
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ),
               IconButton(
-                tooltip: '新建会话',
+                tooltip: context.tr("新建会话"),
                 key: const Key('new-session'),
                 onPressed: () => act(context, () async {
                   await c.newSession();
@@ -42,8 +43,8 @@ class SessionList extends ConsumerWidget {
           child: TextFormField(
             initialValue: c.search,
             onChanged: c.searchSessions,
-            decoration: const InputDecoration(
-              hintText: '搜索标题或消息',
+            decoration: InputDecoration(
+              hintText: context.tr("搜索标题或消息"),
               prefixIcon: Icon(Icons.search, size: 20),
               isDense: true,
             ),
@@ -56,7 +57,9 @@ class SessionList extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      c.search.isEmpty ? '还没有对话\n从一个问题开始吧' : '没有找到相关对话',
+                      c.search.isEmpty
+                          ? context.tr("还没有对话\n从一个问题开始吧")
+                          : context.tr("没有找到相关对话"),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -92,11 +95,15 @@ class SessionList extends ConsumerWidget {
                             style: const TextStyle(fontSize: 14),
                           ),
                           subtitle: Text(
-                            '${s.updatedAt.month}月${s.updatedAt.day}日 · ${s.mode == 'guided'
-                                ? '引导教学'
-                                : s.mode == 'direct'
-                                ? '直接解答'
-                                : '考试对话'}',
+                            context.tr("{0}月{1}日 · {2}", [
+                              s.updatedAt.month,
+                              s.updatedAt.day,
+                              s.mode == 'guided'
+                                  ? context.tr("引导教学")
+                                  : s.mode == 'direct'
+                                  ? context.tr("直接解答")
+                                  : context.tr("考试对话"),
+                            ]),
                             style: TextStyle(
                               fontSize: 11,
                               color: colors.onSurfaceVariant,
@@ -107,17 +114,17 @@ class SessionList extends ConsumerWidget {
                             onSelected?.call();
                           }),
                           trailing: PopupMenuButton<String>(
-                            tooltip: '会话操作',
+                            tooltip: context.tr("会话操作"),
                             onSelected: (action) =>
                                 _action(context, c, s, action),
-                            itemBuilder: (_) => const [
+                            itemBuilder: (_) => [
                               PopupMenuItem(
                                 value: 'rename',
-                                child: Text('重命名'),
+                                child: Text(context.tr("重命名")),
                               ),
                               PopupMenuItem(
                                 value: 'delete',
-                                child: Text('删除会话'),
+                                child: Text(context.tr("删除会话")),
                               ),
                             ],
                           ),
@@ -135,10 +142,10 @@ class SessionList extends ConsumerWidget {
               TextButton.icon(
                 onPressed: () => act(context, () => _trash(context, c)),
                 icon: const Icon(Icons.restore_from_trash_outlined, size: 17),
-                label: const Text('回收区', style: TextStyle(fontSize: 12)),
+                label: Text(context.tr("回收区"), style: TextStyle(fontSize: 12)),
               ),
               Text(
-                '保存在此设备 · 不自动清空回收区',
+                context.tr("保存在此设备 · 不自动清空回收区"),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant),
               ),
@@ -156,7 +163,11 @@ class SessionList extends ConsumerWidget {
     String action,
   ) async {
     if (action == 'rename') {
-      final title = await editText(context, title: '重命名会话', initial: s.title);
+      final title = await editText(
+        context,
+        title: context.tr("重命名会话"),
+        initial: s.title,
+      );
       if (title != null && context.mounted) {
         await act(context, () => c.renameSession(s, title));
       }
@@ -166,9 +177,9 @@ class SessionList extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('会话已移入回收区'),
+              content: Text(context.tr("会话已移入回收区")),
               action: SnackBarAction(
-                label: '撤销',
+                label: context.tr("撤销"),
                 onPressed: () => act(context, () => c.restoreSession(s)),
               ),
             ),
@@ -185,12 +196,12 @@ class SessionList extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, update) => AlertDialog(
-          title: const Text('回收区'),
+          title: Text(context.tr("回收区")),
           content: SizedBox(
             width: 480,
             height: 320,
             child: items.isEmpty
-                ? const Center(child: Text('回收区为空'))
+                ? Center(child: Text(context.tr("回收区为空")))
                 : ListView.builder(
                     itemCount: items.length,
                     itemBuilder: (context, index) {
@@ -202,15 +213,15 @@ class SessionList extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         trailing: PopupMenuButton<String>(
-                          tooltip: '回收会话操作',
-                          itemBuilder: (_) => const [
+                          tooltip: context.tr("回收会话操作"),
+                          itemBuilder: (_) => [
                             PopupMenuItem(
                               value: 'restore',
-                              child: Text('恢复会话'),
+                              child: Text(context.tr("恢复会话")),
                             ),
                             PopupMenuItem(
                               value: 'purge',
-                              child: Text('永久删除会话'),
+                              child: Text(context.tr("永久删除会话")),
                             ),
                           ],
                           onSelected: (action) => act(context, () async {
@@ -220,19 +231,22 @@ class SessionList extends ConsumerWidget {
                               final ok = await showDialog<bool>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: const Text('永久删除会话？'),
+                                  title: Text(context.tr("永久删除会话？")),
                                   content: Text(
-                                    '将永久删除“${item.title}”的消息、图片引用和工具执行记录。独立保存的知识、错题及训练记录仍保留，其他记录使用的图片也会保留。已导出的备份和恢复安全副本需另行管理。',
+                                    context.tr(
+                                      "将永久删除“{0}”的消息、图片引用和工具执行记录。独立保存的知识、错题及训练记录仍保留，其他记录使用的图片也会保留。已导出的备份和恢复安全副本需另行管理。",
+                                      [item.title],
+                                    ),
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(ctx, false),
-                                      child: const Text('取消'),
+                                      child: Text(context.tr("取消")),
                                     ),
                                     FilledButton(
                                       onPressed: () => Navigator.pop(ctx, true),
-                                      child: const Text('永久删除'),
+                                      child: Text(context.tr("永久删除")),
                                     ),
                                   ],
                                 ),
@@ -243,7 +257,10 @@ class SessionList extends ConsumerWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      '记录已删除，$failed 个未引用图片未能清理，请检查目录权限。',
+                                      context.tr(
+                                        "记录已删除，{0} 个未引用图片未能清理，请检查目录权限。",
+                                        [failed],
+                                      ),
                                     ),
                                   ),
                                 );
@@ -263,7 +280,7 @@ class SessionList extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('关闭'),
+              child: Text(context.tr("关闭")),
             ),
           ],
         ),

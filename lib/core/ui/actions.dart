@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../ai/chat_provider.dart';
+import '../l10n/app_strings.dart';
 
 Future<void> act(BuildContext context, Future<void> Function() action) async {
   try {
@@ -13,7 +14,7 @@ Future<void> act(BuildContext context, Future<void> Function() action) async {
         ? e.message
         : '操作失败，请检查存储空间或系统密钥环后重试。';
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+        .showSnackBar(SnackBar(content: Text(context.tr(message))));
   }
 }
 
@@ -27,7 +28,7 @@ Future<String?> editText(
   final result = await showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(title),
+      title: Text(context.tr(title)),
       scrollable: true,
       content: SizedBox(
         width: 480,
@@ -36,13 +37,13 @@ Future<String?> editText(
           autofocus: true,
           minLines: multiline ? 4 : 1,
           maxLines: multiline ? 12 : 1,
-          decoration: const InputDecoration(labelText: '内容'),
+          decoration: InputDecoration(labelText: context.tr("内容")),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
+          child: Text(context.tr("取消")),
         ),
         FilledButton(
           onPressed: () {
@@ -50,7 +51,7 @@ Future<String?> editText(
               Navigator.pop(context, controller.text.trim());
             }
           },
-          child: const Text('确定'),
+          child: Text(context.tr("确定")),
         ),
       ],
     ),
