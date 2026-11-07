@@ -71,7 +71,7 @@
 - [x] 本地 Linux Release 构建和隔离数据目录的正式 GUI 启动通过（`demo=false`）；已读取桌面截图，无演示资料。
 - [x] 提交 `3a27f55` 的[完整双平台 CI 42260109254](https://github.com/mumu-lhl/tixun/actions/runs/42260109254) 全部通过：62 项 Flutter 测试、16 项脚本测试、Android Debug APK、Linux Release、Mock GUI 启动及六组原生 GUI 回归。正式程序与截图/日志分别上传；本次没有创建新 Release。
 - [x] ChatGPT 订阅 Provider：官方浏览器 OAuth、PKCE/JWT 校验、账号隔离、轮换刷新、退出撤销、模型列表、Responses 流式文字/图片、命名空间工具和思考上下文回传；恢复原 API 配置，令牌不进入数据库或备份。协议测试及隔离 Linux GUI 流程通过，见[接入说明](docs/CHATGPT_PROVIDER.md)。
-- [x] 本地新增 19 项 ChatGPT 协议/数据测试通过（另含语言回归）；Linux Release 构建与原生 GUI 验证通过，已读取中英文、手机/桌面及深浅主题截图。完整 CI 在提交后复核。
+- [x] 本地新增 19 项 ChatGPT 协议/数据测试通过（另含语言回归）；Linux Release 构建与原生 GUI 验证通过，已读取中英文、手机/桌面及深浅主题截图。[最终双平台 CI 42370065545](https://github.com/mumu-lhl/tixun/actions/runs/42370065545) 全部通过：81 项 Flutter 测试、16 项脚本测试、Android Debug APK、Linux Release、Mock 启动和七组原生 GUI 回归，构建与测试 Artifact 分开上传。
 - [ ] 实际 ChatGPT Plus/Pro 账号的浏览器授权、系统安全存储、模型/图片能力和订阅推理，以及 Android 实机验证。自动化结果不代表实际账号已验收。
 
 ## 必须单独完成的外部验收
@@ -86,3 +86,7 @@
 Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI 参照 [开发指南](DEVELOPMENT.md)与 CI 的七个测试入口，截图/日志保存在 `artifacts/`，生成截图与完成视觉审查分别记录。约 8 GiB 的当前云盘无法解压 Android NDK，APK 由磁盘充足的 GitHub Actions 构建。
 
 已验证代码提交：`341542d`（0.5.1）。最终双平台 CI：[41879876725](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)。[最新工作流与产物](https://github.com/mumu-lhl/tixun/actions/workflows/ci.yml)。
+
+## 架构评估
+
+已完成[接入后的架构评估](docs/ARCHITECTURE_REVIEW.md)。保留现有本地数据、功能模块与技术栈，建议优先调整 AI 请求/事件接口、运行编排和偏好职责，再逐步收拢模型选项、只读账号摘要及 UI 的数据访问。较大结构调整尚未实施，避免与本次接入同时大范围重写。
