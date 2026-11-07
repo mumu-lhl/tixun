@@ -168,12 +168,20 @@ class AppShell extends ConsumerWidget {
     Icons.bookmarks_outlined,
     Icons.tune_outlined,
   ];
+
+  /// Navigation index for [path], or -1 when the page is not in the
+  /// navigation list (/review, /progress, /practice and their sub-routes).
+  /// Callers must handle -1 (no highlight); NavigationBar asserts its
+  /// selected index is in range, so it cannot receive this value.
+  static int navIndexFor(String path) =>
+      paths.indexWhere((p) => path == p || path.startsWith('$p/'));
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= 800;
-    final index = paths
-        .indexWhere((p) => path == p || path.startsWith('$p/'))
-        .clamp(0, 4);
+    // Pages outside the navigation list (/review, /progress, /practice
+    // and their sub-routes) intentionally highlight nothing: index stays
+    // -1 instead of being clamped to 0, which used to highlight 学习.
+    final index = navIndexFor(path);
     final c = ref.read(appControllerProvider);
     ref.watch(appControllerProvider.select((c) => (c.demo, c.notice)));
     final colors = Theme.of(context).colorScheme;
@@ -189,11 +197,11 @@ class AppShell extends ConsumerWidget {
         const SingleActivator(LogicalKeyboardKey.digit2, control: true): () =>
             context.go('/chat'),
         const SingleActivator(LogicalKeyboardKey.digit3, control: true): () =>
-            context.go('/settings'),
-        const SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
             context.go('/mistakes'),
-        const SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
+        const SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
             context.go('/knowledge'),
+        const SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
+            context.go('/settings'),
         const SingleActivator(LogicalKeyboardKey.escape): () {
           c.stop();
         },
@@ -224,6 +232,9 @@ class AppShell extends ConsumerWidget {
                   content: Text(context.tr(c.notice!)),
                   actions: [
                     TextButton(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                      ),
                       onPressed: () {
                         c.notice = null;
                         c.changed();
@@ -330,7 +341,13 @@ class AppShell extends ConsumerWidget {
             ],
           ),
         ),
-        bottomNavigationBar: wide || MediaQuery.viewInsetsOf(context).bottom > 0
+        // The bottom bar is hidden on pages outside the navigation list
+        // (/review, /progress, /practice): NavigationBar requires a
+        // selected index in range, so there is no way to show it with
+        // nothing highlighted; the side rail (wide layout) simply shows
+        // no selected tile on those pages.
+        bottomNavigationBar:
+            wide || MediaQuery.viewInsetsOf(context).bottom > 0 || index < 0
             ? null
             : NavigationBar(
                 selectedIndex: index,

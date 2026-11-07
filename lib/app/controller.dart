@@ -623,11 +623,19 @@ class AppController extends ChangeNotifier {
         await (db.update(db.attachments)
               ..where((a) => a.sessionId.equals(s.id) & a.messageId.isNull()))
             .write(AttachmentsCompanion(messageId: Value(userId)));
+        // The input stays editable while the send is being prepared, so the
+        // user may already have typed past the sent text. Only clear the
+        // stored draft when it still holds exactly the sent text; otherwise
+        // keep it — wiping it would discard the newer typing.
+        final stored = await (db.select(
+          db.chatSessions,
+        )..where((t) => t.id.equals(s.id))).getSingle();
+        final clearDraft = stored.draft.isEmpty || stored.draft == input;
         await (db.update(
           db.chatSessions,
         )..where((t) => t.id.equals(s.id))).write(
           ChatSessionsCompanion(
-            draft: const Value(''),
+            draft: clearDraft ? const Value('') : const Value.absent(),
             updatedAt: Value(now),
             title: messages.isEmpty
                 ? Value(
@@ -654,6 +662,34 @@ class AppController extends ChangeNotifier {
     if (id == null) return;
     messages = await db.messages(id);
     attachments = await db.images(id);
+    changed();
+  }
+
+  // Streaming progress used to reload the whole conversation from the
+  // database on every tick (~12/s), which re-parsed every visible message's
+  // Markdown. Progress ticks now persist the partial text (so a crash keeps
+  // it) but update only the generating message in memory, at a slower
+  // cadence. Unclosed fences/formulas can still re-layout mid-stream —
+  // fixing that needs a streaming-aware Markdown renderer, not a throttle.
+  static const _progressThrottleMs = 250;
+
+  void _publishProgress(String id, String text, int? tokens) {
+    final index = messages.indexWhere((m) => m.id == id);
+    if (index < 0) {
+      // The generating message is not in the local list (e.g. the session
+      // was switched mid-generation): fall back to a full reload.
+      unawaited(_refreshSelected());
+      return;
+    }
+    messages = [
+      ...messages.sublist(0, index),
+      messages[index].copyWith(
+        content: text,
+        status: 'generating',
+        totalTokens: tokens == null ? const Value.absent() : Value(tokens),
+      ),
+      ...messages.sublist(index + 1),
+    ];
     changed();
   }
 
@@ -703,9 +739,10 @@ class AppController extends ChangeNotifier {
           text = progress.text;
           tokens = progress.tokens;
           quizCreated = progress.quizCreated;
-          if (DateTime.now().difference(lastWrite).inMilliseconds >= 80) {
+          if (DateTime.now().difference(lastWrite).inMilliseconds >=
+              _progressThrottleMs) {
             await _writeMessage(id, text, 'generating', null, tokens);
-            await _refreshSelected();
+            _publishProgress(id, text, tokens);
             lastWrite = DateTime.now();
           }
         },

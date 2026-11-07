@@ -98,7 +98,6 @@ class ChatScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      visualDensity: VisualDensity.compact,
                       tooltip: c.selected?.toolsEnabled == true
                           ? context.tr("关闭本会话资料工具")
                           : context.tr("开启本会话资料工具"),
@@ -142,7 +141,6 @@ class ChatScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      visualDensity: VisualDensity.compact,
                       tooltip: context.tr("关联学习资料"),
                       onPressed: () =>
                           act(context, () => openChatStudyLinks(context, ref)),
@@ -150,7 +148,6 @@ class ChatScreen extends ConsumerWidget {
                     ),
                     const ReasoningMenu(),
                     IconButton(
-                      visualDensity: VisualDensity.compact,
                       tooltip: context.tr("模型设置"),
                       onPressed: () => context.go('/settings'),
                       icon: const Icon(Icons.tune, size: 21),
@@ -228,6 +225,11 @@ class _ConversationState extends ConsumerState<Conversation> {
   late final TextEditingController _input;
   final _focus = FocusNode();
   bool _stick = true;
+  // Text of the last sent message. The field stays editable while a send is
+  // being prepared, so the auto-clear below must only wipe the field when it
+  // still shows exactly what was sent — otherwise it would discard text the
+  // user typed after tapping send.
+  String? _lastSent;
   Size? _reportedViewport;
   @override
   void initState() {
@@ -236,9 +238,10 @@ class _ConversationState extends ConsumerState<Conversation> {
       text: ref.read(appControllerProvider).selected?.draft ?? '',
     );
     _scroll.addListener(() {
-      _stick =
+      final stick =
           !_scroll.hasClients ||
           _scroll.position.maxScrollExtent - _scroll.offset < 160;
+      if (stick != _stick) setState(() => _stick = stick);
     });
   }
 
@@ -253,6 +256,7 @@ class _ConversationState extends ConsumerState<Conversation> {
   Future<void> _send() async {
     final c = ref.read(appControllerProvider);
     final before = _input.text;
+    _lastSent = before;
     final future = c.send(before);
     await future;
     if (!mounted) return;
@@ -337,7 +341,13 @@ class _ConversationState extends ConsumerState<Conversation> {
       });
     }
     // Clear immediately after the user message has committed, including during streaming.
-    if (c.selected?.draft.isEmpty == true && c.busy && _input.text.isNotEmpty) {
+    // Only wipe the field when it still shows exactly the sent text: the
+    // field stays editable while the send is prepared, so the user may have
+    // typed past it already.
+    if (c.selected?.draft.isEmpty == true &&
+        c.busy &&
+        _input.text.isNotEmpty &&
+        _input.text == _lastSent) {
       _input.clear();
     }
     return LayoutBuilder(
@@ -350,7 +360,13 @@ class _ConversationState extends ConsumerState<Conversation> {
           actions: {
             _SendIntent: CallbackAction<_SendIntent>(
               onInvoke: (_) {
-                if (!c.busy) _send();
+                // Read the live state: typing does not rebuild this widget,
+                // so the emptiness check must not rely on build-time values.
+                final hasText = _input.text.trim().isNotEmpty;
+                final hasPending = c.attachments.any(
+                  (a) => a.messageId == null,
+                );
+                if (!c.busy && (hasText || hasPending)) _send();
                 return null;
               },
             ),
@@ -358,90 +374,131 @@ class _ConversationState extends ConsumerState<Conversation> {
           child: Column(
             children: [
               Expanded(
-                child: c.messages.isEmpty
-                    ? SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 560),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 24),
-                                  Text(
-                                    context.tr("今天，想弄懂什么？"),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    context.tr(
-                                      "不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。",
-                                    ),
-                                    style: TextStyle(
-                                      color: colors.onSurfaceVariant,
-                                      height: 1.8,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 28),
-                                  for (final prompt in [
-                                    '二次函数的顶点公式，怎样理解而不是死记？',
-                                    '我会做这道题，但不知道为什么要用这个方法。',
-                                  ])
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12,
-                                      ),
-                                      child: OutlinedButton(
-                                        onPressed: () {
-                                          _input.text = prompt;
-                                          c.draft(prompt);
-                                          _focus.requestFocus();
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 12,
-                                          ),
-                                          child: Text(prompt),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scroll,
-                        key: PageStorageKey('messages-${c.selected!.id}'),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 24,
-                        ),
-                        itemCount:
-                            c.messages.length + (c.pendingTool != null ? 1 : 0),
-                        itemBuilder: (context, index) =>
-                            index == c.messages.length
-                            ? const ToolApprovalCard()
-                            : Align(
-                                alignment: Alignment.topCenter,
+                child: Stack(
+                  children: [
+                    c.messages.isEmpty
+                        ? SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Center(
                                 child: ConstrainedBox(
                                   constraints: const BoxConstraints(
-                                    maxWidth: 790,
+                                    maxWidth: 560,
                                   ),
-                                  child: MessageView(
-                                    message: c.messages[index],
-                                    isLast: index == c.messages.length - 1,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 24),
+                                      Text(
+                                        context.tr("今天，想弄懂什么？"),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .headlineMedium,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        context.tr(
+                                          "不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。",
+                                        ),
+                                        style: TextStyle(
+                                          color: colors.onSurfaceVariant,
+                                          height: 1.8,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 28),
+                                      for (final prompt in [
+                                        '二次函数的顶点公式，怎样理解而不是死记？',
+                                        '我会做这道题，但不知道为什么要用这个方法。',
+                                      ])
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: OutlinedButton(
+                                            onPressed: () {
+                                              _input.text = prompt;
+                                              c.draft(prompt);
+                                              _focus.requestFocus();
+                                            },
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 12,
+                                                  ),
+                                              child: Text(prompt),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
                               ),
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: _scroll,
+                            key: PageStorageKey('messages-${c.selected!.id}'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 24,
+                            ),
+                            itemCount:
+                                c.messages.length +
+                                (c.pendingTool != null ? 1 : 0),
+                            itemBuilder: (context, index) =>
+                                index == c.messages.length
+                                ? Align(
+                                    alignment: Alignment.topCenter,
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 790,
+                                      ),
+                                      child: const ToolApprovalCard(),
+                                    ),
+                                  )
+                                : Align(
+                                    alignment: Alignment.topCenter,
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 790,
+                                      ),
+                                      child: MessageView(
+                                        message: c.messages[index],
+                                        isLast: index == c.messages.length - 1,
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                    if (c.messages.isNotEmpty && !_stick)
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: FloatingActionButton(
+                          heroTag: 'scroll-to-bottom',
+                          tooltip: context.tr("回到最新消息"),
+                          onPressed: () {
+                            setState(() => _stick = true);
+                            if (_scroll.hasClients) {
+                              _scroll.jumpTo(_scroll.position.maxScrollExtent);
+                            }
+                          },
+                          child: const Icon(Icons.arrow_downward),
+                        ),
                       ),
+                  ],
+                ),
               ),
-              if (c.messages.isNotEmpty && !c.busy && !shortInput)
-                SizedBox(
+              // The rows below keep their visibility logic, but their space
+              // is always reserved: appearing/disappearing used to shift the
+              // composer height by ~40px on every generation and keyboard
+              // change.
+              Visibility(
+                visible: c.messages.isNotEmpty && !c.busy && !shortInput,
+                maintainSize: true,
+                maintainAnimation: true,
+                maintainState: true,
+                child: SizedBox(
                   height: 40,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
@@ -471,6 +528,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                     ],
                   ),
                 ),
+              ),
               ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: (constraints.maxHeight - 40).clamp(
@@ -488,55 +546,67 @@ class _ConversationState extends ConsumerState<Conversation> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (!keyboard)
-                              Row(
+                            Visibility(
+                              visible: !keyboard,
+                              maintainSize: true,
+                              maintainAnimation: true,
+                              maintainState: true,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: c.selected!.mode,
-                                      isDense: true,
-                                      style: TextStyle(
-                                        fontFamily: 'NotoSansSC',
-                                        fontSize: 12,
-                                        color: colors.primary,
+                                  Row(
+                                    children: [
+                                      DropdownButtonHideUnderline(
+                                        child: DropdownButton<String>(
+                                          value: c.selected!.mode,
+                                          isDense: true,
+                                          style: TextStyle(
+                                            fontFamily: 'NotoSansSC',
+                                            fontSize: 12,
+                                            color: colors.primary,
+                                          ),
+                                          items: [
+                                            DropdownMenuItem(
+                                              value: 'guided',
+                                              child: Text(context.tr("引导教学")),
+                                            ),
+                                            DropdownMenuItem(
+                                              value: 'direct',
+                                              child: Text(context.tr("直接解答")),
+                                            ),
+                                            DropdownMenuItem(
+                                              value: 'exam',
+                                              child: Text(context.tr("考试训练")),
+                                            ),
+                                          ],
+                                          onChanged: c.busy
+                                              ? null
+                                              : (v) => act(
+                                                  context,
+                                                  () => c.mode(v!),
+                                                ),
+                                        ),
                                       ),
-                                      items: [
-                                        DropdownMenuItem(
-                                          value: 'guided',
-                                          child: Text(context.tr("引导教学")),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          c.selected!.mode == 'exam'
+                                              ? context.tr("先提交答案，再查看反馈与解析")
+                                              : context.tr("先理解，再独立尝试"),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: colors.onSurfaceVariant,
+                                          ),
                                         ),
-                                        DropdownMenuItem(
-                                          value: 'direct',
-                                          child: Text(context.tr("直接解答")),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'exam',
-                                          child: Text(context.tr("考试训练")),
-                                        ),
-                                      ],
-                                      onChanged: c.busy
-                                          ? null
-                                          : (v) =>
-                                                act(context, () => c.mode(v!)),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      c.selected!.mode == 'exam'
-                                          ? context.tr("先提交答案，再查看反馈与解析")
-                                          : context.tr("先理解，再独立尝试"),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: colors.onSurfaceVariant,
                                       ),
-                                    ),
+                                    ],
                                   ),
+                                  const SizedBox(height: 8),
                                 ],
                               ),
-                            if (!keyboard) const SizedBox(height: 8),
+                            ),
                             Container(
                               decoration: BoxDecoration(
                                 color: colors.surfaceContainerLowest,
@@ -571,30 +641,67 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                     Positioned(
                                                       right: 0,
                                                       top: 0,
-                                                      child: IconButton.filledTonal(
-                                                        tooltip: context.tr(
+                                                      // 48dp hit area around
+                                                      // the small 28dp visual
+                                                      // circle, so removing a
+                                                      // draft image is easy to
+                                                      // hit without covering
+                                                      // the thumbnail.
+                                                      child: Tooltip(
+                                                        message: context.tr(
                                                           "移除图片",
                                                         ),
-                                                        onPressed: c.busy
-                                                            ? null
-                                                            : () => act(
-                                                                context,
-                                                                () => c
-                                                                    .removeImage(
-                                                                      a,
-                                                                    ),
+                                                        child: Semantics(
+                                                          button: true,
+                                                          label: context.tr(
+                                                            "移除图片",
+                                                          ),
+                                                          child: GestureDetector(
+                                                            behavior:
+                                                                HitTestBehavior
+                                                                    .opaque,
+                                                            onTap: c.busy
+                                                                ? null
+                                                                : () => act(
+                                                                    context,
+                                                                    () => c
+                                                                        .removeImage(
+                                                                          a,
+                                                                        ),
+                                                                  ),
+                                                            child: SizedBox(
+                                                              width: 48,
+                                                              height: 48,
+                                                              child: Align(
+                                                                alignment:
+                                                                    Alignment
+                                                                        .topRight,
+                                                                child: Container(
+                                                                  width: 28,
+                                                                  height: 28,
+                                                                  decoration: BoxDecoration(
+                                                                    color:
+                                                                        c.busy
+                                                                        ? colors.secondaryContainer.withValues(
+                                                                            alpha:
+                                                                                .38,
+                                                                          )
+                                                                        : colors
+                                                                              .secondaryContainer,
+                                                                    shape: BoxShape
+                                                                        .circle,
+                                                                  ),
+                                                                  child: Icon(
+                                                                    Icons.close,
+                                                                    size: 16,
+                                                                    color: colors
+                                                                        .onSecondaryContainer,
+                                                                  ),
+                                                                ),
                                                               ),
-                                                        icon: const Icon(
-                                                          Icons.close,
-                                                          size: 16,
-                                                        ),
-                                                        constraints:
-                                                            const BoxConstraints.tightFor(
-                                                              width: 28,
-                                                              height: 28,
                                                             ),
-                                                        padding:
-                                                            EdgeInsets.zero,
+                                                          ),
+                                                        ),
                                                       ),
                                                     ),
                                                   ],
@@ -614,10 +721,14 @@ class _ConversationState extends ConsumerState<Conversation> {
                                     ),
                                     controller: _input,
                                     focusNode: _focus,
-                                    enabled: !c.busy,
+                                    // Typing a draft stays possible while a
+                                    // generation runs; only sending is gated
+                                    // (the send button becomes a stop button
+                                    // while busy, and send() refuses while
+                                    // busy). The draft is saved via onChanged.
                                     onChanged: c.draft,
                                     minLines: 1,
-                                    maxLines: shortInput ? 2 : 6,
+                                    maxLines: shortInput ? 4 : 6,
                                     maxLength: 32000,
                                     decoration: InputDecoration(
                                       hintText: context.tr("写下你的问题，或添加题目图片…"),
@@ -693,16 +804,45 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                   Icons.stop_rounded,
                                                 ),
                                               )
-                                            : IconButton.filled(
-                                                key: const Key('send-message'),
-                                                tooltip: context.tr(
-                                                  "发送（Ctrl+Enter）",
-                                                ),
-                                                onPressed: () =>
-                                                    act(context, _send),
-                                                icon: const Icon(
-                                                  Icons.arrow_upward_rounded,
-                                                ),
+                                            : ValueListenableBuilder<
+                                                TextEditingValue
+                                              >(
+                                                valueListenable: _input,
+                                                builder: (context, value, _) {
+                                                  // The button tracks the
+                                                  // input live: empty input
+                                                  // with no pending image
+                                                  // sends nothing, so the
+                                                  // button stays disabled
+                                                  // instead of silently
+                                                  // doing nothing on tap.
+                                                  final canSend =
+                                                      value.text
+                                                          .trim()
+                                                          .isNotEmpty ||
+                                                      c.attachments.any(
+                                                        (a) =>
+                                                            a.messageId == null,
+                                                      );
+                                                  return IconButton.filled(
+                                                    key: const Key(
+                                                      'send-message',
+                                                    ),
+                                                    tooltip: context.tr(
+                                                      "发送（Ctrl+Enter）",
+                                                    ),
+                                                    onPressed: canSend
+                                                        ? () => act(
+                                                            context,
+                                                            _send,
+                                                          )
+                                                        : null,
+                                                    icon: const Icon(
+                                                      Icons
+                                                          .arrow_upward_rounded,
+                                                    ),
+                                                  );
+                                                },
                                               ),
                                       ],
                                     ),
@@ -710,22 +850,31 @@ class _ConversationState extends ConsumerState<Conversation> {
                                 ],
                               ),
                             ),
-                            if (!shortInput) const SizedBox(height: 6),
-                            if (!shortInput)
-                              Center(
-                                child: Text(
-                                  c.demo
-                                      ? context.tr("离线 Mock · 回复为固定测试内容")
-                                      : context.tr(
-                                          "AI 可能出错，请核对重要结论。最近 30 条消息 / 32000 字符参与上下文。",
-                                        ),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: colors.onSurfaceVariant,
+                            Visibility(
+                              visible: !shortInput,
+                              maintainSize: true,
+                              maintainAnimation: true,
+                              maintainState: true,
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 6),
+                                  Center(
+                                    child: Text(
+                                      c.demo
+                                          ? context.tr("离线 Mock · 回复为固定测试内容")
+                                          : context.tr(
+                                              "AI 可能出错，请核对重要结论。最近 30 条消息 / 32000 字符参与上下文。",
+                                            ),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: colors.onSurfaceVariant,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
+                            ),
                           ],
                         ),
                       ),
@@ -886,7 +1035,6 @@ class MessageView extends ConsumerWidget {
                 IconButton(
                   tooltip: context.tr("复制消息"),
                   icon: const Icon(Icons.copy_outlined, size: 17),
-                  visualDensity: VisualDensity.compact,
                   onPressed: () async {
                     await Clipboard.setData(
                       ClipboardData(text: message.content),
@@ -903,7 +1051,6 @@ class MessageView extends ConsumerWidget {
                   IconButton(
                     tooltip: context.tr("编辑并在新分支重问"),
                     icon: const Icon(Icons.edit_outlined, size: 17),
-                    visualDensity: VisualDensity.compact,
                     onPressed: c.busy
                         ? null
                         : () async {

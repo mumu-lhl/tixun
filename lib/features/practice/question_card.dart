@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,7 +45,6 @@ class QuestionCard extends ConsumerStatefulWidget {
 
 class _QuestionCardState extends ConsumerState<QuestionCard> {
   QuestionDetail? d;
-  Timer? _ticker;
   String? failure;
   bool busy = true;
   List<String> answers = [];
@@ -58,7 +58,6 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
 
   @override
   void dispose() {
-    _ticker?.cancel();
     for (final c in controllers) {
       c.dispose();
     }
@@ -76,13 +75,6 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
       }
       controllers.clear();
       d = value;
-      _ticker?.cancel();
-      if (value.spec.timeLimitSeconds != null &&
-          value.latest!.status == 'draft') {
-        _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-          if (mounted) setState(() {});
-        });
-      }
       answers = List.of(value.responses[value.latest!.id] ?? []);
       if (![
         'single_choice',
@@ -128,12 +120,53 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
     if (mounted) await _load();
   }
 
+  Future<void> _showZoomedImage(BuildContext context, File file) =>
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const SizedBox(width: 16),
+                  Expanded(child: Text(context.tr("题目图片"))),
+                  IconButton(
+                    tooltip: context.tr("关闭预览"),
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              Flexible(
+                child: InteractiveViewer(
+                  child: Image.file(
+                    file,
+                    cacheWidth: 1600,
+                    errorBuilder: (_, _, _) =>
+                        Text(context.tr("题目图片无法解码，其他内容仍可使用。")),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     if (d == null) {
-      return failure != null
-          ? Text(context.tr(failure!))
-          : const LinearProgressIndicator();
+      if (failure == null) return const LinearProgressIndicator();
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(context.tr(failure!)),
+          const SizedBox(height: 8),
+          TextButton(onPressed: () => _load(), child: Text(context.tr("重试"))),
+        ],
+      );
     }
     final detail = d!, q = detail.spec, a = detail.latest!;
     final editable = a.status == 'draft';
@@ -174,19 +207,12 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 style: Theme.of(context).textTheme.labelMedium,
               ),
               if (q.timeLimitSeconds != null)
-                Text(
-                  editable
-                      ? context.tr("剩余建议时间 {0} 秒（不强制收卷）", [
-                          ((q.timeLimitSeconds! * 1000 -
-                                      DateTime.now()
-                                          .difference(a.startedAt)
-                                          .inMilliseconds) /
-                                  1000)
-                              .ceil()
-                              .clamp(0, q.timeLimitSeconds!),
-                        ])
-                      : context.tr("建议限时 {0} 秒", [q.timeLimitSeconds]),
-                ),
+                editable
+                    ? _RemainingTime(
+                        limitSeconds: q.timeLimitSeconds!,
+                        startedAt: a.startedAt,
+                      )
+                    : Text(context.tr("建议限时 {0} 秒", [q.timeLimitSeconds])),
             ],
           ),
           const SizedBox(height: 12),
@@ -194,13 +220,19 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
           for (final image in detail.images)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Image.file(
-                c.files.resolve(image.relativePath),
-                height: 240,
-                fit: BoxFit.contain,
-                cacheWidth: 1000,
-                errorBuilder: (_, _, _) =>
-                    Text(context.tr("题目图片无法解码，其他内容仍可使用。")),
+              child: GestureDetector(
+                onTap: () => _showZoomedImage(
+                  context,
+                  c.files.resolve(image.relativePath),
+                ),
+                child: Image.file(
+                  c.files.resolve(image.relativePath),
+                  height: 240,
+                  fit: BoxFit.contain,
+                  cacheWidth: 1000,
+                  errorBuilder: (_, _, _) =>
+                      Text(context.tr("题目图片无法解码，其他内容仍可使用。")),
+                ),
               ),
             ),
           if (q.topics.isNotEmpty)
@@ -216,7 +248,17 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Material(
-                color: answers.contains(e.key)
+                // After grading, mark the outcome on the options themselves:
+                // correct options get a primary tint with a check, a wrong
+                // pick gets an error tint with a cross. Before grading the
+                // row only shows the user's selection, as before.
+                color: graded
+                    ? (q.answers.expand((a) => a).contains(e.key)
+                          ? colors.primaryContainer
+                          : answers.contains(e.key)
+                          ? colors.errorContainer
+                          : colors.surfaceContainerLow)
+                    : answers.contains(e.key)
                     ? colors.primaryContainer.withValues(alpha: .5)
                     : colors.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(10),
@@ -245,14 +287,28 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                     child: Row(
                       children: [
                         Icon(
-                          q.kind == 'multiple_choice'
+                          graded
+                              ? (q.answers.expand((a) => a).contains(e.key)
+                                    ? Icons.check_circle
+                                    : answers.contains(e.key)
+                                    ? Icons.cancel
+                                    : q.kind == 'multiple_choice'
+                                    ? Icons.check_box_outline_blank
+                                    : Icons.radio_button_off)
+                              : q.kind == 'multiple_choice'
                               ? (answers.contains(e.key)
                                     ? Icons.check_box
                                     : Icons.check_box_outline_blank)
                               : (answers.contains(e.key)
                                     ? Icons.radio_button_checked
                                     : Icons.radio_button_off),
-                          color: colors.primary,
+                          color: graded
+                              ? (q.answers.expand((a) => a).contains(e.key)
+                                    ? colors.primary
+                                    : answers.contains(e.key)
+                                    ? colors.error
+                                    : colors.onSurfaceVariant)
+                              : colors.primary,
                           size: 22,
                         ),
                         const SizedBox(width: 10),
@@ -280,6 +336,9 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 controller: controllers[i],
                 enabled: !busy,
                 readOnly: !editable,
+                keyboardType: q.kind == 'numeric'
+                    ? const TextInputType.numberWithOptions(decimal: true)
+                    : null,
                 minLines: q.kind == 'short_answer' ? 3 : 1,
                 maxLines: q.kind == 'short_answer' ? 8 : 2,
                 decoration: InputDecoration(
@@ -496,5 +555,46 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
         ],
       ),
     );
+  }
+}
+
+/// Countdown label for a timed question. It owns its own one-second timer
+/// so only this text rebuilds, instead of the whole question card (with all
+/// its Markdown and math parsing) ticking every second.
+class _RemainingTime extends StatefulWidget {
+  const _RemainingTime({required this.limitSeconds, required this.startedAt});
+  final int limitSeconds;
+  final DateTime startedAt;
+  @override
+  State<_RemainingTime> createState() => _RemainingTimeState();
+}
+
+class _RemainingTimeState extends State<_RemainingTime> {
+  Timer? _timer;
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining =
+        ((widget.limitSeconds * 1000 -
+                    DateTime.now()
+                        .difference(widget.startedAt)
+                        .inMilliseconds) /
+                1000)
+            .ceil()
+            .clamp(0, widget.limitSeconds);
+    return Text(context.tr("剩余建议时间 {0} 秒（不强制收卷）", [remaining]));
   }
 }

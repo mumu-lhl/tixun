@@ -80,7 +80,9 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
                     if (rows.isEmpty && !busy && failure == null)
                       Text(context.tr("还没有作答记录。")),
                     if (failure != null) Text(context.tr(failure!)),
-                    if (more)
+                    if (busy && rows.isEmpty)
+                      const CircularProgressIndicator()
+                    else if (more)
                       TextButton(
                         onPressed: busy ? null : () => act(context, _load),
                         child: Text(

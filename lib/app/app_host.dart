@@ -206,6 +206,8 @@ class _TixunHostState extends State<TixunHost> {
   });
   Widget _errorPage() => MaterialApp(
     theme: appTheme(Brightness.light),
+    darkTheme: appTheme(Brightness.dark),
+    themeMode: _controller?.themeMode ?? ThemeMode.system,
     locale:
         _controller?.appLocale ??
         resolveAppLocale(PlatformDispatcher.instance.locales),
@@ -291,57 +293,70 @@ class _TixunHostState extends State<TixunHost> {
     ),
   );
   @override
-  Widget build(BuildContext context) => Directionality(
-    textDirection: TextDirection.ltr,
-    child: Stack(
-      children: [
-        if (_container != null && !_detached)
-          UncontrolledProviderScope(
-            container: _container!,
-            child: const TixunApp(),
-          )
-        else
-          _errorPage(),
-        if (_working)
-          Positioned.fill(
-            child: Material(
-              color: Colors.black45,
-              child: Center(
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 320),
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: const Color(0xfffafbf8),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 20),
-                      Text(
-                        AppStrings(
-                          Locale(
-                            _controller?.promptLanguage ??
-                                resolveAppLocale(
-                                  PlatformDispatcher.instance.locales,
-                                ).languageCode,
+  Widget build(BuildContext context) {
+    // The working overlay sits above both MaterialApps, so it has no
+    // Theme ancestor: resolve the brightness from the stored themeMode
+    // (system brightness when unset) and take the card/text colors from
+    // the matching app theme instead of hardcoding light colors.
+    final themeMode = _controller?.themeMode ?? ThemeMode.system;
+    final dark =
+        themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system &&
+            PlatformDispatcher.instance.platformBrightness == Brightness.dark);
+    final overlayColors = appTheme(dark ? Brightness.dark : Brightness.light)
+        .colorScheme;
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Stack(
+        children: [
+          if (_container != null && !_detached)
+            UncontrolledProviderScope(
+              container: _container!,
+              child: const TixunApp(),
+            )
+          else
+            _errorPage(),
+          if (_working)
+            Positioned.fill(
+              child: Material(
+                color: Colors.black45,
+                child: Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: overlayColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 20),
+                        Text(
+                          AppStrings(
+                            Locale(
+                              _controller?.promptLanguage ??
+                                  resolveAppLocale(
+                                    PlatformDispatcher.instance.locales,
+                                  ).languageCode,
+                            ),
+                          ).text(_operation),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: overlayColors.onSurface,
+                            fontFamily: 'NotoSansSC',
+                            fontSize: 14,
                           ),
-                        ).text(_operation),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color(0xff1b2521),
-                          fontFamily: 'NotoSansSC',
-                          fontSize: 14,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

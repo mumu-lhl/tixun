@@ -330,6 +330,9 @@ class ToolHistory extends ConsumerWidget {
                       (op.name.endsWith('knowledge') ||
                           op.name.endsWith('mistake')))
                     TextButton(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                      ),
                       onPressed: () => context.push(
                         '${op.name.endsWith('knowledge') ? '/knowledge' : '/mistakes'}/${result['id']}',
                       ),

@@ -213,9 +213,7 @@ class DashboardScreen extends ConsumerWidget {
                                   style: Theme.of(context)
                                       .textTheme
                                       .headlineSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                      ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -289,6 +287,9 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     ),
                     TextButton(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                      ),
                       onPressed: () => context.go('/chat'),
                       child: Text(context.tr("全部对话")),
                     ),

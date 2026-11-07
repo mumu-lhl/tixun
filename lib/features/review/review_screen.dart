@@ -15,7 +15,23 @@ String reviewDate(DateTime value, {BuildContext? context}) {
     final local = MaterialLocalizations.of(context);
     return '${local.formatShortDate(d)} ${local.formatTimeOfDay(TimeOfDay.fromDateTime(d))}';
   }
-  return '${d.month}月${d.day}日 ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  final time =
+      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  if (d.year == DateTime.now().year) return '${d.month}月${d.day}日 $time';
+  return '${d.year}年${d.month}月${d.day}日 $time';
+}
+
+/// A due date with an overdue marker when it is in the past.
+String dueLabel(BuildContext context, DateTime dueAt) {
+  final now = DateTime.now();
+  var text = reviewDate(dueAt, context: context);
+  if (dueAt.isBefore(now)) {
+    final days = now.difference(dueAt).inDays;
+    text += days > 0
+        ? ' · ${context.tr("已逾期 {0} 天", [days])}'
+        : ' · ${context.tr("已逾期")}';
+  }
+  return text;
 }
 
 /// Older records retain the explanation captured at grading time.
@@ -138,7 +154,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item.question.stem,
+                                plainTextPreview(item.question.stem),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.titleMedium,
@@ -147,7 +163,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                               Text(
                                 context.tr("{0} · {1} · 独立通过 {2} 次", [
                                   item.question.subject,
-                                  reviewDate(s.dueAt, context: context),
+                                  dueLabel(context, s.dueAt),
                                   s.repetitions,
                                 ]),
                                 style: Theme.of(context).textTheme.bodySmall,
@@ -177,97 +193,99 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                     child: Text(context.tr("调度依据与历史")),
                                   ),
                                   PopupMenuButton<String>(
-                                  tooltip: context.tr("调整复习"),
-                                  onSelected: (v) => act(context, () async {
-                                    final store = ref.read(reviewStoreProvider);
-                                    if (v == 'pause') {
-                                      await store.pause(s.id, s.enabled);
-                                      return;
-                                    }
-                                    if (v == 'reset') {
-                                      final ok = await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          title: Text(context.tr("重置复习进度？")),
-                                          content: Text(
-                                            context.tr(
-                                              "下一次复习安排在今天。历史作答和调度记录会保留。",
-                                            ),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, false),
-                                              child: Text(context.tr("取消")),
-                                            ),
-                                            FilledButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, true),
-                                              child: Text(context.tr("重置")),
-                                            ),
-                                          ],
-                                        ),
+                                    tooltip: context.tr("调整复习"),
+                                    onSelected: (v) => act(context, () async {
+                                      final store = ref.read(
+                                        reviewStoreProvider,
                                       );
-                                      if (ok == true) {
-                                        await store.adjust(s.id, reset: true);
+                                      if (v == 'pause') {
+                                        await store.pause(s.id, s.enabled);
+                                        return;
                                       }
-                                      return;
-                                    }
-                                    final now = DateTime.now();
-                                    final picked = await showDatePicker(
-                                      context: context,
-                                      initialDate: s.dueAt.isBefore(now)
-                                          ? now
-                                          : s.dueAt,
-                                      firstDate: DateTime(
-                                        now.year,
-                                        now.month,
-                                        now.day,
-                                      ),
-                                      lastDate: now.add(
-                                        const Duration(days: 365),
-                                      ),
-                                    );
-                                    if (picked != null) {
-                                      await store.adjust(
-                                        s.id,
-                                        dueAt: DateTime(
-                                          picked.year,
-                                          picked.month,
-                                          picked.day,
-                                          now.hour,
-                                          now.minute,
+                                      if (v == 'reset') {
+                                        final ok = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: Text(context.tr("重置复习进度？")),
+                                            content: Text(
+                                              context.tr(
+                                                "下一次复习安排在今天。历史作答和调度记录会保留。",
+                                              ),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, false),
+                                                child: Text(context.tr("取消")),
+                                              ),
+                                              FilledButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, true),
+                                                child: Text(context.tr("重置")),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (ok == true) {
+                                          await store.adjust(s.id, reset: true);
+                                        }
+                                        return;
+                                      }
+                                      final now = DateTime.now();
+                                      final picked = await showDatePicker(
+                                        context: context,
+                                        initialDate: s.dueAt.isBefore(now)
+                                            ? now
+                                            : s.dueAt,
+                                        firstDate: DateTime(
+                                          now.year,
+                                          now.month,
+                                          now.day,
+                                        ),
+                                        lastDate: now.add(
+                                          const Duration(days: 365),
                                         ),
                                       );
-                                    }
-                                  }),
-                                  itemBuilder: (_) => [
-                                    PopupMenuItem(
-                                      value: 'date',
-                                      child: Text(context.tr("调整日期")),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'reset',
-                                      child: Text(context.tr("重置进度")),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'pause',
-                                      child: Text(
-                                        s.enabled
-                                            ? context.tr("暂停复习")
-                                            : context.tr("恢复复习"),
+                                      if (picked != null) {
+                                        await store.adjust(
+                                          s.id,
+                                          dueAt: DateTime(
+                                            picked.year,
+                                            picked.month,
+                                            picked.day,
+                                            now.hour,
+                                            now.minute,
+                                          ),
+                                        );
+                                      }
+                                    }),
+                                    itemBuilder: (_) => [
+                                      PopupMenuItem(
+                                        value: 'date',
+                                        child: Text(context.tr("调整日期")),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
+                                      PopupMenuItem(
+                                        value: 'reset',
+                                        child: Text(context.tr("重置进度")),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'pause',
+                                        child: Text(
+                                          s.enabled
+                                              ? context.tr("暂停复习")
+                                              : context.tr("恢复复习"),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                    ),
+                      );
+                    },
+                  ),
           ),
         ),
       ],
@@ -350,7 +368,7 @@ class QuestionReviewStatus extends ConsumerWidget {
                     ? context.tr("需要时可加入复习。")
                     : item.schedule.enabled
                     ? context.tr("下次复习：{0}", [
-                        reviewDate(item.schedule.dueAt, context: context),
+                        dueLabel(context, item.schedule.dueAt),
                       ])
                     : context.tr("复习已暂停"),
                 style: Theme.of(context).textTheme.bodySmall,
@@ -371,4 +389,20 @@ class QuestionReviewStatus extends ConsumerWidget {
           ),
         ),
       );
+}
+
+/// Plain-text preview of a question stem for list rows: strips LaTeX
+/// delimiters and common Markdown markers so rows don't show raw
+/// `$3x+5=20$` or `**...**`. The detail card keeps full rendering.
+String plainTextPreview(String text) {
+  final out = text
+      .replaceAll(RegExp(r'!\[[^\]]*\]\([^)]*\)'), '')
+      .replaceAllMapped(RegExp(r'\[([^\]]*)\]\([^)]*\)'), (m) => m[1] ?? '')
+      .replaceAll(RegExp(r'\$\$?'), '')
+      .replaceAll(RegExp(r'(`{1,3}|[*_]{1,2}|~~)'), '')
+      .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '')
+      .replaceAll(RegExp(r'^>\s?', multiLine: true), '')
+      .replaceAll(RegExp(r'^\s*[-*+]\s+', multiLine: true), '')
+      .replaceAll(RegExp(r'<[^>]+>'), '');
+  return out.replaceAll(RegExp(r'\s+'), ' ').trim();
 }

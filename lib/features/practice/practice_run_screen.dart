@@ -48,9 +48,22 @@ class PracticeRunScreen extends ConsumerWidget {
         data: (run) {
           if (run == null) {
             return Center(
-              child: TextButton(
-                onPressed: () => context.go('/practice'),
-                child: Text(context.tr("返回题库开始小测")),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      context.tr("还没有进行中的小测。先在题库开始一轮随机小测，完成后可在此查看汇总。"),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => context.go('/practice'),
+                      child: Text(context.tr("返回题库开始小测")),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -108,20 +121,39 @@ class PracticeRunScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: FilledButton(
-                    key: const Key('next-run-question'),
-                    onPressed: !graded
-                        ? null
-                        : () => act(context, () async {
-                            await store.advanceRun(
-                              expectedAttemptId: run.attempts[run.index],
-                            );
-                          }),
-                    child: Text(
-                      run.index + 1 == run.ids.length
-                          ? context.tr("完成本轮")
-                          : context.tr("下一题"),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FilledButton(
+                        key: const Key('next-run-question'),
+                        onPressed: !graded
+                            ? null
+                            : () => act(context, () async {
+                                await store.advanceRun(
+                                  expectedAttemptId: run.attempts[run.index],
+                                );
+                              }),
+                        child: Text(
+                          run.index + 1 == run.ids.length
+                              ? context.tr("完成本轮")
+                              : context.tr("下一题"),
+                        ),
+                      ),
+                      if (!graded)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            context.tr("提交答案或自主判分后可继续下一题"),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ] else
@@ -134,49 +166,86 @@ class PracticeRunScreen extends ConsumerWidget {
                     .when(
                       loading: () => const LinearProgressIndicator(),
                       error: (_, _) => Text(context.tr("汇总读取失败，单题记录仍保存在题库。")),
-                      data: (attempts) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr("已保存 {0} 次作答", [attempts.length]),
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            context.tr("与参考答案一致 {0} 次 · 使用提示 {1} 次", [
-                              attempts.where((a) => a.correct == true).length,
-                              attempts.where((a) => a.hintUsed).length,
-                            ]),
-                          ),
-                          Text(
-                            context.tr(
-                              "其中 {0} 次依据待核对 AI 答案，{1} 次为自主判分。结果不等同于掌握程度。",
-                              [
-                                attempts
-                                    .where(
-                                      (a) => a.gradingBasis == 'ai_reference',
-                                    )
-                                    .length,
-                                attempts
-                                    .where((a) => a.gradingBasis == 'self')
-                                    .length,
-                              ],
+                      data: (attempts) {
+                        final colors = Theme.of(context).colorScheme;
+                        final byId = {for (final a in attempts) a.id: a};
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr("已保存 {0} 次作答", [attempts.length]),
+                              style: Theme.of(context).textTheme.headlineSmall,
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          for (var i = 0; i < run.ids.length; i++)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(
-                                context.tr("查看第 {0} 题的本次作答", [i + 1]),
-                              ),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () => context.go(
-                                '/practice/${run.ids[i]}?attempt=${run.attempts[i]}',
+                            const SizedBox(height: 12),
+                            Text(
+                              context.tr("与参考答案一致 {0} 次 · 使用提示 {1} 次", [
+                                attempts.where((a) => a.correct == true).length,
+                                attempts.where((a) => a.hintUsed).length,
+                              ]),
+                            ),
+                            Text(
+                              context.tr(
+                                "其中 {0} 次依据待核对 AI 答案，{1} 次为自主判分。结果不等同于掌握程度。",
+                                [
+                                  attempts
+                                      .where(
+                                        (a) => a.gradingBasis == 'ai_reference',
+                                      )
+                                      .length,
+                                  attempts
+                                      .where((a) => a.gradingBasis == 'self')
+                                      .length,
+                                ],
                               ),
                             ),
-                        ],
-                      ),
+                            const SizedBox(height: 16),
+                            ...List.generate(run.ids.length, (i) {
+                              final attemptId = run.attempts[i];
+                              final attempt = attemptId == null
+                                  ? null
+                                  : byId[attemptId];
+                              final outcome = attempt == null
+                                  ? null
+                                  : attempt.status == 'graded'
+                                  ? (attempt.correct == true
+                                        ? 'correct'
+                                        : 'wrong')
+                                  : 'pending';
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  outcome == 'correct'
+                                      ? Icons.check_circle
+                                      : outcome == 'wrong'
+                                      ? Icons.cancel
+                                      : Icons.help_outline,
+                                  color: outcome == 'correct'
+                                      ? colors.primary
+                                      : outcome == 'wrong'
+                                      ? colors.error
+                                      : colors.onSurfaceVariant,
+                                ),
+                                title: Text(
+                                  context.tr("查看第 {0} 题的本次作答", [i + 1]),
+                                ),
+                                subtitle: outcome == null
+                                    ? null
+                                    : Text(
+                                        outcome == 'correct'
+                                            ? context.tr("作答正确")
+                                            : outcome == 'wrong'
+                                            ? context.tr("需要订正")
+                                            : context.tr("尚未判分"),
+                                      ),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => context.go(
+                                  '/practice/${run.ids[i]}?attempt=${run.attempts[i]}',
+                                ),
+                              );
+                            }),
+                          ],
+                        );
+                      },
                     ),
             ],
           );

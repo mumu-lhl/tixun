@@ -26,10 +26,29 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
         fontWeight: FontWeight.w700,
         height: 1.4,
       ),
+      // Completes the type scale. Values match the M3 defaults the theme
+      // previously fell back to silently (ThemeData merges missing slots
+      // from the default typography), so defining them changes no pixels:
+      // headlineSmall is also the markdown h1 style, and bolding it here
+      // would bold every h1 in the app and invalidate the golden tests.
+      // If a bolder headline is ever wanted, it is a deliberate design
+      // change and the goldens need regenerating with it.
+      headlineSmall: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0,
+        height: 1.33,
+      ),
       titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
       titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       bodyLarge: TextStyle(fontSize: 16, height: 1.6),
       bodyMedium: TextStyle(fontSize: 14, height: 1.6),
+      bodySmall: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.4,
+        height: 1.33,
+      ),
       labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
     ).apply(bodyColor: colors.onSurface, displayColor: colors.onSurface),
     appBarTheme: AppBarTheme(

@@ -6,13 +6,44 @@ import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 
-class SessionList extends ConsumerWidget {
+class SessionList extends ConsumerStatefulWidget {
   const SessionList({this.onSelected, super.key});
   final VoidCallback? onSelected;
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SessionList> createState() => _SessionListState();
+}
+
+class _SessionListState extends ConsumerState<SessionList> {
+  late final TextEditingController _search;
+
+  @override
+  void initState() {
+    super.initState();
+    _search = TextEditingController(
+      text: ref.read(appControllerProvider).search,
+    );
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
     final colors = Theme.of(context).colorScheme;
+    // The query can be cleared outside this widget (e.g. starting a new
+    // session resets it); keep the field in sync without clobbering text
+    // the user is typing. Programmatic changes do not fire onChanged, so
+    // this cannot loop.
+    if (_search.text != c.search) {
+      _search.value = TextEditingValue(
+        text: c.search,
+        selection: TextSelection.collapsed(offset: c.search.length),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -31,7 +62,7 @@ class SessionList extends ConsumerWidget {
                 key: const Key('new-session'),
                 onPressed: () => act(context, () async {
                   await c.newSession();
-                  onSelected?.call();
+                  widget.onSelected?.call();
                 }),
                 icon: const Icon(Icons.add),
               ),
@@ -40,12 +71,22 @@ class SessionList extends ConsumerWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: TextFormField(
-            initialValue: c.search,
+          child: TextField(
+            controller: _search,
             onChanged: c.searchSessions,
             decoration: InputDecoration(
               hintText: context.tr("搜索标题或消息"),
-              prefixIcon: Icon(Icons.search, size: 20),
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: c.search.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: context.tr("清除搜索"),
+                      icon: const Icon(Icons.clear, size: 20),
+                      onPressed: () {
+                        _search.clear();
+                        c.searchSessions('');
+                      },
+                    ),
               isDense: true,
             ),
           ),
@@ -111,7 +152,7 @@ class SessionList extends ConsumerWidget {
                           ),
                           onTap: () => act(context, () async {
                             await c.selectSession(s);
-                            onSelected?.call();
+                            widget.onSelected?.call();
                           }),
                           trailing: PopupMenuButton<String>(
                             tooltip: context.tr("会话操作"),

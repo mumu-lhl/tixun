@@ -124,8 +124,43 @@ class StudyImages extends ConsumerWidget {
                       ),
                       if (editable && isMistake)
                         TextButton.icon(
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                          ),
                           onPressed: () => act(context, () async {
                             final c = ref.read(appControllerProvider);
+                            final hasDraft =
+                                c.selected != null &&
+                                (c.selected!.draft.isNotEmpty ||
+                                    c.attachments.any(
+                                      (a) => a.messageId == null,
+                                    ));
+                            if (hasDraft) {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: Text(context.tr("切换到分题对话？")),
+                                  content: Text(
+                                    context.tr(
+                                      "当前会话有未发送的草稿或图片，开始分题会新建会话，草稿会保留在原会话中。",
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: Text(context.tr("取消")),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: Text(context.tr("开始分题")),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed != true) return;
+                            }
                             await c.newSession();
                             await c.renameSession(c.selected!, '图片分题 · 检查与整理');
                             await c.addImage(
@@ -146,6 +181,9 @@ class StudyImages extends ConsumerWidget {
                         ),
                       if (editable)
                         TextButton.icon(
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                          ),
                           onPressed: () => act(context, () async {
                             final selected = await showDialog<String>(
                               context: context,
@@ -176,6 +214,9 @@ class StudyImages extends ConsumerWidget {
                         ),
                       if (editable)
                         TextButton.icon(
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                          ),
                           onPressed: () => act(context, () async {
                             await store.removeImage(image);
                             if (context.mounted) {
@@ -209,6 +250,7 @@ class StudyImages extends ConsumerWidget {
             ),
             if (editable)
               TextButton(
+                style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
                 onPressed: () => act(context, () async {
                   final removed = await store.images(
                     id,

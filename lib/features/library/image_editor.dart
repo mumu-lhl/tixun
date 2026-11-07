@@ -59,6 +59,117 @@ Future<Uint8List> renderStudyCrop(
   }
 }
 
+/// Whether a crop rect covers the whole frame (nothing would be lost by
+/// resetting it).
+bool isFullFrameCrop(Rect crop) =>
+    crop.left <= 0.001 &&
+    crop.top <= 0.001 &&
+    crop.right >= 0.999 &&
+    crop.bottom >= 0.999;
+
+/// Which part of the crop rect a normalized pointer position hits.
+enum CropHandle {
+  outside,
+  inside,
+  topLeft,
+  topRight,
+  bottomLeft,
+  bottomRight,
+  left,
+  top,
+  right,
+  bottom,
+}
+
+/// Hit-test a normalized [point] against [crop]. Thresholds are in normalized
+/// units per axis (already scaled for the current zoom).
+CropHandle resolveCropHandle(
+  Offset point,
+  Rect crop,
+  double thresholdX,
+  double thresholdY,
+) {
+  bool nearX(double value) => (point.dx - value).abs() <= thresholdX;
+  bool nearY(double value) => (point.dy - value).abs() <= thresholdY;
+  if (nearX(crop.left) && nearY(crop.top)) return CropHandle.topLeft;
+  if (nearX(crop.right) && nearY(crop.top)) return CropHandle.topRight;
+  if (nearX(crop.left) && nearY(crop.bottom)) return CropHandle.bottomLeft;
+  if (nearX(crop.right) && nearY(crop.bottom)) return CropHandle.bottomRight;
+  final withinY =
+      point.dy >= crop.top - thresholdY && point.dy <= crop.bottom + thresholdY;
+  final withinX =
+      point.dx >= crop.left - thresholdX && point.dx <= crop.right + thresholdX;
+  if (nearX(crop.left) && withinY) return CropHandle.left;
+  if (nearX(crop.right) && withinY) return CropHandle.right;
+  if (nearY(crop.top) && withinX) return CropHandle.top;
+  if (nearY(crop.bottom) && withinX) return CropHandle.bottom;
+  if (crop.contains(point)) return CropHandle.inside;
+  return CropHandle.outside;
+}
+
+/// Shift [start] by [delta], keeping it inside the 0..1 frame.
+Rect moveCropRect(Rect start, Offset delta) {
+  final dx = (start.left + delta.dx).clamp(0.0, 1.0 - start.width);
+  final dy = (start.top + delta.dy).clamp(0.0, 1.0 - start.height);
+  return Rect.fromLTWH(dx, dy, start.width, start.height);
+}
+
+/// Move the dragged corner/edge of [start] to [pointer] (normalized, clamped
+/// to the frame). The opposite side stays fixed; sides never cross below a
+/// 0.02 minimum size. Returns [start] unchanged for inside/outside handles.
+Rect resizeCropRect(Rect start, CropHandle handle, Offset pointer) {
+  const minSize = 0.02;
+  final px = pointer.dx.clamp(0.0, 1.0);
+  final py = pointer.dy.clamp(0.0, 1.0);
+  var left = start.left;
+  var top = start.top;
+  var right = start.right;
+  var bottom = start.bottom;
+  double clampLo(double value, double upper) =>
+      value.clamp(0.0, math.max(0.0, upper));
+  double clampHi(double value, double lower) =>
+      value.clamp(math.min(1.0, lower), 1.0);
+  switch (handle) {
+    case CropHandle.topLeft:
+      left = clampLo(px, right - minSize);
+      top = clampLo(py, bottom - minSize);
+    case CropHandle.topRight:
+      right = clampHi(px, left + minSize);
+      top = clampLo(py, bottom - minSize);
+    case CropHandle.bottomLeft:
+      left = clampLo(px, right - minSize);
+      bottom = clampHi(py, top + minSize);
+    case CropHandle.bottomRight:
+      right = clampHi(px, left + minSize);
+      bottom = clampHi(py, top + minSize);
+    case CropHandle.left:
+      left = clampLo(px, right - minSize);
+    case CropHandle.right:
+      right = clampHi(px, left + minSize);
+    case CropHandle.top:
+      top = clampLo(py, bottom - minSize);
+    case CropHandle.bottom:
+      bottom = clampHi(py, top + minSize);
+    case CropHandle.inside:
+    case CropHandle.outside:
+      return start;
+  }
+  return Rect.fromLTRB(left, top, right, bottom);
+}
+
+/// Scale [current] by [factor] around [focalScene] (a point in scene
+/// coordinates), clamping the resulting scale to 1..4.
+Matrix4 zoomTransform(Matrix4 current, Offset focalScene, double factor) {
+  final scale = current.getMaxScaleOnAxis();
+  final target = (scale * factor).clamp(1.0, 4.0);
+  final effective = target / scale;
+  if (effective == 1.0) return current;
+  return current.clone()
+    ..translateByDouble(focalScene.dx, focalScene.dy, 0, 1)
+    ..scaleByDouble(effective, effective, effective, 1)
+    ..translateByDouble(-focalScene.dx, -focalScene.dy, 0, 1);
+}
+
 class StudyImageEditor extends ConsumerStatefulWidget {
   const StudyImageEditor({
     required this.attachment,
@@ -87,7 +198,18 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
   bool _saving = false;
   int _turns = 0;
   Rect _crop = const Rect.fromLTRB(0, 0, 1, 1);
-  Offset? _start;
+  final _viewer = TransformationController();
+  // One finger draws or adjusts the crop; the viewer only pans/zooms once a
+  // second finger is down. A plain GestureDetector inside the viewer would
+  // win the gesture arena for every drag and kill pinch zoom (probed), so the
+  // crop uses a Listener overlay that never competes in the arena.
+  bool _panEnabled = false;
+  Size? _canvasSize;
+  final _pointers = <int>{};
+  CropHandle? _dragHandle;
+  int? _dragPointer;
+  Offset _dragStartPoint = Offset.zero;
+  Rect _dragStartCrop = const Rect.fromLTRB(0, 0, 1, 1);
   @override
   void initState() {
     super.initState();
@@ -144,8 +266,127 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
 
   @override
   void dispose() {
+    _viewer.dispose();
     _image?.dispose();
     super.dispose();
+  }
+
+  double get _scale => _viewer.value.getMaxScaleOnAxis();
+
+  double get _thresholdX {
+    final size = _canvasSize;
+    if (size == null || size.width == 0) return 0.05;
+    return 20 / (size.width * _scale);
+  }
+
+  double get _thresholdY {
+    final size = _canvasSize;
+    if (size == null || size.height == 0) return 0.05;
+    return 20 / (size.height * _scale);
+  }
+
+  /// Convert a point in canvas (viewport) coordinates to normalized image
+  /// coordinates, through the current zoom transform.
+  Offset _toNormalized(Offset local) {
+    final size = _canvasSize;
+    if (size == null || size.isEmpty) return Offset.zero;
+    final scene = _viewer.toScene(local);
+    return Offset(
+      (scene.dx / size.width).clamp(0.0, 1.0),
+      (scene.dy / size.height).clamp(0.0, 1.0),
+    );
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    if (_saving || _image == null) return;
+    _pointers.add(event.pointer);
+    if (_pointers.length == 1) {
+      final point = _toNormalized(event.localPosition);
+      _dragPointer = event.pointer;
+      _dragStartPoint = point;
+      _dragStartCrop = _crop;
+      _dragHandle = isFullFrameCrop(_crop)
+          ? CropHandle.outside
+          : resolveCropHandle(point, _crop, _thresholdX, _thresholdY);
+      if (_panEnabled) setState(() => _panEnabled = false);
+    } else {
+      // Second finger: cancel the crop drag and hand the gesture to the
+      // viewer for pinch zoom / pan.
+      _dragHandle = null;
+      _dragPointer = null;
+      if (!_panEnabled) setState(() => _panEnabled = true);
+    }
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (_saving || _dragHandle == null || event.pointer != _dragPointer) {
+      return;
+    }
+    final point = _toNormalized(event.localPosition);
+    final handle = _dragHandle!;
+    setState(() {
+      _crop = switch (handle) {
+        CropHandle.outside => Rect.fromPoints(_dragStartPoint, point),
+        CropHandle.inside => moveCropRect(
+          _dragStartCrop,
+          point - _dragStartPoint,
+        ),
+        _ => resizeCropRect(_dragStartCrop, handle, point),
+      };
+    });
+  }
+
+  void _endPointer(PointerEvent event) {
+    _pointers.remove(event.pointer);
+    if (event.pointer == _dragPointer) {
+      _dragHandle = null;
+      _dragPointer = null;
+    }
+    if (_pointers.isEmpty && _panEnabled) {
+      setState(() => _panEnabled = false);
+    }
+  }
+
+  void _zoomBy(double factor) {
+    final size = _canvasSize;
+    if (size == null || size.isEmpty || _image == null) return;
+    final focal = _viewer.toScene(Offset(size.width / 2, size.height / 2));
+    setState(() {
+      _viewer.value = zoomTransform(_viewer.value, focal, factor);
+    });
+  }
+
+  void _resetZoom() {
+    setState(() => _viewer.value = Matrix4.identity());
+  }
+
+  Future<void> _rotate() async {
+    if (_image == null || _saving) return;
+    if (!isFullFrameCrop(_crop)) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(context.tr("旋转会重置框选")),
+          content: Text(context.tr("旋转后坐标系改变，当前框选将重置为全图。")),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(context.tr("取消")),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(context.tr("旋转并重置")),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    setState(() {
+      _turns = (_turns + 1) % 4;
+      _crop = const Rect.fromLTRB(0, 0, 1, 1);
+      _viewer.value = Matrix4.identity();
+    });
   }
 
   Future<void> _save({bool split = false}) async {
@@ -239,13 +480,25 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
           title: Text(widget.title),
           actions: [
             IconButton(
-              tooltip: context.tr("顺时针旋转"),
+              tooltip: context.tr("缩小"),
               onPressed: image == null || _saving
                   ? null
-                  : () => setState(() {
-                      _turns = (_turns + 1) % 4;
-                      _crop = const Rect.fromLTRB(0, 0, 1, 1);
-                    }),
+                  : () => _zoomBy(1 / 1.25),
+              icon: const Icon(Icons.zoom_out),
+            ),
+            IconButton(
+              tooltip: context.tr("还原缩放"),
+              onPressed: image == null || _saving ? null : _resetZoom,
+              icon: const Icon(Icons.fit_screen),
+            ),
+            IconButton(
+              tooltip: context.tr("放大"),
+              onPressed: image == null || _saving ? null : () => _zoomBy(1.25),
+              icon: const Icon(Icons.zoom_in),
+            ),
+            IconButton(
+              tooltip: context.tr("顺时针旋转"),
+              onPressed: image == null || _saving ? null : _rotate,
               icon: const Icon(Icons.rotate_right),
             ),
           ],
@@ -256,7 +509,9 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
               Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  context.tr("拖动框选要保留的区域。原图始终保留，编辑副本最长边为 2048 像素。"),
+                  context.tr(
+                    "拖动框选要保留的区域；框内拖动可移动，拖动手柄可调整大小；双指缩放可放大查看。原图始终保留，编辑副本最长边为 2048 像素。",
+                  ),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12),
                 ),
@@ -286,56 +541,56 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                                 ? image.width / image.height
                                 : image.height / image.width,
                             child: LayoutBuilder(
-                              builder: (context, constraints) =>
-                                  GestureDetector(
-                                    key: const Key('crop-canvas'),
-                                    onPanStart: _saving
-                                        ? null
-                                        : (d) {
-                                            _start = Offset(
-                                              (d.localPosition.dx /
-                                                      constraints.maxWidth)
-                                                  .clamp(0, 1),
-                                              (d.localPosition.dy /
-                                                      constraints.maxHeight)
-                                                  .clamp(0, 1),
-                                            );
-                                          },
-                                    onPanUpdate: _saving
-                                        ? null
-                                        : (d) {
-                                            if (_start == null) return;
-                                            final end = Offset(
-                                              (d.localPosition.dx /
-                                                      constraints.maxWidth)
-                                                  .clamp(0, 1),
-                                              (d.localPosition.dy /
-                                                      constraints.maxHeight)
-                                                  .clamp(0, 1),
-                                            );
-                                            setState(
-                                              () => _crop = Rect.fromPoints(
-                                                _start!,
-                                                end,
+                              builder: (context, constraints) {
+                                _canvasSize = Size(
+                                  constraints.maxWidth,
+                                  constraints.maxHeight,
+                                );
+                                final colors = Theme.of(context).colorScheme;
+                                return Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Positioned.fill(
+                                      child: InteractiveViewer(
+                                        transformationController: _viewer,
+                                        minScale: 1,
+                                        maxScale: 4,
+                                        panEnabled: _panEnabled,
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            RotatedBox(
+                                              quarterTurns: _turns,
+                                              child: RawImage(
+                                                image: image,
+                                                fit: BoxFit.fill,
                                               ),
-                                            );
-                                          },
-                                    child: Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        RotatedBox(
-                                          quarterTurns: _turns,
-                                          child: RawImage(
-                                            image: image,
-                                            fit: BoxFit.fill,
-                                          ),
+                                            ),
+                                            CustomPaint(
+                                              painter: _CropPainter(
+                                                _crop,
+                                                primary: colors.primary,
+                                                viewer: _viewer,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        CustomPaint(
-                                          painter: _CropPainter(_crop),
-                                        ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
+                                    Positioned.fill(
+                                      child: Listener(
+                                        key: const Key('crop-canvas'),
+                                        behavior: HitTestBehavior.translucent,
+                                        onPointerDown: _onPointerDown,
+                                        onPointerMove: _onPointerMove,
+                                        onPointerUp: _endPointer,
+                                        onPointerCancel: _endPointer,
+                                        child: const SizedBox.expand(),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -381,10 +636,16 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
 }
 
 class _CropPainter extends CustomPainter {
-  const _CropPainter(this.crop);
+  _CropPainter(this.crop, {required this.primary, required this.viewer})
+    : super(repaint: viewer);
   final Rect crop;
+  final Color primary;
+  final TransformationController viewer;
   @override
   void paint(Canvas canvas, Size size) {
+    // Border and handles keep a constant screen size whatever the zoom, so
+    // they stay grabbable and readable on dense photos.
+    final scale = viewer.value.getMaxScaleOnAxis();
     final rect = Rect.fromLTRB(
       crop.left * size.width,
       crop.top * size.height,
@@ -399,15 +660,52 @@ class _CropPainter extends CustomPainter {
       outside,
       Paint()..color = Colors.black.withValues(alpha: .45),
     );
+    // High-contrast border: a white outer stroke reads on dark photos, the
+    // theme primary inner stroke reads on light ones.
     canvas.drawRect(
       rect,
       Paint()
-        ..color = const Color(0xffa5ead3)
+        ..color = Colors.white
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
+        ..strokeWidth = 5 / scale,
     );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = primary
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5 / scale,
+    );
+    if (isFullFrameCrop(crop)) return;
+    final half = 9 / scale;
+    final border = 1.5 / scale;
+    for (final point in [
+      rect.topLeft,
+      rect.topCenter,
+      rect.topRight,
+      rect.centerLeft,
+      rect.centerRight,
+      rect.bottomLeft,
+      rect.bottomCenter,
+      rect.bottomRight,
+    ]) {
+      final handle = Rect.fromCenter(
+        center: point,
+        width: half * 2,
+        height: half * 2,
+      );
+      canvas.drawRect(handle, Paint()..color = Colors.white);
+      canvas.drawRect(
+        handle,
+        Paint()
+          ..color = primary
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = border,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(_CropPainter oldDelegate) => oldDelegate.crop != crop;
+  bool shouldRepaint(_CropPainter oldDelegate) =>
+      oldDelegate.crop != crop || oldDelegate.primary != primary;
 }

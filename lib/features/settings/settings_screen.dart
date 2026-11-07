@@ -24,20 +24,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late String _kind, _effort;
   late bool _vision, _thinking, _supportsThinking, _supportsTools;
   bool _working = false;
+  bool _keyVisible = false;
   String? _status;
   bool _failure = false;
-  @override
-  void initState() {
-    super.initState();
-    final c = ref.read(appControllerProvider).config;
-    _base = TextEditingController(text: c.baseUrl);
-    _model = TextEditingController(text: c.model);
-    _kind = c.kind;
-    _effort = c.effort;
+
+  static const _kinds = ['deepseek', 'compatible', 'chatgpt'];
+  static const _deepseekModels = ['deepseek-flash', 'deepseek-v4-pro'];
+  static const _efforts = ['low', 'high', 'max'];
+
+  /// Loads a stored config into the form, replacing values outside the
+  /// dropdowns' item lists with valid defaults. Without this, a legacy or
+  /// backup-restored value makes DropdownButtonFormField throw at build
+  /// time ("There should be exactly one item with [DropdownButton]'s
+  /// value") and blanks the whole settings page.
+  void _applyConfig(ProviderConfig c) {
+    _kind = _kinds.contains(c.kind) ? c.kind : 'deepseek';
+    _base.text = c.baseUrl;
+    _model.text = _kind == 'deepseek' && !_deepseekModels.contains(c.model)
+        ? 'deepseek-flash'
+        : c.model;
     _vision = c.vision;
     _thinking = c.thinking;
     _supportsThinking = c.supportsThinking;
     _supportsTools = c.supportsTools;
+    _effort = _efforts.contains(c.effort) ? c.effort : 'high';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final c = ref.read(appControllerProvider).config;
+    _base = TextEditingController();
+    _model = TextEditingController();
+    _applyConfig(c);
   }
 
   @override
@@ -115,14 +134,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ) {
       if (previous == next) return;
       setState(() {
-        _kind = next.kind;
-        _base.text = next.baseUrl;
-        _model.text = next.model;
-        _vision = next.vision;
-        _supportsThinking = next.supportsThinking;
-        _supportsTools = next.supportsTools;
-        _thinking = next.thinking;
-        _effort = next.effort;
+        _applyConfig(next);
         _key.clear();
       });
     });
@@ -224,42 +236,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.go('/settings/chatgpt'),
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  key: ValueKey('provider-$_kind'),
-                  isExpanded: true,
-                  initialValue: _kind,
-                  decoration: InputDecoration(labelText: context.tr("服务商")),
-                  items: const [
-                    DropdownMenuItem(value: 'chatgpt', child: Text('ChatGPT')),
-                    DropdownMenuItem(
-                      value: 'deepseek',
-                      child: Text('DeepSeek'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'compatible',
-                      child: Text('OpenAI-compatible'),
-                    ),
-                  ],
-                  onChanged: _working
-                      ? null
-                      : (kind) => setState(() {
-                          if (kind == 'chatgpt') {
-                            context.go('/settings/chatgpt');
-                            return;
-                          }
-                          _kind = kind!;
-                          _base.text = kind == 'deepseek'
-                              ? 'https://api.deepseek.com'
-                              : 'https://api.openai.com/v1';
-                          _model.text = kind == 'deepseek'
-                              ? 'deepseek-flash'
-                              : '';
-                          _vision = kind == 'deepseek';
-                          _supportsThinking = kind == 'deepseek';
-                          _supportsTools = kind == 'deepseek';
-                          _thinking = false;
-                        }),
-                ),
+                // ChatGPT is managed from the subscription tile above; the
+                // dropdown only switches between API providers in place.
+                // It is hidden while a ChatGPT subscription is active, so
+                // its value is always one of the items below.
+                if (_kind != 'chatgpt')
+                  DropdownButtonFormField<String>(
+                    key: ValueKey('provider-$_kind'),
+                    isExpanded: true,
+                    initialValue: _kind == 'compatible'
+                        ? 'compatible'
+                        : 'deepseek',
+                    decoration: InputDecoration(labelText: context.tr("服务商")),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'deepseek',
+                        child: Text('DeepSeek'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'compatible',
+                        child: Text('OpenAI-compatible'),
+                      ),
+                    ],
+                    onChanged: _working
+                        ? null
+                        : (kind) => setState(() {
+                            _kind = kind!;
+                            _base.text = kind == 'deepseek'
+                                ? 'https://api.deepseek.com'
+                                : 'https://api.openai.com/v1';
+                            _model.text = kind == 'deepseek'
+                                ? 'deepseek-flash'
+                                : '';
+                            _vision = kind == 'deepseek';
+                            _supportsThinking = kind == 'deepseek';
+                            _supportsTools = kind == 'deepseek';
+                            _thinking = false;
+                          }),
+                  ),
                 if (_kind == 'chatgpt')
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,16 +286,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             : () => act(context, () async {
                                 await c.restoreApiProvider();
                                 if (!mounted) return;
-                                setState(() {
-                                  _kind = c.config.kind;
-                                  _base.text = c.config.baseUrl;
-                                  _model.text = c.config.model;
-                                  _vision = c.config.vision;
-                                  _supportsThinking = c.config.supportsThinking;
-                                  _supportsTools = c.config.supportsTools;
-                                  _thinking = c.config.thinking;
-                                  _effort = c.config.effort;
-                                });
+                                setState(() => _applyConfig(c.config));
                               }),
                         child: Text(context.tr('恢复上次 API 配置')),
                       ),
@@ -303,7 +308,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     DropdownButtonFormField<String>(
                       isExpanded: true,
                       key: ValueKey('model-${_model.text}'),
-                      initialValue: _model.text,
+                      initialValue: _deepseekModels.contains(_model.text)
+                          ? _model.text
+                          : 'deepseek-flash',
                       decoration: InputDecoration(labelText: context.tr("模型")),
                       items: [
                         DropdownMenuItem(
@@ -344,7 +351,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   TextField(
                     key: const Key('api-key'),
                     controller: _key,
-                    obscureText: true,
+                    obscureText: !_keyVisible,
                     enableSuggestions: false,
                     autocorrect: false,
                     enabled: !_working && !c.demo,
@@ -357,6 +364,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               "Android：系统加密存储；Linux：Secret Service 密钥环",
                             ),
                       helperMaxLines: 2,
+                      suffixIcon: IconButton(
+                        tooltip: context.tr(_keyVisible ? "隐藏密钥" : "显示密钥"),
+                        onPressed: () =>
+                            setState(() => _keyVisible = !_keyVisible),
+                        icon: Icon(
+                          _keyVisible
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -377,7 +394,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(context.tr("支持图片输入")),
                     subtitle: Text(
-                      context.tr("仅在服务商明确支持视觉时启用"),
+                      // DeepSeek derives vision from the model (Flash yes,
+                      // V4 Pro no), so the switch is fixed here.
+                      _kind == 'deepseek'
+                          ? context.tr("由模型决定：Flash 支持图片，V4 Pro 仅文本")
+                          : context.tr("仅在服务商明确支持视觉时启用"),
                       style: TextStyle(fontSize: 12),
                     ),
                     value: _vision,
@@ -423,7 +444,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         padding: const EdgeInsets.only(bottom: 16),
                         child: DropdownButtonFormField<String>(
                           isExpanded: true,
-                          initialValue: _effort,
+                          initialValue: _efforts.contains(_effort)
+                              ? _effort
+                              : 'high',
                           decoration: InputDecoration(
                             labelText: context.tr("默认思考强度"),
                           ),
@@ -481,7 +504,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       TextButton(
                         onPressed: _working || c.demo
                             ? null
-                            : () => _perform(remove: true),
+                            : () async {
+                                final ok = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text(context.tr("删除已存密钥？")),
+                                    content: Text(
+                                      context.tr(
+                                        "将删除此服务地址已保存的密钥，删除后需要重新输入。当前配置的其他设置不受影响。",
+                                      ),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, false),
+                                        child: Text(context.tr("取消")),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
+                                        child: Text(context.tr("删除密钥")),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (ok == true) await _perform(remove: true);
+                              },
                         child: Text(context.tr("删除已存密钥")),
                       ),
                     ],
@@ -509,7 +557,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 12),
                 Text(
                   context.tr(
-                    "TiXun 0.5 · 开源 · 本地优先\n已支持 AI Chat、知识库、错题本、图片裁剪分题及受控资料工具。\n已加入结构化交互题、确定性评分、历史作答和错题重做。已支持间隔复习、学习诊断与自由学习目标。完整备份、恢复撤销与 AI 分题建议现已提供。",
+                    "TiXun 0.5.2 · 开源 · 本地优先\n已支持 AI Chat、知识库、错题本、图片裁剪分题及受控资料工具。\n已加入结构化交互题、确定性评分、历史作答和错题重做。已支持间隔复习、学习诊断与自由学习目标。完整备份、恢复撤销与 AI 分题建议现已提供。",
                   ),
                   style: TextStyle(height: 1.9),
                 ),

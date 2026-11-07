@@ -10,8 +10,32 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/platform/backup_file_picker.dart';
 import '../../core/ui/actions.dart';
 
-class BackupPanel extends ConsumerWidget {
+class BackupPanel extends ConsumerStatefulWidget {
   const BackupPanel({super.key});
+  @override
+  ConsumerState<BackupPanel> createState() => _BackupPanelState();
+}
+
+class _BackupPanelState extends ConsumerState<BackupPanel> {
+  /// Cached so the undo-availability lookup isn't re-issued on every
+  /// rebuild. Reset to null after a restore/undo-clear so the next build
+  /// re-checks whether an undo copy exists.
+  Future<Directory?>? _previousRoot;
+
+  /// True while an export/import/undo runs: buttons stay disabled and a
+  /// progress row shows, so a double-tap can't start concurrent runs.
+  bool _busy = false;
+
+  Future<void> _run(Future<void> Function() fn) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await fn();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _import(
     BuildContext context,
     BackupActions actions, {
@@ -78,6 +102,7 @@ class BackupPanel extends ConsumerWidget {
       );
       if (ok == true) {
         await actions.restore(prepared);
+        if (mounted) setState(() => _previousRoot = null);
       }
     } finally {
       await prepared?.discard();
@@ -85,9 +110,10 @@ class BackupPanel extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final actions = ref.watch(backupActionsProvider),
         c = ref.watch(appControllerProvider);
+    _previousRoot ??= BackupService.previousRoot(c.files.root);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -109,66 +135,93 @@ class BackupPanel extends ConsumerWidget {
           children: [
             OutlinedButton.icon(
               key: const Key('export-backup'),
-              onPressed: actions == null
+              onPressed: actions == null || _busy
                   ? null
-                  : () => act(context, actions.export),
+                  : () => _run(() => act(context, actions.export)),
               icon: const Icon(Icons.save_alt, size: 18),
               label: Text(context.tr("导出完整备份")),
             ),
             OutlinedButton.icon(
               key: const Key('import-backup'),
-              onPressed: actions == null
+              onPressed: actions == null || _busy
                   ? null
-                  : () => act(context, () => _import(context, actions)),
+                  : () => _run(
+                      () => act(context, () => _import(context, actions)),
+                    ),
               icon: const Icon(Icons.restore, size: 18),
               label: Text(context.tr("从备份恢复")),
             ),
           ],
         ),
+        if (_busy)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 10),
+                Text(context.tr("正在处理备份…")),
+              ],
+            ),
+          ),
         FutureBuilder<Directory?>(
-          future: BackupService.previousRoot(c.files.root),
+          future: _previousRoot,
           builder: (ctx, snapshot) => snapshot.data == null
               ? const SizedBox.shrink()
               : Wrap(
                   children: [
                     TextButton(
                       key: const Key('undo-restore'),
-                      onPressed: actions == null
+                      onPressed: actions == null || _busy
                           ? null
-                          : () => act(
-                              context,
-                              () => _import(context, actions, undo: true),
+                          : () => _run(
+                              () => act(
+                                context,
+                                () => _import(context, actions, undo: true),
+                              ),
                             ),
                       child: Text(context.tr("撤销上次恢复")),
                     ),
                     TextButton(
-                      onPressed: actions == null
+                      onPressed: actions == null || _busy
                           ? null
-                          : () => act(context, () async {
-                              final ok = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: Text(context.tr("删除恢复安全副本？")),
-                                  content: Text(
-                                    context.tr(
-                                      "只删除本设备为上次恢复保留的旧数据。当前学习数据及已导出的备份不受影响；删除后将无法撤销上次恢复。",
+                          : () => _run(
+                              () => act(context, () async {
+                                final ok = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text(context.tr("删除恢复安全副本？")),
+                                    content: Text(
+                                      context.tr(
+                                        "只删除本设备为上次恢复保留的旧数据。当前学习数据及已导出的备份不受影响；删除后将无法撤销上次恢复。",
+                                      ),
                                     ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, false),
+                                        child: Text(context.tr("取消")),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
+                                        child: Text(context.tr("删除安全副本")),
+                                      ),
+                                    ],
                                   ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(ctx, false),
-                                      child: Text(context.tr("取消")),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      child: Text(context.tr("删除安全副本")),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (ok == true) await actions.clearUndo();
-                            }),
+                                );
+                                if (ok == true) {
+                                  await actions.clearUndo();
+                                  if (mounted) {
+                                    setState(() => _previousRoot = null);
+                                  }
+                                }
+                              }),
+                            ),
                       child: Text(context.tr("删除恢复安全副本")),
                     ),
                   ],

@@ -24,6 +24,7 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String _query = '', _subject = '';
   bool _trash = false, _importing = false;
+  int _importTotal = 0, _importDone = 0;
   int _epoch = -1;
   bool _selecting = false,
       _bulkBusy = false,
@@ -35,10 +36,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   List<_Entry> _visible = [];
   Timer? _debounce;
   Future<List<_Entry>>? _future;
+  final _searchController = TextEditingController();
   @override
   void dispose() {
     _debounce?.cancel();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  void _clearSearch() {
+    _debounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _epoch = -1;
+    });
   }
 
   void _refresh() => setState(() => _epoch = -1);
@@ -234,7 +246,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (_importing) return;
     final picked = await pickStudyImages(context);
     if (picked.isEmpty || !mounted) return;
-    setState(() => _importing = true);
+    setState(() {
+      _importing = true;
+      _importTotal = picked.length;
+      _importDone = 0;
+    });
     var imported = 0;
     try {
       for (final file in picked) {
@@ -246,6 +262,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               subject: _subject.isEmpty ? '数学' : _subject,
             );
         imported++;
+        if (mounted) setState(() => _importDone = imported);
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -268,7 +285,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _importing = false);
+      if (mounted) {
+        setState(() {
+          _importing = false;
+          _importTotal = 0;
+          _importDone = 0;
+        });
+      }
     }
   }
 
@@ -277,14 +300,33 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (_importing) return;
     setState(() => _importing = true);
     try {
-      await StudyPhotoIntake.pick(
+      final count = await StudyPhotoIntake.pick(
         ref.read(appControllerProvider),
         isMistake: true,
         camera: kind == 'camera',
         subject: _subject.isEmpty ? '数学' : _subject,
       );
+      if (mounted) {
+        setState(() {
+          _importTotal = count;
+          _importDone = count;
+        });
+        if (count > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.tr("已录入 {0} 道图片错题，可分别补充答案与解析。", [count])),
+            ),
+          );
+        }
+      }
     } finally {
-      if (mounted) setState(() => _importing = false);
+      if (mounted) {
+        setState(() {
+          _importing = false;
+          _importTotal = 0;
+          _importDone = 0;
+        });
+      }
     }
   }
 
@@ -373,7 +415,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               const SizedBox(height: 18),
               TextField(
                 key: const Key('library-search'),
+                controller: _searchController,
                 onChanged: (v) {
+                  setState(() {});
                   _debounce?.cancel();
                   _debounce = Timer(const Duration(milliseconds: 250), () {
                     if (mounted) {
@@ -386,7 +430,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 },
                 decoration: InputDecoration(
                   hintText: context.tr("搜索标题、正文、章节或标签"),
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: context.tr("清除搜索"),
+                          onPressed: _clearSearch,
+                          icon: const Icon(Icons.clear),
+                        ),
                   isDense: true,
                 ),
               ),
@@ -426,6 +477,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     ),
                   ),
                   TextButton(
+                    style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
                     onPressed: () async {
                       final subject = await editText(
                         context,
@@ -485,6 +537,33 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       ),
                 ],
               ),
+              if (_importing)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      LinearProgressIndicator(
+                        value: _importTotal > 0
+                            ? _importDone / _importTotal
+                            : null,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _importTotal > 0
+                            ? context.tr("正在导入第 {0} / {1} 张…", [
+                                _importDone,
+                                _importTotal,
+                              ])
+                            : context.tr("正在导入…"),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),

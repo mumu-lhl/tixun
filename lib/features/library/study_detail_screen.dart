@@ -147,12 +147,32 @@ class StudyDetailScreen extends ConsumerWidget {
                             spacing: 8,
                             runSpacing: 6,
                             children: [
-                              Chip(label: Text(subject)),
+                              Chip(
+                                label: Text(
+                                  subject,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                               if (chapter.isNotEmpty)
-                                Chip(label: Text(chapter)),
+                                Chip(
+                                  label: Text(
+                                    chapter,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               if (k != null)
                                 Chip(label: Text(context.tr(k.item.kind))),
-                              ...tags.map((t) => Chip(label: Text('#$t'))),
+                              ...tags.map(
+                                (t) => Chip(
+                                  label: Text(
+                                    '#$t',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                           if (deleted)
@@ -526,33 +546,74 @@ class StudyDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
     final selected = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr("选择关联知识")),
-        content: SizedBox(
-          width: 500,
-          height: 380,
-          child: items.where((k) => isMistake || k.id != id).isEmpty
-              ? Center(child: Text(context.tr("请先创建其他知识记录。")))
-              : ListView(
-                  children: items
-                      .where((k) => isMistake || k.id != id)
-                      .map(
-                        (k) => ListTile(
-                          title: Text(k.title),
-                          subtitle: Text(context.subjectName(k.subject)),
-                          onTap: () => Navigator.pop(context, k.id),
-                        ),
-                      )
-                      .toList(),
-                ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(context.tr("取消")),
+      builder: (context) {
+        var query = '';
+        return AlertDialog(
+          title: Text(context.tr("选择关联知识")),
+          content: SizedBox(
+            width: 500,
+            height: 380,
+            child: StatefulBuilder(
+              builder: (context, update) {
+                final visible = items
+                    .where((k) => isMistake || k.id != id)
+                    .where(
+                      (k) =>
+                          query.isEmpty ||
+                          k.title.toLowerCase().contains(query.toLowerCase()) ||
+                          context
+                              .subjectName(k.subject)
+                              .toLowerCase()
+                              .contains(query.toLowerCase()),
+                    )
+                    .toList();
+                return Column(
+                  children: [
+                    TextField(
+                      onChanged: (v) => update(() => query = v),
+                      decoration: InputDecoration(
+                        hintText: context.tr("搜索标题或科目"),
+                        prefixIcon: const Icon(Icons.search),
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: visible.isEmpty
+                          ? Center(
+                              child: Text(
+                                query.isEmpty
+                                    ? context.tr("请先创建其他知识记录。")
+                                    : context.tr("没有找到相关知识。"),
+                              ),
+                            )
+                          : ListView(
+                              children: visible
+                                  .map(
+                                    (k) => ListTile(
+                                      title: Text(k.title),
+                                      subtitle: Text(
+                                        context.subjectName(k.subject),
+                                      ),
+                                      onTap: () => Navigator.pop(context, k.id),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(context.tr("取消")),
+            ),
+          ],
+        );
+      },
     );
     if (selected != null) {
       await store.link(

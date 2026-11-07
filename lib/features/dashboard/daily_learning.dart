@@ -27,6 +27,7 @@ class DailyLearning extends ConsumerWidget {
             ),
             profile.when(
               data: (p) => TextButton(
+                style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) => ProfileEditor(p),
@@ -34,7 +35,15 @@ class DailyLearning extends ConsumerWidget {
                 child: Text(context.tr("学习设置")),
               ),
               loading: () => const SizedBox.shrink(),
-              error: (_, _) => const SizedBox.shrink(),
+              // Keep a retry here instead of hiding the button: the
+              // editor needs the loaded profile, and opening it with
+              // defaults could overwrite real settings on save.
+              error: (_, _) => TextButton.icon(
+                style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+                onPressed: () => ref.invalidate(learningProfileProvider),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: Text(context.tr("重试")),
+              ),
             ),
           ],
         ),
@@ -49,6 +58,7 @@ class DailyLearning extends ConsumerWidget {
           child: due.when(
             loading: () => Text(context.tr("正在读取待复习任务…")),
             error: (_, _) => TextButton(
+              style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
               onPressed: () => ref.invalidate(dueCountProvider),
               child: Text(context.tr("复习任务读取失败，重试")),
             ),
@@ -106,10 +116,16 @@ class DailyLearning extends ConsumerWidget {
                       ),
                     ),
                     TextButton(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                      ),
                       onPressed: () => context.go('/review'),
                       child: Text(context.tr("复习安排")),
                     ),
                     TextButton(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                      ),
                       onPressed: () => context.go('/progress'),
                       child: Text(context.tr("学习诊断")),
                     ),
@@ -122,7 +138,17 @@ class DailyLearning extends ConsumerWidget {
         const SizedBox(height: 16),
         progress.when(
           loading: () => const SizedBox.shrink(),
-          error: (_, _) => Text(context.tr("训练记录暂时无法读取。")),
+          error: (_, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(context.tr("训练记录暂时无法读取。")),
+              TextButton(
+                style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+                onPressed: () => ref.invalidate(progressProvider),
+                child: Text(context.tr("重试")),
+              ),
+            ],
+          ),
           data: (p) => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

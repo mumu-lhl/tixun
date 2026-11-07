@@ -62,7 +62,7 @@ class MathBuilder extends MarkdownElementBuilder {
   ) {
     final source = element.textContent;
     final formula = Tooltip(
-      message: '长按复制 LaTeX',
+      message: context.tr('长按复制 LaTeX'),
       child: GestureDetector(
         onLongPress: () => Clipboard.setData(ClipboardData(text: source)),
         child: SingleChildScrollView(
@@ -96,6 +96,46 @@ class MathBuilder extends MarkdownElementBuilder {
   }
 }
 
+/// Inline `code` rendered as a small chip: a subtle surface background with
+/// rounded corners, matching the fenced-code-block decoration. Fenced blocks
+/// are left alone — their text always ends with a newline while inline code
+/// never contains one, so the builder returns null there and the default
+/// scrollable code-block rendering applies.
+class _InlineCodeBuilder extends MarkdownElementBuilder {
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    if (element.textContent.contains('\n')) return null;
+    final colors = Theme.of(context).colorScheme;
+    return Text.rich(
+      TextSpan(
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Container(
+              decoration: BoxDecoration(
+                color: colors.surfaceContainer,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              child: Text(
+                element.textContent,
+                style:
+                    preferredStyle ??
+                    const TextStyle(fontFamily: 'TixunMono', fontSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class LearningMarkdown extends StatelessWidget {
   const LearningMarkdown(this.data, {super.key});
   final String data;
@@ -112,6 +152,7 @@ class LearningMarkdown extends StatelessWidget {
         builders: {
           'math': MathBuilder(),
           'mathblock': MathBuilder(block: true),
+          'code': _InlineCodeBuilder(),
         },
         imageBuilder: (_, _, _) => Text(context.tr("[外部图片未自动加载]")),
         onTapLink: (_, href, _) async {

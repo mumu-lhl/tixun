@@ -6,6 +6,7 @@ import '../../app/controller.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../review/review_screen.dart';
 import 'practice_providers.dart';
 import 'practice_run_screen.dart';
 import 'practice_store.dart';
@@ -214,7 +215,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                               : Icons.edit_note,
                         ),
                         title: Text(
-                          q.stem,
+                          plainTextPreview(q.stem),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -249,6 +250,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                                 context: context,
                                 builder: (ctx) => AlertDialog(
                                   title: Text(context.tr("永久删除练习？")),
+                                  scrollable: true,
                                   content: Text(
                                     context.tr(
                                       "将永久删除“{0}”及其所有作答和复习记录。该操作无法撤销，独立的知识、错题和其他题目仍保留。",
@@ -498,7 +500,19 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
                   ),
                 )
                 .toList(),
-            onChanged: saving ? null : (v) => setState(() => kind = v!),
+            onChanged: saving
+                ? null
+                : (v) => setState(() {
+                    kind = v!;
+                    // The true/false answer control only accepts 'true' /
+                    // 'false'; drop a stale free-text answer from another
+                    // kind so the dropdown starts empty instead of invalid.
+                    if (kind == 'true_false' &&
+                        answers.text.trim() != 'true' &&
+                        answers.text.trim() != 'false') {
+                      answers.text = '';
+                    }
+                  }),
           ),
           for (final (ctrl, label, lines) in [
             (subject, '科目', 1),
@@ -524,18 +538,43 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
           ])
             Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: TextField(
-                controller: ctrl,
-                key: ctrl == stem
-                    ? const Key('question-stem')
-                    : ctrl == answers
-                    ? const Key('question-answers')
-                    : null,
-                enabled: !saving,
-                minLines: lines,
-                maxLines: lines + 3,
-                decoration: InputDecoration(labelText: context.tr(label)),
-              ),
+              // True/false answers are a choice, not free text: typing
+              // literal "true"/"false" is error-prone and only surfaces
+              // at save time.
+              child: ctrl == answers && kind == 'true_false'
+                  ? DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue:
+                          ['true', 'false'].contains(answers.text.trim())
+                          ? answers.text.trim()
+                          : null,
+                      decoration: InputDecoration(labelText: context.tr("答案")),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'true',
+                          child: Text(context.tr("正确")),
+                        ),
+                        DropdownMenuItem(
+                          value: 'false',
+                          child: Text(context.tr("错误")),
+                        ),
+                      ],
+                      onChanged: saving
+                          ? null
+                          : (v) => setState(() => answers.text = v ?? ''),
+                    )
+                  : TextField(
+                      controller: ctrl,
+                      key: ctrl == stem
+                          ? const Key('question-stem')
+                          : ctrl == answers
+                          ? const Key('question-answers')
+                          : null,
+                      enabled: !saving,
+                      minLines: lines,
+                      maxLines: lines + 3,
+                      decoration: InputDecoration(labelText: context.tr(label)),
+                    ),
             ),
           ExpansionTile(
             title: Text(context.tr("判分与时间设置")),
@@ -544,6 +583,9 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
               if (kind == 'numeric') ...[
                 TextField(
                   controller: absoluteTolerance,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: InputDecoration(
                     labelText: context.tr("数值绝对容差（0–100）"),
                   ),
@@ -551,6 +593,9 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: relativeTolerance,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: InputDecoration(
                     labelText: context.tr("相对容差（0–0.1）"),
                   ),
@@ -567,6 +612,7 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
                 ),
               TextField(
                 controller: timeLimit,
+                keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: context.tr("建议答题秒数（可选，10–7200）"),
                 ),
