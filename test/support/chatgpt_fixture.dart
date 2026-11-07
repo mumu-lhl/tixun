@@ -62,6 +62,7 @@ class ChatGptFixture {
   String subject = 'student';
   Map<String, dynamic> overrides = {};
   JsonWebKey? alternativeSigningKey;
+  Map<String, Object> protectedHeaders = {};
   int exchanges = 0, refreshes = 0, revocations = 0;
   bool failRevocation = false, denyScope = false;
   Completer<void>? refreshGate;
@@ -111,6 +112,7 @@ class ChatGptFixture {
       }
       ..setProtectedHeader('typ', 'JWT')
       ..addRecipient(alternativeSigningKey ?? signingKey, algorithm: 'RS256');
+    protectedHeaders.forEach(builder.setProtectedHeader);
     return builder.build().toCompactSerialization();
   }
 

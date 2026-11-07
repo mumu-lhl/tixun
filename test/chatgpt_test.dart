@@ -514,4 +514,19 @@ void main() {
     );
     expect(f.refreshes, 1);
   });
+  test('JWT header keys and key URLs are rejected even when attacker signs with the embedded key', () async {
+    for (final field in ['jwk', 'jku', 'x5u']) {
+      final f = ChatGptFixture();
+      final attacker = JsonWebKey.generate('RS256');
+      f.alternativeSigningKey = attacker;
+      f.protectedHeaders[field] = field == 'jwk'
+          ? JsonWebKey.fromCryptoKeys(
+              publicKey: attacker.cryptoKeyPair.publicKey,
+            ).toJson()
+          : 'https://attacker.invalid/jwks';
+      await expectLater(f.auth.signIn(), throwsA(isA<AiFailure>()));
+      expect(await f.auth.accounts(), isEmpty);
+      expect(f.requests.every((r) => r.uri.host == 'auth.openai.com'), true);
+    }
+  });
 }

@@ -291,6 +291,19 @@ class ChatGptAuth {
     String clientId,
     String nonce,
   ) async {
+    // Trust keys from OpenAI discovery only, never a token-provided key or URL.
+    // This also enforces the mitigation for GHSA-vm9r-h74p-hg97 independently
+    // of JOSE dependency key-selection behavior.
+    final parts = raw.split('.');
+    if (parts.length != 3) throw const AiFailure('ChatGPT 账号身份校验失败，请重新登录。');
+    final header = jsonDecode(
+      utf8.decode(base64Url.decode(base64Url.normalize(parts.first))),
+    );
+    if (header is! Map ||
+        header['alg'] != 'RS256' ||
+        ['jwk', 'jku', 'x5u'].any(header.containsKey)) {
+      throw const AiFailure('ChatGPT 账号身份校验失败，请重新登录。');
+    }
     final discovery = await _discovery();
     final jwks = (await client.get<Map<String, dynamic>>(
       _trustedEndpoint(discovery['jwks_uri']).toString(),
