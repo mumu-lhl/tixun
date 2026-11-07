@@ -13,6 +13,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/ai/chat_provider.dart';
+import '../core/ai/chatgpt/auth.dart';
+import '../core/ai/chatgpt/responses.dart';
 import '../core/ai/prompt_settings.dart';
 import '../core/ai/quiz_tool.dart';
 import '../core/ai/region_tool.dart';
@@ -43,6 +45,9 @@ class AppController extends ChangeNotifier {
   final AttachmentStore files;
   final KeyStore keys;
   final ChatProvider provider;
+  late final ChatGptAuth chatGpt = provider is RoutedChatProvider
+      ? (provider as RoutedChatProvider).chatGpt
+      : ChatGptAuth(keys);
   final bool demo;
   late final StudyStore study = StudyStore(db, files);
   late final ReviewStore review = ReviewStore(db);
@@ -118,11 +123,16 @@ class AppController extends ChangeNotifier {
     final db = demo && seed
         ? AppDatabase.memory()
         : AppDatabase.file(File(p.join(root.path, 'tixun.sqlite')));
+    final actualKeys =
+        keyStore ?? (demo ? MemoryKeyStore() : const SecureKeyStore());
     final c = AppController(
       db,
       AttachmentStore(root),
-      keyStore ?? (demo ? MemoryKeyStore() : const SecureKeyStore()),
-      chatProvider ?? (demo ? MockChatProvider() : OpenAiChatProvider()),
+      actualKeys,
+      chatProvider ??
+          (demo
+              ? MockChatProvider()
+              : RoutedChatProvider(ChatGptAuth(actualKeys))),
       demo: demo,
     );
     try {
@@ -414,7 +424,9 @@ class AppController extends ChangeNotifier {
         throw const AiFailure('当前模型未声明支持思考参数。');
       }
       final thinking = value.isEmpty ? config.thinking : value != 'off';
-      if (thinking && (selected!.toolsEnabled || selected!.mode == 'exam')) {
+      if (thinking &&
+          config.kind != 'chatgpt' &&
+          (selected!.toolsEnabled || selected!.mode == 'exam')) {
         throw const AiFailure('当前任务需要非思考工具调用，请保持关闭；普通讲解可在其他会话开启。');
       }
       await db.setPreference('ai_reasoning:${selected!.id}', value);
@@ -424,6 +436,7 @@ class AppController extends ChangeNotifier {
   );
 
   Future<void> useToolReasoning() async {
+    if (config.kind == 'chatgpt') return;
     await setSessionReasoning('off');
     if (config.thinking) {
       notice = '本次任务需要工具调用，已仅为此会话关闭思考；全局默认未改变。';
@@ -433,7 +446,9 @@ class AppController extends ChangeNotifier {
 
   Future<void> setTools(bool enabled) async {
     if (busy || selected == null) return;
-    if (enabled && (!config.supportsTools || sessionConfig.thinking)) {
+    if (enabled &&
+        (!config.supportsTools ||
+            (sessionConfig.thinking && config.kind != 'chatgpt'))) {
       throw const AiFailure('资料工具需要支持工具调用的模型，并关闭深度思考。');
     }
     final row = selected!.copyWith(toolsEnabled: enabled);
@@ -775,7 +790,9 @@ class AppController extends ChangeNotifier {
       }
       String? key;
       try {
-        key = demo ? '' : await keys.read(providerKeyId(requestConfig));
+        key = demo || requestConfig.kind == 'chatgpt'
+            ? ''
+            : await keys.read(providerKeyId(requestConfig));
       } catch (_) {
         throw const AiFailure(
           '系统安全存储不可用。Linux 请启用并解锁 Secret Service 密钥环；应用不会明文保存密钥。',
@@ -784,11 +801,13 @@ class AppController extends ChangeNotifier {
       cancel.checkCancelled();
       final toolsEnabled = selected!.toolsEnabled;
       if (toolsEnabled &&
-          (!requestConfig.supportsTools || requestConfig.thinking)) {
+          (!requestConfig.supportsTools ||
+              (requestConfig.thinking && requestConfig.kind != 'chatgpt'))) {
         throw const AiFailure('此会话启用了资料工具，请选择支持工具调用的模型并关闭深度思考，或关闭本会话资料工具。');
       }
       final quizEnabled =
-          requestConfig.supportsTools && !requestConfig.thinking;
+          requestConfig.supportsTools &&
+          (!requestConfig.thinking || requestConfig.kind == 'chatgpt');
       (body['messages'] as List).first['content'] = teachingPrompt(
         selected!.mode,
         toolsEnabled: toolsEnabled,
@@ -1125,23 +1144,52 @@ class AppController extends ChangeNotifier {
 
   Future<void> saveSettings(ProviderConfig next, String? key) async {
     validateConfig(next);
+    if (next.kind == 'chatgpt' && key != null) {
+      throw const FormatException('ChatGPT 使用浏览器登录，无需 API Key。');
+    }
     if (key != null) await keys.write(providerKeyId(next), key.trim());
-    await db.saveConfig(next);
+    await db.transaction(() async {
+      if (next.kind == 'chatgpt' && config.kind != 'chatgpt') {
+        await db.setPreference(
+          'previous_api_provider',
+          jsonEncode(config.toJson()),
+        );
+      }
+      await db.saveConfig(next);
+    });
     config = next;
     changed();
   }
 
-  Future<void> testConnection(ProviderConfig candidate, String? key) async {
+  Future<void> restoreApiProvider() async {
+    final raw = await db.preference('previous_api_provider');
+    if (raw == null) throw const FormatException('没有已保存的 API 配置，请在设置中选择服务商。');
+    final previous = ProviderConfig.fromJson(
+      jsonDecode(raw) as Map<String, dynamic>,
+    );
+    if (previous.kind == 'chatgpt') throw const FormatException('原 API 配置无效。');
+    await stop();
+    await saveSettings(previous, null);
+  }
+
+  Future<void> testConnection(
+    ProviderConfig candidate,
+    String? key, {
+    CancelToken? cancellation,
+  }) async {
     validateConfig(candidate);
-    final secret = key?.trim().isNotEmpty == true
+    final secret = candidate.kind == 'chatgpt'
+        ? ''
+        : key?.trim().isNotEmpty == true
         ? key!.trim()
         : await keys.read(providerKeyId(candidate)) ?? '';
-    final cancel = CancelToken();
+    final cancel = cancellation ?? CancelToken();
     final timer = Timer(
       const Duration(seconds: 35),
       () => cancel.cancel('timeout'),
     );
     try {
+      var receivedText = false;
       await for (final chunk in provider.complete(candidate, secret, {
         'model': candidate.model,
         'messages': [
@@ -1151,12 +1199,23 @@ class AppController extends ChangeNotifier {
         'max_tokens': 16,
         if (candidate.kind == 'deepseek') 'thinking': {'type': 'disabled'},
       }, cancel)) {
-        if (chunk.text.isNotEmpty) {
+        receivedText = receivedText || chunk.text.isNotEmpty;
+        if (receivedText &&
+            (candidate.kind != 'chatgpt' || chunk.finish == 'stop')) {
           cancel.cancel();
           return;
         }
       }
       throw const AiFailure('连接成功但没有收到正文。');
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        throw AiFailure(
+          cancel.cancelError?.error == 'timeout'
+              ? '等待回复超时，已保留收到的内容。'
+              : '连接测试已取消。',
+        );
+      }
+      rethrow;
     } finally {
       timer.cancel();
     }
@@ -1176,6 +1235,7 @@ class AppController extends ChangeNotifier {
     practice.dispose();
     review.dispose();
     _cancel?.cancel();
+    chatGpt.cancelLogin();
     super.dispose();
   }
 

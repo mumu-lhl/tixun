@@ -32,10 +32,12 @@ These settings are not included in the published v0.5.2 package yet:
 
 - **Chinese and English:** select either language or follow the system under Settings → Appearance. Existing notes, conversations and custom prompts retain their original content.
 - **Dynamic colors:** use Android 12+ wallpaper colors or a supported Linux desktop accent. TiXun falls back to its default palette when system colors are unavailable. Light and dark themes remain available.
-- **Reasoning effort:** set a global default in Settings or override it for one conversation using the reasoning button. Interactive quizzes and data tools currently require reasoning off; this does not change your global preference.
+- **Reasoning effort:** set a global default in Settings or override it for one conversation using the reasoning button. DeepSeek quizzes and data tools currently require reasoning off. ChatGPT plan requests can retain reasoning. Your global preference is preserved.
 - **Prompt management:** edit, search, preview and reset prompts for teaching and study tasks under Settings → Prompts. Changes apply to future requests. Application permissions and answer-submission rules remain in force.
 
-ChatGPT Plus/Pro plan sign-in is **not implemented yet**. The current OpenAI-compatible provider uses an API key. See [the official integration findings](docs/CHATGPT_PROVIDER.md).
+**ChatGPT plan sign-in** is also available on the main branch, outside the published v0.5.2 package. Open Settings → ChatGPT plan → **Continue with ChatGPT**. Complete authorization in your system browser, return to TiXun, select a model and choose **Use this account and model**. Available models and allowance depend on the permissions granted by your account. Requests never fall back to API billing.
+
+You can switch accounts, authorize again, sign out or restore your previous API settings. Tokens stay in system secure storage and are excluded from backups; another device needs a fresh sign-in. Image input is off unless the catalog declares support or you confirm it from model documentation. Protocol and isolated GUI tests pass; **real Plus/Pro account and physical Android acceptance checks remain pending**. See [integration details](docs/CHATGPT_PROVIDER.md).
 
 ## Keep your data safe
 

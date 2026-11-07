@@ -97,6 +97,9 @@ String providerKeyId(ProviderConfig config) =>
     '${config.kind}:${config.baseUrl}';
 
 void validateConfig(ProviderConfig c) {
+  if (c.kind == 'chatgpt' && c.baseUrl != 'https://api.openai.com/v1') {
+    throw const FormatException('ChatGPT 仅使用官方接口地址。');
+  }
   final uri = Uri.tryParse(c.baseUrl);
   if (uri == null ||
       !uri.hasAuthority ||

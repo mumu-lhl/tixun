@@ -74,12 +74,17 @@ class ChatScreen extends ConsumerWidget {
                           Text(
                             c.demo
                                 ? context.tr("Mock · 隔离数据 · 不连接 API")
-                                : context.tr("{0} · {1}", [
-                                    c.config.model,
-                                    c.busy
-                                        ? context.tr("正在回复")
-                                        : context.tr("本地保存"),
-                                  ]),
+                                : context.tr(
+                                    c.config.kind == 'chatgpt'
+                                        ? "使用 ChatGPT 订阅 · {0} · {1}"
+                                        : "{0} · {1}",
+                                    [
+                                      c.config.model,
+                                      c.busy
+                                          ? context.tr("正在回复")
+                                          : context.tr("本地保存"),
+                                    ],
+                                  ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -450,12 +455,12 @@ class _ConversationState extends ConsumerState<Conversation> {
                           padding: const EdgeInsets.only(right: 8),
                           child: ActionChip(
                             label: Text(
-                              text,
+                              context.tr(text),
                               style: const TextStyle(fontSize: 12),
                             ),
                             onPressed: () {
-                              _input.text = text;
-                              c.draft(text);
+                              _input.text = context.tr(text);
+                              c.draft(context.tr(text));
                               _focus.requestFocus();
                             },
                           ),

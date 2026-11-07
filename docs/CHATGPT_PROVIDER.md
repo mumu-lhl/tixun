@@ -1,20 +1,27 @@
 # ChatGPT 订阅接入
 
-核对日期：2026-11-06。当前题训尚未实现 ChatGPT 登录；现有 OpenAI-compatible 服务使用 API Key，不代表已接入 Plus/Pro 订阅额度。
+核对日期：2026-11-07。主分支已实现官方 OAuth 登录和 Responses 适配，尚未发布到 v0.5.2。真实账号授权、实际模型权限和 Android 实机验收仍待完成；隔离测试不能代替这些验收。
 
-## 是否可行
+## 使用方式
 
-可行。OpenAI 已为开源、本地运行的应用提供 [Sign in with ChatGPT](https://developers.openai.com/siwc/token-sharing-open-source)。用户在官方浏览器页面授权应用使用账号允许共享的 ChatGPT plan usage。额度、模型及权限由账号实际授权决定，不保证任意 Plus/Pro 账号都具有相同范围，也不代表无限使用。
+「设置 → ChatGPT 订阅 → Continue with ChatGPT」，在系统浏览器授权后返回应用，选择账号、模型和思考强度，点击「使用此账号和模型」。账号和工作区的可用模型取自实际模型列表，图片能力未声明时默认关闭，允许用户依据模型文档明确开启。连接测试使用当前选项，只有收到完整结束事件才显示成功。
 
-此路径使用 OAuth 令牌调用公共 `https://api.openai.com/v1/responses`。不应抓取其他应用的 `auth.json`、复用 Codex 的客户端身份或调用 ChatGPT 私有 backend-api。API Key 与订阅授权应作为两个独立的 Provider 登录方式。
+可重新授权或退出账号。相同邮箱的不同注册记录按 client ID 和已验证 sub 隔离，选择器显示注册 ID 后缀。切换账号停止当前聊天。启用订阅前的 API 配置会保留，设置中可恢复；API Key 仍按原地址保存在系统安全存储中。
 
-## 接入前必须完成
+## 实现边界
 
-1. Android、Linux 的系统浏览器登录与本机回调，PKCE、state、nonce；按安装实例保留 host ID，使用官方动态注册并保存返回的 client ID。
-2. 通过官方 JWKS 验证 ID token 的签名、issuer、audience、有效期、nonce 及账号身份；确认实际授予的推理权限。
-3. 按 client ID 与已验证身份隔离账号，在系统安全存储中原子保存和串行刷新令牌。令牌不进入数据库、备份或日志；退出登录支持撤销授权。
-4. 从当前账号的模型列表取实际可选模型。Responses 请求使用 `store:false`、`stream:true`；把现有 Chat Completions 的消息、图片、思考参数和受控工具转换为对应协议，正确处理工具多轮与中断。
-5. 遇到额度耗尽或订阅权限不足时明确反馈，不静默转用 API 计费。完成 OAuth/流式/账号隔离测试后，再分别做 Android、Linux 的真实账号验收。
+- 系统浏览器、127.0.0.1 动态端口回调、S256 PKCE、state、nonce，三分钟登录超时和取消。host ID 按安装实例保存，首次使用动态注册，后续使用该账号的已发行 client ID。
+- 官方 discovery/JWKS、仅 RS256，校验 issuer、audience、过期时间、issued-at、nonce、sub 和多 audience 的 azp。确认实际授予 `resource.invoke` 与 `chatgpt.tokens.use.direct`。不使用其他应用登录文件或私有 backend-api。
+- 账号、注册元数据与令牌整体写入系统安全存储，不写入数据库、备份或日志。刷新按账号合并并原子替换轮换令牌；退出先清除本机令牌，再请求远程撤销。远程失败会明确提示；登录/退出并发有保护。
+- 推理固定使用公共 `/v1/responses`，请求 `store:false`、`stream:true`、完整有界历史。系统提示转换为 instructions，图片转换为 input_image，省略当前订阅路线不支持的字段。
+- 应用工具置于命名空间中，继续经过现有参数校验、会话权限、逐项写入确认和调用上限。加密推理与相关输出只在当前请求的多轮工具过程中回传，不写入聊天记录。最高强度发送 xhigh；模型默认不发送强度参数，实际行为由模型决定。
+- 只有 `response.completed` 算成功；中途额度错误、未完成、断流和错误 JSON 都有失败反馈，不切换到 API 计费。页面提供官方用量/授权管理入口。
+
+## 已验证与待验证
+
+已验证签名与身份拒绝、PKCE 回调、稳定注册复用、多账号隔离、轮换刷新、取消、退出并发、晚到额度错误、图片请求构造、加密推理回传、真实工具创建交互题、备份排除令牌，以及中英文、手机/桌面、深浅色 Linux GUI 流程。自动化使用保留域名与自签测试夹具，不读取生产凭据或消耗真实账号额度。
+
+仍需在 Android 和 Linux 上用实际账号确认授权浏览器、系统安全存储、模型目录、图片能力与订阅推理。受账号、工作区和官方预览政策影响，不能保证所有 Plus/Pro 账号都有相同模型或额度。
 
 ## 官方依据
 

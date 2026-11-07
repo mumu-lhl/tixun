@@ -22,7 +22,7 @@ class ReasoningMenu extends ConsumerWidget {
     final effective = c.sessionConfig;
     final label = effective.thinking
         ? context.tr(reasoningLabels[effective.effort] ?? effective.effort)
-        : context.tr('关闭');
+        : context.tr(c.config.kind == 'chatgpt' ? '模型默认' : '关闭');
     return PopupMenuButton<String>(
       key: const Key('reasoning-menu'),
       tooltip: context.tr("本会话思考强度：{0}{1}", [
@@ -62,7 +62,13 @@ class ReasoningMenu extends ConsumerWidget {
                 (entry.key.isEmpty ||
                     entry.key == 'off' ||
                     c.config.supportsThinking),
-            child: Text(context.tr(entry.value)),
+            child: Text(
+              context.tr(
+                c.config.kind == 'chatgpt' && entry.key == 'off'
+                    ? '模型默认'
+                    : entry.value,
+              ),
+            ),
           ),
         const PopupMenuDivider(),
         PopupMenuItem(value: 'prompts', child: Text(context.tr("管理提示词"))),

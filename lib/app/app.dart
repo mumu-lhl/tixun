@@ -17,6 +17,7 @@ import '../features/practice/practice_screen.dart';
 import '../features/progress/progress_screen.dart';
 import '../features/review/review_screen.dart';
 import '../features/settings/prompt_screen.dart';
+import '../features/settings/chatgpt_screen.dart';
 import '../features/settings/settings_screen.dart';
 import 'controller.dart';
 import 'theme.dart';
@@ -64,6 +65,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/settings',
             builder: (_, _) => const SettingsScreen(),
             routes: [
+              GoRoute(
+                path: 'chatgpt',
+                builder: (_, _) => const ChatGptScreen(),
+              ),
               GoRoute(
                 path: 'prompts',
                 builder: (_, _) => const PromptScreen(),

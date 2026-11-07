@@ -6,6 +6,7 @@ import '../../app/controller.dart';
 import '../../core/ai/chat_provider.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/actions.dart';
 import '../progress/profile_editor.dart';
 import '../review/review_providers.dart';
 import 'backup_panel.dart';
@@ -108,6 +109,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
+    ref.listen(appControllerProvider.select((value) => value.config), (
+      previous,
+      next,
+    ) {
+      if (previous == next) return;
+      setState(() {
+        _kind = next.kind;
+        _base.text = next.baseUrl;
+        _model.text = next.model;
+        _vision = next.vision;
+        _supportsThinking = next.supportsThinking;
+        _supportsTools = next.supportsTools;
+        _thinking = next.thinking;
+        _effort = next.effort;
+        _key.clear();
+      });
+    });
     final colors = Theme.of(context).colorScheme;
     return ListView(
       padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 700 ? 20 : 40),
@@ -198,11 +216,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(context.tr('ChatGPT 订阅')),
+                  subtitle: Text(context.tr('使用 Plus/Pro 等账号获准共享的额度，通过浏览器登录')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.go('/settings/chatgpt'),
+                ),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+                  key: ValueKey('provider-$_kind'),
                   isExpanded: true,
                   initialValue: _kind,
                   decoration: InputDecoration(labelText: context.tr("服务商")),
                   items: const [
+                    DropdownMenuItem(value: 'chatgpt', child: Text('ChatGPT')),
                     DropdownMenuItem(
                       value: 'deepseek',
                       child: Text('DeepSeek'),
@@ -215,6 +243,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onChanged: _working
                       ? null
                       : (kind) => setState(() {
+                          if (kind == 'chatgpt') {
+                            context.go('/settings/chatgpt');
+                            return;
+                          }
                           _kind = kind!;
                           _base.text = kind == 'deepseek'
                               ? 'https://api.deepseek.com'
@@ -228,210 +260,241 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           _thinking = false;
                         }),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _base,
-                  enabled: !_working,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                    labelText: 'API Base URL',
-                    helperText: context.tr("填写接口前缀；应用会追加 /chat/completions"),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (_kind == 'deepseek')
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    key: ValueKey('model-${_model.text}'),
-                    initialValue: _model.text,
-                    decoration: InputDecoration(labelText: context.tr("模型")),
-                    items: [
-                      DropdownMenuItem(
-                        value: 'deepseek-flash',
-                        child: Text(
-                          context.tr("DeepSeek Flash · 支持图片"),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'deepseek-v4-pro',
-                        child: Text(
-                          context.tr("DeepSeek V4 Pro · 仅文本"),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                if (_kind == 'chatgpt')
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(context.tr('已使用 ChatGPT 订阅，请在订阅管理页更换账号或模型。')),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: _working
+                            ? null
+                            : () => act(context, () async {
+                                await c.restoreApiProvider();
+                                if (!mounted) return;
+                                setState(() {
+                                  _kind = c.config.kind;
+                                  _base.text = c.config.baseUrl;
+                                  _model.text = c.config.model;
+                                  _vision = c.config.vision;
+                                  _supportsThinking = c.config.supportsThinking;
+                                  _supportsTools = c.config.supportsTools;
+                                  _thinking = c.config.thinking;
+                                  _effort = c.config.effort;
+                                });
+                              }),
+                        child: Text(context.tr('恢复上次 API 配置')),
                       ),
                     ],
-                    onChanged: _working
-                        ? null
-                        : (model) => setState(() {
-                            _model.text = model!;
-                            _vision = model == 'deepseek-flash';
-                          }),
                   )
-                else
+                else ...[
+                  const SizedBox(height: 16),
                   TextField(
-                    controller: _model,
+                    controller: _base,
                     enabled: !_working,
                     autocorrect: false,
                     decoration: InputDecoration(
-                      labelText: context.tr("模型 ID"),
-                      hintText: context.tr("填写服务商提供的完整模型 ID"),
+                      labelText: 'API Base URL',
+                      helperText: context.tr("填写接口前缀；应用会追加 /chat/completions"),
                     ),
                   ),
-                const SizedBox(height: 16),
-                TextField(
-                  key: const Key('api-key'),
-                  controller: _key,
-                  obscureText: true,
-                  enableSuggestions: false,
-                  autocorrect: false,
-                  enabled: !_working && !c.demo,
-                  decoration: InputDecoration(
-                    labelText: 'API Key',
-                    hintText: context.tr("留空则保留此地址已有的密钥"),
-                    helperText: c.demo
-                        ? context.tr("Mock 模式无需密钥")
-                        : context.tr("Android：系统加密存储；Linux：Secret Service 密钥环"),
-                    helperMaxLines: 2,
+                  const SizedBox(height: 16),
+                  if (_kind == 'deepseek')
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      key: ValueKey('model-${_model.text}'),
+                      initialValue: _model.text,
+                      decoration: InputDecoration(labelText: context.tr("模型")),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'deepseek-flash',
+                          child: Text(
+                            context.tr("DeepSeek Flash · 支持图片"),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'deepseek-v4-pro',
+                          child: Text(
+                            context.tr("DeepSeek V4 Pro · 仅文本"),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                      onChanged: _working
+                          ? null
+                          : (model) => setState(() {
+                              _model.text = model!;
+                              _vision = model == 'deepseek-flash';
+                            }),
+                    )
+                  else
+                    TextField(
+                      controller: _model,
+                      enabled: !_working,
+                      autocorrect: false,
+                      decoration: InputDecoration(
+                        labelText: context.tr("模型 ID"),
+                        hintText: context.tr("填写服务商提供的完整模型 ID"),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    key: const Key('api-key'),
+                    controller: _key,
+                    obscureText: true,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    enabled: !_working && !c.demo,
+                    decoration: InputDecoration(
+                      labelText: 'API Key',
+                      hintText: context.tr("留空则保留此地址已有的密钥"),
+                      helperText: c.demo
+                          ? context.tr("Mock 模式无需密钥")
+                          : context.tr(
+                              "Android：系统加密存储；Linux：Secret Service 密钥环",
+                            ),
+                      helperMaxLines: 2,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                if (_kind == 'compatible')
+                  const SizedBox(height: 16),
+                  if (_kind == 'compatible')
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr("支持工具调用")),
+                      subtitle: Text(
+                        context.tr("根据服务商文档确认后开启"),
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      value: _supportsTools,
+                      onChanged: _working
+                          ? null
+                          : (v) => setState(() => _supportsTools = v),
+                    ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(context.tr("支持工具调用")),
+                    title: Text(context.tr("支持图片输入")),
                     subtitle: Text(
-                      context.tr("根据服务商文档确认后开启"),
+                      context.tr("仅在服务商明确支持视觉时启用"),
                       style: TextStyle(fontSize: 12),
                     ),
-                    value: _supportsTools,
-                    onChanged: _working
+                    value: _vision,
+                    onChanged: _working || (_kind == 'deepseek')
                         ? null
-                        : (v) => setState(() => _supportsTools = v),
+                        : (v) => setState(() => _vision = v),
                   ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(context.tr("支持图片输入")),
-                  subtitle: Text(
-                    context.tr("仅在服务商明确支持视觉时启用"),
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  value: _vision,
-                  onChanged: _working || (_kind == 'deepseek')
-                      ? null
-                      : (v) => setState(() => _vision = v),
-                ),
-                if (_kind == 'compatible')
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(context.tr("支持 reasoning_effort 参数")),
-                    subtitle: Text(
-                      context.tr("由服务商文档确认后开启"),
+                  if (_kind == 'compatible')
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr("支持 reasoning_effort 参数")),
+                      subtitle: Text(
+                        context.tr("由服务商文档确认后开启"),
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      value: _supportsThinking,
+                      onChanged: _working
+                          ? null
+                          : (v) => setState(() {
+                              _supportsThinking = v;
+                              if (!v) _thinking = false;
+                            }),
+                    ),
+                  if (_supportsThinking) ...[
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        _kind == 'deepseek'
+                            ? context.tr("深度思考")
+                            : context.tr("发送推理强度参数"),
+                      ),
+                      subtitle: Text(
+                        context.tr("用于未单独设置的会话；聊天标题栏可覆盖。可能增加响应时间与用量。"),
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      value: _thinking,
+                      onChanged: _working
+                          ? null
+                          : (v) => setState(() => _thinking = v),
+                    ),
+                    if (_thinking)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          initialValue: _effort,
+                          decoration: InputDecoration(
+                            labelText: context.tr("默认思考强度"),
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'low',
+                              child: Text(context.tr("低")),
+                            ),
+                            DropdownMenuItem(
+                              value: 'high',
+                              child: Text(context.tr("高")),
+                            ),
+                            DropdownMenuItem(
+                              value: 'max',
+                              child: Text(context.tr("最高")),
+                            ),
+                          ],
+                          onChanged: _working
+                              ? null
+                              : (v) => setState(() => _effort = v!),
+                        ),
+                      ),
+                  ],
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      context.tr("资料工具需在对话中单独开启，当前仅支持非深度思考模式。每次资料写入都需要确认。"),
                       style: TextStyle(fontSize: 12),
                     ),
-                    value: _supportsThinking,
-                    onChanged: _working
-                        ? null
-                        : (v) => setState(() {
-                            _supportsThinking = v;
-                            if (!v) _thinking = false;
-                          }),
                   ),
-                if (_supportsThinking) ...[
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      _kind == 'deepseek'
-                          ? context.tr("深度思考")
-                          : context.tr("发送推理强度参数"),
-                    ),
-                    subtitle: Text(
-                      context.tr("用于未单独设置的会话；聊天标题栏可覆盖。可能增加响应时间与用量。"),
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    value: _thinking,
-                    onChanged: _working
-                        ? null
-                        : (v) => setState(() => _thinking = v),
-                  ),
-                  if (_thinking)
+                  if (_status != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        initialValue: _effort,
-                        decoration: InputDecoration(
-                          labelText: context.tr("默认思考强度"),
-                        ),
-                        items: [
-                          DropdownMenuItem(
-                            value: 'low',
-                            child: Text(context.tr("低")),
-                          ),
-                          DropdownMenuItem(
-                            value: 'high',
-                            child: Text(context.tr("高")),
-                          ),
-                          DropdownMenuItem(
-                            value: 'max',
-                            child: Text(context.tr("最高")),
-                          ),
-                        ],
-                        onChanged: _working
-                            ? null
-                            : (v) => setState(() => _effort = v!),
-                      ),
-                    ),
-                ],
-                Padding(
-                  padding: EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    context.tr("资料工具需在对话中单独开启，当前仅支持非深度思考模式。每次资料写入都需要确认。"),
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ),
-                if (_status != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      context.tr(_status!),
-                      style: TextStyle(
-                        color: _failure ? colors.error : colors.primary,
-                      ),
-                    ),
-                  ),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    FilledButton(
-                      onPressed: _working || c.busy ? null : () => _perform(),
                       child: Text(
-                        _working ? context.tr("处理中…") : context.tr("保存配置"),
+                        context.tr(_status!),
+                        style: TextStyle(
+                          color: _failure ? colors.error : colors.primary,
+                        ),
                       ),
                     ),
-                    OutlinedButton(
-                      onPressed: _working ? null : () => _perform(test: true),
-                      child: Text(context.tr("测试连接")),
-                    ),
-                    TextButton(
-                      onPressed: _working || c.demo
-                          ? null
-                          : () => _perform(remove: true),
-                      child: Text(context.tr("删除已存密钥")),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  context.tr("测试连接会发送一条简短消息，可能产生少量 API 费用。"),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colors.onSurfaceVariant,
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      FilledButton(
+                        onPressed: _working || c.busy ? null : () => _perform(),
+                        child: Text(
+                          _working ? context.tr("处理中…") : context.tr("保存配置"),
+                        ),
+                      ),
+                      OutlinedButton(
+                        onPressed: _working ? null : () => _perform(test: true),
+                        child: Text(context.tr("测试连接")),
+                      ),
+                      TextButton(
+                        onPressed: _working || c.demo
+                            ? null
+                            : () => _perform(remove: true),
+                        child: Text(context.tr("删除已存密钥")),
+                      ),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  Text(
+                    context.tr("测试连接会发送一条简短消息，可能产生少量 API 费用。"),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 28),
                   child: Divider(),
