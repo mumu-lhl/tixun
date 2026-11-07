@@ -47,3 +47,5 @@ flowchart TD
 旧有行为测试已适配新 Interface，并增加 `test/architecture_test.dart`：能力矩阵、只读账号快照、偏好关闭屏障、修订继承关联、未完成响应禁止写入、考试答案隐藏、调用上限、用量与取消。协议细节继续通过实际编码/解码及隔离 HTTP 测试验证，原生 GUI 流程继续覆盖聊天、训练、备份与设置。
 
 AppController 仍是现有 UI 的协调入口，没有强行把每个动作拆成 UseCase。少量简单只读 SQL 查询仍留在页面或 Riverpod 查询中；后续出现实际重复或修改关联规则时再收拢。暂不增加分层模板、独立向量库、服务器或完整状态管理重写。
+
+本轮提交 `a6ea5eb` 的[完整 CI](https://github.com/mumu-lhl/tixun/actions/runs/42376246976)已通过：静态分析、90 项 Flutter 测试、16 项脚本测试、Android Debug APK、Linux Release、Mock 启动与七组原生 GUI 回归（九个测试场景）。本地还运行了生产版 Linux GUI，并读取了主页、ChatGPT 设置、提示词编辑和备份恢复截图。真实订阅账号推理与 Android 实机验证仍需对应账号和设备，Mock/协议测试不代替这两项验证。

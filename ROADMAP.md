@@ -94,6 +94,6 @@ Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI �
 - [x] AppPreferences 独立写入跟踪，关闭及备份等待偏好保存；模型选项集中校验与解析。
 - [x] ChatGPT 只读账号摘要与一致快照；令牌记录私有；Responses 推理状态限于当前 Conversation。
 - [x] 分题接收及题目修订移入 Store，根部/导航缩小 Riverpod 订阅。
-- [x] 本地原有 81 项测试与新增模块契约测试通过；ChatGPT、提示词/思考和备份的三个真实 GUI 流程通过，完整双平台 CI 在提交后复核。
+- [x] [架构调整 CI 42376246976](https://github.com/mumu-lhl/tixun/actions/runs/42376246976) 全部通过：90 项 Flutter 测试、16 项脚本测试、Android Debug APK、Linux Release、Mock 启动与七组原生 GUI 回归。本地额外验证生产版 GUI，并读取桌面/手机、深浅主题、提示词和备份恢复截图。
 
 详见[当前接口与约定](docs/ARCHITECTURE_REVIEW.md)。数据与备份格式未变，简单只读查询保留，未做全面重写。
