@@ -87,6 +87,13 @@ Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI �
 
 已验证代码提交：`341542d`（0.5.1）。最终双平台 CI：[41879876725](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)。[最新工作流与产物](https://github.com/mumu-lhl/tixun/actions/workflows/ci.yml)。
 
-## 架构评估
+## 架构调整
 
-已完成[接入后的架构评估](docs/ARCHITECTURE_REVIEW.md)。保留现有本地数据、功能模块与技术栈，建议优先调整 AI 请求/事件接口、运行编排和偏好职责，再逐步收拢模型选项、只读账号摘要及 UI 的数据访问。较大结构调整尚未实施，避免与本次接入同时大范围重写。
+- [x] 类型化 AI 请求、消息、工具与完成事件；三种 Adapter 共用 Interface，凭据解析与协议片段处理留在对应实现中。
+- [x] LearningRun 负责学习上下文、超时、轮次和工具执行；AppController 保留 UI 状态与消息持久化。
+- [x] AppPreferences 独立写入跟踪，关闭及备份等待偏好保存；模型选项集中校验与解析。
+- [x] ChatGPT 只读账号摘要与一致快照；令牌记录私有；Responses 推理状态限于当前 Conversation。
+- [x] 分题接收及题目修订移入 Store，根部/导航缩小 Riverpod 订阅。
+- [x] 本地原有 81 项测试与新增模块契约测试通过；ChatGPT、提示词/思考和备份的三个真实 GUI 流程通过，完整双平台 CI 在提交后复核。
+
+详见[当前接口与约定](docs/ARCHITECTURE_REVIEW.md)。数据与备份格式未变，简单只读查询保留，未做全面重写。

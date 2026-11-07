@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
+import '../../core/ai/ai_options.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 
@@ -22,7 +23,7 @@ class ReasoningMenu extends ConsumerWidget {
     final effective = c.sessionConfig;
     final label = effective.thinking
         ? context.tr(reasoningLabels[effective.effort] ?? effective.effort)
-        : context.tr(c.config.kind == 'chatgpt' ? '模型默认' : '关闭');
+        : context.tr(AiOptions(c.config).offLabel);
     return PopupMenuButton<String>(
       key: const Key('reasoning-menu'),
       tooltip: context.tr("本会话思考强度：{0}{1}", [
@@ -64,8 +65,8 @@ class ReasoningMenu extends ConsumerWidget {
                     c.config.supportsThinking),
             child: Text(
               context.tr(
-                c.config.kind == 'chatgpt' && entry.key == 'off'
-                    ? '模型默认'
+                entry.key == 'off'
+                    ? AiOptions(c.config).offChoiceLabel
                     : entry.value,
               ),
             ),

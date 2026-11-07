@@ -10,62 +10,55 @@ import '../database/database.dart';
 import 'chat_provider.dart';
 import 'study_tools.dart';
 
-final quizToolSchema = {
-  'type': 'function',
-  'function': {
-    'name': 'create_quiz',
-    'description': '在聊天中创建真实交互题。不要在正文提前公布答案。答案必须按位置给出二维数组，填空每个位置可有多个等价文字答案，多选每个正确选项单独一项。只检查结构一致性，模型答案仍待用户核对。题目依赖本次请求的图片时，必须用 image_indices 明确引用图片序号；纯文字题不填写。',
-    'parameters': {
-      'type': 'object',
-      'additionalProperties': false,
-      'properties': {
-        'kind': {
-          'type': 'string',
-          'enum': [
-            'single_choice',
-            'multiple_choice',
-            'true_false',
-            'fill_blank',
-            'numeric',
-          ],
-        },
-        'stem': {'type': 'string'},
-        'subject': {'type': 'string'},
-        'options': {
-          'type': 'object',
-          'additionalProperties': {'type': 'string'},
-        },
-        'answers': {
-          'type': 'array',
-          'items': {
-            'type': 'array',
-            'items': {'type': 'string'},
-          },
-        },
-        'explanation': {'type': 'string'},
-        'hint': {'type': 'string'},
-        'topics': {
+final quizToolSchema = AiTool(
+  name: 'create_quiz',
+  description: '在聊天中创建真实交互题。不要在正文提前公布答案。答案必须按位置给出二维数组，填空每个位置可有多个等价文字答案，多选每个正确选项单独一项。只检查结构一致性，模型答案仍待用户核对。题目依赖本次请求的图片时，必须用 image_indices 明确引用图片序号；纯文字题不填写。',
+  parameters: {
+    'type': 'object',
+    'additionalProperties': false,
+    'properties': {
+      'kind': {
+        'type': 'string',
+        'enum': [
+          'single_choice',
+          'multiple_choice',
+          'true_false',
+          'fill_blank',
+          'numeric',
+        ],
+      },
+      'stem': {'type': 'string'},
+      'subject': {'type': 'string'},
+      'options': {
+        'type': 'object',
+        'additionalProperties': {'type': 'string'},
+      },
+      'answers': {
+        'type': 'array',
+        'items': {
           'type': 'array',
           'items': {'type': 'string'},
         },
-        'absolute_tolerance': {'type': 'number', 'minimum': 0, 'maximum': 100},
-        'relative_tolerance': {'type': 'number', 'minimum': 0, 'maximum': 0.1},
-        'case_sensitive': {'type': 'boolean'},
-        'image_indices': {
-          'type': 'array',
-          'items': {'type': 'integer', 'minimum': 0, 'maximum': 3},
-          'maxItems': 4,
-        },
-        'time_limit_seconds': {
-          'type': 'integer',
-          'minimum': 10,
-          'maximum': 7200,
-        },
       },
-      'required': ['kind', 'stem', 'subject', 'answers', 'explanation'],
+      'explanation': {'type': 'string'},
+      'hint': {'type': 'string'},
+      'topics': {
+        'type': 'array',
+        'items': {'type': 'string'},
+      },
+      'absolute_tolerance': {'type': 'number', 'minimum': 0, 'maximum': 100},
+      'relative_tolerance': {'type': 'number', 'minimum': 0, 'maximum': 0.1},
+      'case_sensitive': {'type': 'boolean'},
+      'image_indices': {
+        'type': 'array',
+        'items': {'type': 'integer', 'minimum': 0, 'maximum': 3},
+        'maxItems': 4,
+      },
+      'time_limit_seconds': {'type': 'integer', 'minimum': 10, 'maximum': 7200},
     },
+    'required': ['kind', 'stem', 'subject', 'answers', 'explanation'],
   },
-};
+);
 
 Future<Map<String, dynamic>> executeQuizTool(
   PracticeStore store,

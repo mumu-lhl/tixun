@@ -98,6 +98,7 @@ class _TixunHostState extends State<TixunHost> {
     final c = _controller!;
     await c.stop();
     await c.practice.flushDrafts();
+    await c.preferences.whenIdle;
     await c.study.whenIdle;
     await c.practice.whenIdle;
     await c.review.whenIdle;
@@ -128,6 +129,7 @@ class _TixunHostState extends State<TixunHost> {
         try {
           await old?.stop();
           await old?.practice.flushDrafts();
+          await old?.preferences.whenIdle;
           await old?.study.whenIdle;
           await old?.practice.whenIdle;
           await old?.review.whenIdle;

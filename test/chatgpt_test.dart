@@ -63,20 +63,22 @@ void main() {
       f.authorization!.queryParameters['ext_agent_host_id'],
       authorization.queryParameters['ext_agent_host_id'],
     );
-    expect((await f.auth.accounts()).length, 1);
+    expect((await f.auth.snapshot()).accounts.length, 1);
     f.subject = 'other-student';
     await expectLater(
       f.auth.signIn(accountId: first.id),
       throwsA(isA<AiFailure>()),
     );
-    expect((await f.auth.accounts()).single.subject, 'student');
+    expect((await f.auth.snapshot()).accounts.single.subject, 'student');
     await f.auth.signIn();
-    expect((await f.auth.accounts()).length, 2);
+    expect((await f.auth.snapshot()).accounts.length, 2);
     await f.auth.select(first.id);
-    expect(await f.auth.activeId(), first.id);
+    expect((await f.auth.snapshot()).activeId, first.id);
     expect(await f.auth.signOut(first.id), true);
     expect(
-      (await f.auth.accounts()).firstWhere((a) => a.id == first.id).connected,
+      (await f.auth.snapshot()).accounts
+          .firstWhere((a) => a.id == first.id)
+          .connected,
       false,
     );
     await expectLater(f.auth.accessToken(), throwsA(isA<AiFailure>()));
@@ -108,7 +110,7 @@ void main() {
           f.denyScope = true;
       }
       await expectLater(f.auth.signIn(), throwsA(isA<AiFailure>()));
-      expect(await f.auth.accounts(), isEmpty);
+      expect((await f.auth.snapshot()).accounts, isEmpty);
       expect(
         await f.keys.read(ChatGptAuth.storageKey),
         isNot(contains('access-fixture')),
@@ -133,7 +135,7 @@ void main() {
     expect(refresh.containsKey('scope'), false);
     f.failRevocation = true;
     expect(await f.auth.signOut('oaiapp_fixture:student'), false);
-    expect((await f.auth.accounts()).single.connected, false);
+    expect((await f.auth.snapshot()).accounts.single.connected, false);
   });
 
   test('Cancelling browser authorization closes the listener and permits another attempt', () async {
@@ -153,47 +155,31 @@ void main() {
     auth.cancelLogin();
     await expectation;
     expect(auth.signingIn, false);
-    expect(await f.auth.accounts(), isEmpty);
+    expect((await f.auth.snapshot()).accounts, isEmpty);
     await f.auth.signIn();
-    expect((await f.auth.accounts()).single.connected, true);
+    expect((await f.auth.snapshot()).accounts.single.connected, true);
   });
 
   test('Responses requests use official fields, namespace tools, vision and encrypted reasoning replay', () async {
-    final body = <String, dynamic>{
-      'messages': <dynamic>[
-        {'role': 'system', 'content': 'Guide the student.'},
-        {
-          'role': 'user',
-          'content': [
-            {'type': 'text', 'text': 'Explain'},
-            {
-              'type': 'image_url',
-              'image_url': {'url': 'data:image/png;base64,fixture'},
-            },
-          ],
-        },
+    final f = ChatGptFixture();
+    await f.seed();
+    var request = AiRequest(
+      instructions: 'Guide the student.',
+      messages: [
+        const AiMessage.user(
+          'Explain',
+          images: [AiImage('data:image/png;base64,fixture')],
+        ),
       ],
-      'tools': [
-        {
-          'function': {
-            'name': 'create_quiz',
-            'description': 'Quiz',
-            'parameters': {'type': 'object'},
-          },
-        },
+      tools: [
+        const AiTool(
+          name: 'create_quiz',
+          description: 'Quiz',
+          parameters: {'type': 'object'},
+        ),
       ],
-      'max_tokens': 20,
-      'temperature': .1,
-    };
-    final request = ChatGptResponses.requestBody(config, body);
-    expect(request['store'], false);
-    expect(request['stream'], true);
-    expect(request['instructions'], 'Guide the student.');
-    expect(request.containsKey('messages'), false);
-    expect(request.containsKey('max_tokens'), false);
-    expect(request.containsKey('temperature'), false);
-    expect(request['input'][0]['content'][1]['type'], 'input_image');
-    expect(request['tools'][0]['type'], 'namespace');
+      maxOutputTokens: 20,
+    );
     final output = [
       {
         'type': 'reasoning',
@@ -209,33 +195,33 @@ void main() {
         'arguments': '{}',
       },
     ];
-    final stream = utf8.encode(
-      'data: ${jsonEncode(completed(output: output))}\n\n',
+    final sent = <Map<String, dynamic>>[];
+    final client = Dio()
+      ..httpClientAdapter = FixtureAdapter((r) {
+        sent.add(Map<String, dynamic>.from(r.data as Map));
+        return fixtureSse([completed(output: sent.length == 1 ? output : [])]);
+      });
+    final conversation = ChatGptResponses(f.auth, client: client).start(config);
+    final chunks = await conversation.complete(request, CancelToken()).toList();
+    final encoded = sent.first;
+    expect(encoded['store'], false);
+    expect(encoded['stream'], true);
+    expect(encoded['instructions'], 'Guide the student.');
+    expect(encoded.containsKey('max_tokens'), false);
+    expect(encoded.containsKey('max_output_tokens'), false);
+    expect(encoded['input'][0]['content'][1]['type'], 'input_image');
+    expect(encoded['tools'][0]['type'], 'namespace');
+    expect(chunks.last.completed, true);
+    expect(chunks.last.calls.single.id, 'call_fixture');
+    request = request.copyWith(
+      messages: [
+        ...request.messages,
+        AiMessage.assistant('', calls: chunks.last.calls),
+        const AiMessage.tool('call_fixture', '{"ok":true}'),
+      ],
     );
-    final chunks = await decodeResponses(
-      Stream.fromIterable(stream.map((b) => [b])),
-      body,
-    ).toList();
-    expect(chunks.last.finish, 'tool_calls');
-    expect(chunks.first.toolParts.first['id'], 'call_fixture');
-    (body['messages'] as List).addAll([
-      {
-        'role': 'assistant',
-        'content': '',
-        'tool_calls': [
-          {
-            'id': 'call_fixture',
-            'function': {'name': 'create_quiz', 'arguments': '{}'},
-          },
-        ],
-      },
-      {
-        'role': 'tool',
-        'tool_call_id': 'call_fixture',
-        'content': '{"ok":true}',
-      },
-    ]);
-    final next = ChatGptResponses.requestBody(config, body);
+    await conversation.complete(request, CancelToken()).toList();
+    final next = sent.last;
     expect(next['input'][1], output.first);
     expect(next['input'][2], output.last);
     expect(next['input'][3]['type'], 'function_call_output');
@@ -266,11 +252,11 @@ void main() {
             'data: {"type":"response.output_text.delta","delta":"Partial"}\n\n$tail',
           ),
         ),
-        {},
+        null,
       );
       await expectLater(stream.forEach(chunks.add), throwsA(isA<AiFailure>()));
       expect(chunks.single.text, 'Partial');
-      expect(chunks.single.finish, isNull);
+      expect(chunks.single.completed, false);
     }
   });
 
@@ -412,10 +398,10 @@ void main() {
       });
     final cancel = CancelToken()..cancel();
     await expectLater(
-      ChatGptResponses(
-        f.auth,
-        client: client,
-      ).complete(config, '', {'messages': []}, cancel).drain<void>(),
+      ChatGptResponses(f.auth, client: client)
+          .start(config)
+          .complete(AiRequest(instructions: '', messages: []), cancel)
+          .drain<void>(),
       throwsA(isA<DioException>()),
     );
     expect(calls, 0);
@@ -433,7 +419,7 @@ void main() {
     await f.auth.signOut('oaiapp_fixture:student');
     f.refreshGate!.complete();
     await expectation;
-    expect((await f.auth.accounts()).single.connected, false);
+    expect((await f.auth.snapshot()).accounts.single.connected, false);
   });
   test('Backups include provider settings but exclude OAuth tokens and require sign-in on another device', () async {
     final f = ChatGptFixture();
@@ -468,7 +454,7 @@ void main() {
     await BackupService.finish(activation);
     await prepared.discard();
     expect(c.config.kind, 'chatgpt');
-    expect(await c.chatGpt.accounts(), isEmpty);
+    expect((await c.chatGpt.snapshot()).accounts, isEmpty);
     await expectLater(
       c.testConnection(c.config, null),
       throwsA(isA<AiFailure>()),
@@ -486,7 +472,7 @@ void main() {
       while (f.revocations == 0) {
         await Future<void>.delayed(const Duration(milliseconds: 5));
       }
-      expect((await f.auth.accounts()).single.connected, false);
+      expect((await f.auth.snapshot()).accounts.single.connected, false);
       await expectLater(f.auth.accessToken(), throwsA(isA<AiFailure>()));
       await expectLater(f.auth.signIn(), throwsA(isA<AiFailure>()));
       f.revokeGate!.complete();
@@ -525,7 +511,7 @@ void main() {
             ).toJson()
           : 'https://attacker.invalid/jwks';
       await expectLater(f.auth.signIn(), throwsA(isA<AiFailure>()));
-      expect(await f.auth.accounts(), isEmpty);
+      expect((await f.auth.snapshot()).accounts, isEmpty);
       expect(f.requests.every((r) => r.uri.host == 'auth.openai.com'), true);
     }
   });

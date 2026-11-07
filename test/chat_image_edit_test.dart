@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
@@ -13,17 +12,13 @@ import 'package:tixun/features/library/image_editor.dart';
 import 'package:tixun/features/library/study_store.dart';
 
 class CapturingImageProvider implements ChatProvider {
-  Map<String, dynamic>? request;
+  AiRequest? request;
   @override
-  Stream<AiChunk> complete(
-    ProviderConfig config,
-    String key,
-    Map<String, dynamic> body,
-    CancelToken cancel,
-  ) async* {
-    request = body;
-    yield const AiChunk(text: '已收到当前编辑图片。', finish: 'stop');
-  }
+  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
+      AiConversation((value, cancel) async* {
+        request = value;
+        yield const AiChunk(text: '已收到当前编辑图片。', completed: true);
+      });
 }
 
 void main() {
@@ -62,13 +57,9 @@ void main() {
     expect(edited.relativePath, isNot(original.relativePath));
     expect(await c.files.resolve(original.relativePath).exists(), true);
     await c.send('只分析裁剪后的题目');
-    final content =
-        (provider.request!['messages'] as List).last['content'] as List;
-    expect(content.where((v) => v['type'] == 'image_url').length, 1);
-    expect(
-      content.last['image_url']['url'],
-      'data:image/png;base64,${base64Encode(crop)}',
-    );
+    final content = provider.request!.messages.last.images;
+    expect(content.length, 1);
+    expect(content.last.dataUrl, 'data:image/png;base64,${base64Encode(crop)}');
     final question = (await c.db.images(c.selected!.id)).single;
     final mistake = await c.study.saveMistake(
       const MistakeDraft(title: '来自裁剪图片的错题'),

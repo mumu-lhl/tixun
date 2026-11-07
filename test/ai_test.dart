@@ -27,6 +27,7 @@ void main() {
     () async {
       for (final data in [
         'data: {broken}\n\n',
+        'data: [DONE]\n\n',
         'data: {"choices":[{"delta":{"content":"部分"}}]}\n\n',
         'data: {"choices":[{"delta":{"tool_calls":"bad"}}]}\n\n',
       ]) {
@@ -79,21 +80,21 @@ void main() {
         mime: 'image/png',
         byteLength: 4,
       );
-      final body = await completionBody(
+      final body = await prepareAiRequest(
         config,
         [message],
         [a],
         store,
         'guided',
       );
-      final messages = body['messages'] as List;
+      final messages = body.messages;
       expect(
-        messages.last['content'][1]['image_url']['url'],
+        messages.last.images.single.dataUrl,
         'data:image/png;base64,iVBORw==',
       );
-      expect(body['thinking'], {'type': 'disabled'});
+      expect(encodeCompletion(config, body)['thinking'], {'type': 'disabled'});
       await expectLater(
-        completionBody(
+        prepareAiRequest(
           config.copyWith(model: 'deepseek-v4-pro', vision: false),
           [message],
           [a],
@@ -141,9 +142,10 @@ void main() {
         baseUrl: 'http://127.0.0.1:${server.port}/v1',
         kind: 'compatible',
       );
-      final result = await OpenAiChatProvider().complete(config, 'test-only', {
-        'stream': true,
-      }, CancelToken()).toList();
+      final result = await OpenAiChatProvider()
+          .start(config, apiKeyOverride: 'test-only')
+          .complete(AiRequest(instructions: '', messages: []), CancelToken())
+          .toList();
       expect(result.map((e) => e.text).join(), 'OK');
       expect(requests, 2);
     },
@@ -154,12 +156,10 @@ void main() {
     final token = CancelToken();
     final values = <AiChunk>[];
     await expectLater(() async {
-      await for (final c in MockChatProvider().complete(
-        await db.config(),
-        '',
-        {},
-        token,
-      )) {
+      await for (final c
+          in MockChatProvider()
+              .start(await db.config())
+              .complete(AiRequest(instructions: '', messages: []), token)) {
         values.add(c);
         token.cancel('user');
       }

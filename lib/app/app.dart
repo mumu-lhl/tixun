@@ -125,18 +125,18 @@ class TixunApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: appTheme(
         Brightness.light,
-        scheme: ref.watch(appControllerProvider).dynamicColors
+        scheme: ref.watch(appControllerProvider.select((c) => c.dynamicColors))
             ? lightDynamic
             : null,
       ),
       darkTheme: appTheme(
         Brightness.dark,
-        scheme: ref.watch(appControllerProvider).dynamicColors
+        scheme: ref.watch(appControllerProvider.select((c) => c.dynamicColors))
             ? darkDynamic
             : null,
       ),
       themeMode: ref.watch(appControllerProvider.select((c) => c.themeMode)),
-      locale: ref.watch(appControllerProvider).appLocale,
+      locale: ref.watch(appControllerProvider.select((c) => c.appLocale)),
       supportedLocales: const [Locale('zh'), Locale('en')],
       localizationsDelegates: const [
         AppStrings.delegate,
@@ -174,7 +174,8 @@ class AppShell extends ConsumerWidget {
     final index = paths
         .indexWhere((p) => path == p || path.startsWith('$p/'))
         .clamp(0, 4);
-    final c = ref.watch(appControllerProvider);
+    final c = ref.read(appControllerProvider);
+    ref.watch(appControllerProvider.select((c) => (c.demo, c.notice)));
     final colors = Theme.of(context).colorScheme;
     return CallbackShortcuts(
       bindings: {

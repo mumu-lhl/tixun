@@ -458,17 +458,9 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
             .toList(),
       );
       final store = ref.read(practiceStoreProvider), old = widget.initial;
-      final links = old == null
-          ? <PracticeQuestionKnowledgeData>[]
-          : await (store.db.select(
-              store.db.practiceQuestionKnowledge,
-            )..where((l) => l.questionId.equals(old.row.id))).get();
-      final id = await store.create(
-        spec,
-        parentId: old?.row.id,
-        mistakeId: old?.row.mistakeId,
-        knowledgeIds: links.map((l) => l.knowledgeId).toList(),
-      );
+      final id = old == null
+          ? await store.create(spec)
+          : await store.revise(old.row.id, spec);
       if (mounted) {
         Navigator.pop(context);
         context.go('/practice/$id');

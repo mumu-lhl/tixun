@@ -105,7 +105,7 @@ void main() {
             .evaluate()
             .isNotEmpty,
       );
-      expect((await fixture.auth.accounts()).single.connected, false);
+      expect((await fixture.auth.snapshot()).accounts.single.connected, false);
       scope.read(routerProvider).go('/settings');
       await t.pumpAndSettle();
       expect(find.byKey(const Key('api-key')), findsNothing);

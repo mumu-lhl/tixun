@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
@@ -10,19 +9,15 @@ import 'package:tixun/core/platform/key_store.dart';
 
 class FastProvider implements ChatProvider {
   @override
-  Stream<AiChunk> complete(
-    ProviderConfig config,
-    String key,
-    Map<String, dynamic> body,
-    CancelToken cancel,
-  ) async* {
-    for (var i = 0; i < 4; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      cancel.checkCancelled();
-      yield const AiChunk(text: '回复');
-    }
-    yield const AiChunk(finish: 'stop', tokens: 8);
-  }
+  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
+      AiConversation((request, cancel) async* {
+        for (var i = 0; i < 4; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+          cancel.checkCancelled();
+          yield const AiChunk(text: '回复');
+        }
+        yield const AiChunk(completed: true, tokens: 8);
+      });
 }
 
 void main() {

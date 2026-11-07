@@ -77,10 +77,10 @@ GUI 自动化只在隔离 Mock 构建记录输入框和发送按钮的实际渲�
 
 界面中文源键与英文目录独立于学习数据；同步 Localizations delegate 配合 Material 本地化，避免启动时异步加载翻译。语言与动态配色开关在数据库偏好中持久化。系统色由原生 `dynamic_color` 插件提供，缺失时使用原有主题。
 
-[ChatGPT 订阅接入](docs/CHATGPT_PROVIDER.md)使用独立授权服务和 Responses 协议适配器，经 RoutedChatProvider 接入现有 ChatProvider。账号与令牌仅在系统安全存储中保存，模型配置仍使用现有 ProviderConfig；数据库无需迁移。运行中只在请求体的私有上下文里保留多轮推理输出，并由适配器白名单组装发送字段。
+[ChatGPT 订阅接入](docs/CHATGPT_PROVIDER.md)使用独立授权服务和 Responses 协议适配器，经 RoutedChatProvider 接入现有 ChatProvider。账号与令牌仅在系统安全存储中保存，模型配置仍使用现有 ProviderConfig；数据库无需迁移。运行中只在当前 AiConversation 的私有上下文里保留多轮推理输出，并由适配器白名单组装发送字段。
 
-授权服务拥有 PKCE、回调验证、JWT 校验、注册复用、账号选择、刷新合并与退出撤销；UI 不读取令牌值。AppController 仍负责学习上下文、取消、消息持久化和受控工具执行。官方 HTTPS 端点固定，OAuth 令牌不会跟随自定义 API 地址发送。
+授权服务拥有 PKCE、回调验证、JWT 校验、注册复用、账号选择、刷新合并与退出撤销；UI 不读取令牌值。LearningRun 负责学习上下文、取消与受控工具执行，AppController 负责消息持久化。官方 HTTPS 端点固定，OAuth 令牌不会跟随自定义 API 地址发送。
 
-## 后续架构调整
+## 架构调整
 
-[当前架构评估](docs/ARCHITECTURE_REVIEW.md)：保留现有本地数据与功能模块，优先收拢 AI 协议接口、运行编排和模型选项，再逐步缩小状态订阅与 UI 的数据库知识。评估不代表这些重构已经实施。
+[当前接口与约定](docs/ARCHITECTURE_REVIEW.md)：已落实类型化 AI 请求/事件、单次 Conversation、学习运行编排、独立偏好写入跟踪、只读账号快照、模型选项和主要跨文件/数据库写入。保留现有 UI 协调入口及少量简单读取，未引入多层模板或改变数据库格式。

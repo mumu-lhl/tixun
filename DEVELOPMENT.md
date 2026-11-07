@@ -101,3 +101,10 @@ flutter test test/localization_test.dart
 `flutter test test/chatgpt_test.dart` 使用隔离的签名/JWKS、真实本机回调和 HTTP 适配器，验证授权、刷新、退出、流式失败、工具和备份边界；不需要真实账号。`integration_test/chatgpt_flow_test.dart` 通过同一业务代码驱动原生登录/模型/聊天/退出 UI，截图保存在 `artifacts/gui-chatgpt/`，CI 有独立日志。
 
 真实账号验收必须单独进行。不要把 OAuth 令牌或其他应用的登录文件放入测试、仓库、环境日志或备份；通过应用的 Continue with ChatGPT 打开官方登录页。没有安全存储或浏览器时会报错，不提供明文凭据回退。
+
+
+## AI 与偏好模块的维护
+
+先阅读 [接口与约定](docs/ARCHITECTURE_REVIEW.md)。新增 Provider 实现 `ChatProvider.start`，返回单次 `AiConversation`；请求使用 `AiRequest`，事件只发布完整工具调用和明确完成状态。不要把厂商 JSON 或令牌带回控制器。
+
+修改模型参数先调整 `AiOptions` 并补能力矩阵；修改进度、调用上限、取消或结束判定时运行 `flutter test test/architecture_test.dart`，再跑对应协议和控制器回归。偏好写入通过 AppPreferences，跨文件与数据库的学习资料写入通过 Store，确保关闭/备份屏障可追踪。

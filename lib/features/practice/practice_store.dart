@@ -35,6 +35,21 @@ class PracticeStore extends DatabaseNotifier {
   final AppDatabase db;
   Future<void> Function(PracticeAttempt attempt)? onGraded;
 
+  Future<String> revise(String parentId, QuestionSpec spec) => runOperation(
+    () => db.transaction(() async {
+      final previous = await detail(parentId);
+      final links = await (db.select(
+        db.practiceQuestionKnowledge,
+      )..where((l) => l.questionId.equals(parentId))).get();
+      return create(
+        spec,
+        parentId: parentId,
+        mistakeId: previous.row.mistakeId,
+        knowledgeIds: links.map((l) => l.knowledgeId).toList(),
+      );
+    }),
+  );
+
   Future<List<PracticeQuestion>> list({
     String query = '',
     String subject = '',

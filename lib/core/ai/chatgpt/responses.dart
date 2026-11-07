@@ -5,24 +5,25 @@ import 'package:dio/dio.dart';
 
 import '../../database/database.dart';
 import '../chat_provider.dart';
+import '../../platform/key_store.dart';
 import 'auth.dart';
 
 class RoutedChatProvider implements ChatProvider {
-  RoutedChatProvider(this.chatGpt, {ChatProvider? api, Dio? client})
-    : api = api ?? OpenAiChatProvider(),
-      responses = ChatGptResponses(chatGpt, client: client);
+  RoutedChatProvider(
+    this.chatGpt, {
+    ChatProvider? api,
+    Dio? client,
+    KeyStore? keys,
+  }) : api = api ?? OpenAiChatProvider(keys: keys),
+       responses = ChatGptResponses(chatGpt, client: client);
   final ChatGptAuth chatGpt;
   final ChatProvider api;
   final ChatGptResponses responses;
   @override
-  Stream<AiChunk> complete(
-    ProviderConfig config,
-    String key,
-    Map<String, dynamic> body,
-    CancelToken cancel,
-  ) => config.kind == 'chatgpt'
-      ? responses.complete(config, key, body, cancel)
-      : api.complete(config, key, body, cancel);
+  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
+      config.kind == 'chatgpt'
+      ? responses.start(config, apiKeyOverride: apiKeyOverride)
+      : api.start(config, apiKeyOverride: apiKeyOverride);
 }
 
 class ChatGptResponses implements ChatProvider {
@@ -40,71 +41,60 @@ class ChatGptResponses implements ChatProvider {
   final ChatGptAuth auth;
   final Dio client;
 
-  /// The cache lives in a single controller request body across tool rounds.
-  /// Encrypted reasoning is replayed only to OpenAI and never stored in messages.
-  static Map<String, dynamic> requestBody(
+  @override
+  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) {
+    validateConfig(config);
+    if (apiKeyOverride != null) {
+      throw const FormatException('ChatGPT 使用浏览器登录，无需 API Key。');
+    }
+    final context = <String, List<dynamic>>{};
+    return AiConversation(
+      (request, cancel) => _complete(config, request, context, cancel),
+    );
+  }
+
+  Map<String, dynamic> _requestBody(
     ProviderConfig config,
-    Map<String, dynamic> body,
+    AiRequest request,
+    Map<String, List<dynamic>> context,
   ) {
-    final input = <dynamic>[], instructions = <String>[];
-    final cache = body['_chatgpt_tool_context'] as Map<String, dynamic>? ?? {};
-    for (final row in body['messages'] as List? ?? []) {
-      final message = row as Map;
-      final role = message['role'];
-      if (role == 'system') {
-        instructions.add(message['content'].toString());
-        continue;
-      }
-      if (role == 'tool') {
+    final input = <dynamic>[];
+    for (final m in request.messages) {
+      if (m.role == AiRole.tool) {
         input.add({
           'type': 'function_call_output',
-          'call_id': message['tool_call_id'],
-          'output': message['content'].toString(),
+          'call_id': m.callId,
+          'output': m.text,
         });
-      } else if (role == 'assistant' && message['tool_calls'] is List) {
-        final calls = message['tool_calls'] as List;
-        final saved = calls.isEmpty ? null : cache[(calls.first as Map)['id']];
+      } else if (m.calls.isNotEmpty) {
+        final saved = context[m.calls.first.id];
         if (saved != null) {
-          input.addAll(saved as List);
+          input.addAll(saved);
         } else {
-          for (final call in calls) {
+          if (m.text.isNotEmpty) {
+            input.add({'role': 'assistant', 'content': m.text});
+          }
+          for (final c in m.calls) {
             input.add({
               'type': 'function_call',
               'namespace': 'tixun',
-              'call_id': call['id'],
-              'name': call['function']['name'],
-              'arguments': call['function']['arguments'],
+              'call_id': c.id,
+              'name': c.name,
+              'arguments': c.arguments,
             });
           }
         }
-      } else if (role == 'user' || role == 'assistant') {
-        final content = message['content'];
-        if (content is String || role == 'assistant') {
-          input.add({
-            'role': role,
-            'content': content is String
-                ? content
-                : (content as List)
-                      .where((p) => p['type'] == 'text')
-                      .map((p) => p['text'])
-                      .join('\n'),
-          });
-        } else {
-          input.add({
-            'role': 'user',
-            'content': [
-              for (final part in content as List)
-                if (part['type'] == 'text')
-                  {'type': 'input_text', 'text': part['text']}
-                else if (part['type'] == 'image_url')
-                  {'type': 'input_image', 'image_url': part['image_url']['url']}
-                else
-                  throw const AiFailure('ChatGPT 不支持此消息内容。'),
-            ],
-          });
-        }
       } else {
-        throw const AiFailure('ChatGPT 消息角色无效。');
+        input.add({
+          'role': m.role.name,
+          'content': m.images.isEmpty
+              ? m.text
+              : [
+                  {'type': 'input_text', 'text': m.text},
+                  for (final i in m.images)
+                    {'type': 'input_image', 'image_url': i.dataUrl},
+                ],
+        });
       }
     }
     return {
@@ -113,24 +103,22 @@ class ChatGptResponses implements ChatProvider {
       'stream': true,
       'input': input,
       'include': ['reasoning.encrypted_content'],
-      if (instructions.isNotEmpty) 'instructions': instructions.join('\n'),
+      if (request.instructions.isNotEmpty) 'instructions': request.instructions,
       if (config.thinking)
-        'reasoning': {
-          'effort': config.effort == 'max' ? 'xhigh' : config.effort,
-        },
-      if ((body['tools'] as List? ?? []).isNotEmpty)
+        'reasoning': {'effort': AiOptions(config).effortParameter},
+      if (request.tools.isNotEmpty)
         'tools': [
           {
             'type': 'namespace',
             'name': 'tixun',
             'description': 'User-approved TiXun learning data and interactive practice tools.',
             'tools': [
-              for (final tool in body['tools'] as List)
+              for (final t in request.tools)
                 {
                   'type': 'function',
-                  'name': tool['function']['name'],
-                  'description': tool['function']['description'],
-                  'parameters': tool['function']['parameters'],
+                  'name': t.name,
+                  'description': t.description,
+                  'parameters': t.parameters,
                   'strict': false,
                 },
             ],
@@ -139,11 +127,10 @@ class ChatGptResponses implements ChatProvider {
     };
   }
 
-  @override
-  Stream<AiChunk> complete(
+  Stream<AiChunk> _complete(
     ProviderConfig config,
-    String key,
-    Map<String, dynamic> body,
+    AiRequest request,
+    Map<String, List<dynamic>> context,
     CancelToken cancel,
   ) async* {
     validateConfig(config);
@@ -152,7 +139,7 @@ class ChatGptResponses implements ChatProvider {
       cancel.checkCancelled();
       final response = await client.post<ResponseBody>(
         '$chatGptResource/responses',
-        data: requestBody(config, body),
+        data: _requestBody(config, request, context),
         cancelToken: cancel,
         options: Options(
           responseType: ResponseType.stream,
@@ -170,7 +157,7 @@ class ChatGptResponses implements ChatProvider {
       }
       await for (final chunk in decodeResponses(
         response.data!.stream.timeout(const Duration(seconds: 60)),
-        body,
+        (id, items) => context[id] = items,
       )) {
         cancel.checkCancelled();
         yield chunk;
@@ -195,7 +182,7 @@ class ChatGptResponses implements ChatProvider {
 
 Stream<AiChunk> decodeResponses(
   Stream<List<int>> bytes,
-  Map<String, dynamic> body,
+  void Function(String id, List<dynamic> context)? retainContext,
 ) async* {
   var completed = false;
   await for (final data in sseData(bytes)) {
@@ -253,12 +240,8 @@ Stream<AiChunk> decodeResponses(
         if (jsonEncode(context).length > 2 * 1024 * 1024) {
           throw const AiFailure('ChatGPT 工具上下文过大，请新建会话。');
         }
-        final cache = body.putIfAbsent(
-          '_chatgpt_tool_context',
-          () => <String, dynamic>{},
-        ) as Map<String, dynamic>;
-        cache[calls.first['call_id'] as String] = context;
-        final parts = <dynamic>[];
+        final parts = <ToolCall>[];
+
         for (var i = 0; i < calls.length; i++) {
           final call = calls[i] as Map;
           if (call['call_id'] is! String ||
@@ -271,21 +254,34 @@ Stream<AiChunk> decodeResponses(
             RegExp(r'^tixun\.'),
             '',
           );
-          parts.add({
-            'index': i,
-            'id': call['call_id'],
-            'type': 'function',
-            'function': {'name': name, 'arguments': call['arguments']},
-          });
+          parts.add(
+            ToolCall(
+              call['call_id'] as String,
+              name,
+              call['arguments'] as String,
+            ),
+          );
         }
-        yield AiChunk(toolParts: parts);
+        validateToolCalls(parts);
+        retainContext?.call(parts.first.id, context);
+        yield AiChunk(
+          calls: parts,
+          completed: true,
+          tokens: response['usage'] is Map
+              ? response['usage']['total_tokens'] as int?
+              : null,
+        );
+      }
+      if (calls.isNotEmpty) {
+        completed = true;
+        break;
       }
       final usage = response['usage'];
       yield AiChunk(
         tokens: usage is Map && usage['total_tokens'] is int
             ? usage['total_tokens'] as int
             : null,
-        finish: calls.isEmpty ? 'stop' : 'tool_calls',
+        completed: true,
       );
       completed = true;
       break;

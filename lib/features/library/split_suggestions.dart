@@ -4,7 +4,6 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../app/controller.dart';
 import '../../core/ai/region_tool.dart';
@@ -21,127 +20,12 @@ Future<String> saveSplitSuggestion(
   Uint8List bytes,
   Rect crop,
   int turns,
-) async {
-  if (![
-        crop.left,
-        crop.top,
-        crop.right,
-        crop.bottom,
-      ].every((v) => v.isFinite) ||
-      crop.left < 0 ||
-      crop.top < 0 ||
-      crop.right > 1 ||
-      crop.bottom > 1 ||
-      crop.width <= 0 ||
-      crop.height <= 0 ||
-      turns < 0 ||
-      turns > 3) {
-    throw const FormatException('用户裁剪范围无效。');
-  }
-  if (bytes.isEmpty ||
-      bytes.length > 8 * 1024 * 1024 ||
-      index < 0 ||
-      index > 11) {
-    throw const FormatException('分题图片或编号无效。');
-  }
-  final relative = 'attachments/${const Uuid().v4()}.png';
-  var used = false;
-  var attached = false;
-  try {
-    final file = store.files.resolve(relative);
-    await file.parent.create(recursive: true);
-    await file.writeAsBytes(bytes, flush: true);
-    final id = await store.db.transaction(() async {
-      final db = store.db;
-      final op =
-          await (db.select(db.aiToolOperations)..where(
-                (o) =>
-                    o.id.equals(operationId) &
-                    o.name.equals('suggest_question_regions') &
-                    o.status.equals('succeeded'),
-              ))
-              .getSingle();
-      final data = (jsonDecode(op.result!) as Map).cast<String, dynamic>();
-      final regions = data['regions'] as List;
-      if (index >= regions.length) throw const FormatException('未找到此分题建议。');
-      final region = QuestionRegion.fromJson(
-        (regions[index] as Map).cast<String, dynamic>(),
-      );
-      final accepted = (data['accepted'] as Map? ?? {}).cast<String, dynamic>();
-      final prior = accepted['$index'];
-      if (prior is String) {
-        await store.mistake(prior, includeDeleted: true);
-        return prior;
-      }
-      final image =
-          await (db.select(db.attachments)..where(
-                (a) =>
-                    a.id.equals(data['image_id'] as String) &
-                    a.sessionId.equals(op.sessionId),
-              ))
-              .getSingle();
-      final row = await store.saveMistake(
-        MistakeDraft(
-          title: region.label,
-          subject: region.subject,
-          question: region.question,
-          aiAnalysis: region.question.isEmpty
-              ? ''
-              : '题目文字由 AI 从图片转录，尚未核对，请以原图为准。',
-        ),
-        sourceSessionId: op.sessionId,
-        sourceMessageId: op.runId,
-      );
-      final original = await store.addImageReference(
-        row.id,
-        image.relativePath,
-        image.mime,
-        image.byteLength,
-        isMistake: true,
-      );
-      await store.addImageReference(
-        row.id,
-        relative,
-        'image/png',
-        bytes.length,
-        isMistake: true,
-        parentId: original.id,
-        role: 'crop',
-      );
-      await (db.update(
-        db.aiToolOperations,
-      )..where((o) => o.id.equals(operationId))).write(
-        AiToolOperationsCompanion(
-          result: Value(
-            jsonEncode({
-              ...data,
-              'accepted': {...accepted, '$index': row.id},
-              'user_crops': {
-                ...(data['user_crops'] as Map? ?? {}),
-                '$index': {
-                  'left': crop.left,
-                  'top': crop.top,
-                  'right': crop.right,
-                  'bottom': crop.bottom,
-                  'clockwise_turns': turns,
-                },
-              },
-            }),
-          ),
-        ),
-      );
-      attached = true;
-      return row.id;
-    });
-    used = attached;
-    store.changed();
-    return id;
-  } finally {
-    if (!used && await store.files.resolve(relative).exists()) {
-      await store.files.resolve(relative).delete();
-    }
-  }
-}
+) => store.acceptQuestionRegion(operationId, index, bytes, (
+  left: crop.left,
+  top: crop.top,
+  right: crop.right,
+  bottom: crop.bottom,
+), turns);
 
 final _splitImageProvider = FutureProvider.autoDispose
     .family<Attachment?, String>((ref, id) {

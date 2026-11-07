@@ -1,24 +1,22 @@
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/ai/prompt_settings.dart';
 import 'package:tixun/core/platform/key_store.dart';
+import 'package:tixun/core/database/database.dart';
 
 class PromptCaptureProvider implements ChatProvider {
-  final bodies = <Map<String, dynamic>>[];
+  final bodies = <AiRequest>[];
+  final configs = <ProviderConfig>[];
   @override
-  Stream<AiChunk> complete(
-    config,
-    String key,
-    Map<String, dynamic> body,
-    CancelToken cancel,
-  ) async* {
-    bodies.add(jsonDecode(jsonEncode(body)) as Map<String, dynamic>);
-    yield const AiChunk(text: '收到学习请求。', finish: 'stop');
+  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) {
+    configs.add(config);
+    return AiConversation((request, cancel) async* {
+      bodies.add(request);
+      yield const AiChunk(text: '收到学习请求。', completed: true);
+    });
   }
 }
 
@@ -82,29 +80,20 @@ void main() {
     await c.newSession();
     await c.setSessionReasoning('low');
     await c.send('请解释函数');
-    expect(provider.bodies.last['reasoning_effort'], 'low');
-    expect(provider.bodies.last['thinking'], {'type': 'enabled'});
-    expect(
-      provider.bodies.last['messages'].first['content'],
-      contains('每次只问一个诊断问题'),
-    );
+    expect(provider.configs.last.effort, 'low');
+    expect(provider.configs.last.thinking, true);
+    expect(provider.bodies.last.instructions, contains('每次只问一个诊断问题'));
     final user = c.messages.first;
     await c.editAndResend(user, '请解释另一个函数');
     expect(c.sessionReasoning, 'low');
-    expect(provider.bodies.last['reasoning_effort'], 'low');
+    expect(provider.configs.last.effort, 'low');
     await c.setSessionReasoning('off');
     await c.send('继续讲解');
-    expect(provider.bodies.last.containsKey('reasoning_effort'), false);
+    expect(provider.configs.last.thinking, false);
     // This request includes structured quiz tools; they must not replace custom prompts.
-    expect(provider.bodies.last.containsKey('tools'), true);
-    expect(
-      provider.bodies.last['messages'].first['content'],
-      contains('适合初学者'),
-    );
-    expect(
-      provider.bodies.last['messages'].first['content'],
-      contains('每次只问一个诊断问题'),
-    );
+    expect(provider.bodies.last.tools.isNotEmpty, true);
+    expect(provider.bodies.last.instructions, contains('适合初学者'));
+    expect(provider.bodies.last.instructions, contains('每次只问一个诊断问题'));
     await c.setTools(true);
     await expectLater(c.setSessionReasoning('high'), throwsA(isA<AiFailure>()));
     expect(c.sessionReasoning, 'off');

@@ -18,7 +18,26 @@ const _tokenUrl = '$chatGptIssuer/api/accounts/oauth/token';
 const _requiredScopes = {'resource.invoke', 'chatgpt.tokens.use.direct'};
 
 class ChatGptAccount {
-  ChatGptAccount(this.data);
+  const ChatGptAccount({
+    required this.clientId,
+    required this.subject,
+    required this.label,
+    required this.connected,
+  });
+  final String clientId, subject, label;
+  final bool connected;
+  String get id => '$clientId:$subject';
+}
+
+class ChatGptSnapshot {
+  ChatGptSnapshot(List<ChatGptAccount> accounts, this.activeId)
+    : accounts = List.unmodifiable(accounts);
+  final List<ChatGptAccount> accounts;
+  final String? activeId;
+}
+
+class _AccountRecord {
+  _AccountRecord(Map<String, dynamic> data) : data = Map.unmodifiable(data);
   final Map<String, dynamic> data;
   String get clientId => data['client_id'] as String;
   String get subject => data['sub'] as String;
@@ -26,6 +45,12 @@ class ChatGptAccount {
   String get label =>
       data['email'] as String? ?? data['name'] as String? ?? 'ChatGPT';
   bool get connected => (data['refresh_token'] as String? ?? '').isNotEmpty;
+  ChatGptAccount get summary => ChatGptAccount(
+    clientId: clientId,
+    subject: subject,
+    label: label,
+    connected: connected,
+  );
   List<String> get scopes => List<String>.from(data['scopes'] as List? ?? []);
 }
 
@@ -38,24 +63,28 @@ class ChatGptModel {
 /// Tokens and registration metadata live in one secure-store record, never SQLite.
 /// Public HTTP/browser seams permit protocol tests without real credentials.
 class ChatGptAuth {
-  ChatGptAuth(this.keys, {Dio? client, Future<bool> Function(Uri)? openBrowser})
-    : client =
-          client ??
-          Dio(
-            BaseOptions(
-              connectTimeout: const Duration(seconds: 20),
-              receiveTimeout: const Duration(seconds: 30),
-              sendTimeout: const Duration(seconds: 30),
-              followRedirects: false,
-            ),
-          ),
-      openBrowser =
-          openBrowser ??
-          ((uri) => launchUrl(uri, mode: LaunchMode.externalApplication));
+  ChatGptAuth(
+    KeyStore keys, {
+    Dio? client,
+    Future<bool> Function(Uri)? openBrowser,
+  }) : _keys = keys,
+       _client =
+           client ??
+           Dio(
+             BaseOptions(
+               connectTimeout: const Duration(seconds: 20),
+               receiveTimeout: const Duration(seconds: 30),
+               sendTimeout: const Duration(seconds: 30),
+               followRedirects: false,
+             ),
+           ),
+       _openBrowser =
+           openBrowser ??
+           ((uri) => launchUrl(uri, mode: LaunchMode.externalApplication));
   static const storageKey = 'chatgpt.oauth.v1';
-  final KeyStore keys;
-  final Dio client;
-  final Future<bool> Function(Uri) openBrowser;
+  final KeyStore _keys;
+  final Dio _client;
+  final Future<bool> Function(Uri) _openBrowser;
   Future<void> _writes = Future.value();
   final Map<String, Future<String>> _refreshes = {};
   CancelToken? _login;
@@ -71,7 +100,7 @@ class ChatGptAuth {
   }
 
   Future<Map<String, dynamic>> _load() async {
-    final raw = await keys.read(storageKey);
+    final raw = await _keys.read(storageKey);
     if (raw == null || raw.isEmpty) {
       return {'version': 1, 'accounts': <dynamic>[]};
     }
@@ -83,13 +112,21 @@ class ChatGptAuth {
   }
 
   Future<void> _save(Map<String, dynamic> data) =>
-      keys.write(storageKey, jsonEncode(data));
-  List<ChatGptAccount> _accounts(Map<String, dynamic> data) => [
+      _keys.write(storageKey, jsonEncode(data));
+  List<_AccountRecord> _accounts(Map<String, dynamic> data) => [
     for (final row in data['accounts'] as List)
-      ChatGptAccount(Map<String, dynamic>.from(row as Map)),
+      _AccountRecord(Map<String, dynamic>.from(row as Map)),
   ];
-  Future<List<ChatGptAccount>> accounts() async => _accounts(await _load());
-  Future<String?> activeId() async => (await _load())['active'] as String?;
+  Future<ChatGptSnapshot> snapshot() async {
+    final data = await _load();
+    final accounts = _accounts(data).map((a) => a.summary).toList();
+    final active = data['active'] as String?;
+    return ChatGptSnapshot(
+      accounts,
+      accounts.any((a) => a.id == active) ? active : null,
+    );
+  }
+
   Future<void> select(String id) => _exclusive(() async {
     final data = await _load();
     if (!_accounts(data).any((a) => a.id == id)) {
@@ -101,7 +138,7 @@ class ChatGptAuth {
   });
 
   Future<Map<String, dynamic>> _discovery() async {
-    final result = await client.get<Map<String, dynamic>>(
+    final result = await _client.get<Map<String, dynamic>>(
       '$chatGptIssuer/.well-known/openid-configuration',
     );
     final data = result.data!;
@@ -144,7 +181,7 @@ class ChatGptAuth {
         return data['host'] as String;
       });
       cancel.checkCancelled();
-      final saved = await accounts();
+      final saved = _accounts(await _load());
       final old = accountId == null
           ? null
           : saved.where((a) => a.id == accountId).firstOrNull;
@@ -219,7 +256,7 @@ class ChatGptAuth {
       );
       bool opened;
       try {
-        opened = await openBrowser(uri);
+        opened = await _openBrowser(uri);
       } catch (_) {
         throw const AiFailure('无法打开系统浏览器，请检查浏览器设置。');
       }
@@ -237,7 +274,7 @@ class ChatGptAuth {
           (answer['code'] ?? '').isEmpty) {
         throw const AiFailure('ChatGPT 登录回调无效，请重新登录。');
       }
-      final token = (await client.post<Map<String, dynamic>>(
+      final token = (await _client.post<Map<String, dynamic>>(
         _tokenUrl,
         data: {
           'grant_type': 'authorization_code',
@@ -263,7 +300,7 @@ class ChatGptAuth {
       await _exclusive(() async {
         cancel.checkCancelled();
         final data = await _load();
-        final account = ChatGptAccount(record);
+        final account = _AccountRecord(record);
         data['accounts'] = [
           for (final a in _accounts(data))
             if (a.id != account.id) a.data,
@@ -273,7 +310,7 @@ class ChatGptAuth {
         await _save(data);
         _accountEpoch++;
       });
-      return ChatGptAccount(record);
+      return _AccountRecord(record).summary;
     } on AiFailure {
       rethrow;
     } catch (_) {
@@ -305,7 +342,7 @@ class ChatGptAuth {
       throw const AiFailure('ChatGPT 账号身份校验失败，请重新登录。');
     }
     final discovery = await _discovery();
-    final jwks = (await client.get<Map<String, dynamic>>(
+    final jwks = (await _client.get<Map<String, dynamic>>(
       _trustedEndpoint(discovery['jwks_uri']).toString(),
     )).data!;
     final store = JsonWebKeyStore()..addKeySet(JsonWebKeySet.fromJson(jwks));
@@ -427,9 +464,9 @@ class ChatGptAuth {
     return token;
   }
 
-  Future<String> _refresh(ChatGptAccount account) async {
+  Future<String> _refresh(_AccountRecord account) async {
     try {
-      final token = (await client.post<Map<String, dynamic>>(
+      final token = (await _client.post<Map<String, dynamic>>(
         _tokenUrl,
         data: {
           'grant_type': 'refresh_token',
@@ -469,7 +506,9 @@ class ChatGptAuth {
     cancelLogin();
     _accountEpoch++;
     try {
-      final account = (await accounts()).where((a) => a.id == id).firstOrNull;
+      final account = _accounts(await _load())
+          .where((a) => a.id == id)
+          .firstOrNull;
       if (account == null) return true;
       // Invalidate locally before network I/O: navigating away must not leave
       // usable credentials during a slow or failed revocation request.
@@ -492,7 +531,7 @@ class ChatGptAuth {
       if (!account.connected) return true;
       try {
         final discovery = await _discovery();
-        await client.post<void>(
+        await _client.post<void>(
           _trustedEndpoint(discovery['revocation_endpoint']).toString(),
           data: {
             'client_id': account.clientId,
@@ -513,7 +552,7 @@ class ChatGptAuth {
   Future<List<ChatGptModel>> models() async {
     try {
       final token = await accessToken();
-      final data = (await client.get<Map<String, dynamic>>(
+      final data = (await _client.get<Map<String, dynamic>>(
         '$chatGptResource/models',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       )).data!;

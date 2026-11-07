@@ -47,8 +47,9 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
   Future<void> load() async {
     final auth = ref.read(appControllerProvider).chatGpt;
     try {
-      final saved = await auth.accounts();
-      final selected = await auth.activeId();
+      final snapshot = await auth.snapshot();
+      final saved = snapshot.accounts;
+      final selected = snapshot.activeId;
       if (mounted) {
         setState(() {
           accounts = saved;

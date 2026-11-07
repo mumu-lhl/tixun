@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'question_region.dart';
+
 import 'package:drift/drift.dart';
 
 import '../../core/database/database_notifier.dart';
@@ -139,6 +141,134 @@ class StudyStore extends DatabaseNotifier {
         .toList()
       ..sort();
   }
+
+  Future<String> acceptQuestionRegion(
+    String operationId,
+    int index,
+    Uint8List bytes,
+    ({double left, double top, double right, double bottom}) crop,
+    int turns,
+  ) => runOperation(() async {
+    if (![
+          crop.left,
+          crop.top,
+          crop.right,
+          crop.bottom,
+        ].every((v) => v.isFinite) ||
+        crop.left < 0 ||
+        crop.top < 0 ||
+        crop.right > 1 ||
+        crop.bottom > 1 ||
+        (crop.right - crop.left) <= 0 ||
+        (crop.bottom - crop.top) <= 0 ||
+        turns < 0 ||
+        turns > 3) {
+      throw const FormatException('用户裁剪范围无效。');
+    }
+    if (bytes.isEmpty ||
+        bytes.length > 8 * 1024 * 1024 ||
+        index < 0 ||
+        index > 11) {
+      throw const FormatException('分题图片或编号无效。');
+    }
+    final relative = 'attachments/${const Uuid().v4()}.png';
+    var used = false;
+    var attached = false;
+    try {
+      final file = files.resolve(relative);
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: true);
+      final id = await db.transaction(() async {
+        final op =
+            await (db.select(db.aiToolOperations)..where(
+                  (o) =>
+                      o.id.equals(operationId) &
+                      o.name.equals('suggest_question_regions') &
+                      o.status.equals('succeeded'),
+                ))
+                .getSingle();
+        final data = (jsonDecode(op.result!) as Map).cast<String, dynamic>();
+        final regions = data['regions'] as List;
+        if (index >= regions.length) throw const FormatException('未找到此分题建议。');
+        final region = QuestionRegion.fromJson(
+          (regions[index] as Map).cast<String, dynamic>(),
+        );
+        final accepted = (data['accepted'] as Map? ?? {})
+            .cast<String, dynamic>();
+        final prior = accepted['$index'];
+        if (prior is String) {
+          await mistake(prior, includeDeleted: true);
+          return prior;
+        }
+        final image =
+            await (db.select(db.attachments)..where(
+                  (a) =>
+                      a.id.equals(data['image_id'] as String) &
+                      a.sessionId.equals(op.sessionId),
+                ))
+                .getSingle();
+        final row = await saveMistake(
+          MistakeDraft(
+            title: region.label,
+            subject: region.subject,
+            question: region.question,
+            aiAnalysis: region.question.isEmpty
+                ? ''
+                : '题目文字由 AI 从图片转录，尚未核对，请以原图为准。',
+          ),
+          sourceSessionId: op.sessionId,
+          sourceMessageId: op.runId,
+        );
+        final original = await addImageReference(
+          row.id,
+          image.relativePath,
+          image.mime,
+          image.byteLength,
+          isMistake: true,
+        );
+        await addImageReference(
+          row.id,
+          relative,
+          'image/png',
+          bytes.length,
+          isMistake: true,
+          parentId: original.id,
+          role: 'crop',
+        );
+        await (db.update(
+          db.aiToolOperations,
+        )..where((o) => o.id.equals(operationId))).write(
+          AiToolOperationsCompanion(
+            result: Value(
+              jsonEncode({
+                ...data,
+                'accepted': {...accepted, '$index': row.id},
+                'user_crops': {
+                  ...(data['user_crops'] as Map? ?? {}),
+                  '$index': {
+                    'left': crop.left,
+                    'top': crop.top,
+                    'right': crop.right,
+                    'bottom': crop.bottom,
+                    'clockwise_turns': turns,
+                  },
+                },
+              }),
+            ),
+          ),
+        );
+        attached = true;
+        return row.id;
+      });
+      used = attached;
+      changed();
+      return id;
+    } finally {
+      if (!used && await files.resolve(relative).exists()) {
+        await files.resolve(relative).delete();
+      }
+    }
+  });
 
   Future<KnowledgeItem> knowledge(
     String id, {

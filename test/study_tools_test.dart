@@ -1,3 +1,5 @@
+import 'package:tixun/core/ai/tool_call_collector.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
