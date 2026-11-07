@@ -360,7 +360,12 @@ class ChatGptAuth {
 
   Future<String> accessToken({CancelToken? cancel}) async {
     cancel?.checkCancelled();
-    final data = await _load(), epoch = _accountEpoch;
+    final epoch = _accountEpoch;
+    final data = await _load();
+    cancel?.checkCancelled();
+    if (epoch != _accountEpoch) {
+      throw const AiFailure('ChatGPT 账号已切换，请重新发送。');
+    }
     final account = _accounts(data)
         .where((a) => a.id == data['active'])
         .firstOrNull;
@@ -377,17 +382,36 @@ class ChatGptAuth {
         expiry.isAfter(DateTime.now().add(const Duration(minutes: 1)))) {
       return account.data['access_token'] as String;
     }
-    final pending = _refreshes.putIfAbsent(account.id, () => _refresh(account));
-    try {
-      final token = await pending;
-      cancel?.checkCancelled();
-      if (epoch != _accountEpoch) throw const AiFailure('ChatGPT 账号已切换，请重新发送。');
-      return token;
-    } finally {
-      if (identical(_refreshes[account.id], pending)) {
-        _refreshes.remove(account.id);
+    var pending = _refreshes[account.id];
+    if (pending == null) {
+      final refresh = _refresh(account);
+      _refreshes[account.id] = refresh;
+      pending = refresh;
+      void release() {
+        if (identical(_refreshes[account.id], refresh)) {
+          _refreshes.remove(account.id);
+        }
       }
+
+      unawaited(
+        refresh.then<void>(
+          (_) => release(),
+          onError: (Object _, StackTrace _) => release(),
+        ),
+      );
     }
+    // A caller may stop waiting without cancelling a shared rotating refresh.
+    final token = cancel == null
+        ? await pending
+        : await Future.any<String>([
+            pending,
+            cancel.whenCancel.then<String>((error) => throw error),
+          ]);
+    cancel?.checkCancelled();
+    if (epoch != _accountEpoch) {
+      throw const AiFailure('ChatGPT 账号已切换，请重新发送。');
+    }
+    return token;
   }
 
   Future<String> _refresh(ChatGptAccount account) async {

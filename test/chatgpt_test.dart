@@ -493,4 +493,25 @@ void main() {
       expect(await logout, true);
     },
   );
+  test('Cancelling one token waiter is immediate and does not duplicate or cancel a shared refresh', () async {
+    final f = ChatGptFixture();
+    await f.seed(expired: true);
+    f.refreshGate = Completer<void>();
+    final cancel = CancelToken();
+    final first = f.auth.accessToken(cancel: cancel);
+    final stopped = expectLater(first, throwsA(isA<DioException>()));
+    final second = f.auth.accessToken();
+    while (f.refreshes == 0) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    cancel.cancel();
+    await stopped.timeout(const Duration(seconds: 1));
+    final third = f.auth.accessToken();
+    f.refreshGate!.complete();
+    expect(
+      await Future.wait([second, third]),
+      everyElement('refreshed-fixture'),
+    );
+    expect(f.refreshes, 1);
+  });
 }

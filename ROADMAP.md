@@ -71,7 +71,7 @@
 - [x] 本地 Linux Release 构建和隔离数据目录的正式 GUI 启动通过（`demo=false`）；已读取桌面截图，无演示资料。
 - [x] 提交 `3a27f55` 的[完整双平台 CI 42260109254](https://github.com/mumu-lhl/tixun/actions/runs/42260109254) 全部通过：62 项 Flutter 测试、16 项脚本测试、Android Debug APK、Linux Release、Mock GUI 启动及六组原生 GUI 回归。正式程序与截图/日志分别上传；本次没有创建新 Release。
 - [x] ChatGPT 订阅 Provider：官方浏览器 OAuth、PKCE/JWT 校验、账号隔离、轮换刷新、退出撤销、模型列表、Responses 流式文字/图片、命名空间工具和思考上下文回传；恢复原 API 配置，令牌不进入数据库或备份。协议测试及隔离 Linux GUI 流程通过，见[接入说明](docs/CHATGPT_PROVIDER.md)。
-- [x] 本地新增 17 项 ChatGPT 协议/数据测试通过（另含语言回归）；Linux Release 构建与原生 GUI 验证通过，已读取中英文、手机/桌面及深浅主题截图。完整 CI 在提交后复核。
+- [x] 本地新增 18 项 ChatGPT 协议/数据测试通过（另含语言回归）；Linux Release 构建与原生 GUI 验证通过，已读取中英文、手机/桌面及深浅主题截图。完整 CI 在提交后复核。
 - [ ] 实际 ChatGPT Plus/Pro 账号的浏览器授权、系统安全存储、模型/图片能力和订阅推理，以及 Android 实机验证。自动化结果不代表实际账号已验收。
 
 ## 必须单独完成的外部验收
