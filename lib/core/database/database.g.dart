@@ -634,6 +634,17 @@ class $ChatMessagesTable extends ChatMessages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _reasoningContentMeta = const VerificationMeta(
+    'reasoningContent',
+  );
+  @override
+  late final GeneratedColumn<String> reasoningContent = GeneratedColumn<String>(
+    'reasoning_content',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _totalTokensMeta = const VerificationMeta(
     'totalTokens',
   );
@@ -665,6 +676,7 @@ class $ChatMessagesTable extends ChatMessages
     status,
     error,
     model,
+    reasoningContent,
     totalTokens,
     createdAt,
   ];
@@ -727,6 +739,15 @@ class $ChatMessagesTable extends ChatMessages
         model.isAcceptableOrUnknown(data['model']!, _modelMeta),
       );
     }
+    if (data.containsKey('reasoning_content')) {
+      context.handle(
+        _reasoningContentMeta,
+        reasoningContent.isAcceptableOrUnknown(
+          data['reasoning_content']!,
+          _reasoningContentMeta,
+        ),
+      );
+    }
     if (data.containsKey('total_tokens')) {
       context.handle(
         _totalTokensMeta,
@@ -781,6 +802,10 @@ class $ChatMessagesTable extends ChatMessages
         DriftSqlType.string,
         data['${effectivePrefix}model'],
       ),
+      reasoningContent: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reasoning_content'],
+      ),
       totalTokens: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}total_tokens'],
@@ -806,6 +831,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
   final String status;
   final String? error;
   final String? model;
+  final String? reasoningContent;
   final int? totalTokens;
   final DateTime createdAt;
   const ChatMessage({
@@ -816,6 +842,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     required this.status,
     this.error,
     this.model,
+    this.reasoningContent,
     this.totalTokens,
     required this.createdAt,
   });
@@ -832,6 +859,9 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     }
     if (!nullToAbsent || model != null) {
       map['model'] = Variable<String>(model);
+    }
+    if (!nullToAbsent || reasoningContent != null) {
+      map['reasoning_content'] = Variable<String>(reasoningContent);
     }
     if (!nullToAbsent || totalTokens != null) {
       map['total_tokens'] = Variable<int>(totalTokens);
@@ -853,6 +883,9 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
       model: model == null && nullToAbsent
           ? const Value.absent()
           : Value(model),
+      reasoningContent: reasoningContent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reasoningContent),
       totalTokens: totalTokens == null && nullToAbsent
           ? const Value.absent()
           : Value(totalTokens),
@@ -873,6 +906,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
       status: serializer.fromJson<String>(json['status']),
       error: serializer.fromJson<String?>(json['error']),
       model: serializer.fromJson<String?>(json['model']),
+      reasoningContent: serializer.fromJson<String?>(json['reasoningContent']),
       totalTokens: serializer.fromJson<int?>(json['totalTokens']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -888,6 +922,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
       'status': serializer.toJson<String>(status),
       'error': serializer.toJson<String?>(error),
       'model': serializer.toJson<String?>(model),
+      'reasoningContent': serializer.toJson<String?>(reasoningContent),
       'totalTokens': serializer.toJson<int?>(totalTokens),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -901,6 +936,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     String? status,
     Value<String?> error = const Value.absent(),
     Value<String?> model = const Value.absent(),
+    Value<String?> reasoningContent = const Value.absent(),
     Value<int?> totalTokens = const Value.absent(),
     DateTime? createdAt,
   }) => ChatMessage(
@@ -911,6 +947,9 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     status: status ?? this.status,
     error: error.present ? error.value : this.error,
     model: model.present ? model.value : this.model,
+    reasoningContent: reasoningContent.present
+        ? reasoningContent.value
+        : this.reasoningContent,
     totalTokens: totalTokens.present ? totalTokens.value : this.totalTokens,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -923,6 +962,9 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
       status: data.status.present ? data.status.value : this.status,
       error: data.error.present ? data.error.value : this.error,
       model: data.model.present ? data.model.value : this.model,
+      reasoningContent: data.reasoningContent.present
+          ? data.reasoningContent.value
+          : this.reasoningContent,
       totalTokens: data.totalTokens.present
           ? data.totalTokens.value
           : this.totalTokens,
@@ -940,6 +982,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
           ..write('status: $status, ')
           ..write('error: $error, ')
           ..write('model: $model, ')
+          ..write('reasoningContent: $reasoningContent, ')
           ..write('totalTokens: $totalTokens, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -955,6 +998,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     status,
     error,
     model,
+    reasoningContent,
     totalTokens,
     createdAt,
   );
@@ -969,6 +1013,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
           other.status == this.status &&
           other.error == this.error &&
           other.model == this.model &&
+          other.reasoningContent == this.reasoningContent &&
           other.totalTokens == this.totalTokens &&
           other.createdAt == this.createdAt);
 }
@@ -981,6 +1026,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
   final Value<String> status;
   final Value<String?> error;
   final Value<String?> model;
+  final Value<String?> reasoningContent;
   final Value<int?> totalTokens;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
@@ -992,6 +1038,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     this.status = const Value.absent(),
     this.error = const Value.absent(),
     this.model = const Value.absent(),
+    this.reasoningContent = const Value.absent(),
     this.totalTokens = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1004,6 +1051,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     this.status = const Value.absent(),
     this.error = const Value.absent(),
     this.model = const Value.absent(),
+    this.reasoningContent = const Value.absent(),
     this.totalTokens = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
@@ -1020,6 +1068,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     Expression<String>? status,
     Expression<String>? error,
     Expression<String>? model,
+    Expression<String>? reasoningContent,
     Expression<int>? totalTokens,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
@@ -1032,6 +1081,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
       if (status != null) 'status': status,
       if (error != null) 'error': error,
       if (model != null) 'model': model,
+      if (reasoningContent != null) 'reasoning_content': reasoningContent,
       if (totalTokens != null) 'total_tokens': totalTokens,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -1046,6 +1096,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     Value<String>? status,
     Value<String?>? error,
     Value<String?>? model,
+    Value<String?>? reasoningContent,
     Value<int?>? totalTokens,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
@@ -1058,6 +1109,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
       status: status ?? this.status,
       error: error ?? this.error,
       model: model ?? this.model,
+      reasoningContent: reasoningContent ?? this.reasoningContent,
       totalTokens: totalTokens ?? this.totalTokens,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -1088,6 +1140,9 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     if (model.present) {
       map['model'] = Variable<String>(model.value);
     }
+    if (reasoningContent.present) {
+      map['reasoning_content'] = Variable<String>(reasoningContent.value);
+    }
     if (totalTokens.present) {
       map['total_tokens'] = Variable<int>(totalTokens.value);
     }
@@ -1110,6 +1165,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
           ..write('status: $status, ')
           ..write('error: $error, ')
           ..write('model: $model, ')
+          ..write('reasoningContent: $reasoningContent, ')
           ..write('totalTokens: $totalTokens, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')

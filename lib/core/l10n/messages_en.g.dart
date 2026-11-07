@@ -709,7 +709,6 @@ const englishMessages = <String, String>{
   "生成失败。请检查安全存储是否可用、图片文件及服务设置。": "Generation failed. Check secure storage, image files and service settings.",
   "回复保存失败，当前内容可能未写入磁盘。":
       "Could not save the response. The displayed content may not be on disk.",
-  "交互出题需要支持工具调用的模型，并关闭深度思考。请先在设置中调整。": "Interactive questions need a tool-capable model with reasoning turned off. Adjust Settings first.",
   "每次请选择 1–5 条知识。": "Select 1–5 knowledge entries at a time.",
   "连接成功但没有收到正文。": "Connected, but no response text was received.",
   "ChatGPT 订阅": "ChatGPT plan",
@@ -843,4 +842,7 @@ const englishMessages = <String, String>{
   "未能恢复上次选取的图片，请重新选择。已有学习记录未改变。": "Could not restore the previously selected images. Please select again. Your learning records are unchanged.",
   "无法打开本地学习数据库。请检查存储空间和目录权限，或从备份恢复。已有文件没有自动删除。": "Could not open the local learning database. Check storage space and directory permissions, or restore from a backup. No existing files were deleted.",
   "无法重新打开资料。原目录或安全副本仍保留，请从备份恢复。": "Could not reopen the data. The original directory or safety copy is still kept; please restore from a backup.",
+  "交互出题需要支持工具调用的模型。请先在设置中调整。": "Interactive questions need a tool-capable model. Please adjust it in Settings first.",
+  "资料工具需要支持工具调用的模型。": "Material tools require a tool-capable model.",
+  "此会话启用了资料工具，请选择支持工具调用的模型，或关闭本会话资料工具。": "This conversation uses data tools. Select a tool-capable model, or turn off data tools for this conversation.",
 };

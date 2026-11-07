@@ -34,6 +34,7 @@ class ChatMessages extends Table {
   TextColumn get status => text().withDefault(const Constant('complete'))();
   TextColumn get error => text().nullable()();
   TextColumn get model => text().nullable()();
+  TextColumn get reasoningContent => text().nullable()();
   IntColumn get totalTokens => integer().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   @override
@@ -117,7 +118,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 5;
+  static const latestSchemaVersion = 6;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -202,6 +203,9 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           'INSERT INTO practice_chat_links(question_id,message_id) SELECT id,source_message_id FROM practice_questions WHERE source_message_id IS NOT NULL',
         );
+      }
+      if (from < 6) {
+        await m.addColumn(chatMessages, chatMessages.reasoningContent);
       }
     },
     beforeOpen: (_) async {

@@ -32,15 +32,21 @@ class AiImage {
 }
 
 class AiMessage {
-  const AiMessage.user(this.text, {this.images = const []})
-    : role = AiRole.user,
-      calls = const [],
-      callId = null;
-  const AiMessage.assistant(this.text, {this.calls = const []})
-    : role = AiRole.assistant,
-      images = const [],
-      callId = null;
-  const AiMessage.tool(String this.callId, this.text)
+  const AiMessage.user(
+    this.text, {
+    this.images = const [],
+    this.reasoningContent,
+  }) : role = AiRole.user,
+       calls = const [],
+       callId = null;
+  const AiMessage.assistant(
+    this.text, {
+    this.calls = const [],
+    this.reasoningContent,
+  }) : role = AiRole.assistant,
+       images = const [],
+       callId = null;
+  const AiMessage.tool(String this.callId, this.text, {this.reasoningContent})
     : role = AiRole.tool,
       images = const [],
       calls = const [];
@@ -49,10 +55,26 @@ class AiMessage {
   final List<AiImage> images;
   final List<ToolCall> calls;
   final String? callId;
+
+  /// The model's reasoning for this turn, when the provider returned one.
+  /// Passed back verbatim on later requests that carry tools.
+  final String? reasoningContent;
   AiMessage withText(String value) => switch (role) {
-    AiRole.user => AiMessage.user(value, images: images),
-    AiRole.assistant => AiMessage.assistant(value, calls: calls),
-    AiRole.tool => AiMessage.tool(callId!, value),
+    AiRole.user => AiMessage.user(
+      value,
+      images: images,
+      reasoningContent: reasoningContent,
+    ),
+    AiRole.assistant => AiMessage.assistant(
+      value,
+      calls: calls,
+      reasoningContent: reasoningContent,
+    ),
+    AiRole.tool => AiMessage.tool(
+      callId!,
+      value,
+      reasoningContent: reasoningContent,
+    ),
   };
 }
 
@@ -86,11 +108,15 @@ class AiRequest {
 class AiChunk {
   const AiChunk({
     this.text = '',
+    this.reasoning = '',
     this.tokens,
     this.completed = false,
     this.calls = const [],
   });
   final String text;
+
+  /// Reasoning delta for this event, if the provider streams one.
+  final String reasoning;
 
   /// Cumulative usage for this turn; later events replace earlier estimates.
   final int? tokens;

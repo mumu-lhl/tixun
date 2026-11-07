@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/database/database.dart';
@@ -166,4 +167,117 @@ void main() {
     }(), throwsA(isA<DioException>()));
     expect(values.length, 1);
   });
+  test('SSE captures reasoning_content deltas alongside text', () async {
+    final chunks = await decodeCompletion(
+      bytes(
+        'data: {"choices":[{"delta":{"reasoning_content":"先想","content":"答"}}]}\n\n'
+        'data: {"choices":[{"delta":{"reasoning_content":"一步"}}]}\n\n'
+        '$end',
+      ),
+    ).toList();
+    expect(chunks.map((c) => c.reasoning).join(), '先想一步');
+    expect(chunks.map((c) => c.text).join(), '答');
+  });
+  test('encodeCompletion sends reasoning_content only to DeepSeek', () async {
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+    final config = await db.config();
+    final request = AiRequest(
+      instructions: '',
+      messages: [
+        AiMessage.assistant('已想好', reasoningContent: '思考过程'),
+        AiMessage.assistant('无思考'),
+        AiMessage.assistant('空思考', reasoningContent: ''),
+      ],
+    );
+    final deepseek = encodeCompletion(config, request)['messages'] as List;
+    expect(deepseek[0]['reasoning_content'], '思考过程');
+    expect(deepseek[1].containsKey('reasoning_content'), false);
+    expect(deepseek[2].containsKey('reasoning_content'), false);
+    final chat =
+        encodeCompletion(
+              config.copyWith(
+                kind: 'chatgpt',
+                baseUrl: 'https://api.openai.com/v1',
+              ),
+              request,
+            )['messages']
+            as List;
+    expect(chat[0].containsKey('reasoning_content'), false);
+    final compatible =
+        encodeCompletion(
+              config.copyWith(
+                kind: 'compatible',
+                baseUrl: 'https://example.com/v1',
+              ),
+              request,
+            )['messages']
+            as List;
+    expect(compatible[0].containsKey('reasoning_content'), false);
+  });
+  test('AiMessage.withText preserves reasoningContent', () {
+    const assistant = AiMessage.assistant('旧', reasoningContent: '想');
+    final updated = assistant.withText('新');
+    expect(updated.text, '新');
+    expect(updated.reasoningContent, '想');
+    const user = AiMessage.user('问', reasoningContent: 'r');
+    expect(user.withText('问2').reasoningContent, 'r');
+  });
+  test(
+    'Persisted reasoning_content is sent back on the next request',
+    () async {
+      final root = await Directory.systemTemp.createTemp('tixun-ai-reasoning');
+      addTearDown(() => root.delete(recursive: true));
+      final store = AttachmentStore(root);
+      final db = AppDatabase.memory();
+      addTearDown(db.close);
+      final config = await db.config();
+      await db
+          .into(db.chatSessions)
+          .insert(
+            ChatSessionsCompanion.insert(
+              id: 's',
+              title: '会话',
+              createdAt: DateTime(2026),
+              updatedAt: DateTime(2026),
+            ),
+          );
+      await db
+          .into(db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: 'u1',
+              sessionId: 's',
+              role: 'user',
+              content: '出题',
+              createdAt: DateTime(2026),
+            ),
+          );
+      await db
+          .into(db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: 'a1',
+              sessionId: 's',
+              role: 'assistant',
+              content: '已出题',
+              reasoningContent: const Value('先想再答'),
+              createdAt: DateTime(2026),
+            ),
+          );
+      final history = await db.select(db.chatMessages).get();
+      expect(history.firstWhere((m) => m.id == 'a1').reasoningContent, '先想再答');
+      final request = await prepareAiRequest(
+        config,
+        history,
+        [],
+        store,
+        'guided',
+      );
+      final messages = encodeCompletion(config, request)['messages'] as List;
+      final assistant =
+          messages.firstWhere((m) => m['role'] == 'assistant') as Map;
+      expect(assistant['reasoning_content'], '先想再答');
+    },
+  );
 }

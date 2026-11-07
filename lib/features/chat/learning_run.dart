@@ -20,10 +20,16 @@ class LearningRunResult {
     required this.text,
     this.tokens,
     required this.quizCreated,
+    this.reasoning,
   });
   final String text;
   final int? tokens;
   final bool quizCreated;
+
+  /// Reasoning streamed in the final round, if the provider returned any.
+  /// Persisted with the assistant message so later tool requests can pass
+  /// it back; null when the round had no reasoning content.
+  final String? reasoning;
 }
 
 /// Complete learning inference, including context, protocol turns and tool policy.
@@ -70,6 +76,7 @@ class LearningRun {
     var text = '';
     int? tokens;
     var quizCreated = false, regionsCreated = false;
+    String? lastRoundReasoning;
     final exam = mode == 'exam';
     Future<void> publish() => onProgress(
       LearningRunResult(
@@ -123,7 +130,11 @@ class LearningRun {
       cancel.checkCancelled();
       final toolsEnabled = authorized;
       if (toolsEnabled && !AiOptions(requestConfig).toolsAvailable) {
-        throw const AiFailure('此会话启用了资料工具，请选择支持工具调用的模型并关闭深度思考，或关闭本会话资料工具。');
+        throw AiFailure(
+          requestConfig.supportsTools
+              ? '此会话启用了资料工具，请选择支持工具调用的模型并关闭深度思考，或关闭本会话资料工具。'
+              : '此会话启用了资料工具，请选择支持工具调用的模型，或关闭本会话资料工具。',
+        );
       }
       final quizEnabled = AiOptions(requestConfig).toolsAvailable;
       final sourceImages = <Attachment>[
@@ -179,12 +190,14 @@ class LearningRun {
         cancel.checkCancelled();
         final calls = <ToolCall>[];
         var roundText = '';
+        var roundReasoning = '';
         var roundTokens = 0;
         var completed = false;
         await for (final chunk in conversation.complete(request, cancel)) {
           cancel.checkCancelled();
           text += chunk.text;
           roundText += chunk.text;
+          roundReasoning += chunk.reasoning;
           if (chunk.tokens != null) {
             tokens = (tokens ?? 0) - roundTokens + chunk.tokens!;
             roundTokens = chunk.tokens!;
@@ -202,6 +215,9 @@ class LearningRun {
           completed = completed || chunk.completed;
           await publish();
         }
+        // Keep the reasoning of the round that just streamed, even if the
+        // text is later replaced by the quiz placeholder below.
+        lastRoundReasoning = roundReasoning.isEmpty ? null : roundReasoning;
         if (!completed) throw const AiFailure('连接提前断开，已保留收到的内容。请重新生成。');
         validateToolCalls(calls);
         if (calls.isEmpty) {
@@ -214,7 +230,11 @@ class LearningRun {
         request = request.copyWith(
           messages: [
             ...request.messages,
-            AiMessage.assistant(roundText, calls: calls),
+            AiMessage.assistant(
+              roundText,
+              calls: calls,
+              reasoningContent: roundReasoning.isEmpty ? null : roundReasoning,
+            ),
           ],
         );
         for (final call in calls) {
@@ -278,6 +298,7 @@ class LearningRun {
         text: text,
         tokens: tokens,
         quizCreated: quizCreated,
+        reasoning: lastRoundReasoning,
       );
     } finally {
       timer.cancel();

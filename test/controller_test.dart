@@ -48,6 +48,11 @@ void main() {
       expect(c.busy, false);
     },
   );
+  test('Quiz preparation enables reasoning at the configured effort', () async {
+    await c.prepareQuickQuiz();
+    expect(c.sessionReasoning, 'high');
+    expect(c.selected!.mode, 'exam');
+  });
   test(
     'Stopping generation persists stopped state and allows regeneration',
     () async {

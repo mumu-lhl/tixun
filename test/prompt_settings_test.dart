@@ -95,8 +95,10 @@ void main() {
     expect(provider.bodies.last.instructions, contains('适合初学者'));
     expect(provider.bodies.last.instructions, contains('每次只问一个诊断问题'));
     await c.setTools(true);
-    await expectLater(c.setSessionReasoning('high'), throwsA(isA<AiFailure>()));
-    expect(c.sessionReasoning, 'off');
+    // DeepSeek allows thinking with tools: enabling high reasoning while
+    // tools are on succeeds and persists, instead of throwing.
+    await c.setSessionReasoning('high');
+    expect(c.sessionReasoning, 'high');
     await c.shutdown();
     c = await AppController.openRoot(
       root,
@@ -104,12 +106,12 @@ void main() {
       keyStore: keys,
       chatProvider: provider,
     );
-    expect(c.sessionReasoning, 'off');
+    expect(c.sessionReasoning, 'high');
     expect(c.prompts.text('guided'), '每次只问一个诊断问题。');
     expect(c.config.thinking, true);
     await c.prepareQuickQuiz();
     expect(c.selected!.draft, '请给我出一道函数检测题。');
-    expect(c.sessionReasoning, 'off');
+    expect(c.sessionReasoning, 'high');
     expect(c.config.thinking, true);
     c.config = c.config.copyWith(supportsThinking: false, thinking: false);
     await expectLater(c.setSessionReasoning('max'), throwsA(isA<AiFailure>()));

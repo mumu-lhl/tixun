@@ -60,6 +60,9 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
       if (delta['content'] is String) {
         yield AiChunk(text: delta['content'] as String);
       }
+      if (delta['reasoning_content'] is String) {
+        yield AiChunk(reasoning: delta['reasoning_content'] as String);
+      }
       final finish = choice['finish_reason'] as String?;
       if (finish != null) {
         ended = true;
@@ -172,7 +175,10 @@ Future<AiRequest> prepareAiRequest(
     messages.add(
       m.role == 'user'
           ? AiMessage.user(m.content, images: images)
-          : AiMessage.assistant(m.content),
+          : AiMessage.assistant(
+              m.content,
+              reasoningContent: m.reasoningContent,
+            ),
     );
   }
   return AiRequest(instructions: teachingPrompt(mode), messages: messages);
@@ -207,6 +213,11 @@ Map<String, dynamic> encodeCompletion(
                   },
               ],
         if (m.callId != null) 'tool_call_id': m.callId,
+        if (m.role == AiRole.assistant &&
+            m.reasoningContent != null &&
+            m.reasoningContent!.isNotEmpty &&
+            config.kind == 'deepseek')
+          'reasoning_content': m.reasoningContent,
         if (m.calls.isNotEmpty)
           'tool_calls': [
             for (final c in m.calls)

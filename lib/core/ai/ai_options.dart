@@ -5,7 +5,8 @@ import '../database/database.dart';
 class AiOptions {
   const AiOptions(this.config);
   final ProviderConfig config;
-  bool get reasoningWithTools => config.kind == 'chatgpt';
+  bool get reasoningWithTools =>
+      config.kind == 'chatgpt' || config.kind == 'deepseek';
   bool get toolsAvailable =>
       config.supportsTools && (!config.thinking || reasoningWithTools);
   bool get vision =>

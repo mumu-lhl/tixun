@@ -50,7 +50,12 @@ void main() {
     final db = AppDatabase.memory();
     final base = await db.config();
     expect(AiOptions(base).toolsAvailable, true);
-    expect(AiOptions(base.copyWith(thinking: true)).toolsAvailable, false);
+    expect(AiOptions(base.copyWith(thinking: true)).toolsAvailable, true);
+    expect(
+      AiOptions(base.copyWith(kind: 'compatible', thinking: true))
+          .toolsAvailable,
+      false,
+    );
     expect(
       AiOptions(base.copyWith(kind: 'compatible', supportsTools: false))
           .toolsAvailable,

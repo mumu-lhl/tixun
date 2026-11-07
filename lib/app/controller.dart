@@ -390,10 +390,28 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  /// Quiz preparation turns thinking on for this session only, at the
+  /// effort configured in Settings, when the model supports thinking with
+  /// tools. Providers that don't (compatible) still force it off.
+  Future<void> useQuizReasoning() async {
+    if (!config.supportsThinking) return;
+    if (AiOptions(config).reasoningWithTools) {
+      await setSessionReasoning(
+        ['low', 'high', 'max'].contains(config.effort) ? config.effort : 'high',
+      );
+    } else {
+      await useToolReasoning();
+    }
+  }
+
   Future<void> setTools(bool enabled) async {
     if (busy || selected == null) return;
     if (enabled && !AiOptions(sessionConfig).toolsAvailable) {
-      throw const AiFailure('资料工具需要支持工具调用的模型，并关闭深度思考。');
+      throw AiFailure(
+        sessionConfig.supportsTools
+            ? '资料工具需要支持工具调用的模型，并关闭深度思考。'
+            : '资料工具需要支持工具调用的模型。',
+      );
     }
     final row = selected!.copyWith(toolsEnabled: enabled);
     await db.update(db.chatSessions).replace(row);
@@ -705,6 +723,7 @@ class AppController extends ChangeNotifier {
     var status = 'complete';
     String? failure;
     int? tokens;
+    String? reasoning;
     var lastWrite = DateTime.now();
     final exam = selected!.mode == 'exam';
     var quizCreated = false;
@@ -741,7 +760,7 @@ class AppController extends ChangeNotifier {
           quizCreated = progress.quizCreated;
           if (DateTime.now().difference(lastWrite).inMilliseconds >=
               _progressThrottleMs) {
-            await _writeMessage(id, text, 'generating', null, tokens);
+            await _writeMessage(id, text, 'generating', null, tokens, null);
             _publishProgress(id, text, tokens);
             lastWrite = DateTime.now();
           }
@@ -750,6 +769,7 @@ class AppController extends ChangeNotifier {
       text = result.text;
       tokens = result.tokens;
       quizCreated = result.quizCreated;
+      reasoning = result.reasoning;
     } on AiFailure catch (e) {
       status = 'error';
       failure = e.message;
@@ -765,7 +785,7 @@ class AppController extends ChangeNotifier {
       cancel.cancel('finished');
       try {
         if (exam && !quizCreated && status != 'complete') text = '';
-        await _writeMessage(id, text, status, failure, tokens);
+        await _writeMessage(id, text, status, failure, tokens, reasoning);
         await (db.update(
           db.chatSessions,
         )..where((s) => s.id.equals(sessionId))).write(
@@ -793,7 +813,7 @@ class AppController extends ChangeNotifier {
 
   void _requireQuizModel() {
     if (!config.supportsTools) {
-      throw const AiFailure('交互出题需要支持工具调用的模型，并关闭深度思考。请先在设置中调整。');
+      throw const AiFailure('交互出题需要支持工具调用的模型。请先在设置中调整。');
     }
   }
 
@@ -802,7 +822,7 @@ class AppController extends ChangeNotifier {
     await newSession();
     await mode('exam');
     await renameSession(selected!, '数学 · 检测训练');
-    await useToolReasoning();
+    await useQuizReasoning();
     await draft(prompts.text('quiz'));
   }
 
@@ -814,7 +834,7 @@ class AppController extends ChangeNotifier {
     final notes = await Future.wait(ids.toSet().map(study.knowledge));
     await newSession();
     await mode('exam');
-    await useToolReasoning();
+    await useQuizReasoning();
     await renameSession(
       selected!,
       notes.length == 1 ? '${notes.first.subject} · 专项训练' : '知识点 · 综合训练',
@@ -833,7 +853,7 @@ class AppController extends ChangeNotifier {
     await newSession();
     await mode('guided');
     await renameSession(selected!, '${q.subject} · 订正与变式训练');
-    await useToolReasoning();
+    await useQuizReasoning();
     await db.setPreference('practice_parent:${selected!.id}', detail.row.id);
     if (detail.row.mistakeId != null) {
       await study.linkChat(selected!.id, mistakeId: detail.row.mistakeId);
@@ -858,6 +878,7 @@ class AppController extends ChangeNotifier {
     String status,
     String? error,
     int? tokens,
+    String? reasoning,
   ) async {
     await (db.update(db.chatMessages)..where((m) => m.id.equals(id))).write(
       ChatMessagesCompanion(
@@ -865,6 +886,11 @@ class AppController extends ChangeNotifier {
         status: Value(status),
         error: Value(error),
         totalTokens: Value(tokens),
+        // Progress ticks pass null and leave the column untouched; only the
+        // final write persists the round's reasoning.
+        reasoningContent: reasoning == null
+            ? const Value.absent()
+            : Value(reasoning),
       ),
     );
   }

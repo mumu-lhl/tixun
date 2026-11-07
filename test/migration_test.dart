@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/database/database.dart';
@@ -35,7 +36,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 5);
+      await verifier.migrateAndValidate(db, 6);
       final link = (await db.select(db.practiceChatLinks).get()).single;
       expect(link.messageId, 'm');
       expect(link.questionId, 'q');
@@ -64,14 +65,14 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 5);
+    await verifier.migrateAndValidate(db, 6);
     expect((await db.select(db.practiceAttempts).get()).single.status, 'draft');
     expect((await db.select(db.practiceResponses).get()).single.answer, '4');
     expect(await db.select(db.reviewSchedules).get(), isEmpty);
     expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
   });
   test(
-    'Schema v1 upgrades to v5 without losing chats, drafts, images or settings',
+    'Schema v1 upgrades to v6 without losing chats, drafts, images or settings',
     () async {
       final verifier = SchemaVerifier(GeneratedHelper());
       final schema = await verifier.schemaAt(1);
@@ -103,7 +104,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 5);
+      await verifier.migrateAndValidate(db, 6);
       expect((await db.sessions()).single.draft, '未发送草稿');
       expect((await db.sessions('二次函数')).single.id, 's');
       expect(
@@ -131,4 +132,39 @@ void main() {
       );
     },
   );
+
+  test('Schema v5 adds reasoning_content to chat messages', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(5);
+    final raw = schema.rawDatabase;
+    raw.execute(
+      "INSERT INTO chat_sessions(id,title,draft,created_at,updated_at) VALUES('s','会话','',1,1)",
+    );
+    raw.execute(
+      "INSERT INTO chat_messages(id,session_id,role,content,created_at) VALUES('m','s','assistant','请独立完成',1)",
+    );
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 6);
+    final migrated = (await db.select(db.chatMessages).get()).single;
+    expect(migrated.reasoningContent, isNull);
+    expect(migrated.content, '请独立完成');
+    await db
+        .into(db.chatMessages)
+        .insert(
+          ChatMessagesCompanion.insert(
+            id: 'm2',
+            sessionId: 's',
+            role: 'assistant',
+            content: '已出题',
+            reasoningContent: const Value('先想再答'),
+            createdAt: DateTime.fromMillisecondsSinceEpoch(2),
+          ),
+        );
+    final written = (await db.select(db.chatMessages).get()).firstWhere(
+      (m) => m.id == 'm2',
+    );
+    expect(written.reasoningContent, '先想再答');
+    expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+  });
 }

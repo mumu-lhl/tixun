@@ -17,8 +17,8 @@
 - [Flutter Linux 设置](https://docs.flutter.dev/platform-integration/linux/setup)：clang、CMake、Ninja、pkg-config、GTK3、C++ 标准库。实测 SDK 3.47.9 / Dart 3.13.7，Debian 13 工具链。
 - [DeepSeek 模型能力](https://api-docs.deepseek.com/quick_start/pricing)：Flash 支持视觉；V4 Pro 不支持。
 - [DeepSeek 图片输入](https://api-docs.deepseek.com/guides/vision)：用户消息 content 数组中的 image_url，支持内联 base64；JPEG/PNG/GIF/WebP。
-- [DeepSeek 推理模式](https://api-docs.deepseek.com/guides/thinking_mode)：thinking.type enabled/disabled；reasoning_effort low/high/max。本版本默认关闭思考以控制延迟与消耗，不发送不适用的采样参数。
-- [Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion)：SSE、finish_reason、usage；已接入非思考模式工具调用；结构化题目与分题均经严格参数校验的工具生成。
+- [DeepSeek 推理模式](https://api-docs.deepseek.com/guides/thinking_mode)：thinking.type enabled/disabled；reasoning_effort low/high/max。思考与工具调用可共用：SSE 捕获 reasoning_content 并持久化到消息行，带工具的请求回传全部历史 reasoning_content；出题默认开启思考（强度取设置），只改当前会话。
+- [Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion)：SSE、finish_reason、usage；已接入思考模式工具调用（回传历史 reasoning_content）；结构化题目与分题均经严格参数校验的工具生成。
 - 所用依赖的 pub.dev 版本及 SDK 约束已核对：Drift 2.35.3 / sqlite3 3.8.0、Riverpod 3.4.3、go_router 18.1.2、Dio 5.11.1、secure_storage 11.2.0、file_selector 1.1.0、image_picker 1.2.4、markdown_plus 1.0.12。均覆盖 Android/Linux 所需能力；Linux 相机仅通过文件选择代替。flutter_math_fork 0.7.4 最近发布较早，以实际分式、矩阵、多行公式和错误回退测试约束使用范围。
 
 Android 构建预算：Gradle 3 GiB 堆、1 GiB metaspace、最多 2 个 worker，Kotlin daemon 1 GiB，避免 Flutter 模板默认 8 GiB 堆挤占 CI 进程内存。Linux 各构建模式必须顺序执行，共享的引擎临时目录不支持并发打包。
@@ -27,7 +27,7 @@ Android 构建预算：Gradle 3 GiB 堆、1 GiB metaspace、最多 2 个 worker�
 
 - schema v2 添加类型化知识、错题、文本修订、标签关系、知识关系、错题知识关系、资料图片、对话资料关系及工具操作日志；v1 聊天、草稿、原图引用和配置原样保留。兼容服务迁移后默认不声明工具能力。数据库中只有历史标签快照、偏好和工具审计参数采用 JSON，不将学习实体整体塞入 JSON。
 - StudyStore 是 UI 和 AI 共用的写边界：验证、事务、版本号、历史、软删除。恢复旧文本创建新版本；删除和撤销不覆盖历史。数据库写入失败不能返回工具成功。
-- AI 必须获得用户从应用 UI 授予的会话权限；资料或消息中的指令不能改变权限。工具参数拒绝未知字段，写操作逐项确认，AI 不能修改用户原答案、个人分析和已确认错误原因。DeepSeek 资料工具目前只在非深度思考模式提供，避免错误使用其思考上下文协议；ChatGPT Responses 按输出顺序回传加密推理上下文，允许工具与思考共用。
+- AI 必须获得用户从应用 UI 授予的会话权限；资料或消息中的指令不能改变权限。工具参数拒绝未知字段，写操作逐项确认，AI 不能修改用户原答案、个人分析和已确认错误原因。DeepSeek 资料工具支持与深度思考共用：思考轮次的 reasoning_content 随消息持久化，带工具的请求回传全部历史 reasoning_content；ChatGPT Responses 按输出顺序回传加密推理上下文，允许工具与思考共用。
 - 工具请求最多 4 轮、8 次调用；读取返回摘要或有界正文。写入按当前请求、工具名和规范化参数去重，审计成功和数据修改在同一事务提交。中断的待确认操作在重启时取消，不能自动补执行。审计记录不包含密钥。题目图片仅由应用将已授权 Chat 上下文的图片稳定引用到错题，模型不能指定任意文件路径。
 - Chat 编辑及重新生成建立分支，保留原消息、来源和已执行工具的审计，不删除已被学习资料引用的 AI 消息。新分支继承原教学模式、资料权限和关联关系；独立新会话的资料权限仍默认关闭。
 - 图片编辑使用 Flutter 解码和 Canvas，无额外图像框架；先查像素数，最大 3200 万像素，按最长边 2048 解码后再旋转和裁剪。原始文件从不覆盖。支持手动框选及 AI 边界建议后的人工检查；PNG 编辑副本超过 8 MB 时明确拒绝保存。
@@ -71,7 +71,7 @@ GUI 自动化只在隔离 Mock 构建记录输入框和发送按钮的实际渲�
 
 ## AI 偏好、语言与配色
 
-全局思考配置留在 Provider 设置；会话覆盖保存在 `ai_reasoning:<sessionId>`，分支对话继承覆盖。知识、错题和训练进入 Chat 后共用这个入口。DeepSeek 工具协议目前要求非思考请求，准备任务只改变当前会话，保留全局默认并提示原因；ChatGPT 工具任务保留模型思考设置。
+全局思考配置留在 Provider 设置；会话覆盖保存在 `ai_reasoning:<sessionId>`，分支对话继承覆盖。知识、错题和训练进入 Chat 后共用这个入口。DeepSeek 工具任务不再要求非思考请求：出题默认开启思考（强度取设置），准备任务只改变当前会话，保留全局默认；ChatGPT 工具任务保留模型思考设置。
 
 九类提示词以版本化 `ai_prompts_v1` 偏好保存并随完整备份恢复。单条及总长度有界，保存与界面成功状态以事务结果为准；通用/教学/任务内容允许编辑，工具权限、写入确认和答题提交规则由应用保留。默认内容分中英文，用户覆盖不随语言改变。
 
