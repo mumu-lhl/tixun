@@ -133,18 +133,37 @@ class ProgressScreen extends ConsumerWidget {
           ],
         ),
       );
-  Widget _metric(BuildContext context, String label, String value) =>
-      ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 120),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value, style: Theme.of(context).textTheme.headlineMedium),
-            Text(
-              context.tr(label),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+  Widget _metric(BuildContext context, String label, String value) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 140),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: .4),
         ),
-      );
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: colors.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            context.tr(label),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

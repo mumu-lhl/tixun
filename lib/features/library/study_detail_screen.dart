@@ -183,7 +183,7 @@ class StudyDetailScreen extends ConsumerWidget {
                                           : context.tr("向 AI 请教"),
                                     ),
                                   ),
-                                  OutlinedButton.icon(
+                                  FilledButton.tonalIcon(
                                     onPressed: () => act(context, () async {
                                       final id = await ref
                                           .read(appControllerProvider)
@@ -236,7 +236,7 @@ class StudyDetailScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   if (m != null)
-                                    OutlinedButton(
+                                    TextButton.icon(
                                       onPressed: () => act(
                                         context,
                                         () => _toChat(
@@ -247,7 +247,11 @@ class StudyDetailScreen extends ConsumerWidget {
                                           direct: true,
                                         ),
                                       ),
-                                      child: Text(context.tr("请求完整解析")),
+                                      icon: const Icon(
+                                        Icons.auto_awesome_outlined,
+                                        size: 16,
+                                      ),
+                                      label: Text(context.tr("请求完整解析")),
                                     ),
                                   if (source != null)
                                     TextButton.icon(

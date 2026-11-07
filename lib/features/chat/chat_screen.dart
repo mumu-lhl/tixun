@@ -98,6 +98,7 @@ class ChatScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
+                      visualDensity: VisualDensity.compact,
                       tooltip: c.selected?.toolsEnabled == true
                           ? context.tr("关闭本会话资料工具")
                           : context.tr("开启本会话资料工具"),
@@ -141,6 +142,7 @@ class ChatScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
+                      visualDensity: VisualDensity.compact,
                       tooltip: context.tr("关联学习资料"),
                       onPressed: () =>
                           act(context, () => openChatStudyLinks(context, ref)),
@@ -148,6 +150,7 @@ class ChatScreen extends ConsumerWidget {
                     ),
                     const ReasoningMenu(),
                     IconButton(
+                      visualDensity: VisualDensity.compact,
                       tooltip: context.tr("模型设置"),
                       onPressed: () => context.go('/settings'),
                       icon: const Icon(Icons.tune, size: 21),

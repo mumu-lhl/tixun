@@ -112,56 +112,71 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       ),
                     ),
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     itemCount: items.length,
-                    separatorBuilder: (_, _) => const Divider(),
                     itemBuilder: (ctx, i) {
                       final item = items[i], s = item.schedule;
+                      final colors = Theme.of(context).colorScheme;
                       return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.question.stem,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium,
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: colors.outlineVariant.withValues(
+                                alpha: .5,
+                              ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              context.tr("{0} · {1} · 独立通过 {2} 次", [
-                                item.question.subject,
-                                reviewDate(s.dueAt, context: context),
-                                s.repetitions,
-                              ]),
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 4,
-                              children: [
-                                FilledButton.tonal(
-                                  key: Key('review-start-${s.id}'),
-                                  onPressed: () => act(context, () async {
-                                    await ref
-                                        .read(appControllerProvider)
-                                        .practice
-                                        .begin(s.questionId, retry: true);
-                                    if (context.mounted) {
-                                      context.go('/practice/${s.questionId}');
-                                    }
-                                  }),
-                                  child: Text(context.tr("开始复习")),
-                                ),
-                                TextButton(
-                                  onPressed: () =>
-                                      showReviewHistory(context, ref, item),
-                                  child: Text(context.tr("调度依据与历史")),
-                                ),
-                                PopupMenuButton<String>(
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.question.stem,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                context.tr("{0} · {1} · 独立通过 {2} 次", [
+                                  item.question.subject,
+                                  reviewDate(s.dueAt, context: context),
+                                  s.repetitions,
+                                ]),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  FilledButton.tonal(
+                                    key: Key('review-start-${s.id}'),
+                                    onPressed: () => act(context, () async {
+                                      await ref
+                                          .read(appControllerProvider)
+                                          .practice
+                                          .begin(s.questionId, retry: true);
+                                      if (context.mounted) {
+                                        context.go('/practice/${s.questionId}');
+                                      }
+                                    }),
+                                    child: Text(context.tr("开始复习")),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        showReviewHistory(context, ref, item),
+                                    child: Text(context.tr("调度依据与历史")),
+                                  ),
+                                  PopupMenuButton<String>(
                                   tooltip: context.tr("调整复习"),
                                   onSelected: (v) => act(context, () async {
                                     final store = ref.read(reviewStoreProvider);
@@ -249,9 +264,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                             ),
                           ],
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
+                    ),
           ),
         ),
       ],

@@ -55,6 +55,28 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      color: colors.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: .5)),
+      ),
+      margin: EdgeInsets.zero,
+    ),
+    chipTheme: ChipThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      side: BorderSide(color: colors.outlineVariant.withValues(alpha: .5)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      labelStyle: const TextStyle(fontSize: 12),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: BorderSide(color: colors.outlineVariant),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      ),
+    ),
     dividerTheme: DividerThemeData(
       color: colors.outlineVariant.withValues(alpha: .6),
       thickness: 1,

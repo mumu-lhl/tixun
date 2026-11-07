@@ -149,7 +149,7 @@ class DashboardScreen extends ConsumerWidget {
                     spacing: 12,
                     runSpacing: 8,
                     children: [
-                      OutlinedButton.icon(
+                      FilledButton.icon(
                         key: const Key('start-chat'),
                         onPressed: () => act(context, () async {
                           await c.newSession();
@@ -158,7 +158,7 @@ class DashboardScreen extends ConsumerWidget {
                         icon: const Icon(Icons.add, size: 18),
                         label: Text(context.tr("开始学习对话")),
                       ),
-                      TextButton.icon(
+                      OutlinedButton.icon(
                         onPressed: () => context.go('/mistakes'),
                         icon: const Icon(
                           Icons.add_photo_alternate_outlined,
@@ -170,51 +170,67 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 const SizedBox(height: 24),
                 if (compact)
-                  Row(
-                    children: [
-                      for (final (label, value) in [
-                        ('学习对话', '${c.allSessions.length}'),
-                        (
-                          '知识积累',
-                          counts.when(
-                            data: (v) => '${v.knowledge}',
-                            loading: () => '…',
-                            error: (_, _) => '—',
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 18,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: colors.outlineVariant.withValues(alpha: .5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        for (final (label, value) in [
+                          ('学习对话', '${c.allSessions.length}'),
+                          (
+                            '知识积累',
+                            counts.when(
+                              data: (v) => '${v.knowledge}',
+                              loading: () => '…',
+                              error: (_, _) => '—',
+                            ),
                           ),
-                        ),
-                        (
-                          '错题记录',
-                          counts.when(
-                            data: (v) => '${v.mistakes}',
-                            loading: () => '…',
-                            error: (_, _) => '—',
+                          (
+                            '错题记录',
+                            counts.when(
+                              data: (v) => '${v.mistakes}',
+                              loading: () => '…',
+                              error: (_, _) => '—',
+                            ),
                           ),
-                        ),
-                      ])
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Text(
-                                value,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                context.tr(label),
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: colors.onSurfaceVariant,
-                                  fontSize: 12,
+                        ])
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Text(
+                                  value,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  context.tr(label),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   )
                 else
                   LayoutBuilder(
@@ -296,22 +312,41 @@ class DashboardScreen extends ConsumerWidget {
                   ...c.allSessions
                       .take(3)
                       .map(
-                        (s) => Column(
-                          children: [
-                            ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 8,
+                        (s) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Material(
+                            color: colors.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(12),
+                            child: ListTile(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              leading: Icon(
-                                Icons.chat_bubble_outline_rounded,
-                                size: 22,
-                                color: colors.primary,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ),
+                              leading: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: colors.primaryContainer.withValues(
+                                    alpha: .45,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  size: 18,
+                                  color: colors.primary,
+                                ),
                               ),
                               title: Text(
                                 s.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               subtitle: Text(
                                 context.tr("{0}月{1}日 · 点击继续学习", [
@@ -320,17 +355,17 @@ class DashboardScreen extends ConsumerWidget {
                                 ]),
                                 style: const TextStyle(fontSize: 12),
                               ),
-                              trailing: const Icon(
-                                Icons.arrow_forward,
-                                size: 18,
+                              trailing: Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 14,
+                                color: colors.onSurfaceVariant,
                               ),
                               onTap: () => act(context, () async {
                                 await c.selectSession(s);
                                 if (context.mounted) context.go('/chat');
                               }),
                             ),
-                            const Divider(),
-                          ],
+                          ),
                         ),
                       ),
                 const SizedBox(height: 28),
@@ -379,20 +414,35 @@ class DashboardScreen extends ConsumerWidget {
         constraints: const BoxConstraints(minHeight: 144),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          border: Border.all(color: colors.outlineVariant),
-          borderRadius: BorderRadius.circular(14),
+          color: colors.surfaceContainerLow,
+          border: Border.all(
+            color: colors.outlineVariant.withValues(alpha: .5),
+          ),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, size: 18, color: colors.onSurfaceVariant),
-                const SizedBox(width: 8),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: colors.primaryContainer.withValues(alpha: .5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 18, color: colors.primary),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     context.tr(label),
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
+                    ),
                   ),
                 ),
               ],
@@ -402,17 +452,17 @@ class DashboardScreen extends ConsumerWidget {
               value,
               style: TextStyle(
                 fontSize: value.length < 4
-                    ? 26
+                    ? 28
                     : value.length > 12
-                    ? 14
-                    : 20,
-                fontWeight: FontWeight.w600,
+                    ? 16
+                    : 22,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               context.tr(detail),
-              style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+              style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
             ),
           ],
         ),
