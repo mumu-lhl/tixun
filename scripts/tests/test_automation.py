@@ -10,7 +10,7 @@ SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS))
 from build_artifacts import verify_apk
 from check_release_tag import check
-from release_notes import choose_base, tag_pattern, decode_pages
+from release_notes import choose_base, tag_pattern, decode_pages, has_changes
 
 
 class ApkTests(unittest.TestCase):
@@ -130,6 +130,41 @@ class HistoryTests(unittest.TestCase):
     def test_missing_published_tag_fails_instead_of_silently_changing_range(self):
         with self.assertRaises(ValueError):
             choose_base([self.public('v1.0.0')], 'v0.3.0', self.repo)
+
+    def test_nightly_prefers_published_nightly_and_falls_back_to_stable(self):
+        old, current = 'nightly-20261107-203000', 'nightly-20261108-203000'
+        self.git('tag', old, 'v0.2.0')
+        self.git('tag', current, 'v0.3.0')
+        releases = [self.public('v0.1.0'), self.public(old, '2026-01-02T00:00:00Z'),
+                    self.public('v0.3.0', '2026-01-03T00:00:00Z')]
+        self.assertEqual(choose_base(releases, current, self.repo, nightly=True), old)
+        releases[1]['draft'] = True
+        self.assertEqual(choose_base(releases, current, self.repo, nightly=True), 'v0.3.0')
+
+    def test_stable_changelog_ignores_nightly_and_invalid_nightly_fails(self):
+        old = 'nightly-20261107-203000'
+        self.git('tag', old, 'v0.2.0')
+        releases = [self.public('v0.1.0'), self.public(old, '2026-01-02T00:00:00Z')]
+        self.assertEqual(choose_base(releases, 'v0.3.0', self.repo), 'v0.1.0')
+        with self.assertRaises(ValueError):
+            choose_base(releases, 'nightly-invalid', self.repo, nightly=True)
+
+    def test_unreachable_nightly_and_missing_published_tags_are_not_silent(self):
+        old, current = 'nightly-20261107-203000', 'nightly-20261108-203000'
+        self.git('tag', current, 'v0.3.0')
+        with self.assertRaises(ValueError):
+            choose_base([self.public(old)], current, self.repo, nightly=True)
+        self.git('checkout', '-b', 'other-nightly', 'v0.1.0')
+        self.commit('Unrelated nightly', old)
+        self.git('checkout', '--detach', current)
+        self.assertIsNone(choose_base([self.public(old)], current, self.repo, nightly=True))
+
+    def test_nightly_without_code_changes_does_not_replay_entire_history(self):
+        current = 'nightly-20261108-203000'
+        self.git('tag', current, 'v0.3.0')
+        self.assertFalse(has_changes('v0.3.0', current, self.repo))
+        self.assertTrue(has_changes('v0.1.0', current, self.repo))
+        self.assertTrue(has_changes(None, current, self.repo))
 
 
 class GuiRunnerTests(unittest.TestCase):

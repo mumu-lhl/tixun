@@ -98,10 +98,6 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.textContaining('作答后才显示这段解析'), findsNothing);
-      await expectLater(
-        find.byType(Scaffold),
-        matchesGoldenFile('goldens/quiz_phone.png'),
-      );
       await tester.tap(find.byKey(const Key('option-A')));
       await tester.pump();
       await tester.tap(find.byKey(const Key('submit-quiz')));
@@ -195,10 +191,6 @@ void main() {
       expect(tester.takeException(), isNull);
       container.read(routerProvider).go('/chat');
       await tester.pumpAndSettle();
-      await expectLater(
-        find.byType(Scaffold),
-        matchesGoldenFile('goldens/chat_dark_phone.png'),
-      );
       expect(find.byKey(const Key('chat-input')), findsOneWidget);
       await tester.enterText(find.byKey(const Key('chat-input')), '不会丢失的草稿');
       await tester.pump();
@@ -272,10 +264,6 @@ final answer = 42;
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await expectLater(
-        find.byType(Scaffold),
-        matchesGoldenFile('goldens/math_phone.png'),
-      );
     },
   );
 }

@@ -1,0 +1,127 @@
+name: Publish nightly
+on:
+  schedule:
+    # 04:30 Asia/Shanghai. GitHub may delay scheduled runs.
+    - cron: '30 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: nightly-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        run: echo "tag=nightly-$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+
+  verify-and-build:
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+    with:
+      android_release: true
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+
+  publish:
+    needs: [prepare, verify-and-build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      ANDROID_APK: ${{ needs.verify-and-build.outputs.android_apk }}
+      ANDROID_SUFFIX: ${{ needs.verify-and-build.outputs.android_suffix }}
+      LINUX_SUFFIX: ${{ needs.verify-and-build.outputs.linux_suffix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.verify-and-build.outputs.android_artifact }}
+          path: downloaded/android
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.verify-and-build.outputs.linux_artifact }}
+          path: downloaded/linux
+      - name: Package applications and checksums
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp "downloaded/android/${ANDROID_APK}" "dist/tixun-${RELEASE_TAG}-${ANDROID_SUFFIX}"
+          test -f downloaded/linux/tixun
+          chmod u+x downloaded/linux/tixun
+          tar -czf "dist/tixun-${RELEASE_TAG}-${LINUX_SUFFIX}" -C downloaded/linux .
+          (cd dist && sha256sum ./*.apk ./*.tar.gz > SHA256SUMS)
+      - name: Create local tag for changelog boundaries
+        run: |
+          if git show-ref --verify --quiet "refs/tags/${RELEASE_TAG}"; then
+            test "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" = "$GITHUB_SHA"
+          else
+            git tag "$RELEASE_TAG" "$GITHUB_SHA"
+          fi
+      - name: Resolve previous published nightly
+        id: base
+        run: python3 scripts/release_notes.py --nightly --tag "$RELEASE_TAG" --repo "$GH_REPO" >> "$GITHUB_OUTPUT"
+      - name: Generate GitHub-style changelog
+        if: steps.base.outputs.has_changes == 'true'
+        uses: orhun/git-cliff-action@v4
+        with:
+          version: v2.14.2
+          config: cliff.toml
+          args: >-
+            --current --tag-pattern '${{ steps.base.outputs.tag_pattern }}'
+            --github-repo ${{ github.repository }} --output release-notes.md
+      - name: Describe a nightly with no new commits
+        if: steps.base.outputs.has_changes == 'false'
+        env:
+          BASE_TAG: ${{ steps.base.outputs.base_tag }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          repo, base, tag = (os.environ[k] for k in ('GH_REPO', 'BASE_TAG', 'RELEASE_TAG'))
+          Path('release-notes.md').write_text(
+              "## What's Changed\n\n自上次发布以来没有新的代码提交，本次重新构建并验证。\n\n"
+              f"**Full Changelog**: https://github.com/{repo}/compare/{base}...{tag}\n",
+              encoding='utf-8')
+          PY
+      - name: Add nightly installation notes
+        run: |
+          cat >> release-notes.md <<'NOTES'
+
+          ## Nightly 使用说明
+
+          这是主分支的每日预发布，可能包含尚未完成实机验证的改动。应用内版本号沿用主分支配置，具体源码提交见本页的标签。
+
+          - **Android 10+**：安装 `android-release.apk` 结尾的文件；采用 Release 构建和项目发布签名。首次从旧开发签名迁移，请先导出学习数据，再卸载安装和恢复。后续相同签名、版本号不降低时可覆盖更新。
+          - **Linux x86_64**：解压 `linux-x64.tar.gz`，运行其中的 `tixun`，保留 `lib` 和 `data`。需要 GTK 3；保存密钥需要系统密钥环。
+          - `SHA256SUMS` 可校验文件完整性；Nightly 不替换稳定版的 Latest 标记。
+          NOTES
+      - name: Publish a new prerelease after all verification succeeds
+        run: |
+          set -euo pipefail
+          git push origin "refs/tags/${RELEASE_TAG}"
+          if gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
+            python3 -c 'import json; assert json.load(open("existing-release.json"))["isDraft"], "该 Nightly 已公开，停止覆盖。"'
+            gh release edit "$RELEASE_TAG" --notes-file release-notes.md
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease --latest=false \
+              --title "题训 ${RELEASE_TAG}" --notes-file release-notes.md
+          fi
+          gh release upload "$RELEASE_TAG" dist/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false

@@ -32,7 +32,7 @@ scripts/gui_tests.sh
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。截图和日志保存在 `artifacts/gui/`；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
-Golden 使用随包字体及固定环境；有意更新时运行 `flutter test --update-goldens test/ui_test.dart`，并检查图像。数据库 schema v1/v3/v4 → v5 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
+不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。数据库 schema v1/v3/v4 → v5 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
 
 ```bash
 dart run build_runner build
@@ -108,3 +108,13 @@ flutter test test/localization_test.dart
 先阅读 [接口与约定](docs/ARCHITECTURE_REVIEW.md)。新增 Provider 实现 `ChatProvider.start`，返回单次 `AiConversation`；请求使用 `AiRequest`，事件只发布完整工具调用和明确完成状态。不要把厂商 JSON 或令牌带回控制器。
 
 修改模型参数先调整 `AiOptions` 并补能力矩阵；修改进度、调用上限、取消或结束判定时运行 `flutter test test/architecture_test.dart`，再跑对应协议和控制器回归。偏好写入通过 AppPreferences，跨文件与数据库的学习资料写入通过 Store，确保关闭/备份屏障可追踪。
+
+## 每日 Nightly
+
+[Publish nightly](.github/workflows/nightly.yml) 每天 UTC 20:30（北京时间次日 04:30）从默认分支运行，也支持手动触发。GitHub 定时任务可能延迟；不承诺精确到分钟。
+
+每次采用独立 UTC 时间标签 `nightly-YYYYMMDD-HHMMSS`，复用完整 CI，产出正式签名 Android Release APK、Linux Release 与校验文件。全部检查成功后创建草稿，附件完整上传后公开为 Prerelease，并明确不设为 Latest。失败不会替换已有 Nightly 或稳定版，可重跑失败任务继续草稿。
+
+更新日志继续使用 git-cliff：优先比较上一条已公开且可达的 Nightly，首次回退到已公开的版本标签；无基线时包含完整历史。稳定版日志仍只比较版本标签，不会被 Nightly 截断。应用内版本名和构建号沿用 `pubspec.yaml`，下载文件名与 Release 标签区分各次 Nightly。首次从开发签名迁移仍需备份并卸载旧版。
+
+Golden 像素比对及基线图片已移除；Widget 行为、窄屏/键盘布局、公式回退和原生 GUI 回归继续执行，不再因颜色、间距等像素变化更新快照。

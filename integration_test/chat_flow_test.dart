@@ -82,7 +82,11 @@ void main() {
       await resizeGui(tester, 390, 844);
       await c.addImage('assets/demo/two_problems.png');
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(AttachmentImage));
+      // The thumbnail's right side contains a separate 48dp remove button.
+      await tester.tapAt(
+        tester.getRect(find.byType(AttachmentImage)).centerLeft +
+            const Offset(12, 0),
+      );
       await tester.pumpAndSettle();
       await guiCapture('chat', 'phone-image-preview');
       await tester.tap(find.text('裁剪 / 旋转 / 缩小'));
@@ -114,7 +118,11 @@ void main() {
       }
       await tester.pumpAndSettle();
       expect(c.attachments.single.originalPath, isNotNull);
-      await tester.tap(find.byType(AttachmentImage));
+      // The thumbnail's right side contains a separate 48dp remove button.
+      await tester.tapAt(
+        tester.getRect(find.byType(AttachmentImage)).centerLeft +
+            const Offset(12, 0),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('查看保留的原图'));
       await tester.pumpAndSettle();

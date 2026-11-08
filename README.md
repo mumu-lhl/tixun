@@ -44,6 +44,8 @@ Linux 需要 GTK 3 等运行库。保存 API Key 还需要已解锁的系统密�
 
 目前提供的是开发包，尚未正式上架应用商店。构建和自动化测试已通过；真实 DeepSeek 调用及 Android 实机体验仍待验收，详细状态见[开发进度](ROADMAP.md)。
 
+需要试用主分支的新功能，可在 [Nightly 预发布](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true) 下载每日构建。每天北京时间 04:30 自动运行，实际发布时间取决于 GitHub 排队和构建结果。Nightly 使用正式签名的 Release APK，可能包含尚未验证完善的改动；稳定版下载入口保持不变。
+
 ## 开始使用
 
 ### 1. 配置 AI

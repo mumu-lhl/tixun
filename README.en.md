@@ -46,3 +46,7 @@ Use Settings → Backup to export your database, images, notes, conversations an
 Only the conversation and material needed for an AI request are sent to the chosen provider. TiXun does not automatically upload your entire library or collect analytics. Keys use system secure storage and are never silently saved as plain text.
 
 [Report a problem](https://github.com/mumu-lhl/tixun/issues) · [Development guide](DEVELOPMENT.md) · [Project status](ROADMAP.md)
+
+## Nightly builds
+
+[Daily prereleases](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true) build the default branch at 20:30 UTC, subject to GitHub scheduling and successful verification. Each has an independent timestamp tag, a signed Release APK, a Linux Release bundle and checksums. Nightlies do not replace the stable Latest release and may contain unfinished changes.

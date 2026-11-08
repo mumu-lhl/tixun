@@ -43,7 +43,7 @@
 - [x] 批量资料操作及撤销、历史分页、回收区恢复和确认永久删除、共享图片引用保护。
 - [x] 56 项自动化测试；schema v1/v3/v4 → v5 保留资料与作答的迁移测试。
 - [x] 7 项真实 Linux GUI 集成测试：聊天/流式/图片编辑、工具保存、人工和 AI 分题、错题→变式→交互题→复习→诊断、备份恢复/撤销、小测/修订/批量操作。
-- [x] 已读取手机与桌面、深浅主题、公式、图片和训练截图；Golden 有意更新并读取检查。
+- [x] 已读取手机与桌面、深浅主题、公式、图片和训练截图；已按维护需求移除 Golden 像素基线，保留行为测试与 GUI 视觉检查。
 - [x] 0.5.1 Linux 正式/Mock Release 构建、真实生产数据库启动、创建会话后重启保留、最终 GUI 启动与截图审查。
 - [x] 已下载并检查 CI APK：`org.tixun.tixun`、版本 `0.5.1`/6、minSdk 29、targetSdk 36、arm64-v8a/armeabi-v7a/x86_64，APK v2 签名校验通过。Manifest 无相机或广泛存储权限；硬件行为另行验收。
 - [x] 最终 0.5.1 双平台 CI：[41879876725](https://github.com/mumu-lhl/tixun/actions/runs/41879876725)。56 项测试、Android Debug APK、Linux Release 和 7 项真实 GUI 集成测试全部通过，构建与截图日志 Artifact 已上传。
