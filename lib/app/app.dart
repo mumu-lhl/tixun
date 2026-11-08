@@ -175,6 +175,21 @@ class AppShell extends ConsumerWidget {
   /// selected index is in range, so it cannot receive this value.
   static int navIndexFor(String path) =>
       paths.indexWhere((p) => path == p || path.startsWith('$p/'));
+
+  /// Subject chips in display order: 全部, then the 3 main subjects,
+  /// then the 6 electives.
+  static const subjectChips = [
+    '',
+    '语文',
+    '数学',
+    '英语',
+    '物理',
+    '化学',
+    '生物',
+    '历史',
+    '地理',
+    '政治',
+  ];
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= 800;
@@ -183,7 +198,11 @@ class AppShell extends ConsumerWidget {
     // -1 instead of being clamped to 0, which used to highlight 学习.
     final index = navIndexFor(path);
     final c = ref.read(appControllerProvider);
-    ref.watch(appControllerProvider.select((c) => (c.demo, c.notice)));
+    final shell = ref.watch(
+      appControllerProvider.select(
+        (c) => (demo: c.demo, notice: c.notice, subjectFilter: c.subjectFilter),
+      ),
+    );
     final colors = Theme.of(context).colorScheme;
     return CallbackShortcuts(
       bindings: {
@@ -210,7 +229,7 @@ class AppShell extends ConsumerWidget {
         body: SafeArea(
           child: Column(
             children: [
-              if (c.demo)
+              if (shell.demo)
                 Container(
                   width: double.infinity,
                   color: colors.tertiaryContainer,
@@ -227,9 +246,9 @@ class AppShell extends ConsumerWidget {
                     ),
                   ),
                 ),
-              if (c.notice != null)
+              if (shell.notice != null)
                 MaterialBanner(
-                  content: Text(context.tr(c.notice!)),
+                  content: Text(context.tr(shell.notice!)),
                   actions: [
                     TextButton(
                       style: TextButton.styleFrom(
@@ -243,6 +262,35 @@ class AppShell extends ConsumerWidget {
                     ),
                   ],
                 ),
+              // Global subject switch: 全部 + 9 school subjects. One tap
+              // filters sessions, library, mistakes, practice and review.
+              SizedBox(
+                height: 48,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  children: [
+                    for (final s in subjectChips)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          key: ValueKey('subject-chip-$s'),
+                          label: Text(
+                            s.isEmpty
+                                ? context.tr("全部")
+                                : context.subjectName(s),
+                          ),
+                          selected: shell.subjectFilter == s,
+                          onSelected: (_) =>
+                              act(context, () => c.setSubjectFilter(s)),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
               Expanded(
                 child: Row(
                   children: [

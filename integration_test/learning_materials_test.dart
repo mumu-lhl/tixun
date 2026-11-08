@@ -163,6 +163,9 @@ void main() {
       await tester.pumpAndSettle();
       final editorButton = find.text('裁剪 / 旋转 / 分题');
       await tester.ensureVisible(editorButton);
+      // The subject bar pushed this button below the fold, so the scroll
+      // ensureVisible triggers needs a frame before tap() reads its center.
+      await tester.pumpAndSettle();
       await tester.tap(editorButton);
       await tester.pumpAndSettle();
       await until(

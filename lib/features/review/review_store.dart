@@ -152,6 +152,7 @@ class ReviewStore extends DatabaseNotifier {
     bool dueOnly = false,
     DateTime? now,
     bool paused = false,
+    String subject = '',
   }) async {
     final joined = db.select(db.reviewSchedules).join([
       innerJoin(
@@ -161,7 +162,10 @@ class ReviewStore extends DatabaseNotifier {
     ]);
     joined.where(
       db.reviewSchedules.enabled.equals(!paused) &
-          db.practiceQuestions.deleted.equals(false),
+          db.practiceQuestions.deleted.equals(false) &
+          (subject.isEmpty
+              ? const Constant(true)
+              : db.practiceQuestions.subject.equals(subject)),
     );
     if (dueOnly) {
       joined.where(

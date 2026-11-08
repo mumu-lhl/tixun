@@ -14,10 +14,17 @@ import 'question_card.dart';
 import 'question_spec.dart';
 
 final practiceListProvider = FutureProvider.autoDispose
-    .family<List<PracticeQuestion>, ({String query, bool trash})>(
+    .family<
+      List<PracticeQuestion>,
+      ({String query, bool trash, String subject})
+    >(
       (ref, filter) => ref
           .watch(practiceStoreProvider)
-          .list(query: filter.query, trash: filter.trash),
+          .list(
+            query: filter.query,
+            subject: filter.subject,
+            trash: filter.trash,
+          ),
     );
 
 class PracticeScreen extends ConsumerStatefulWidget {
@@ -31,9 +38,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   bool trash = false;
   @override
   Widget build(BuildContext context) {
-    final filter = (query: query, trash: trash);
-    final rows = ref.watch(practiceListProvider(filter));
     final c = ref.watch(appControllerProvider);
+    final filter = (query: query, trash: trash, subject: c.subjectFilter);
+    final rows = ref.watch(practiceListProvider(filter));
     return Column(
       children: [
         Padding(
@@ -99,7 +106,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                           if (context.mounted) context.go('/practice/run');
                           return;
                         }
-                        await ref.read(practiceStoreProvider).startRandomRun();
+                        await ref
+                            .read(practiceStoreProvider)
+                            .startRandomRun(subject: c.subjectFilter);
                         if (context.mounted) context.go('/practice/run');
                       }),
                       icon: const Icon(Icons.shuffle, size: 18),
@@ -361,7 +370,12 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
   void initState() {
     super.initState();
     final initial = widget.initial;
-    if (initial == null) return;
+    if (initial == null) {
+      // New question: default to the global subject filter, else 数学.
+      final filter = ref.read(appControllerProvider).subjectFilter;
+      if (filter.isNotEmpty) subject.text = filter;
+      return;
+    }
     final q = initial.spec;
     kind = q.kind;
     stem.text = q.stem;

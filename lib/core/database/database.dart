@@ -12,6 +12,7 @@ part 'review_tables.dart';
 class ChatSessions extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
+  TextColumn get subject => text().nullable()();
   TextColumn get mode => text().withDefault(const Constant('guided'))();
   TextColumn get stage => text().withDefault(const Constant('diagnosing'))();
   BoolColumn get toolsEnabled => boolean().withDefault(const Constant(false))();
@@ -118,7 +119,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 6;
+  static const latestSchemaVersion = 7;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -206,6 +207,24 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await m.addColumn(chatMessages, chatMessages.reasoningContent);
+      }
+      if (from < 7) {
+        await m.addColumn(chatSessions, chatSessions.subject);
+        // Backfill from the '<subject> · ' title prefix; anything else
+        // stays unclassified (null) and only shows under "全部".
+        await customStatement(
+          "UPDATE chat_sessions SET subject = CASE "
+          "WHEN title LIKE '语文 · %' THEN '语文' "
+          "WHEN title LIKE '数学 · %' THEN '数学' "
+          "WHEN title LIKE '英语 · %' THEN '英语' "
+          "WHEN title LIKE '物理 · %' THEN '物理' "
+          "WHEN title LIKE '化学 · %' THEN '化学' "
+          "WHEN title LIKE '生物 · %' THEN '生物' "
+          "WHEN title LIKE '历史 · %' THEN '历史' "
+          "WHEN title LIKE '地理 · %' THEN '地理' "
+          "WHEN title LIKE '政治 · %' THEN '政治' "
+          "ELSE NULL END",
+        );
       }
     },
     beforeOpen: (_) async {
@@ -338,6 +357,7 @@ class AppDatabase extends _$AppDatabase {
   Future<ChatSession> createSession({
     String title = '新的学习对话',
     String mode = 'guided',
+    String? subject,
   }) async {
     if (!['guided', 'direct', 'exam'].contains(mode)) {
       throw const FormatException('教学模式无效。');
@@ -349,6 +369,7 @@ class AppDatabase extends _$AppDatabase {
         id: id,
         title: title,
         mode: Value(mode),
+        subject: Value(subject),
         createdAt: now,
         updatedAt: now,
       ),
@@ -377,6 +398,12 @@ class AppDatabase extends _$AppDatabase {
         title: Value(title.trim()),
         updatedAt: Value(DateTime.now()),
       ),
+    );
+  }
+
+  Future<void> setSessionSubject(String id, String subject) async {
+    await (update(chatSessions)..where((s) => s.id.equals(id))).write(
+      ChatSessionsCompanion(subject: Value(subject)),
     );
   }
 

@@ -6,6 +6,8 @@ import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
+import 'package:tixun/features/library/study_store.dart';
+import 'package:tixun/features/practice/question_spec.dart';
 
 class FastProvider implements ChatProvider {
   @override
@@ -52,6 +54,76 @@ void main() {
     await c.prepareQuickQuiz();
     expect(c.sessionReasoning, 'high');
     expect(c.selected!.mode, 'exam');
+    expect(c.selected!.subject, '数学');
+  });
+  test('Subject filter persists and scopes the session list only', () async {
+    final math = await c.db.createSession(title: '数学 · 检测训练', subject: '数学');
+    await c.db.createSession(title: '物理 · 受力分析', subject: '物理');
+    await c.reload();
+    expect(c.sessions.length, 3);
+    await c.setSubjectFilter('数学');
+    expect(c.subjectFilter, '数学');
+    expect(await c.db.preference('subject_filter'), '数学');
+    expect(c.sessions.map((s) => s.id), [math.id]);
+    expect(c.allSessions.length, 3);
+    await c.setSubjectFilter('');
+    expect(c.sessions.length, 3);
+    expect(() => c.setSubjectFilter('奥数'), throwsA(isA<FormatException>()));
+  });
+  test('New sessions inherit the global subject filter', () async {
+    await c.setSubjectFilter('物理');
+    await c.newSession();
+    expect(c.selected!.subject, '物理');
+    await c.setSubjectFilter('');
+    await c.newSession();
+    expect(c.selected!.subject, isNull);
+  });
+  test(
+    'Knowledge practice records the note subject; mixed notes take the first',
+    () async {
+      final physics = await c.study.saveKnowledge(
+        const KnowledgeDraft(title: '受力分析', content: '牛顿第二定律', subject: '物理'),
+      );
+      await c.prepareKnowledgePractice([physics.id]);
+      expect(c.selected!.subject, '物理');
+      final chemistry = await c.study.saveKnowledge(
+        const KnowledgeDraft(title: '摩尔质量', content: 'n=m/M', subject: '化学'),
+      );
+      await c.prepareKnowledgePractice([chemistry.id, physics.id]);
+      expect(c.selected!.subject, '化学');
+    },
+  );
+  test('Variant preparation records the question subject', () async {
+    final id = await c.practice.create(
+      const QuestionSpec(
+        kind: 'numeric',
+        stem: '已知 F=ma，求加速度。',
+        answers: [
+          ['2'],
+        ],
+        subject: '物理',
+      ),
+    );
+    final attempt = await c.practice.begin(id);
+    await c.practice.submit(attempt.id, ['2']);
+    final detail = await c.practice.detail(id);
+    await c.prepareVariant(detail);
+    expect(c.selected!.subject, '物理');
+    expect(c.selected!.title, contains('物理'));
+  });
+  test('Search and subject filter stack', () async {
+    await c.db.createSession(title: '数学 · 检测训练', subject: '数学');
+    await c.db.createSession(title: '物理 · 受力分析', subject: '物理');
+    await c.reload();
+    await c.setSubjectFilter('数学');
+    await c.searchSessions('检测');
+    expect(c.sessions.length, 1);
+    expect(c.sessions.single.subject, '数学');
+    await c.searchSessions('受力');
+    expect(c.sessions, isEmpty);
+    await c.setSubjectFilter('');
+    await c.searchSessions('受力');
+    expect(c.sessions.length, 1);
   });
   test(
     'Stopping generation persists stopped state and allows regeneration',

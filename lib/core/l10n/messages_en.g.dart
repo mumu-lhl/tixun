@@ -845,4 +845,5 @@ const englishMessages = <String, String>{
   "交互出题需要支持工具调用的模型。请先在设置中调整。": "Interactive questions need a tool-capable model. Please adjust it in Settings first.",
   "资料工具需要支持工具调用的模型。": "Material tools require a tool-capable model.",
   "此会话启用了资料工具，请选择支持工具调用的模型，或关闭本会话资料工具。": "This conversation uses data tools. Select a tool-capable model, or turn off data tools for this conversation.",
+  "全部": "All",
 };

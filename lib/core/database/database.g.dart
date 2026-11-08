@@ -27,6 +27,17 @@ class $ChatSessionsTable extends ChatSessions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _modeMeta = const VerificationMeta('mode');
   @override
   late final GeneratedColumn<String> mode = GeneratedColumn<String>(
@@ -113,6 +124,7 @@ class $ChatSessionsTable extends ChatSessions
   List<GeneratedColumn> get $columns => [
     id,
     title,
+    subject,
     mode,
     stage,
     toolsEnabled,
@@ -145,6 +157,12 @@ class $ChatSessionsTable extends ChatSessions
       );
     } else if (isInserting) {
       context.missing(_titleMeta);
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
     }
     if (data.containsKey('mode')) {
       context.handle(
@@ -212,6 +230,10 @@ class $ChatSessionsTable extends ChatSessions
         DriftSqlType.string,
         data['${effectivePrefix}title'],
       )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      ),
       mode: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}mode'],
@@ -252,6 +274,7 @@ class $ChatSessionsTable extends ChatSessions
 class ChatSession extends DataClass implements Insertable<ChatSession> {
   final String id;
   final String title;
+  final String? subject;
   final String mode;
   final String stage;
   final bool toolsEnabled;
@@ -262,6 +285,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
   const ChatSession({
     required this.id,
     required this.title,
+    this.subject,
     required this.mode,
     required this.stage,
     required this.toolsEnabled,
@@ -275,6 +299,9 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['title'] = Variable<String>(title);
+    if (!nullToAbsent || subject != null) {
+      map['subject'] = Variable<String>(subject);
+    }
     map['mode'] = Variable<String>(mode);
     map['stage'] = Variable<String>(stage);
     map['tools_enabled'] = Variable<bool>(toolsEnabled);
@@ -289,6 +316,9 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     return ChatSessionsCompanion(
       id: Value(id),
       title: Value(title),
+      subject: subject == null && nullToAbsent
+          ? const Value.absent()
+          : Value(subject),
       mode: Value(mode),
       stage: Value(stage),
       toolsEnabled: Value(toolsEnabled),
@@ -307,6 +337,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     return ChatSession(
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
+      subject: serializer.fromJson<String?>(json['subject']),
       mode: serializer.fromJson<String>(json['mode']),
       stage: serializer.fromJson<String>(json['stage']),
       toolsEnabled: serializer.fromJson<bool>(json['toolsEnabled']),
@@ -322,6 +353,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
+      'subject': serializer.toJson<String?>(subject),
       'mode': serializer.toJson<String>(mode),
       'stage': serializer.toJson<String>(stage),
       'toolsEnabled': serializer.toJson<bool>(toolsEnabled),
@@ -335,6 +367,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
   ChatSession copyWith({
     String? id,
     String? title,
+    Value<String?> subject = const Value.absent(),
     String? mode,
     String? stage,
     bool? toolsEnabled,
@@ -345,6 +378,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
   }) => ChatSession(
     id: id ?? this.id,
     title: title ?? this.title,
+    subject: subject.present ? subject.value : this.subject,
     mode: mode ?? this.mode,
     stage: stage ?? this.stage,
     toolsEnabled: toolsEnabled ?? this.toolsEnabled,
@@ -357,6 +391,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     return ChatSession(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
+      subject: data.subject.present ? data.subject.value : this.subject,
       mode: data.mode.present ? data.mode.value : this.mode,
       stage: data.stage.present ? data.stage.value : this.stage,
       toolsEnabled: data.toolsEnabled.present
@@ -374,6 +409,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     return (StringBuffer('ChatSession(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('subject: $subject, ')
           ..write('mode: $mode, ')
           ..write('stage: $stage, ')
           ..write('toolsEnabled: $toolsEnabled, ')
@@ -389,6 +425,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
   int get hashCode => Object.hash(
     id,
     title,
+    subject,
     mode,
     stage,
     toolsEnabled,
@@ -403,6 +440,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       (other is ChatSession &&
           other.id == this.id &&
           other.title == this.title &&
+          other.subject == this.subject &&
           other.mode == this.mode &&
           other.stage == this.stage &&
           other.toolsEnabled == this.toolsEnabled &&
@@ -415,6 +453,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
 class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
   final Value<String> id;
   final Value<String> title;
+  final Value<String?> subject;
   final Value<String> mode;
   final Value<String> stage;
   final Value<bool> toolsEnabled;
@@ -426,6 +465,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
   const ChatSessionsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
+    this.subject = const Value.absent(),
     this.mode = const Value.absent(),
     this.stage = const Value.absent(),
     this.toolsEnabled = const Value.absent(),
@@ -438,6 +478,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
   ChatSessionsCompanion.insert({
     required String id,
     required String title,
+    this.subject = const Value.absent(),
     this.mode = const Value.absent(),
     this.stage = const Value.absent(),
     this.toolsEnabled = const Value.absent(),
@@ -453,6 +494,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
   static Insertable<ChatSession> custom({
     Expression<String>? id,
     Expression<String>? title,
+    Expression<String>? subject,
     Expression<String>? mode,
     Expression<String>? stage,
     Expression<bool>? toolsEnabled,
@@ -465,6 +507,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
+      if (subject != null) 'subject': subject,
       if (mode != null) 'mode': mode,
       if (stage != null) 'stage': stage,
       if (toolsEnabled != null) 'tools_enabled': toolsEnabled,
@@ -479,6 +522,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
   ChatSessionsCompanion copyWith({
     Value<String>? id,
     Value<String>? title,
+    Value<String?>? subject,
     Value<String>? mode,
     Value<String>? stage,
     Value<bool>? toolsEnabled,
@@ -491,6 +535,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     return ChatSessionsCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
+      subject: subject ?? this.subject,
       mode: mode ?? this.mode,
       stage: stage ?? this.stage,
       toolsEnabled: toolsEnabled ?? this.toolsEnabled,
@@ -510,6 +555,9 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
     }
     if (mode.present) {
       map['mode'] = Variable<String>(mode.value);
@@ -543,6 +591,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     return (StringBuffer('ChatSessionsCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('subject: $subject, ')
           ..write('mode: $mode, ')
           ..write('stage: $stage, ')
           ..write('toolsEnabled: $toolsEnabled, ')

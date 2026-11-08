@@ -91,6 +91,38 @@ class AppController extends ChangeNotifier {
   bool _disposed = false;
   String search = '';
   String? notice;
+  // Global subject filter: '' means 全部, otherwise one of schoolSubjects.
+  // Persisted under 'subject_filter'; sessions, library, mistakes,
+  // practice and review all follow it.
+  String subjectFilter = '';
+
+  List<ChatSession> _visibleSessions(List<ChatSession> rows) =>
+      subjectFilter.isEmpty
+      ? rows
+      : rows.where((s) => s.subject == subjectFilter).toList();
+
+  Future<void> setSubjectFilter(String value) async {
+    if (value != '' && !schoolSubjects.contains(value)) {
+      throw const FormatException('科目无效。');
+    }
+    if (value == subjectFilter) return;
+    subjectFilter = value;
+    await db.setPreference('subject_filter', value);
+    await reload();
+  }
+
+  // Session subjects are free text like knowledge subjects (custom
+  // subjects are allowed); only the global filter is limited to the 9
+  // school subjects, so a custom-subject session only shows under 全部.
+  Future<void> setSessionSubject(ChatSession s, String subject) async {
+    await db.setSessionSubject(s.id, subject);
+    await reload();
+    if (selected?.id == s.id) {
+      selected = selected!.copyWith(subject: Value(subject));
+      changed();
+    }
+  }
+
   void changed() {
     if (!_disposed) notifyListeners();
   }
@@ -142,6 +174,11 @@ class AppController extends ChangeNotifier {
   Future<void> initialize({bool seed = true}) async {
     await preferences.load();
     notice = preferences.loadNotice;
+    final savedSubject = await db.preference('subject_filter');
+    if (savedSubject != null &&
+        (savedSubject.isEmpty || schoolSubjects.contains(savedSubject))) {
+      subjectFilter = savedSubject;
+    }
     if (demo && seed) await seedDemo();
     await reload();
     final lastId = await db.preference('selected_session');
@@ -176,7 +213,7 @@ class AppController extends ChangeNotifier {
           ),
         );
     await db.createSession(title: '英语阅读：怎样理解长难句');
-    await db.createSession(title: '物理 · 受力分析的学习计划');
+    await db.createSession(title: '物理 · 受力分析的学习计划', subject: '物理');
     final demoSessions = await db.sessions();
     for (final item in demoSessions) {
       final hour = item.id == s.id
@@ -238,7 +275,8 @@ class AppController extends ChangeNotifier {
 
   Future<void> reload() async {
     allSessions = await db.sessions();
-    sessions = search.isEmpty ? allSessions : await db.sessions(search);
+    final rows = search.isEmpty ? allSessions : await db.sessions(search);
+    sessions = _visibleSessions(rows);
     changed();
   }
 
@@ -246,7 +284,7 @@ class AppController extends ChangeNotifier {
     search = value;
     final result = await db.sessions(value);
     if (search == value) {
-      sessions = result;
+      sessions = _visibleSessions(result);
       changed();
     }
   }
@@ -282,7 +320,11 @@ class AppController extends ChangeNotifier {
     await stop();
     final profile = await LearningProfile.load(db);
     await selectSession(
-      await db.createSession(mode: profile.teaching, title: uiText('新的学习对话')),
+      await db.createSession(
+        mode: profile.teaching,
+        title: uiText('新的学习对话'),
+        subject: subjectFilter.isEmpty ? null : subjectFilter,
+      ),
     );
     search = '';
     await reload();
@@ -822,6 +864,7 @@ class AppController extends ChangeNotifier {
     await newSession();
     await mode('exam');
     await renameSession(selected!, '数学 · 检测训练');
+    await setSessionSubject(selected!, '数学');
     await useQuizReasoning();
     await draft(prompts.text('quiz'));
   }
@@ -835,6 +878,9 @@ class AppController extends ChangeNotifier {
     await newSession();
     await mode('exam');
     await useQuizReasoning();
+    // All notes from one subject keep that subject; mixed notes take the
+    // first one's subject.
+    await setSessionSubject(selected!, notes.first.subject);
     await renameSession(
       selected!,
       notes.length == 1 ? '${notes.first.subject} · 专项训练' : '知识点 · 综合训练',
@@ -853,6 +899,7 @@ class AppController extends ChangeNotifier {
     await newSession();
     await mode('guided');
     await renameSession(selected!, '${q.subject} · 订正与变式训练');
+    await setSessionSubject(selected!, q.subject);
     await useQuizReasoning();
     await db.setPreference('practice_parent:${selected!.id}', detail.row.id);
     if (detail.row.mistakeId != null) {

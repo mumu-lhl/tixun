@@ -22,7 +22,9 @@ class LibraryScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
-  String _query = '', _subject = '';
+  String _query = '';
+  // Last global subject filter applied to the list; a change reloads.
+  String _appliedSubject = '';
   bool _trash = false, _importing = false;
   int _importTotal = 0, _importDone = 0;
   int _epoch = -1;
@@ -54,11 +56,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   void _refresh() => setState(() => _epoch = -1);
+  String _defaultSubject() {
+    final filter = ref.read(appControllerProvider).subjectFilter;
+    return filter.isEmpty ? '数学' : filter;
+  }
+
   Future<List<_Entry>> _load(StudyStore store, {int offset = 0}) async =>
       widget.isMistake
       ? (await store.searchMistakes(
               query: _query,
-              subject: _subject,
+              subject: ref.read(appControllerProvider).subjectFilter,
               trash: _trash,
               limit: 100,
               offset: offset,
@@ -77,7 +84,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             .toList()
       : (await store.searchKnowledge(
               query: _query,
-              subject: _subject,
+              subject: ref.read(appControllerProvider).subjectFilter,
               trash: _trash,
               limit: 100,
               offset: offset,
@@ -112,7 +119,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   Future<void> _more() async {
     if (_loadingMore) return;
-    final epoch = _epoch, query = _query, subject = _subject, trash = _trash;
+    final epoch = _epoch,
+        query = _query,
+        subject = ref.read(appControllerProvider).subjectFilter,
+        trash = _trash;
     setState(() => _loadingMore = true);
     try {
       final rows = await _load(
@@ -122,7 +132,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       if (mounted &&
           epoch == _epoch &&
           query == _query &&
-          subject == _subject &&
+          subject == ref.read(appControllerProvider).subjectFilter &&
           trash == _trash) {
         setState(() {
           _nextOffset += rows.length;
@@ -235,7 +245,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final id = await showDialog<String>(
       context: context,
       useSafeArea: false,
-      builder: (_) => StudyEditor(isMistake: widget.isMistake),
+      builder: (_) => StudyEditor(
+        isMistake: widget.isMistake,
+        initialKnowledge: widget.isMistake
+            ? null
+            : KnowledgeDraft(
+                title: '',
+                content: '',
+                subject: _defaultSubject(),
+              ),
+        initialMistake: widget.isMistake
+            ? MistakeDraft(title: '', subject: _defaultSubject())
+            : null,
+      ),
     );
     if (id != null && mounted) {
       context.push('${widget.isMistake ? '/mistakes' : '/knowledge'}/$id');
@@ -256,11 +278,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       for (final file in picked) {
         await ref
             .read(studyStoreProvider)
-            .importMistake(
-              file.path,
-              file.name,
-              subject: _subject.isEmpty ? '数学' : _subject,
-            );
+            .importMistake(file.path, file.name, subject: _defaultSubject());
         imported++;
         if (mounted) setState(() => _importDone = imported);
       }
@@ -304,7 +322,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         ref.read(appControllerProvider),
         isMistake: true,
         camera: kind == 'camera',
-        subject: _subject.isEmpty ? '数学' : _subject,
+        subject: _defaultSubject(),
       );
       if (mounted) {
         setState(() {
@@ -335,6 +353,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final store = ref.watch(studyStoreProvider);
     final colors = Theme.of(context).colorScheme;
     final name = widget.isMistake ? '错题本' : '知识库';
+    // The list follows the global subject filter; a change reloads.
+    final subjectFilter = ref.watch(
+      appControllerProvider.select((c) => c.subjectFilter),
+    );
+    if (_appliedSubject != subjectFilter) {
+      _appliedSubject = subjectFilter;
+      _epoch = -1;
+    }
     if (_epoch != store.epoch) {
       _epoch = store.epoch;
       _extra.clear();
@@ -444,58 +470,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Expanded(
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _subject,
-                        isExpanded: true,
-                        items:
-                            [
-                                  '',
-                                  ...schoolSubjects,
-                                  if (_subject.isNotEmpty &&
-                                      !schoolSubjects.contains(_subject))
-                                    _subject,
-                                ]
-                                .map(
-                                  (s) => DropdownMenuItem(
-                                    value: s,
-                                    child: Text(
-                                      s.isEmpty
-                                          ? context.tr("全部科目")
-                                          : context.subjectName(s),
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                        onChanged: (s) => setState(() {
-                          _subject = s!;
-                          _epoch = -1;
-                        }),
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
-                    onPressed: () async {
-                      final subject = await editText(
-                        context,
-                        title: context.tr("按自定义科目筛选"),
-                        initial: _subject,
-                      );
-                      if (subject != null && mounted) {
-                        setState(() {
-                          _subject = subject;
-                          _epoch = -1;
-                        });
-                      }
-                    },
-                    child: Text(
-                      context.tr("自定义科目"),
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
                   if (widget.isMistake && !_trash)
                     if (Platform.isAndroid)
                       PopupMenuButton<String>(
@@ -641,64 +615,68 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               _visible = entries;
               final canLoadMore = snapshot.data!.length == 100 && _hasMore;
               if (entries.isEmpty) {
+                // Scrollable so the empty state fits short screens
+                // (the shell subject bar takes 48px of height).
                 return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(28),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          widget.isMistake
-                              ? Icons.menu_book_outlined
-                              : Icons.bookmarks_outlined,
-                          size: 40,
-                          color: colors.primary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _trash
-                              ? context.tr("回收区为空")
-                              : _query.isNotEmpty || _subject.isNotEmpty
-                              ? context.tr("没有找到相关资料")
-                              : context.tr("从{0}开始", [
-                                  widget.isMistake
-                                      ? context.tr("一道错题")
-                                      : context.tr("一个知识点"),
-                                ]),
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          _trash
-                              ? context.tr("删除的资料可在这里恢复。")
-                              : widget.isMistake
-                              ? context.tr(
-                                  "手动记录题目、导入图片，或从对话保存。\n多张图片导入后，每张建立独立记录。",
-                                )
-                              : context.tr(
-                                  "自由记录自己的理解，支持 Markdown 与数学公式。\n也可以从对话中保存内容，再补充自己的思考。",
-                                ),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: colors.onSurfaceVariant,
-                            height: 1.8,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.isMistake
+                                ? Icons.menu_book_outlined
+                                : Icons.bookmarks_outlined,
+                            size: 40,
+                            color: colors.primary,
                           ),
-                        ),
-                        if (!_trash)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 20),
-                            child: OutlinedButton(
-                              onPressed: () => act(context, _create),
-                              child: Text(
-                                context.tr("新建{0}", [
-                                  widget.isMistake
-                                      ? context.tr("错题")
-                                      : context.tr("知识"),
-                                ]),
-                              ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _trash
+                                ? context.tr("回收区为空")
+                                : _query.isNotEmpty || subjectFilter.isNotEmpty
+                                ? context.tr("没有找到相关资料")
+                                : context.tr("从{0}开始", [
+                                    widget.isMistake
+                                        ? context.tr("一道错题")
+                                        : context.tr("一个知识点"),
+                                  ]),
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            _trash
+                                ? context.tr("删除的资料可在这里恢复。")
+                                : widget.isMistake
+                                ? context.tr(
+                                    "手动记录题目、导入图片，或从对话保存。\n多张图片导入后，每张建立独立记录。",
+                                  )
+                                : context.tr(
+                                    "自由记录自己的理解，支持 Markdown 与数学公式。\n也可以从对话中保存内容，再补充自己的思考。",
+                                  ),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              height: 1.8,
                             ),
                           ),
-                      ],
+                          if (!_trash)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 20),
+                              child: OutlinedButton(
+                                onPressed: () => act(context, _create),
+                                child: Text(
+                                  context.tr("新建{0}", [
+                                    widget.isMistake
+                                        ? context.tr("错题")
+                                        : context.tr("知识"),
+                                  ]),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 );

@@ -52,7 +52,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   String filter = 'due';
   @override
   Widget build(BuildContext context) {
-    final rows = ref.watch(reviewListProvider(filter));
+    final c = ref.watch(appControllerProvider);
+    final key = (filter: filter, subject: c.subjectFilter);
+    final rows = ref.watch(reviewListProvider(key));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -103,7 +105,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => Center(
               child: TextButton(
-                onPressed: () => ref.invalidate(reviewListProvider(filter)),
+                onPressed: () => ref.invalidate(reviewListProvider(key)),
                 child: Text(context.tr("复习安排读取失败，点击重试")),
               ),
             ),
