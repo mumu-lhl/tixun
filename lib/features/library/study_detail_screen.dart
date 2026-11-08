@@ -1,3 +1,6 @@
+import '../chat/message_reasoning.dart';
+import '../scratchpad/scratchpad_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -256,6 +259,8 @@ class StudyDetailScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   if (m != null)
+                                    ScratchpadButton('mistake:$id'),
+                                  if (m != null)
                                     TextButton.icon(
                                       onPressed: () => act(
                                         context,
@@ -284,6 +289,13 @@ class StudyDetailScreen extends ConsumerWidget {
                                     ),
                                 ],
                               ),
+                            ),
+                          if ((k?.item.sourceMessageId ??
+                                  m?.item.sourceMessageId) !=
+                              null)
+                            SourceReasoning(
+                              (k?.item.sourceMessageId ??
+                                  m?.item.sourceMessageId)!,
                             ),
                           if (k != null) ...[
                             if (k.item.content.isEmpty)

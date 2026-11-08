@@ -21,6 +21,7 @@ class LearningRunResult {
     this.tokens,
     required this.quizCreated,
     this.reasoning,
+    this.reasoningTrace,
   });
   final String text;
   final int? tokens;
@@ -30,6 +31,9 @@ class LearningRunResult {
   /// Persisted with the assistant message so later tool requests can pass
   /// it back; null when the round had no reasoning content.
   final String? reasoning;
+
+  /// Display-only trace across rounds; never replay this as protocol reasoning.
+  final String? reasoningTrace;
 }
 
 /// Complete learning inference, including context, protocol turns and tool policy.
@@ -77,12 +81,15 @@ class LearningRun {
     int? tokens;
     var quizCreated = false, regionsCreated = false;
     String? lastRoundReasoning;
+    var activeReasoning = '', trace = '';
     final exam = mode == 'exam';
     Future<void> publish() => onProgress(
       LearningRunResult(
         text: exam ? (quizCreated ? '先独立尝试下面的题目。提交后查看参考答案与解析。' : '') : text,
         tokens: tokens,
         quizCreated: quizCreated,
+        reasoning: activeReasoning.isEmpty ? null : activeReasoning,
+        reasoningTrace: trace.isEmpty ? null : trace,
       ),
     );
     try {
@@ -191,13 +198,21 @@ class LearningRun {
         final calls = <ToolCall>[];
         var roundText = '';
         var roundReasoning = '';
+        activeReasoning = '';
+        var traceStarted = false;
         var roundTokens = 0;
         var completed = false;
         await for (final chunk in conversation.complete(request, cancel)) {
           cancel.checkCancelled();
           text += chunk.text;
           roundText += chunk.text;
+          if (chunk.reasoning.isNotEmpty) {
+            if (!traceStarted && trace.isNotEmpty) trace += '\n\n---\n\n';
+            traceStarted = true;
+            trace += chunk.reasoning;
+          }
           roundReasoning += chunk.reasoning;
+          activeReasoning = roundReasoning;
           if (chunk.tokens != null) {
             tokens = (tokens ?? 0) - roundTokens + chunk.tokens!;
             roundTokens = chunk.tokens!;
@@ -205,7 +220,8 @@ class LearningRun {
           if (completed &&
               (chunk.completed ||
                   chunk.calls.isNotEmpty ||
-                  chunk.text.isNotEmpty)) {
+                  chunk.text.isNotEmpty ||
+                  chunk.reasoning.isNotEmpty)) {
             throw const AiFailure('服务返回错误，请检查模型配置后重试。');
           }
           if (chunk.calls.isNotEmpty && !chunk.completed) {
@@ -299,6 +315,7 @@ class LearningRun {
         tokens: tokens,
         quizCreated: quizCreated,
         reasoning: lastRoundReasoning,
+        reasoningTrace: trace.isEmpty ? null : trace,
       );
     } finally {
       timer.cancel();

@@ -105,7 +105,10 @@ class ChatGptResponses implements ChatProvider {
       'include': ['reasoning.encrypted_content'],
       if (request.instructions.isNotEmpty) 'instructions': request.instructions,
       if (config.thinking)
-        'reasoning': {'effort': AiOptions(config).effortParameter},
+        'reasoning': {
+          'effort': AiOptions(config).effortParameter,
+          'summary': 'auto',
+        },
       if (request.tools.isNotEmpty)
         'tools': [
           {
@@ -184,7 +187,7 @@ Stream<AiChunk> decodeResponses(
   Stream<List<int>> bytes,
   void Function(String id, List<dynamic> context)? retainContext,
 ) async* {
-  var completed = false;
+  var completed = false, summarySeen = false;
   await for (final data in sseData(bytes)) {
     if (data == '[DONE]') break;
     Map<String, dynamic> event;
@@ -200,6 +203,10 @@ Stream<AiChunk> decodeResponses(
         ].contains(type) &&
         event['delta'] is String) {
       yield AiChunk(text: event['delta'] as String);
+    } else if (type == 'response.reasoning_summary_text.delta' &&
+        event['delta'] is String) {
+      summarySeen = true;
+      yield AiChunk(reasoning: event['delta'] as String);
     } else if ([
       'response.failed',
       'response.incomplete',
@@ -225,6 +232,17 @@ Stream<AiChunk> decodeResponses(
         throw const AiFailure('ChatGPT 回复格式无效，请重试。');
       }
       final output = response['output'] as List;
+      if (!summarySeen) {
+        for (final item in output.whereType<Map>()) {
+          if (item['type'] != 'reasoning') continue;
+          for (final part
+              in (item['summary'] as List? ?? []).whereType<Map>()) {
+            if (part['type'] == 'summary_text' && part['text'] is String) {
+              yield AiChunk(reasoning: part['text'] as String);
+            }
+          }
+        }
+      }
       final calls = output
           .where((o) => o is Map && o['type'] == 'function_call')
           .toList();

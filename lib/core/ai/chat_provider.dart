@@ -60,8 +60,9 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
       if (delta['content'] is String) {
         yield AiChunk(text: delta['content'] as String);
       }
-      if (delta['reasoning_content'] is String) {
-        yield AiChunk(reasoning: delta['reasoning_content'] as String);
+      final reasoning = delta['reasoning_content'] ?? delta['reasoning'];
+      if (reasoning is String) {
+        yield AiChunk(reasoning: reasoning);
       }
       final finish = choice['finish_reason'] as String?;
       if (finish != null) {
@@ -367,8 +368,24 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
 > 这是确定性的 Mock 内容，仅用于验证流式界面，不代表真实模型分析。''';
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
-      AiConversation(_complete);
-  Stream<AiChunk> _complete(AiRequest request, CancelToken cancel) async* {
+      AiConversation(
+        (request, cancel) => _complete(request, cancel, config.thinking),
+      );
+  Stream<AiChunk> _complete(
+    AiRequest request,
+    CancelToken cancel,
+    bool thinking,
+  ) async* {
+    if (thinking) {
+      for (final text in [
+        '【Mock 思考示例】先确认题目条件与学习目标。',
+        '再选择方法，核对推导与参考答案；这些文字只用于测试界面。',
+      ]) {
+        cancel.checkCancelled();
+        yield AiChunk(reasoning: text);
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+      }
+    }
     final history = request.messages;
     final names = request.tools.map((t) => t.name).toSet();
     if (names.isNotEmpty && history.isNotEmpty) {

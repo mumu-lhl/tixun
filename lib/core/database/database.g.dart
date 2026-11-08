@@ -694,6 +694,17 @@ class $ChatMessagesTable extends ChatMessages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _reasoningTraceMeta = const VerificationMeta(
+    'reasoningTrace',
+  );
+  @override
+  late final GeneratedColumn<String> reasoningTrace = GeneratedColumn<String>(
+    'reasoning_trace',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _totalTokensMeta = const VerificationMeta(
     'totalTokens',
   );
@@ -726,6 +737,7 @@ class $ChatMessagesTable extends ChatMessages
     error,
     model,
     reasoningContent,
+    reasoningTrace,
     totalTokens,
     createdAt,
   ];
@@ -797,6 +809,15 @@ class $ChatMessagesTable extends ChatMessages
         ),
       );
     }
+    if (data.containsKey('reasoning_trace')) {
+      context.handle(
+        _reasoningTraceMeta,
+        reasoningTrace.isAcceptableOrUnknown(
+          data['reasoning_trace']!,
+          _reasoningTraceMeta,
+        ),
+      );
+    }
     if (data.containsKey('total_tokens')) {
       context.handle(
         _totalTokensMeta,
@@ -855,6 +876,10 @@ class $ChatMessagesTable extends ChatMessages
         DriftSqlType.string,
         data['${effectivePrefix}reasoning_content'],
       ),
+      reasoningTrace: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reasoning_trace'],
+      ),
       totalTokens: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}total_tokens'],
@@ -881,6 +906,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
   final String? error;
   final String? model;
   final String? reasoningContent;
+  final String? reasoningTrace;
   final int? totalTokens;
   final DateTime createdAt;
   const ChatMessage({
@@ -892,6 +918,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     this.error,
     this.model,
     this.reasoningContent,
+    this.reasoningTrace,
     this.totalTokens,
     required this.createdAt,
   });
@@ -911,6 +938,9 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     }
     if (!nullToAbsent || reasoningContent != null) {
       map['reasoning_content'] = Variable<String>(reasoningContent);
+    }
+    if (!nullToAbsent || reasoningTrace != null) {
+      map['reasoning_trace'] = Variable<String>(reasoningTrace);
     }
     if (!nullToAbsent || totalTokens != null) {
       map['total_tokens'] = Variable<int>(totalTokens);
@@ -935,6 +965,9 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
       reasoningContent: reasoningContent == null && nullToAbsent
           ? const Value.absent()
           : Value(reasoningContent),
+      reasoningTrace: reasoningTrace == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reasoningTrace),
       totalTokens: totalTokens == null && nullToAbsent
           ? const Value.absent()
           : Value(totalTokens),
@@ -956,6 +989,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
       error: serializer.fromJson<String?>(json['error']),
       model: serializer.fromJson<String?>(json['model']),
       reasoningContent: serializer.fromJson<String?>(json['reasoningContent']),
+      reasoningTrace: serializer.fromJson<String?>(json['reasoningTrace']),
       totalTokens: serializer.fromJson<int?>(json['totalTokens']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -972,6 +1006,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
       'error': serializer.toJson<String?>(error),
       'model': serializer.toJson<String?>(model),
       'reasoningContent': serializer.toJson<String?>(reasoningContent),
+      'reasoningTrace': serializer.toJson<String?>(reasoningTrace),
       'totalTokens': serializer.toJson<int?>(totalTokens),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -986,6 +1021,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     Value<String?> error = const Value.absent(),
     Value<String?> model = const Value.absent(),
     Value<String?> reasoningContent = const Value.absent(),
+    Value<String?> reasoningTrace = const Value.absent(),
     Value<int?> totalTokens = const Value.absent(),
     DateTime? createdAt,
   }) => ChatMessage(
@@ -999,6 +1035,9 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     reasoningContent: reasoningContent.present
         ? reasoningContent.value
         : this.reasoningContent,
+    reasoningTrace: reasoningTrace.present
+        ? reasoningTrace.value
+        : this.reasoningTrace,
     totalTokens: totalTokens.present ? totalTokens.value : this.totalTokens,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -1014,6 +1053,9 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
       reasoningContent: data.reasoningContent.present
           ? data.reasoningContent.value
           : this.reasoningContent,
+      reasoningTrace: data.reasoningTrace.present
+          ? data.reasoningTrace.value
+          : this.reasoningTrace,
       totalTokens: data.totalTokens.present
           ? data.totalTokens.value
           : this.totalTokens,
@@ -1032,6 +1074,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
           ..write('error: $error, ')
           ..write('model: $model, ')
           ..write('reasoningContent: $reasoningContent, ')
+          ..write('reasoningTrace: $reasoningTrace, ')
           ..write('totalTokens: $totalTokens, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -1048,6 +1091,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
     error,
     model,
     reasoningContent,
+    reasoningTrace,
     totalTokens,
     createdAt,
   );
@@ -1063,6 +1107,7 @@ class ChatMessage extends DataClass implements Insertable<ChatMessage> {
           other.error == this.error &&
           other.model == this.model &&
           other.reasoningContent == this.reasoningContent &&
+          other.reasoningTrace == this.reasoningTrace &&
           other.totalTokens == this.totalTokens &&
           other.createdAt == this.createdAt);
 }
@@ -1076,6 +1121,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
   final Value<String?> error;
   final Value<String?> model;
   final Value<String?> reasoningContent;
+  final Value<String?> reasoningTrace;
   final Value<int?> totalTokens;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
@@ -1088,6 +1134,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     this.error = const Value.absent(),
     this.model = const Value.absent(),
     this.reasoningContent = const Value.absent(),
+    this.reasoningTrace = const Value.absent(),
     this.totalTokens = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1101,6 +1148,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     this.error = const Value.absent(),
     this.model = const Value.absent(),
     this.reasoningContent = const Value.absent(),
+    this.reasoningTrace = const Value.absent(),
     this.totalTokens = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
@@ -1118,6 +1166,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     Expression<String>? error,
     Expression<String>? model,
     Expression<String>? reasoningContent,
+    Expression<String>? reasoningTrace,
     Expression<int>? totalTokens,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
@@ -1131,6 +1180,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
       if (error != null) 'error': error,
       if (model != null) 'model': model,
       if (reasoningContent != null) 'reasoning_content': reasoningContent,
+      if (reasoningTrace != null) 'reasoning_trace': reasoningTrace,
       if (totalTokens != null) 'total_tokens': totalTokens,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -1146,6 +1196,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     Value<String?>? error,
     Value<String?>? model,
     Value<String?>? reasoningContent,
+    Value<String?>? reasoningTrace,
     Value<int?>? totalTokens,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
@@ -1159,6 +1210,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
       error: error ?? this.error,
       model: model ?? this.model,
       reasoningContent: reasoningContent ?? this.reasoningContent,
+      reasoningTrace: reasoningTrace ?? this.reasoningTrace,
       totalTokens: totalTokens ?? this.totalTokens,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -1192,6 +1244,9 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
     if (reasoningContent.present) {
       map['reasoning_content'] = Variable<String>(reasoningContent.value);
     }
+    if (reasoningTrace.present) {
+      map['reasoning_trace'] = Variable<String>(reasoningTrace.value);
+    }
     if (totalTokens.present) {
       map['total_tokens'] = Variable<int>(totalTokens.value);
     }
@@ -1215,6 +1270,7 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
           ..write('error: $error, ')
           ..write('model: $model, ')
           ..write('reasoningContent: $reasoningContent, ')
+          ..write('reasoningTrace: $reasoningTrace, ')
           ..write('totalTokens: $totalTokens, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
@@ -12232,6 +12288,277 @@ class PracticeChatLinksCompanion extends UpdateCompanion<PracticeChatLink> {
   }
 }
 
+class $ScratchpadsTable extends Scratchpads
+    with TableInfo<$ScratchpadsTable, Scratchpad> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ScratchpadsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _contextKeyMeta = const VerificationMeta(
+    'contextKey',
+  );
+  @override
+  late final GeneratedColumn<String> contextKey = GeneratedColumn<String>(
+    'context_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _documentMeta = const VerificationMeta(
+    'document',
+  );
+  @override
+  late final GeneratedColumn<String> document = GeneratedColumn<String>(
+    'document',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [contextKey, document, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'scratchpads';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Scratchpad> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('context_key')) {
+      context.handle(
+        _contextKeyMeta,
+        contextKey.isAcceptableOrUnknown(data['context_key']!, _contextKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contextKeyMeta);
+    }
+    if (data.containsKey('document')) {
+      context.handle(
+        _documentMeta,
+        document.isAcceptableOrUnknown(data['document']!, _documentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_documentMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {contextKey};
+  @override
+  Scratchpad map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Scratchpad(
+      contextKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}context_key'],
+      )!,
+      document: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}document'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ScratchpadsTable createAlias(String alias) {
+    return $ScratchpadsTable(attachedDatabase, alias);
+  }
+}
+
+class Scratchpad extends DataClass implements Insertable<Scratchpad> {
+  final String contextKey;
+  final String document;
+  final DateTime updatedAt;
+  const Scratchpad({
+    required this.contextKey,
+    required this.document,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['context_key'] = Variable<String>(contextKey);
+    map['document'] = Variable<String>(document);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ScratchpadsCompanion toCompanion(bool nullToAbsent) {
+    return ScratchpadsCompanion(
+      contextKey: Value(contextKey),
+      document: Value(document),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Scratchpad.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Scratchpad(
+      contextKey: serializer.fromJson<String>(json['contextKey']),
+      document: serializer.fromJson<String>(json['document']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'contextKey': serializer.toJson<String>(contextKey),
+      'document': serializer.toJson<String>(document),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Scratchpad copyWith({
+    String? contextKey,
+    String? document,
+    DateTime? updatedAt,
+  }) => Scratchpad(
+    contextKey: contextKey ?? this.contextKey,
+    document: document ?? this.document,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Scratchpad copyWithCompanion(ScratchpadsCompanion data) {
+    return Scratchpad(
+      contextKey: data.contextKey.present
+          ? data.contextKey.value
+          : this.contextKey,
+      document: data.document.present ? data.document.value : this.document,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Scratchpad(')
+          ..write('contextKey: $contextKey, ')
+          ..write('document: $document, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(contextKey, document, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Scratchpad &&
+          other.contextKey == this.contextKey &&
+          other.document == this.document &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ScratchpadsCompanion extends UpdateCompanion<Scratchpad> {
+  final Value<String> contextKey;
+  final Value<String> document;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ScratchpadsCompanion({
+    this.contextKey = const Value.absent(),
+    this.document = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ScratchpadsCompanion.insert({
+    required String contextKey,
+    required String document,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : contextKey = Value(contextKey),
+       document = Value(document),
+       updatedAt = Value(updatedAt);
+  static Insertable<Scratchpad> custom({
+    Expression<String>? contextKey,
+    Expression<String>? document,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (contextKey != null) 'context_key': contextKey,
+      if (document != null) 'document': document,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ScratchpadsCompanion copyWith({
+    Value<String>? contextKey,
+    Value<String>? document,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ScratchpadsCompanion(
+      contextKey: contextKey ?? this.contextKey,
+      document: document ?? this.document,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (contextKey.present) {
+      map['context_key'] = Variable<String>(contextKey.value);
+    }
+    if (document.present) {
+      map['document'] = Variable<String>(document.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScratchpadsCompanion(')
+          ..write('contextKey: $contextKey, ')
+          ..write('document: $document, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -12282,6 +12609,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ReviewRecordsTable reviewRecords = $ReviewRecordsTable(this);
   late final $PracticeChatLinksTable practiceChatLinks =
       $PracticeChatLinksTable(this);
+  late final $ScratchpadsTable scratchpads = $ScratchpadsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -12314,6 +12642,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     reviewSchedules,
     reviewRecords,
     practiceChatLinks,
+    scratchpads,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([

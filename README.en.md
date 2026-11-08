@@ -52,3 +52,9 @@ Only the conversation and material needed for an AI request are sent to the chos
 [Daily prereleases](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true) build the default branch at 20:30 UTC, subject to GitHub scheduling and successful verification. Each has an independent timestamp tag, a signed Release APK, a Linux Release bundle and checksums. Nightlies do not replace the stable Latest release and may contain unfinished changes.
 
 Future stable and nightly Android releases include `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `universal` APKs. Most modern phones use arm64-v8a; choose Universal if unsure. All variants share the same application ID, version code and signing key. Existing v0.5.2 assets are unchanged.
+
+## Reasoning and handwritten drafts
+
+Chat replies stream incrementally. Enable reasoning to view provider-returned reasoning or public summaries in a collapsed panel. ChatGPT encrypted internal state is never decoded or displayed. Exercise-generation reasoning stays hidden until the current questions are submitted; reasoning is not proof that an answer is correct. Saved questions and AI-sourced study material link back to the same reasoning record.
+
+Chat sessions, mistakes and practice questions each have a Scratchpad button. Every scratchpad supports multiple pages, colored pens with adjustable width, a radius eraser, undo/redo, page navigation and confirmed deletion. The canvas can pan in any direction. Switch to pan/zoom mode for touch gestures or the Linux mouse wheel; Reset view preserves the ink. Pages and view positions save locally, survive reopening and are included in full backups. They are not automatically sent to AI. Permanently deleting the owner also deletes its scratchpad.

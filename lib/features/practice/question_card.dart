@@ -1,3 +1,5 @@
+import '../scratchpad/scratchpad_screen.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -13,6 +15,7 @@ import '../review/review_screen.dart';
 import 'practice_providers.dart';
 import 'practice_store.dart';
 import 'question_spec.dart';
+import '../chat/message_reasoning.dart';
 
 class MessageQuestions extends ConsumerWidget {
   const MessageQuestions(this.messageId, {super.key});
@@ -28,7 +31,11 @@ class MessageQuestions extends ConsumerWidget {
             for (final q in rows)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
-                child: QuestionCard(q.id, key: ValueKey(q.id)),
+                child: QuestionCard(
+                  q.id,
+                  showReasoning: false,
+                  key: ValueKey(q.id),
+                ),
               ),
           ],
         ),
@@ -36,7 +43,13 @@ class MessageQuestions extends ConsumerWidget {
 }
 
 class QuestionCard extends ConsumerStatefulWidget {
-  const QuestionCard(this.id, {this.attemptId, super.key});
+  const QuestionCard(
+    this.id, {
+    this.attemptId,
+    this.showReasoning = true,
+    super.key,
+  });
+  final bool showReasoning;
   final String id;
   final String? attemptId;
   @override
@@ -216,7 +229,13 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
             ],
           ),
           const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ScratchpadButton('practice:${widget.id}'),
+          ),
           LearningMarkdown(q.stem),
+          if (widget.showReasoning && detail.row.sourceMessageId != null)
+            SourceReasoning(detail.row.sourceMessageId!),
           for (final image in detail.images)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),

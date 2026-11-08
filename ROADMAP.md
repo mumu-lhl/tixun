@@ -108,4 +108,12 @@ Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI �
 - [x] 修复原生 GUI 的发送按钮重建时序与过时的 DeepSeek 出题思考断言。本地七组入口、九个测试场景分别通过。
 - [x] [普通 CI 42496149865](https://github.com/mumu-lhl/tixun/actions/runs/42496149865) 通过：128 项 Flutter 测试、32 项脚本测试、Android Debug APK、Linux Release 和启动冒烟；日志确认 SDK/Pub 缓存命中及 Gradle 缓存成功保存。
 - [x] [完整 GUI CI 42496398509](https://github.com/mumu-lhl/tixun/actions/runs/42496398509) 全部通过：静态分析、128 项 Flutter 测试、32 项脚本测试、Android Debug APK、Linux Release、启动冒烟与七组原生 GUI 回归（九个场景）。
-- [ ] 四份正式密钥签名 APK 和首次 Nightly 发布尚待真实密钥配置验收；不能用脚本测试或 Debug APK 代替。
+- [x] [首个正式签名 Nightly](https://github.com/mumu-lhl/tixun/releases/tag/nightly-20261108-163644) 已发布：三份 ABI APK、Universal、Linux 包与校验文件；签名使用标准 PEM 证书计算指纹核对，未跳过校验。
+
+## 思考面板与多页草稿
+
+- [x] 思考/公开摘要流式显示、可折叠、跨工具轮次保存；出题思考在提交前隐藏，练习及 AI 来源资料可回看。
+- [x] 会话、错题、练习独立的多页无限画板；颜色/粗细、范围橡皮、移动缩放/复位、撤销重做和确认后删页。
+- [x] 本地自动保存、关闭/后台/备份写入屏障、重启恢复、关联删除与 schema v8 迁移。
+- [x] 本地 139 项 Flutter 测试与新增真实 GUI 流程通过，已读取手机/桌面截图；最终代码的 CI 验收在提交后复核。
+- [ ] Java 25、四份签名 APK、新功能八组 GUI 的完整 Nightly 验收。

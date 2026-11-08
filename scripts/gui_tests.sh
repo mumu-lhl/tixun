@@ -13,6 +13,7 @@ tests=(
   'practice_management:integration-management.log'
   'ai_preferences:integration-ai-preferences.log'
   'chatgpt_flow:integration-chatgpt.log'
+  'scratchpad_reasoning:integration-scratchpad.log'
 )
 for entry in "${tests[@]}"; do
   test_name="${entry%%:*}"

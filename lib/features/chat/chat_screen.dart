@@ -1,3 +1,5 @@
+import '../scratchpad/scratchpad_screen.dart';
+
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -16,6 +18,7 @@ import '../library/chat_study_actions.dart';
 import '../library/image_editor.dart';
 import '../practice/question_card.dart';
 import 'reasoning_menu.dart';
+import 'message_reasoning.dart';
 import 'session_list.dart';
 
 class ChatScreen extends ConsumerWidget {
@@ -147,6 +150,8 @@ class ChatScreen extends ConsumerWidget {
                       icon: const Icon(Icons.link, size: 21),
                     ),
                     const ReasoningMenu(),
+                    if (c.selected != null)
+                      ScratchpadButton('chat:${c.selected!.id}'),
                     IconButton(
                       tooltip: context.tr("模型设置"),
                       onPressed: () => context.go('/settings'),
@@ -963,6 +968,12 @@ class MessageView extends ConsumerWidget {
                     )
                     .toList(),
               ),
+            ),
+          if (!user)
+            MessageReasoning(
+              message,
+              examGenerating:
+                  message.status == 'generating' && c.selected?.mode == 'exam',
             ),
           if (message.content.isNotEmpty)
             user

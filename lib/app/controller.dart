@@ -1,3 +1,5 @@
+import '../features/scratchpad/scratch_store.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -47,6 +49,7 @@ class AppController extends ChangeNotifier {
       : ChatGptAuth(keys);
   final bool demo;
   late final StudyStore study = StudyStore(db, files);
+  late final ScratchStore scratch = ScratchStore(db);
   late final ReviewStore review = ReviewStore(db);
   late final PracticeStore practice = PracticeStore(db, files: files)
     ..onGraded = review.record;
@@ -733,7 +736,13 @@ class AppController extends ChangeNotifier {
   // fixing that needs a streaming-aware Markdown renderer, not a throttle.
   static const _progressThrottleMs = 250;
 
-  void _publishProgress(String id, String text, int? tokens) {
+  void _publishProgress(
+    String id,
+    String text,
+    int? tokens,
+    String? reasoning,
+    String? trace,
+  ) {
     final index = messages.indexWhere((m) => m.id == id);
     if (index < 0) {
       // The generating message is not in the local list (e.g. the session
@@ -746,6 +755,8 @@ class AppController extends ChangeNotifier {
       messages[index].copyWith(
         content: text,
         status: 'generating',
+        reasoningContent: Value(reasoning),
+        reasoningTrace: Value(trace),
         totalTokens: tokens == null ? const Value.absent() : Value(tokens),
       ),
       ...messages.sublist(index + 1),
@@ -765,8 +776,9 @@ class AppController extends ChangeNotifier {
     var status = 'complete';
     String? failure;
     int? tokens;
-    String? reasoning;
+    String? reasoning, trace;
     var lastWrite = DateTime.now();
+    var progressStarted = false;
     final exam = selected!.mode == 'exam';
     var quizCreated = false;
     try {
@@ -800,10 +812,23 @@ class AppController extends ChangeNotifier {
           text = progress.text;
           tokens = progress.tokens;
           quizCreated = progress.quizCreated;
+          reasoning = progress.reasoning;
+          trace = progress.reasoningTrace;
           if (DateTime.now().difference(lastWrite).inMilliseconds >=
-              _progressThrottleMs) {
-            await _writeMessage(id, text, 'generating', null, tokens, null);
-            _publishProgress(id, text, tokens);
+                  _progressThrottleMs ||
+              (!progressStarted &&
+                  (text.isNotEmpty || (trace?.isNotEmpty ?? false)))) {
+            await _writeMessage(
+              id,
+              text,
+              'generating',
+              null,
+              tokens,
+              reasoning,
+              trace,
+            );
+            _publishProgress(id, text, tokens, reasoning, trace);
+            progressStarted = true;
             lastWrite = DateTime.now();
           }
         },
@@ -812,6 +837,7 @@ class AppController extends ChangeNotifier {
       tokens = result.tokens;
       quizCreated = result.quizCreated;
       reasoning = result.reasoning;
+      trace = result.reasoningTrace;
     } on AiFailure catch (e) {
       status = 'error';
       failure = e.message;
@@ -827,7 +853,15 @@ class AppController extends ChangeNotifier {
       cancel.cancel('finished');
       try {
         if (exam && !quizCreated && status != 'complete') text = '';
-        await _writeMessage(id, text, status, failure, tokens, reasoning);
+        await _writeMessage(
+          id,
+          text,
+          status,
+          failure,
+          tokens,
+          reasoning,
+          trace,
+        );
         await (db.update(
           db.chatSessions,
         )..where((s) => s.id.equals(sessionId))).write(
@@ -926,6 +960,7 @@ class AppController extends ChangeNotifier {
     String? error,
     int? tokens,
     String? reasoning,
+    String? trace,
   ) async {
     await (db.update(db.chatMessages)..where((m) => m.id.equals(id))).write(
       ChatMessagesCompanion(
@@ -933,11 +968,8 @@ class AppController extends ChangeNotifier {
         status: Value(status),
         error: Value(error),
         totalTokens: Value(tokens),
-        // Progress ticks pass null and leave the column untouched; only the
-        // final write persists the round's reasoning.
-        reasoningContent: reasoning == null
-            ? const Value.absent()
-            : Value(reasoning),
+        reasoningContent: Value(reasoning),
+        reasoningTrace: Value(trace),
       ),
     );
   }
@@ -1079,6 +1111,7 @@ class AppController extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    scratch.dispose();
     preferences.dispose();
     study.dispose();
     practice.dispose();
@@ -1091,6 +1124,7 @@ class AppController extends ChangeNotifier {
   Future<void> shutdown() async {
     await stop();
     await practice.flushDrafts();
+    await scratch.flush();
     await preferences.whenIdle;
     await study.whenIdle;
     await practice.whenIdle;

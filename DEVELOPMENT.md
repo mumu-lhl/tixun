@@ -32,7 +32,7 @@ scripts/gui_tests.sh
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。截图和日志保存在 `artifacts/gui/`；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
-不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。数据库 schema v1/v3/v4 → v5 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
+不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。数据库 schema v1/v3/v4/v5/v6/v7 → v8 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
 
 ```bash
 dart run build_runner build
@@ -42,7 +42,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布、Nightly 或手动勾选 `full_gui` 时运行。七个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
+普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布、Nightly 或手动勾选 `full_gui` 时运行。八个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
 
 ## 按版本标签发布
 
@@ -126,3 +126,11 @@ Flutter SDK、Android/Linux 引擎和 Pub 依赖使用版本化缓存；SDK 缓�
 首次缓存是冷启动，后续收益以 Actions 的命中记录和 Gradle 任务统计为准，不能承诺固定提速比例。缓存丢失时仍能完整构建。普通 CI 不再运行七组原生 GUI 测试，这与缓存是两项独立优化。
 
 job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的 `Android Debug APK` / `Android Release APK and signature`、`Linux Release and GUI tests`。两个发布入口分别显示标签准备、构建验证和对应发布阶段；若分支保护绑定了旧的检查显示名，需要同步规则。
+
+## 思考面板与画板验证
+
+`test/reasoning_display_test.dart` 覆盖流式思考、跨轮显示与协议隔离、错误后保留、Responses 公开摘要及作答前隐藏。`test/scratchpad_test.dart` 覆盖多页、局部擦除、串行保存、关联删除和完整备份；旧 schema v7 的思考可迁移到 v8。画板不含任何外部 AI 请求。
+
+`integration_test/scratchpad_reasoning_test.dart` 是新增的第八组原生 GUI 入口，验证流式展示、彩色短笔画起点、橡皮/撤销、多页保存、平移缩放/复位与重开，并生成手机、桌面英文截图。普通 CI 仍只做启动冒烟，完整 GUI 在 Nightly、版本发布或 `full_gui` 中执行。
+
+CI 的签名测试与 Android 构建统一使用 Temurin **Java 25 LTS**；Flutter 显式选择 CI 的 JAVA_HOME。Gradle 9.3.1 支持运行在 Java 25（[兼容性表](https://docs.gradle.org/9.3.1/userguide/compatibility.html)）。Android Java/Kotlin 字节码目标仍为 17，不因此提高 Android 最低版本。

@@ -36,7 +36,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 7);
+      await verifier.migrateAndValidate(db, 8);
       final link = (await db.select(db.practiceChatLinks).get()).single;
       expect(link.messageId, 'm');
       expect(link.questionId, 'q');
@@ -65,14 +65,14 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
     expect((await db.select(db.practiceAttempts).get()).single.status, 'draft');
     expect((await db.select(db.practiceResponses).get()).single.answer, '4');
     expect(await db.select(db.reviewSchedules).get(), isEmpty);
     expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
   });
   test(
-    'Schema v1 upgrades to v7 without losing chats, drafts, images or settings',
+    'Schema v1 upgrades to v8 without losing chats, drafts, images or settings',
     () async {
       final verifier = SchemaVerifier(GeneratedHelper());
       final schema = await verifier.schemaAt(1);
@@ -104,7 +104,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 7);
+      await verifier.migrateAndValidate(db, 8);
       expect((await db.sessions()).single.draft, '未发送草稿');
       expect((await db.sessions('二次函数')).single.id, 's');
       expect(
@@ -145,7 +145,7 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
     final migrated = (await db.select(db.chatMessages).get()).single;
     expect(migrated.reasoningContent, isNull);
     expect(migrated.content, '请独立完成');
@@ -186,7 +186,7 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
     final byId = {for (final s in await db.sessions()) s.id: s};
     expect(byId['s1']!.subject, '数学');
     expect(byId['s2']!.subject, '物理');
@@ -196,4 +196,24 @@ void main() {
     expect(created.subject, '化学');
     expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
   });
+  test(
+    'Schema v7 preserves old reasoning while adding traces and scratchpads',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(7);
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_sessions(id,title,created_at,updated_at) VALUES('s','旧会话',1,1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_messages(id,session_id,role,content,reasoning_content,created_at) VALUES('m','s','assistant','正文','旧思考',1)",
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, 8);
+      final message = (await db.messages('s')).single;
+      expect(message.reasoningContent, '旧思考');
+      expect(message.reasoningTrace, isNull);
+      expect(await db.select(db.scratchpads).get(), isEmpty);
+    },
+  );
 }

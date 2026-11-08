@@ -36,10 +36,19 @@ class ChatMessages extends Table {
   TextColumn get error => text().nullable()();
   TextColumn get model => text().nullable()();
   TextColumn get reasoningContent => text().nullable()();
+  TextColumn get reasoningTrace => text().nullable()();
   IntColumn get totalTokens => integer().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   @override
   Set<Column> get primaryKey => {id};
+}
+
+class Scratchpads extends Table {
+  TextColumn get contextKey => text()();
+  TextColumn get document => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+  @override
+  Set<Column> get primaryKey => {contextKey};
 }
 
 class Attachments extends Table {
@@ -112,6 +121,7 @@ class Preferences extends Table {
     ReviewSchedules,
     ReviewRecords,
     PracticeChatLinks,
+    Scratchpads,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -119,7 +129,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 7;
+  static const latestSchemaVersion = 8;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -226,9 +236,22 @@ class AppDatabase extends _$AppDatabase {
           "ELSE NULL END",
         );
       }
+      if (from < 8) {
+        await m.addColumn(chatMessages, chatMessages.reasoningTrace);
+        await m.createTable(scratchpads);
+      }
     },
     beforeOpen: (_) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      for (final owner in {
+        'chat_sessions': 'chat',
+        'mistakes': 'mistake',
+        'practice_questions': 'practice',
+      }.entries) {
+        await customStatement(
+          "CREATE TRIGGER IF NOT EXISTS scratch_delete_${owner.value} AFTER DELETE ON ${owner.key} BEGIN DELETE FROM scratchpads WHERE context_key = '${owner.value}:' || old.id; END",
+        );
+      }
       await customStatement('PRAGMA journal_mode = WAL');
       await (update(
         aiToolOperations,
