@@ -39,9 +39,9 @@ gh secret set ANDROID_KEY_PASSWORD --repo mumu-lhl/tixun
 
 ## 自动构建与验证
 
-推送版本标签时，发布工作流显式将签名 Secrets 传给复用 CI。也可手动运行 **Build and verify**，勾选 `android_release`，构建签名 APK 而不创建 Release。
+推送版本标签时，发布工作流显式将签名 Secrets 传给复用 CI。也可手动运行 **Build and verify**，勾选 `android_release`，构建 Universal、armeabi-v7a、arm64-v8a 与 x86_64 四份签名 APK 而不创建 Release。
 
-签名脚本只在 Runner 临时目录还原密钥（目录权限 0700、文件权限 0600）。`keytool` 校验密钥库密码与别名并获取证书指纹；Gradle 从环境变量读取配置并检查私钥密码。构建后用 `apksigner verify` 验证签名，并核对 APK 证书与配置密钥一致；另行检查产物确为 Release 模式。失败时不会上传 APK 或发布版本。临时密钥在失败/取消后的清理步骤移除，不放入缓存、源码目录或 Artifact。
+签名脚本只在 Runner 临时目录还原密钥（目录权限 0700、文件权限 0600）。`keytool` 校验密钥库密码与别名并获取证书指纹；Gradle 从环境变量读取配置并检查私钥密码。构建后逐份用 `apksigner verify` 验证签名，并核对 APK 证书与配置密钥一致；另行检查产物确为 Release 模式、包含正确架构且包名/版本一致。失败时不会上传 APK 或发布版本。临时密钥在失败/取消后的清理步骤移除，不放入缓存、源码目录或 Artifact。
 
 不要把密码写进命令参数或开启 shell 调试输出。脚本不输出工具原始错误，避免泄露凭据。证书本身及其 SHA-256 指纹是公开信息，不是私钥。
 

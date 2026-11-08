@@ -42,11 +42,11 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-GitHub Actions 执行静态分析、自动测试、Android Debug APK 构建、Linux 正式构建和真实 GUI 测试，并上传程序、截图与日志。七个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
+普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布、Nightly 或手动勾选 `full_gui` 时运行。七个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
 
 ## 按版本标签发布
 
-推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用完整 CI，最后将 Android Release APK、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
+推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用完整 CI，最后将 Android Release APK（Universal 与三个 ABI）、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
 
 例如，发布下一个版本（先更新并提交版本号）：
 
@@ -63,13 +63,13 @@ git push origin v0.5.3
 
 所有构建通过后才创建草稿；附件全部上传成功才公开。失败时可在 Actions 重跑同一次标签工作流，或从该标签手动运行 Publish release。未完成的草稿可继续上传；已经公开的版本不会被覆盖。
 
-标签发布使用 `flutter build apk --release`，普通 CI 仍构建 Debug APK。Android Release APK 必须配置发布签名：三个必需 Secrets，别名默认 `tixun`（可选覆盖）。构建后校验实际签名与证书，缺少配置或验证失败会停止发布。首次从开发签名迁移需先备份、再卸载安装和恢复。Termux 配置与保管方法见[发布签名](docs/ANDROID_SIGNING.md)。Linux 使用 tar.gz 保留程序执行权限，下载包只包含正式构建，不含 Mock 数据和测试截图。
+标签发布先构建 Universal Release，再使用 `--split-per-abi` 构建 `armeabi-v7a`、`arm64-v8a` 和 `x86_64` 三个 Release APK，立即保存各次输出，避免后一次构建覆盖通用包。四份文件共享包名、版本名、版本号与签名，可互相覆盖更新；设置 `force-version-code-ignoring-abi=true` 避免 Flutter 默认 ABI 版本号偏移。普通 CI 仍构建 Debug APK。Android Release APK 必须配置发布签名：三个必需 Secrets，别名默认 `tixun`（可选覆盖）。构建后校验实际签名与证书，缺少配置或验证失败会停止发布。首次从开发签名迁移需先备份、再卸载安装和恢复。Termux 配置与保管方法见[发布签名](docs/ANDROID_SIGNING.md)。Linux 使用 tar.gz 保留程序执行权限，下载包只包含正式构建，不含 Mock 数据和测试截图。
 
 ## 自动化脚本的维护
 
 - `scripts/build_artifacts.py` 是产物约定的唯一来源：构建模式、原始文件名、Artifact 名及发布文件后缀统一生成。可复用 CI 将实际产物名作为输出交给发布流程，Linux 正式程序与 GUI 截图日志分开上传。
-- 每次 Android 构建都会调用 `verify-apk`：实际读取 Manifest 信息和 ZIP 内容，Release 必须包含 AOT 代码、没有 Debug kernel 且未启用 debuggable，不能通过改文件名混入调试包。
-- 并发组包含调用工作流名称、Git 引用与 Android 构建模式，普通 CI、发布验证以及手动 Release 验证不会互相取消；同场景的新运行仍可取消旧运行。
+- 每次 Android 构建都会调用模式验证：实际读取 Manifest 信息和 ZIP 内容，Release 必须包含 AOT 代码、没有 Debug kernel 且未启用 debuggable，不能通过改文件名混入调试包。Release 逐份检查实际原生库架构、签名和相同应用版本；稳定版与 Nightly 共用同一打包约定。
+- 并发组包含调用工作流名称、Git 引用、Android 构建模式与 GUI 验证范围，普通 CI、发布验证以及手动 Release 验证不会互相取消；同场景的新运行仍可取消旧运行。
 - `scripts/release_notes.py` 查询公开 Release 并验证 Git 祖先关系。网络错误或已发布标签缺失会报错，不静默生成错误范围。不要删除已公开版本的标签。
 
 脚本回归测试无需 Flutter 或 API Key：
@@ -78,7 +78,7 @@ git push origin v0.5.3
 python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 ```
 
-在 Actions 手动运行 Build and verify 时，可以勾选 `android_release`，验证完整的 Release 构建而不创建新发布。已有 Release 和版本标签不会被修改。
+在 Actions 手动运行 Build and verify 时，可以勾选 `android_release` 验证四份签名 Release APK，勾选 `full_gui` 运行完整 GUI 回归；不勾选时只执行 GUI 启动冒烟。这不会创建新发布。已有 Release 和版本标签不会被修改。
 
 ## 界面语言与配色
 
@@ -118,3 +118,11 @@ flutter test test/localization_test.dart
 更新日志继续使用 git-cliff：优先比较上一条已公开且可达的 Nightly，首次回退到已公开的版本标签；无基线时包含完整历史。稳定版日志仍只比较版本标签，不会被 Nightly 截断。应用内版本名和构建号沿用 `pubspec.yaml`，下载文件名与 Release 标签区分各次 Nightly。首次从开发签名迁移仍需备份并卸载旧版。
 
 Golden 像素比对及基线图片已移除；Widget 行为、窄屏/键盘布局、公式回退和原生 GUI 回归继续执行，不再因颜色、间距等像素变化更新快照。
+
+## CI 缓存与 job 名称
+
+Flutter SDK、Android/Linux 引擎和 Pub 依赖使用版本化缓存；SDK 缓存未命中时先在检查任务预下载双平台引擎，供后续构建复用。Pub 缓存按锁文件区分。Gradle 使用官方 `setup-gradle` 管理依赖与任务缓存，并开启 `org.gradle.caching`。PR 与非默认分支只读 Gradle 缓存，默认分支成功构建后写入；版本标签可复用默认分支缓存。签名密钥只在 Runner 临时目录中保存，打包/签名校验任务禁用输出缓存，不缓存最终签名 APK。不缓存测试通过结果或开启 Gradle configuration cache。
+
+首次缓存是冷启动，后续收益以 Actions 的命中记录和 Gradle 任务统计为准，不能承诺固定提速比例。缓存丢失时仍能完整构建。普通 CI 不再运行七组原生 GUI 测试，这与缓存是两项独立优化。
+
+job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的 `Android Debug APK` / `Android Release APK and signature`、`Linux Release and GUI tests`。两个发布入口分别显示标签准备、构建验证和对应发布阶段；若分支保护绑定了旧的检查显示名，需要同步规则。

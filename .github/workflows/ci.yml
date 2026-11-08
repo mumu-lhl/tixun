@@ -8,7 +8,11 @@ on:
   workflow_dispatch:
     inputs:
       android_release:
-        description: Build an optimized Android Release APK
+        description: Build signed Universal and per-ABI Release APKs
+        type: boolean
+        default: false
+      full_gui:
+        description: Run the complete native GUI regression suite
         type: boolean
         default: false
   workflow_call:
@@ -23,16 +27,16 @@ on:
         required: false
     inputs:
       android_release:
-        description: Build an optimized Android Release APK
+        description: Build signed Universal and per-ABI Release APKs
+        type: boolean
+        default: false
+      full_gui:
+        description: Run the complete native GUI regression suite
         type: boolean
         default: false
     outputs:
       android_artifact:
         value: ${{ jobs.android.outputs.artifact_name }}
-      android_apk:
-        value: ${{ jobs.android.outputs.apk_name }}
-      android_suffix:
-        value: ${{ jobs.android.outputs.release_suffix }}
       linux_artifact:
         value: ${{ jobs.linux.outputs.artifact_name }}
       linux_suffix:
@@ -43,22 +47,29 @@ defaults:
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.android_release && 'release' || 'debug' }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.android_release && 'release' || 'debug' }}-${{ inputs.full_gui && 'full-gui' || 'smoke' }}
   cancel-in-progress: true
 env:
   FLUTTER_VERSION: '3.47.9'
 jobs:
   checks:
+    name: Analyze and test
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
       - uses: subosito/flutter-action@v2
+        id: flutter
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+          pub-cache: true
+          cache-key: flutter-${{ runner.os }}-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}-tixun-engines-v1
       - run: flutter config --no-analytics
+      - name: Prime cached Android and Linux engines
+        if: steps.flutter.outputs.CACHE-HIT != 'true'
+        run: flutter precache --android --linux
       - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed lib test integration_test
       - run: flutter analyze
@@ -71,16 +82,15 @@ jobs:
             test.log
             test/failures/
   android:
+    name: ${{ inputs.android_release && 'Android Release APK and signature' || 'Android Debug APK' }}
     outputs:
       artifact_name: ${{ steps.artifact.outputs.artifact_name }}
-      apk_name: ${{ steps.artifact.outputs.apk_name }}
-      release_suffix: ${{ steps.artifact.outputs.release_suffix }}
     needs: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -88,16 +98,16 @@ jobs:
         with:
           packages: platform-tools
       - uses: subosito/flutter-action@v2
+        id: flutter
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      - uses: actions/cache@v4
+          pub-cache: true
+          cache-key: flutter-${{ runner.os }}-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}-tixun-engines-v1
+      - uses: gradle/actions/setup-gradle@v5
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.kts', 'android/gradle/wrapper/gradle-wrapper.properties', 'pubspec.lock') }}
-          restore-keys: gradle-${{ runner.os }}-
+          cache-read-only: ${{ github.event_name == 'pull_request' || github.ref_name != github.event.repository.default_branch }}
+          cache-cleanup: on-success
       - run: flutter config --no-analytics
       - run: flutter pub get --enforce-lockfile
       - name: Resolve Android artifact
@@ -117,18 +127,18 @@ jobs:
       - name: Build Debug APK
         if: ${{ !inputs.android_release }}
         run: flutter build apk --debug
-      - name: Build signed Release APK
+      - name: Build Universal and per-architecture Release APKs
         if: inputs.android_release
         env:
           ANDROID_KEYSTORE_PATH: ${{ steps.signing.outputs.keystore_path }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        run: flutter build apk --release
+        run: python3 scripts/build_artifacts.py build-android-release artifacts/android-release
       - name: Verify Release signature and certificate
         if: inputs.android_release
         env:
-          APK_PATH: ${{ steps.artifact.outputs.apk_path }}
+          APK_PATH: ${{ steps.artifact.outputs.artifact_path }}
           EXPECTED_CERT_SHA256: ${{ steps.signing.outputs.certificate_sha256 }}
         run: python3 scripts/android_signing.py verify "$APK_PATH"
       - name: Remove temporary signing files
@@ -136,17 +146,22 @@ jobs:
         env:
           SIGNING_DIRECTORY: ${{ steps.signing.outputs.directory }}
         run: python3 scripts/android_signing.py cleanup
-      - name: Verify actual APK build mode
+      - name: Verify Release build mode, architectures and versions
+        if: inputs.android_release
+        run: python3 scripts/build_artifacts.py verify-android-release artifacts/android-release
+      - name: Verify actual Debug APK build mode
+        if: ${{ !inputs.android_release }}
         env:
           BUILD_MODE: ${{ steps.artifact.outputs.mode }}
-          APK_PATH: ${{ steps.artifact.outputs.apk_path }}
+          APK_PATH: ${{ steps.artifact.outputs.artifact_path }}
         run: python3 scripts/build_artifacts.py verify-apk "$APK_PATH" --mode "$BUILD_MODE"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact.outputs.artifact_name }}
-          path: ${{ steps.artifact.outputs.apk_path }}
+          path: ${{ steps.artifact.outputs.artifact_path }}
           if-no-files-found: error
   linux:
+    name: Linux Release and GUI tests
     outputs:
       artifact_name: ${{ steps.artifact.outputs.artifact_name }}
       release_suffix: ${{ steps.artifact.outputs.release_suffix }}
@@ -157,9 +172,12 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo bash scripts/install_linux_deps.sh
       - uses: subosito/flutter-action@v2
+        id: flutter
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+          pub-cache: true
+          cache-key: flutter-${{ runner.os }}-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}-tixun-engines-v1
       - run: flutter config --no-analytics
       - run: flutter pub get --enforce-lockfile
       - run: flutter doctor -v | tee doctor.log
@@ -178,7 +196,9 @@ jobs:
           if-no-files-found: error
       - run: flutter build linux --release --dart-define=TIXUN_DEMO=true
       - run: scripts/gui_smoke.sh
-      - run: scripts/gui_tests.sh
+      - name: Run complete native GUI regressions
+        if: inputs.full_gui
+        run: scripts/gui_tests.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:

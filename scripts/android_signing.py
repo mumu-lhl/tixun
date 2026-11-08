@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import tempfile
 
-from build_artifacts import find_aapt
+from build_artifacts import find_aapt, release_apks
 
 
 def prepare(env):
@@ -86,13 +86,15 @@ def main():
         elif args.command == 'cleanup':
             cleanup(os.environ.get('SIGNING_DIRECTORY'), os.environ['RUNNER_TEMP'])
         else:
-            result = subprocess.run([
-                str(find_aapt().with_name('apksigner')), 'verify', '--verbose', '--print-certs', str(args.apk),
-            ], capture_output=True, text=True, timeout=60)
-            if result.returncode:
-                raise ValueError('APK signature verification failed')
-            verify_certificate(result.stdout, os.environ.get('EXPECTED_CERT_SHA256', ''))
-            print('APK release signature verified against the configured certificate')
+            paths = [args.apk / name for _, name in release_apks()] if args.apk.is_dir() else [args.apk]
+            for path in paths:
+                result = subprocess.run([
+                    str(find_aapt().with_name('apksigner')), 'verify', '--verbose', '--print-certs', str(path),
+                ], capture_output=True, text=True, timeout=60)
+                if result.returncode:
+                    raise ValueError(f'APK signature verification failed: {path.name}')
+                verify_certificate(result.stdout, os.environ.get('EXPECTED_CERT_SHA256', ''))
+                print(f'APK release signature verified: {path.name}')
     except (ValueError, OSError, KeyError, subprocess.SubprocessError) as error:
         # Never echo tool output, secret values or command arguments on failure.
         message = str(error) if isinstance(error, ValueError) else 'Signing tool failed; check the runner configuration'
