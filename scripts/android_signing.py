@@ -57,7 +57,8 @@ def verify_certificate(output, expected):
     signers = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]+)\s*$',
                          output, re.MULTILINE)
     if len(signers) != 1 or signers[0].lower() != expected.lower():
-        raise ValueError('APK signing certificate does not match the configured release key')
+        raise ValueError('APK signing certificate does not match the configured release key; '
+                         f'expected SHA-256 {expected.lower()}, observed {signers or ["unrecognized certificate output"]}')
 
 
 def cleanup(directory, runner_temp):
