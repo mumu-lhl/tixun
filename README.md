@@ -46,7 +46,7 @@ Linux 需要 GTK 3 等运行库。保存 API Key 还需要已解锁的系统密�
 
 后续稳定版及 Nightly 提供四种 Android APK：`arm64-v8a` 适合大多数现代手机，`armeabi-v7a` 用于兼容的 32 位设备，`x86_64` 用于对应设备/模拟器；不确定时选择 `universal` 通用包。不同架构版本使用相同签名与版本号。已有 v0.5.2 附件保持原样。
 
-需要试用主分支的新功能，可在 [Nightly 预发布](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true) 下载每日构建。每天北京时间 04:30 自动运行，实际发布时间取决于 GitHub 排队和构建结果。Nightly 使用正式签名的 Release APK，可能包含尚未验证完善的改动；稳定版下载入口保持不变。
+需要试用主分支的新功能，可在 [Nightly 预发布](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true) 下载每日构建。每天北京时间 04:30 自动运行，实际发布时间取决于 GitHub 排队和构建结果。Nightly 使用正式签名的 Release APK，可能包含尚未验证完善的改动；稳定版下载入口保持不变。仅保留最新一个成功发布的 Nightly；新版本发布后会删除旧 Nightly 的 Release、附件和 Tag。
 
 ## 开始使用
 

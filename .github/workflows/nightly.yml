@@ -127,3 +127,5 @@ jobs:
           fi
           gh release upload "$RELEASE_TAG" dist/* --clobber
           gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
+      - name: Keep only the latest published nightly and tag
+        run: python3 scripts/prune_nightlies.py --repo "$GH_REPO" --keep "$RELEASE_TAG" --apply
