@@ -50,7 +50,8 @@ void main() {
         c.messages.last.content,
       );
       expect(
-        tester.widget<TextField>(find.byKey(const Key('chat-input'))).enabled,
+        tester.widget<TextField>(find.byKey(const Key('chat-input'))).enabled ??
+            true,
         true,
       );
       await tester.tap(find.byKey(const Key('chat-input')));

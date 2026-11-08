@@ -15,7 +15,7 @@ Download the latest package from [GitHub Releases](https://github.com/mumu-lhl/t
 - **Android 10 or later:** install the `android-release.apk` attachment.
 - **Linux x86_64:** extract the `linux-x64.tar.gz` attachment and run `./tixun`. Keep its `lib` and `data` folders alongside the executable. GTK 3 and an unlocked Secret Service keyring are required for the desktop app and secure key storage.
 
-Packages use Release build mode. Android currently uses a development signing key; back up your data before uninstalling or changing builds. Physical Android device checks and real provider acceptance tests are still pending.
+Packages use Release build mode. The published v0.5.2 Android package uses a development key; the main branch configures a stable release key for future builds. Back up your data before the first signature change, then uninstall the old package, install and restore. Later builds with the same signing key can update in place. Physical Android device checks and real provider acceptance tests are still pending.
 
 ## Start learning
 

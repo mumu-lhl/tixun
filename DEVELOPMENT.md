@@ -63,7 +63,7 @@ git push origin v0.5.3
 
 所有构建通过后才创建草稿；附件全部上传成功才公开。失败时可在 Actions 重跑同一次标签工作流，或从该标签手动运行 Publish release。未完成的草稿可继续上传；已经公开的版本不会被覆盖。
 
-标签发布使用 `flutter build apk --release`，普通 CI 仍构建 Debug APK。当前 Android Release APK 采用开发签名。不同构建的签名可能不同，覆盖安装失败时应先导出数据，再卸载安装和恢复；正式发布签名尚未配置。Linux 使用 tar.gz 保留程序执行权限，下载包只包含正式构建，不含 Mock 数据和测试截图。
+标签发布使用 `flutter build apk --release`，普通 CI 仍构建 Debug APK。Android Release APK 必须配置发布签名：三个必需 Secrets，别名默认 `tixun`（可选覆盖）。构建后校验实际签名与证书，缺少配置或验证失败会停止发布。首次从开发签名迁移需先备份、再卸载安装和恢复。Termux 配置与保管方法见[发布签名](docs/ANDROID_SIGNING.md)。Linux 使用 tar.gz 保留程序执行权限，下载包只包含正式构建，不含 Mock 数据和测试截图。
 
 ## 自动化脚本的维护
 

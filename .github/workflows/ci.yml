@@ -12,6 +12,15 @@ on:
         type: boolean
         default: false
   workflow_call:
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: false
+      ANDROID_KEYSTORE_PASSWORD:
+        required: false
+      ANDROID_KEY_PASSWORD:
+        required: false
+      ANDROID_KEY_ALIAS:
+        required: false
     inputs:
       android_release:
         description: Build an optimized Android Release APK
@@ -96,10 +105,37 @@ jobs:
         env:
           BUILD_MODE: ${{ inputs.android_release && 'release' || 'debug' }}
         run: python3 scripts/build_artifacts.py metadata android --mode "$BUILD_MODE" >> "$GITHUB_OUTPUT"
-      - name: Build Android APK
+      - name: Prepare Release signing
+        if: inputs.android_release
+        id: signing
         env:
-          BUILD_MODE: ${{ steps.artifact.outputs.mode }}
-        run: flutter build apk --"$BUILD_MODE"
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: python3 scripts/android_signing.py prepare >> "$GITHUB_OUTPUT"
+      - name: Build Debug APK
+        if: ${{ !inputs.android_release }}
+        run: flutter build apk --debug
+      - name: Build signed Release APK
+        if: inputs.android_release
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ steps.signing.outputs.keystore_path }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: flutter build apk --release
+      - name: Verify Release signature and certificate
+        if: inputs.android_release
+        env:
+          APK_PATH: ${{ steps.artifact.outputs.apk_path }}
+          EXPECTED_CERT_SHA256: ${{ steps.signing.outputs.certificate_sha256 }}
+        run: python3 scripts/android_signing.py verify "$APK_PATH"
+      - name: Remove temporary signing files
+        if: ${{ always() && inputs.android_release }}
+        env:
+          SIGNING_DIRECTORY: ${{ steps.signing.outputs.directory }}
+        run: python3 scripts/android_signing.py cleanup
       - name: Verify actual APK build mode
         env:
           BUILD_MODE: ${{ steps.artifact.outputs.mode }}

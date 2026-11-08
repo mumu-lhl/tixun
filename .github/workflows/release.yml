@@ -36,6 +36,11 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       android_release: true
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
 
   publish:
     needs: [prepare, verify-and-build]
@@ -89,7 +94,7 @@ jobs:
 
           ## 下载与安装
 
-          - **Android 10+**：下载 `android-release.apk` 结尾的文件安装。此 APK 使用 Release 模式构建，目前采用开发签名。更换签名后无法直接覆盖安装；卸载前请导出学习数据备份。
+          - **Android 10+**：下载 `android-release.apk` 结尾的文件安装。此 APK 使用 Release 模式构建并由项目发布密钥签名。从旧开发签名版本迁移时需要先导出学习数据，再卸载安装和恢复；后续相同签名版本可覆盖更新。
           - **Linux x86_64**：解压 `linux-x64.tar.gz`，运行其中的 `tixun`，保留同目录下的 `lib` 和 `data`。需要 GTK 3，保存密钥需要可用的系统密钥环。
           - `SHA256SUMS` 用于检查下载文件是否完整。
 
