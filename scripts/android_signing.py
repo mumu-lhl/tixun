@@ -54,11 +54,17 @@ def prepare(env):
 def verify_certificate(output, expected):
     if not re.fullmatch(r'[0-9a-fA-F]{64}', expected):
         raise ValueError('Expected signing certificate SHA-256 is missing or invalid')
-    signers = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]+)\s*$',
-                         output, re.MULTILINE)
-    if len(signers) != 1 or signers[0].lower() != expected.lower():
+    # Parse the standard certificate encoding, not localized human-readable labels.
+    certs = re.findall(r'-----BEGIN CERTIFICATE-----([A-Za-z0-9+/=\s]+)-----END CERTIFICATE-----', output)
+    try:
+        signers = [hashlib.sha256(base64.b64decode(''.join(cert.split()), validate=True)).hexdigest()
+                   for cert in certs]
+    except (ValueError, binascii.Error):
+        raise ValueError('APK certificate PEM output is malformed') from None
+    if len(signers) != 1 or signers[0] != expected.lower():
         raise ValueError('APK signing certificate does not match the configured release key; '
-                         f'expected SHA-256 {expected.lower()}, observed {signers or ["unrecognized certificate output"]}')
+                         f'expected SHA-256 {expected.lower()}, observed {signers or ["missing PEM certificate"]}')
+
 
 
 def cleanup(directory, runner_temp):
@@ -90,11 +96,11 @@ def main():
             paths = [args.apk / name for _, name in release_apks()] if args.apk.is_dir() else [args.apk]
             for path in paths:
                 result = subprocess.run([
-                    str(find_aapt().with_name('apksigner')), 'verify', '--verbose', '--print-certs', str(path),
+                    str(find_aapt().with_name('apksigner')), 'verify', '--verbose', '--print-certs-pem', str(path),
                 ], capture_output=True, text=True, timeout=60)
                 if result.returncode:
                     raise ValueError(f'APK signature verification failed: {path.name}')
-                verify_certificate(result.stdout, os.environ.get('EXPECTED_CERT_SHA256', ''))
+                verify_certificate(result.stdout + result.stderr, os.environ.get('EXPECTED_CERT_SHA256', ''))
                 print(f'APK release signature verified: {path.name}')
     except (ValueError, OSError, KeyError, subprocess.SubprocessError) as error:
         # Never echo tool output, secret values or command arguments on failure.

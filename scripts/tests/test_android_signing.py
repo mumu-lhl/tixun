@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -29,11 +30,11 @@ class SigningPolicyTests(unittest.TestCase):
             self.assertEqual(list(Path(root).iterdir()), [])
 
     def test_signature_must_have_exactly_one_matching_certificate(self):
-        expected = 'ab' * 32
-        valid = f'Signer #1 certificate SHA-256 digest: {expected.upper()}\n'
+        expected = hashlib.sha256(b'certificate-fixture').hexdigest()
+        valid = '-----BEGIN CERTIFICATE-----\n' + base64.b64encode(b'certificate-fixture').decode() + '\n-----END CERTIFICATE-----\n'
         verify_certificate(valid, expected)
         for output, fingerprint in [('', expected), (valid, ''), (valid, 'cd' * 32),
-                                    (valid + valid.replace('#1', '#2'), expected)]:
+                                    (valid + valid, expected)]:
             with self.subTest(output=output, fingerprint=fingerprint), self.assertRaises(ValueError):
                 verify_certificate(output, fingerprint)
 
