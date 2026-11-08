@@ -97,3 +97,15 @@ Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI �
 - [x] [架构调整 CI 42376246976](https://github.com/mumu-lhl/tixun/actions/runs/42376246976) 全部通过：90 项 Flutter 测试、16 项脚本测试、Android Debug APK、Linux Release、Mock 启动与七组原生 GUI 回归。本地额外验证生产版 GUI，并读取桌面/手机、深浅主题、提示词和备份恢复截图。
 
 详见[当前接口与约定](docs/ARCHITECTURE_REVIEW.md)。数据与备份格式未变，简单只读查询保留，未做全面重写。
+
+## 2026-11-08 发布与 CI 调整
+
+- [x] 发布签名流程：三个必需 Secrets，别名默认 `tixun`；缺少或损坏的密钥配置停止 Release 构建，不回退到 debug 签名。
+- [x] Release / Nightly 配置 Universal 与三个 ABI APK；逐份校验构建模式、原生库架构、相同应用版本与签名。产物约定和打包代码共用，相关脚本回归通过。
+- [x] Nightly 每天 UTC 20:30（北京时间次日 04:30）从默认分支构建，独立时间标签，git-cliff 生成更新说明；预发布不替换稳定版 Latest。无新提交时明确说明，不重放整个历史。
+- [x] 移除 Golden 像素比对与基线，保留 Widget 行为测试；普通 CI 只跑 GUI 启动冒烟，完整回归在发布、Nightly 和手动 `full_gui` 中执行。
+- [x] 增加清楚的 job 显示名；SDK/双平台引擎、Pub 和 Gradle 缓存；Gradle task cache 开启，签名文件与最终 APK 不进入缓存。
+- [x] 修复原生 GUI 的发送按钮重建时序与过时的 DeepSeek 出题思考断言。本地七组入口、九个测试场景分别通过。
+- [x] [普通 CI 42496149865](https://github.com/mumu-lhl/tixun/actions/runs/42496149865) 通过：128 项 Flutter 测试、32 项脚本测试、Android Debug APK、Linux Release 和启动冒烟；日志确认 SDK/Pub 缓存命中及 Gradle 缓存成功保存。
+- [x] [完整 GUI CI 42496398509](https://github.com/mumu-lhl/tixun/actions/runs/42496398509) 全部通过：静态分析、128 项 Flutter 测试、32 项脚本测试、Android Debug APK、Linux Release、启动冒烟与七组原生 GUI 回归（九个场景）。
+- [ ] 四份正式密钥签名 APK 和首次 Nightly 发布尚待真实密钥配置验收；不能用脚本测试或 Debug APK 代替。
