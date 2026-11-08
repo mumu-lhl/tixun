@@ -68,7 +68,8 @@ void main() {
       expect(c.config.effort, 'high');
       await c.prepareQuickQuiz();
       await t.pumpAndSettle();
-      expect(c.sessionReasoning, 'off');
+      expect(c.sessionReasoning, c.config.effort);
+      expect(c.sessionConfig.thinking, true);
       expect(c.config.thinking, true);
       await guiCapture('ai-preferences', 'tool-reasoning-phone');
       await click(t, find.byKey(const Key('reasoning-menu')));

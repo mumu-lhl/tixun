@@ -32,7 +32,7 @@ These settings are not included in the published v0.5.2 package yet:
 
 - **Chinese and English:** select either language or follow the system under Settings → Appearance. Existing notes, conversations and custom prompts retain their original content.
 - **Dynamic colors:** use Android 12+ wallpaper colors or a supported Linux desktop accent. TiXun falls back to its default palette when system colors are unavailable. Light and dark themes remain available.
-- **Reasoning effort:** set a global default in Settings or override it for one conversation using the reasoning button. DeepSeek quizzes and data tools currently require reasoning off. ChatGPT plan requests can retain reasoning. Your global preference is preserved.
+- **Reasoning effort:** set a global default in Settings or override it for one conversation using the reasoning button. DeepSeek and ChatGPT plan requests support reasoning with tools. Quiz preparation enables the configured effort for that conversation; compatible providers follow their configured capabilities. Your global preference is preserved.
 - **Prompt management:** edit, search, preview and reset prompts for teaching and study tasks under Settings → Prompts. Changes apply to future requests. Application permissions and answer-submission rules remain in force.
 
 **ChatGPT plan sign-in** is also available on the main branch, outside the published v0.5.2 package. Open Settings → ChatGPT plan → **Continue with ChatGPT**. Complete authorization in your system browser, return to TiXun, select a model and choose **Use this account and model**. Available models and allowance depend on the permissions granted by your account. Requests never fall back to API billing.
