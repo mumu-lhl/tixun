@@ -118,6 +118,8 @@ void main() {
       await tester.tap(find.text('允许'));
       await until(tester, () => c.selected!.toolsEnabled);
       await tester.enterText(find.byKey(const Key('chat-input')), '请总结并保存知识');
+      await tester
+          .pump(); // Rebuild the input-driven Send button before tapping.
       await tester.tap(find.byKey(const Key('send-message')));
       await until(tester, () => c.pendingTool != null);
       expect((await c.study.searchKnowledge()).length, 1);
