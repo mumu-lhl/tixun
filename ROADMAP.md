@@ -115,5 +115,5 @@ Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI �
 - [x] 思考/公开摘要流式显示、可折叠、跨工具轮次保存；出题思考在提交前隐藏，练习及 AI 来源资料可回看。
 - [x] 会话、错题、练习独立的多页无限画板；颜色/粗细、范围橡皮、移动缩放/复位、撤销重做和确认后删页。
 - [x] 本地自动保存、关闭/后台/备份写入屏障、重启恢复、关联删除与 schema v8 迁移。
-- [x] 本地 139 项 Flutter 测试与新增真实 GUI 流程通过，已读取手机/桌面截图；最终代码的 CI 验收在提交后复核。
-- [ ] Java 25、四份签名 APK、新功能八组 GUI 的完整 Nightly 验收。
+- [x] 本地 139 项 Flutter 测试与新增真实 GUI 流程通过，已读取手机/桌面截图；最终代码的 CI 也已通过。
+- [x] [完整 Nightly 验收](https://github.com/mumu-lhl/tixun/actions/runs/42504622506) 通过：Temurin 25.0.5、139 项 Flutter 测试、32 项脚本测试、四份签名 Release APK、Linux Release、启动冒烟与八组 GUI 回归（十个场景）。[下载 Nightly](https://github.com/mumu-lhl/tixun/releases/tag/nightly-20261108-172216)，稳定版 Latest 保持 v0.5.2。
