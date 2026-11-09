@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,9 @@ import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
 import '../progress/profile_editor.dart';
 import '../review/review_providers.dart';
+import '../update/android_install.dart';
+import '../update/update_models.dart';
+import '../update/update_providers.dart';
 import 'backup_panel.dart';
 import 'language_color_settings.dart';
 
@@ -131,11 +136,152 @@ class SettingsScreen extends ConsumerWidget {
                     '开源 · 本地优先 · 无需账号。已有资料和练习可离线使用，AI 请求仅发送本次所需内容。卸载应用前请先导出完整备份。',
                   ),
                 ),
+                const _UpdateSettings(),
                 const SizedBox(height: 32),
               ],
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// In-app update section: current version, channel selector, manual check,
+/// status, download progress and the install / apply actions.
+class _UpdateSettings extends ConsumerWidget {
+  const _UpdateSettings();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final channel = ref.watch(updateChannelProvider);
+    final status = ref.watch(updateStatusProvider);
+    final version = ref.watch(updateCurrentVersionProvider);
+    final busy =
+        status.status == UpdateStatus.checking ||
+        status.downloadProgress != null;
+    final String? statusText = status.status == UpdateStatus.checking
+        ? context.tr('正在检查更新…')
+        : status.message == null
+        ? null
+        : context.tr(status.message!, status.messageArgs);
+    final showActions =
+        (status.status == UpdateStatus.available &&
+            !status.staged &&
+            !status.readyToInstall) ||
+        (Platform.isAndroid && status.readyToInstall) ||
+        (Platform.isLinux && status.staged) ||
+        status.installBlocked;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.system_update_outlined),
+          title: Text(context.tr('当前版本')),
+          subtitle: Text(
+            version.when(
+              data: (v) => v,
+              loading: () => '…',
+              error: (_, _) => '…',
+            ),
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SegmentedButton<UpdateChannel>(
+            segments: [
+              ButtonSegment(
+                value: UpdateChannel.stable,
+                label: Text(context.tr('正式版')),
+              ),
+              ButtonSegment(
+                value: UpdateChannel.prerelease,
+                label: Text(context.tr('预发布')),
+              ),
+              ButtonSegment(
+                value: UpdateChannel.nightly,
+                label: Text(context.tr('nightly')),
+              ),
+            ],
+            selected: {channel},
+            onSelectionChanged: (v) =>
+                ref.read(updateChannelProvider.notifier).setChannel(v.first),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton(
+            onPressed: busy
+                ? null
+                : () => ref
+                      .read(updateStatusProvider.notifier)
+                      .checkForUpdate(manual: true),
+            child: Text(context.tr('检查更新')),
+          ),
+        ),
+        if (statusText != null) ...[
+          const SizedBox(height: 8),
+          Text(statusText),
+        ],
+        if (status.downloadProgress != null) ...[
+          const SizedBox(height: 8),
+          LinearProgressIndicator(value: status.downloadProgress),
+          const SizedBox(height: 4),
+          Text(
+            context.tr('正在下载… {0}%', [
+              ((status.downloadProgress ?? 0) * 100).round(),
+            ]),
+          ),
+        ],
+        if (status.staged) ...[
+          const SizedBox(height: 8),
+          Text(context.tr('已准备好，下次启动时更新')),
+        ],
+        if (showActions) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (status.status == UpdateStatus.available &&
+                  !status.staged &&
+                  !status.readyToInstall &&
+                  status.downloadProgress == null)
+                FilledButton(
+                  onPressed: () => ref
+                      .read(updateStatusProvider.notifier)
+                      .downloadAndPrepare(),
+                  child: Text(context.tr('下载更新')),
+                ),
+              if (Platform.isAndroid && status.readyToInstall)
+                FilledButton(
+                  onPressed: () =>
+                      ref.read(updateStatusProvider.notifier).installOrApply(),
+                  child: Text(context.tr('安装')),
+                ),
+              if (status.installBlocked)
+                OutlinedButton(
+                  onPressed: () => openInstallSettings(),
+                  child: Text(context.tr('打开安装设置')),
+                ),
+              if (Platform.isLinux && status.staged) ...[
+                FilledButton(
+                  onPressed: () =>
+                      ref.read(updateStatusProvider.notifier).installOrApply(),
+                  child: Text(context.tr('立即重启更新')),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      ref.read(updateStatusProvider.notifier).discardStaged(),
+                  child: Text(context.tr('取消')),
+                ),
+              ],
+            ],
+          ),
+        ],
       ],
     );
   }

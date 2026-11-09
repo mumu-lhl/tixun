@@ -13,6 +13,7 @@ import '../core/backup/backup_service.dart';
 import '../core/l10n/app_strings.dart';
 import '../core/platform/backup_file_picker.dart';
 import '../core/ui/actions.dart';
+import '../features/update/update_providers.dart';
 import 'app.dart';
 import 'controller.dart';
 import 'theme.dart';
@@ -69,6 +70,42 @@ class _TixunHostState extends State<TixunHost> {
     );
     _detached = false;
     _failure = null;
+    _scheduleAutoCheck();
+  }
+
+  bool _autoCheckScheduled = false;
+
+  /// Schedules the one automatic update check for this launch, after the
+  /// first frame. Fire-and-forget: it never blocks startup, never throws
+  /// into the UI and never shows a dialog; a found update is only reflected
+  /// in the Settings status.
+  void _scheduleAutoCheck() {
+    if (_autoCheckScheduled) return;
+    _autoCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_maybeAutoCheck());
+    });
+  }
+
+  /// At most one automatic check per 6h: silently skip when the last
+  /// (automatic or manual) check was less than 6h ago. The check itself
+  /// writes the timestamp on completion.
+  Future<void> _maybeAutoCheck() async {
+    final container = _container;
+    if (container == null) return;
+    try {
+      final db = container.read(appControllerProvider).db;
+      final lastRaw = await db.preference('update_last_auto_check');
+      final last = int.tryParse(lastRaw ?? '');
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (last != null &&
+          now - last < const Duration(hours: 6).inMilliseconds) {
+        return;
+      }
+      await container.read(updateStatusProvider.notifier).checkForUpdate();
+    } catch (_) {
+      // Automatic checks never surface errors in the UI.
+    }
   }
 
   @override

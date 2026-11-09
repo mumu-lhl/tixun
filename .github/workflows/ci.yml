@@ -19,6 +19,10 @@ on:
         description: Run unit and GUI test suites
         type: boolean
         default: true
+      nightly_tag:
+        description: Nightly tag baked into the build for in-app update comparison (e.g. nightly-20261109-203000); empty for ordinary and formal release builds
+        type: string
+        default: ''
   workflow_call:
     secrets:
       ANDROID_KEYSTORE_BASE64:
@@ -42,6 +46,10 @@ on:
         description: Run unit and GUI test suites
         type: boolean
         default: true
+      nightly_tag:
+        description: Nightly tag baked into the build for in-app update comparison (e.g. nightly-20261109-203000); empty for ordinary and formal release builds
+        type: string
+        default: ''
     outputs:
       android_artifact:
         value: ${{ jobs.android.outputs.artifact_name }}
@@ -151,7 +159,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        run: python3 scripts/build_artifacts.py build-android-release artifacts/android-release
+        run: python3 scripts/build_artifacts.py build-android-release artifacts/android-release --nightly-tag "${{ inputs.nightly_tag }}"
       - name: Verify Release signature and certificate
         if: inputs.android_release
         env:
@@ -201,7 +209,12 @@ jobs:
       - name: Resolve Linux artifact
         id: artifact
         run: python3 scripts/build_artifacts.py metadata linux >> "$GITHUB_OUTPUT"
-      - run: flutter build linux --release
+      - run: |
+          if [ -n "${{ inputs.nightly_tag }}" ]; then
+            flutter build linux --release --dart-define=TIXUN_NIGHTLY_TAG=${{ inputs.nightly_tag }}
+          else
+            flutter build linux --release
+          fi
       - name: Preserve production bundle
         env:
           BUNDLE_PATH: ${{ steps.artifact.outputs.bundle_path }}

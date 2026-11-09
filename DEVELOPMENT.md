@@ -42,7 +42,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布或手动勾选 `full_gui` 时运行；Nightly 跳过单元测试与完整 GUI 回归。十个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
+普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布或手动勾选 `full_gui` 时运行；Nightly 跳过单元测试与完整 GUI 回归。十个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于把标签 baked 进构建。
 
 ## 按版本标签发布
 
@@ -113,7 +113,7 @@ flutter test test/localization_test.dart
 
 [Publish nightly](.github/workflows/nightly.yml) 每天 UTC 20:30（北京时间次日 04:30）从默认分支运行，也支持手动触发。GitHub 定时任务可能延迟；不承诺精确到分钟。
 
-每次采用独立 UTC 时间标签 `nightly-YYYYMMDD-HHMMSS`，复用 CI 的构建流程（跳过单元测试与完整 GUI 回归），产出正式签名 Android Release APK、Linux Release 与校验文件。全部检查成功后创建草稿，附件完整上传后公开为 Prerelease，并明确不设为 Latest。失败不会替换已有 Nightly 或稳定版，可重跑失败任务继续草稿。公开成功后执行 `scripts/prune_nightlies.py`，只保留最新的公开 Nightly，并删除旧 Nightly Release、附件和 Tag；稳定版、其他预发布和草稿不参与清理。清理前将当前更新日志的旧 Tag 比较链接改用提交 SHA，避免删除 Tag 后失效。清理失败会使工作流失败，已公开的新版本保留，可重新执行清理脚本。
+每次采用独立 UTC 时间标签 `nightly-YYYYMMDD-HHMMSS`，复用 CI 的构建流程（跳过单元测试与完整 GUI 回归），产出正式签名 Android Release APK、Linux Release 与校验文件。构建时把本次标签以 `--dart-define=TIXUN_NIGHTLY_TAG=<标签>` 写入应用内，供应用内更新比对；正式发布与普通构建不带标签。全部检查成功后创建草稿，附件完整上传后公开为 Prerelease，并明确不设为 Latest。失败不会替换已有 Nightly 或稳定版，可重跑失败任务继续草稿。公开成功后执行 `scripts/prune_nightlies.py`，只保留最新的公开 Nightly，并删除旧 Nightly Release、附件和 Tag；稳定版、其他预发布和草稿不参与清理。清理前将当前更新日志的旧 Tag 比较链接改用提交 SHA，避免删除 Tag 后失效。清理失败会使工作流失败，已公开的新版本保留，可重新执行清理脚本。
 
 更新日志继续使用 git-cliff：优先比较上一条已公开且可达的 Nightly，首次回退到已公开的版本标签；无基线时包含完整历史。稳定版日志仍只比较版本标签，不会被 Nightly 截断。应用内版本名和构建号沿用 `pubspec.yaml`，下载文件名与 Release 标签区分各次 Nightly。首次从开发签名迁移仍需备份并卸载旧版。
 

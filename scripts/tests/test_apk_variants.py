@@ -67,6 +67,28 @@ class ApkVariantTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'stale'):
             build_release(destination, run=run, source=source)
 
+    def test_build_embeds_nightly_tag_only_when_set(self):
+        source, destination = self.root / 'flutter', self.root / 'release'
+        source.mkdir()
+        commands = []
+        def run(command, check):
+            commands.append(command)
+            if '--split-per-abi' not in command:
+                (source / 'app-release.apk').write_bytes(b'universal before split')
+            else:
+                (source / 'app-release.apk').unlink()
+                for abi in ABIS:
+                    (source / f'app-{abi}-release.apk').write_text(abi)
+        build_release(destination, run=run, source=source, nightly_tag='nightly-20261109-203000')
+        self.assertEqual(len(commands), 2)
+        for command in commands:
+            self.assertIn('--dart-define=TIXUN_NIGHTLY_TAG=nightly-20261109-203000', command)
+        commands.clear()
+        destination.rename(self.root / 'release-done')
+        build_release(self.root / 'release2', run=run, source=source)
+        for command in commands:
+            self.assertFalse(any(a.startswith('--dart-define=TIXUN_NIGHTLY_TAG') for a in command))
+
     def test_failed_build_never_exposes_partial_artifact(self):
         source, destination = self.root / 'flutter', self.root / 'release'
         source.mkdir()

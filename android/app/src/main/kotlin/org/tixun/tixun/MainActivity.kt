@@ -2,6 +2,9 @@ package org.tixun.tixun
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -47,6 +50,55 @@ class MainActivity : FlutterActivity() {
                     pendingSave = null
                     pendingSource = null
                     result.error("SAVE_FAILED", "无法打开系统文件保存窗口。", null)
+                }
+            }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "org.tixun/app_update")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "installApk" -> {
+                        try {
+                            val file = File(call.argument<String>("path") ?: "").canonicalFile
+                            val cache = cacheDir.canonicalFile
+                            if (!file.path.startsWith(cache.path + File.separator) ||
+                                !file.isFile || !file.name.endsWith(".apk")) {
+                                result.error("INVALID_FILE", "安装包文件无效。", null)
+                                return@setMethodCallHandler
+                            }
+                            if (!packageManager.canRequestPackageInstalls()) {
+                                result.error("INSTALL_NOT_ALLOWED", "未允许安装未知应用。", null)
+                                return@setMethodCallHandler
+                            }
+                            val uri = FileProvider.getUriForFile(
+                                this,
+                                "${applicationContext.packageName}.fileprovider",
+                                file,
+                            )
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(uri, "application/vnd.android.package-archive")
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (_: Exception) {
+                            result.error("INSTALL_FAILED", "无法打开安装界面。", null)
+                        }
+                    }
+                    "openInstallSettings" -> {
+                        try {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                Uri.parse("package:$packageName"),
+                            ).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (_: Exception) {
+                            result.error("SETTINGS_FAILED", "无法打开安装未知应用设置。", null)
+                        }
+                    }
+                    else -> result.notImplemented()
                 }
             }
     }

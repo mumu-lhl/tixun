@@ -11,8 +11,17 @@ import 'app/controller.dart';
 import 'app/theme.dart';
 import 'core/backup/backup_service.dart';
 import 'features/library/study_photo_intake.dart';
+import 'features/update/linux_staging.dart';
 
 Future<void> main() async {
+  if (Platform.isLinux) {
+    final applied = await applyPendingUpdate();
+    if (applied == ApplyResult.failed) {
+      // Fall through and launch the old version; the marker is kept
+      // for retry from Settings.
+    }
+    await cleanupOldBundle();
+  }
   WidgetsFlutterBinding.ensureInitialized();
   const demo = bool.fromEnvironment('TIXUN_DEMO');
   late final Directory root;

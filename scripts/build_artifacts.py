@@ -51,16 +51,20 @@ def verify_apk(path, mode, badging, abi=None):
             raise ValueError(f'APK native libraries do not match the requested architecture: {abi}')
 
 
-def build_release(directory, run=subprocess.run, source=Path('build/app/outputs/flutter-apk')):
+def build_release(directory, run=subprocess.run, source=Path('build/app/outputs/flutter-apk'),
+                  nightly_tag=''):
     directory = Path(directory)
     directory.parent.mkdir(parents=True, exist_ok=True)
     if directory.exists():
         raise ValueError('Release staging directory already exists; refusing stale APKs')
+    command = ['flutter', 'build', 'apk', '--release']
+    if nightly_tag:
+        command.append(f'--dart-define=TIXUN_NIGHTLY_TAG={nightly_tag}')
     with tempfile.TemporaryDirectory(prefix='android-build-', dir=directory.parent) as temp:
         staging = Path(temp)
-        run(['flutter', 'build', 'apk', '--release'], check=True)
+        run(command, check=True)
         shutil.copyfile(source / 'app-release.apk', staging / 'app-release.apk')
-        run(['flutter', 'build', 'apk', '--release', '--split-per-abi'], check=True)
+        run([*command, '--split-per-abi'], check=True)
         for abi in ABIS:
             name = f'app-{abi}-release.apk'
             shutil.copyfile(source / name, staging / name)
@@ -114,6 +118,8 @@ def main():
     verify.add_argument('--abi', choices=[*ABIS, 'universal'])
     build = sub.add_parser('build-android-release')
     build.add_argument('directory', type=Path)
+    build.add_argument('--nightly-tag', default='',
+                       help='Nightly tag embedded via --dart-define; empty embeds nothing')
     package = sub.add_parser('package-android')
     package.add_argument('--source', type=Path, required=True)
     package.add_argument('--destination', type=Path, required=True)
@@ -125,7 +131,7 @@ def main():
         for key, value in metadata(args.platform, args.mode).items():
             print(f'{key}={value}')
     elif args.command == 'build-android-release':
-        build_release(args.directory)
+        build_release(args.directory, nightly_tag=args.nightly_tag)
     elif args.command == 'package-android':
         package_android(args.source, args.destination, args.tag)
     elif args.command == 'verify-android-release':
