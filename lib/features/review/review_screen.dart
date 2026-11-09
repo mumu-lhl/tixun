@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -195,6 +197,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                     child: Text(context.tr("调度依据与历史")),
                                   ),
                                   PopupMenuButton<String>(
+                                    popUpAnimationStyle: menuAnimation(context),
                                     tooltip: context.tr("调整复习"),
                                     onSelected: (v) => act(context, () async {
                                       final store = ref.read(

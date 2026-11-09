@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -561,8 +563,9 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                                     remember: false,
                                   ),
                           ),
-                          DropdownButton<int>(
-                            value: doc.index,
+                          AppSelectField<int>(
+                            compact: true,
+                            initialValue: doc.index,
                             items: [
                               for (var i = 0; i < doc.pages.length; i++)
                                 DropdownMenuItem(

@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'dart:convert';
 
 import 'package:drift/drift.dart' hide Column;
@@ -150,6 +152,7 @@ class ChatStudyMenu extends ConsumerWidget {
   final ChatMessage message;
   @override
   Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<String>(
+    popUpAnimationStyle: menuAnimation(context),
     tooltip: context.tr("保存学习资料"),
     icon: const Icon(Icons.bookmark_add_outlined, size: 18),
     enabled: message.status != 'generating',

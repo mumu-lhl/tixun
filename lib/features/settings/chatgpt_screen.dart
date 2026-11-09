@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -177,9 +179,9 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                   ),
                 const SizedBox(height: 20),
                 if (accounts.isNotEmpty)
-                  DropdownButtonFormField<String>(
-                    key: ValueKey('chatgpt-account-$active'),
-                    isExpanded: true,
+                  AppSelectField<String>(
+                    key: const Key('chatgpt-account-selector'),
+
                     initialValue: active,
                     decoration: InputDecoration(
                       labelText: context.tr('ChatGPT 账号 / 工作区'),
@@ -328,11 +330,9 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                   if (models.isEmpty)
                     Text(context.tr('暂时没有可用模型，请刷新列表或检查账号授权。')),
                   if (models.isNotEmpty)
-                    DropdownButtonFormField<String>(
-                      key: ValueKey(
-                        'chatgpt-model-$model-${models.map((m) => m.id).join()}',
-                      ),
-                      isExpanded: true,
+                    AppSelectField<String>(
+                      key: const Key('chatgpt-model-selector'),
+
                       initialValue: models.any((m) => m.id == model)
                           ? model
                           : null,
@@ -368,12 +368,10 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                         : (v) => setState(() => vision = v),
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    key: ValueKey(
-                      'chatgpt-effort-$model-$selectedEffort-${availableEfforts.join()}',
-                    ),
+                  AppSelectField<String>(
+                    key: const Key('chatgpt-effort-selector'),
                     initialValue: selectedEffort,
-                    isExpanded: true,
+
                     decoration: InputDecoration(
                       labelText: context.tr('默认思考强度'),
                     ),

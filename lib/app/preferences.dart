@@ -17,6 +17,8 @@ class AppPreferences extends DatabaseNotifier {
   final KeyStore keys;
   final bool demo;
   String? loadNotice;
+  List<String> learningSubjects = const ['语文', '数学', '英语'];
+  static const subjectsPreference = 'learning_subjects_v1';
   late ProviderConfig config;
   PromptSettings _prompts = PromptSettings();
   PromptSettings get prompts {
@@ -39,6 +41,7 @@ class AppPreferences extends DatabaseNotifier {
   ThemeMode themeMode = ThemeMode.system;
   Future<void> load() async {
     config = await db.config();
+    await loadSubjects();
     final language = await db.preference('app_language') ?? 'zh';
     languageChoice = ['zh', 'en', 'system'].contains(language)
         ? language
@@ -60,6 +63,64 @@ class AppPreferences extends DatabaseNotifier {
       _ => ThemeMode.system,
     };
   }
+
+  static List<String> checkedSubjects(Iterable<String> subjects) {
+    final values = subjects.map((s) => s.trim()).toSet().toList();
+    if (values.isEmpty ||
+        values.length > 20 ||
+        values.any((s) => s.isEmpty || s.length > 40 || s.contains('\n'))) {
+      throw const FormatException('请选择 1–20 个科目，每个名称最多 40 字。');
+    }
+    return List.unmodifiable(values);
+  }
+
+  Future<void> loadSubjects() async {
+    final raw = await db.preference(subjectsPreference);
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final dynamic value = jsonDecode(raw);
+        if (value is! List || value.any((v) => v is! String)) {
+          throw const FormatException();
+        }
+        learningSubjects = checkedSubjects(value.cast<String>());
+        return;
+      } catch (_) {
+        loadNotice = '学习科目配置无法读取，暂按已有资料显示；可在设置中重新选择。';
+      }
+    }
+    // Existing users keep access to recorded subjects; fresh installs start
+    // with the three main subjects and choose electives in Settings.
+    final recorded = await db
+        .customSelect(
+          "SELECT DISTINCT subject FROM (SELECT subject FROM chat_sessions WHERE deleted=0 UNION SELECT subject FROM knowledge_items WHERE deleted=0 UNION SELECT subject FROM mistakes WHERE deleted=0 UNION SELECT subject FROM exam_subjects) WHERE subject IS NOT NULL AND trim(subject)<>'' ORDER BY subject",
+        )
+        .get();
+    learningSubjects = checkedSubjects(
+      {
+        '语文',
+        '数学',
+        '英语',
+        ...recorded
+            .map((r) => r.read<String>('subject'))
+            .where((s) => s.length <= 40 && !s.contains('\n')),
+      }.take(20),
+    );
+  }
+
+  Future<void> saveSubjects(
+    List<String> subjects, {
+    String currentFilter = '',
+  }) => runOperation(() async {
+    final values = checkedSubjects(subjects);
+    await db.transaction(() async {
+      await db.setPreference(subjectsPreference, jsonEncode(values));
+      if (currentFilter.isNotEmpty && !values.contains(currentFilter)) {
+        await db.setPreference('subject_filter', '');
+      }
+    });
+    learningSubjects = values;
+    changed();
+  });
 
   Future<void> setLanguage(String value) => runOperation(() async {
     if (!['zh', 'en', 'system'].contains(value)) {

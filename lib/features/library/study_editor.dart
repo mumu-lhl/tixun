@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -253,8 +255,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                       if (!widget.isMistake)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 16),
-                          child: DropdownButtonFormField<String>(
-                            isExpanded: true,
+                          child: AppSelectField<String>(
                             initialValue: _kind,
                             decoration: InputDecoration(
                               labelText: context.tr("知识类型"),

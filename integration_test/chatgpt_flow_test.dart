@@ -1,3 +1,4 @@
+import 'package:tixun/core/ui/app_menu.dart';
 import 'package:tixun/core/ai/ai_options.dart';
 
 import 'dart:io';
@@ -63,18 +64,12 @@ void main() {
       await click(t, find.byKey(const Key('chatgpt-sign-in')));
       await ready(t, () => find.text('账号已登录').evaluate().isNotEmpty);
       expect(fixture.exchanges, 1);
-      await click(
-        t,
-        find.widgetWithText(DropdownButtonFormField<String>, '模型'),
-      );
+      await click(t, find.widgetWithText(AppSelectField<String>, '模型'));
       await click(t, find.text('Fixture vision model').last);
       await click(t, find.text('测试连接'));
       await ready(t, () => find.text('连接成功，已收到模型回复。').evaluate().isNotEmpty);
       expect(c.config.kind, 'deepseek');
-      await click(
-        t,
-        find.widgetWithText(DropdownButtonFormField<String>, '默认思考强度'),
-      );
+      await click(t, find.widgetWithText(AppSelectField<String>, '默认思考强度'));
       await click(t, find.text('中').last);
       await click(t, find.byKey(const Key('use-chatgpt')));
       await ready(t, () => c.config.kind == 'chatgpt');
@@ -129,7 +124,7 @@ void main() {
             .isNotEmpty,
       );
       expect((await fixture.auth.snapshot()).accounts.single.connected, false);
-      scope.read(routerProvider).go('/settings');
+      scope.read(routerProvider).go('/settings/ai');
       await t.pumpAndSettle();
       expect(find.byKey(const Key('api-key')), findsNothing);
       await click(t, find.text('Restore previous API settings'));

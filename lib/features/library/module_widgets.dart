@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -112,7 +114,8 @@ class _ManagerState extends ConsumerState<ModuleManager> {
               Wrap(
                 spacing: 6,
                 children: [
-                  for (final name in schoolSubjects)
+                  for (final name
+                      in ref.read(appControllerProvider).learningSubjects)
                     ActionChip(
                       label: Text(context.subjectName(name)),
                       onPressed: () => setState(() {
@@ -155,6 +158,7 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                       '${discipline.isEmpty ? '${module.subject} · ' : ''}${module.name}',
                     ),
                     trailing: PopupMenuButton<String>(
+                      popUpAnimationStyle: menuAnimation(context),
                       key: ValueKey('module-menu-${module.id}'),
                       tooltip: ctx.tr('目录操作'),
                       onSelected: (action) async {
@@ -307,7 +311,10 @@ class ModuleAssignment extends ConsumerWidget {
                         onPressed: () => act(ctx, () async {
                           final c = ref.read(appControllerProvider);
                           await c.setSubjectFilter(
-                            schoolSubjects.contains(subject) ? subject : '',
+                            schoolSubjects.contains(subject) ||
+                                    c.learningSubjects.contains(subject)
+                                ? subject
+                                : '',
                           );
                           if (ctx.mounted) {
                             ctx.push(
@@ -522,7 +529,10 @@ class ModuleFilter extends ConsumerWidget {
                   MaterialPageRoute<void>(
                     builder: (_) => ModuleManager(
                       initialSubject: subject.isEmpty
-                          ? selected?.subject ?? '数学'
+                          ? selected?.subject ??
+                                (c.learningSubjects.contains('数学')
+                                    ? '数学'
+                                    : c.learningSubjects.first)
                           : subject,
                     ),
                   ),

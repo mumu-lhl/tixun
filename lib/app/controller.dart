@@ -98,7 +98,17 @@ class AppController extends ChangeNotifier {
   bool _disposed = false;
   String search = '';
   String? notice;
-  // Global subject filter: '' means 全部, otherwise one of schoolSubjects.
+  List<String> get learningSubjects => preferences.learningSubjects;
+  Future<void> setLearningSubjects(List<String> values) async {
+    await preferences.saveSubjects(values, currentFilter: subjectFilter);
+    if (subjectFilter.isNotEmpty && !learningSubjects.contains(subjectFilter)) {
+      subjectFilter = '';
+    }
+    await reload();
+  }
+
+  // Global subject filter: empty means all records; configured custom subjects
+  // are supported alongside the built-in school subjects.
   // Persisted under 'subject_filter'; sessions, library, mistakes,
   // practice and review all follow it.
   String subjectFilter = '';
@@ -108,19 +118,39 @@ class AppController extends ChangeNotifier {
       ? rows
       : rows.where((s) => s.subject == subjectFilter).toList();
 
-  Future<void> setSubjectFilter(String value) async {
-    if (value != '' && !schoolSubjects.contains(value)) {
+  Future<void> setSubjectFilter(
+    String value, {
+    bool activateChat = false,
+  }) async {
+    if (value != '' &&
+        !schoolSubjects.contains(value) &&
+        !learningSubjects.contains(value)) {
       throw const FormatException('科目无效。');
     }
     if (value == subjectFilter) return;
+    if (activateChat && busy) await stop();
     subjectFilter = value;
     await db.setPreference('subject_filter', value);
     await reload();
+    if (activateChat && value.isNotEmpty && selected?.subject != value) {
+      if (sessions.isNotEmpty) {
+        await selectSession(sessions.first);
+      } else {
+        await stop();
+        _epoch++;
+        selected = null;
+        messages = [];
+        attachments = [];
+        sessionReasoning = '';
+        error = null;
+        await db.setPreference('selected_session', '');
+        changed();
+      }
+    }
   }
 
   // Session subjects are free text like knowledge subjects (custom
-  // subjects are allowed); only the global filter is limited to the 9
-  // school subjects, so a custom-subject session only shows under 全部.
+  // subjects are allowed); configured custom subjects are also filterable.
   Future<void> setSessionSubject(ChatSession s, String subject) async {
     await db.setSessionSubject(s.id, subject);
     await reload();
@@ -183,10 +213,15 @@ class AppController extends ChangeNotifier {
     notice = preferences.loadNotice;
     final savedSubject = await db.preference('subject_filter');
     if (savedSubject != null &&
-        (savedSubject.isEmpty || schoolSubjects.contains(savedSubject))) {
+        (savedSubject.isEmpty ||
+            schoolSubjects.contains(savedSubject) ||
+            learningSubjects.contains(savedSubject))) {
       subjectFilter = savedSubject;
     }
-    if (demo && seed) await seedDemo();
+    if (demo && seed) {
+      await seedDemo();
+      await preferences.loadSubjects();
+    }
     await reload();
     final lastId = await db.preference('selected_session');
     final last = sessions.where((s) => s.id == lastId).firstOrNull;
@@ -923,10 +958,15 @@ class AppController extends ChangeNotifier {
 
   Future<void> prepareQuickQuiz() async {
     _requireQuizModel();
+    final subject = subjectFilter.isNotEmpty
+        ? subjectFilter
+        : learningSubjects.contains('数学')
+        ? '数学'
+        : learningSubjects.first;
     await newSession();
     await mode('exam');
-    await renameSession(selected!, '数学 · 检测训练');
-    await setSessionSubject(selected!, '数学');
+    await renameSession(selected!, '$subject · 检测训练');
+    await setSessionSubject(selected!, subject);
     await useQuizReasoning();
     await draft(prompts.text('quiz'));
   }

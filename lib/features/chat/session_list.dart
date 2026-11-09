@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -155,6 +157,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                             widget.onSelected?.call();
                           }),
                           trailing: PopupMenuButton<String>(
+                            popUpAnimationStyle: menuAnimation(context),
                             tooltip: context.tr("会话操作"),
                             onSelected: (action) =>
                                 _action(context, c, s, action),
@@ -254,6 +257,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         trailing: PopupMenuButton<String>(
+                          popUpAnimationStyle: menuAnimation(context),
                           tooltip: context.tr("回收会话操作"),
                           itemBuilder: (_) => [
                             PopupMenuItem(

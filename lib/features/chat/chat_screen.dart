@@ -1,3 +1,4 @@
+import '../../core/ui/app_menu.dart';
 import '../scratchpad/scratchpad_screen.dart';
 
 import 'dart:io';
@@ -27,6 +28,7 @@ class ChatScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(appControllerProvider);
     final wide = MediaQuery.sizeOf(context).width >= 1100;
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Row(
       children: [
         if (wide) ...[
@@ -100,63 +102,92 @@ class ChatScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    IconButton(
-                      tooltip: c.selected?.toolsEnabled == true
-                          ? context.tr("关闭本会话资料工具")
-                          : context.tr("开启本会话资料工具"),
-                      onPressed: c.busy || c.selected == null
-                          ? null
-                          : () => act(context, () async {
-                              if (c.selected!.toolsEnabled) {
-                                await c.setTools(false);
-                                return;
-                              }
-                              final approve = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: Text(context.tr("允许本会话使用学习资料？")),
-                                  content: Text(
-                                    context.tr(
-                                      "AI 可以检索相关知识和错题，并读取选中的资料正文。新增、修改、删除和关联仍须由你逐项确认。图片不会通过检索工具自动上传。",
-                                    ),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, false),
-                                      child: Text(context.tr("取消")),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, true),
-                                      child: Text(context.tr("允许")),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (approve == true) await c.setTools(true);
-                            }),
-                      icon: Icon(
-                        c.selected?.toolsEnabled == true
-                            ? Icons.auto_stories
-                            : Icons.auto_stories_outlined,
-                        size: 21,
+                    if (!compact)
+                      IconButton(
+                        tooltip: context.tr(
+                          c.selected?.toolsEnabled == true
+                              ? '关闭本会话资料工具'
+                              : '开启本会话资料工具',
+                        ),
+                        onPressed: c.busy || c.selected == null
+                            ? null
+                            : () => act(
+                                context,
+                                () => _toggleStudyTools(context, c),
+                              ),
+                        icon: Icon(
+                          c.selected?.toolsEnabled == true
+                              ? Icons.auto_stories
+                              : Icons.auto_stories_outlined,
+                          size: 21,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: context.tr("关联学习资料"),
-                      onPressed: () =>
-                          act(context, () => openChatStudyLinks(context, ref)),
-                      icon: const Icon(Icons.link, size: 21),
-                    ),
+                    if (!compact)
+                      IconButton(
+                        tooltip: context.tr('关联学习资料'),
+                        onPressed: () => act(
+                          context,
+                          () => openChatStudyLinks(context, ref),
+                        ),
+                        icon: const Icon(Icons.link, size: 21),
+                      ),
                     const ReasoningMenu(),
                     if (c.selected != null)
                       ScratchpadButton('chat:${c.selected!.id}'),
-                    IconButton(
-                      tooltip: context.tr("模型设置"),
-                      onPressed: () => context.go('/settings'),
-                      icon: const Icon(Icons.tune, size: 21),
-                    ),
+                    if (!compact)
+                      IconButton(
+                        tooltip: context.tr('模型设置'),
+                        onPressed: () => context.push('/settings/ai'),
+                        icon: const Icon(Icons.tune, size: 21),
+                      ),
+                    if (compact)
+                      PopupMenuButton<String>(
+                        popUpAnimationStyle: menuAnimation(context),
+                        key: const Key('chat-more'),
+                        tooltip: context.tr('更多对话操作'),
+                        icon: Badge(
+                          isLabelVisible: c.selected?.toolsEnabled == true,
+                          smallSize: 6,
+                          child: const Icon(Icons.more_vert),
+                        ),
+                        onSelected: (action) {
+                          if (action == 'tools') {
+                            act(context, () => _toggleStudyTools(context, c));
+                          }
+                          if (action == 'links') {
+                            act(
+                              context,
+                              () => openChatStudyLinks(context, ref),
+                            );
+                          }
+                          if (action == 'settings') {
+                            context.push('/settings/ai');
+                          }
+                        },
+                        itemBuilder: (ctx) => [
+                          CheckedPopupMenuItem(
+                            value: 'tools',
+                            checked: c.selected?.toolsEnabled == true,
+                            enabled: !c.busy && c.selected != null,
+                            child: Text(
+                              ctx.tr(
+                                c.selected?.toolsEnabled == true
+                                    ? '关闭本会话资料工具'
+                                    : '开启本会话资料工具',
+                              ),
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'links',
+                            enabled: c.selected != null,
+                            child: Text(ctx.tr('关联学习资料')),
+                          ),
+                          PopupMenuItem(
+                            value: 'settings',
+                            child: Text(ctx.tr('模型设置')),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -183,6 +214,37 @@ class ChatScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+Future<void> _toggleStudyTools(BuildContext context, AppController c) async {
+  final session = c.selected;
+  if (session == null || c.busy) return;
+  if (session.toolsEnabled) {
+    await c.setTools(false);
+    return;
+  }
+  final approved = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(ctx.tr('允许本会话使用学习资料？')),
+      content: Text(
+        ctx.tr('AI 可以检索相关知识和错题，并读取选中的资料正文。新增、修改、删除和关联仍须由你逐项确认。图片不会通过检索工具自动上传。'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(ctx.tr('取消')),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(ctx.tr('允许')),
+        ),
+      ],
+    ),
+  );
+  if (approved == true && context.mounted && c.selected?.id == session.id) {
+    await c.setTools(true);
   }
 }
 
@@ -301,8 +363,11 @@ class _ConversationState extends ConsumerState<Conversation> {
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
     final colors = Theme.of(context).colorScheme;
-    final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final keyboard =
+        MediaQuery.viewInsetsOf(context).bottom > 0 ||
+        View.of(context).viewInsets.bottom > 0;
     final shortInput = keyboard || MediaQuery.sizeOf(context).height < 700;
+    final showQuickActions = c.messages.isNotEmpty && !c.busy && !shortInput;
     final viewport = MediaQuery.sizeOf(context);
     if (c.demo && _reportedViewport != viewport) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -494,15 +559,10 @@ class _ConversationState extends ConsumerState<Conversation> {
                   ],
                 ),
               ),
-              // The rows below keep their visibility logic, but their space
-              // is always reserved: appearing/disappearing used to shift the
-              // composer height by ~40px on every generation and keyboard
-              // change.
+              // Hide optional actions while typing, leaving room for photos
+              // and the send button above the keyboard.
               Visibility(
-                visible: c.messages.isNotEmpty && !c.busy && !shortInput,
-                maintainSize: true,
-                maintainAnimation: true,
-                maintainState: true,
+                visible: showQuickActions,
                 child: SizedBox(
                   height: 40,
                   child: ListView(
@@ -536,10 +596,9 @@ class _ConversationState extends ConsumerState<Conversation> {
               ),
               ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxHeight: (constraints.maxHeight - 40).clamp(
-                    0.0,
-                    double.infinity,
-                  ),
+                  maxHeight:
+                      (constraints.maxHeight - (showQuickActions ? 40 : 0))
+                          .clamp(0.0, double.infinity),
                 ),
                 child: SingleChildScrollView(
                   reverse: true,
@@ -553,18 +612,15 @@ class _ConversationState extends ConsumerState<Conversation> {
                           children: [
                             Visibility(
                               visible: !keyboard,
-                              maintainSize: true,
-                              maintainAnimation: true,
-                              maintainState: true,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     children: [
                                       DropdownButtonHideUnderline(
-                                        child: DropdownButton<String>(
-                                          value: c.selected!.mode,
-                                          isDense: true,
+                                        child: AppSelectField<String>(
+                                          compact: true,
+                                          initialValue: c.selected!.mode,
                                           style: TextStyle(
                                             fontFamily: 'NotoSansSC',
                                             fontSize: 12,
@@ -733,7 +789,11 @@ class _ConversationState extends ConsumerState<Conversation> {
                                     // busy). The draft is saved via onChanged.
                                     onChanged: c.draft,
                                     minLines: 1,
-                                    maxLines: shortInput ? 4 : 6,
+                                    maxLines: keyboard
+                                        ? 2
+                                        : shortInput
+                                        ? 4
+                                        : 6,
                                     maxLength: 32000,
                                     decoration: InputDecoration(
                                       hintText: context.tr("写下你的问题，或添加题目图片…"),
@@ -761,6 +821,9 @@ class _ConversationState extends ConsumerState<Conversation> {
                                     child: Row(
                                       children: [
                                         PopupMenuButton<String>(
+                                          popUpAnimationStyle: menuAnimation(
+                                            context,
+                                          ),
                                           tooltip: context.tr("添加图片"),
                                           enabled: !c.busy,
                                           icon: const Icon(
@@ -787,17 +850,18 @@ class _ConversationState extends ConsumerState<Conversation> {
                                             ),
                                           ],
                                         ),
-                                        Expanded(
-                                          child: Text(
-                                            pending.isNotEmpty
-                                                ? context.tr("发送时会将所选图片传给 AI")
-                                                : context.tr("原图保存在本地"),
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: colors.onSurfaceVariant,
+                                        if (pending.isNotEmpty)
+                                          Expanded(
+                                            child: Text(
+                                              context.tr('发送时会将所选图片传给 AI'),
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: colors.onSurfaceVariant,
+                                              ),
                                             ),
-                                          ),
-                                        ),
+                                          )
+                                        else
+                                          const Spacer(),
                                         c.busy
                                             ? IconButton.filled(
                                                 key: const Key(
@@ -850,31 +914,6 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                 },
                                               ),
                                       ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Visibility(
-                              visible: !shortInput,
-                              maintainSize: true,
-                              maintainAnimation: true,
-                              maintainState: true,
-                              child: Column(
-                                children: [
-                                  const SizedBox(height: 6),
-                                  Center(
-                                    child: Text(
-                                      c.demo
-                                          ? context.tr("离线 Mock · 回复为固定测试内容")
-                                          : context.tr(
-                                              "AI 可能出错，请核对重要结论。最近 30 条消息 / 32000 字符参与上下文。",
-                                            ),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: colors.onSurfaceVariant,
-                                      ),
                                     ),
                                   ),
                                 ],

@@ -1,0 +1,507 @@
+import '../../core/ui/app_menu.dart';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../app/controller.dart';
+import '../../core/ai/chat_provider.dart';
+import '../../core/database/database.dart';
+import '../../core/l10n/app_strings.dart';
+import '../../core/ui/actions.dart';
+
+class AiSettingsScreen extends ConsumerStatefulWidget {
+  const AiSettingsScreen({super.key});
+  @override
+  ConsumerState<AiSettingsScreen> createState() => _AiSettingsScreenState();
+}
+
+class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
+  late TextEditingController _base, _model;
+  final _key = TextEditingController();
+  late String _kind, _effort;
+  late bool _vision, _thinking, _supportsThinking, _supportsTools;
+  bool _working = false;
+  bool _keyVisible = false;
+  String? _status;
+  bool _failure = false;
+
+  static const _kinds = ['deepseek', 'compatible', 'chatgpt'];
+  static const _deepseekModels = ['deepseek-flash', 'deepseek-v4-pro'];
+  String? _reasoningLevels;
+  List<String> get _efforts => AiOptions(_candidate()).reasoningEfforts;
+
+  /// Loads a stored config into the form, replacing values outside the
+  /// dropdowns' item lists with valid defaults. Without this, a legacy or
+  /// backup-restored value makes DropdownButtonFormField throw at build
+  /// time ("There should be exactly one item with [DropdownButton]'s
+  /// value") and blanks the whole settings page.
+  void _applyConfig(ProviderConfig c) {
+    _kind = _kinds.contains(c.kind) ? c.kind : 'deepseek';
+    _base.text = c.baseUrl;
+    _model.text = _kind == 'deepseek' && !_deepseekModels.contains(c.model)
+        ? 'deepseek-flash'
+        : c.model;
+    _vision = c.vision;
+    _thinking = c.thinking;
+    _supportsThinking = c.supportsThinking;
+    _supportsTools = c.supportsTools;
+    _reasoningLevels = c.reasoningLevels;
+    _effort = c.effort;
+    _effort = AiOptions(_candidate()).preferredEffort;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final c = ref.read(appControllerProvider).config;
+    _base = TextEditingController();
+    _model = TextEditingController();
+    _applyConfig(c);
+  }
+
+  @override
+  void dispose() {
+    _base.dispose();
+    _model.dispose();
+    _key.dispose();
+    super.dispose();
+  }
+
+  ProviderConfig _candidate() => ProviderConfig(
+    id: 1,
+    kind: _kind,
+    baseUrl: _base.text.trim().replaceAll(RegExp(r'/+$'), ''),
+    model: _model.text.trim(),
+    vision: _vision,
+    thinking: _supportsThinking && _thinking,
+    supportsThinking: _supportsThinking,
+    supportsTools: _supportsTools,
+    effort: _effort,
+    reasoningLevels: _reasoningLevels,
+  );
+  Future<void> _perform({bool test = false, bool remove = false}) async {
+    setState(() {
+      _working = true;
+      _status = null;
+    });
+    try {
+      final c = ref.read(appControllerProvider);
+      if (test) {
+        await c.testConnection(
+          _candidate(),
+          _key.text.trim().isEmpty ? null : _key.text,
+        );
+      } else {
+        await c.saveSettings(
+          _candidate(),
+          remove
+              ? ''
+              : _key.text.trim().isEmpty
+              ? null
+              : _key.text,
+        );
+      }
+      if (!mounted) return;
+      setState(() {
+        _failure = false;
+        _status = test
+            ? (c.demo ? 'Mock 测试已完成，没有请求真实服务。' : '连接成功，已收到模型回复。')
+            : remove
+            ? '已删除此地址对应的密钥。'
+            : (c.demo ? '演示配置仅在本次运行中保留。' : '配置已保存。密钥仅存于系统安全存储。');
+        if (!test) _key.clear();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _failure = true;
+        _status = e is FormatException
+            ? e.message
+            : e is AiFailure
+            ? e.message
+            : '无法访问系统安全存储。Linux 请启用并解锁 Secret Service 密钥环；应用不会改为明文保存密钥。';
+      });
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = ref.watch(appControllerProvider);
+    ref.listen(appControllerProvider.select((value) => value.config), (
+      previous,
+      next,
+    ) {
+      if (previous == next) return;
+      setState(() {
+        _applyConfig(next);
+        _key.clear();
+      });
+    });
+    final colors = Theme.of(context).colorScheme;
+    return ListView(
+      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 700 ? 20 : 40),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    BackButton(onPressed: () => context.go('/settings')),
+                    Expanded(
+                      child: Text(
+                        context.tr('AI 服务'),
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  c.demo
+                      ? context.tr("当前为独立 Mock 构建，不访问真实 API，不保存真实密钥。")
+                      : context.tr("仅发送当前请求需要的对话和图片。API Key 不写入数据库与日志。"),
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(context.tr('ChatGPT 订阅')),
+                  subtitle: Text(context.tr('使用 Plus/Pro 等账号获准共享的额度，通过浏览器登录')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.go('/settings/chatgpt'),
+                ),
+                const SizedBox(height: 12),
+                // ChatGPT is managed from the subscription tile above; the
+                // dropdown only switches between API providers in place.
+                // It is hidden while a ChatGPT subscription is active, so
+                // its value is always one of the items below.
+                if (_kind != 'chatgpt')
+                  AppSelectField<String>(
+                    key: const Key('provider-selector'),
+
+                    initialValue: _kind == 'compatible'
+                        ? 'compatible'
+                        : 'deepseek',
+                    decoration: InputDecoration(labelText: context.tr("服务商")),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'deepseek',
+                        child: Text('DeepSeek'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'compatible',
+                        child: Text('OpenAI-compatible'),
+                      ),
+                    ],
+                    onChanged: _working
+                        ? null
+                        : (kind) => setState(() {
+                            _kind = kind!;
+                            _reasoningLevels = null;
+                            _base.text = kind == 'deepseek'
+                                ? 'https://api.deepseek.com'
+                                : 'https://api.openai.com/v1';
+                            _model.text = kind == 'deepseek'
+                                ? 'deepseek-flash'
+                                : '';
+                            _vision = kind == 'deepseek';
+                            _supportsThinking = kind == 'deepseek';
+                            _supportsTools = kind == 'deepseek';
+                            _thinking = false;
+                            _effort = AiOptions(_candidate()).preferredEffort;
+                          }),
+                  ),
+                if (_kind == 'chatgpt')
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(context.tr('已使用 ChatGPT 订阅，请在订阅管理页更换账号或模型。')),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: _working
+                            ? null
+                            : () => act(context, () async {
+                                await c.restoreApiProvider();
+                                if (!mounted) return;
+                                setState(() => _applyConfig(c.config));
+                              }),
+                        child: Text(context.tr('恢复上次 API 配置')),
+                      ),
+                    ],
+                  )
+                else ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _base,
+                    enabled: !_working,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      labelText: 'API Base URL',
+                      helperText: context.tr("填写接口前缀；应用会追加 /chat/completions"),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_kind == 'deepseek')
+                    AppSelectField<String>(
+                      key: const Key('model-selector'),
+                      initialValue: _deepseekModels.contains(_model.text)
+                          ? _model.text
+                          : 'deepseek-flash',
+                      decoration: InputDecoration(labelText: context.tr("模型")),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'deepseek-flash',
+                          child: Text(
+                            context.tr("DeepSeek Flash · 支持图片"),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'deepseek-v4-pro',
+                          child: Text(
+                            context.tr("DeepSeek V4 Pro · 仅文本"),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                      onChanged: _working
+                          ? null
+                          : (model) => setState(() {
+                              _model.text = model!;
+                              _vision = model == 'deepseek-flash';
+                            }),
+                    )
+                  else
+                    TextField(
+                      controller: _model,
+                      onChanged: (_) => setState(() {
+                        _reasoningLevels = null;
+                        _effort = AiOptions(_candidate()).preferredEffort;
+                      }),
+                      enabled: !_working,
+                      autocorrect: false,
+                      decoration: InputDecoration(
+                        labelText: context.tr("模型 ID"),
+                        hintText: context.tr("填写服务商提供的完整模型 ID"),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    key: const Key('api-key'),
+                    controller: _key,
+                    obscureText: !_keyVisible,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    enabled: !_working && !c.demo,
+                    decoration: InputDecoration(
+                      labelText: 'API Key',
+                      hintText: context.tr("留空则保留此地址已有的密钥"),
+                      helperText: c.demo
+                          ? context.tr("Mock 模式无需密钥")
+                          : context.tr(
+                              "Android：系统加密存储；Linux：Secret Service 密钥环",
+                            ),
+                      helperMaxLines: 2,
+                      suffixIcon: IconButton(
+                        tooltip: context.tr(_keyVisible ? "隐藏密钥" : "显示密钥"),
+                        onPressed: () =>
+                            setState(() => _keyVisible = !_keyVisible),
+                        icon: Icon(
+                          _keyVisible
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_kind == 'compatible')
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr("支持工具调用")),
+                      subtitle: Text(
+                        context.tr("根据服务商文档确认后开启"),
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      value: _supportsTools,
+                      onChanged: _working
+                          ? null
+                          : (v) => setState(() => _supportsTools = v),
+                    ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(context.tr("支持图片输入")),
+                    subtitle: Text(
+                      // DeepSeek derives vision from the model (Flash yes,
+                      // V4 Pro no), so the switch is fixed here.
+                      _kind == 'deepseek'
+                          ? context.tr("由模型决定：Flash 支持图片，V4 Pro 仅文本")
+                          : context.tr("仅在服务商明确支持视觉时启用"),
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: _vision,
+                    onChanged: _working || (_kind == 'deepseek')
+                        ? null
+                        : (v) => setState(() => _vision = v),
+                  ),
+                  if (_kind == 'compatible')
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr("支持 reasoning_effort 参数")),
+                      subtitle: Text(
+                        context.tr("由服务商文档确认后开启"),
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      value: _supportsThinking,
+                      onChanged: _working
+                          ? null
+                          : (v) => setState(() {
+                              _supportsThinking = v;
+                              if (!v) _thinking = false;
+                            }),
+                    ),
+                  if (_supportsThinking) ...[
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        _kind == 'deepseek'
+                            ? context.tr("深度思考")
+                            : context.tr("发送推理强度参数"),
+                      ),
+                      subtitle: Text(
+                        context.tr("用于未单独设置的会话；聊天标题栏可覆盖。可能增加响应时间与用量。"),
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      value: _thinking,
+                      onChanged: _working
+                          ? null
+                          : (v) => setState(() => _thinking = v),
+                    ),
+                    if (_thinking)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: AppSelectField<String>(
+                          key: const Key('api-effort-selector'),
+                          initialValue: _efforts.contains(_effort)
+                              ? _effort
+                              : _efforts.firstOrNull,
+                          decoration: InputDecoration(
+                            labelText: context.tr("默认思考强度"),
+                          ),
+                          items: [
+                            for (final level in _efforts)
+                              DropdownMenuItem(
+                                value: level,
+                                child: Text(
+                                  context.tr(
+                                    AiOptions(_candidate()).label(level),
+                                  ),
+                                ),
+                              ),
+                          ],
+                          onChanged: _working
+                              ? null
+                              : (v) => setState(() => _effort = v!),
+                        ),
+                      ),
+                  ],
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      context.tr(
+                        "资料工具需在对话中单独开启。DeepSeek 和 ChatGPT 可同时使用思考与工具；其他兼容接口按所配置能力处理。每次资料写入都需要确认。",
+                      ),
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  if (_status != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        context.tr(_status!),
+                        style: TextStyle(
+                          color: _failure ? colors.error : colors.primary,
+                        ),
+                      ),
+                    ),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      FilledButton(
+                        onPressed: _working || c.busy ? null : () => _perform(),
+                        child: Text(
+                          _working ? context.tr("处理中…") : context.tr("保存配置"),
+                        ),
+                      ),
+                      OutlinedButton(
+                        onPressed: _working ? null : () => _perform(test: true),
+                        child: Text(context.tr("测试连接")),
+                      ),
+                      TextButton(
+                        onPressed: _working || c.demo
+                            ? null
+                            : () async {
+                                final ok = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text(context.tr("删除已存密钥？")),
+                                    content: Text(
+                                      context.tr(
+                                        "将删除此服务地址已保存的密钥，删除后需要重新输入。当前配置的其他设置不受影响。",
+                                      ),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, false),
+                                        child: Text(context.tr("取消")),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
+                                        child: Text(context.tr("删除密钥")),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (ok == true) await _perform(remove: true);
+                              },
+                        child: Text(context.tr("删除已存密钥")),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    context.tr("测试连接会发送一条简短消息，可能产生少量 API 费用。"),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                Text(
+                  context.tr('密钥由系统安全存储保管；资料仅按请求发送。'),
+                  style: TextStyle(color: colors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

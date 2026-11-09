@@ -44,6 +44,36 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
       ),
       labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
     ).apply(bodyColor: colors.onSurface, displayColor: colors.onSurface),
+    popupMenuTheme: PopupMenuThemeData(
+      color: colors.surfaceContainer,
+      surfaceTintColor: Colors.transparent,
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: .6)),
+      ),
+      menuPadding: const EdgeInsets.symmetric(vertical: 6),
+      position: PopupMenuPosition.under,
+      textStyle: TextStyle(color: colors.onSurface, fontSize: 14),
+    ),
+    menuTheme: MenuThemeData(
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(colors.surfaceContainer),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        elevation: const WidgetStatePropertyAll(3),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: .6),
+            ),
+          ),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(vertical: 6),
+        ),
+      ),
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: colors.surface,
       scrolledUnderElevation: 0,

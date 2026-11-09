@@ -139,6 +139,8 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('Interface language'), findsOneWidget);
       expect(find.text('Dynamic colors'), findsOneWidget);
+      await t.ensureVisible(find.byKey(const Key('dynamic-colors')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('dynamic-colors')));
       await t.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 100)),

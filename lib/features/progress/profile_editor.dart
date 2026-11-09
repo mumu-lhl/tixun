@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -55,8 +57,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                 decoration: InputDecoration(labelText: context.tr(label)),
               ),
             ),
-          DropdownButtonFormField<String>(
-            isExpanded: true,
+          AppSelectField<String>(
             initialValue: teaching,
             decoration: InputDecoration(labelText: context.tr("新对话的教学方式")),
             items: [

@@ -1,3 +1,4 @@
+import '../../core/ui/app_menu.dart';
 import '../../core/l10n/app_strings.dart';
 
 import 'package:flutter/material.dart';
@@ -14,9 +15,8 @@ class LanguageColorSettings extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          key: ValueKey('language-${c.languageChoice}'),
+        AppSelectField<String>(
+          key: const Key('language-selector'),
           initialValue: c.languageChoice,
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.language),

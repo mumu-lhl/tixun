@@ -1,3 +1,4 @@
+import '../../core/ui/app_menu.dart';
 import 'module_widgets.dart';
 
 import 'dart:async';
@@ -87,7 +88,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void _refresh() => setState(() => _epoch = -1);
   String _defaultSubject() {
     final filter = ref.read(appControllerProvider).subjectFilter;
-    return filter.isEmpty ? '数学' : filter;
+    if (filter.isNotEmpty) return filter;
+    final subjects = ref.read(appControllerProvider).learningSubjects;
+    return subjects.contains('数学') ? '数学' : subjects.first;
   }
 
   Future<List<_Entry>> _load(StudyStore store, {int offset = 0}) async {
@@ -552,6 +555,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   if (widget.isMistake && !_trash)
                     if (Platform.isAndroid)
                       PopupMenuButton<String>(
+                        popUpAnimationStyle: menuAnimation(context),
                         tooltip: context.tr("快速录入错题"),
                         enabled: !_importing,
                         icon: const Icon(Icons.add_a_photo_outlined),
@@ -693,6 +697,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               final entries = [...snapshot.data!, ..._extra];
               _visible = entries;
               final canLoadMore = snapshot.data!.length == 100 && _hasMore;
+              final hasFilters =
+                  _query.isNotEmpty ||
+                  subjectFilter.isNotEmpty ||
+                  _moduleId.isNotEmpty;
               if (entries.isEmpty) {
                 // Scrollable so the empty state fits short screens
                 // (the shell subject bar takes 48px of height).
@@ -712,9 +720,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            _trash
+                            _trash && !hasFilters
                                 ? context.tr("回收区为空")
-                                : _query.isNotEmpty || subjectFilter.isNotEmpty
+                                : hasFilters
                                 ? context.tr("没有找到相关资料")
                                 : context.tr("从{0}开始", [
                                     widget.isMistake
@@ -725,7 +733,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            _trash
+                            hasFilters
+                                ? context.tr('换个关键词或清除筛选，资料仍保存在本机。')
+                                : _trash
                                 ? context.tr("删除的资料可在这里恢复。")
                                 : widget.isMistake
                                 ? context.tr(
@@ -740,6 +750,32 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                               height: 1.8,
                             ),
                           ),
+                          if (hasFilters)
+                            TextButton.icon(
+                              key: const Key('clear-library-filters'),
+                              onPressed: () => act(context, () async {
+                                _debounce?.cancel();
+                                _searchController.clear();
+                                ref
+                                        .read(
+                                          libraryModuleFilterProvider(
+                                            widget.isMistake,
+                                          ).notifier,
+                                        )
+                                        .state =
+                                    '';
+                                setState(() {
+                                  _query = '';
+                                  _moduleId = '';
+                                  _epoch = -1;
+                                });
+                                await ref
+                                    .read(appControllerProvider)
+                                    .setSubjectFilter('');
+                              }),
+                              icon: const Icon(Icons.filter_alt_off_outlined),
+                              label: Text(context.tr('清除筛选')),
+                            ),
                           if (!_trash)
                             Padding(
                               padding: const EdgeInsets.only(top: 20),

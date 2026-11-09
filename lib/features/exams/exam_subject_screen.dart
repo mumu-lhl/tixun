@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -505,7 +507,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
           if (c.demo) Text(context.tr('Mock 模式不读取照片评分，请使用手动录入验证小分表。')),
           if (!AiOptions(config).vision)
             Text(context.tr('当前模型不支持图片，请选择支持视觉的模型。')),
-          DropdownButtonFormField<String>(
+          AppSelectField<String>(
             initialValue: effort,
             decoration: InputDecoration(labelText: context.tr('思考强度')),
             items: [

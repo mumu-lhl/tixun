@@ -1,3 +1,6 @@
+import '../core/ui/app_menu.dart';
+import '../features/settings/ai_settings_screen.dart';
+import '../features/settings/subjects_screen.dart';
 import '../features/exams/exam_calendar.dart';
 import '../features/exams/exam_detail.dart';
 import '../features/exams/exam_subject_screen.dart';
@@ -86,6 +89,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/settings',
             builder: (_, _) => const SettingsScreen(),
             routes: [
+              GoRoute(
+                path: 'subjects',
+                builder: (_, _) => const SubjectsScreen(),
+              ),
+              GoRoute(path: 'ai', builder: (_, _) => const AiSettingsScreen()),
               GoRoute(
                 path: 'chatgpt',
                 builder: (_, _) => const ChatGptScreen(),
@@ -203,20 +211,6 @@ class AppShell extends ConsumerWidget {
   static int navIndexFor(String path) =>
       paths.indexWhere((p) => path == p || path.startsWith('$p/'));
 
-  /// Subject chips in display order: 全部, then the 3 main subjects,
-  /// then the 6 electives.
-  static const subjectChips = [
-    '',
-    '语文',
-    '数学',
-    '英语',
-    '物理',
-    '化学',
-    '生物',
-    '历史',
-    '地理',
-    '政治',
-  ];
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= 800;
@@ -227,7 +221,12 @@ class AppShell extends ConsumerWidget {
     final c = ref.read(appControllerProvider);
     final shell = ref.watch(
       appControllerProvider.select(
-        (c) => (demo: c.demo, notice: c.notice, subjectFilter: c.subjectFilter),
+        (c) => (
+          demo: c.demo,
+          notice: c.notice,
+          subjectFilter: c.subjectFilter,
+          subjects: c.learningSubjects,
+        ),
       ),
     );
     final colors = Theme.of(context).colorScheme;
@@ -289,35 +288,76 @@ class AppShell extends ConsumerWidget {
                     ),
                   ],
                 ),
-              // Global subject switch: 全部 + 9 school subjects. One tap
-              // filters sessions, library, mistakes, practice and review.
-              SizedBox(
-                height: 48,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
+              if (!path.startsWith('/settings') &&
+                  !path.startsWith('/exams') &&
+                  !(path == '/chat' &&
+                      MediaQuery.viewInsetsOf(context).bottom > 0))
+                Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+                    horizontal: 16,
+                    vertical: 6,
                   ),
-                  children: [
-                    for (final s in subjectChips)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          key: ValueKey('subject-chip-$s'),
-                          label: Text(
-                            s.isEmpty
-                                ? context.tr("全部")
-                                : context.subjectName(s),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 320),
+                            child: Semantics(
+                              key: const Key('subject-switch'),
+                              label: context.tr('切换科目'),
+                              child: AppSelectField<String>(
+                                initialValue: shell.subjectFilter,
+                                decoration: const InputDecoration(
+                                  prefixIcon: Icon(
+                                    Icons.school_outlined,
+                                    size: 19,
+                                  ),
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                ),
+                                items: [
+                                  DropdownMenuItem(
+                                    value: '',
+                                    child: Text(context.tr('全部科目')),
+                                  ),
+                                  for (final subject in {
+                                    ...shell.subjects,
+                                    if (shell.subjectFilter.isNotEmpty)
+                                      shell.subjectFilter,
+                                  })
+                                    DropdownMenuItem(
+                                      value: subject,
+                                      child: Text(
+                                        context.subjectName(subject),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                ],
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    act(
+                                      context,
+                                      () => c.setSubjectFilter(
+                                        value,
+                                        activateChat: path == '/chat',
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
                           ),
-                          selected: shell.subjectFilter == s,
-                          onSelected: (_) =>
-                              act(context, () => c.setSubjectFilter(s)),
                         ),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
               Expanded(
                 child: Row(
                   children: [

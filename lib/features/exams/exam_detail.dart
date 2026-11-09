@@ -7,7 +7,6 @@ import '../../app/controller.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
-import '../library/study_store.dart';
 import 'exam_calendar.dart';
 import 'exam_store.dart';
 
@@ -214,7 +213,15 @@ Future<void> editSubject(
   String eventId, [
   ExamSubject? existing,
 ]) async {
-  final subject = TextEditingController(text: existing?.subject ?? '数学');
+  final subject = TextEditingController(
+    text:
+        existing?.subject ??
+        (c.subjectFilter.isNotEmpty
+            ? c.subjectFilter
+            : c.learningSubjects.contains('数学')
+            ? '数学'
+            : c.learningSubjects.first),
+  );
   final raw = TextEditingController(
     text: existing?.rawScore == null ? '' : points(existing!.rawScore),
   );
@@ -252,7 +259,7 @@ Future<void> editSubject(
                       Wrap(
                         spacing: 4,
                         children: [
-                          for (final name in schoolSubjects)
+                          for (final name in c.learningSubjects)
                             ActionChip(
                               label: Text(ctx.tr(name)),
                               onPressed: saving

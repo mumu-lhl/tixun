@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +16,9 @@ class ReasoningMenu extends ConsumerWidget {
     final c = ref.watch(appControllerProvider);
     final effective = c.sessionConfig;
     final options = AiOptions(c.config);
+    final override = options.supportsOverride(c.sessionReasoning)
+        ? c.sessionReasoning
+        : '';
     final labels = {
       '': '跟随全局默认',
       'off': options.offChoiceLabel,
@@ -23,10 +28,11 @@ class ReasoningMenu extends ConsumerWidget {
         ? context.tr(options.label(effective.effort))
         : context.tr(AiOptions(c.config).offLabel);
     return PopupMenuButton<String>(
+      popUpAnimationStyle: menuAnimation(context),
       key: const Key('reasoning-menu'),
       tooltip: context.tr("本会话思考强度：{0}{1}", [
         label,
-        c.sessionReasoning.isEmpty ? context.tr("（跟随默认）") : '',
+        override.isEmpty ? context.tr("（跟随默认）") : '',
       ]),
       icon: Icon(
         Icons.psychology_outlined,
@@ -54,7 +60,7 @@ class ReasoningMenu extends ConsumerWidget {
           CheckedPopupMenuItem(
             key: Key('reasoning-${entry.key.isEmpty ? 'default' : entry.key}'),
             value: entry.key,
-            checked: c.sessionReasoning == entry.key,
+            checked: override == entry.key,
             enabled:
                 !c.busy &&
                 c.selected != null &&

@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -238,6 +240,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                           ]),
                         ),
                         trailing: PopupMenuButton<String>(
+                          popUpAnimationStyle: menuAnimation(context),
                           tooltip: context.tr("题目操作"),
                           onSelected: (v) => act(context, () async {
                             final store = ref.read(practiceStoreProvider);
@@ -502,8 +505,7 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          DropdownButtonFormField<String>(
-            isExpanded: true,
+          AppSelectField<String>(
             initialValue: kind,
             decoration: InputDecoration(labelText: context.tr("题型")),
             items: questionKinds.entries
@@ -556,8 +558,7 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
               // literal "true"/"false" is error-prone and only surfaces
               // at save time.
               child: ctrl == answers && kind == 'true_false'
-                  ? DropdownButtonFormField<String>(
-                      isExpanded: true,
+                  ? AppSelectField<String>(
                       initialValue:
                           ['true', 'false'].contains(answers.text.trim())
                           ? answers.text.trim()

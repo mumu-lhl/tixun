@@ -1,3 +1,5 @@
+import '../../core/ui/app_menu.dart';
+
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -329,6 +331,7 @@ class StudyImages extends ConsumerWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: Platform.isAndroid
                     ? PopupMenuButton<String>(
+                        popUpAnimationStyle: menuAnimation(context),
                         tooltip: context.tr("添加题目图片"),
                         onSelected: (kind) => act(context, () async {
                           if (kind == 'file') {
