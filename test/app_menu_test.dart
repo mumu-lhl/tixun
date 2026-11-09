@@ -56,7 +56,10 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         home: MediaQuery(
-          data: const MediaQueryData(size: Size(800, 600), disableAnimations: true),
+          data: const MediaQueryData(
+            size: Size(800, 600),
+            disableAnimations: true,
+          ),
           child: Scaffold(
             body: AppSelectField<String>(
               initialValue: 'A',
