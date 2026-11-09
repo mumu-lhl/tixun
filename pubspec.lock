@@ -314,7 +314,7 @@ packages:
     source: hosted
     version: "1.9.0"
   extended_image:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: extended_image
       sha256: e81d801cd692921f152834e01f39bba8b3d6302c48ad420d499c6062a7e24737

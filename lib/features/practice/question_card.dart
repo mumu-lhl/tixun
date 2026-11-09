@@ -1,15 +1,16 @@
 import '../scratchpad/scratchpad_screen.dart';
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
+import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/image_viewer.dart';
 import '../../core/ui/learning_markdown.dart';
 import '../review/review_screen.dart';
 import 'practice_providers.dart';
@@ -133,39 +134,27 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
     if (mounted) await _load();
   }
 
-  Future<void> _showZoomedImage(BuildContext context, File file) =>
-      showDialog<void>(
-        context: context,
-        builder: (ctx) => Dialog(
-          insetPadding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  const SizedBox(width: 16),
-                  Expanded(child: Text(context.tr("题目图片"))),
-                  IconButton(
-                    tooltip: context.tr("关闭预览"),
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              Flexible(
-                child: InteractiveViewer(
-                  child: Image.file(
-                    file,
-                    cacheWidth: 1600,
-                    errorBuilder: (_, _, _) =>
-                        Text(context.tr("题目图片无法解码，其他内容仍可使用。")),
-                  ),
-                ),
-              ),
-            ],
+  Future<void> _showZoomedImage(
+    BuildContext context,
+    List<PracticeImage> images,
+    int index,
+  ) {
+    final files = ref.read(appControllerProvider).files;
+    return showImageViewer(
+      context,
+      images: [
+        for (final image in images)
+          ImageViewerItem(
+            file: files.resolve(image.relativePath),
+            heroTag: 'question-image-${image.id}',
+            cacheWidth: 1600,
+            errorText: context.tr("题目图片无法解码，其他内容仍可使用。"),
           ),
-        ),
-      );
+      ],
+      initialIndex: index,
+      title: context.tr("题目图片"),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -242,15 +231,19 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
               child: GestureDetector(
                 onTap: () => _showZoomedImage(
                   context,
-                  c.files.resolve(image.relativePath),
+                  detail.images,
+                  detail.images.indexWhere((i) => i.id == image.id),
                 ),
-                child: Image.file(
-                  c.files.resolve(image.relativePath),
-                  height: 240,
-                  fit: BoxFit.contain,
-                  cacheWidth: 1000,
-                  errorBuilder: (_, _, _) =>
-                      Text(context.tr("题目图片无法解码，其他内容仍可使用。")),
+                child: Hero(
+                  tag: 'question-image-${image.id}',
+                  child: Image.file(
+                    c.files.resolve(image.relativePath),
+                    height: 240,
+                    fit: BoxFit.contain,
+                    cacheWidth: 1000,
+                    errorBuilder: (_, _, _) =>
+                        Text(context.tr("题目图片无法解码，其他内容仍可使用。")),
+                  ),
                 ),
               ),
             ),

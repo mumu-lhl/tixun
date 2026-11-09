@@ -11,6 +11,7 @@ import '../../app/controller.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/image_viewer.dart';
 import 'image_editor.dart';
 import 'library_providers.dart';
 import 'study_photo_intake.dart';
@@ -86,41 +87,30 @@ class StudyImages extends ConsumerWidget {
                         label: context.tr("题目图片，点击查看"),
                         button: true,
                         child: InkWell(
-                          onTap: () => showDialog<void>(
-                            context: context,
-                            builder: (context) => Dialog(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Text(
-                                          image.role == 'original'
-                                              ? context.tr("原图 · 点击查看大图")
-                                              : context.tr("编辑副本 · 点击查看大图"),
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        tooltip: context.tr("关闭预览"),
-                                        icon: const Icon(Icons.close),
-                                      ),
-                                    ],
-                                  ),
-                                  Flexible(
-                                    child: InteractiveViewer(
-                                      child: picture(large: true),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          onTap: () => showImageViewer(
+                            context,
+                            images: [
+                              for (final item in images)
+                                ImageViewerItem(
+                                  file: files.resolve(item.relativePath),
+                                  heroTag: 'study-image-${item.id}',
+                                  cacheWidth: 1600,
+                                  errorText: context.tr("图片无法读取，原记录仍保留"),
+                                ),
+                            ],
+                            initialIndex: images.indexWhere(
+                              (item) => item.id == image.id,
                             ),
+                            title: image.role == 'original'
+                                ? context.tr("原图 · 点击查看大图")
+                                : context.tr("编辑副本 · 点击查看大图"),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: picture(),
+                          child: Hero(
+                            tag: 'study-image-${image.id}',
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: picture(),
+                            ),
                           ),
                         ),
                       ),

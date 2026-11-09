@@ -13,6 +13,7 @@ import '../../core/ai/ai_options.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/image_viewer.dart';
 import '../../core/ui/reasoning_panel.dart';
 import 'exam_photo_intake.dart';
 import 'exam_ai.dart';
@@ -196,60 +197,65 @@ class ExamSubjectScreen extends ConsumerWidget {
                                           child: Column(
                                             children: [
                                               InkWell(
-                                                onTap: () => showDialog<void>(
-                                                  context: ctx,
-                                                  builder: (dialog) => Dialog(
-                                                    child: Column(
-                                                      children: [
-                                                        Align(
-                                                          alignment: Alignment
-                                                              .centerRight,
-                                                          child: CloseButton(),
-                                                        ),
-                                                        Expanded(
-                                                          child: InteractiveViewer(
-                                                            minScale: .2,
-                                                            maxScale: 8,
-                                                            child: Image.file(
-                                                              c.files.resolve(
-                                                                image
-                                                                    .relativePath,
-                                                              ),
-                                                              cacheWidth: 2000,
-                                                              errorBuilder:
-                                                                  (_, _, _) =>
-                                                                      Text(
-                                                                        dialog
-                                                                            .tr(
-                                                                              '图片无法读取，原记录仍保留',
-                                                                            ),
-                                                                      ),
-                                                            ),
+                                                onTap: () {
+                                                  final roleImages =
+                                                      (images.data ??
+                                                              <
+                                                                ExamAttachment
+                                                              >[])
+                                                          .where(
+                                                            (i) =>
+                                                                i.role ==
+                                                                role.key,
+                                                          )
+                                                          .toList();
+                                                  showImageViewer(
+                                                    ctx,
+                                                    images: [
+                                                      for (final item
+                                                          in roleImages)
+                                                        ImageViewerItem(
+                                                          file: c.files.resolve(
+                                                            item.relativePath,
+                                                          ),
+                                                          heroTag:
+                                                              'exam-image-${item.id}',
+                                                          cacheWidth: 2000,
+                                                          errorText: ctx.tr(
+                                                            '图片无法读取，原记录仍保留',
                                                           ),
                                                         ),
-                                                      ],
+                                                    ],
+                                                    initialIndex: roleImages
+                                                        .indexWhere(
+                                                          (i) =>
+                                                              i.id == image.id,
+                                                        ),
+                                                    title: ctx.tr(role.value),
+                                                  );
+                                                },
+                                                child: Hero(
+                                                  tag: 'exam-image-${image.id}',
+                                                  child: Image.file(
+                                                    c.files.resolve(
+                                                      image.relativePath,
                                                     ),
-                                                  ),
-                                                ),
-                                                child: Image.file(
-                                                  c.files.resolve(
-                                                    image.relativePath,
-                                                  ),
-                                                  width: 140,
-                                                  height: 110,
-                                                  fit: BoxFit.cover,
-                                                  cacheWidth: 400,
-                                                  errorBuilder: (_, _, _) =>
-                                                      SizedBox(
-                                                        height: 110,
-                                                        child: Center(
-                                                          child: Text(
-                                                            ctx.tr(
-                                                              '图片无法读取，原记录仍保留',
+                                                    width: 140,
+                                                    height: 110,
+                                                    fit: BoxFit.cover,
+                                                    cacheWidth: 400,
+                                                    errorBuilder: (_, _, _) =>
+                                                        SizedBox(
+                                                          height: 110,
+                                                          child: Center(
+                                                            child: Text(
+                                                              ctx.tr(
+                                                                '图片无法读取，原记录仍保留',
+                                                              ),
                                                             ),
                                                           ),
                                                         ),
-                                                      ),
+                                                  ),
                                                 ),
                                               ),
                                               Wrap(
@@ -281,43 +287,28 @@ class ExamSubjectScreen extends ConsumerWidget {
                                                         Icons.image_outlined,
                                                         size: 18,
                                                       ),
-                                                      onPressed: () => showDialog<void>(
-                                                        context: ctx,
-                                                        builder: (_) => Dialog(
-                                                          child: Column(
-                                                            children: [
-                                                              const Align(
-                                                                alignment: Alignment
-                                                                    .centerRight,
-                                                                child:
-                                                                    CloseButton(),
-                                                              ),
-                                                              Expanded(
-                                                                child: InteractiveViewer(
-                                                                  child: Image.file(
-                                                                    c.files.resolve(
+                                                      onPressed: () =>
+                                                          showImageViewer(
+                                                            ctx,
+                                                            images: [
+                                                              ImageViewerItem(
+                                                                file: c.files
+                                                                    .resolve(
                                                                       image
                                                                           .originalPath!,
                                                                     ),
-                                                                    cacheWidth:
-                                                                        1600,
-                                                                    errorBuilder:
-                                                                        (
-                                                                          _,
-                                                                          _,
-                                                                          _,
-                                                                        ) => Text(
-                                                                          ctx.tr(
-                                                                            '原图无法读取。',
-                                                                          ),
-                                                                        ),
-                                                                  ),
-                                                                ),
+                                                                cacheWidth:
+                                                                    1600,
+                                                                errorText: ctx
+                                                                    .tr(
+                                                                      '原图无法读取。',
+                                                                    ),
                                                               ),
                                                             ],
+                                                            title: ctx.tr(
+                                                              '保留的原图',
+                                                            ),
                                                           ),
-                                                        ),
-                                                      ),
                                                     ),
                                                   IconButton(
                                                     tooltip: ctx.tr('删除图片'),

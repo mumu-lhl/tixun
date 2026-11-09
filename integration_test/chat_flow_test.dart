@@ -128,7 +128,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('保留的原图'), findsOneWidget);
       await guiCapture('chat', 'phone-original-retained');
-      await tester.tap(find.byTooltip('关闭原图'));
+      // Both the retained-original viewer (on top) and the preview viewer
+      // below it have a '关闭预览' button; close the topmost one first.
+      await tester.tap(find.byTooltip('关闭预览').last);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('关闭预览'));
       await tester.pumpAndSettle();

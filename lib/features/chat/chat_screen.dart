@@ -13,6 +13,7 @@ import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/platform/photo_picker.dart';
+import '../../core/ui/image_viewer.dart';
 import '../../core/ui/learning_markdown.dart';
 import '../library/chat_study_actions.dart';
 import '../library/image_editor.dart';
@@ -1165,100 +1166,65 @@ class AttachmentImage extends ConsumerWidget {
       label: context.tr("题目图片，点击预览"),
       button: true,
       child: InkWell(
-        onTap: () => showDialog<void>(
-          context: context,
-          builder: (dialogContext) => Dialog(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        attachment.originalPath == null
-                            ? context.tr("原图预览")
-                            : context.tr("发送图片预览"),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: context.tr("关闭预览"),
-                      onPressed: () => Navigator.pop(dialogContext),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
+        onTap: () {
+          final siblings = c.attachments
+              .where((a) => a.messageId == attachment.messageId)
+              .toList();
+          final index = siblings.indexWhere((a) => a.id == attachment.id);
+          showImageViewer(
+            context,
+            images: [
+              for (final a in siblings)
+                ImageViewerItem(
+                  file: c.files.resolve(a.relativePath),
+                  heroTag: 'chat-image-${a.id}',
+                  cacheWidth: 1600,
                 ),
-                Flexible(
-                  child: InteractiveViewer(child: picture(preview: true)),
-                ),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    if (attachment.originalPath != null)
-                      TextButton(
-                        onPressed: () => showDialog<void>(
-                          context: context,
-                          builder: (ctx) => Dialog(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  children: [
-                                    const SizedBox(width: 16),
-                                    Expanded(child: Text(context.tr("保留的原图"))),
-                                    IconButton(
-                                      tooltip: context.tr("关闭原图"),
-                                      onPressed: () => Navigator.pop(ctx),
-                                      icon: const Icon(Icons.close),
-                                    ),
-                                  ],
-                                ),
-                                Flexible(
-                                  child: InteractiveViewer(
-                                    child: Image.file(
-                                      c.files.resolve(attachment.originalPath!),
-                                      cacheWidth: 1600,
-                                      errorBuilder: (_, _, _) =>
-                                          Text(context.tr("原图无法读取。")),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        child: Text(context.tr("查看保留的原图")),
+            ],
+            initialIndex: index < 0 ? 0 : index,
+            title: attachment.originalPath == null
+                ? context.tr("原图预览")
+                : context.tr("发送图片预览"),
+            actions: (closeViewer) => [
+              if (attachment.originalPath != null)
+                TextButton(
+                  onPressed: () => showImageViewer(
+                    context,
+                    images: [
+                      ImageViewerItem(
+                        file: c.files.resolve(attachment.originalPath!),
+                        cacheWidth: 1600,
+                        errorText: context.tr("原图无法读取。"),
                       ),
-                    if (attachment.messageId == null)
-                      TextButton.icon(
-                        key: Key('edit-draft-image-${attachment.id}'),
-                        onPressed: c.busy
-                            ? null
-                            : () => act(context, () async {
-                                Navigator.pop(dialogContext);
-                                await editChatPhoto(context, c, attachment);
-                              }),
-                        icon: const Icon(Icons.crop, size: 18),
-                        label: Text(context.tr("裁剪 / 旋转 / 缩小")),
-                      ),
-                  ],
-                ),
-                Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text(
-                    context.tr("原图单独保留在此设备，发送时使用当前预览的图片。"),
-                    style: TextStyle(fontSize: 11),
+                    ],
+                    title: context.tr("保留的原图"),
                   ),
+                  child: Text(context.tr("查看保留的原图")),
                 ),
-              ],
+              if (attachment.messageId == null)
+                TextButton.icon(
+                  key: Key('edit-draft-image-${attachment.id}'),
+                  onPressed: c.busy
+                      ? null
+                      : () => act(context, () async {
+                          closeViewer();
+                          await editChatPhoto(context, c, attachment);
+                        }),
+                  icon: const Icon(Icons.crop, size: 18),
+                  label: Text(context.tr("裁剪 / 旋转 / 缩小")),
+                ),
+            ],
+            footnote: context.tr("原图单独保留在此设备，发送时使用当前预览的图片。"),
+          );
+        },
+        child: Hero(
+          tag: 'chat-image-${attachment.id}',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: ColoredBox(
+              color: Theme.of(context).colorScheme.surfaceContainer,
+              child: picture(),
             ),
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: ColoredBox(
-            color: Theme.of(context).colorScheme.surfaceContainer,
-            child: picture(),
           ),
         ),
       ),
