@@ -31,13 +31,6 @@ class _ReasoningPanelState extends State<ReasoningPanel> {
             widget.locked ? Icons.lock_outline : Icons.psychology_outlined,
           ),
           title: Text(context.tr(widget.generating ? '思考中' : '模型思考')),
-          subtitle: Text(
-            context.tr(
-              widget.locked
-                  ? '提交本次练习后可查看，防止提前透露答案。'
-                  : '仅展示接口返回的思考或摘要，不代表答案已验证。',
-            ),
-          ),
           trailing: widget.locked
               ? null
               : Icon(expanded ? Icons.expand_less : Icons.expand_more),
