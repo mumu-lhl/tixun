@@ -31,8 +31,8 @@ void main() {
     );
     await store.saveEvent(title: '另一次考试', date: DateTime(2026, 12, 1));
     expect(
-      (await store.watchMonth(DateTime(2026, 11)).first).single.date,
-      DateTime(2026, 11, 9),
+      (await store.watchMonth(DateTime(2026, 11)).first).single.date.toUtc(),
+      DateTime.utc(2026, 11, 9),
     );
     await store.saveSubject(
       eventId: id,

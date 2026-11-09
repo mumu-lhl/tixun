@@ -39,7 +39,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
       builder: (context, snap) {
         final all = snap.data ?? [];
         final dayEvents = all
-            .where((e) => DateUtils.isSameDay(e.date, selected))
+            .where((e) => DateUtils.isSameDay(e.date.toUtc(), selected))
             .toList();
         final first = DateTime(month.year, month.month).weekday - 1;
         final days = DateUtils.getDaysInMonth(month.year, month.month);
@@ -123,7 +123,9 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                         if (day < 1 || day > days) return const SizedBox();
                         final date = DateTime(month.year, month.month, day);
                         final count = all
-                            .where((e) => DateUtils.isSameDay(e.date, date))
+                            .where(
+                              (e) => DateUtils.isSameDay(e.date.toUtc(), date),
+                            )
                             .length;
                         final active = DateUtils.isSameDay(date, selected);
                         final colors = Theme.of(context).colorScheme;
@@ -184,7 +186,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(event.title),
-                        subtitle: Text(examDate(event.date)),
+                        subtitle: Text(examDate(event.date.toUtc())),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => context.push('/exams/${event.id}'),
                       ),

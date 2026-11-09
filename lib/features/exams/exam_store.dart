@@ -86,10 +86,10 @@ class ExamStore extends DatabaseNotifier {
             ..where(
               (t) =>
                   t.date.isBiggerOrEqualValue(
-                    DateTime(month.year, month.month),
+                    DateTime.utc(month.year, month.month),
                   ) &
                   t.date.isSmallerThanValue(
-                    DateTime(month.year, month.month + 1),
+                    DateTime.utc(month.year, month.month + 1),
                   ),
             )
             ..orderBy([
@@ -113,7 +113,7 @@ class ExamStore extends DatabaseNotifier {
           ExamEventsCompanion.insert(
             id: key,
             title: title.trim(),
-            date: DateTime(date.year, date.month, date.day),
+            date: DateTime.utc(date.year, date.month, date.day),
             updatedAt: DateTime.now(),
           ),
         );

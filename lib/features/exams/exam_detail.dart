@@ -97,7 +97,7 @@ class ExamDetailScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    Text(examDate(event.date)),
+                    Text(examDate(event.date.toUtc())),
                     const SizedBox(height: 24),
                     StreamBuilder<List<ExamSubject>>(
                       stream:
@@ -153,7 +153,8 @@ Future<void> editExam(
   ExamEvent event,
 ) async {
   final title = TextEditingController(text: event.title);
-  var date = event.date;
+  final storedDate = event.date.toUtc();
+  var date = DateTime(storedDate.year, storedDate.month, storedDate.day);
   try {
     final yes = await showExamDialog<bool>(
       context: context,
