@@ -15,12 +15,23 @@ import 'features/update/linux_staging.dart';
 
 Future<void> main() async {
   if (Platform.isLinux) {
-    final applied = await applyPendingUpdate();
-    if (applied == ApplyResult.failed) {
-      // Fall through and launch the old version; the marker is kept
-      // for retry from Settings.
+    try {
+      final applied = await applyPendingUpdate();
+      if (applied == ApplyResult.failed) {
+        // Fall through and launch the old version; the marker is kept
+        // for retry from Settings.
+      }
+    } catch (_) {
+      // applyPendingUpdate can throw after a successful swap (e.g. the
+      // new binary fails to start once the marker is deleted). There is
+      // no UI yet at this point, so fall through and launch the old
+      // version instead of exiting without a window.
     }
-    await cleanupOldBundle();
+    try {
+      await cleanupOldBundle();
+    } catch (_) {
+      // Best effort: a stale .old must not block startup.
+    }
   }
   WidgetsFlutterBinding.ensureInitialized();
   const demo = bool.fromEnvironment('TIXUN_DEMO');

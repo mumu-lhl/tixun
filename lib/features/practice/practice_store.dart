@@ -55,6 +55,7 @@ class PracticeStore extends DatabaseNotifier {
     String subject = '',
     String? messageId,
     bool trash = false,
+    int limit = 200,
   }) =>
       (db.select(db.practiceQuestions)
             ..where(
@@ -80,7 +81,7 @@ class PracticeStore extends DatabaseNotifier {
                             )),
             )
             ..orderBy([(q) => OrderingTerm.desc(q.createdAt)])
-            ..limit(200))
+            ..limit(limit))
           .get();
 
   Future<String> create(
@@ -111,6 +112,68 @@ class PracticeStore extends DatabaseNotifier {
           db.practiceQuestions,
         )..where((q) => q.sourceOperation.equals(operation))).getSingleOrNull();
         if (old != null) {
+          // Same operation replayed: return the old question only when the
+          // content matches. Changed content must never be silently dropped.
+          String canonical(Object? value) {
+            Object? sort(Object? v) {
+              if (v is Map) {
+                final keys = v.keys.cast<String>().toList()..sort();
+                return {for (final k in keys) k: sort(v[k])};
+              }
+              if (v is List) return v.map(sort).toList();
+              return v;
+            }
+
+            return jsonEncode(sort(value));
+          }
+
+          Map<String, dynamic> normalized(QuestionSpec s) {
+            final json = s.toJson();
+            json['topics'] = (List<String>.from(json['topics'] as List)
+              ..sort());
+            return json;
+          }
+
+          final oldOptions =
+              await (db.select(db.practiceOptions)
+                    ..where((o) => o.questionId.equals(old.id))
+                    ..orderBy([(o) => OrderingTerm.asc(o.position)]))
+                  .get();
+          final oldKeys =
+              await (db.select(db.practiceAnswerKeys)
+                    ..where((a) => a.questionId.equals(old.id))
+                    ..orderBy([(a) => OrderingTerm.asc(a.position)]))
+                  .get();
+          final oldAnswers = <List<String>>[];
+          for (final k in oldKeys) {
+            while (oldAnswers.length <= k.position) {
+              oldAnswers.add([]);
+            }
+            oldAnswers[k.position].add(k.answer);
+          }
+          final oldTopics = await db
+              .customSelect(
+                'SELECT t.name FROM learning_topics t JOIN practice_question_topics l ON t.id=l.topic_id WHERE l.question_id=?',
+                variables: [Variable(old.id)],
+              )
+              .get();
+          final oldSpec = QuestionSpec(
+            kind: old.kind,
+            stem: old.stem,
+            subject: old.subject,
+            options: {for (final o in oldOptions) o.optionId: o.content},
+            answers: oldAnswers,
+            explanation: old.explanation,
+            hint: old.hint,
+            topics: oldTopics.map((t) => t.read<String>('name')).toList(),
+            absoluteTolerance: old.absoluteTolerance,
+            relativeTolerance: old.relativeTolerance,
+            caseSensitive: old.caseSensitive,
+            timeLimitSeconds: old.timeLimitSeconds,
+          );
+          if (canonical(normalized(oldSpec)) != canonical(normalized(spec))) {
+            throw const FormatException('该操作已创建过题目，内容与之前不一致，未覆盖旧题。');
+          }
           if (old.deleted) {
             await (db.update(db.practiceQuestions)
                   ..where((q) => q.id.equals(old.id)))
@@ -433,6 +496,7 @@ class PracticeStore extends DatabaseNotifier {
     DateTime? now,
   }) => runOperation(() async {
     await flushDrafts();
+    var gradedNow = false;
     final result = await db.transaction(() async {
       final a = await _attempt(id);
       if (a.status != 'draft') return a;
@@ -488,16 +552,18 @@ class PracticeStore extends DatabaseNotifier {
         ),
       );
       final saved = await _attempt(id);
-      if (!self) await onGraded?.call(saved);
+      gradedNow = !self;
       await _stage(d.row.id, self ? 'practice' : 'feedback');
       return saved;
     });
     changed();
+    if (gradedNow) await _scheduleReview(result);
     return result;
   });
 
   Future<PracticeAttempt> selfGrade(String id, bool correct) =>
       runOperation(() async {
+        var gradedNow = false;
         final result = await db.transaction(() async {
           final a = await _attempt(id);
           if (a.status != 'awaiting_self_grade') return a;
@@ -511,13 +577,28 @@ class PracticeStore extends DatabaseNotifier {
             ),
           );
           final saved = await _attempt(id);
-          await onGraded?.call(saved);
+          gradedNow = true;
           await _stage(a.questionId, 'feedback');
           return saved;
         });
         changed();
+        if (gradedNow) await _scheduleReview(result);
         return result;
       });
+
+  /// Schedules review only after the grading transaction has committed, so
+  /// a corrupt review schedule can never roll grading back. A scheduling
+  /// failure is still reported to the caller, but the grade is kept: the
+  /// next attempt re-runs scheduling through the duplicate guard.
+  Future<void> _scheduleReview(PracticeAttempt attempt) async {
+    final schedule = onGraded;
+    if (schedule == null) return;
+    try {
+      await schedule(attempt);
+    } catch (_) {
+      throw const FormatException('复习安排失败，可稍后重试。');
+    }
+  }
 
   Future<void> _stage(String question, String stage) async {
     final sessions = await db

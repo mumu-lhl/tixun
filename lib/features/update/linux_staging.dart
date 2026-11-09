@@ -57,6 +57,11 @@ Directory _oldDir(Directory bundleDir) => Directory('${bundleDir.path}.old');
 String _sanitizeTag(String tag) =>
     tag.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
 
+/// Maximum accepted update archive size. Staging reads the whole archive
+/// into memory (and decodes it twice more), so an explicit cap bounds
+/// that to ~3x this value instead of trusting the file on disk.
+const int _maxTarGzBytes = 256 * 1024 * 1024;
+
 /// Extract [tarGzFile] (top level contains the `tixun` binary plus
 /// `lib/` and `data/`) into a staging directory that is a sibling of
 /// the bundle dir. After extracting, the `tixun` binary inside staging
@@ -83,6 +88,15 @@ Future<Directory> stageLinuxUpdateInto({
     await staging.delete(recursive: true);
   }
   try {
+    // Bound the in-memory decode: the archive is read fully into memory
+    // (and decoded twice more), so refuse absurd sizes up front instead
+    // of letting a corrupt or hostile tarball exhaust memory.
+    final tarGzLength = await tarGzFile.length();
+    if (tarGzLength > _maxTarGzBytes) {
+      throw const FormatException(
+        'Update archive exceeds the 256 MiB size limit.',
+      );
+    }
     final gzBytes = await tarGzFile.readAsBytes();
     final tarBytes = GZipDecoder().decodeBytes(gzBytes);
     final archive = TarDecoder().decodeBytes(tarBytes);
@@ -95,6 +109,17 @@ Future<Directory> stageLinuxUpdateInto({
           relative.startsWith('../') ||
           p.split(relative).contains('..')) {
         throw FormatException('Unsafe entry in update archive: ${entry.name}');
+      }
+      // Symlinks (and hard links, which the decoder reports the same
+      // way) must never be materialised: a link inside the bundle could
+      // point outside it, and the old fallback created an empty
+      // directory of the same name instead, failing later at binary
+      // verification. The archive is SHA-256 verified, so this is a
+      // defence-in-depth rejection, not a trust decision.
+      if (entry.isSymbolicLink) {
+        throw FormatException(
+          'Update archive contains a symbolic link: ${entry.name}',
+        );
       }
       final outPath = p.join(staging.path, relative);
       if (entry.isFile) {
@@ -183,6 +208,13 @@ PendingUpdate? readPendingUpdateFor({required Directory bundleDir}) {
 /// Swap [bundleDir] with [stagingDir]: delete any previous `.old`,
 /// rename bundle -> `.old`, rename staging -> bundle.
 ///
+/// The `.old` directory is only deleted when the live bundle still
+/// exists: if a previous swap was killed between the two renames, `.old`
+/// is the sole surviving copy of the old bundle, and deleting it first
+/// would leave nothing to restore. When the bundle dir itself is
+/// missing but `.old` survives, the old bundle is restored in place and
+/// the swap reports failure so the caller can retry from Settings.
+///
 /// Returns false on any failure, in which case it attempts to restore
 /// (rename `.old` back if the bundle dir is missing). The marker and
 /// staging directory are left untouched so the caller can retry.
@@ -192,6 +224,14 @@ Future<bool> swapBundleDirectories({
 }) async {
   final oldDir = _oldDir(bundleDir);
   try {
+    if (!await bundleDir.exists()) {
+      // A previous swap died after bundle -> .old: .old is the only
+      // copy left. Put it back instead of deleting it.
+      if (await oldDir.exists()) {
+        await oldDir.rename(bundleDir.path);
+      }
+      return false;
+    }
     if (!await stagingDir.exists()) return false;
     if (await oldDir.exists()) {
       await oldDir.delete(recursive: true);

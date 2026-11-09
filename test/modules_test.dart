@@ -52,6 +52,15 @@ void main() {
           .id,
       second,
     );
+    // Moving the first module further up is a no-op that reports false…
+    expect(await store.modules.move(second, -1), false);
+    // …and a duplicate name is an error on the UI create path, while the
+    // AI tool path keeps reusing the existing directory.
+    await expectLater(
+      store.modules.create('数学', '几何', reuseExisting: false),
+      throwsFormatException,
+    );
+    expect(await store.modules.create('数学', '几何', reuseExisting: true), second);
     await store.modules.rename(root, '函数与导数');
     expect(
       (await store.modules.list('数学')).firstWhere((m) => m.id == root).name,

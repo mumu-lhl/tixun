@@ -2,6 +2,8 @@ import 'module_widgets.dart';
 import '../chat/message_reasoning.dart';
 import '../scratchpad/scratchpad_screen.dart';
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -533,18 +535,40 @@ class StudyDetailScreen extends ConsumerWidget {
     if (text.length > 30000) {
       throw const FormatException('资料过长，请先编辑或选取部分内容后提问。');
     }
+    final selectedImages = store.preferredImages(k?.images ?? m!.images);
+    // Validate every image before creating anything, so a missing or
+    // corrupt file fails here instead of leaving behind an empty session
+    // and a link to it.
+    for (final image in selectedImages) {
+      await store.checkImageFile(image.relativePath);
+    }
     await c.newSession();
     await c.mode(direct ? 'direct' : 'guided');
-    await store.linkChat(
-      c.selected!.id,
-      knowledgeId: k?.item.id,
-      mistakeId: m?.item.id,
-    );
-    final selectedImages = store.preferredImages(k?.images ?? m!.images);
-    for (final image in selectedImages) {
-      await c.addImage(c.files.resolve(image.relativePath).path);
+    try {
+      await store.linkChat(
+        c.selected!.id,
+        knowledgeId: k?.item.id,
+        mistakeId: m?.item.id,
+      );
+      // Reuse the already-imported files instead of copying their bytes
+      // into new attachments on every ask.
+      for (final image in selectedImages) {
+        await store.attachExistingChatImage(c.selected!.id, image.relativePath);
+      }
+      c.attachments = await c.db.images(c.selected!.id);
+      c.changed();
+      await c.draft(text);
+    } catch (_) {
+      // Roll back the empty session so no orphan session (and its link,
+      // which is cascade-deleted when the session is purged) is left behind.
+      final session = c.selected;
+      if (session != null) {
+        try {
+          await c.deleteSession(session);
+        } catch (_) {}
+      }
+      rethrow;
     }
-    await c.draft(text);
     if (context.mounted) {
       context.go('/chat');
       ScaffoldMessenger.of(
@@ -559,31 +583,44 @@ class StudyDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
     final selected = await showDialog<String>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         var query = '';
+        var results = items;
+        Timer? debounce;
         return AlertDialog(
-          title: Text(context.tr("选择关联知识")),
+          title: Text(dialogContext.tr("选择关联知识")),
           content: SizedBox(
             width: 500,
             height: 380,
             child: StatefulBuilder(
               builder: (context, update) {
-                final visible = items
+                // Server-side search: the first page only holds the newest
+                // 200 records, so older knowledge is unreachable through
+                // client-side filtering alone.
+                final visible = results
                     .where((k) => isMistake || k.id != id)
-                    .where(
-                      (k) =>
-                          query.isEmpty ||
-                          k.title.toLowerCase().contains(query.toLowerCase()) ||
-                          context
-                              .subjectName(k.subject)
-                              .toLowerCase()
-                              .contains(query.toLowerCase()),
-                    )
                     .toList();
                 return Column(
                   children: [
                     TextField(
-                      onChanged: (v) => update(() => query = v),
+                      onChanged: (v) {
+                        query = v;
+                        debounce?.cancel();
+                        debounce = Timer(
+                          const Duration(milliseconds: 250),
+                          () async {
+                            final rows = v.isEmpty
+                                ? items
+                                : await store.searchKnowledge(
+                                    query: v,
+                                    limit: 200,
+                                  );
+                            if (query == v && dialogContext.mounted) {
+                              update(() => results = rows);
+                            }
+                          },
+                        );
+                      },
                       decoration: InputDecoration(
                         hintText: context.tr("搜索标题或科目"),
                         prefixIcon: const Icon(Icons.search),

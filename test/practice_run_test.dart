@@ -223,4 +223,102 @@ void main() {
     );
     expect(denied['ok'], false);
   });
+  test('Replaying the same create_quiz call id returns the cached question instead of creating another', () async {
+    final db = AppDatabase.memory();
+    final practice = PracticeStore(db);
+    addTearDown(() async {
+      practice.dispose();
+      await db.close();
+    });
+    final sessionId = (await db.createSession()).id;
+    await db
+        .into(db.chatMessages)
+        .insert(
+          ChatMessagesCompanion.insert(
+            id: 'run-1',
+            sessionId: sessionId,
+            role: 'assistant',
+            content: '',
+            createdAt: DateTime.now(),
+          ),
+        );
+    const args = {
+      'kind': 'single_choice',
+      'stem': '1+1=?',
+      'subject': '数学',
+      'options': {'A': '1', 'B': '2'},
+      'answers': [
+        ['B'],
+      ],
+      'explanation': '1+1=2',
+    };
+    Future<Map<String, dynamic>> run(String callId) => executeQuizTool(
+      practice,
+      ToolCall(callId, 'create_quiz', jsonEncode(args)),
+      sessionId: sessionId,
+      runId: 'run-1',
+      cancel: CancelToken(),
+    );
+    final first = await run('call-1');
+    expect(first['ok'], true);
+    final second = await run('call-1');
+    expect(second['ok'], true);
+    expect(second['question_id'], first['question_id']);
+    // The cached result is returned verbatim (no fresh 'note' field).
+    expect(second['verification'], 'unverified');
+    expect(second.containsKey('note'), false);
+    expect((await db.select(db.practiceQuestions).get()).length, 1);
+    // Same call id with different arguments is rejected, not silently reused.
+    final changed = await executeQuizTool(
+      practice,
+      ToolCall('call-1', 'create_quiz', jsonEncode({...args, 'stem': '2+2=?'})),
+      sessionId: sessionId,
+      runId: 'run-1',
+      cancel: CancelToken(),
+    );
+    expect(changed['ok'], false);
+    expect((await db.select(db.practiceQuestions).get()).length, 1);
+  });
+  test(
+    'PracticeStore.create returns the old question only when the spec matches',
+    () async {
+      final db = AppDatabase.memory();
+      final practice = PracticeStore(db);
+      addTearDown(() async {
+        practice.dispose();
+        await db.close();
+      });
+      const spec = QuestionSpec(
+        kind: 'numeric',
+        stem: '1+1',
+        answers: [
+          ['2'],
+        ],
+      );
+      final id = await practice.create(spec, operation: 'op-1');
+      expect(await practice.create(spec, operation: 'op-1'), id);
+      expect((await db.select(db.practiceQuestions).get()).length, 1);
+      await expectLater(
+        practice.create(
+          const QuestionSpec(
+            kind: 'numeric',
+            stem: '1+2',
+            answers: [
+              ['3'],
+            ],
+          ),
+          operation: 'op-1',
+        ),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('内容与之前不一致'),
+          ),
+        ),
+      );
+      expect((await db.select(db.practiceQuestions).get()).length, 1);
+      expect((await practice.detail(id)).spec.stem, '1+1');
+    },
+  );
 }

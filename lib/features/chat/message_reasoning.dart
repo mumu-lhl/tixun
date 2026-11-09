@@ -1,6 +1,7 @@
 import '../../core/ai/ai_options.dart';
+import '../../core/l10n/app_strings.dart';
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -51,22 +52,41 @@ class MessageReasoning extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final text = message.reasoningTrace ?? message.reasoningContent ?? '';
-    if (text.isEmpty &&
-        (message.status != 'generating' ||
-            !AiOptions(ref.read(appControllerProvider).sessionConfig)
-                .reasoningEnabled)) {
+    // Watch (not read) the session config: the generating placeholder must
+    // refresh when the thinking setting changes mid-generation.
+    final reasoningEnabled = AiOptions(
+      ref.watch(appControllerProvider).sessionConfig,
+    ).reasoningEnabled;
+    if (text.isEmpty && (message.status != 'generating' || !reasoningEnabled)) {
       return const SizedBox.shrink();
     }
     final locked = ref.watch(reasoningLockedProvider(message.id));
-    return ReasoningPanel(
+    // A failed lock query must not lock the panel forever: allow expanding
+    // and offer a retry instead of silently locking until re-entry.
+    final loadFailed = locked.hasError;
+    final panel = ReasoningPanel(
       key: ValueKey('reasoning-${message.id}'),
       text: text,
       generating: message.status == 'generating',
       locked:
           examGenerating ||
           locked.isLoading ||
-          locked.hasError ||
-          locked.value != false,
+          (!loadFailed && locked.value != false),
+    );
+    if (!loadFailed) return panel;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        panel,
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () =>
+                ref.invalidate(reasoningLockedProvider(message.id)),
+            child: Text(context.tr('重试')),
+          ),
+        ),
+      ],
     );
   }
 }

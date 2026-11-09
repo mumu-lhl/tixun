@@ -43,6 +43,12 @@ const fieldLabels = {
   'correct_answer': '参考答案',
   'ai_analysis': 'AI 解析',
   'suggested_reason': 'AI 建议的原因（待确认）',
+  // The remaining off-table parameters need no label: id / module_id /
+  // knowledge_id / mistake_id / question_id / parent_id are opaque ids
+  // already rendered human-readably as `target`, and `query` only occurs
+  // in read tools that never ask for confirmation.
+  'expected_revision': '版本号',
+  'image_indices': '引用图片序号',
 };
 
 class ToolApprovalCard extends ConsumerWidget {

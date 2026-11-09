@@ -90,6 +90,26 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
   @override
   void dispose() {
     strokeTimer?.cancel();
+    if (document != null && gestureStart != null) {
+      // Best effort: commit an in-progress stroke so the store's autosave
+      // timer can still persist it. dispose cannot await the flush itself.
+      var committed = document!;
+      if (ink != null) {
+        committed = committed.replace(
+          committed.page.copyWith(
+            strokes: [
+              ...committed.page.strokes,
+              InkStroke(color, width / committed.page.scale, ink!),
+            ],
+          ),
+        );
+        ink = null;
+      }
+      gestureStart = null;
+      try {
+        store.stage(widget.contextKey, committed);
+      } catch (_) {}
+    }
     lifecycle.dispose();
     super.dispose();
   }
@@ -203,11 +223,32 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
       await store.flush();
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          closing = false;
-          error = '草稿保存失败，请重试后再退出。';
-        });
+      if (!mounted) return;
+      setState(() {
+        closing = false;
+        error = '草稿保存失败，请重试后再退出。';
+      });
+      // A persistently failing save must not trap the user in the board:
+      // offer an explicit discard-and-exit path instead of blocking forever.
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(ctx.tr('保存失败，放弃未保存内容退出？')),
+          content: Text(ctx.tr('未保存的笔画将丢失。')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(ctx.tr('继续重试')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(ctx.tr('放弃并退出')),
+            ),
+          ],
+        ),
+      );
+      if (discard == true && mounted) {
+        Navigator.of(context).pop();
       }
     }
   }
@@ -611,7 +652,11 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                             child: ListenableBuilder(
                               listenable: store,
                               builder: (_, _) => Text(
-                                context.tr(error ?? store.failure ?? '自动保存到本机'),
+                                context.tr(
+                                  error ??
+                                      store.failure ??
+                                      '自动保存到本机；异常退出可能丢失最后一笔',
+                                ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(

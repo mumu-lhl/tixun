@@ -80,19 +80,19 @@ done
 rg -q 'TIXUN_GENERATION_FINISHED status=complete' "$artifact_dir/app.log"
 sleep .8
 capture desktop-chat-answer
-xdotool key --clearmodifiers ctrl+5
+xdotool key --clearmodifiers ctrl+4
 sleep 1
 capture desktop-knowledge
 xdotool mousemove --window "$window" 700 310 click 1
 sleep 1
 capture desktop-knowledge-detail
-xdotool key --clearmodifiers ctrl+4
+xdotool key --clearmodifiers ctrl+3
 sleep 1
 capture desktop-mistakes
 xdotool mousemove --window "$window" 700 310 click 1
 sleep 1
 capture desktop-mistake-detail
-xdotool key --clearmodifiers ctrl+3
+xdotool key --clearmodifiers ctrl+5
 sleep 1
 capture desktop-settings
 xdotool windowsize "$window" 390 844
@@ -104,13 +104,13 @@ capture phone-chat
 xdotool key --clearmodifiers ctrl+1
 sleep 1
 capture phone-study
-xdotool key --clearmodifiers ctrl+5
+xdotool key --clearmodifiers ctrl+4
 sleep 1
 capture phone-knowledge
 xdotool mousemove --window "$window" 180 305 click 1
 sleep 1
 capture phone-knowledge-detail
-xdotool key --clearmodifiers ctrl+4
+xdotool key --clearmodifiers ctrl+3
 sleep 1
 capture phone-mistakes
 xdotool mousemove --window "$window" 180 305 click 1

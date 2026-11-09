@@ -35,6 +35,35 @@ final routerProvider = Provider<GoRouter>((ref) {
       'TIXUN_ROUTE',
       defaultValue: '/study',
     ),
+    // Unknown paths (mistyped deep links, stale links) must not strand
+    // the user on GoRouter's default error page, which sits outside the
+    // ShellRoute: no bottom navigation and no in-app way back, so the
+    // system back button would exit the app instead.
+    errorBuilder: (context, state) => Scaffold(
+      appBar: AppBar(title: Text(context.tr('题训'))),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.tr('页面不存在'),
+                style: Theme.of(context).textTheme.titleLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(state.uri.path, textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => context.go('/study'),
+                child: Text(context.tr('回学习页')),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
     routes: [
       ShellRoute(
         builder: (context, state, child) =>
@@ -338,12 +367,14 @@ class AppShell extends ConsumerWidget {
                                 ],
                                 onChanged: (value) {
                                   if (value != null) {
+                                    // This switch only renders on /study,
+                                    // so there is no chat page to activate
+                                    // from here; setSubjectFilter's
+                                    // activateChat branch has no production
+                                    // caller left (see controller tests).
                                     act(
                                       context,
-                                      () => c.setSubjectFilter(
-                                        value,
-                                        activateChat: path == '/chat',
-                                      ),
+                                      () => c.setSubjectFilter(value),
                                     );
                                   }
                                 },

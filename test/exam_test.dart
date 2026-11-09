@@ -195,6 +195,27 @@ void main() {
       expect(() => parseExamScores(json), throwsFormatException);
     }
   });
+  test('AI score parsing tolerates fences with trailing prose and keeps the raw reply on failure', () {
+    const json = '{"questions":[{"label":"1","earned":4,"maximum":5}]}';
+    for (final wrapped in [
+      '```json\n$json\n```',
+      '```JSON\n$json\n```\n以上是小分表',
+      '``` json\n$json\n```',
+      '先看小分表：\n```\n$json\n```\n请核对。',
+      '小分表如下：$json（完）',
+    ]) {
+      expect(parseExamScores(wrapped).single.earned, 4);
+    }
+    const bad =
+        '```json\n{"questions":[{"label":"1","earned":"5"}]}\n```\n以上是小分表';
+    try {
+      parseExamScores(bad);
+      fail('expected a parse failure');
+    } on ExamScoresParseFailure catch (e) {
+      expect(e.rawText, bad);
+      expect(e, isA<FormatException>());
+    }
+  });
   test('AI vision checks, scoped images, completed streaming and cancellation are enforced', () async {
     final image = File('${root.path}/image.png');
     await image.writeAsBytes(

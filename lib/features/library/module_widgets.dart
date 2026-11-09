@@ -83,7 +83,14 @@ class _ManagerState extends ConsumerState<ModuleManager> {
             .read(appControllerProvider)
             .study
             .modules
-            .create(discipline, name, parentId: parent),
+            .create(
+              discipline,
+              name,
+              parentId: parent,
+              // A duplicate name is an error here, not a silent reuse:
+              // the user must know they did not create a new directory.
+              reuseExisting: false,
+            ),
       );
     }
   }
@@ -212,23 +219,39 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                           }
                         }
                       },
-                      itemBuilder: (ctx) => [
-                        if (module.parentId == null)
+                      itemBuilder: (ctx) {
+                        final siblings = all
+                            .where((m) => m.parentId == module.parentId)
+                            .toList();
+                        final index = siblings.indexWhere(
+                          (m) => m.id == module.id,
+                        );
+                        return [
+                          if (module.parentId == null)
+                            PopupMenuItem(
+                              value: 'child',
+                              child: Text(ctx.tr('新增子模块')),
+                            ),
                           PopupMenuItem(
-                            value: 'child',
-                            child: Text(ctx.tr('新增子模块')),
+                            value: 'rename',
+                            child: Text(ctx.tr('重命名目录')),
                           ),
-                        PopupMenuItem(
-                          value: 'rename',
-                          child: Text(ctx.tr('重命名目录')),
-                        ),
-                        PopupMenuItem(value: 'up', child: Text(ctx.tr('上移'))),
-                        PopupMenuItem(value: 'down', child: Text(ctx.tr('下移'))),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text(ctx.tr('删除目录')),
-                        ),
-                      ],
+                          PopupMenuItem(
+                            value: 'up',
+                            enabled: index > 0,
+                            child: Text(ctx.tr('上移')),
+                          ),
+                          PopupMenuItem(
+                            value: 'down',
+                            enabled: index >= 0 && index < siblings.length - 1,
+                            child: Text(ctx.tr('下移')),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text(ctx.tr('删除目录')),
+                          ),
+                        ];
+                      },
                     ),
                   );
                   return Column(
@@ -421,8 +444,12 @@ class ModuleAssignment extends ConsumerWidget {
       if (context.mounted) {
         final store = ref.read(appControllerProvider).study.modules;
         final updated = await store.list(subject);
-        final current = await store.ids(id, mistake);
-        if (context.mounted) await _pick(context, ref, updated, current);
+        // Only reopen the picker when the directory set actually changed;
+        // if the user just looked, land back on the detail page.
+        if (_moduleSignature(updated) != _moduleSignature(all)) {
+          final current = await store.ids(id, mistake);
+          if (context.mounted) await _pick(context, ref, updated, current);
+        }
       }
       return;
     }
@@ -537,7 +564,9 @@ class ModuleFilter extends ConsumerWidget {
                     ),
                   ),
                 );
-                if (ctx.mounted) onChanged('');
+                // Keep the current filter when the user just looked: if the
+                // selected directory was deleted, the build-time check above
+                // already resets it via onChanged('').
               },
               child: Text(ctx.tr('管理目录')),
             ),
@@ -558,3 +587,8 @@ class ModuleFilter extends ConsumerWidget {
     );
   }
 }
+
+/// Identity of a directory set for change detection after managing
+/// directories: id, name and parent of every module, in list order.
+String _moduleSignature(List<SubjectModule> modules) =>
+    modules.map((m) => '${m.id}:${m.name}:${m.parentId}').join('|');

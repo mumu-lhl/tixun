@@ -160,6 +160,9 @@ List<String> documentedGptLevels(String model) {
   if (id.startsWith('gpt-5.6')) {
     return ['none', 'low', 'medium', 'high', 'xhigh', 'max'];
   }
+  // Check -pro before the gpt-6 prefix: gpt-6-pro was matched by the prefix
+  // below and wrongly given reasoning levels.
+  if (id.contains('-pro')) return [];
   if (id.startsWith('gpt-6')) {
     return ['low', 'medium', 'high', 'xhigh', 'max'];
   }
@@ -183,7 +186,6 @@ List<String> documentedGptLevels(String model) {
   if (id == 'gpt-5' || id.startsWith('gpt-5-')) {
     return ['minimal', 'low', 'medium', 'high'];
   }
-  if (id.contains('-pro')) return [];
   if (RegExp(r'^o[134]($|-)').hasMatch(id)) return ['low', 'medium', 'high'];
   return [];
 }

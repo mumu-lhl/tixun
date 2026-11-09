@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
@@ -46,7 +47,10 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
           dirty = false;
           saving = false;
         });
-        Navigator.pop(context);
+        // Go back explicitly instead of popping: this page can be the
+        // initial route of a deep link (/settings/subjects), where a
+        // pop would exit the app instead of returning to Settings.
+        context.go('/settings');
       }
     } catch (_) {
       if (mounted) {
@@ -60,29 +64,33 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: !dirty && !saving,
+    // Never pop this page directly: as a deep-link entry point it may
+    // be the only route, where a pop would exit the app. Every exit
+    // goes through context.go('/settings') below instead.
+    canPop: false,
     onPopInvokedWithResult: (popped, _) async {
       if (popped || saving) return;
-      final yes = await showDialog<bool>(
-        context: context,
-        builder: (d) => AlertDialog(
-          title: Text(d.tr('放弃科目设置的修改？')),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(d),
-              child: Text(d.tr('继续编辑')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(d, true),
-              child: Text(d.tr('放弃')),
-            ),
-          ],
-        ),
-      );
-      if (yes == true && context.mounted) {
+      if (dirty) {
+        final yes = await showDialog<bool>(
+          context: context,
+          builder: (d) => AlertDialog(
+            title: Text(d.tr('放弃科目设置的修改？')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(d),
+                child: Text(d.tr('继续编辑')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(d, true),
+                child: Text(d.tr('放弃')),
+              ),
+            ],
+          ),
+        );
+        if (yes != true || !context.mounted) return;
         setState(() => dirty = false);
-        Navigator.pop(context);
       }
+      if (context.mounted) context.go('/settings');
     },
     child: Scaffold(
       appBar: AppBar(

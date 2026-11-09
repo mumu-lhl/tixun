@@ -176,7 +176,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final epoch = _epoch,
         query = _query,
         subject = ref.read(appControllerProvider).subjectFilter,
-        trash = _trash;
+        trash = _trash,
+        moduleId = _moduleId;
     setState(() => _loadingMore = true);
     try {
       final rows = await _load(
@@ -187,7 +188,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           epoch == _epoch &&
           query == _query &&
           subject == ref.read(appControllerProvider).subjectFilter &&
-          trash == _trash) {
+          trash == _trash &&
+          moduleId == _moduleId) {
         setState(() {
           _nextOffset += rows.length;
           _hasMore = rows.length == 100;

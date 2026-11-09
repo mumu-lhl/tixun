@@ -24,6 +24,15 @@ void main() {
     expect(actual.bottom, closeTo(b, 1e-9));
   }
 
+  test(
+    'editorDecodeSize never yields a zero edge for extreme aspect ratios',
+    () {
+      expect(editorDecodeSize(5000, 1), (width: 2048, height: 1));
+      expect(editorDecodeSize(1, 5000), (width: 1, height: 2048));
+      expect(editorDecodeSize(4000, 3000), (width: 2048, height: 1536));
+      expect(editorDecodeSize(800, 600), (width: 800, height: 600));
+    },
+  );
   test('Crop after rotation produces bounded pixels without modifying the original', () async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);

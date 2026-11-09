@@ -236,6 +236,96 @@ void main() {
     },
   );
 
+  test('swap restores .old when the bundle dir is missing instead of deleting the only copy', () async {
+    final bundle = await _tempBundle();
+    addTearDown(() => bundle.parent.delete(recursive: true));
+    final oldDir = Directory('${bundle.path}.old');
+    await bundle.rename(oldDir.path);
+    final staging = Directory('${bundle.path}.new-v0.6.0');
+    await staging.create();
+    await File(p.join(staging.path, 'tixun')).writeAsString('new binary');
+
+    final ok = await swapBundleDirectories(
+      bundleDir: bundle,
+      stagingDir: staging,
+    );
+
+    expect(ok, isFalse);
+    // The old bundle is back in place; the swap did not run.
+    expect(
+      await File(p.join(bundle.path, 'tixun')).readAsString(),
+      'old binary',
+    );
+    expect(await oldDir.exists(), isFalse);
+    expect(await staging.exists(), isTrue);
+  });
+
+  test(
+    'swap restores .old when the bundle dir is missing and staging is gone too',
+    () async {
+      final bundle = await _tempBundle();
+      addTearDown(() => bundle.parent.delete(recursive: true));
+      final oldDir = Directory('${bundle.path}.old');
+      await bundle.rename(oldDir.path);
+
+      final ok = await swapBundleDirectories(
+        bundleDir: bundle,
+        stagingDir: Directory('${bundle.path}.new-v0.6.0'),
+      );
+
+      expect(ok, isFalse);
+      expect(
+        await File(p.join(bundle.path, 'tixun')).readAsString(),
+        'old binary',
+      );
+      expect(await oldDir.exists(), isFalse);
+    },
+  );
+
+  test(
+    'stage rejects a symbolic link entry instead of making a directory',
+    () async {
+      final bundle = await _tempBundle();
+      addTearDown(() => bundle.parent.delete(recursive: true));
+      final archive = Archive();
+      final binary = utf8.encode('#!/bin/sh\necho new\n');
+      archive.addFile(ArchiveFile('tixun', binary.length, binary));
+      archive.addFile(ArchiveFile('evil-link', 0, [])..symbolicLink = 'tixun');
+      final tarGz = File(p.join(bundle.parent.path, 'update.tar.gz'));
+      await tarGz.writeAsBytes(
+        GZipEncoder().encode(TarEncoder().encode(archive)),
+      );
+
+      await expectLater(
+        stageLinuxUpdateInto(
+          bundleDir: bundle,
+          tarGzFile: tarGz,
+          tag: 'v0.6.0',
+        ),
+        throwsFormatException,
+      );
+      expect(await Directory('${bundle.path}.new-v0.6.0').exists(), isFalse);
+    },
+  );
+
+  test(
+    'stage rejects an archive over the size cap without reading it',
+    () async {
+      final bundle = await _tempBundle();
+      addTearDown(() => bundle.parent.delete(recursive: true));
+      final huge = File(p.join(bundle.parent.path, 'huge.tar.gz'));
+      final handle = await huge.open(mode: FileMode.write);
+      await handle.truncate(256 * 1024 * 1024 + 1);
+      await handle.close();
+
+      await expectLater(
+        stageLinuxUpdateInto(bundleDir: bundle, tarGzFile: huge, tag: 'v0.6.0'),
+        throwsFormatException,
+      );
+      expect(await Directory('${bundle.path}.new-v0.6.0').exists(), isFalse);
+    },
+  );
+
   test('cleanupOldBundle deletes .old only', () async {
     final bundle = await _tempBundle();
     addTearDown(() => bundle.parent.delete(recursive: true));

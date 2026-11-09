@@ -351,7 +351,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
     String name,
     String label, {
     int lines = 1,
-    int maxLength = 60000,
+    int? maxLength,
     Key? key,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 16),
@@ -365,10 +365,11 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       decoration: InputDecoration(
         labelText: context.tr(label),
         alignLabelWithHint: lines > 1,
-        // Show the counter for fields with a real limit so input is never
-        // silently truncated; the effectively unlimited body fields keep the
-        // counter hidden.
-        counterText: maxLength >= 60000 ? '' : null,
+        // Fields with a visible limit keep the counter; body fields pass no
+        // maxLength at all, so over-long input reaches the store's 60000
+        // check and is rejected with an error instead of being silently
+        // truncated by the TextField.
+        counterText: maxLength == null ? '' : null,
       ),
     ),
   );

@@ -41,17 +41,26 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final (ctrl, label, lines) in [
-            (stage, '学习阶段', 1),
-            (exam, '目标考试（可选）', 1),
-            (minutes, '每日可用分钟数（5–480）', 1),
-            (scope, '学科与学习范围（自由填写）', 3),
+          if (widget.profile.partialFallback)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                context.tr('部分设置无法读取，已用默认值。'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+          for (final (ctrl, label, lines, keyboard) in [
+            (stage, '学习阶段', 1, null),
+            (exam, '目标考试（可选）', 1, null),
+            (minutes, '每日可用分钟数（5–480）', 1, TextInputType.number),
+            (scope, '学科与学习范围（自由填写）', 3, null),
           ])
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: TextField(
                 controller: ctrl,
                 enabled: !saving,
+                keyboardType: keyboard,
                 minLines: lines,
                 maxLines: lines + 2,
                 decoration: InputDecoration(labelText: context.tr(label)),

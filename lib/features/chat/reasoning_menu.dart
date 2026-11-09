@@ -36,7 +36,9 @@ class ReasoningMenu extends ConsumerWidget {
       ]),
       icon: Icon(
         Icons.psychology_outlined,
-        color: effective.thinking
+        // Highlight only when reasoning actually runs: thinking=true with
+        // effort='none' shows the '不推理' label and must not look active.
+        color: AiOptions(effective).reasoningEnabled
             ? Theme.of(context).colorScheme.primary
             : null,
       ),

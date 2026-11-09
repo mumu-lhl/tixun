@@ -12,7 +12,7 @@ import 'study_tools.dart';
 
 final quizToolSchema = AiTool(
   name: 'create_quiz',
-  description: '在聊天中创建真实交互题。不要在正文提前公布答案。答案必须按位置给出二维数组，填空每个位置可有多个等价文字答案，多选每个正确选项单独一项。只检查结构一致性，模型答案仍待用户核对。题目依赖本次请求的图片时，必须用 image_indices 明确引用图片序号；纯文字题不填写。',
+  description: '在聊天中创建真实交互题。不要在正文提前公布答案。答案必须按位置给出二维数组，填空每个位置可有多个等价文字答案，多选每个正确选项单独一项。只检查结构一致性，模型答案仍待用户核对。题目依赖本次请求的图片时，必须用 image_indices 明确引用图片序号；纯文字题不填写。仅本次请求中的前 4 张图片可用 image_indices 引用（序号从 0 开始）。',
   parameters: {
     'type': 'object',
     'additionalProperties': false,
@@ -93,13 +93,18 @@ Future<Map<String, dynamic>> executeQuizTool(
     }
     final encoded = canonicalJson(args);
     final operation = '$runId:quiz:${sha256.convert(utf8.encode(encoded))}';
-    final id = await store.db.transaction(() async {
+    final result = await store.db.transaction(() async {
       cancel.checkCancelled();
       final old = await (store.db.select(
         store.db.aiToolOperations,
       )..where((t) => t.id.equals('$runId:${call.id}'))).getSingleOrNull();
       if (old != null && (old.arguments != encoded || old.name != call.name)) {
         throw const FormatException('工具调用 ID 已被其他参数使用。');
+      }
+      // Same call replayed: return the cached result like region_tool does
+      // instead of creating the question a second time.
+      if (old != null && old.status == 'succeeded' && old.result != null) {
+        return (jsonDecode(old.result!) as Map).cast<String, dynamic>();
       }
       final links =
           await (store.db.select(store.db.studyChatLinks)
@@ -150,9 +155,13 @@ Future<Map<String, dynamic>> executeQuizTool(
               createdAt: DateTime.now(),
             ),
           );
-      return id;
+      return <String, dynamic>{
+        'ok': true,
+        'question_id': id,
+        'note': '题目已在应用显示，用户提交前不要透露答案。',
+      };
     });
-    return {'ok': true, 'question_id': id, 'note': '题目已在应用显示，用户提交前不要透露答案。'};
+    return result;
   } on DioException {
     rethrow;
   } catch (e) {

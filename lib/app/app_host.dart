@@ -90,10 +90,16 @@ class _TixunHostState extends State<TixunHost> {
   /// At most one automatic check per 6h: silently skip when the last
   /// (automatic or manual) check was less than 6h ago. The check itself
   /// writes the timestamp on completion.
+  ///
+  /// The check waits for the saved channel to load first: on first
+  /// launch the channel provider still holds the stable default while
+  /// the saved preference is being read, and checking before that would
+  /// query the wrong channel for nightly users.
   Future<void> _maybeAutoCheck() async {
     final container = _container;
     if (container == null) return;
     try {
+      await container.read(updateChannelProvider.notifier).loadCompleted;
       final db = container.read(appControllerProvider).db;
       final lastRaw = await db.preference('update_last_auto_check');
       final last = int.tryParse(lastRaw ?? '');
@@ -136,7 +142,9 @@ class _TixunHostState extends State<TixunHost> {
     await c.stop();
     await c.practice.flushDrafts();
     await c.scratch.flush();
+    await c.exams.whenIdle;
     await c.preferences.whenIdle;
+    await c.study.modules.whenIdle;
     await c.study.whenIdle;
     await c.practice.whenIdle;
     await c.review.whenIdle;
@@ -168,7 +176,9 @@ class _TixunHostState extends State<TixunHost> {
           await old?.stop();
           await old?.practice.flushDrafts();
           await old?.scratch.flush();
+          await old?.exams.whenIdle;
           await old?.preferences.whenIdle;
+          await old?.study.modules.whenIdle;
           await old?.study.whenIdle;
           await old?.practice.whenIdle;
           await old?.review.whenIdle;

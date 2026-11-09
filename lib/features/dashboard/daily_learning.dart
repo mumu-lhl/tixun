@@ -6,6 +6,15 @@ import '../../core/l10n/app_strings.dart';
 import '../progress/profile_editor.dart';
 import '../review/review_providers.dart';
 
+/// Whether [examDate] is already past, comparing calendar dates only.
+/// Exam dates come from a date picker at midnight, so comparing against
+/// the current time would mark the exam day itself as past from 00:00.
+bool examDatePassed(DateTime examDate, DateTime now) {
+  final today = DateTime(now.year, now.month, now.day);
+  final examDay = DateTime(examDate.year, examDate.month, examDate.day);
+  return examDay.isBefore(today);
+}
+
 class DailyLearning extends ConsumerWidget {
   const DailyLearning({super.key});
   @override
@@ -89,7 +98,7 @@ class DailyLearning extends ConsumerWidget {
                   ),
                   if (p.examDate != null)
                     Text(
-                      p.examDate!.isBefore(DateTime.now())
+                      examDatePassed(p.examDate!, DateTime.now())
                           ? context.tr("目标考试日期已过，可在学习设置中调整。")
                           : context.tr("{0}还有 {1} 天；优先处理到期任务和已有薄弱证据。", [
                               p.exam.isEmpty ? context.tr("目标考试") : p.exam,

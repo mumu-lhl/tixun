@@ -28,10 +28,14 @@ class _Row {
       max = TextEditingController(
         text: draft.maximum == null ? '' : points(draft.maximum),
       ),
-      note = TextEditingController(text: draft.note);
+      note = TextEditingController(text: draft.note),
+      // The note field stays visible once opened, even after the note is
+      // cleared: without this, clearing a note removed its only way back.
+      showNote = draft.note.isNotEmpty;
   final String id;
   final String? parentId;
   final TextEditingController label, earned, max, note;
+  bool showNote;
   final focus = FocusNode();
   ScoreDraft get draft => ScoreDraft(
     id: id,
@@ -390,13 +394,24 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                 ),
               ],
             ),
-            if (row.note.text.isNotEmpty)
+            if (row.showNote)
               TextField(
                 controller: row.note,
                 onChanged: (_) => setState(() => dirty = true),
                 minLines: 1,
                 maxLines: 3,
                 decoration: InputDecoration(labelText: context.tr('核对备注')),
+              )
+            else
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: saving
+                      ? null
+                      : () => setState(() => row.showNote = true),
+                  icon: const Icon(Icons.note_add_outlined, size: 18),
+                  label: Text(context.tr('添加备注')),
+                ),
               ),
             Align(
               alignment: Alignment.centerRight,

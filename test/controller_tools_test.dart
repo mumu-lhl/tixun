@@ -71,4 +71,57 @@ void main() {
     expect(c.pendingTool, isNull);
     expect(await c.study.searchKnowledge(), isEmpty);
   });
+  test(
+    'A tool call naming a missing question reports the missing record',
+    () async {
+      final toolController = await openWithToolArgs(
+        '{"question_id":"no-such-question"}',
+      );
+      addTearDown(() async {
+        await toolController.shutdown();
+        await toolController.files.root.delete(recursive: true);
+      });
+      await toolController.send('安排复习');
+      expect(toolController.messages.last.content, '收到');
+      final ops = await toolController.db
+          .select(toolController.db.aiToolOperations)
+          .get();
+      expect(ops.single.name, 'schedule_review');
+      expect(ops.single.result, contains('题目不存在'));
+    },
+  );
+}
+
+class ScriptedToolProvider implements ChatProvider {
+  ScriptedToolProvider(this.args);
+  final String args;
+  var turns = 0;
+  @override
+  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
+      AiConversation((request, cancel) async* {
+        turns++;
+        if (turns == 1) {
+          yield AiChunk(
+            completed: true,
+            calls: [ToolCall('bad-1', 'schedule_review', args)],
+          );
+        } else {
+          yield const AiChunk(text: '收到', completed: true);
+        }
+      });
+}
+
+Future<AppController> openWithToolArgs(String args) async {
+  final controller = AppController(
+    AppDatabase.memory(),
+    AttachmentStore(
+      await Directory.systemTemp.createTemp('tixun-confirm-tools'),
+    ),
+    MemoryKeyStore(),
+    ScriptedToolProvider(args),
+  );
+  await controller.initialize();
+  await controller.newSession();
+  await controller.setTools(true);
+  return controller;
 }

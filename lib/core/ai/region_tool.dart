@@ -11,7 +11,7 @@ export '../../features/library/question_region.dart';
 
 final regionToolSchema = AiTool(
   name: 'suggest_question_regions',
-  description: '对当前请求中的一张图片提出分题建议，不自动创建错题。图片按本次请求出现顺序从0编号。矩形相对于原图归一化，用户可检查、修改并逐题保存。OCR 不确定时 question 留空，禁止编造题目条件。',
+  description: '对当前请求中的一张图片提出分题建议，不自动创建错题。图片按本次请求出现顺序从0编号，仅前 4 张图片可用于分题（image_index 最大为 3）。矩形相对于原图归一化，用户可检查、修改并逐题保存。OCR 不确定时 question 留空，禁止编造题目条件。',
   parameters: {
     'type': 'object',
     'additionalProperties': false,

@@ -43,7 +43,11 @@ class ChatGptResponses implements ChatProvider {
 
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) {
-    validateConfig(config);
+    try {
+      validateConfig(config);
+    } on FormatException catch (e) {
+      throw AiFailure(e.message);
+    }
     if (apiKeyOverride != null) {
       throw const FormatException('ChatGPT 使用浏览器登录，无需 API Key。');
     }
@@ -102,6 +106,10 @@ class ChatGptResponses implements ChatProvider {
       'store': false,
       'stream': true,
       'input': input,
+      // max_output_tokens is intentionally not sent here: the only
+      // production caller that sets a limit is the connection test
+      // (maxOutputTokens: 16), which cancels after the first text instead
+      // of relying on a server-side cap. See chatgpt_test.dart.
       'include': ['reasoning.encrypted_content'],
       if (request.instructions.isNotEmpty) 'instructions': request.instructions,
       if (config.thinking)
@@ -136,8 +144,8 @@ class ChatGptResponses implements ChatProvider {
     Map<String, List<dynamic>> context,
     CancelToken cancel,
   ) async* {
-    validateConfig(config);
     try {
+      validateConfig(config);
       final token = await auth.accessToken(cancel: cancel);
       cancel.checkCancelled();
       final response = await client.post<ResponseBody>(
@@ -167,6 +175,10 @@ class ChatGptResponses implements ChatProvider {
       }
     } on AiFailure {
       rethrow;
+    } on FormatException catch (e) {
+      // Configuration errors (e.g. thinking level vs model mismatch) must
+      // keep their own message instead of becoming '回复格式无效'.
+      throw AiFailure(e.message);
     } on DioException catch (error) {
       if (CancelToken.isCancel(error)) rethrow;
       throw AiFailure(switch (error.response?.statusCode) {
