@@ -105,6 +105,7 @@ void main() {
         find.byKey(const Key('chat-input')),
         'Explain the first step.',
       );
+      await t.pump(); // Rebuild the input-driven Send button before tapping.
       await click(t, find.byKey(const Key('send-message')));
       await ready(t, () => !c.busy && c.messages.length == 2);
       expect(c.messages.last.status, 'complete');

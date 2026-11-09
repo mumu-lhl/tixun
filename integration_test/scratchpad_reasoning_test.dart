@@ -45,6 +45,7 @@ void main() {
       await t.pumpAndSettle();
       await resizeGui(t, 390, 844);
       await t.enterText(find.byKey(const Key('chat-input')), '请解释二次函数');
+      await t.pump(); // Rebuild the input-driven Send button before tapping.
       await click(t, find.byKey(const Key('send-message')));
       await ready(t, () => !c.busy && c.messages.length == 2);
       expect(c.messages.last.reasoningTrace, contains('Mock'));
