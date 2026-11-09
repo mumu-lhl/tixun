@@ -84,22 +84,25 @@ class AiRequest {
     required this.instructions,
     required List<AiMessage> messages,
     List<AiTool> tools = const [],
-    this.maxOutputTokens = 4096,
+    this.maxOutputTokens,
   }) : messages = List.unmodifiable(messages),
        tools = List.unmodifiable(tools);
   final String instructions;
   final List<AiMessage> messages;
   final List<AiTool> tools;
-  final int maxOutputTokens;
+
+  /// Null means no app-side cap: the provider's own model limit decides.
+  final int? maxOutputTokens;
   AiRequest copyWith({
     String? instructions,
     List<AiMessage>? messages,
     List<AiTool>? tools,
+    int? maxOutputTokens,
   }) => AiRequest(
     instructions: instructions ?? this.instructions,
     messages: messages ?? this.messages,
     tools: tools ?? this.tools,
-    maxOutputTokens: maxOutputTokens,
+    maxOutputTokens: maxOutputTokens ?? this.maxOutputTokens,
   );
 }
 

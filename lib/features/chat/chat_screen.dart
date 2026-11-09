@@ -764,149 +764,135 @@ class _ConversationState extends ConsumerState<Conversation> {
                                             .toList(),
                                       ),
                                     ),
-                                  TextField(
-                                    key: const Key('chat-input'),
-                                    scrollPadding: EdgeInsets.fromLTRB(
-                                      20,
-                                      20,
-                                      20,
-                                      keyboard ? 80 : 20,
-                                    ),
-                                    controller: _input,
-                                    focusNode: _focus,
-                                    // Typing a draft stays possible while a
-                                    // generation runs; only sending is gated
-                                    // (the send button becomes a stop button
-                                    // while busy, and send() refuses while
-                                    // busy). The draft is saved via onChanged.
-                                    onChanged: c.draft,
-                                    minLines: 1,
-                                    maxLines: keyboard
-                                        ? 2
-                                        : shortInput
-                                        ? 4
-                                        : 6,
-                                    maxLength: 32000,
-                                    decoration: InputDecoration(
-                                      hintText: context.tr("写下你的问题，或添加题目图片…"),
-                                      counterText: '',
-                                      filled: false,
-                                      border: InputBorder.none,
-                                      enabledBorder: InputBorder.none,
-                                      focusedBorder: InputBorder.none,
-                                      disabledBorder: InputBorder.none,
-                                      contentPadding: EdgeInsets.fromLTRB(
-                                        16,
-                                        14,
-                                        16,
-                                        10,
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      4,
-                                      0,
-                                      8,
-                                      8,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        PopupMenuButton<String>(
-                                          popUpAnimationStyle: menuAnimation(
-                                            context,
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: TextField(
+                                          key: const Key('chat-input'),
+                                          scrollPadding: EdgeInsets.fromLTRB(
+                                            20,
+                                            20,
+                                            20,
+                                            keyboard ? 80 : 20,
                                           ),
-                                          tooltip: context.tr("添加图片"),
-                                          enabled: !c.busy,
-                                          icon: const Icon(
-                                            Icons.add_photo_alternate_outlined,
-                                            size: 23,
-                                          ),
-                                          onSelected: _import,
-                                          itemBuilder: (_) => [
-                                            if (Platform.isAndroid) ...[
-                                              PopupMenuItem(
-                                                value: 'camera',
-                                                child: Text(context.tr("拍照")),
-                                              ),
-                                              PopupMenuItem(
-                                                value: 'gallery',
-                                                child: Text(
-                                                  context.tr("从相册选择"),
-                                                ),
-                                              ),
-                                            ],
-                                            PopupMenuItem(
-                                              value: 'file',
-                                              child: Text(context.tr("选择图片文件")),
+                                          controller: _input,
+                                          focusNode: _focus,
+                                          // Typing a draft stays possible while a
+                                          // generation runs; only sending is gated
+                                          // (the send button becomes a stop button
+                                          // while busy, and send() refuses while
+                                          // busy). The draft is saved via onChanged.
+                                          onChanged: c.draft,
+                                          minLines: 1,
+                                          maxLines: 1,
+                                          maxLength: 32000,
+                                          decoration: InputDecoration(
+                                            hintText: context.tr(
+                                              "写下你的问题，或添加题目图片…",
                                             ),
-                                          ],
+                                            counterText: '',
+                                            filled: false,
+                                            border: InputBorder.none,
+                                            enabledBorder: InputBorder.none,
+                                            focusedBorder: InputBorder.none,
+                                            disabledBorder: InputBorder.none,
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 14,
+                                                ),
+                                          ),
                                         ),
-                                        if (pending.isNotEmpty)
-                                          Expanded(
-                                            child: Text(
-                                              context.tr('发送时会将所选图片传给 AI'),
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: colors.onSurfaceVariant,
+                                      ),
+                                      c.busy
+                                          ? IconButton.filled(
+                                              key: const Key('stop-generation'),
+                                              tooltip: context.tr("停止生成"),
+                                              onPressed: c.stop,
+                                              icon: const Icon(
+                                                Icons.stop_rounded,
                                               ),
-                                            ),
-                                          )
-                                        else
-                                          const Spacer(),
-                                        c.busy
-                                            ? IconButton.filled(
-                                                key: const Key(
-                                                  'stop-generation',
-                                                ),
-                                                tooltip: context.tr("停止生成"),
-                                                onPressed: c.stop,
-                                                icon: const Icon(
-                                                  Icons.stop_rounded,
-                                                ),
-                                              )
-                                            : ValueListenableBuilder<
-                                                TextEditingValue
-                                              >(
-                                                valueListenable: _input,
-                                                builder: (context, value, _) {
-                                                  // The button tracks the
-                                                  // input live: empty input
-                                                  // with no pending image
-                                                  // sends nothing, so the
-                                                  // button stays disabled
-                                                  // instead of silently
-                                                  // doing nothing on tap.
-                                                  final canSend =
-                                                      value.text
-                                                          .trim()
-                                                          .isNotEmpty ||
-                                                      c.attachments.any(
-                                                        (a) =>
-                                                            a.messageId == null,
-                                                      );
-                                                  return IconButton.filled(
-                                                    key: const Key(
-                                                      'send-message',
-                                                    ),
-                                                    tooltip: context.tr(
-                                                      "发送（Ctrl+Enter）",
-                                                    ),
-                                                    onPressed: canSend
-                                                        ? () => act(
-                                                            context,
-                                                            _send,
-                                                          )
-                                                        : null,
+                                            )
+                                          : ValueListenableBuilder<
+                                              TextEditingValue
+                                            >(
+                                              valueListenable: _input,
+                                              builder: (context, value, _) {
+                                                // The right-hand slot morphs
+                                                // with state: with nothing to
+                                                // send it offers adding an
+                                                // image; once there is text —
+                                                // or a pending image — it
+                                                // becomes the send button.
+                                                // The image button therefore
+                                                // only ever appears while the
+                                                // input is empty, and the
+                                                // field width never jumps.
+                                                final canSend =
+                                                    value.text
+                                                        .trim()
+                                                        .isNotEmpty ||
+                                                    c.attachments.any(
+                                                      (a) =>
+                                                          a.messageId == null,
+                                                    );
+                                                if (!canSend) {
+                                                  return PopupMenuButton<
+                                                    String
+                                                  >(
+                                                    popUpAnimationStyle:
+                                                        menuAnimation(context),
+                                                    tooltip: context.tr("添加图片"),
+                                                    enabled: !c.busy,
                                                     icon: const Icon(
                                                       Icons
-                                                          .arrow_upward_rounded,
+                                                          .add_photo_alternate_outlined,
+                                                      size: 23,
                                                     ),
+                                                    onSelected: _import,
+                                                    itemBuilder: (_) => [
+                                                      if (Platform
+                                                          .isAndroid) ...[
+                                                        PopupMenuItem(
+                                                          value: 'camera',
+                                                          child: Text(
+                                                            context.tr("拍照"),
+                                                          ),
+                                                        ),
+                                                        PopupMenuItem(
+                                                          value: 'gallery',
+                                                          child: Text(
+                                                            context.tr("从相册选择"),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                      PopupMenuItem(
+                                                        value: 'file',
+                                                        child: Text(
+                                                          context.tr("选择图片文件"),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   );
-                                                },
-                                              ),
-                                      ],
-                                    ),
+                                                }
+                                                return IconButton.filled(
+                                                  key: const Key(
+                                                    'send-message',
+                                                  ),
+                                                  tooltip: context.tr(
+                                                    "发送（Ctrl+Enter）",
+                                                  ),
+                                                  onPressed: () =>
+                                                      act(context, _send),
+                                                  icon: const Icon(
+                                                    Icons.arrow_upward_rounded,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -941,63 +927,28 @@ class MessageView extends ConsumerWidget {
     final colors = Theme.of(context).colorScheme;
     final images = c.attachments.where((a) => a.messageId == message.id);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 28),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 27,
-                height: 27,
-                decoration: BoxDecoration(
-                  color: user ? colors.surfaceContainerHighest : colors.primary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  user ? Icons.person_outline : Icons.auto_awesome_outlined,
-                  color: user ? colors.onSurfaceVariant : colors.onPrimary,
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 9),
-              Text(
-                user ? context.tr("你") : context.tr("题训"),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  user ? '' : message.model ?? '',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: colors.onSurfaceVariant,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
           if (images.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: images
-                    .map(
-                      (a) => AttachmentImage(
-                        attachment: a,
-                        width: 190,
-                        height: 150,
-                      ),
-                    )
-                    .toList(),
+            Align(
+              alignment: user ? Alignment.centerRight : Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: images
+                      .map(
+                        (a) => AttachmentImage(
+                          attachment: a,
+                          width: 190,
+                          height: 150,
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
             ),
           if (!user)
@@ -1008,19 +959,24 @@ class MessageView extends ConsumerWidget {
             ),
           if (message.content.isNotEmpty)
             user
-                ? Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: SelectableText(
-                      message.content,
-                      style: Theme.of(context).textTheme.bodyLarge,
+                ? Align(
+                    alignment: Alignment.centerRight,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 640),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colors.primaryContainer,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: SelectableText(
+                          message.content,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ),
                     ),
                   )
                 : LearningMarkdown(message.content),

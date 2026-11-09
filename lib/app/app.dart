@@ -288,10 +288,7 @@ class AppShell extends ConsumerWidget {
                     ),
                   ],
                 ),
-              if (!path.startsWith('/settings') &&
-                  !path.startsWith('/exams') &&
-                  !(path == '/chat' &&
-                      MediaQuery.viewInsetsOf(context).bottom > 0))
+              if (path == '/study')
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,

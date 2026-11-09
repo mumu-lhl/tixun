@@ -215,6 +215,24 @@ void main() {
             as List;
     expect(compatible[0].containsKey('reasoning_content'), false);
   });
+  test(
+    'encodeCompletion omits max_tokens without a limit, sends it when set',
+    () async {
+      final db = AppDatabase.memory();
+      addTearDown(db.close);
+      final config = await db.config();
+      final unlimited = encodeCompletion(
+        config,
+        AiRequest(instructions: '', messages: []),
+      );
+      expect(unlimited.containsKey('max_tokens'), false);
+      final limited = encodeCompletion(
+        config,
+        AiRequest(instructions: '', messages: [], maxOutputTokens: 16),
+      );
+      expect(limited['max_tokens'], 16);
+    },
+  );
   test('AiMessage.withText preserves reasoningContent', () {
     const assistant = AiMessage.assistant('旧', reasoningContent: '想');
     final updated = assistant.withText('新');
