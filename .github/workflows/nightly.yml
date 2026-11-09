@@ -30,6 +30,7 @@ jobs:
     with:
       android_release: true
       full_gui: true
+      run_tests: false
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

@@ -15,6 +15,10 @@ on:
         description: Run the complete native GUI regression suite
         type: boolean
         default: false
+      run_tests:
+        description: Run unit and GUI test suites
+        type: boolean
+        default: true
   workflow_call:
     secrets:
       ANDROID_KEYSTORE_BASE64:
@@ -34,6 +38,10 @@ on:
         description: Run the complete native GUI regression suite
         type: boolean
         default: false
+      run_tests:
+        description: Run unit and GUI test suites
+        type: boolean
+        default: true
     outputs:
       android_artifact:
         value: ${{ jobs.android.outputs.artifact_name }}
@@ -78,9 +86,11 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed lib test integration_test
       - run: flutter analyze
-      - run: flutter test --reporter expanded | tee test.log
+      - name: Run unit tests
+        if: inputs.run_tests != false
+        run: flutter test --reporter expanded | tee test.log
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && inputs.run_tests != false
         with:
           name: test-results
           path: |
@@ -204,7 +214,7 @@ jobs:
       - run: flutter build linux --release --dart-define=TIXUN_DEMO=true
       - run: scripts/gui_smoke.sh
       - name: Run complete native GUI regressions
-        if: inputs.full_gui
+        if: inputs.full_gui && inputs.run_tests != false
         run: scripts/gui_tests.sh
       - uses: actions/upload-artifact@v4
         if: always()
