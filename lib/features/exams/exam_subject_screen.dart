@@ -565,11 +565,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(
-            context.tr(
-              '仅上传勾选的照片。建议同时选择答题卡和参考答案；主观题没有评分依据时留空。AI 建议必须人工核对。',
-            ),
-          ),
+          Text(context.tr('仅上传勾选的照片。建议同时选择答题卡和参考答案；主观题没有评分依据时留空。AI 建议必须人工核对。')),
           if (c.demo) Text(context.tr('Mock 模式不读取照片评分，请使用手动录入验证小分表。')),
           if (!AiOptions(config).vision)
             Text(context.tr('当前模型不支持图片，请选择支持视觉的模型。')),
@@ -620,10 +616,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed:
-                busy ||
-                    c.demo ||
-                    !AiOptions(config).vision ||
-                    selected.isEmpty
+                busy || c.demo || !AiOptions(config).vision || selected.isEmpty
                 ? null
                 : () async {
                     setState(() {

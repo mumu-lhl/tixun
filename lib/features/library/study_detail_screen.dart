@@ -547,11 +547,9 @@ class StudyDetailScreen extends ConsumerWidget {
     await c.draft(text);
     if (context.mounted) {
       context.go('/chat');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.tr("资料已填入新对话，请检查后发送。")),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr("资料已填入新对话，请检查后发送。"))));
     }
   }
 
