@@ -56,6 +56,14 @@ done
 rg -q TIXUN_DRAFT_READY "$artifact_dir/app.log"
 # Click the real rendered send control. Keyboard shortcuts are independently
 # exercised through Flutter's integration harness.
+# The send control only appears once the composer has text (the action slot
+# morphs from the image button to send), so its point is logged after typing;
+# wait for it instead of reading a possibly not-yet-logged point.
+for _ in $(seq 1 50); do
+  rg -q TIXUN_SEND_POINT "$artifact_dir/app.log" && break
+  sleep .1
+done
+rg -q TIXUN_SEND_POINT "$artifact_dir/app.log"
 read -r _ send_x send_y < <(rg TIXUN_SEND_POINT "$artifact_dir/app.log" | tail -1)
 xdotool mousemove --window "$window" "$send_x" "$send_y" click 1
 for _ in $(seq 1 40); do

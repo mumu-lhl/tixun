@@ -297,6 +297,9 @@ class _ConversationState extends ConsumerState<Conversation> {
   // user typed after tapping send.
   String? _lastSent;
   Size? _reportedViewport;
+  String? _reportedSessionId;
+  String? _composerSessionId;
+  Offset? _lastComposerPoint;
   @override
   void initState() {
     super.initState();
@@ -350,6 +353,54 @@ class _ConversationState extends ConsumerState<Conversation> {
     });
   }
 
+  // Demo-only geometry reporting for the GUI smoke script.
+  //
+  // The action slot morphs: an empty composer shows the image button, not
+  // the send button. The composer point is therefore reported whenever the
+  // input exists (once per session/position); the send point only once the
+  // send button has appeared. Called from build() and from the slot builder:
+  // typing updates the draft without notifying the controller, so build()
+  // does not re-run on keystrokes and only the slot builder observes the
+  // morph.
+  void _scheduleComposerReport(Size viewport, String? sessionId) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _reportedViewport == viewport) return;
+      RenderBox? input, send;
+      void visit(Element e) {
+        if (e.widget.key == const Key('chat-input')) {
+          input = e.findRenderObject() as RenderBox?;
+        }
+        if (e.widget.key == const Key('send-message')) {
+          send = e.findRenderObject() as RenderBox?;
+        }
+        e.visitChildElements(visit);
+      }
+
+      context.visitChildElements(visit);
+      if (input?.hasSize == true) {
+        final ratio = MediaQuery.devicePixelRatioOf(context);
+        final p =
+            input!.localToGlobal(
+              Offset(input!.size.width / 2, input!.size.height / 2),
+            ) *
+            ratio;
+        if (_composerSessionId != sessionId || _lastComposerPoint != p) {
+          debugPrint('TIXUN_COMPOSER_POINT ${p.dx.round()} ${p.dy.round()}');
+          _lastComposerPoint = p;
+          _composerSessionId = sessionId;
+        }
+        if (send?.hasSize == true) {
+          final button =
+              send!.localToGlobal(send!.size.center(Offset.zero)) * ratio;
+          debugPrint(
+            'TIXUN_SEND_POINT ${button.dx.round()} ${button.dy.round()}',
+          );
+          _reportedViewport = viewport;
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
@@ -360,37 +411,15 @@ class _ConversationState extends ConsumerState<Conversation> {
     final shortInput = keyboard || MediaQuery.sizeOf(context).height < 700;
     final showQuickActions = c.messages.isNotEmpty && !c.busy && !shortInput;
     final viewport = MediaQuery.sizeOf(context);
+    // A new session re-reports the composer geometry: the smoke script
+    // waits for a fresh composer point after Ctrl+N.
+    final sessionId = c.selected?.id;
+    if (sessionId != _reportedSessionId) {
+      _reportedSessionId = sessionId;
+      _reportedViewport = null;
+    }
     if (c.demo && _reportedViewport != viewport) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        RenderBox? input, send;
-        void visit(Element e) {
-          if (e.widget.key == const Key('chat-input')) {
-            input = e.findRenderObject() as RenderBox?;
-          }
-          if (e.widget.key == const Key('send-message')) {
-            send = e.findRenderObject() as RenderBox?;
-          }
-          e.visitChildElements(visit);
-        }
-
-        context.visitChildElements(visit);
-        if (input?.hasSize == true && send?.hasSize == true) {
-          final ratio = MediaQuery.devicePixelRatioOf(context);
-          final p =
-              input!.localToGlobal(
-                Offset(input!.size.width / 2, input!.size.height / 2),
-              ) *
-              ratio;
-          final button =
-              send!.localToGlobal(send!.size.center(Offset.zero)) * ratio;
-          debugPrint('TIXUN_COMPOSER_POINT ${p.dx.round()} ${p.dy.round()}');
-          debugPrint(
-            'TIXUN_SEND_POINT ${button.dx.round()} ${button.dy.round()}',
-          );
-          _reportedViewport = viewport;
-        }
-      });
+      _scheduleComposerReport(viewport, sessionId);
     }
 
     final pending = c.attachments.where((a) => a.messageId == null).toList();
@@ -874,6 +903,18 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                         ),
                                                       ),
                                                     ],
+                                                  );
+                                                }
+                                                // Typing does not rebuild the
+                                                // enclosing state (draft updates
+                                                // do not notify), so report from
+                                                // here: this builder is what
+                                                // observes the slot morphing
+                                                // into the send button.
+                                                if (c.demo) {
+                                                  _scheduleComposerReport(
+                                                    viewport,
+                                                    sessionId,
                                                   );
                                                 }
                                                 return IconButton.filled(
