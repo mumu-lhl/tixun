@@ -192,7 +192,7 @@ Map<String, dynamic> encodeCompletion(
   'model': config.model,
   'stream': true,
   'stream_options': {'include_usage': true},
-  'max_tokens': request.maxOutputTokens,
+  if (request.maxOutputTokens != null) 'max_tokens': request.maxOutputTokens,
   if (config.kind == 'deepseek')
     'thinking': {'type': config.thinking ? 'enabled' : 'disabled'},
   if (config.supportsThinking && config.thinking)

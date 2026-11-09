@@ -116,7 +116,6 @@ Future<List<ScoreDraft>> generateExamScores({
                   images: attachments,
                 ),
               ],
-              maxOutputTokens: 8192,
             ),
             cancel,
           )) {
