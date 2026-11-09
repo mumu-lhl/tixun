@@ -581,20 +581,21 @@ class AppController extends ChangeNotifier {
     changed();
   }
 
-  Future<void> addImage(String path) => study.runOperation(() async {
-    if (busy) return;
+  Future<Attachment> addImage(String path) => study.runOperation(() async {
+    if (busy) throw const FormatException('请先停止生成，再添加图片。');
     if (selected == null) await newSession();
     final s = selected!;
     if (attachments.where((a) => a.messageId == null).length >= 4) {
       throw const FormatException('一次最多添加 4 张图片。');
     }
     final image = await files.importFile(path);
+    final id = const Uuid().v4();
     try {
       await db
           .into(db.attachments)
           .insert(
             AttachmentsCompanion.insert(
-              id: const Uuid().v4(),
+              id: id,
               sessionId: s.id,
               relativePath: image.path,
               mime: image.mime,
@@ -609,6 +610,9 @@ class AppController extends ChangeNotifier {
       attachments = await db.images(s.id);
       changed();
     }
+    return (await (db.select(
+      db.attachments,
+    )..where((t) => t.id.equals(id))).getSingle());
   });
 
   Future<String> replaceDraftImage(

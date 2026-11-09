@@ -32,8 +32,9 @@ Future<int> cleanupPurgedAttachments(
           EXISTS(SELECT 1 FROM attachments WHERE relative_path=? OR original_path=?) +
           EXISTS(SELECT 1 FROM study_attachments WHERE relative_path=?) +
           EXISTS(SELECT 1 FROM practice_images WHERE relative_path=?) +
-          EXISTS(SELECT 1 FROM exam_attachments WHERE relative_path=?) n''',
+          EXISTS(SELECT 1 FROM exam_attachments WHERE relative_path=? OR original_path=?) n''',
               variables: [
+                Variable(path),
                 Variable(path),
                 Variable(path),
                 Variable(path),

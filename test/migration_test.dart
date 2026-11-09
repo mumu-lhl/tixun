@@ -10,6 +10,29 @@ import 'dart:io';
 import 'generated_migrations/schema.dart';
 
 void main() {
+  test(
+    'Schema v11 keeps exam photo references while adding original preservation',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(11);
+      schema.rawDatabase.execute(
+        "INSERT INTO exam_events(id,title,date,updated_at) VALUES('e','Exam',0,0)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO exam_subjects(id,event_id,subject,updated_at) VALUES('s','e','数学',0)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO exam_attachments(id,subject_id,role,relative_path,mime,created_at) VALUES('p','s','sheet','attachments/old.png','image/png',0)",
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+      final photo = (await db.select(db.examAttachments).get()).single;
+      expect(photo.relativePath, 'attachments/old.png');
+      expect(photo.originalPath, isNull);
+    },
+  );
+
   for (final kind in ['chatgpt', 'deepseek', 'compatible']) {
     test('Schema v10 preserves old max semantics for $kind', () async {
       final verifier = SchemaVerifier(GeneratedHelper());
@@ -30,7 +53,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 11);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
       expect((await db.config()).effort, kind == 'chatgpt' ? 'xhigh' : 'max');
       expect(
         await db.preference('ai_reasoning:s'),
@@ -54,7 +77,7 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 11);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
     expect((await db.select(db.examSubjects).get()).single.rawScore, 121);
     expect((await db.select(db.knowledgeItems).get()).single.chapter, '旧章节');
     expect(await db.select(db.subjectModules).get(), isEmpty);
@@ -72,7 +95,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 11);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
       expect(
         (await db.select(db.scratchpads).get()).single.document,
         'saved draft',
@@ -110,7 +133,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 11);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
       final link = (await db.select(db.practiceChatLinks).get()).single;
       expect(link.messageId, 'm');
       expect(link.questionId, 'q');
@@ -139,7 +162,7 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 11);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
     expect((await db.select(db.practiceAttempts).get()).single.status, 'draft');
     expect((await db.select(db.practiceResponses).get()).single.answer, '4');
     expect(await db.select(db.reviewSchedules).get(), isEmpty);
@@ -178,7 +201,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 11);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
       expect((await db.sessions()).single.draft, '未发送草稿');
       expect((await db.sessions('二次函数')).single.id, 's');
       expect(
@@ -219,7 +242,7 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 11);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
     final migrated = (await db.select(db.chatMessages).get()).single;
     expect(migrated.reasoningContent, isNull);
     expect(migrated.content, '请独立完成');
@@ -260,7 +283,7 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 11);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
     final byId = {for (final s in await db.sessions()) s.id: s};
     expect(byId['s1']!.subject, '数学');
     expect(byId['s2']!.subject, '物理');
@@ -283,7 +306,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 11);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
       final message = (await db.messages('s')).single;
       expect(message.reasoningContent, '旧思考');
       expect(message.reasoningTrace, isNull);

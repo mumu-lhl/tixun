@@ -152,3 +152,11 @@ AI 工具 `list_subject_modules`、`create_subject_module` 和 `link_study_modul
 `xhigh`、`max` 按原值发送，`none` 与省略参数独立。只有模型目录明确声明时才展示额外档位（例如 `ultra`）。schema v11 将旧 ChatGPT `max` 别名迁移为 `xhigh`，保留旧配置的实际请求行为；DeepSeek 和兼容 API 的 `max` 不变。
 
 核对来源（2026-11-09）：[推理指南](https://developers.openai.com/api/docs/guides/reasoning)、[Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)、[GPT‑6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol)、[GPT‑5](https://developers.openai.com/api/docs/models/gpt-5)、[GPT‑5.2 Pro](https://developers.openai.com/api/docs/models/gpt-5.2-pro)、[GPT‑5.5 Pro](https://developers.openai.com/api/docs/models/gpt-5.5-pro)、[Codex 配置参考](https://developers.openai.com/codex/config-reference)。Codex 客户端参数不一概等同于公开 Responses API 支持的取值。
+
+## 照片导入
+
+Android 使用 FlutterCandies 的 `wechat_assets_picker` 10.1.3 和 `wechat_camera_picker` 4.6.0，按其 pub.dev API 与 Android 权限说明接入。图库只请求图片与受限图片访问；相机关闭录音，通过 `onXFileCaptured` 转入应用存储和预览，不请求相册写入。Linux 保留 `file_selector`；`image_picker` 保留历史 Android 外部选择器丢失数据恢复。
+
+所有入口先复制到应用附件目录，再复用 `StudyImageEditor`。普通编辑隐藏分题动作；退出编辑保留原导入。考试照片在 schema v12 增加可空原图引用，覆盖编辑使用当前路径并发校验；清理和备份同时检查两条引用。GUI 的文件选择器测试只替换系统返回的文件路径，导入、裁剪、保存和磁盘检查均真实执行。Android 相机、相册权限与设备恢复仍需实机验证。
+
+消融：未引入第二套裁剪库、通用媒体工作流引擎或媒体 Repository；共用一个平台选择函数和已有编辑器，保留各业务现有的恢复目标。

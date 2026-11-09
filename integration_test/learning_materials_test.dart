@@ -1,5 +1,9 @@
 import 'support/gui_capture.dart';
 
+import 'dart:io';
+
+import 'package:flutter/services.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +22,108 @@ Future<void> until(WidgetTester tester, bool Function() done) async {
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets(
+    'Photo import opens crop; chat and mistake edits preserve originals without extra records',
+    (t) async {
+      final c = await AppController.open(demo: true);
+      await c.newSession();
+      final container = ProviderContainer(
+        overrides: [appControllerProvider.overrideWith((ref) => c)],
+      );
+      const channel =
+          'dev.flutter.pigeon.file_selector_linux.FileSelectorApi.showFileChooser';
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMessageHandler(
+        channel,
+        (_) async => const StandardMessageCodec().encodeMessage([
+          [File('assets/demo/two_problems.png').absolute.path],
+        ]),
+      );
+      addTearDown(() => messenger.setMockMessageHandler(channel, null));
+      await t.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const TixunApp(),
+        ),
+      );
+      await t.pumpAndSettle();
+      container.read(routerProvider).go('/chat');
+      await t.pumpAndSettle();
+      await resizeGui(t, 390, 844);
+      await t.tap(find.byTooltip('添加图片'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('选择图片文件'));
+      await until(
+        t,
+        () => find.byKey(const Key('crop-canvas')).evaluate().isNotEmpty,
+      );
+      final source = c.attachments.single;
+      expect(source.originalPath, isNull);
+      final canvas = t.getRect(find.byKey(const Key('crop-canvas')));
+      final drag = await t.startGesture(
+        canvas.topLeft + Offset(canvas.width * .06, canvas.height * .1),
+      );
+      await drag.moveTo(
+        canvas.topLeft + Offset(canvas.width * .94, canvas.height * .46),
+      );
+      await drag.up();
+      await t.pumpAndSettle();
+      await guiCapture('split', 'import-crop-phone');
+      await t.tap(find.byKey(const Key('apply-image-edit')));
+      await until(
+        t,
+        () => find.byKey(const Key('crop-canvas')).evaluate().isEmpty,
+      );
+      final edited = c.attachments.single;
+      expect(edited.originalPath, source.relativePath);
+      expect(edited.relativePath, isNot(source.relativePath));
+      expect(await c.files.resolve(source.relativePath).exists(), true);
+      expect(await c.files.resolve(edited.relativePath).exists(), true);
+      expect(
+        (await c.db.images(c.selected!.id)).single.originalPath,
+        source.relativePath,
+      );
+      expect(
+        await c.study.searchMistakes(),
+        hasLength(1),
+        reason: 'Cropping a chat photo must not create a mistake',
+      );
+      await guiCapture('split', 'import-edited-chat-phone');
+      container.read(routerProvider).go('/mistakes');
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('多图录入（每张独立建题）'));
+      await until(
+        t,
+        () => find.byKey(const Key('crop-canvas')).evaluate().isNotEmpty,
+      );
+      expect(find.byKey(const Key('split-mistake')), findsNothing);
+      await t.tap(find.byKey(const Key('apply-image-edit')));
+      await until(
+        t,
+        () => find.byKey(const Key('crop-canvas')).evaluate().isEmpty,
+      );
+      final mistakes = await c.study.searchMistakes();
+      expect(
+        mistakes,
+        hasLength(2),
+        reason: 'Saving an imported photo must edit the same mistake',
+      );
+      final imported = mistakes.firstWhere(
+        (m) => m.title == 'two_problems.png',
+      );
+      final images = await c.study.images(imported.id, isMistake: true);
+      expect(images.map((i) => i.role).toSet(), {'original', 'crop'});
+      for (final image in images) {
+        expect(await c.files.resolve(image.relativePath).exists(), true);
+      }
+
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox.shrink());
+      container.dispose();
+      await c.shutdown();
+    },
+  );
   testWidgets(
     'AI proposes question regions; user adjusts and confirms a persistent crop',
     (tester) async {
@@ -113,7 +219,15 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('start-chat')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('开启本会话资料工具'));
+      if (find.byKey(const Key('chat-more')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('chat-more')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.widgetWithText(CheckedPopupMenuItem<String>, '开启本会话资料工具'),
+        );
+      } else {
+        await tester.tap(find.byTooltip('开启本会话资料工具'));
+      }
       await tester.pumpAndSettle();
       await tester.tap(find.text('允许'));
       await until(tester, () => c.selected!.toolsEnabled);

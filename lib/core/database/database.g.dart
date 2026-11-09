@@ -14211,6 +14211,17 @@ class $ExamAttachmentsTable extends ExamAttachments
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _originalPathMeta = const VerificationMeta(
+    'originalPath',
+  );
+  @override
+  late final GeneratedColumn<String> originalPath = GeneratedColumn<String>(
+    'original_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _mimeMeta = const VerificationMeta('mime');
   @override
   late final GeneratedColumn<String> mime = GeneratedColumn<String>(
@@ -14237,6 +14248,7 @@ class $ExamAttachmentsTable extends ExamAttachments
     subjectId,
     role,
     relativePath,
+    originalPath,
     mime,
     createdAt,
   ];
@@ -14284,6 +14296,15 @@ class $ExamAttachmentsTable extends ExamAttachments
     } else if (isInserting) {
       context.missing(_relativePathMeta);
     }
+    if (data.containsKey('original_path')) {
+      context.handle(
+        _originalPathMeta,
+        originalPath.isAcceptableOrUnknown(
+          data['original_path']!,
+          _originalPathMeta,
+        ),
+      );
+    }
     if (data.containsKey('mime')) {
       context.handle(
         _mimeMeta,
@@ -14325,6 +14346,10 @@ class $ExamAttachmentsTable extends ExamAttachments
         DriftSqlType.string,
         data['${effectivePrefix}relative_path'],
       )!,
+      originalPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_path'],
+      ),
       mime: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}mime'],
@@ -14347,6 +14372,7 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
   final String subjectId;
   final String role;
   final String relativePath;
+  final String? originalPath;
   final String mime;
   final DateTime createdAt;
   const ExamAttachment({
@@ -14354,6 +14380,7 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
     required this.subjectId,
     required this.role,
     required this.relativePath,
+    this.originalPath,
     required this.mime,
     required this.createdAt,
   });
@@ -14364,6 +14391,9 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
     map['subject_id'] = Variable<String>(subjectId);
     map['role'] = Variable<String>(role);
     map['relative_path'] = Variable<String>(relativePath);
+    if (!nullToAbsent || originalPath != null) {
+      map['original_path'] = Variable<String>(originalPath);
+    }
     map['mime'] = Variable<String>(mime);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -14375,6 +14405,9 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
       subjectId: Value(subjectId),
       role: Value(role),
       relativePath: Value(relativePath),
+      originalPath: originalPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(originalPath),
       mime: Value(mime),
       createdAt: Value(createdAt),
     );
@@ -14390,6 +14423,7 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
       subjectId: serializer.fromJson<String>(json['subjectId']),
       role: serializer.fromJson<String>(json['role']),
       relativePath: serializer.fromJson<String>(json['relativePath']),
+      originalPath: serializer.fromJson<String?>(json['originalPath']),
       mime: serializer.fromJson<String>(json['mime']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -14402,6 +14436,7 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
       'subjectId': serializer.toJson<String>(subjectId),
       'role': serializer.toJson<String>(role),
       'relativePath': serializer.toJson<String>(relativePath),
+      'originalPath': serializer.toJson<String?>(originalPath),
       'mime': serializer.toJson<String>(mime),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -14412,6 +14447,7 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
     String? subjectId,
     String? role,
     String? relativePath,
+    Value<String?> originalPath = const Value.absent(),
     String? mime,
     DateTime? createdAt,
   }) => ExamAttachment(
@@ -14419,6 +14455,7 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
     subjectId: subjectId ?? this.subjectId,
     role: role ?? this.role,
     relativePath: relativePath ?? this.relativePath,
+    originalPath: originalPath.present ? originalPath.value : this.originalPath,
     mime: mime ?? this.mime,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -14430,6 +14467,9 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
       relativePath: data.relativePath.present
           ? data.relativePath.value
           : this.relativePath,
+      originalPath: data.originalPath.present
+          ? data.originalPath.value
+          : this.originalPath,
       mime: data.mime.present ? data.mime.value : this.mime,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -14442,6 +14482,7 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
           ..write('subjectId: $subjectId, ')
           ..write('role: $role, ')
           ..write('relativePath: $relativePath, ')
+          ..write('originalPath: $originalPath, ')
           ..write('mime: $mime, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -14449,8 +14490,15 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, subjectId, role, relativePath, mime, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    subjectId,
+    role,
+    relativePath,
+    originalPath,
+    mime,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -14459,6 +14507,7 @@ class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
           other.subjectId == this.subjectId &&
           other.role == this.role &&
           other.relativePath == this.relativePath &&
+          other.originalPath == this.originalPath &&
           other.mime == this.mime &&
           other.createdAt == this.createdAt);
 }
@@ -14468,6 +14517,7 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
   final Value<String> subjectId;
   final Value<String> role;
   final Value<String> relativePath;
+  final Value<String?> originalPath;
   final Value<String> mime;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
@@ -14476,6 +14526,7 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
     this.subjectId = const Value.absent(),
     this.role = const Value.absent(),
     this.relativePath = const Value.absent(),
+    this.originalPath = const Value.absent(),
     this.mime = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -14485,6 +14536,7 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
     required String subjectId,
     required String role,
     required String relativePath,
+    this.originalPath = const Value.absent(),
     required String mime,
     required DateTime createdAt,
     this.rowid = const Value.absent(),
@@ -14499,6 +14551,7 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
     Expression<String>? subjectId,
     Expression<String>? role,
     Expression<String>? relativePath,
+    Expression<String>? originalPath,
     Expression<String>? mime,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
@@ -14508,6 +14561,7 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
       if (subjectId != null) 'subject_id': subjectId,
       if (role != null) 'role': role,
       if (relativePath != null) 'relative_path': relativePath,
+      if (originalPath != null) 'original_path': originalPath,
       if (mime != null) 'mime': mime,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -14519,6 +14573,7 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
     Value<String>? subjectId,
     Value<String>? role,
     Value<String>? relativePath,
+    Value<String?>? originalPath,
     Value<String>? mime,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
@@ -14528,6 +14583,7 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
       subjectId: subjectId ?? this.subjectId,
       role: role ?? this.role,
       relativePath: relativePath ?? this.relativePath,
+      originalPath: originalPath ?? this.originalPath,
       mime: mime ?? this.mime,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -14549,6 +14605,9 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
     if (relativePath.present) {
       map['relative_path'] = Variable<String>(relativePath.value);
     }
+    if (originalPath.present) {
+      map['original_path'] = Variable<String>(originalPath.value);
+    }
     if (mime.present) {
       map['mime'] = Variable<String>(mime.value);
     }
@@ -14568,6 +14627,7 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
           ..write('subjectId: $subjectId, ')
           ..write('role: $role, ')
           ..write('relativePath: $relativePath, ')
+          ..write('originalPath: $originalPath, ')
           ..write('mime: $mime, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')

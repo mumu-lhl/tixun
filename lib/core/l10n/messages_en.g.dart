@@ -1024,4 +1024,9 @@ const englishMessages = <String, String>{
   "换个关键词或清除筛选，资料仍保存在本机。": "Try another keyword or clear filters. Your material is still stored locally.",
   "清除筛选": "Clear filters",
   "请选择": "Choose",
+  "编辑题目图片": "Edit photo",
+  "保存图片编辑": "Use edited photo",
+  "无法读取所选图片，请重新选择。": "Cannot read the selected photo. Please choose it again.",
+  "请先停止生成，再添加图片。": "Stop the reply before adding photos.",
+  "照片已更改或删除，请重新打开。": "The photo changed or was deleted. Open it again.",
 };

@@ -139,7 +139,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 11;
+  static const latestSchemaVersion = 12;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -247,6 +247,9 @@ class AppDatabase extends _$AppDatabase {
           "WHEN title LIKE '政治 · %' THEN '政治' "
           "ELSE NULL END",
         );
+      }
+      if (from >= 9 && from < 12) {
+        await m.addColumn(examAttachments, examAttachments.originalPath);
       }
       if (from < 11) {
         await m.addColumn(providerConfigs, providerConfigs.reasoningLevels);

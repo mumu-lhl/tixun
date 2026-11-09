@@ -55,6 +55,7 @@ class ExamAttachments extends Table {
       text().references(ExamSubjects, #id, onDelete: KeyAction.cascade)();
   TextColumn get role => text()();
   TextColumn get relativePath => text()();
+  TextColumn get originalPath => text().nullable()();
   TextColumn get mime => text()();
   DateTimeColumn get createdAt => dateTime()();
   @override

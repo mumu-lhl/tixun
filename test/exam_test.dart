@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -129,6 +130,54 @@ void main() {
     expect(await db.select(db.examScoreRows).get(), isEmpty);
     expect(await db.select(db.examAttachments).get(), isEmpty);
     expect(await store.files.resolve(photo.relativePath).exists(), false);
+  });
+  test('Exam crop preserves originals across repeat edits, backup and deletion; stale writes fail', () async {
+    final event = await store.saveEvent(title: '考试', date: DateTime.now());
+    final subject = await store.saveSubject(eventId: event, subject: '数学');
+    final image = await store.addImage(
+      subject,
+      'sheet',
+      'assets/demo/two_problems.png',
+    );
+    final original = await store.files
+        .resolve(image.relativePath)
+        .readAsBytes();
+    final copy = Uint8List.fromList(original);
+    await store.replaceImage(image, copy);
+    final edited = (await db.select(db.examAttachments).get()).single;
+    expect(edited.originalPath, image.relativePath);
+    expect(
+      await store.files.resolve(image.relativePath).readAsBytes(),
+      original,
+    );
+    await expectLater(store.replaceImage(image, copy), throwsFormatException);
+    await store.replaceImage(edited, copy);
+    final second = (await db.select(db.examAttachments).get()).single;
+    expect(second.originalPath, image.relativePath);
+    expect(await store.files.resolve(edited.relativePath).exists(), false);
+    final backup = File('${root.path}/crop.tixun-backup');
+    await BackupService.export(db, store.files, backup);
+    final prepared = await BackupService.prepare(backup, root);
+    expect(
+      await File('${prepared.data.path}/${image.relativePath}').readAsBytes(),
+      original,
+    );
+    expect(
+      await File('${prepared.data.path}/${second.relativePath}').exists(),
+      true,
+    );
+    await prepared.discard();
+    await store.files.resolve(image.relativePath).delete();
+    await expectLater(
+      BackupService.export(db, store.files, backup),
+      throwsFormatException,
+    );
+    await store.files.resolve(image.relativePath).writeAsBytes(original);
+    // Deletion receives a stale UI row but must purge the latest edit and original.
+    await store.deleteImage(image);
+    expect(await store.files.resolve(second.relativePath).exists(), false);
+    expect(await store.files.resolve(image.relativePath).exists(), false);
+    expect(await db.select(db.examAttachments).get(), isEmpty);
   });
   test('AI accepts explicit unknown scores and rejects malformed or impossible output', () {
     final rows = parseExamScores(

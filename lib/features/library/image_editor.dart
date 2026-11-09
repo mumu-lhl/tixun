@@ -176,6 +176,7 @@ class StudyImageEditor extends ConsumerStatefulWidget {
     this.ownerId = '',
     required this.isMistake,
     this.initialCrop,
+    this.allowSplit = true,
     this.onCreate,
     this.createLabel = '确认范围并保存错题',
     this.title = '裁剪与分题',
@@ -183,7 +184,7 @@ class StudyImageEditor extends ConsumerStatefulWidget {
   });
   final StudyAttachment attachment;
   final String ownerId;
-  final bool isMistake;
+  final bool isMistake, allowSplit;
   final Rect? initialCrop;
   final String createLabel, title;
   final Future<String> Function(Uint8List bytes, Rect crop, int turns)?
@@ -477,7 +478,7 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
             onPressed: _saving ? null : () => Navigator.pop(context),
             icon: const Icon(Icons.close),
           ),
-          title: Text(widget.title),
+          title: Text(context.tr(widget.title)),
           actions: [
             IconButton(
               tooltip: context.tr("缩小"),
@@ -603,7 +604,7 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                   runSpacing: 10,
                   alignment: WrapAlignment.center,
                   children: [
-                    if (widget.onCreate == null)
+                    if (widget.onCreate == null && widget.allowSplit)
                       OutlinedButton(
                         onPressed: image == null || _saving
                             ? null
@@ -612,7 +613,7 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                           _saving ? context.tr("保存中…") : context.tr("保存编辑副本"),
                         ),
                       ),
-                    if (widget.isMistake)
+                    if (widget.isMistake && widget.allowSplit)
                       FilledButton(
                         key: const Key('split-mistake'),
                         onPressed: image == null || _saving
@@ -622,6 +623,16 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                           widget.onCreate != null
                               ? widget.createLabel
                               : context.tr("框选区域存为新错题"),
+                        ),
+                      ),
+                    if (!widget.allowSplit)
+                      FilledButton(
+                        key: const Key('apply-image-edit'),
+                        onPressed: image == null || _saving
+                            ? null
+                            : () => _save(),
+                        child: Text(
+                          context.tr(_saving ? '保存中…' : widget.createLabel),
                         ),
                       ),
                   ],
@@ -708,4 +719,24 @@ class _CropPainter extends CustomPainter {
   @override
   bool shouldRepaint(_CropPainter oldDelegate) =>
       oldDelegate.crop != crop || oldDelegate.primary != primary;
+}
+
+Future<void> cropImportedStudyPhoto(
+  BuildContext context,
+  String ownerId,
+  StudyAttachment image, {
+  required bool isMistake,
+}) async {
+  await showDialog<String>(
+    context: context,
+    useSafeArea: false,
+    builder: (_) => StudyImageEditor(
+      attachment: image,
+      ownerId: ownerId,
+      isMistake: isMistake,
+      title: '编辑题目图片',
+      createLabel: '保存图片编辑',
+      allowSplit: false,
+    ),
+  );
 }

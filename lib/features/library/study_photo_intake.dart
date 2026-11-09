@@ -1,6 +1,11 @@
 import 'dart:convert';
 
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/material.dart';
+
+import '../../core/platform/photo_picker.dart';
+import 'image_editor.dart';
+import '../../core/database/database.dart';
 
 import '../../app/controller.dart';
 
@@ -9,6 +14,7 @@ class StudyPhotoIntake {
   static const preference = 'pending_study_photo_target';
   static Future<int> pick(
     AppController c, {
+    required BuildContext context,
     String? ownerId,
     required bool isMistake,
     bool camera = false,
@@ -17,12 +23,16 @@ class StudyPhotoIntake {
     final target = {'id': ownerId, 'mistake': isMistake, 'subject': subject};
     await c.db.setPreference(preference, jsonEncode(target));
     try {
-      final files = camera
-          ? [await ImagePicker().pickImage(source: ImageSource.camera)].nonNulls
-                .toList()
-          : await ImagePicker().pickMultiImage(limit: 4);
+      if (!context.mounted) return 0;
+      final files = await pickPhotos(context, takePhoto: camera);
+      final added = <(String, StudyAttachment)>[];
       for (final file in files) {
-        await _apply(c, file, target);
+        final result = await _apply(c, file, target);
+        added.add(result);
+      }
+      for (final (id, image) in added) {
+        if (!context.mounted) break;
+        await cropImportedStudyPhoto(context, id, image, isMistake: isMistake);
       }
       return files.length;
     } finally {
@@ -73,24 +83,27 @@ class StudyPhotoIntake {
     }
   }
 
-  static Future<void> _apply(
+  static Future<(String, StudyAttachment)> _apply(
     AppController c,
     XFile file,
     Map<String, dynamic> target,
   ) async {
     final id = target['id'] as String?;
     if (id != null) {
-      await c.study.importImage(
+      final image = await c.study.importImage(
         id,
         file.path,
         isMistake: target['mistake'] as bool,
       );
+      return (id, image);
     } else {
-      await c.study.importMistake(
+      final row = await c.study.importMistake(
         file.path,
         file.name,
         subject: target['subject'] as String,
       );
+      final detail = await c.study.mistakeDetail(row.id);
+      return (row.id, detail.images.single);
     }
   }
 }

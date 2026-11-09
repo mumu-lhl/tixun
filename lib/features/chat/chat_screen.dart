@@ -3,17 +3,16 @@ import '../scratchpad/scratchpad_screen.dart';
 
 import 'dart:io';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/platform/photo_picker.dart';
 import '../../core/ui/learning_markdown.dart';
 import '../library/chat_study_actions.dart';
 import '../library/image_editor.dart';
@@ -335,26 +334,19 @@ class _ConversationState extends ConsumerState<Conversation> {
   Future<void> _import(String type) async {
     final c = ref.read(appControllerProvider);
     await act(context, () async {
-      if (type == 'camera') {
-        final image = await ImagePicker().pickImage(source: ImageSource.camera);
-        if (image != null) await c.addImage(image.path);
-      } else if (type == 'gallery') {
-        for (final image in await ImagePicker().pickMultiImage()) {
-          await c.addImage(image.path);
-        }
-      } else {
-        final images = await openFiles(
-          acceptedTypeGroups: [
-            XTypeGroup(
-              label: context.tr("题目图片"),
-              extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'],
-              mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
-            ),
-          ],
-        );
-        for (final image in images) {
-          await c.addImage(image.path);
-        }
+      final picked = await pickPhotos(
+        context,
+        takePhoto: type == 'camera',
+        filesOnly: type == 'file',
+        limit: 4 - c.attachments.where((a) => a.messageId == null).length,
+      );
+      final added = <Attachment>[];
+      for (final file in picked) {
+        added.add(await c.addImage(file.path));
+      }
+      for (final image in added) {
+        if (!mounted) break;
+        await editChatPhoto(context, c, image);
       }
     });
   }
@@ -1248,25 +1240,7 @@ class AttachmentImage extends ConsumerWidget {
                             ? null
                             : () => act(context, () async {
                                 Navigator.pop(dialogContext);
-                                await showDialog<String>(
-                                  context: context,
-                                  useSafeArea: false,
-                                  builder: (_) => StudyImageEditor(
-                                    attachment: StudyAttachment(
-                                      id: attachment.id,
-                                      relativePath: attachment.relativePath,
-                                      mime: attachment.mime,
-                                      byteLength: attachment.byteLength,
-                                      role: 'original',
-                                      deleted: false,
-                                    ),
-                                    isMistake: true,
-                                    title: '编辑题目图片',
-                                    createLabel: '保存图片编辑',
-                                    onCreate: (bytes, _, _) =>
-                                        c.replaceDraftImage(attachment, bytes),
-                                  ),
-                                );
+                                await editChatPhoto(context, c, attachment);
                               }),
                         icon: const Icon(Icons.crop, size: 18),
                         label: Text(context.tr("裁剪 / 旋转 / 缩小")),
@@ -1294,4 +1268,30 @@ class AttachmentImage extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<void> editChatPhoto(
+  BuildContext context,
+  AppController c,
+  Attachment image,
+) async {
+  await showDialog<String>(
+    context: context,
+    useSafeArea: false,
+    builder: (_) => StudyImageEditor(
+      attachment: StudyAttachment(
+        id: image.id,
+        relativePath: image.relativePath,
+        mime: image.mime,
+        byteLength: image.byteLength,
+        role: 'original',
+        deleted: false,
+      ),
+      isMistake: true,
+      title: '编辑题目图片',
+      createLabel: '保存图片编辑',
+      allowSplit: false,
+      onCreate: (bytes, _, _) => c.replaceDraftImage(image, bytes),
+    ),
+  );
 }

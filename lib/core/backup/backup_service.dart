@@ -435,16 +435,19 @@ class BackupService {
           );
         }
       }
-      if (db
-          .select('PRAGMA table_info(attachments)')
-          .any((r) => r['name'] == 'original_path')) {
-        refs.addAll(
-          db
-              .select(
-                'SELECT DISTINCT original_path FROM attachments WHERE original_path IS NOT NULL',
-              )
-              .map((r) => r['original_path'] as String),
-        );
+      for (final table in ['attachments', 'exam_attachments']) {
+        if (tables.contains(table) &&
+            db
+                .select('PRAGMA table_info($table)')
+                .any((r) => r['name'] == 'original_path')) {
+          refs.addAll(
+            db
+                .select(
+                  'SELECT DISTINCT original_path FROM $table WHERE original_path IS NOT NULL',
+                )
+                .map((r) => r['original_path'] as String),
+          );
+        }
       }
       return (schema: version, counts: counts, references: refs);
     } finally {

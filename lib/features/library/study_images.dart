@@ -338,15 +338,24 @@ class StudyImages extends ConsumerWidget {
                             if (!context.mounted) return;
                             final picked = await pickStudyImages(context);
                             for (final file in picked) {
-                              await store.importImage(
+                              final image = await store.importImage(
                                 id,
                                 file.path,
                                 isMistake: isMistake,
                               );
+                              if (context.mounted) {
+                                await cropImportedStudyPhoto(
+                                  context,
+                                  id,
+                                  image,
+                                  isMistake: isMistake,
+                                );
+                              }
                             }
                           } else {
                             await StudyPhotoIntake.pick(
                               ref.read(appControllerProvider),
+                              context: context,
                               ownerId: id,
                               isMistake: isMistake,
                               camera: kind == 'camera',
@@ -390,11 +399,19 @@ class StudyImages extends ConsumerWidget {
                           if (!context.mounted) return;
                           final picked = await pickStudyImages(context);
                           for (final file in picked) {
-                            await store.importImage(
+                            final image = await store.importImage(
                               id,
                               file.path,
                               isMistake: isMistake,
                             );
+                            if (context.mounted) {
+                              await cropImportedStudyPhoto(
+                                context,
+                                id,
+                                image,
+                                isMistake: isMistake,
+                              );
+                            }
                           }
                         }),
                         icon: const Icon(

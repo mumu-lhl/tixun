@@ -206,31 +206,38 @@ class ExamStore extends DatabaseNotifier {
     changed();
   });
 
-  Future<void> addImage(String subjectId, String role, String source) =>
-      runOperation(() async {
-        if (!examImageRoles.containsKey(role)) {
-          throw const FormatException('图片类别无效。');
-        }
-        final image = await files.importFile(source);
-        try {
-          await db
-              .into(db.examAttachments)
-              .insert(
-                ExamAttachmentsCompanion.insert(
-                  id: const Uuid().v4(),
-                  subjectId: subjectId,
-                  role: role,
-                  relativePath: image.path,
-                  mime: image.mime,
-                  createdAt: DateTime.now(),
-                ),
-              );
-        } catch (_) {
-          await cleanupPurgedAttachments(db, files, [image.path]);
-          rethrow;
-        }
-        changed();
-      });
+  Future<ExamAttachment> addImage(
+    String subjectId,
+    String role,
+    String source,
+  ) => runOperation(() async {
+    if (!examImageRoles.containsKey(role)) {
+      throw const FormatException('图片类别无效。');
+    }
+    final image = await files.importFile(source);
+    final id = const Uuid().v4();
+    try {
+      await db
+          .into(db.examAttachments)
+          .insert(
+            ExamAttachmentsCompanion.insert(
+              id: id,
+              subjectId: subjectId,
+              role: role,
+              relativePath: image.path,
+              mime: image.mime,
+              createdAt: DateTime.now(),
+            ),
+          );
+    } catch (_) {
+      await cleanupPurgedAttachments(db, files, [image.path]);
+      rethrow;
+    }
+    changed();
+    return (await (db.select(
+      db.examAttachments,
+    )..where((t) => t.id.equals(id))).getSingle());
+  });
 
   Future<void> deleteSubject(String id) => runOperation(() async {
     final images = await (db.select(
@@ -240,7 +247,9 @@ class ExamStore extends DatabaseNotifier {
     await cleanupPurgedAttachments(
       db,
       files,
-      images.map((i) => i.relativePath),
+      images.expand(
+        (i) => [i.relativePath, if (i.originalPath != null) i.originalPath!],
+      ),
     );
     changed();
   });
@@ -248,7 +257,7 @@ class ExamStore extends DatabaseNotifier {
   Future<void> deleteEvent(String id) => runOperation(() async {
     final paths = await db
         .customSelect(
-          'SELECT relative_path FROM exam_attachments WHERE subject_id IN (SELECT id FROM exam_subjects WHERE event_id=?)',
+          'SELECT relative_path, original_path FROM exam_attachments WHERE subject_id IN (SELECT id FROM exam_subjects WHERE event_id=?)',
           variables: [Variable(id)],
         )
         .get();
@@ -256,16 +265,70 @@ class ExamStore extends DatabaseNotifier {
     await cleanupPurgedAttachments(
       db,
       files,
-      paths.map((r) => r.read<String>('relative_path')),
+      paths.expand(
+        (r) => [
+          r.read<String>('relative_path'),
+          if (r.readNullable<String>('original_path') != null)
+            r.read<String>('original_path'),
+        ],
+      ),
     );
     changed();
   });
 
+  Future<String> replaceImage(ExamAttachment image, Uint8List bytes) =>
+      runOperation(() async {
+        if (bytes.length > 8 * 1024 * 1024) {
+          throw const FormatException('编辑副本超过 8 MB。');
+        }
+        final (mime, extension) = AttachmentStore.identify(bytes);
+        final path = 'attachments/${const Uuid().v4()}.$extension';
+        String? discard;
+        try {
+          await db.transaction(() async {
+            final row = await (db.select(
+              db.examAttachments,
+            )..where((t) => t.id.equals(image.id))).getSingleOrNull();
+            if (row == null || row.relativePath != image.relativePath) {
+              throw const FormatException('照片已更改或删除，请重新打开。');
+            }
+            final file = files.resolve(path);
+            await file.parent.create(recursive: true);
+            await file.writeAsBytes(bytes, flush: true);
+            await (db.update(
+              db.examAttachments,
+            )..where((t) => t.id.equals(row.id))).write(
+              ExamAttachmentsCompanion(
+                relativePath: Value(path),
+                mime: Value(mime),
+                originalPath: Value(row.originalPath ?? row.relativePath),
+              ),
+            );
+            if (row.originalPath != null) discard = row.relativePath;
+          });
+        } catch (_) {
+          await cleanupPurgedAttachments(db, files, [path]);
+          rethrow;
+        }
+        if (discard != null) {
+          await cleanupPurgedAttachments(db, files, [discard!]);
+        }
+        changed();
+        return image.id;
+      });
+
   Future<void> deleteImage(ExamAttachment image) => runOperation(() async {
+    final row = await (db.select(
+      db.examAttachments,
+    )..where((t) => t.id.equals(image.id))).getSingleOrNull();
+    if (row == null) return;
     await (db.delete(
       db.examAttachments,
-    )..where((t) => t.id.equals(image.id))).go();
-    await cleanupPurgedAttachments(db, files, [image.relativePath]);
+    )..where((t) => t.id.equals(row.id))).go();
+    await cleanupPurgedAttachments(db, files, [
+      row.relativePath,
+      if (row.originalPath != null) row.originalPath!,
+    ]);
     changed();
   });
 }

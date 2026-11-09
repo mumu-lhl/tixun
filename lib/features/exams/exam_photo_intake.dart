@@ -1,6 +1,11 @@
 import 'dart:convert';
 
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/material.dart';
+
+import '../../core/platform/photo_picker.dart';
+import '../../core/database/database.dart';
+import 'exam_image_editor.dart';
 
 import '../../app/controller.dart';
 import 'exam_store.dart';
@@ -11,6 +16,7 @@ class ExamPhotoIntake {
     AppController c,
     String subject,
     String role, {
+    required BuildContext context,
     bool camera = false,
   }) async {
     await c.db.setPreference(
@@ -18,12 +24,15 @@ class ExamPhotoIntake {
       jsonEncode({'subject': subject, 'role': role}),
     );
     try {
-      final files = camera
-          ? [await ImagePicker().pickImage(source: ImageSource.camera)].nonNulls
-                .toList()
-          : await ImagePicker().pickMultiImage(limit: 4);
+      if (!context.mounted) return;
+      final files = await pickPhotos(context, takePhoto: camera);
+      final added = <ExamAttachment>[];
       for (final file in files) {
-        await c.exams.addImage(subject, role, file.path);
+        added.add(await c.exams.addImage(subject, role, file.path));
+      }
+      for (final image in added) {
+        if (!context.mounted) break;
+        await editExamPhoto(context, c, image);
       }
     } finally {
       await c.db.setPreference(preference, '');

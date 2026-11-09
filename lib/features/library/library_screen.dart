@@ -1,3 +1,4 @@
+import 'image_editor.dart';
 import '../../core/ui/app_menu.dart';
 import 'module_widgets.dart';
 
@@ -329,9 +330,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     var imported = 0;
     try {
       for (final file in picked) {
-        await ref
-            .read(studyStoreProvider)
-            .importMistake(file.path, file.name, subject: _defaultSubject());
+        final c = ref.read(appControllerProvider);
+        final row = await c.study.importMistake(
+          file.path,
+          file.name,
+          subject: _defaultSubject(),
+        );
+        final detail = await c.study.mistakeDetail(row.id);
+        if (mounted) {
+          await cropImportedStudyPhoto(
+            context,
+            row.id,
+            detail.images.single,
+            isMistake: true,
+          );
+        }
         imported++;
         if (mounted) setState(() => _importDone = imported);
       }
@@ -373,6 +386,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     try {
       final count = await StudyPhotoIntake.pick(
         ref.read(appControllerProvider),
+        context: context,
         isMistake: true,
         camera: kind == 'camera',
         subject: _defaultSubject(),

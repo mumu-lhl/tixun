@@ -7,7 +7,6 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_selector/file_selector.dart';
 
 import '../../app/controller.dart';
 import '../../core/ai/ai_options.dart';
@@ -21,6 +20,8 @@ import 'exam_calendar.dart';
 import 'exam_detail.dart';
 import 'exam_store.dart';
 import 'score_editor.dart';
+import 'exam_image_editor.dart';
+import '../../core/platform/photo_picker.dart';
 
 class ExamSubjectScreen extends ConsumerWidget {
   const ExamSubjectScreen(this.id, {super.key});
@@ -164,6 +165,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                                           onPressed: () => act(
                                             ctx,
                                             () => _pick(
+                                              ctx,
                                               c,
                                               role.key,
                                               camera: true,
@@ -175,8 +177,10 @@ class ExamSubjectScreen extends ConsumerWidget {
                                           Icons.add_photo_alternate_outlined,
                                         ),
                                         label: Text(ctx.tr('添加图片')),
-                                        onPressed: () =>
-                                            act(ctx, () => _pick(c, role.key)),
+                                        onPressed: () => act(
+                                          ctx,
+                                          () => _pick(ctx, c, role.key),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -248,15 +252,81 @@ class ExamSubjectScreen extends ConsumerWidget {
                                                       ),
                                                 ),
                                               ),
-                                              IconButton(
-                                                tooltip: ctx.tr('删除图片'),
-                                                icon: const Icon(
-                                                  Icons.delete_outline,
-                                                  size: 18,
-                                                ),
-                                                onPressed: () async {
-                                                  final yes =
-                                                      await showDialog<bool>(
+                                              Wrap(
+                                                children: [
+                                                  IconButton(
+                                                    tooltip: ctx.tr(
+                                                      '裁剪 / 旋转 / 缩小',
+                                                    ),
+                                                    icon: const Icon(
+                                                      Icons.crop,
+                                                      size: 18,
+                                                    ),
+                                                    onPressed: () => act(
+                                                      ctx,
+                                                      () => editExamPhoto(
+                                                        ctx,
+                                                        c,
+                                                        image,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  if (image.originalPath !=
+                                                      null)
+                                                    IconButton(
+                                                      tooltip: ctx.tr(
+                                                        '查看保留的原图',
+                                                      ),
+                                                      icon: const Icon(
+                                                        Icons.image_outlined,
+                                                        size: 18,
+                                                      ),
+                                                      onPressed: () => showDialog<void>(
+                                                        context: ctx,
+                                                        builder: (_) => Dialog(
+                                                          child: Column(
+                                                            children: [
+                                                              const Align(
+                                                                alignment: Alignment
+                                                                    .centerRight,
+                                                                child:
+                                                                    CloseButton(),
+                                                              ),
+                                                              Expanded(
+                                                                child: InteractiveViewer(
+                                                                  child: Image.file(
+                                                                    c.files.resolve(
+                                                                      image
+                                                                          .originalPath!,
+                                                                    ),
+                                                                    cacheWidth:
+                                                                        1600,
+                                                                    errorBuilder:
+                                                                        (
+                                                                          _,
+                                                                          _,
+                                                                          _,
+                                                                        ) => Text(
+                                                                          ctx.tr(
+                                                                            '原图无法读取。',
+                                                                          ),
+                                                                        ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  IconButton(
+                                                    tooltip: ctx.tr('删除图片'),
+                                                    icon: const Icon(
+                                                      Icons.delete_outline,
+                                                      size: 18,
+                                                    ),
+                                                    onPressed: () async {
+                                                      final yes = await showDialog<bool>(
                                                         context: ctx,
                                                         builder: (d) => AlertDialog(
                                                           title: Text(
@@ -290,16 +360,19 @@ class ExamSubjectScreen extends ConsumerWidget {
                                                           ],
                                                         ),
                                                       );
-                                                  if (yes == true &&
-                                                      ctx.mounted) {
-                                                    await act(
-                                                      ctx,
-                                                      () => c.exams.deleteImage(
-                                                        image,
-                                                      ),
-                                                    );
-                                                  }
-                                                },
+                                                      if (yes == true &&
+                                                          ctx.mounted) {
+                                                        await act(
+                                                          ctx,
+                                                          () => c.exams
+                                                              .deleteImage(
+                                                                image,
+                                                              ),
+                                                        );
+                                                      }
+                                                    },
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
@@ -433,33 +506,26 @@ class ExamSubjectScreen extends ConsumerWidget {
   }
 
   Future<void> _pick(
+    BuildContext context,
     AppController c,
     String role, {
     bool camera = false,
   }) async {
-    // Persist the destination before an Android picker can destroy the activity.
     if (Platform.isAndroid) {
-      await ExamPhotoIntake.pick(c, id, role, camera: camera);
+      await ExamPhotoIntake.pick(c, id, role, context: context, camera: camera);
     } else {
-      // Desktop uses the platform file picker, copying each original immediately.
-      // No temporary picker path is stored in the database.
-      // context is provided by the screen's navigator through its caller.
-      final files = await _desktopFiles();
+      final files = await pickPhotos(context);
+      final added = <ExamAttachment>[];
       for (final file in files) {
-        await c.exams.addImage(id, role, file.path);
+        added.add(await c.exams.addImage(id, role, file.path));
+      }
+      for (final image in added) {
+        if (!context.mounted) break;
+        await editExamPhoto(context, c, image);
       }
     }
   }
 }
-
-Future<List<XFile>> _desktopFiles() => openFiles(
-  acceptedTypeGroups: [
-    const XTypeGroup(
-      label: 'Images',
-      extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    ),
-  ],
-);
 
 class ExamAiScreen extends ConsumerStatefulWidget {
   const ExamAiScreen({required this.subject, required this.images, super.key});

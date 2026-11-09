@@ -82,6 +82,8 @@ void main() {
       await ready(t, () => !c.busy && c.messages.length == 2);
       await guiCapture('subjects', 'chat-phone');
       await click(t, find.byKey(const Key('subject-switch')));
+      await t.pump(const Duration(milliseconds: 700));
+      await t.pumpAndSettle();
       await guiCapture('subjects', 'subject-menu-phone');
       for (final hidden in ['地理', '历史', '政治']) {
         expect(find.text(hidden), findsNothing);
