@@ -105,7 +105,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/knowledge',
-            builder: (_, _) => const LibraryScreen(isMistake: false),
+            builder: (_, s) => LibraryScreen(
+              isMistake: false,
+              initialModule: s.uri.queryParameters['module'],
+            ),
             routes: [
               GoRoute(
                 path: ':id',
@@ -118,7 +121,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/mistakes',
-            builder: (_, _) => const LibraryScreen(isMistake: true),
+            builder: (_, s) => LibraryScreen(
+              isMistake: true,
+              initialModule: s.uri.queryParameters['module'],
+            ),
             routes: [
               GoRoute(
                 path: ':id',

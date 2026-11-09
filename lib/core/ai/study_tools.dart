@@ -48,9 +48,35 @@ AiTool _schema(
 );
 
 final studyToolSchemas = [
+  _schema(
+    'list_subject_modules',
+    '查询科目的模块和子模块目录；可用 query 查找名称。',
+    {'subject': _string, 'query': _string},
+    ['subject'],
+  ),
+  _schema(
+    'create_subject_module',
+    '经用户确认创建科目模块；parent_id 表示同科目的一级模块，最多两级。相同目录重复创建会复用。',
+    {'subject': _string, 'name': _string, 'parent_id': _string},
+    ['subject', 'name'],
+  ),
+  _schema(
+    'link_study_module',
+    '经用户确认，将已有知识或错题关联到同科目的模块或子模块。只新增关联，不覆盖已有分类。',
+    {
+      'id': _string,
+      'kind': {
+        'type': 'string',
+        'enum': ['knowledge', 'mistake'],
+      },
+      'module_id': _string,
+    },
+    ['id', 'kind', 'module_id'],
+  ),
   _schema('search_knowledge', '搜索用户授权的本地知识，返回最多5条摘要。', {
     'query': _string,
     'subject': _string,
+    'module_id': _string,
   }, []),
   _schema('get_knowledge', '读取一条知识和版本号，正文最多12000字符。', {'id': _string}, ['id']),
   _schema('create_knowledge', '提出新增知识建议；必须由用户在应用内确认后才保存。', _knowledgeFields, [
@@ -73,6 +99,7 @@ final studyToolSchemas = [
   _schema('search_mistakes', '搜索错题，返回最多5条摘要。', {
     'query': _string,
     'subject': _string,
+    'module_id': _string,
   }, []),
   _schema('get_mistake', '读取错题、AI解析、版本及用户明确记录的思路。', {'id': _string}, ['id']),
   _schema(
@@ -108,6 +135,7 @@ final studyToolSchemas = [
   ),
 ];
 const _readTools = {
+  'list_subject_modules',
   'search_knowledge',
   'get_knowledge',
   'search_mistakes',
@@ -315,10 +343,49 @@ class StudyToolRunner {
     List<String> labels(List<String> fallback) =>
         a['tags'] == null ? fallback : (a['tags'] as List).cast<String>();
     switch (name) {
+      case 'list_subject_modules':
+        final all = await store.modules.list(text('subject'));
+        final matches = all
+            .where(
+              (m) => m.name.toLowerCase().contains(text('query').toLowerCase()),
+            )
+            .toList();
+        return {
+          'modules': matches
+              .take(100)
+              .map(
+                (m) => {
+                  'id': m.id,
+                  'name': m.name,
+                  'subject': m.subject,
+                  'parent_id': m.parentId,
+                },
+              )
+              .toList(),
+          'truncated': matches.length > 100,
+        };
+      case 'create_subject_module':
+        final id = await store.modules.create(
+          text('subject'),
+          text('name'),
+          parentId: a['parent_id'] as String?,
+        );
+        return {'id': id, 'subject': text('subject'), 'name': text('name')};
+      case 'link_study_module':
+        if (!['knowledge', 'mistake'].contains(text('kind'))) {
+          throw const FormatException('资料类型无效。');
+        }
+        await store.modules.link(
+          text('id'),
+          text('kind') == 'mistake',
+          text('module_id'),
+        );
+        return {'id': text('id'), 'module_id': text('module_id')};
       case 'search_knowledge':
         final rows = await store.searchKnowledge(
           query: text('query'),
           subject: text('subject'),
+          moduleId: text('module_id'),
           limit: 5,
         );
         return {
@@ -348,6 +415,7 @@ class StudyToolRunner {
           'subject': k.subject,
           'kind': k.kind,
           'chapter': k.chapter,
+          'module_ids': await store.modules.ids(k.id, false),
           'tags': await store.tags(k.id, isMistake: false),
           'revision': k.revision,
         };
@@ -389,6 +457,7 @@ class StudyToolRunner {
         final rows = await store.searchMistakes(
           query: text('query'),
           subject: text('subject'),
+          moduleId: text('module_id'),
           limit: 5,
         );
         return {
@@ -416,6 +485,7 @@ class StudyToolRunner {
           'question': bound(m.question),
           'subject': m.subject,
           'chapter': m.chapter,
+          'module_ids': await store.modules.ids(m.id, true),
           'correct_answer': bound(m.correctAnswer),
           'original_answer': bound(m.originalAnswer),
           'own_analysis': bound(m.ownAnalysis),

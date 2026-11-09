@@ -16,6 +16,8 @@ import 'study_editor.dart';
 import 'study_store.dart';
 
 const toolLabels = {
+  'create_subject_module': '新增科目目录',
+  'link_study_module': '关联资料与模块',
   'schedule_review': '加入复习',
   'create_quiz': '创建练习题',
   'suggest_question_regions': '提出分题建议',
@@ -28,6 +30,7 @@ const toolLabels = {
   'link_mistake_to_knowledge': '关联错题与知识',
 };
 const fieldLabels = {
+  'name': '目录名称',
   'title': '标题',
   'content': '知识正文',
   'subject': '科目',
@@ -87,7 +90,10 @@ class ToolApprovalCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final e in request.arguments.entries.where(
-                    (e) => fieldLabels.containsKey(e.key),
+                    (e) =>
+                        fieldLabels.containsKey(e.key) &&
+                        !(request.name == 'link_study_module' &&
+                            e.key == 'kind'),
                   ))
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),

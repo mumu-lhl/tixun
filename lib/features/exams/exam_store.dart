@@ -232,6 +232,19 @@ class ExamStore extends DatabaseNotifier {
         changed();
       });
 
+  Future<void> deleteSubject(String id) => runOperation(() async {
+    final images = await (db.select(
+      db.examAttachments,
+    )..where((t) => t.subjectId.equals(id))).get();
+    await (db.delete(db.examSubjects)..where((t) => t.id.equals(id))).go();
+    await cleanupPurgedAttachments(
+      db,
+      files,
+      images.map((i) => i.relativePath),
+    );
+    changed();
+  });
+
   Future<void> deleteEvent(String id) => runOperation(() async {
     final paths = await db
         .customSelect(

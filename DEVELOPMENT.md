@@ -32,7 +32,7 @@ scripts/gui_tests.sh
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。截图和日志保存在 `artifacts/gui/`；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
-不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。数据库 schema v1/v3/v4/v5/v6/v7 → v8 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
+不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。数据库 schema v1/v3/v4/v5/v6/v7/v8/v9 → v10 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
 
 ```bash
 dart run build_runner build
@@ -42,7 +42,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布、Nightly 或手动勾选 `full_gui` 时运行。八个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
+普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布、Nightly 或手动勾选 `full_gui` 时运行。十个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。
 
 ## 按版本标签发布
 
@@ -138,3 +138,9 @@ CI 的签名测试与 Android 构建统一使用 Temurin **Java 25 LTS**；Flutt
 ## 考试记录
 
 考试使用 schema v9 的四张独立表，按日期查询并关联科目、两级小分表与分类照片。小分表整表替换在事务中完成，以独立 revision 检测并发修改；裸分与明细合计独立。完整备份验证考试附件引用。`exam_flow_test.dart` 是第九组原生 GUI 测试。真实模型识别准确率及 Android 实机拍照/活动恢复仍需设备验证。
+
+## 科目目录
+
+schema v10 新增两级科目目录、知识目录关联与错题目录关联三张表。根模块名用 SQLite 表达式唯一索引去重；分类与正文修订独立，改名不会重写每条笔记，旧章节保持原样。资料科目变更时移除不匹配关联；手动整组选取比较旧关联集合，防止覆盖并发分类。删除目录有 UI 确认，级联解除关联，资料和练习保留。完整备份包含目录与关联。
+
+AI 工具 `list_subject_modules`、`create_subject_module` 和 `link_study_module` 复用原有授权、参数校验、确认与操作审计，不执行任意 SQL。新增关联为幂等追加，不覆盖其他模块。查询工具可按模块过滤。`modules_flow_test.dart` 是第十组原生 GUI，覆盖创建目录、两类归类、筛选和准备专项训练请求。没有新增 Golden 比较。

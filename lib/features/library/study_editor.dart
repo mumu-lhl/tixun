@@ -108,6 +108,34 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
     try {
       final store = ref.read(studyStoreProvider);
       final labels = field('tags').text.split(RegExp('[,，]'));
+      final oldId = widget.knowledge?.item.id ?? widget.mistake?.item.id;
+      final oldSubject =
+          widget.knowledge?.item.subject ?? widget.mistake?.item.subject;
+      if (oldId != null && oldSubject != field('subject').text.trim()) {
+        final linked = await store.modules.ids(oldId, widget.isMistake);
+        if (linked.isNotEmpty) {
+          if (!mounted) return;
+          final yes = await showDialog<bool>(
+            context: context,
+            builder: (d) => AlertDialog(
+              title: Text(d.tr('更换科目')),
+              content: Text(d.tr('更换科目会清除原科目的目录关联。资料正文和图片会保留。')),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(d),
+                  child: Text(d.tr('取消')),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(d, true),
+                  child: Text(d.tr('继续保存')),
+                ),
+              ],
+            ),
+          );
+          if (yes != true) return;
+        }
+      }
+
       String id;
       if (widget.isMistake) {
         final row = await store.saveMistake(

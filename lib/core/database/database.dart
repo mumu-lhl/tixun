@@ -9,6 +9,7 @@ part 'study_tables.dart';
 part 'practice_tables.dart';
 part 'review_tables.dart';
 part 'exam_tables.dart';
+part 'module_tables.dart';
 
 class ChatSessions extends Table {
   TextColumn get id => text()();
@@ -127,6 +128,9 @@ class Preferences extends Table {
     ExamSubjects,
     ExamScoreRows,
     ExamAttachments,
+    SubjectModules,
+    KnowledgeModuleLinks,
+    MistakeModuleLinks,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -134,7 +138,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 9;
+  static const latestSchemaVersion = 10;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -145,6 +149,7 @@ class AppDatabase extends _$AppDatabase {
       await _createPracticeIndexes();
       await _createReviewIndexes();
       await _createPracticeLinkIndex();
+      await _createModuleIndexes();
       await _createExamIndexes();
       await customStatement(
         'CREATE INDEX messages_session_time ON chat_messages(session_id, created_at)',
@@ -242,6 +247,16 @@ class AppDatabase extends _$AppDatabase {
           "ELSE NULL END",
         );
       }
+      if (from < 10) {
+        for (final table in <TableInfo>[
+          subjectModules,
+          knowledgeModuleLinks,
+          mistakeModuleLinks,
+        ]) {
+          await m.createTable(table);
+        }
+        await _createModuleIndexes();
+      }
       if (from < 9) {
         for (final table in <TableInfo>[
           examEvents,
@@ -288,6 +303,18 @@ class AppDatabase extends _$AppDatabase {
       );
     },
   );
+
+  Future<void> _createModuleIndexes() async {
+    await customStatement(
+      "CREATE UNIQUE INDEX subject_module_name ON subject_modules(subject,ifnull(parent_id,''),name COLLATE NOCASE)",
+    );
+    await customStatement(
+      'CREATE INDEX knowledge_module_lookup ON knowledge_module_links(module_id,knowledge_id)',
+    );
+    await customStatement(
+      'CREATE INDEX mistake_module_lookup ON mistake_module_links(module_id,mistake_id)',
+    );
+  }
 
   Future<void> _createExamIndexes() async {
     await customStatement('CREATE INDEX exam_event_date ON exam_events(date)');

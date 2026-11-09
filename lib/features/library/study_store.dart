@@ -1,3 +1,5 @@
+import 'module_store.dart';
+
 import 'dart:convert';
 
 import 'question_region.dart';
@@ -111,7 +113,14 @@ class StudyStore extends DatabaseNotifier {
   StudyStore(this.db, this.files);
   final AppDatabase db;
   final AttachmentStore files;
+  late final ModuleStore modules = ModuleStore(db, changed);
   int epoch = 0;
+  @override
+  void dispose() {
+    modules.dispose();
+    super.dispose();
+  }
+
   @override
   void changed() {
     if (isDisposed) return;
@@ -402,6 +411,7 @@ class StudyStore extends DatabaseNotifier {
                 .write(row);
         if (count != 1) throw const StudyConflict();
       }
+      await _removeMismatchedModules(key, subject, false);
       await _tags(key, labels, false);
       await _snapshot(row, labels);
       if (sourceSessionId != null) {
@@ -475,6 +485,7 @@ class StudyStore extends DatabaseNotifier {
                 .write(row);
         if (count != 1) throw const StudyConflict();
       }
+      await _removeMismatchedModules(key, subject, true);
       await _tags(key, labels, true);
       if (sourceSessionId != null) {
         await _chatLink(sourceSessionId, mistakeId: key);
@@ -636,9 +647,24 @@ class StudyStore extends DatabaseNotifier {
     );
   });
 
+  Future<void> _removeMismatchedModules(
+    String id,
+    String subject,
+    bool mistake,
+  ) async {
+    final table = mistake ? 'mistake_module_links' : 'knowledge_module_links';
+    final key = mistake ? 'mistake_id' : 'knowledge_id';
+    await db.customUpdate(
+      'DELETE FROM $table WHERE $key=? AND module_id IN (SELECT id FROM subject_modules WHERE subject<>?)',
+      variables: [Variable(id), Variable(subject)],
+      updates: {db.knowledgeModuleLinks, db.mistakeModuleLinks},
+    );
+  }
+
   Future<List<KnowledgeItem>> searchKnowledge({
     String query = '',
     String subject = '',
+    String moduleId = '',
     bool trash = false,
     int limit = 100,
     int offset = 0,
@@ -652,6 +678,7 @@ class StudyStore extends DatabaseNotifier {
       trash,
       limit,
       offset,
+      moduleId,
     );
     return Future.wait(rows.map(db.knowledgeItems.mapFromRow));
   }
@@ -659,6 +686,7 @@ class StudyStore extends DatabaseNotifier {
   Future<List<Mistake>> searchMistakes({
     String query = '',
     String subject = '',
+    String moduleId = '',
     bool trash = false,
     int limit = 100,
     int offset = 0,
@@ -672,6 +700,7 @@ class StudyStore extends DatabaseNotifier {
       trash,
       limit,
       offset,
+      moduleId,
     );
     return Future.wait(rows.map(db.mistakes.mapFromRow));
   }
@@ -685,6 +714,7 @@ class StudyStore extends DatabaseNotifier {
     bool trash,
     int limit,
     int offset,
+    String moduleId,
   ) {
     final term = checked(query, '搜索词', 300);
     final tagTable = table == 'mistakes' ? 'mistake_tags' : 'knowledge_tags';
@@ -694,6 +724,19 @@ class StudyStore extends DatabaseNotifier {
     if (subject.isNotEmpty) {
       where += ' AND t.subject = ?';
       vars.add(Variable(subject));
+    }
+    if (moduleId.isNotEmpty) {
+      final links = table == 'mistakes'
+          ? 'mistake_module_links'
+          : 'knowledge_module_links';
+      if (moduleId == 'unclassified') {
+        where +=
+            ' AND NOT EXISTS (SELECT 1 FROM $links ml WHERE ml.$idColumn=t.id)';
+      } else {
+        where +=
+            ' AND EXISTS (SELECT 1 FROM $links ml JOIN subject_modules sm ON sm.id=ml.module_id WHERE ml.$idColumn=t.id AND (sm.id=? OR sm.parent_id=?))';
+        vars.addAll([Variable(moduleId), Variable(moduleId)]);
+      }
     }
     if (term.isNotEmpty) {
       final bodyExpression = table == 'mistakes'

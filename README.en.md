@@ -68,3 +68,11 @@ Store exam papers, answer sheets and reference answers separately. Android suppo
 The question breakdown supports questions and subquestions. Next question and Next subquestion number entries, focus marks and reuse the previous sibling's maximum. Questions with subquestions use their child totals. Blank means unknown; `0` means zero marks. Totals never overwrite the exam's raw score.
 
 AI extraction uploads only 1–4 selected photos, up to 20 MB combined, to a vision-capable model. Prefer teacher-awarded marks and review every suggestion before saving. Saving replaces the previous breakdown. Reasoning strength is configurable for this request; its prompt is editable in Prompt manager. Mock mode supports manual entry and does not pretend to grade photos.
+
+### Subject modules for notes and mistakes
+
+Choose Manage directory in Knowledge or Mistakes to create subject modules and submodules, for example Mathematics → Functions and derivatives → Monotonicity and extrema. Custom subjects, renaming and ordering are supported. Both libraries share the directory.
+
+Use Choose modules on a record to assign one or more entries. Open a directory chip or use the list filter to find related material; parent modules include their submodules. Existing chapter text is kept, and uncategorized records remain under Unclassified. Deleting a directory entry removes its links, while keeping study material and practice.
+
+Practice this module prepares an editable Chat request from up to 5 recent notes or 3 mistakes. Review it before sending. With material tools enabled in Chat, AI can inspect existing entries and propose new modules or associations, each requiring your confirmation.

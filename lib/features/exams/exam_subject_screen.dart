@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_selector/file_selector.dart';
 
@@ -68,6 +69,39 @@ class ExamSubjectScreen extends ConsumerWidget {
                               editSubject(context, c, subject.eventId, subject),
                           icon: const Icon(Icons.edit_outlined),
                           label: Text(context.tr('编辑成绩')),
+                        ),
+                        IconButton(
+                          tooltip: context.tr('删除科目'),
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () async {
+                            final yes = await showDialog<bool>(
+                              context: context,
+                              builder: (d) => AlertDialog(
+                                title: Text(d.tr('删除科目')),
+                                content: Text(
+                                  d.tr('将删除这个科目的成绩、小分表和照片，其他科目保留。此操作无法撤销。'),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(d),
+                                    child: Text(d.tr('取消')),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () => Navigator.pop(d, true),
+                                    child: Text(d.tr('删除')),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (yes == true && context.mounted) {
+                              await act(context, () async {
+                                await c.exams.deleteSubject(id);
+                                if (context.mounted) {
+                                  context.go('/exams/${subject.eventId}');
+                                }
+                              });
+                            }
+                          },
                         ),
                       ],
                     ),

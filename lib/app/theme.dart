@@ -26,13 +26,6 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
         fontWeight: FontWeight.w700,
         height: 1.4,
       ),
-      // Completes the type scale. Values match the M3 defaults the theme
-      // previously fell back to silently (ThemeData merges missing slots
-      // from the default typography), so defining them changes no pixels:
-      // headlineSmall is also the markdown h1 style, and bolding it here
-      // would bold every h1 in the app and invalidate the golden tests.
-      // If a bolder headline is ever wanted, it is a deliberate design
-      // change and the goldens need regenerating with it.
       headlineSmall: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.w400,
@@ -87,7 +80,7 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       side: BorderSide(color: colors.outlineVariant.withValues(alpha: .5)),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      labelStyle: const TextStyle(fontSize: 12),
+      labelStyle: TextStyle(fontSize: 12, color: colors.onSurface),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(

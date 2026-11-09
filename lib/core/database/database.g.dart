@@ -14520,6 +14520,823 @@ class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
   }
 }
 
+class $SubjectModulesTable extends SubjectModules
+    with TableInfo<$SubjectModulesTable, SubjectModule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SubjectModulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES subject_modules (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, subject, name, parentId, position];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'subject_modules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SubjectModule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SubjectModule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SubjectModule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $SubjectModulesTable createAlias(String alias) {
+    return $SubjectModulesTable(attachedDatabase, alias);
+  }
+}
+
+class SubjectModule extends DataClass implements Insertable<SubjectModule> {
+  final String id;
+  final String subject;
+  final String name;
+  final String? parentId;
+  final int position;
+  const SubjectModule({
+    required this.id,
+    required this.subject,
+    required this.name,
+    this.parentId,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['subject'] = Variable<String>(subject);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  SubjectModulesCompanion toCompanion(bool nullToAbsent) {
+    return SubjectModulesCompanion(
+      id: Value(id),
+      subject: Value(subject),
+      name: Value(name),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      position: Value(position),
+    );
+  }
+
+  factory SubjectModule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SubjectModule(
+      id: serializer.fromJson<String>(json['id']),
+      subject: serializer.fromJson<String>(json['subject']),
+      name: serializer.fromJson<String>(json['name']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'subject': serializer.toJson<String>(subject),
+      'name': serializer.toJson<String>(name),
+      'parentId': serializer.toJson<String?>(parentId),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  SubjectModule copyWith({
+    String? id,
+    String? subject,
+    String? name,
+    Value<String?> parentId = const Value.absent(),
+    int? position,
+  }) => SubjectModule(
+    id: id ?? this.id,
+    subject: subject ?? this.subject,
+    name: name ?? this.name,
+    parentId: parentId.present ? parentId.value : this.parentId,
+    position: position ?? this.position,
+  );
+  SubjectModule copyWithCompanion(SubjectModulesCompanion data) {
+    return SubjectModule(
+      id: data.id.present ? data.id.value : this.id,
+      subject: data.subject.present ? data.subject.value : this.subject,
+      name: data.name.present ? data.name.value : this.name,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubjectModule(')
+          ..write('id: $id, ')
+          ..write('subject: $subject, ')
+          ..write('name: $name, ')
+          ..write('parentId: $parentId, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, subject, name, parentId, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SubjectModule &&
+          other.id == this.id &&
+          other.subject == this.subject &&
+          other.name == this.name &&
+          other.parentId == this.parentId &&
+          other.position == this.position);
+}
+
+class SubjectModulesCompanion extends UpdateCompanion<SubjectModule> {
+  final Value<String> id;
+  final Value<String> subject;
+  final Value<String> name;
+  final Value<String?> parentId;
+  final Value<int> position;
+  final Value<int> rowid;
+  const SubjectModulesCompanion({
+    this.id = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.name = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SubjectModulesCompanion.insert({
+    required String id,
+    required String subject,
+    required String name,
+    this.parentId = const Value.absent(),
+    required int position,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       subject = Value(subject),
+       name = Value(name),
+       position = Value(position);
+  static Insertable<SubjectModule> custom({
+    Expression<String>? id,
+    Expression<String>? subject,
+    Expression<String>? name,
+    Expression<String>? parentId,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (subject != null) 'subject': subject,
+      if (name != null) 'name': name,
+      if (parentId != null) 'parent_id': parentId,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SubjectModulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? subject,
+    Value<String>? name,
+    Value<String?>? parentId,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return SubjectModulesCompanion(
+      id: id ?? this.id,
+      subject: subject ?? this.subject,
+      name: name ?? this.name,
+      parentId: parentId ?? this.parentId,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubjectModulesCompanion(')
+          ..write('id: $id, ')
+          ..write('subject: $subject, ')
+          ..write('name: $name, ')
+          ..write('parentId: $parentId, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $KnowledgeModuleLinksTable extends KnowledgeModuleLinks
+    with TableInfo<$KnowledgeModuleLinksTable, KnowledgeModuleLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KnowledgeModuleLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _knowledgeIdMeta = const VerificationMeta(
+    'knowledgeId',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeId = GeneratedColumn<String>(
+    'knowledge_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _moduleIdMeta = const VerificationMeta(
+    'moduleId',
+  );
+  @override
+  late final GeneratedColumn<String> moduleId = GeneratedColumn<String>(
+    'module_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES subject_modules (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [knowledgeId, moduleId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'knowledge_module_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KnowledgeModuleLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('knowledge_id')) {
+      context.handle(
+        _knowledgeIdMeta,
+        knowledgeId.isAcceptableOrUnknown(
+          data['knowledge_id']!,
+          _knowledgeIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_knowledgeIdMeta);
+    }
+    if (data.containsKey('module_id')) {
+      context.handle(
+        _moduleIdMeta,
+        moduleId.isAcceptableOrUnknown(data['module_id']!, _moduleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_moduleIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {knowledgeId, moduleId};
+  @override
+  KnowledgeModuleLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KnowledgeModuleLink(
+      knowledgeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_id'],
+      )!,
+      moduleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}module_id'],
+      )!,
+    );
+  }
+
+  @override
+  $KnowledgeModuleLinksTable createAlias(String alias) {
+    return $KnowledgeModuleLinksTable(attachedDatabase, alias);
+  }
+}
+
+class KnowledgeModuleLink extends DataClass
+    implements Insertable<KnowledgeModuleLink> {
+  final String knowledgeId;
+  final String moduleId;
+  const KnowledgeModuleLink({
+    required this.knowledgeId,
+    required this.moduleId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['knowledge_id'] = Variable<String>(knowledgeId);
+    map['module_id'] = Variable<String>(moduleId);
+    return map;
+  }
+
+  KnowledgeModuleLinksCompanion toCompanion(bool nullToAbsent) {
+    return KnowledgeModuleLinksCompanion(
+      knowledgeId: Value(knowledgeId),
+      moduleId: Value(moduleId),
+    );
+  }
+
+  factory KnowledgeModuleLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KnowledgeModuleLink(
+      knowledgeId: serializer.fromJson<String>(json['knowledgeId']),
+      moduleId: serializer.fromJson<String>(json['moduleId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'knowledgeId': serializer.toJson<String>(knowledgeId),
+      'moduleId': serializer.toJson<String>(moduleId),
+    };
+  }
+
+  KnowledgeModuleLink copyWith({String? knowledgeId, String? moduleId}) =>
+      KnowledgeModuleLink(
+        knowledgeId: knowledgeId ?? this.knowledgeId,
+        moduleId: moduleId ?? this.moduleId,
+      );
+  KnowledgeModuleLink copyWithCompanion(KnowledgeModuleLinksCompanion data) {
+    return KnowledgeModuleLink(
+      knowledgeId: data.knowledgeId.present
+          ? data.knowledgeId.value
+          : this.knowledgeId,
+      moduleId: data.moduleId.present ? data.moduleId.value : this.moduleId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeModuleLink(')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('moduleId: $moduleId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(knowledgeId, moduleId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KnowledgeModuleLink &&
+          other.knowledgeId == this.knowledgeId &&
+          other.moduleId == this.moduleId);
+}
+
+class KnowledgeModuleLinksCompanion
+    extends UpdateCompanion<KnowledgeModuleLink> {
+  final Value<String> knowledgeId;
+  final Value<String> moduleId;
+  final Value<int> rowid;
+  const KnowledgeModuleLinksCompanion({
+    this.knowledgeId = const Value.absent(),
+    this.moduleId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  KnowledgeModuleLinksCompanion.insert({
+    required String knowledgeId,
+    required String moduleId,
+    this.rowid = const Value.absent(),
+  }) : knowledgeId = Value(knowledgeId),
+       moduleId = Value(moduleId);
+  static Insertable<KnowledgeModuleLink> custom({
+    Expression<String>? knowledgeId,
+    Expression<String>? moduleId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (knowledgeId != null) 'knowledge_id': knowledgeId,
+      if (moduleId != null) 'module_id': moduleId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  KnowledgeModuleLinksCompanion copyWith({
+    Value<String>? knowledgeId,
+    Value<String>? moduleId,
+    Value<int>? rowid,
+  }) {
+    return KnowledgeModuleLinksCompanion(
+      knowledgeId: knowledgeId ?? this.knowledgeId,
+      moduleId: moduleId ?? this.moduleId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (knowledgeId.present) {
+      map['knowledge_id'] = Variable<String>(knowledgeId.value);
+    }
+    if (moduleId.present) {
+      map['module_id'] = Variable<String>(moduleId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeModuleLinksCompanion(')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('moduleId: $moduleId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MistakeModuleLinksTable extends MistakeModuleLinks
+    with TableInfo<$MistakeModuleLinksTable, MistakeModuleLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MistakeModuleLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _mistakeIdMeta = const VerificationMeta(
+    'mistakeId',
+  );
+  @override
+  late final GeneratedColumn<String> mistakeId = GeneratedColumn<String>(
+    'mistake_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES mistakes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _moduleIdMeta = const VerificationMeta(
+    'moduleId',
+  );
+  @override
+  late final GeneratedColumn<String> moduleId = GeneratedColumn<String>(
+    'module_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES subject_modules (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [mistakeId, moduleId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mistake_module_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MistakeModuleLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('mistake_id')) {
+      context.handle(
+        _mistakeIdMeta,
+        mistakeId.isAcceptableOrUnknown(data['mistake_id']!, _mistakeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mistakeIdMeta);
+    }
+    if (data.containsKey('module_id')) {
+      context.handle(
+        _moduleIdMeta,
+        moduleId.isAcceptableOrUnknown(data['module_id']!, _moduleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_moduleIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {mistakeId, moduleId};
+  @override
+  MistakeModuleLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MistakeModuleLink(
+      mistakeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mistake_id'],
+      )!,
+      moduleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}module_id'],
+      )!,
+    );
+  }
+
+  @override
+  $MistakeModuleLinksTable createAlias(String alias) {
+    return $MistakeModuleLinksTable(attachedDatabase, alias);
+  }
+}
+
+class MistakeModuleLink extends DataClass
+    implements Insertable<MistakeModuleLink> {
+  final String mistakeId;
+  final String moduleId;
+  const MistakeModuleLink({required this.mistakeId, required this.moduleId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['mistake_id'] = Variable<String>(mistakeId);
+    map['module_id'] = Variable<String>(moduleId);
+    return map;
+  }
+
+  MistakeModuleLinksCompanion toCompanion(bool nullToAbsent) {
+    return MistakeModuleLinksCompanion(
+      mistakeId: Value(mistakeId),
+      moduleId: Value(moduleId),
+    );
+  }
+
+  factory MistakeModuleLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MistakeModuleLink(
+      mistakeId: serializer.fromJson<String>(json['mistakeId']),
+      moduleId: serializer.fromJson<String>(json['moduleId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'mistakeId': serializer.toJson<String>(mistakeId),
+      'moduleId': serializer.toJson<String>(moduleId),
+    };
+  }
+
+  MistakeModuleLink copyWith({String? mistakeId, String? moduleId}) =>
+      MistakeModuleLink(
+        mistakeId: mistakeId ?? this.mistakeId,
+        moduleId: moduleId ?? this.moduleId,
+      );
+  MistakeModuleLink copyWithCompanion(MistakeModuleLinksCompanion data) {
+    return MistakeModuleLink(
+      mistakeId: data.mistakeId.present ? data.mistakeId.value : this.mistakeId,
+      moduleId: data.moduleId.present ? data.moduleId.value : this.moduleId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MistakeModuleLink(')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('moduleId: $moduleId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(mistakeId, moduleId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MistakeModuleLink &&
+          other.mistakeId == this.mistakeId &&
+          other.moduleId == this.moduleId);
+}
+
+class MistakeModuleLinksCompanion extends UpdateCompanion<MistakeModuleLink> {
+  final Value<String> mistakeId;
+  final Value<String> moduleId;
+  final Value<int> rowid;
+  const MistakeModuleLinksCompanion({
+    this.mistakeId = const Value.absent(),
+    this.moduleId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MistakeModuleLinksCompanion.insert({
+    required String mistakeId,
+    required String moduleId,
+    this.rowid = const Value.absent(),
+  }) : mistakeId = Value(mistakeId),
+       moduleId = Value(moduleId);
+  static Insertable<MistakeModuleLink> custom({
+    Expression<String>? mistakeId,
+    Expression<String>? moduleId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (mistakeId != null) 'mistake_id': mistakeId,
+      if (moduleId != null) 'module_id': moduleId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MistakeModuleLinksCompanion copyWith({
+    Value<String>? mistakeId,
+    Value<String>? moduleId,
+    Value<int>? rowid,
+  }) {
+    return MistakeModuleLinksCompanion(
+      mistakeId: mistakeId ?? this.mistakeId,
+      moduleId: moduleId ?? this.moduleId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (mistakeId.present) {
+      map['mistake_id'] = Variable<String>(mistakeId.value);
+    }
+    if (moduleId.present) {
+      map['module_id'] = Variable<String>(moduleId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MistakeModuleLinksCompanion(')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('moduleId: $moduleId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -14577,6 +15394,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ExamAttachmentsTable examAttachments = $ExamAttachmentsTable(
     this,
   );
+  late final $SubjectModulesTable subjectModules = $SubjectModulesTable(this);
+  late final $KnowledgeModuleLinksTable knowledgeModuleLinks =
+      $KnowledgeModuleLinksTable(this);
+  late final $MistakeModuleLinksTable mistakeModuleLinks =
+      $MistakeModuleLinksTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -14614,6 +15436,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     examSubjects,
     examScoreRows,
     examAttachments,
+    subjectModules,
+    knowledgeModuleLinks,
+    mistakeModuleLinks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -14911,6 +15736,41 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('exam_attachments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'subject_modules',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('subject_modules', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('knowledge_module_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'subject_modules',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('knowledge_module_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'mistakes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('mistake_module_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'subject_modules',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('mistake_module_links', kind: UpdateKind.delete)],
     ),
   ]);
 }

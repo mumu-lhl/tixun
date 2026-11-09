@@ -1,3 +1,5 @@
+import 'module_widgets.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -15,14 +17,41 @@ import 'study_photo_intake.dart';
 import 'study_store.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
-  const LibraryScreen({required this.isMistake, super.key});
+  const LibraryScreen({required this.isMistake, this.initialModule, super.key});
   final bool isMistake;
+  final String? initialModule;
   @override
   ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
 }
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String _query = '';
+  String _moduleId = '';
+  @override
+  void initState() {
+    super.initState();
+    _moduleId =
+        widget.initialModule ??
+        ref.read(libraryModuleFilterProvider(widget.isMistake));
+    _appliedSubject = ref.read(appControllerProvider).subjectFilter;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(libraryModuleFilterProvider(widget.isMistake).notifier).state =
+            _moduleId;
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant LibraryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialModule != null &&
+        widget.initialModule != oldWidget.initialModule) {
+      _moduleId = widget.initialModule!;
+      _epoch = -1;
+    }
+  }
+
   // Last global subject filter applied to the list; a change reloads.
   String _appliedSubject = '';
   bool _trash = false, _importing = false;
@@ -61,46 +90,67 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     return filter.isEmpty ? '数学' : filter;
   }
 
-  Future<List<_Entry>> _load(StudyStore store, {int offset = 0}) async =>
-      widget.isMistake
-      ? (await store.searchMistakes(
-              query: _query,
-              subject: ref.read(appControllerProvider).subjectFilter,
-              trash: _trash,
-              limit: 100,
-              offset: offset,
-            ))
-            .map(
-              (m) => _Entry(
-                m.id,
-                m.title,
-                m.subject,
-                m.chapter,
-                m.question,
-                m.errorReason,
-                m.revision,
-              ),
-            )
-            .toList()
-      : (await store.searchKnowledge(
-              query: _query,
-              subject: ref.read(appControllerProvider).subjectFilter,
-              trash: _trash,
-              limit: 100,
-              offset: offset,
-            ))
-            .map(
-              (k) => _Entry(
-                k.id,
-                k.title,
-                k.subject,
-                k.chapter,
-                k.content,
-                k.kind,
-                k.revision,
-              ),
-            )
-            .toList();
+  Future<List<_Entry>> _load(StudyStore store, {int offset = 0}) async {
+    final entries = widget.isMistake
+        ? (await store.searchMistakes(
+                query: _query,
+                moduleId: _moduleId,
+                subject: ref.read(appControllerProvider).subjectFilter,
+                trash: _trash,
+                limit: 100,
+                offset: offset,
+              ))
+              .map(
+                (m) => _Entry(
+                  m.id,
+                  m.title,
+                  m.subject,
+                  m.chapter,
+                  m.question,
+                  m.errorReason,
+                  m.revision,
+                ),
+              )
+              .toList()
+        : (await store.searchKnowledge(
+                query: _query,
+                moduleId: _moduleId,
+                subject: ref.read(appControllerProvider).subjectFilter,
+                trash: _trash,
+                limit: 100,
+                offset: offset,
+              ))
+              .map(
+                (k) => _Entry(
+                  k.id,
+                  k.title,
+                  k.subject,
+                  k.chapter,
+                  k.content,
+                  k.kind,
+                  k.revision,
+                ),
+              )
+              .toList();
+    final paths = await store.modules.paths(
+      entries.map((e) => e.id),
+      widget.isMistake,
+    );
+    return entries
+        .map(
+          (e) => _Entry(
+            e.id,
+            e.title,
+            e.subject,
+            [e.chapter, ...?paths[e.id]].where((s) => s.isNotEmpty).join(' · '),
+            e.preview,
+            e.badge,
+            e.revision,
+          ),
+        )
+        .toList();
+  }
+
   void _toggle(_Entry e) {
     if (_bulkBusy) return;
     if (!_selected.containsKey(e.id) && _selected.length >= 200) {
@@ -359,6 +409,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     );
     if (_appliedSubject != subjectFilter) {
       _appliedSubject = subjectFilter;
+      _moduleId = '';
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref
+                  .read(libraryModuleFilterProvider(widget.isMistake).notifier)
+                  .state =
+              '';
+        }
+      });
+      // Only the UI filter changes; learning records keep their own subjects.
       _epoch = -1;
     }
     if (_epoch != store.epoch) {
@@ -466,6 +526,25 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         ),
                   isDense: true,
                 ),
+              ),
+              const SizedBox(height: 10),
+              ModuleFilter(
+                value: _moduleId,
+                subject: subjectFilter,
+                mistake: widget.isMistake,
+                onChanged: (value) {
+                  ref
+                          .read(
+                            libraryModuleFilterProvider(widget.isMistake)
+                                .notifier,
+                          )
+                          .state =
+                      value;
+                  setState(() {
+                    _moduleId = value;
+                    _epoch = -1;
+                  });
+                },
               ),
               const SizedBox(height: 10),
               Row(

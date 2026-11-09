@@ -1,3 +1,4 @@
+import 'module_widgets.dart';
 import '../chat/message_reasoning.dart';
 import '../scratchpad/scratchpad_screen.dart';
 
@@ -177,6 +178,12 @@ class StudyDetailScreen extends ConsumerWidget {
                                 ),
                               ),
                             ],
+                          ),
+                          ModuleAssignment(
+                            id: id,
+                            subject: subject,
+                            mistake: isMistake,
+                            editable: !deleted,
                           ),
                           if (deleted)
                             Padding(

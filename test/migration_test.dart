@@ -10,6 +10,28 @@ import 'dart:io';
 import 'generated_migrations/schema.dart';
 
 void main() {
+  test('Schema v9 upgrade preserves exam scores and leaves existing chapters unclassified', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(9);
+    schema.rawDatabase.execute(
+      "INSERT INTO exam_events(id,title,date,updated_at) VALUES('e','期中',1,1)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO exam_subjects(id,event_id,subject,raw_score,updated_at) VALUES('s','e','数学',121,1)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO knowledge_items(id,title,content,subject,chapter,created_at,updated_at) VALUES('k','旧知识','正文','数学','旧章节',1,1)",
+    );
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 10);
+    expect((await db.select(db.examSubjects).get()).single.rawScore, 121);
+    expect((await db.select(db.knowledgeItems).get()).single.chapter, '旧章节');
+    expect(await db.select(db.subjectModules).get(), isEmpty);
+    expect(await db.select(db.knowledgeModuleLinks).get(), isEmpty);
+    expect(await db.select(db.mistakeModuleLinks).get(), isEmpty);
+  });
+
   test(
     'Schema v8 upgrade preserves scratchpads and creates empty exam tables',
     () async {
@@ -20,7 +42,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 9);
+      await verifier.migrateAndValidate(db, 10);
       expect(
         (await db.select(db.scratchpads).get()).single.document,
         'saved draft',
@@ -58,7 +80,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 9);
+      await verifier.migrateAndValidate(db, 10);
       final link = (await db.select(db.practiceChatLinks).get()).single;
       expect(link.messageId, 'm');
       expect(link.questionId, 'q');
@@ -87,7 +109,7 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 9);
+    await verifier.migrateAndValidate(db, 10);
     expect((await db.select(db.practiceAttempts).get()).single.status, 'draft');
     expect((await db.select(db.practiceResponses).get()).single.answer, '4');
     expect(await db.select(db.reviewSchedules).get(), isEmpty);
@@ -126,7 +148,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 9);
+      await verifier.migrateAndValidate(db, 10);
       expect((await db.sessions()).single.draft, '未发送草稿');
       expect((await db.sessions('二次函数')).single.id, 's');
       expect(
@@ -167,7 +189,7 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 9);
+    await verifier.migrateAndValidate(db, 10);
     final migrated = (await db.select(db.chatMessages).get()).single;
     expect(migrated.reasoningContent, isNull);
     expect(migrated.content, '请独立完成');
@@ -208,7 +230,7 @@ void main() {
     );
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 9);
+    await verifier.migrateAndValidate(db, 10);
     final byId = {for (final s in await db.sessions()) s.id: s};
     expect(byId['s1']!.subject, '数学');
     expect(byId['s2']!.subject, '物理');
@@ -231,7 +253,7 @@ void main() {
       );
       final db = AppDatabase(schema.newConnection());
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 9);
+      await verifier.migrateAndValidate(db, 10);
       final message = (await db.messages('s')).single;
       expect(message.reasoningContent, '旧思考');
       expect(message.reasoningTrace, isNull);

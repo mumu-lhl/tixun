@@ -117,6 +117,13 @@ void main() {
     await restored.close();
     await prepared.discard();
     await store.saveRows(id, [ScoreDraft(label: '1', earned: 0, maximum: 4)]);
+    final other = await store.saveSubject(eventId: exam, subject: '化学');
+    await store.saveRows(other, [
+      ScoreDraft(label: '1', earned: 4, maximum: 5),
+    ]);
+    await store.deleteSubject(other);
+    expect((await db.select(db.examSubjects).get()).single.id, id);
+    expect(await store.files.resolve(photo.relativePath).exists(), true);
     await store.deleteEvent(exam);
     expect(await db.select(db.examSubjects).get(), isEmpty);
     expect(await db.select(db.examScoreRows).get(), isEmpty);
