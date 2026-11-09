@@ -1,3 +1,7 @@
+import '../features/exams/exam_calendar.dart';
+import '../features/exams/exam_detail.dart';
+import '../features/exams/exam_subject_screen.dart';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,6 +37,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) =>
             AppShell(path: state.uri.path, child: child),
         routes: [
+          GoRoute(
+            path: '/exams',
+            builder: (_, _) => const ExamCalendarScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (_, s) => ExamDetailScreen(s.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'subject/:subjectId',
+                    builder: (_, s) =>
+                        ExamSubjectScreen(s.pathParameters['subjectId']!),
+                  ),
+                ],
+              ),
+            ],
+          ),
           GoRoute(path: '/study', builder: (_, _) => const DashboardScreen()),
           GoRoute(path: '/review', builder: (_, _) => const ReviewScreen()),
           GoRoute(path: '/progress', builder: (_, _) => const ProgressScreen()),

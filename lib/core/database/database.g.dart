@@ -12559,6 +12559,1967 @@ class ScratchpadsCompanion extends UpdateCompanion<Scratchpad> {
   }
 }
 
+class $ExamEventsTable extends ExamEvents
+    with TableInfo<$ExamEventsTable, ExamEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExamEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, title, date, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'exam_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExamEvent> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExamEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExamEvent(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExamEventsTable createAlias(String alias) {
+    return $ExamEventsTable(attachedDatabase, alias);
+  }
+}
+
+class ExamEvent extends DataClass implements Insertable<ExamEvent> {
+  final String id;
+  final String title;
+  final DateTime date;
+  final DateTime updatedAt;
+  const ExamEvent({
+    required this.id,
+    required this.title,
+    required this.date,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['date'] = Variable<DateTime>(date);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ExamEventsCompanion toCompanion(bool nullToAbsent) {
+    return ExamEventsCompanion(
+      id: Value(id),
+      title: Value(title),
+      date: Value(date),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ExamEvent.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExamEvent(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'date': serializer.toJson<DateTime>(date),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ExamEvent copyWith({
+    String? id,
+    String? title,
+    DateTime? date,
+    DateTime? updatedAt,
+  }) => ExamEvent(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    date: date ?? this.date,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ExamEvent copyWithCompanion(ExamEventsCompanion data) {
+    return ExamEvent(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      date: data.date.present ? data.date.value : this.date,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExamEvent(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('date: $date, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, title, date, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExamEvent &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.date == this.date &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ExamEventsCompanion extends UpdateCompanion<ExamEvent> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<DateTime> date;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ExamEventsCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.date = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExamEventsCompanion.insert({
+    required String id,
+    required String title,
+    required DateTime date,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       date = Value(date),
+       updatedAt = Value(updatedAt);
+  static Insertable<ExamEvent> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<DateTime>? date,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (date != null) 'date': date,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExamEventsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<DateTime>? date,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ExamEventsCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      date: date ?? this.date,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExamEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('date: $date, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ExamSubjectsTable extends ExamSubjects
+    with TableInfo<$ExamSubjectsTable, ExamSubject> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExamSubjectsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _eventIdMeta = const VerificationMeta(
+    'eventId',
+  );
+  @override
+  late final GeneratedColumn<String> eventId = GeneratedColumn<String>(
+    'event_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES exam_events (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rawScoreMeta = const VerificationMeta(
+    'rawScore',
+  );
+  @override
+  late final GeneratedColumn<double> rawScore = GeneratedColumn<double>(
+    'raw_score',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _scaledScoreMeta = const VerificationMeta(
+    'scaledScore',
+  );
+  @override
+  late final GeneratedColumn<double> scaledScore = GeneratedColumn<double>(
+    'scaled_score',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maximumMeta = const VerificationMeta(
+    'maximum',
+  );
+  @override
+  late final GeneratedColumn<double> maximum = GeneratedColumn<double>(
+    'maximum',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _scoreRevisionMeta = const VerificationMeta(
+    'scoreRevision',
+  );
+  @override
+  late final GeneratedColumn<int> scoreRevision = GeneratedColumn<int>(
+    'score_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _aiReasoningMeta = const VerificationMeta(
+    'aiReasoning',
+  );
+  @override
+  late final GeneratedColumn<String> aiReasoning = GeneratedColumn<String>(
+    'ai_reasoning',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _aiModelMeta = const VerificationMeta(
+    'aiModel',
+  );
+  @override
+  late final GeneratedColumn<String> aiModel = GeneratedColumn<String>(
+    'ai_model',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _usesScalingMeta = const VerificationMeta(
+    'usesScaling',
+  );
+  @override
+  late final GeneratedColumn<bool> usesScaling = GeneratedColumn<bool>(
+    'uses_scaling',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("uses_scaling" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    eventId,
+    subject,
+    rawScore,
+    scaledScore,
+    maximum,
+    scoreRevision,
+    aiReasoning,
+    aiModel,
+    usesScaling,
+    notes,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'exam_subjects';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExamSubject> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('event_id')) {
+      context.handle(
+        _eventIdMeta,
+        eventId.isAcceptableOrUnknown(data['event_id']!, _eventIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventIdMeta);
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    if (data.containsKey('raw_score')) {
+      context.handle(
+        _rawScoreMeta,
+        rawScore.isAcceptableOrUnknown(data['raw_score']!, _rawScoreMeta),
+      );
+    }
+    if (data.containsKey('scaled_score')) {
+      context.handle(
+        _scaledScoreMeta,
+        scaledScore.isAcceptableOrUnknown(
+          data['scaled_score']!,
+          _scaledScoreMeta,
+        ),
+      );
+    }
+    if (data.containsKey('maximum')) {
+      context.handle(
+        _maximumMeta,
+        maximum.isAcceptableOrUnknown(data['maximum']!, _maximumMeta),
+      );
+    }
+    if (data.containsKey('score_revision')) {
+      context.handle(
+        _scoreRevisionMeta,
+        scoreRevision.isAcceptableOrUnknown(
+          data['score_revision']!,
+          _scoreRevisionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ai_reasoning')) {
+      context.handle(
+        _aiReasoningMeta,
+        aiReasoning.isAcceptableOrUnknown(
+          data['ai_reasoning']!,
+          _aiReasoningMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ai_model')) {
+      context.handle(
+        _aiModelMeta,
+        aiModel.isAcceptableOrUnknown(data['ai_model']!, _aiModelMeta),
+      );
+    }
+    if (data.containsKey('uses_scaling')) {
+      context.handle(
+        _usesScalingMeta,
+        usesScaling.isAcceptableOrUnknown(
+          data['uses_scaling']!,
+          _usesScalingMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {eventId, subject},
+  ];
+  @override
+  ExamSubject map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExamSubject(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      eventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_id'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+      rawScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}raw_score'],
+      ),
+      scaledScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}scaled_score'],
+      ),
+      maximum: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}maximum'],
+      ),
+      scoreRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}score_revision'],
+      )!,
+      aiReasoning: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ai_reasoning'],
+      )!,
+      aiModel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ai_model'],
+      ),
+      usesScaling: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}uses_scaling'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExamSubjectsTable createAlias(String alias) {
+    return $ExamSubjectsTable(attachedDatabase, alias);
+  }
+}
+
+class ExamSubject extends DataClass implements Insertable<ExamSubject> {
+  final String id;
+  final String eventId;
+  final String subject;
+  final double? rawScore;
+  final double? scaledScore;
+  final double? maximum;
+  final int scoreRevision;
+  final String aiReasoning;
+  final String? aiModel;
+  final bool usesScaling;
+  final String notes;
+  final DateTime updatedAt;
+  const ExamSubject({
+    required this.id,
+    required this.eventId,
+    required this.subject,
+    this.rawScore,
+    this.scaledScore,
+    this.maximum,
+    required this.scoreRevision,
+    required this.aiReasoning,
+    this.aiModel,
+    required this.usesScaling,
+    required this.notes,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['event_id'] = Variable<String>(eventId);
+    map['subject'] = Variable<String>(subject);
+    if (!nullToAbsent || rawScore != null) {
+      map['raw_score'] = Variable<double>(rawScore);
+    }
+    if (!nullToAbsent || scaledScore != null) {
+      map['scaled_score'] = Variable<double>(scaledScore);
+    }
+    if (!nullToAbsent || maximum != null) {
+      map['maximum'] = Variable<double>(maximum);
+    }
+    map['score_revision'] = Variable<int>(scoreRevision);
+    map['ai_reasoning'] = Variable<String>(aiReasoning);
+    if (!nullToAbsent || aiModel != null) {
+      map['ai_model'] = Variable<String>(aiModel);
+    }
+    map['uses_scaling'] = Variable<bool>(usesScaling);
+    map['notes'] = Variable<String>(notes);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ExamSubjectsCompanion toCompanion(bool nullToAbsent) {
+    return ExamSubjectsCompanion(
+      id: Value(id),
+      eventId: Value(eventId),
+      subject: Value(subject),
+      rawScore: rawScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawScore),
+      scaledScore: scaledScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scaledScore),
+      maximum: maximum == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maximum),
+      scoreRevision: Value(scoreRevision),
+      aiReasoning: Value(aiReasoning),
+      aiModel: aiModel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(aiModel),
+      usesScaling: Value(usesScaling),
+      notes: Value(notes),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ExamSubject.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExamSubject(
+      id: serializer.fromJson<String>(json['id']),
+      eventId: serializer.fromJson<String>(json['eventId']),
+      subject: serializer.fromJson<String>(json['subject']),
+      rawScore: serializer.fromJson<double?>(json['rawScore']),
+      scaledScore: serializer.fromJson<double?>(json['scaledScore']),
+      maximum: serializer.fromJson<double?>(json['maximum']),
+      scoreRevision: serializer.fromJson<int>(json['scoreRevision']),
+      aiReasoning: serializer.fromJson<String>(json['aiReasoning']),
+      aiModel: serializer.fromJson<String?>(json['aiModel']),
+      usesScaling: serializer.fromJson<bool>(json['usesScaling']),
+      notes: serializer.fromJson<String>(json['notes']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'eventId': serializer.toJson<String>(eventId),
+      'subject': serializer.toJson<String>(subject),
+      'rawScore': serializer.toJson<double?>(rawScore),
+      'scaledScore': serializer.toJson<double?>(scaledScore),
+      'maximum': serializer.toJson<double?>(maximum),
+      'scoreRevision': serializer.toJson<int>(scoreRevision),
+      'aiReasoning': serializer.toJson<String>(aiReasoning),
+      'aiModel': serializer.toJson<String?>(aiModel),
+      'usesScaling': serializer.toJson<bool>(usesScaling),
+      'notes': serializer.toJson<String>(notes),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ExamSubject copyWith({
+    String? id,
+    String? eventId,
+    String? subject,
+    Value<double?> rawScore = const Value.absent(),
+    Value<double?> scaledScore = const Value.absent(),
+    Value<double?> maximum = const Value.absent(),
+    int? scoreRevision,
+    String? aiReasoning,
+    Value<String?> aiModel = const Value.absent(),
+    bool? usesScaling,
+    String? notes,
+    DateTime? updatedAt,
+  }) => ExamSubject(
+    id: id ?? this.id,
+    eventId: eventId ?? this.eventId,
+    subject: subject ?? this.subject,
+    rawScore: rawScore.present ? rawScore.value : this.rawScore,
+    scaledScore: scaledScore.present ? scaledScore.value : this.scaledScore,
+    maximum: maximum.present ? maximum.value : this.maximum,
+    scoreRevision: scoreRevision ?? this.scoreRevision,
+    aiReasoning: aiReasoning ?? this.aiReasoning,
+    aiModel: aiModel.present ? aiModel.value : this.aiModel,
+    usesScaling: usesScaling ?? this.usesScaling,
+    notes: notes ?? this.notes,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ExamSubject copyWithCompanion(ExamSubjectsCompanion data) {
+    return ExamSubject(
+      id: data.id.present ? data.id.value : this.id,
+      eventId: data.eventId.present ? data.eventId.value : this.eventId,
+      subject: data.subject.present ? data.subject.value : this.subject,
+      rawScore: data.rawScore.present ? data.rawScore.value : this.rawScore,
+      scaledScore: data.scaledScore.present
+          ? data.scaledScore.value
+          : this.scaledScore,
+      maximum: data.maximum.present ? data.maximum.value : this.maximum,
+      scoreRevision: data.scoreRevision.present
+          ? data.scoreRevision.value
+          : this.scoreRevision,
+      aiReasoning: data.aiReasoning.present
+          ? data.aiReasoning.value
+          : this.aiReasoning,
+      aiModel: data.aiModel.present ? data.aiModel.value : this.aiModel,
+      usesScaling: data.usesScaling.present
+          ? data.usesScaling.value
+          : this.usesScaling,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExamSubject(')
+          ..write('id: $id, ')
+          ..write('eventId: $eventId, ')
+          ..write('subject: $subject, ')
+          ..write('rawScore: $rawScore, ')
+          ..write('scaledScore: $scaledScore, ')
+          ..write('maximum: $maximum, ')
+          ..write('scoreRevision: $scoreRevision, ')
+          ..write('aiReasoning: $aiReasoning, ')
+          ..write('aiModel: $aiModel, ')
+          ..write('usesScaling: $usesScaling, ')
+          ..write('notes: $notes, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    eventId,
+    subject,
+    rawScore,
+    scaledScore,
+    maximum,
+    scoreRevision,
+    aiReasoning,
+    aiModel,
+    usesScaling,
+    notes,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExamSubject &&
+          other.id == this.id &&
+          other.eventId == this.eventId &&
+          other.subject == this.subject &&
+          other.rawScore == this.rawScore &&
+          other.scaledScore == this.scaledScore &&
+          other.maximum == this.maximum &&
+          other.scoreRevision == this.scoreRevision &&
+          other.aiReasoning == this.aiReasoning &&
+          other.aiModel == this.aiModel &&
+          other.usesScaling == this.usesScaling &&
+          other.notes == this.notes &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ExamSubjectsCompanion extends UpdateCompanion<ExamSubject> {
+  final Value<String> id;
+  final Value<String> eventId;
+  final Value<String> subject;
+  final Value<double?> rawScore;
+  final Value<double?> scaledScore;
+  final Value<double?> maximum;
+  final Value<int> scoreRevision;
+  final Value<String> aiReasoning;
+  final Value<String?> aiModel;
+  final Value<bool> usesScaling;
+  final Value<String> notes;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ExamSubjectsCompanion({
+    this.id = const Value.absent(),
+    this.eventId = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.rawScore = const Value.absent(),
+    this.scaledScore = const Value.absent(),
+    this.maximum = const Value.absent(),
+    this.scoreRevision = const Value.absent(),
+    this.aiReasoning = const Value.absent(),
+    this.aiModel = const Value.absent(),
+    this.usesScaling = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExamSubjectsCompanion.insert({
+    required String id,
+    required String eventId,
+    required String subject,
+    this.rawScore = const Value.absent(),
+    this.scaledScore = const Value.absent(),
+    this.maximum = const Value.absent(),
+    this.scoreRevision = const Value.absent(),
+    this.aiReasoning = const Value.absent(),
+    this.aiModel = const Value.absent(),
+    this.usesScaling = const Value.absent(),
+    this.notes = const Value.absent(),
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       eventId = Value(eventId),
+       subject = Value(subject),
+       updatedAt = Value(updatedAt);
+  static Insertable<ExamSubject> custom({
+    Expression<String>? id,
+    Expression<String>? eventId,
+    Expression<String>? subject,
+    Expression<double>? rawScore,
+    Expression<double>? scaledScore,
+    Expression<double>? maximum,
+    Expression<int>? scoreRevision,
+    Expression<String>? aiReasoning,
+    Expression<String>? aiModel,
+    Expression<bool>? usesScaling,
+    Expression<String>? notes,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (eventId != null) 'event_id': eventId,
+      if (subject != null) 'subject': subject,
+      if (rawScore != null) 'raw_score': rawScore,
+      if (scaledScore != null) 'scaled_score': scaledScore,
+      if (maximum != null) 'maximum': maximum,
+      if (scoreRevision != null) 'score_revision': scoreRevision,
+      if (aiReasoning != null) 'ai_reasoning': aiReasoning,
+      if (aiModel != null) 'ai_model': aiModel,
+      if (usesScaling != null) 'uses_scaling': usesScaling,
+      if (notes != null) 'notes': notes,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExamSubjectsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? eventId,
+    Value<String>? subject,
+    Value<double?>? rawScore,
+    Value<double?>? scaledScore,
+    Value<double?>? maximum,
+    Value<int>? scoreRevision,
+    Value<String>? aiReasoning,
+    Value<String?>? aiModel,
+    Value<bool>? usesScaling,
+    Value<String>? notes,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ExamSubjectsCompanion(
+      id: id ?? this.id,
+      eventId: eventId ?? this.eventId,
+      subject: subject ?? this.subject,
+      rawScore: rawScore ?? this.rawScore,
+      scaledScore: scaledScore ?? this.scaledScore,
+      maximum: maximum ?? this.maximum,
+      scoreRevision: scoreRevision ?? this.scoreRevision,
+      aiReasoning: aiReasoning ?? this.aiReasoning,
+      aiModel: aiModel ?? this.aiModel,
+      usesScaling: usesScaling ?? this.usesScaling,
+      notes: notes ?? this.notes,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (eventId.present) {
+      map['event_id'] = Variable<String>(eventId.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (rawScore.present) {
+      map['raw_score'] = Variable<double>(rawScore.value);
+    }
+    if (scaledScore.present) {
+      map['scaled_score'] = Variable<double>(scaledScore.value);
+    }
+    if (maximum.present) {
+      map['maximum'] = Variable<double>(maximum.value);
+    }
+    if (scoreRevision.present) {
+      map['score_revision'] = Variable<int>(scoreRevision.value);
+    }
+    if (aiReasoning.present) {
+      map['ai_reasoning'] = Variable<String>(aiReasoning.value);
+    }
+    if (aiModel.present) {
+      map['ai_model'] = Variable<String>(aiModel.value);
+    }
+    if (usesScaling.present) {
+      map['uses_scaling'] = Variable<bool>(usesScaling.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExamSubjectsCompanion(')
+          ..write('id: $id, ')
+          ..write('eventId: $eventId, ')
+          ..write('subject: $subject, ')
+          ..write('rawScore: $rawScore, ')
+          ..write('scaledScore: $scaledScore, ')
+          ..write('maximum: $maximum, ')
+          ..write('scoreRevision: $scoreRevision, ')
+          ..write('aiReasoning: $aiReasoning, ')
+          ..write('aiModel: $aiModel, ')
+          ..write('usesScaling: $usesScaling, ')
+          ..write('notes: $notes, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ExamScoreRowsTable extends ExamScoreRows
+    with TableInfo<$ExamScoreRowsTable, ExamScoreRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExamScoreRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectIdMeta = const VerificationMeta(
+    'subjectId',
+  );
+  @override
+  late final GeneratedColumn<String> subjectId = GeneratedColumn<String>(
+    'subject_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES exam_subjects (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES exam_score_rows (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _earnedMeta = const VerificationMeta('earned');
+  @override
+  late final GeneratedColumn<double> earned = GeneratedColumn<double>(
+    'earned',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maximumMeta = const VerificationMeta(
+    'maximum',
+  );
+  @override
+  late final GeneratedColumn<double> maximum = GeneratedColumn<double>(
+    'maximum',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    subjectId,
+    parentId,
+    position,
+    label,
+    earned,
+    maximum,
+    note,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'exam_score_rows';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExamScoreRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('subject_id')) {
+      context.handle(
+        _subjectIdMeta,
+        subjectId.isAcceptableOrUnknown(data['subject_id']!, _subjectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectIdMeta);
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('earned')) {
+      context.handle(
+        _earnedMeta,
+        earned.isAcceptableOrUnknown(data['earned']!, _earnedMeta),
+      );
+    }
+    if (data.containsKey('maximum')) {
+      context.handle(
+        _maximumMeta,
+        maximum.isAcceptableOrUnknown(data['maximum']!, _maximumMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExamScoreRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExamScoreRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      subjectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject_id'],
+      )!,
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+      earned: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}earned'],
+      ),
+      maximum: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}maximum'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+    );
+  }
+
+  @override
+  $ExamScoreRowsTable createAlias(String alias) {
+    return $ExamScoreRowsTable(attachedDatabase, alias);
+  }
+}
+
+class ExamScoreRow extends DataClass implements Insertable<ExamScoreRow> {
+  final String id;
+  final String subjectId;
+  final String? parentId;
+  final int position;
+  final String label;
+  final double? earned;
+  final double? maximum;
+  final String note;
+  const ExamScoreRow({
+    required this.id,
+    required this.subjectId,
+    this.parentId,
+    required this.position,
+    required this.label,
+    this.earned,
+    this.maximum,
+    required this.note,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['subject_id'] = Variable<String>(subjectId);
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    map['position'] = Variable<int>(position);
+    map['label'] = Variable<String>(label);
+    if (!nullToAbsent || earned != null) {
+      map['earned'] = Variable<double>(earned);
+    }
+    if (!nullToAbsent || maximum != null) {
+      map['maximum'] = Variable<double>(maximum);
+    }
+    map['note'] = Variable<String>(note);
+    return map;
+  }
+
+  ExamScoreRowsCompanion toCompanion(bool nullToAbsent) {
+    return ExamScoreRowsCompanion(
+      id: Value(id),
+      subjectId: Value(subjectId),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      position: Value(position),
+      label: Value(label),
+      earned: earned == null && nullToAbsent
+          ? const Value.absent()
+          : Value(earned),
+      maximum: maximum == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maximum),
+      note: Value(note),
+    );
+  }
+
+  factory ExamScoreRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExamScoreRow(
+      id: serializer.fromJson<String>(json['id']),
+      subjectId: serializer.fromJson<String>(json['subjectId']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+      position: serializer.fromJson<int>(json['position']),
+      label: serializer.fromJson<String>(json['label']),
+      earned: serializer.fromJson<double?>(json['earned']),
+      maximum: serializer.fromJson<double?>(json['maximum']),
+      note: serializer.fromJson<String>(json['note']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'subjectId': serializer.toJson<String>(subjectId),
+      'parentId': serializer.toJson<String?>(parentId),
+      'position': serializer.toJson<int>(position),
+      'label': serializer.toJson<String>(label),
+      'earned': serializer.toJson<double?>(earned),
+      'maximum': serializer.toJson<double?>(maximum),
+      'note': serializer.toJson<String>(note),
+    };
+  }
+
+  ExamScoreRow copyWith({
+    String? id,
+    String? subjectId,
+    Value<String?> parentId = const Value.absent(),
+    int? position,
+    String? label,
+    Value<double?> earned = const Value.absent(),
+    Value<double?> maximum = const Value.absent(),
+    String? note,
+  }) => ExamScoreRow(
+    id: id ?? this.id,
+    subjectId: subjectId ?? this.subjectId,
+    parentId: parentId.present ? parentId.value : this.parentId,
+    position: position ?? this.position,
+    label: label ?? this.label,
+    earned: earned.present ? earned.value : this.earned,
+    maximum: maximum.present ? maximum.value : this.maximum,
+    note: note ?? this.note,
+  );
+  ExamScoreRow copyWithCompanion(ExamScoreRowsCompanion data) {
+    return ExamScoreRow(
+      id: data.id.present ? data.id.value : this.id,
+      subjectId: data.subjectId.present ? data.subjectId.value : this.subjectId,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      position: data.position.present ? data.position.value : this.position,
+      label: data.label.present ? data.label.value : this.label,
+      earned: data.earned.present ? data.earned.value : this.earned,
+      maximum: data.maximum.present ? data.maximum.value : this.maximum,
+      note: data.note.present ? data.note.value : this.note,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExamScoreRow(')
+          ..write('id: $id, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('parentId: $parentId, ')
+          ..write('position: $position, ')
+          ..write('label: $label, ')
+          ..write('earned: $earned, ')
+          ..write('maximum: $maximum, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    subjectId,
+    parentId,
+    position,
+    label,
+    earned,
+    maximum,
+    note,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExamScoreRow &&
+          other.id == this.id &&
+          other.subjectId == this.subjectId &&
+          other.parentId == this.parentId &&
+          other.position == this.position &&
+          other.label == this.label &&
+          other.earned == this.earned &&
+          other.maximum == this.maximum &&
+          other.note == this.note);
+}
+
+class ExamScoreRowsCompanion extends UpdateCompanion<ExamScoreRow> {
+  final Value<String> id;
+  final Value<String> subjectId;
+  final Value<String?> parentId;
+  final Value<int> position;
+  final Value<String> label;
+  final Value<double?> earned;
+  final Value<double?> maximum;
+  final Value<String> note;
+  final Value<int> rowid;
+  const ExamScoreRowsCompanion({
+    this.id = const Value.absent(),
+    this.subjectId = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.label = const Value.absent(),
+    this.earned = const Value.absent(),
+    this.maximum = const Value.absent(),
+    this.note = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExamScoreRowsCompanion.insert({
+    required String id,
+    required String subjectId,
+    this.parentId = const Value.absent(),
+    required int position,
+    required String label,
+    this.earned = const Value.absent(),
+    this.maximum = const Value.absent(),
+    this.note = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       subjectId = Value(subjectId),
+       position = Value(position),
+       label = Value(label);
+  static Insertable<ExamScoreRow> custom({
+    Expression<String>? id,
+    Expression<String>? subjectId,
+    Expression<String>? parentId,
+    Expression<int>? position,
+    Expression<String>? label,
+    Expression<double>? earned,
+    Expression<double>? maximum,
+    Expression<String>? note,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (subjectId != null) 'subject_id': subjectId,
+      if (parentId != null) 'parent_id': parentId,
+      if (position != null) 'position': position,
+      if (label != null) 'label': label,
+      if (earned != null) 'earned': earned,
+      if (maximum != null) 'maximum': maximum,
+      if (note != null) 'note': note,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExamScoreRowsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? subjectId,
+    Value<String?>? parentId,
+    Value<int>? position,
+    Value<String>? label,
+    Value<double?>? earned,
+    Value<double?>? maximum,
+    Value<String>? note,
+    Value<int>? rowid,
+  }) {
+    return ExamScoreRowsCompanion(
+      id: id ?? this.id,
+      subjectId: subjectId ?? this.subjectId,
+      parentId: parentId ?? this.parentId,
+      position: position ?? this.position,
+      label: label ?? this.label,
+      earned: earned ?? this.earned,
+      maximum: maximum ?? this.maximum,
+      note: note ?? this.note,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (subjectId.present) {
+      map['subject_id'] = Variable<String>(subjectId.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (earned.present) {
+      map['earned'] = Variable<double>(earned.value);
+    }
+    if (maximum.present) {
+      map['maximum'] = Variable<double>(maximum.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExamScoreRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('parentId: $parentId, ')
+          ..write('position: $position, ')
+          ..write('label: $label, ')
+          ..write('earned: $earned, ')
+          ..write('maximum: $maximum, ')
+          ..write('note: $note, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ExamAttachmentsTable extends ExamAttachments
+    with TableInfo<$ExamAttachmentsTable, ExamAttachment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExamAttachmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectIdMeta = const VerificationMeta(
+    'subjectId',
+  );
+  @override
+  late final GeneratedColumn<String> subjectId = GeneratedColumn<String>(
+    'subject_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES exam_subjects (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _relativePathMeta = const VerificationMeta(
+    'relativePath',
+  );
+  @override
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+    'relative_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mimeMeta = const VerificationMeta('mime');
+  @override
+  late final GeneratedColumn<String> mime = GeneratedColumn<String>(
+    'mime',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    subjectId,
+    role,
+    relativePath,
+    mime,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'exam_attachments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExamAttachment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('subject_id')) {
+      context.handle(
+        _subjectIdMeta,
+        subjectId.isAcceptableOrUnknown(data['subject_id']!, _subjectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectIdMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('relative_path')) {
+      context.handle(
+        _relativePathMeta,
+        relativePath.isAcceptableOrUnknown(
+          data['relative_path']!,
+          _relativePathMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_relativePathMeta);
+    }
+    if (data.containsKey('mime')) {
+      context.handle(
+        _mimeMeta,
+        mime.isAcceptableOrUnknown(data['mime']!, _mimeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mimeMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExamAttachment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExamAttachment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      subjectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject_id'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      relativePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_path'],
+      )!,
+      mime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExamAttachmentsTable createAlias(String alias) {
+    return $ExamAttachmentsTable(attachedDatabase, alias);
+  }
+}
+
+class ExamAttachment extends DataClass implements Insertable<ExamAttachment> {
+  final String id;
+  final String subjectId;
+  final String role;
+  final String relativePath;
+  final String mime;
+  final DateTime createdAt;
+  const ExamAttachment({
+    required this.id,
+    required this.subjectId,
+    required this.role,
+    required this.relativePath,
+    required this.mime,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['subject_id'] = Variable<String>(subjectId);
+    map['role'] = Variable<String>(role);
+    map['relative_path'] = Variable<String>(relativePath);
+    map['mime'] = Variable<String>(mime);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ExamAttachmentsCompanion toCompanion(bool nullToAbsent) {
+    return ExamAttachmentsCompanion(
+      id: Value(id),
+      subjectId: Value(subjectId),
+      role: Value(role),
+      relativePath: Value(relativePath),
+      mime: Value(mime),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ExamAttachment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExamAttachment(
+      id: serializer.fromJson<String>(json['id']),
+      subjectId: serializer.fromJson<String>(json['subjectId']),
+      role: serializer.fromJson<String>(json['role']),
+      relativePath: serializer.fromJson<String>(json['relativePath']),
+      mime: serializer.fromJson<String>(json['mime']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'subjectId': serializer.toJson<String>(subjectId),
+      'role': serializer.toJson<String>(role),
+      'relativePath': serializer.toJson<String>(relativePath),
+      'mime': serializer.toJson<String>(mime),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ExamAttachment copyWith({
+    String? id,
+    String? subjectId,
+    String? role,
+    String? relativePath,
+    String? mime,
+    DateTime? createdAt,
+  }) => ExamAttachment(
+    id: id ?? this.id,
+    subjectId: subjectId ?? this.subjectId,
+    role: role ?? this.role,
+    relativePath: relativePath ?? this.relativePath,
+    mime: mime ?? this.mime,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ExamAttachment copyWithCompanion(ExamAttachmentsCompanion data) {
+    return ExamAttachment(
+      id: data.id.present ? data.id.value : this.id,
+      subjectId: data.subjectId.present ? data.subjectId.value : this.subjectId,
+      role: data.role.present ? data.role.value : this.role,
+      relativePath: data.relativePath.present
+          ? data.relativePath.value
+          : this.relativePath,
+      mime: data.mime.present ? data.mime.value : this.mime,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExamAttachment(')
+          ..write('id: $id, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('role: $role, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('mime: $mime, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, subjectId, role, relativePath, mime, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExamAttachment &&
+          other.id == this.id &&
+          other.subjectId == this.subjectId &&
+          other.role == this.role &&
+          other.relativePath == this.relativePath &&
+          other.mime == this.mime &&
+          other.createdAt == this.createdAt);
+}
+
+class ExamAttachmentsCompanion extends UpdateCompanion<ExamAttachment> {
+  final Value<String> id;
+  final Value<String> subjectId;
+  final Value<String> role;
+  final Value<String> relativePath;
+  final Value<String> mime;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ExamAttachmentsCompanion({
+    this.id = const Value.absent(),
+    this.subjectId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.mime = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExamAttachmentsCompanion.insert({
+    required String id,
+    required String subjectId,
+    required String role,
+    required String relativePath,
+    required String mime,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       subjectId = Value(subjectId),
+       role = Value(role),
+       relativePath = Value(relativePath),
+       mime = Value(mime),
+       createdAt = Value(createdAt);
+  static Insertable<ExamAttachment> custom({
+    Expression<String>? id,
+    Expression<String>? subjectId,
+    Expression<String>? role,
+    Expression<String>? relativePath,
+    Expression<String>? mime,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (subjectId != null) 'subject_id': subjectId,
+      if (role != null) 'role': role,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (mime != null) 'mime': mime,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExamAttachmentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? subjectId,
+    Value<String>? role,
+    Value<String>? relativePath,
+    Value<String>? mime,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ExamAttachmentsCompanion(
+      id: id ?? this.id,
+      subjectId: subjectId ?? this.subjectId,
+      role: role ?? this.role,
+      relativePath: relativePath ?? this.relativePath,
+      mime: mime ?? this.mime,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (subjectId.present) {
+      map['subject_id'] = Variable<String>(subjectId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (mime.present) {
+      map['mime'] = Variable<String>(mime.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExamAttachmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('role: $role, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('mime: $mime, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -12610,6 +14571,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PracticeChatLinksTable practiceChatLinks =
       $PracticeChatLinksTable(this);
   late final $ScratchpadsTable scratchpads = $ScratchpadsTable(this);
+  late final $ExamEventsTable examEvents = $ExamEventsTable(this);
+  late final $ExamSubjectsTable examSubjects = $ExamSubjectsTable(this);
+  late final $ExamScoreRowsTable examScoreRows = $ExamScoreRowsTable(this);
+  late final $ExamAttachmentsTable examAttachments = $ExamAttachmentsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -12643,6 +14610,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     reviewRecords,
     practiceChatLinks,
     scratchpads,
+    examEvents,
+    examSubjects,
+    examScoreRows,
+    examAttachments,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -12912,6 +14883,34 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('practice_chat_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'exam_events',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('exam_subjects', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'exam_subjects',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('exam_score_rows', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'exam_score_rows',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('exam_score_rows', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'exam_subjects',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('exam_attachments', kind: UpdateKind.delete)],
     ),
   ]);
 }

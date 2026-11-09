@@ -58,3 +58,13 @@ Future stable and nightly Android releases include `arm64-v8a`, `armeabi-v7a`, `
 Chat replies stream incrementally. Enable reasoning to view provider-returned reasoning or public summaries in a collapsed panel. ChatGPT encrypted internal state is never decoded or displayed. Exercise-generation reasoning stays hidden until the current questions are submitted; reasoning is not proof that an answer is correct. Saved questions and AI-sourced study material link back to the same reasoning record.
 
 Chat sessions, mistakes and practice questions each have a Scratchpad button. Every scratchpad supports multiple pages, colored pens with adjustable width, a radius eraser, undo/redo, page navigation and confirmed deletion. The canvas can pan in any direction. Switch to pan/zoom mode for touch gestures or the Linux mouse wheel; Reset view preserves the ink. Pages and view positions save locally, survive reopening and are included in full backups. They are not automatically sent to AI. Permanently deleting the owner also deletes its scratchpad.
+
+### Exam records
+
+Open Exam records from Study, select a calendar date and add an exam and its subjects. Chinese, mathematics and English use raw scores only; other subjects may also record scaled scores. Unknown marks can stay blank.
+
+Store exam papers, answer sheets and reference answers separately. Android supports camera and photo selection; Linux supports file selection. Original images stay local and are included in complete backups.
+
+The question breakdown supports questions and subquestions. Next question and Next subquestion number entries, focus marks and reuse the previous sibling's maximum. Questions with subquestions use their child totals. Blank means unknown; `0` means zero marks. Totals never overwrite the exam's raw score.
+
+AI extraction uploads only 1–4 selected photos, up to 20 MB combined, to a vision-capable model. Prefer teacher-awarded marks and review every suggestion before saving. Saving replaces the previous breakdown. Reasoning strength is configurable for this request; its prompt is editable in Prompt manager. Mock mode supports manual entry and does not pretend to grade photos.

@@ -1,3 +1,5 @@
+import 'features/exams/exam_photo_intake.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -58,7 +60,8 @@ Future<void> main() async {
       try {
         final lost = await ImagePicker().retrieveLostData();
         if (lost.files?.isNotEmpty == true) {
-          if (!await StudyPhotoIntake.recover(c, lost.files!)) {
+          if (!await ExamPhotoIntake.recover(c, lost.files!) &&
+              !await StudyPhotoIntake.recover(c, lost.files!)) {
             if (c.selected == null) await c.newSession();
             for (final image in lost.files!) {
               await c.addImage(image.path);
@@ -68,6 +71,7 @@ Future<void> main() async {
         }
         if (lost.files?.isNotEmpty != true) {
           await c.db.setPreference(StudyPhotoIntake.preference, '');
+          await c.db.setPreference(ExamPhotoIntake.preference, '');
         }
         if (lost.exception != null) c.notice = '上次图片选择未完成，请重新选择。';
       } catch (_) {

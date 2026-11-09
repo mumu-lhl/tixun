@@ -134,3 +134,7 @@ job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的
 `integration_test/scratchpad_reasoning_test.dart` 是新增的第八组原生 GUI 入口，验证流式展示、彩色短笔画起点、橡皮/撤销、多页保存、平移缩放/复位与重开，并生成手机、桌面英文截图。普通 CI 仍只做启动冒烟，完整 GUI 在 Nightly、版本发布或 `full_gui` 中执行。
 
 CI 的签名测试与 Android 构建统一使用 Temurin **Java 25 LTS**；Flutter 显式选择 CI 的 JAVA_HOME。Gradle 9.3.1 支持运行在 Java 25（[兼容性表](https://docs.gradle.org/9.3.1/userguide/compatibility.html)）。Android Java/Kotlin 字节码目标仍为 17，不因此提高 Android 最低版本。
+
+## 考试记录
+
+考试使用 schema v9 的四张独立表，按日期查询并关联科目、两级小分表与分类照片。小分表整表替换在事务中完成，以独立 revision 检测并发修改；裸分与明细合计独立。完整备份验证考试附件引用。`exam_flow_test.dart` 是第九组原生 GUI 测试。真实模型识别准确率及 Android 实机拍照/活动恢复仍需设备验证。

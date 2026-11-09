@@ -1,4 +1,5 @@
 import '../features/scratchpad/scratch_store.dart';
+import '../features/exams/exam_store.dart';
 
 import 'dart:async';
 import 'dart:io';
@@ -49,6 +50,7 @@ class AppController extends ChangeNotifier {
       : ChatGptAuth(keys);
   final bool demo;
   late final StudyStore study = StudyStore(db, files);
+  late final ExamStore exams = ExamStore(db, files);
   late final ScratchStore scratch = ScratchStore(db);
   late final ReviewStore review = ReviewStore(db);
   late final PracticeStore practice = PracticeStore(db, files: files)
@@ -1112,6 +1114,7 @@ class AppController extends ChangeNotifier {
     if (_disposed) return;
     _disposed = true;
     scratch.dispose();
+    exams.dispose();
     preferences.dispose();
     study.dispose();
     practice.dispose();
@@ -1125,6 +1128,7 @@ class AppController extends ChangeNotifier {
     await stop();
     await practice.flushDrafts();
     await scratch.flush();
+    await exams.whenIdle;
     await preferences.whenIdle;
     await study.whenIdle;
     await practice.whenIdle;

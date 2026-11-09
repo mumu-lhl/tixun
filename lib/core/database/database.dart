@@ -8,6 +8,7 @@ part 'database.g.dart';
 part 'study_tables.dart';
 part 'practice_tables.dart';
 part 'review_tables.dart';
+part 'exam_tables.dart';
 
 class ChatSessions extends Table {
   TextColumn get id => text()();
@@ -122,6 +123,10 @@ class Preferences extends Table {
     ReviewRecords,
     PracticeChatLinks,
     Scratchpads,
+    ExamEvents,
+    ExamSubjects,
+    ExamScoreRows,
+    ExamAttachments,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -129,7 +134,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 8;
+  static const latestSchemaVersion = 9;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -140,6 +145,7 @@ class AppDatabase extends _$AppDatabase {
       await _createPracticeIndexes();
       await _createReviewIndexes();
       await _createPracticeLinkIndex();
+      await _createExamIndexes();
       await customStatement(
         'CREATE INDEX messages_session_time ON chat_messages(session_id, created_at)',
       );
@@ -236,6 +242,17 @@ class AppDatabase extends _$AppDatabase {
           "ELSE NULL END",
         );
       }
+      if (from < 9) {
+        for (final table in <TableInfo>[
+          examEvents,
+          examSubjects,
+          examScoreRows,
+          examAttachments,
+        ]) {
+          await m.createTable(table);
+        }
+        await _createExamIndexes();
+      }
       if (from < 8) {
         await m.addColumn(chatMessages, chatMessages.reasoningTrace);
         await m.createTable(scratchpads);
@@ -271,6 +288,16 @@ class AppDatabase extends _$AppDatabase {
       );
     },
   );
+
+  Future<void> _createExamIndexes() async {
+    await customStatement('CREATE INDEX exam_event_date ON exam_events(date)');
+    await customStatement(
+      'CREATE INDEX exam_rows_subject ON exam_score_rows(subject_id,position)',
+    );
+    await customStatement(
+      'CREATE INDEX exam_photos_subject ON exam_attachments(subject_id,created_at)',
+    );
+  }
 
   Future<void> _createPracticeLinkIndex() async {
     await customStatement(

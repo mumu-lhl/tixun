@@ -71,6 +71,13 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
+                OutlinedButton.icon(
+                  key: const Key('open-exams'),
+                  onPressed: () => context.push('/exams'),
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  label: Text(context.tr('考试记录')),
+                ),
+                const SizedBox(height: 12),
                 const DailyLearning(),
                 const SizedBox(height: 24),
                 if (c.allSessions.isEmpty)

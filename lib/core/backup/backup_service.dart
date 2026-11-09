@@ -412,6 +412,7 @@ class BackupService {
         'practice_questions': 'questions',
         'practice_attempts': 'attempts',
         'review_schedules': 'reviews',
+        'exam_events': 'exams',
       };
       final counts = <String, int>{};
       for (final e in counters.entries) {
@@ -424,6 +425,7 @@ class BackupService {
         'attachments',
         'study_attachments',
         'practice_images',
+        'exam_attachments',
       ]) {
         if (tables.contains(table)) {
           refs.addAll(

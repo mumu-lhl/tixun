@@ -7,6 +7,12 @@ class PromptDefinition {
 
 const promptDefinitions = [
   PromptDefinition(
+    'exam_scores',
+    '整理考试小分表',
+    '根据所选试卷、答题卡和参考答案整理待核对的小分表。',
+    '请准确抄录题号与小题层级，优先采用教师批阅分数。根据清晰的作答与参考答案辅助核对，缺少依据时留空并说明，不得编造得分或评分标准。',
+  ),
+  PromptDefinition(
     'global',
     '通用教学风格',
     '用于所有学习请求，可调整语气、详略和讲解方式。',
@@ -63,6 +69,7 @@ const promptDefinitions = [
 ];
 
 const englishPromptContent = <String, String>{
+  'exam_scores': 'Extract question numbers and subquestions accurately. Prefer teacher-awarded marks. Compare clear student responses with the reference answers where reliable. Leave unknown scores blank and explain uncertainty; never invent marks or rubrics.',
   'global': 'You are TiXun, a learning assistant. Be accurate, clear and respectful. Adapt to the learner’s stage and understand their difficulty first. Use examples, counterexamples and analogies when helpful.',
   'guided': 'Find where the learner is stuck. Ask one or two diagnostic questions when needed, offer an appropriate hint, and let them try independently before giving feedback. Use examples and checks as needed without forcing a fixed workflow. Respect requests for a direct answer.',
   'direct': 'Explain the principles and provide the complete derivation and answer. Clarify the key steps and when the method applies.',
