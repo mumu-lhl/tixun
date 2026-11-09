@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/actions.dart';
 import '../progress/profile_editor.dart';
 import '../review/review_providers.dart';
 import '../update/android_install.dart';
@@ -75,7 +76,20 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                       ),
                       loading: () => const LinearProgressIndicator(),
-                      error: (_, _) => Text(context.tr('学习设置读取失败')),
+                      error: (_, _) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(context.tr('学习设置读取失败')),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(0, 48),
+                            ),
+                            onPressed: () =>
+                                ref.invalidate(learningProfileProvider),
+                            child: Text(context.tr('重试')),
+                          ),
+                        ],
+                      ),
                     ),
                 heading('AI 服务'),
                 ListTile(
@@ -264,7 +278,11 @@ class _UpdateSettings extends ConsumerWidget {
                 ),
               if (status.installBlocked)
                 OutlinedButton(
-                  onPressed: () => openInstallSettings(),
+                  // openInstallSettings is a MethodChannel call that can
+                  // throw when unimplemented: route it through act so a
+                  // failure shows a snackbar instead of an unhandled
+                  // async exception.
+                  onPressed: () => act(context, openInstallSettings),
                   child: Text(context.tr('打开安装设置')),
                 ),
               if (Platform.isLinux && status.staged) ...[

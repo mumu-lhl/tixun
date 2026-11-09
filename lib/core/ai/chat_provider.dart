@@ -44,7 +44,23 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
     }
     try {
       final json = jsonDecode(data) as Map<String, dynamic>;
-      if (json['error'] != null) throw const AiFailure('服务返回错误，请检查模型配置后重试。');
+      if (json['error'] != null) {
+        final error = json['error'];
+        var detail = '';
+        if (error is Map) {
+          final code = error['code'];
+          if (code != null) detail += '（$code）';
+          final message = error['message'];
+          if (message is String && message.isNotEmpty) {
+            detail +=
+                '：${message.length > 200 ? '${message.substring(0, 200)}…' : message}';
+          }
+        } else if (error is String && error.isNotEmpty) {
+          detail +=
+              '：${error.length > 200 ? '${error.substring(0, 200)}…' : error}';
+        }
+        throw AiFailure('服务返回错误$detail，请检查模型配置后重试。');
+      }
       final usage = json['usage'] as Map<String, dynamic>?;
       if (usage?['total_tokens'] is int) {
         yield AiChunk(tokens: usage!['total_tokens'] as int);
@@ -118,16 +134,36 @@ String teachingPrompt(
 
 List<ChatMessage> selectContextHistory(List<ChatMessage> history) {
   // Keep complete turns within a transparent, conservative character budget.
+  // One overlong message must not brick the whole session: older overlong
+  // messages are skipped, and only the newest user message is kept, truncated
+  // in place with a note. Callers that need the skip count can compare the
+  // returned ids against the input.
+  const maxMessageChars = 32000;
+  final newestUser = history.lastIndexWhere((m) => m.role == 'user');
   final selected = <ChatMessage>[];
   var chars = 0;
-  for (final m in history.reversed) {
+  for (var i = history.length - 1; i >= 0; i--) {
+    final m = history[i];
     if (m.role == 'assistant' && m.status != 'complete') continue;
+    if (m.content.length > maxMessageChars) {
+      if (i == newestUser) {
+        // What the user just sent: keep it, truncated, so this send still
+        // goes out. It alone fills the budget; older turns are dropped by
+        // the budget check below.
+        final truncated = m.copyWith(
+          content:
+              '${m.content.substring(0, maxMessageChars)}\n[内容过长，已截断前 32000 字符。]',
+        );
+        selected.insert(0, truncated);
+        chars += truncated.content.length;
+      }
+      // Older overlong messages are skipped: the model sees the surrounding
+      // turns, and later sends keep working.
+      continue;
+    }
     if (selected.length >= 30 ||
         (chars + m.content.length > 32000 && selected.isNotEmpty)) {
       break;
-    }
-    if (m.content.length > 32000) {
-      throw const AiFailure('单条消息过长，请缩短至 32000 字符以内。');
     }
     selected.insert(0, m);
     chars += m.content.length;
@@ -138,6 +174,13 @@ List<ChatMessage> selectContextHistory(List<ChatMessage> history) {
   return selected;
 }
 
+/// Single-image cap (also enforced by the import path) and the total raw
+/// bytes of images attached to one request. The total cap keeps a long
+/// session with many large images from building an oversized payload that
+/// risks OOM on low-end devices or a 400 from the provider.
+const maxSingleImageBytes = 8 * 1024 * 1024;
+const maxTotalImageBytes = 32 * 1024 * 1024;
+
 Future<AiRequest> prepareAiRequest(
   ProviderConfig config,
   List<ChatMessage> history,
@@ -145,9 +188,21 @@ Future<AiRequest> prepareAiRequest(
   AttachmentStore files,
   String mode,
 ) async {
-  validateConfig(config);
+  try {
+    validateConfig(config);
+  } on FormatException catch (e) {
+    throw AiFailure(e.message);
+  }
   final selected = selectContextHistory(history);
   final ids = selected.map((m) => m.id).toSet();
+  // Only overlong messages inside the scanned window (newest 30) count as
+  // skipped; older ones were never candidates for this request.
+  final window = history.length > 30
+      ? history.sublist(history.length - 30)
+      : history;
+  final skippedLong = window
+      .where((m) => m.content.length > 32000 && !ids.contains(m.id))
+      .length;
   final includedImages = images
       .where((a) => a.messageId != null && ids.contains(a.messageId))
       .toList();
@@ -155,15 +210,27 @@ Future<AiRequest> prepareAiRequest(
     throw const AiFailure('当前对话包含图片，所选模型不支持视觉。请切换到 Flash 或启用支持图片的模型。');
   }
   final messages = <AiMessage>[];
+  var totalImageBytes = 0;
+  var skippedImages = 0;
   for (final m in selected) {
     final attachments = includedImages.where((a) => a.messageId == m.id);
     final images = <AiImage>[];
     for (final a in attachments) {
       final file = files.resolve(a.relativePath);
-      if (!await file.exists()) throw const AiFailure('原始图片文件缺失，请重新导入图片。');
-      if (await file.length() > 8 * 1024 * 1024) {
-        throw const AiFailure('图片过大，请缩小后重试。');
+      // A missing or oversized image degrades to a text-only send for that
+      // image instead of aborting the whole request: one stale attachment
+      // must not brick the session.
+      if (!await file.exists()) {
+        skippedImages++;
+        continue;
       }
+      final length = await file.length();
+      if (length > maxSingleImageBytes ||
+          totalImageBytes + length > maxTotalImageBytes) {
+        skippedImages++;
+        continue;
+      }
+      totalImageBytes += length;
       images.add(
         AiImage(
           'data:${a.mime};base64,${base64Encode(await file.readAsBytes())}',
@@ -178,6 +245,18 @@ Future<AiRequest> prepareAiRequest(
               reasoningContent: m.reasoningContent,
             ),
     );
+  }
+  if ((skippedLong > 0 || skippedImages > 0) && messages.isNotEmpty) {
+    // Bracketed app note, same style as the other context notes: the model
+    // can tell the user what was left out instead of failing silently.
+    var note = '';
+    if (skippedLong > 0) note += '\n[应用提示：本次请求略过了 $skippedLong 条过长历史消息。]';
+    if (skippedImages > 0) {
+      note += '\n[应用提示：本次请求跳过了 $skippedImages 张图片（文件缺失或超过大小上限），请重新导入后再次发送。]';
+    }
+    final target = messages.lastIndexWhere((m) => m.role == AiRole.user);
+    final index = target >= 0 ? target : messages.length - 1;
+    messages[index] = messages[index].withText('${messages[index].text}$note');
   }
   return AiRequest(instructions: teachingPrompt(mode), messages: messages);
 }
@@ -285,7 +364,11 @@ class OpenAiChatProvider implements ChatProvider {
     if (key.trim().isEmpty) {
       throw const AiFailure('请先在设置中保存 API Key，或开启离线 Mock。');
     }
-    validateConfig(config);
+    try {
+      validateConfig(config);
+    } on FormatException catch (e) {
+      throw AiFailure(e.message);
+    }
     var received = false;
     for (var attempt = 0; attempt < 2; attempt++) {
       try {

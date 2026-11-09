@@ -212,6 +212,79 @@ void main() {
     );
     expect(await store.searchKnowledge(), isEmpty);
   });
+  test('Missing or mistyped tool parameters name the parameter', () async {
+    final r = runner(confirm: (_, _) async => true);
+    for (final bad in [
+      call('p1', 'schedule_review', {}),
+      call('p2', 'schedule_review', {'question_id': 123}),
+    ]) {
+      final result = await r.execute(bad, CancelToken());
+      expect(result['ok'], false);
+      expect(result['error'], contains('question_id'));
+    }
+  });
+  test(
+    'create_mistake copies only the referenced images, none by default',
+    () async {
+      final images = <Attachment>[];
+      for (var i = 0; i < 2; i++) {
+        final path = 'attachments/src$i.png';
+        await store.files.resolve(path).parent.create(recursive: true);
+        await store.files.resolve(path).writeAsBytes([137, 80, 78, 71]);
+        images.add(
+          Attachment(
+            id: 'src$i',
+            sessionId: session,
+            relativePath: path,
+            mime: 'image/png',
+            byteLength: 4,
+          ),
+        );
+      }
+      StudyToolRunner withImages(List<Attachment> sourceImages) =>
+          StudyToolRunner(
+            store,
+            sessionId: session,
+            runId: 'run',
+            authorized: true,
+            confirm: (_, _) async => true,
+            sourceImages: sourceImages,
+          );
+      final noImages = await withImages(images).execute(
+        call('m1', 'create_mistake', {'title': '错题一', 'subject': '数学'}),
+        CancelToken(),
+      );
+      expect(noImages['ok'], true);
+      expect(
+        await store.images(noImages['id'] as String, isMistake: true),
+        isEmpty,
+      );
+      final one = await withImages(images).execute(
+        call('m2', 'create_mistake', {
+          'title': '错题二',
+          'subject': '数学',
+          'image_indices': [1],
+        }),
+        CancelToken(),
+      );
+      expect(one['ok'], true);
+      expect(
+        (await store.images(one['id'] as String, isMistake: true)).length,
+        1,
+      );
+      final bad = await withImages(images).execute(
+        call('m3', 'create_mistake', {
+          'title': '错题三',
+          'subject': '数学',
+          'image_indices': [5],
+        }),
+        CancelToken(),
+      );
+      expect(bad['ok'], false);
+      expect(bad['error'], contains('图片引用无效'));
+      expect((await store.searchMistakes()).length, 2);
+    },
+  );
   test('Tool fragments support multi-chunk JSON and reject incomplete or oversized calls', () {
     final collector = ToolCallCollector();
     collector.add([

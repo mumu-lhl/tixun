@@ -298,4 +298,209 @@ void main() {
       expect(assistant['reasoning_content'], '先想再答');
     },
   );
+  ChatMessage historyMessage(
+    String id,
+    String content, {
+    String role = 'user',
+  }) => ChatMessage(
+    id: id,
+    sessionId: 's',
+    role: role,
+    content: content,
+    status: 'complete',
+    createdAt: DateTime(2026),
+  );
+  test(
+    'Overlong history messages are skipped instead of bricking the session',
+    () {
+      final long = 'x' * 40000;
+      final selected = selectContextHistory([
+        historyMessage('u1', '第一问'),
+        historyMessage('a1', long, role: 'assistant'),
+        historyMessage('u2', '继续问'),
+      ]);
+      expect(selected.map((m) => m.id), ['u1', 'u2']);
+      // The newest user message is kept, truncated, so the send still goes out.
+      final truncated = selectContextHistory([
+        historyMessage('u1', '第一问'),
+        historyMessage('u2', long),
+      ]);
+      expect(truncated.map((m) => m.id), ['u2']);
+      expect(truncated.single.content, contains('已截断'));
+      expect(truncated.single.content.length, lessThanOrEqualTo(32050));
+    },
+  );
+  test(
+    'Missing and oversized images are skipped with a note, not an abort',
+    () async {
+      final root = await Directory.systemTemp.createTemp('tixun-ai-images');
+      addTearDown(() => root.delete(recursive: true));
+      final store = AttachmentStore(root);
+      final db = AppDatabase.memory();
+      addTearDown(db.close);
+      final config = await db.config();
+      const missing = Attachment(
+        id: 'gone',
+        sessionId: 's',
+        messageId: 'u1',
+        relativePath: 'attachments/gone.png',
+        mime: 'image/png',
+        byteLength: 4,
+      );
+      final request = await prepareAiRequest(
+        config,
+        [
+          historyMessage('u1', '看图'),
+          historyMessage('a1', 'y' * 40000, role: 'assistant'),
+          historyMessage('u2', '继续'),
+        ],
+        [missing],
+        store,
+        'guided',
+      );
+      expect(request.messages.map((m) => m.text), [
+        '看图',
+        contains('略过了 1 条过长历史消息'),
+      ]);
+      expect(request.messages.first.images, isEmpty);
+      expect(request.messages.last.text, contains('跳过了 1 张图片'));
+      // A single image over 8 MB is skipped the same way.
+      await store.resolve('attachments/big.png').parent.create(recursive: true);
+      await store
+          .resolve('attachments/big.png')
+          .writeAsBytes(List.filled(8 * 1024 * 1024 + 1, 0));
+      final big = await prepareAiRequest(
+        config,
+        [historyMessage('u1', '看大图')],
+        [
+          const Attachment(
+            id: 'big',
+            sessionId: 's',
+            messageId: 'u1',
+            relativePath: 'attachments/big.png',
+            mime: 'image/png',
+            byteLength: 8 * 1024 * 1024 + 1,
+          ),
+        ],
+        store,
+        'guided',
+      );
+      expect(big.messages.single.images, isEmpty);
+      expect(big.messages.single.text, contains('跳过了 1 张图片'));
+    },
+  );
+  test('Image payloads stop at the 32 MB total cap', () async {
+    final root = await Directory.systemTemp.createTemp('tixun-ai-cap');
+    addTearDown(() => root.delete(recursive: true));
+    final store = AttachmentStore(root);
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+    final config = await db.config();
+    final attachments = <Attachment>[];
+    for (var i = 0; i < 5; i++) {
+      await store.resolve('attachments/$i.png').parent.create(recursive: true);
+      await store
+          .resolve('attachments/$i.png')
+          .writeAsBytes(List.filled(7 * 1024 * 1024, 0));
+      attachments.add(
+        Attachment(
+          id: 'img$i',
+          sessionId: 's',
+          messageId: 'u${i + 1}',
+          relativePath: 'attachments/$i.png',
+          mime: 'image/png',
+          byteLength: 7 * 1024 * 1024,
+        ),
+      );
+    }
+    final request = await prepareAiRequest(
+      config,
+      [for (var i = 0; i < 5; i++) historyMessage('u${i + 1}', '图${i + 1}')],
+      attachments,
+      store,
+      'guided',
+    );
+    // The first four (28 MB) fit; the fifth would push the total past 32 MB.
+    expect(request.messages.take(4).map((m) => m.images.length), [1, 1, 1, 1]);
+    expect(request.messages.last.images, isEmpty);
+    expect(request.messages.last.text, contains('跳过了 1 张图片'));
+  });
+  test('SSE server errors keep their code and message', () async {
+    await expectLater(
+      decodeCompletion(
+        bytes(
+          'data: {"error":{"code":"invalid_request","message":"reasoning_content is required when tools are present"}}\n\n',
+        ),
+      ).toList(),
+      throwsA(
+        isA<AiFailure>()
+            .having((e) => e.message, 'message', contains('invalid_request'))
+            .having(
+              (e) => e.message,
+              'message',
+              contains('reasoning_content is required'),
+            ),
+      ),
+    );
+    await expectLater(
+      decodeCompletion(bytes('data: {"error":"boom"}\n\n')).toList(),
+      throwsA(
+        isA<AiFailure>().having((e) => e.message, 'message', contains('boom')),
+      ),
+    );
+  });
+  test(
+    'Content plus [DONE] without finish_reason still fails explicitly',
+    () async {
+      // Probe: no compatible endpoint was observed sending this shape, so the
+      // fail-closed behavior stays; only the duplicate-completion half of
+      // P2-1 is fixed (see architecture_test.dart).
+      await expectLater(
+        decodeCompletion(
+          bytes(
+            'data: {"choices":[{"delta":{"content":"答"}}]}\n\ndata: [DONE]\n\n',
+          ),
+        ).toList(),
+        throwsA(isA<AiFailure>()),
+      );
+    },
+  );
+  test('A repeated finish_reason in a trailing usage chunk yields a second completed chunk', () async {
+    final chunks = await decodeCompletion(
+      bytes(
+        'data: {"choices":[{"delta":{"content":"答"}}]}\n\n'
+        'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n'
+        'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"total_tokens":7}}\n\n'
+        'data: [DONE]\n\n',
+      ),
+    ).toList();
+    expect(chunks.where((c) => c.completed).length, 2);
+    expect(chunks.map((c) => c.text).join(), '答');
+  });
+  test('decodeCompletion only reads streaming reasoning deltas, never a message payload', () async {
+    // Probe for P1-14: the client only ever parses SSE delta frames, so a
+    // non-streaming message.reasoning_content field is unreachable here.
+    // The remaining gap (an endpoint that streams no reasoning delta at all)
+    // cannot be confirmed without a real DeepSeek key.
+    final chunks = await decodeCompletion(
+      bytes(
+        'data: {"choices":[{"message":{"content":"答","reasoning_content":"非流式推理"}}]}\n\n$end',
+      ),
+    ).toList();
+    expect(chunks.map((c) => c.reasoning).join(), isEmpty);
+    expect(chunks.any((c) => c.completed), true);
+  });
+  test('prepareAiRequest reports bad config as AiFailure', () async {
+    final root = await Directory.systemTemp.createTemp('tixun-ai-config');
+    addTearDown(() => root.delete(recursive: true));
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+    final config = (await db.config()).copyWith(
+      baseUrl: 'https://key@example.com',
+    );
+    await expectLater(
+      prepareAiRequest(config, [], [], AttachmentStore(root), 'guided'),
+      throwsA(isA<AiFailure>()),
+    );
+  });
 }

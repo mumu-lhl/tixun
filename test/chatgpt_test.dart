@@ -208,6 +208,8 @@ void main() {
     expect(encoded['store'], false);
     expect(encoded['stream'], true);
     expect(encoded['instructions'], 'Guide the student.');
+    // Intentional: the ChatGPT path sends no output cap; the connection
+    // test cancels after the first text instead (see _requestBody).
     expect(encoded.containsKey('max_tokens'), false);
     expect(encoded.containsKey('max_output_tokens'), false);
     expect(encoded['input'][0]['content'][1]['type'], 'input_image');
@@ -260,6 +262,117 @@ void main() {
       expect(chunks.single.completed, false);
     }
   });
+
+  test('History with tool calls but no retained context synthesizes a fallback function_call', () async {
+    final f = ChatGptFixture();
+    await f.seed();
+    final request = AiRequest(
+      instructions: '',
+      messages: [
+        const AiMessage.user('出题'),
+        AiMessage.assistant(
+          '',
+          calls: [
+            ToolCall('call_fallback', 'create_quiz', '{"kind":"numeric"}'),
+          ],
+        ),
+        const AiMessage.tool('call_fallback', '{"ok":true}'),
+      ],
+      tools: [
+        const AiTool(
+          name: 'create_quiz',
+          description: 'Quiz',
+          parameters: {'type': 'object'},
+        ),
+      ],
+    );
+    final sent = <Map<String, dynamic>>[];
+    final client = Dio()
+      ..httpClientAdapter = FixtureAdapter((r) {
+        sent.add(Map<String, dynamic>.from(r.data as Map));
+        return fixtureSse([completed()]);
+      });
+    final chunks = await ChatGptResponses(
+      f.auth,
+      client: client,
+    ).start(config).complete(request, CancelToken()).toList();
+    expect(chunks.last.completed, true);
+    final input = sent.single['input'] as List;
+    expect(input.length, 3);
+    final call = input.firstWhere(
+      (e) => e is Map && e['type'] == 'function_call',
+    ) as Map;
+    expect(call['call_id'], 'call_fallback');
+    expect(call['name'], 'create_quiz');
+    expect(call['namespace'], 'tixun');
+    expect(call.containsKey('id'), false);
+    expect(input.last, {
+      'type': 'function_call_output',
+      'call_id': 'call_fallback',
+      'output': '{"ok":true}',
+    });
+  });
+
+  test('Config errors keep their own message on both provider paths', () async {
+    final f = ChatGptFixture();
+    await f.seed();
+    final badChatGpt = config.copyWith(effort: 'ultra');
+    expect(
+      () => ChatGptResponses(f.auth).start(badChatGpt),
+      throwsA(
+        isA<AiFailure>().having((e) => e.message, 'message', contains('思考参数')),
+      ),
+    );
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+    final badApi = (await db.config()).copyWith(
+      baseUrl: 'https://key@example.com',
+    );
+    await expectLater(
+      OpenAiChatProvider()
+          .start(badApi, apiKeyOverride: 'test-only')
+          .complete(AiRequest(instructions: '', messages: []), CancelToken())
+          .toList(),
+      throwsA(
+        isA<AiFailure>().having(
+          (e) => e.message,
+          'message',
+          contains('API 地址'),
+        ),
+      ),
+    );
+  });
+
+  test(
+    'Corrupt ChatGPT login records report as unreadable instead of raw errors',
+    () async {
+      final keys = MemoryKeyStore();
+      final auth = ChatGptAuth(keys);
+      for (final raw in [
+        '{not json',
+        '{"version":1,"accounts":["oops"]}',
+        '{"version":1,"accounts":[{"sub":"no-client"}]}',
+        '{"version":1,"accounts":{}}',
+      ]) {
+        await keys.write(ChatGptAuth.storageKey, raw);
+        await expectLater(
+          auth.snapshot(),
+          throwsA(
+            isA<AiFailure>().having(
+              (e) => e.message,
+              'message',
+              contains('登录记录无法读取'),
+            ),
+          ),
+        );
+      }
+      await keys.write(
+        ChatGptAuth.storageKey,
+        jsonEncode({'version': 1, 'accounts': []}),
+      );
+      expect((await auth.snapshot()).accounts, isEmpty);
+    },
+  );
 
   test('Controller creates a real interactive quiz through namespaced tools with reasoning enabled', () async {
     final f = ChatGptFixture();

@@ -37,7 +37,14 @@ class ChatGptSnapshot {
 }
 
 class _AccountRecord {
-  _AccountRecord(Map<String, dynamic> data) : data = Map.unmodifiable(data);
+  _AccountRecord(Map<String, dynamic> data) : data = Map.unmodifiable(data) {
+    // Fail eagerly so a record missing its identity is caught by _accounts
+    // and reported as an unreadable login instead of a raw TypeError from
+    // a getter later.
+    if (data['client_id'] is! String || data['sub'] is! String) {
+      throw const FormatException('ChatGPT 登录记录损坏。');
+    }
+  }
   final Map<String, dynamic> data;
   String get clientId => data['client_id'] as String;
   String get subject => data['sub'] as String;
@@ -105,19 +112,35 @@ class ChatGptAuth {
     if (raw == null || raw.isEmpty) {
       return {'version': 1, 'accounts': <dynamic>[]};
     }
-    final data = jsonDecode(raw) as Map<String, dynamic>;
-    if (data['version'] != 1 || data['accounts'] is! List) {
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      if (data['version'] != 1 || data['accounts'] is! List) {
+        throw const AiFailure('ChatGPT 登录记录无法读取，请检查系统安全存储。');
+      }
+      return data;
+    } on AiFailure {
+      rethrow;
+    } catch (_) {
+      // Corrupt JSON or a non-object record used to surface raw
+      // FormatException/TypeError here; report it as an unreadable login.
       throw const AiFailure('ChatGPT 登录记录无法读取，请检查系统安全存储。');
     }
-    return data;
   }
 
   Future<void> _save(Map<String, dynamic> data) =>
       _keys.write(storageKey, jsonEncode(data));
-  List<_AccountRecord> _accounts(Map<String, dynamic> data) => [
-    for (final row in data['accounts'] as List)
-      _AccountRecord(Map<String, dynamic>.from(row as Map)),
-  ];
+  List<_AccountRecord> _accounts(Map<String, dynamic> data) {
+    try {
+      return [
+        for (final row in data['accounts'] as List)
+          _AccountRecord(Map<String, dynamic>.from(row as Map)),
+      ];
+    } catch (_) {
+      // One corrupt account row must not surface a raw TypeError.
+      throw const AiFailure('ChatGPT 登录记录无法读取，请检查系统安全存储。');
+    }
+  }
+
   Future<ChatGptSnapshot> snapshot() async {
     final data = await _load();
     final accounts = _accounts(data).map((a) => a.summary).toList();

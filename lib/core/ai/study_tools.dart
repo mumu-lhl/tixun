@@ -21,6 +21,13 @@ const _knowledgeFields = {
   'chapter': _string,
   'tags': _tags,
 };
+const _imageIndicesField = {
+  'image_indices': {
+    'type': 'array',
+    'items': {'type': 'integer', 'minimum': 0, 'maximum': 3},
+    'maxItems': 4,
+  },
+};
 const _mistakeFields = {
   'title': _string,
   'question': _string,
@@ -104,8 +111,8 @@ final studyToolSchemas = [
   _schema('get_mistake', '读取错题、AI解析、版本及用户明确记录的思路。', {'id': _string}, ['id']),
   _schema(
     'create_mistake',
-    '提出错题保存建议，未知原题和答案不要编造。错误原因仅填写为建议，等待用户确认。',
-    _mistakeFields,
+    '提出错题保存建议；未知原题和答案不要编造。错误原因仅填写为建议，等待用户确认。题目依赖本次请求的图片时，用 image_indices 明确引用图片序号（从 0 开始，最多 4 张，仅前 4 张图片可用）；不填写时错题不附加图片。',
+    {..._mistakeFields, ..._imageIndicesField},
     ['title', 'subject'],
   ),
   _schema(
@@ -142,6 +149,11 @@ const _readTools = {
   'get_mistake',
   'get_learning_progress',
 };
+
+/// Writes are the study tools with a side effect; reads never change data.
+/// LearningRun uses this to decide whether an empty final text still means
+/// the round succeeded.
+bool isWriteStudyTool(String name) => !_readTools.contains(name);
 
 String canonicalJson(Object? value) {
   Object? sort(Object? v) {
@@ -204,12 +216,29 @@ class StudyToolRunner {
         if (!args.containsKey(key)) throw FormatException('缺少参数：$key');
       }
       for (final entry in args.entries) {
-        final type = p['properties'][entry.key]['type'];
+        final prop = p['properties'][entry.key] as Map;
+        final type = prop['type'];
         final v = entry.value;
-        if ((type == 'string' && v is! String) ||
-            (type == 'integer' && (v is! int || v < 1)) ||
-            (type == 'array' && (v is! List || v.any((e) => e is! String)))) {
+        if (type == 'string' && v is! String) {
           throw FormatException('参数 ${entry.key} 类型无效。');
+        }
+        if (type == 'integer' && (v is! int || v < 1)) {
+          throw FormatException('参数 ${entry.key} 类型无效。');
+        }
+        if (type == 'array') {
+          if (v is! List) {
+            throw FormatException('参数 ${entry.key} 类型无效。');
+          }
+          // Integer arrays (image_indices) validate elements as ints;
+          // every other array parameter is a list of strings.
+          final itemType = (prop['items'] as Map?)?['type'];
+          if (itemType == 'integer') {
+            if (v.any((e) => e is! int)) {
+              throw FormatException('参数 ${entry.key} 类型无效。');
+            }
+          } else if (v.any((e) => e is! String)) {
+            throw FormatException('参数 ${entry.key} 类型无效。');
+          }
         }
       }
       // Validate sizes before approval, including fields ignored by any individual tool.
@@ -230,8 +259,13 @@ class StudyToolRunner {
       if (args['tags'] != null) {
         store.cleanTags((args['tags'] as List).cast<String>());
       }
-    } catch (_) {
-      return {'ok': false, 'error': '工具名称或参数无效，请检查字段、类型和长度。'};
+    } catch (e) {
+      // Keep the specific reason (e.g. which parameter is missing) so the
+      // model can fix the call instead of repeating the same bad call.
+      return {
+        'ok': false,
+        'error': e is FormatException ? e.message : '工具名称或参数无效，请检查字段、类型和长度。',
+      };
     }
     final encoded = canonicalJson(args);
     final existing = await (db.select(
@@ -534,11 +568,30 @@ class StudyToolRunner {
           sourceMessageId: runId,
         );
         if (old == null) {
-          for (final image in sourceImages) {
-            if (image.sessionId != sessionId) {
-              throw const FormatException('题目图片不属于当前授权对话。');
+          // Only copy the images the model referenced. Without
+          // image_indices the mistake gets no images: copying the whole
+          // session history attached unrelated pictures to every mistake.
+          final indices = a['image_indices'];
+          if (indices != null) {
+            if (indices is! List ||
+                indices.length > 4 ||
+                indices.toSet().length != indices.length ||
+                indices.any(
+                  (i) =>
+                      i is! int ||
+                      i < 0 ||
+                      i >= sourceImages.length ||
+                      sourceImages[i].sessionId != sessionId,
+                )) {
+              throw const FormatException('题目图片引用无效。');
             }
-            await store.copyChatImage(row.id, image, isMistake: true);
+            for (final i in indices.cast<int>()) {
+              await store.copyChatImage(
+                row.id,
+                sourceImages[i],
+                isMistake: true,
+              );
+            }
           }
         }
         return {'id': row.id, 'title': row.title, 'revision': row.revision};

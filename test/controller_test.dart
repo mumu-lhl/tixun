@@ -192,4 +192,20 @@ void main() {
       expect(c.selected!.title, '不匹配搜索的新标题');
     },
   );
+  test('Rapidly switching sessions keeps the last selected one', () async {
+    final first = c.selected!;
+    final second = await c.db.createSession(title: '第二个会话');
+    await Future.wait([c.selectSession(first), c.selectSession(second)]);
+    expect(c.selected!.id, second.id);
+    expect(c.messages, isEmpty);
+  });
+  test('Selecting a session deleted mid-load does not throw', () async {
+    final gone = await c.db.createSession(title: '待删会话');
+    final current = c.selected!;
+    await (c.db.delete(
+      c.db.chatSessions,
+    )..where((s) => s.id.equals(gone.id))).go();
+    await c.selectSession(gone);
+    expect(c.selected!.id, current.id);
+  });
 }

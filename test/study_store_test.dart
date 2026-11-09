@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
@@ -72,6 +74,22 @@ void main() {
     expect((await store.knowledge(first.id)).content, first.content);
     expect((await store.revisions(first.id)).length, 5);
   });
+  test(
+    'Body text over 60000 characters is rejected, not silently truncated',
+    () async {
+      final overlong = 'x' * 60001;
+      await expectLater(
+        store.saveKnowledge(KnowledgeDraft(title: '长文', content: overlong)),
+        throwsFormatException,
+      );
+      await expectLater(
+        store.saveMistake(MistakeDraft(title: '长题', question: overlong)),
+        throwsFormatException,
+      );
+      expect(await store.searchKnowledge(), isEmpty);
+      expect(await store.searchMistakes(), isEmpty);
+    },
+  );
   test('Mistake photos, reason provenance, links and soft-delete restoration persist', () async {
     final k = await store.saveKnowledge(
       const KnowledgeDraft(title: '配方', content: '平方项'),
@@ -132,6 +150,82 @@ void main() {
       store.link(k.id, otherKnowledgeId: k.id),
       throwsFormatException,
     );
+  });
+  test('Accepting a split suggestion whose mistake was purged creates a fresh mistake', () async {
+    final session = await store.db.createSession();
+    final source = store.files.resolve('attachments/source.png');
+    await source.parent.create(recursive: true);
+    await source.writeAsBytes([1, 2, 3]);
+    await store.db
+        .into(store.db.attachments)
+        .insert(
+          AttachmentsCompanion.insert(
+            id: 'img-1',
+            sessionId: session.id,
+            relativePath: 'attachments/source.png',
+            mime: 'image/png',
+            byteLength: 3,
+          ),
+        );
+    await store.db
+        .into(store.db.chatMessages)
+        .insert(
+          ChatMessagesCompanion.insert(
+            id: 'run-1',
+            sessionId: session.id,
+            role: 'assistant',
+            content: '',
+            createdAt: DateTime.now(),
+          ),
+        );
+    final old = await store.saveMistake(const MistakeDraft(title: '旧题'));
+    await store.setDeleted(
+      old.id,
+      isMistake: true,
+      deleted: true,
+      expectedRevision: old.revision,
+    );
+    await store.purge({old.id: old.revision + 1}, isMistake: true);
+    const operationId = 'run-1:call-1';
+    await store.db
+        .into(store.db.aiToolOperations)
+        .insert(
+          AiToolOperationsCompanion.insert(
+            id: operationId,
+            runId: 'run-1',
+            sessionId: session.id,
+            name: 'suggest_question_regions',
+            arguments: '{}',
+            status: 'succeeded',
+            result: Value(
+              jsonEncode({
+                'regions': [
+                  {
+                    'label': '第 1 题',
+                    'subject': '数学',
+                    'left': 0.0,
+                    'top': 0.0,
+                    'right': 0.5,
+                    'bottom': 0.5,
+                    'question': '1+1=?',
+                  },
+                ],
+                'accepted': {'0': old.id},
+                'image_id': 'img-1',
+              }),
+            ),
+            createdAt: DateTime.now(),
+          ),
+        );
+    final id = await store.acceptQuestionRegion(
+      operationId,
+      0,
+      Uint8List.fromList([1, 2, 3]),
+      (left: 0, top: 0, right: 0.5, bottom: 0.5),
+      0,
+    );
+    expect(id, isNot(old.id));
+    expect((await store.mistake(id)).title, '第 1 题');
   });
   test('Image import failure creates neither empty mistakes nor dangling attachments', () async {
     await expectLater(

@@ -344,9 +344,13 @@ class AppController extends ChangeNotifier {
       db.preference('ai_reasoning:${session.id}').then((v) => v ?? ''),
     ]);
     if (_epoch != current) return;
-    selected = await (db.select(
+    final row = await (db.select(
       db.chatSessions,
-    )..where((s) => s.id.equals(session.id))).getSingle();
+    )..where((s) => s.id.equals(session.id))).getSingleOrNull();
+    // Re-check after the second await: another select may have completed
+    // meanwhile, and the session may have been deleted in between.
+    if (_epoch != current || row == null) return;
+    selected = row;
     messages = loaded[0] as List<ChatMessage>;
     attachments = loaded[1] as List<Attachment>;
     final override = loaded[2] as String;
@@ -516,6 +520,17 @@ class AppController extends ChangeNotifier {
     int imageCount = 0,
   }) async {
     cancel.checkCancelled();
+    // Every id the model must supply is validated here with its own name:
+    // an unguarded `as String` throws TypeError, which the tool runner
+    // would report as a generic '操作未完成' instead of telling the model
+    // which parameter is missing.
+    String argString(String key) {
+      final value = args[key];
+      if (value == null) throw FormatException('缺少参数：$key。');
+      if (value is! String) throw FormatException('参数 $key 类型无效。');
+      return value;
+    }
+
     var target = '';
     if (name.endsWith('knowledge') && args['id'] is String) {
       target = (await study.knowledge(args['id'] as String)).title;
@@ -525,32 +540,38 @@ class AppController extends ChangeNotifier {
     }
     if (name == 'link_mistake_to_knowledge') {
       target =
-          '${(await study.mistake(args['mistake_id'] as String)).title} ↔ ${(await study.knowledge(args['knowledge_id'] as String)).title}';
+          '${(await study.mistake(argString('mistake_id'))).title} ↔ ${(await study.knowledge(argString('knowledge_id'))).title}';
     }
     if (name == 'create_subject_module' && args['parent_id'] is String) {
-      final all = await study.modules.list(args['subject'] as String);
+      final all = await study.modules.list(argString('subject'));
       final parent = all.where((m) => m.id == args['parent_id']).firstOrNull;
       if (parent == null) throw const FormatException('上级模块不存在。');
-      target = '${parent.name} / ${args['name']}';
+      target = '${parent.name} / ${argString('name')}';
     }
     if (name == 'link_study_module') {
       if (!['knowledge', 'mistake'].contains(args['kind'])) {
         throw const FormatException('资料类型无效。');
       }
       final isMistake = args['kind'] == 'mistake';
+      final id = argString('id');
       final subject = isMistake
-          ? (await study.mistake(args['id'] as String)).subject
-          : (await study.knowledge(args['id'] as String)).subject;
+          ? (await study.mistake(id)).subject
+          : (await study.knowledge(id)).subject;
       final title = isMistake
-          ? (await study.mistake(args['id'] as String)).title
-          : (await study.knowledge(args['id'] as String)).title;
+          ? (await study.mistake(id)).title
+          : (await study.knowledge(id)).title;
       final all = await study.modules.list(subject);
-      final module = all.where((m) => m.id == args['module_id']).firstOrNull;
+      final moduleId = argString('module_id');
+      final module = all.where((m) => m.id == moduleId).firstOrNull;
       if (module == null) throw const FormatException('目录不存在或科目不匹配。');
       target = '$title → $subject / ${modulePath(module, all)}';
     }
     if (name == 'schedule_review') {
-      target = (await practice.detail(args['question_id'] as String)).row.stem;
+      try {
+        target = (await practice.detail(argString('question_id'))).row.stem;
+      } on StateError {
+        throw const FormatException('题目不存在。');
+      }
     }
     final decision = Completer<bool>();
     _toolDecision = decision;

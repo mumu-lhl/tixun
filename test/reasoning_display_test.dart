@@ -13,6 +13,7 @@ import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/core/ui/reasoning_panel.dart';
 import 'package:tixun/features/chat/message_reasoning.dart';
+import 'package:tixun/features/chat/reasoning_menu.dart';
 import 'package:tixun/features/practice/question_spec.dart';
 
 class TraceProvider implements ChatProvider {
@@ -217,6 +218,127 @@ void main() {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 100)),
       );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<ReasoningPanel>(find.byType(ReasoningPanel)).locked,
+        false,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(() async {
+        scope.dispose();
+        await c.shutdown();
+        await root.delete(recursive: true);
+      });
+    },
+  );
+
+  testWidgets(
+    'Reasoning menu does not highlight when thinking is on with effort none',
+    (tester) async {
+      late Directory root;
+      late AppController c;
+      await tester.runAsync(() async {
+        root = await Directory.systemTemp.createTemp('tixun-reasoning-menu');
+        c = await AppController.openRoot(
+          root,
+          demo: false,
+          keyStore: MemoryKeyStore(),
+          chatProvider: MockChatProvider(),
+        );
+        await c.newSession();
+        c.config = (await c.db.config()).copyWith(
+          kind: 'compatible',
+          baseUrl: 'https://example.com/v1',
+          model: 'gpt-5.6',
+          supportsThinking: true,
+          thinking: true,
+          effort: 'high',
+        );
+        await c.setSessionReasoning('none');
+      });
+      final scope = ProviderContainer(
+        overrides: [appControllerProvider.overrideWith((ref) => c)],
+      );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: scope,
+          child: const MaterialApp(home: Scaffold(body: ReasoningMenu())),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.psychology_outlined)).color,
+        isNull,
+      );
+      await tester.runAsync(() => c.setSessionReasoning('high'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.psychology_outlined)).color,
+        Theme.of(tester.element(find.byIcon(Icons.psychology_outlined)))
+            .colorScheme
+            .primary,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(() async {
+        scope.dispose();
+        await c.shutdown();
+        await root.delete(recursive: true);
+      });
+    },
+  );
+
+  testWidgets(
+    'A failed reasoning-lock query leaves the panel expandable with a retry',
+    (tester) async {
+      late Directory root;
+      late AppController c;
+      late ChatMessage message;
+      await tester.runAsync(() async {
+        root = await Directory.systemTemp.createTemp('tixun-reasoning-error');
+        c = await AppController.openRoot(
+          root,
+          demo: false,
+          keyStore: MemoryKeyStore(),
+          chatProvider: MockChatProvider(),
+        );
+        await c.newSession();
+        const id = 'reasoning-error-message';
+        await c.db
+            .into(c.db.chatMessages)
+            .insert(
+              ChatMessagesCompanion.insert(
+                id: id,
+                sessionId: c.selected!.id,
+                role: 'assistant',
+                content: '题目',
+                createdAt: DateTime.now(),
+                reasoningTrace: const Value('答案为4'),
+              ),
+            );
+        message = (await c.db.messages(c.selected!.id)).last;
+      });
+      final scope = ProviderContainer(
+        overrides: [
+          appControllerProvider.overrideWith((ref) => c),
+          reasoningLockedProvider(message.id)
+              .overrideWith((ref) => Stream<bool>.error(StateError('boom'))),
+        ],
+      );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: scope,
+          child: MaterialApp(home: Scaffold(body: MessageReasoning(message))),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<ReasoningPanel>(find.byType(ReasoningPanel)).locked,
+        false,
+      );
+      expect(find.text('重试'), findsOneWidget);
+      await tester.tap(find.text('重试'));
+      // The invalidated query errors again; wait for it to land instead
+      // of catching the brief loading state.
       await tester.pumpAndSettle();
       expect(
         tester.widget<ReasoningPanel>(find.byType(ReasoningPanel)).locked,

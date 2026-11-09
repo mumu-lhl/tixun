@@ -12,6 +12,17 @@ import '../../core/l10n/app_strings.dart';
 import 'library_providers.dart';
 import 'study_store.dart';
 
+/// Decode size for the editor: longest edge 2048px, never a zero edge.
+/// An extreme aspect ratio such as 5000x1 would otherwise round the short
+/// edge to 0 and make instantiateCodec throw, leaving the image uneditable.
+({int width, int height}) editorDecodeSize(int width, int height) {
+  final scale = math.min(1.0, 2048 / math.max(width, height));
+  return (
+    width: math.max(1, (width * scale).round()),
+    height: math.max(1, (height * scale).round()),
+  );
+}
+
 /// A normalized crop is applied after clockwise rotation. Original bytes remain intact.
 Future<Uint8List> renderStudyCrop(
   ui.Image image,
@@ -234,13 +245,10 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
         if (descriptor.width * descriptor.height > 32000000) {
           throw const FormatException('图片分辨率过大，请先缩小图片。原图记录未改变。');
         }
-        final scale = math.min(
-          1.0,
-          2048 / math.max(descriptor.width, descriptor.height),
-        );
+        final target = editorDecodeSize(descriptor.width, descriptor.height);
         final codec = await descriptor.instantiateCodec(
-          targetWidth: (descriptor.width * scale).round(),
-          targetHeight: (descriptor.height * scale).round(),
+          targetWidth: target.width,
+          targetHeight: target.height,
         );
         try {
           final image = (await codec.getNextFrame()).image;

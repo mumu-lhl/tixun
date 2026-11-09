@@ -48,6 +48,35 @@ void main() {
     },
   );
 
+  testWidgets('Dollar amounts stay literal text, formulas still render', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const content = r'价格是 $5 and $10，总计 $15。点 $(2,-1)$ 与 $x$、$x^2$。';
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(Brightness.light),
+        home: const Scaffold(
+          body: SingleChildScrollView(child: LearningMarkdown(content)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    // The amounts survive with their `$` signs instead of being parsed
+    // as a formula and dropped by the fallback.
+    expect(find.textContaining('\$5'), findsWidgets);
+    expect(find.textContaining('\$10'), findsWidgets);
+    // The three real formulas still render as math (one tooltip each).
+    expect(
+      find.byWidgetPredicate((w) => w is Tooltip && w.message == '长按复制 LaTeX'),
+      findsNWidgets(3),
+    );
+  });
+
   testWidgets('Formula tooltip goes through localization', (tester) async {
     tester.view.physicalSize = const Size(390, 1000);
     tester.view.devicePixelRatio = 1;

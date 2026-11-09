@@ -235,6 +235,39 @@ void main() {
       expect(await output.readAsString(), 'existing backup');
     },
   );
+  test(
+    'Activation killed between the two renames resumes from staging',
+    () async {
+      final note = await fixture();
+      final output = File('${parent.path}/backup.tixun-backup');
+      await BackupService.export(c.db, c.files, output);
+      final old = await c.study.knowledge(note);
+      await c.study.saveKnowledge(
+        const KnowledgeDraft(title: '备份知识', content: '恢复操作之前的新内容'),
+        id: note,
+        expectedRevision: old.revision,
+      );
+      final prepared = await BackupService.prepare(output, root);
+      await c.db.close();
+      c.dispose();
+      await BackupService.activate(prepared, root);
+      // Simulate a kill after `root -> previous` but before
+      // `staging/data -> root`: move the new data back into staging and
+      // leave the live directory missing.
+      await root.rename(prepared.data.path);
+      await BackupService.recoverPending(root);
+      c = await AppController.openRoot(
+        root,
+        demo: false,
+        keyStore: MemoryKeyStore(),
+        chatProvider: MockChatProvider(),
+      );
+      expect((await c.study.knowledge(note)).content, '恢复前的内容');
+      // The old data is still kept as the undo point.
+      expect(await BackupService.previousRoot(root), isNotNull);
+      await prepared.discard();
+    },
+  );
   test('Interrupted directory activation recovers the original when the live name is missing', () async {
     final note = await fixture();
     final output = File('${parent.path}/backup.tixun-backup');

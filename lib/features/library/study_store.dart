@@ -1,5 +1,6 @@
 import 'module_store.dart';
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'question_region.dart';
@@ -110,7 +111,13 @@ class MistakeDetail {
 
 /// One boundary for UI and AI writes: validation, version checks, history and links.
 class StudyStore extends DatabaseNotifier {
-  StudyStore(this.db, this.files);
+  StudyStore(this.db, this.files) {
+    // Best-effort startup sweep for orphan attachment files left by a
+    // crash between the disk write and the row insert. Only files older
+    // than 10 minutes are eligible, so in-flight imports and demo seeding
+    // are never touched; failures must never block startup.
+    unawaited(cleanupOrphanAttachments(db, files).catchError((Object _) => 0));
+  }
   final AppDatabase db;
   final AttachmentStore files;
   late final ModuleStore modules = ModuleStore(db, changed);
@@ -206,8 +213,14 @@ class StudyStore extends DatabaseNotifier {
             .cast<String, dynamic>();
         final prior = accepted['$index'];
         if (prior is String) {
-          await mistake(prior, includeDeleted: true);
-          return prior;
+          try {
+            await mistake(prior, includeDeleted: true);
+            return prior;
+          } on FormatException {
+            // The previously accepted mistake was permanently purged:
+            // treat this as never accepted and create a fresh one below;
+            // the stale entry is overwritten when the new row is recorded.
+          }
         }
         final image =
             await (db.select(db.attachments)..where(
@@ -788,6 +801,42 @@ class StudyStore extends DatabaseNotifier {
         .write(const StudyAttachmentsCompanion(deleted: Value(false)));
     changed();
   });
+
+  /// Validate an already-imported file under attachments/ without copying
+  /// it: it must exist, fit the 8 MB chat limit and still be a supported
+  /// image. Returns the format and size to store for the new reference.
+  Future<({String mime, int bytes})> checkImageFile(String relativePath) async {
+    final file = files.resolve(relativePath);
+    if (!await file.exists()) {
+      throw const FormatException('图片文件缺失。');
+    }
+    final bytes = await file.readAsBytes();
+    if (bytes.length > 8 * 1024 * 1024) {
+      throw const FormatException('单张图片上限为 8 MB，请先缩小图片。');
+    }
+    final (mime, _) = AttachmentStore.identify(bytes);
+    return (mime: mime, bytes: bytes.length);
+  }
+
+  /// Reference an already-imported study image from a chat session without
+  /// copying its bytes again. The chat row shares the same relative path;
+  /// [cleanupPurgedAttachments] keeps the file while any table still
+  /// references it, so purging one side never deletes the other's image.
+  Future<void> attachExistingChatImage(String sessionId, String relativePath) =>
+      runOperation(() async {
+        final info = await checkImageFile(relativePath);
+        await db
+            .into(db.attachments)
+            .insert(
+              AttachmentsCompanion.insert(
+                id: const Uuid().v4(),
+                sessionId: sessionId,
+                relativePath: relativePath,
+                mime: info.mime,
+                byteLength: info.bytes,
+              ),
+            );
+      });
 
   Future<StudyAttachment> importImage(
     String id,

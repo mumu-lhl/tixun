@@ -162,7 +162,14 @@ class AppPreferences extends DatabaseNotifier {
         if (next.kind == 'chatgpt' && key != null) {
           throw const FormatException('ChatGPT 使用浏览器登录，无需 API Key。');
         }
-        if (key != null) await keys.write(providerKeyId(next), key.trim());
+        // Read the current key first so a failed write can be undone.
+        final previousKey = key == null
+            ? null
+            : await keys.read(providerKeyId(next));
+        final previousConfig = config;
+        // Persist the config BEFORE writing the key: if the config
+        // write fails, the key is never rotated out from under the
+        // config still in effect (same provider, model-only change).
         await db.transaction(() async {
           if (next.kind == 'chatgpt' && config.kind != 'chatgpt') {
             await db.setPreference(
@@ -172,18 +179,44 @@ class AppPreferences extends DatabaseNotifier {
           }
           await db.saveConfig(next);
         });
+        if (key != null) {
+          try {
+            await keys.write(providerKeyId(next), key.trim());
+          } catch (_) {
+            // The config is already saved; leave no mismatched state
+            // behind: restore the previous key (or clear the entry when
+            // there was none) and roll the saved config back, then
+            // report the failure so the user can retry.
+            try {
+              if (previousKey == null || previousKey.isEmpty) {
+                await keys.write(providerKeyId(next), '');
+              } else {
+                await keys.write(providerKeyId(next), previousKey);
+              }
+            } catch (_) {}
+            try {
+              await db.saveConfig(previousConfig);
+            } catch (_) {}
+            rethrow;
+          }
+        }
         config = next;
         changed();
       });
 
   Future<void> restoreApiProvider() => runOperation(() async {
     final raw = await db.preference('previous_api_provider');
-    if (raw == null) throw const FormatException('没有已保存的 API 配置，请在设置中选择服务商。');
+    if (raw == null || raw.isEmpty) {
+      throw const FormatException('没有已保存的 API 配置，请在设置中选择服务商。');
+    }
     final previous = ProviderConfig.fromJson(
       jsonDecode(raw) as Map<String, dynamic>,
     );
     if (previous.kind == 'chatgpt') throw const FormatException('原 API 配置无效。');
     await saveSettings(previous, null);
+    // A successful restore consumes the saved provider; leaving the
+    // stale value would let a second restore silently re-apply it.
+    await db.setPreference('previous_api_provider', '');
   });
 
   Future<void> theme(ThemeMode value) => runOperation(() async {

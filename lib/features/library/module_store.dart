@@ -34,53 +34,63 @@ class ModuleStore extends DatabaseNotifier {
             ..where((t) => t.subject.equals(subject))
             ..orderBy([(t) => OrderingTerm.asc(t.position)]))
           .get();
-  Future<String> create(String subject, String name, {String? parentId}) =>
-      runOperation(() async {
-        final title = name.trim(), discipline = subject.trim();
-        if (title.isEmpty ||
-            title.length > 80 ||
-            discipline.isEmpty ||
-            discipline.length > 40) {
-          throw const FormatException('目录名称需为 1–80 字，科目需为 1–40 字。');
+  Future<String> create(
+    String subject,
+    String name, {
+    String? parentId,
+    bool reuseExisting = true,
+  }) => runOperation(() async {
+    final title = name.trim(), discipline = subject.trim();
+    if (title.isEmpty ||
+        title.length > 80 ||
+        discipline.isEmpty ||
+        discipline.length > 40) {
+      throw const FormatException('目录名称需为 1–80 字，科目需为 1–40 字。');
+    }
+    final id = await db.transaction(() async {
+      final all = await list(discipline);
+      if (parentId != null) {
+        final parent = all.where((m) => m.id == parentId).firstOrNull;
+        if (parent == null || parent.parentId != null) {
+          throw const FormatException('子模块必须位于同科目的一级模块下。');
         }
-        final id = await db.transaction(() async {
-          final all = await list(discipline);
-          if (parentId != null) {
-            final parent = all.where((m) => m.id == parentId).firstOrNull;
-            if (parent == null || parent.parentId != null) {
-              throw const FormatException('子模块必须位于同科目的一级模块下。');
-            }
-          }
-          final existing = all
-              .where(
-                (m) =>
-                    m.parentId == parentId &&
-                    m.name.toLowerCase() == title.toLowerCase(),
-              )
-              .firstOrNull;
-          if (existing != null) return existing.id;
-          if (all.length >= 500) throw const FormatException('每个科目最多 500 个目录。');
-          final key = const Uuid().v4();
-          final position = all.fold(
-            0,
-            (n, m) => m.position >= n ? m.position + 1 : n,
+      }
+      final existing = all
+          .where(
+            (m) =>
+                m.parentId == parentId &&
+                m.name.toLowerCase() == title.toLowerCase(),
+          )
+          .firstOrNull;
+      if (existing != null) {
+        // The AI create_subject_module tool documents reuse of an
+        // existing directory; the UI create path opts out (see
+        // ModuleManager.create) so a duplicate name is reported.
+        if (!reuseExisting) throw const FormatException('已存在该目录。');
+        return existing.id;
+      }
+      if (all.length >= 500) throw const FormatException('每个科目最多 500 个目录。');
+      final key = const Uuid().v4();
+      final position = all.fold(
+        0,
+        (n, m) => m.position >= n ? m.position + 1 : n,
+      );
+      await db
+          .into(db.subjectModules)
+          .insert(
+            SubjectModulesCompanion.insert(
+              id: key,
+              subject: discipline,
+              name: title,
+              parentId: Value(parentId),
+              position: position,
+            ),
           );
-          await db
-              .into(db.subjectModules)
-              .insert(
-                SubjectModulesCompanion.insert(
-                  id: key,
-                  subject: discipline,
-                  name: title,
-                  parentId: Value(parentId),
-                  position: position,
-                ),
-              );
-          return key;
-        });
-        changed();
-        return id;
-      });
+      return key;
+    });
+    changed();
+    return id;
+  });
   Future<void> rename(String id, String name) => runOperation(() async {
     final title = name.trim();
     if (title.isEmpty || title.length > 80) {
@@ -95,11 +105,14 @@ class ModuleStore extends DatabaseNotifier {
     await (db.delete(db.subjectModules)..where((t) => t.id.equals(id))).go();
     changed();
   });
-  Future<void> move(String id, int direction) => runOperation(() async {
+
+  /// Moves a module one step among its siblings. Returns false at either
+  /// end (and notifies nobody) instead of silently doing nothing.
+  Future<bool> move(String id, int direction) => runOperation(() async {
     if (direction != -1 && direction != 1) {
       throw const FormatException('排序方向无效。');
     }
-    await db.transaction(() async {
+    final moved = await db.transaction(() async {
       final row = await (db.select(
         db.subjectModules,
       )..where((t) => t.id.equals(id))).getSingle();
@@ -108,7 +121,7 @@ class ModuleStore extends DatabaseNotifier {
           .toList();
       final index = siblings.indexWhere((m) => m.id == id),
           target = siblings.indexWhere((m) => m.id == id) + direction;
-      if (target < 0 || target >= siblings.length) return;
+      if (target < 0 || target >= siblings.length) return false;
       await (db.update(db.subjectModules)..where((t) => t.id.equals(id))).write(
         SubjectModulesCompanion(position: Value(siblings[target].position)),
       );
@@ -117,8 +130,10 @@ class ModuleStore extends DatabaseNotifier {
       )..where((t) => t.id.equals(siblings[target].id))).write(
         SubjectModulesCompanion(position: Value(siblings[index].position)),
       );
+      return true;
     });
-    changed();
+    if (moved) changed();
+    return moved;
   });
   Future<Map<String, List<String>>> paths(
     Iterable<String> ids,

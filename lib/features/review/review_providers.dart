@@ -24,7 +24,10 @@ final dueCountProvider = FutureProvider<int>((ref) {
   return ref.watch(reviewStoreProvider).dueCount();
 });
 final reviewListProvider = FutureProvider.autoDispose
-    .family<List<ReviewItem>, ({String filter, String subject})>((ref, f) {
+    .family<List<ReviewItem>, ({String filter, String subject, int limit})>((
+      ref,
+      f,
+    ) {
       ref.watch(reviewClockProvider);
       ref.watch(practiceStoreProvider);
       return ref
@@ -33,6 +36,7 @@ final reviewListProvider = FutureProvider.autoDispose
             dueOnly: f.filter == 'due',
             paused: f.filter == 'paused',
             subject: f.subject,
+            limit: f.limit,
           );
     });
 final progressProvider = FutureProvider<LearningProgress>((ref) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,8 +36,17 @@ final updateCurrentVersionProvider = FutureProvider<String>((ref) async {
 ///
 /// Reads pref `update_channel` on init (default stable). Changing it
 /// persists the pref and triggers an immediate check on the new channel.
+///
+/// [loadCompleted] resolves once the saved channel has been read, so an
+/// automatic check can wait for the real channel instead of racing the
+/// default stable value on first launch.
 class UpdateChannelNotifier extends Notifier<UpdateChannel> {
   bool _selectionMade = false;
+  final _loaded = Completer<void>();
+
+  /// Completes after the saved channel (or the stable default, when the
+  /// read fails) has been applied to [state].
+  Future<void> get loadCompleted => _loaded.future;
 
   @override
   UpdateChannel build() {
@@ -57,6 +67,8 @@ class UpdateChannelNotifier extends Notifier<UpdateChannel> {
       if (!_selectionMade) state = channel;
     } catch (_) {
       // Keep the default; an explicit selection later persists.
+    } finally {
+      if (!_loaded.isCompleted) _loaded.complete();
     }
   }
 
@@ -81,6 +93,10 @@ final updateChannelProvider =
       UpdateChannelNotifier.new,
     );
 
+/// The network service behind the update flow. A separate provider so
+/// tests can substitute a stub without touching the notifiers.
+final updateServiceProvider = Provider<UpdateService>((ref) => UpdateService());
+
 enum UpdateStatus { idle, checking, upToDate, available, noneAvailable, failed }
 
 /// One snapshot of the update state shown in Settings.
@@ -96,6 +112,7 @@ class UpdateState {
     this.downloadProgress,
     this.staged = false,
     this.readyToInstall = false,
+    this.apkPath,
     this.installBlocked = false,
   });
 
@@ -117,6 +134,12 @@ class UpdateState {
   /// Android: a verified APK is downloaded and ready to install.
   final bool readyToInstall;
 
+  /// Android: path of the verified APK in the cache dir, set together
+  /// with [readyToInstall]. It lives in the state (not a private field)
+  /// so a re-check can decide from the visible state whether the cached
+  /// file still matches the release it found.
+  final String? apkPath;
+
   /// Android: installing was refused because unknown apps are not allowed;
   /// the UI offers to open the system install settings.
   final bool installBlocked;
@@ -129,11 +152,13 @@ class UpdateState {
     double? downloadProgress,
     bool? staged,
     bool? readyToInstall,
+    String? apkPath,
     bool? installBlocked,
     // Nullable fields cannot be cleared by passing null (null means
     // "keep"), so clearing needs an explicit flag.
     bool clearMessage = false,
     bool clearDownloadProgress = false,
+    bool clearApkPath = false,
   }) {
     return UpdateState(
       status: status ?? this.status,
@@ -145,6 +170,7 @@ class UpdateState {
           : (downloadProgress ?? this.downloadProgress),
       staged: staged ?? this.staged,
       readyToInstall: readyToInstall ?? this.readyToInstall,
+      apkPath: clearApkPath ? null : (apkPath ?? this.apkPath),
       installBlocked: installBlocked ?? this.installBlocked,
     );
   }
@@ -153,9 +179,8 @@ class UpdateState {
 /// Owns the update check / download / install flow and the [UpdateState]
 /// shown in Settings.
 class UpdateStatusNotifier extends Notifier<UpdateState> {
-  final UpdateService _service = UpdateService();
+  UpdateService get _service => ref.read(updateServiceProvider);
   String? _assetName;
-  String? _apkPath;
 
   @override
   UpdateState build() {
@@ -187,8 +212,12 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
   /// resets the automatic-check window.
   Future<void> checkForUpdate({bool manual = false}) async {
     if (state.status == UpdateStatus.checking) return;
+    // A verified APK downloaded for the current release stays valid
+    // when this check finds the same release: only a different release
+    // invalidates it, so remember it across the reset below.
+    final previousRelease = state.release;
+    final previousApkPath = state.readyToInstall ? state.apkPath : null;
     _assetName = null;
-    _apkPath = null;
     state = state.copyWith(
       status: UpdateStatus.checking,
       clearMessage: true,
@@ -196,11 +225,13 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
       clearDownloadProgress: true,
       installBlocked: false,
       readyToInstall: false,
+      clearApkPath: true,
     );
+    UpdateCheckOutcome? outcome;
     try {
       final info = await PackageInfo.fromPlatform();
       final channel = ref.read(updateChannelProvider);
-      final outcome = await _service.check(
+      outcome = await _service.check(
         channel,
         // Slice A compares the version without the build number.
         currentVersion: info.version,
@@ -267,6 +298,26 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
         messageArgs: const [],
       );
     } finally {
+      // The check found the same release the APK was downloaded for:
+      // the cached file is still the right one, so keep it instead of
+      // orphaning it in the cache and forcing a re-download.
+      if (previousApkPath != null &&
+          previousRelease != null &&
+          outcome != null &&
+          outcome.release?.tag == previousRelease.tag &&
+          (state.status == UpdateStatus.upToDate ||
+              state.status == UpdateStatus.available)) {
+        try {
+          if (await File(previousApkPath).exists()) {
+            state = state.copyWith(
+              readyToInstall: true,
+              apkPath: previousApkPath,
+            );
+          }
+        } catch (_) {
+          // A missing or unreadable cached APK simply stays dropped.
+        }
+      }
       await _markCheckTimestamp();
     }
   }
@@ -287,8 +338,10 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
 
   /// Downloads the resolved asset, verifies its SHA-256, then prepares it:
   /// Android keeps the verified APK for install; Linux stages it and marks
-  /// it pending for the next launch. On a verification mismatch the file is
-  /// deleted, the status becomes failed, and nothing proceeds.
+  /// it pending for the next launch. A hash mismatch deletes the file and
+  /// fails; a missing checksum (no SHA256SUMS asset, or the fetch failed)
+  /// is a different failure — the downloaded file is kept so the user can
+  /// retry the verification instead of re-downloading a good package.
   Future<void> downloadAndPrepare() async {
     final current = state;
     if (current.status != UpdateStatus.available ||
@@ -314,8 +367,20 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
         },
       );
       final expected = await _service.fetchExpectedSha256(release, assetName);
-      final ok =
-          expected != null && await _service.verifySha256(file, expected);
+      if (expected == null) {
+        // No checksum to compare against: keep the downloaded file and
+        // say so. Deleting it here would make this release permanently
+        // uninstallable from inside the app whenever the release ships
+        // without SHA256SUMS or the fetch is offline.
+        state = state.copyWith(
+          status: UpdateStatus.failed,
+          message: '无法获取校验信息，请重试',
+          messageArgs: const [],
+          clearDownloadProgress: true,
+        );
+        return;
+      }
+      final ok = await _service.verifySha256(file, expected);
       if (!ok) {
         try {
           await file.delete();
@@ -331,10 +396,10 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
       if (Platform.isAndroid) {
         // getTemporaryDirectory() is the app cache dir on Android, where
         // the native installer requires the APK to live.
-        _apkPath = file.path;
         state = state.copyWith(
           clearDownloadProgress: true,
           readyToInstall: true,
+          apkPath: file.path,
         );
       } else if (Platform.isLinux) {
         final staged = await stageLinuxUpdate(
@@ -370,7 +435,7 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
   /// to the system install settings instead of failing outright.
   Future<void> installOrApply() async {
     if (Platform.isAndroid) {
-      final apkPath = _apkPath;
+      final apkPath = state.apkPath;
       if (!state.readyToInstall || apkPath == null) return;
       try {
         await installApk(apkPath);
@@ -415,11 +480,11 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
     } catch (_) {
       // Discard is best effort; clear the local state regardless.
     }
-    _apkPath = null;
     final release = state.release;
     state = state.copyWith(
       staged: false,
       readyToInstall: false,
+      clearApkPath: true,
       clearDownloadProgress: true,
       installBlocked: false,
       status: release == null ? UpdateStatus.idle : UpdateStatus.available,

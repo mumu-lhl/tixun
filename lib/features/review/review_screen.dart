@@ -52,10 +52,11 @@ class ReviewScreen extends ConsumerStatefulWidget {
 
 class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   String filter = 'due';
+  int limit = 200;
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
-    final key = (filter: filter, subject: c.subjectFilter);
+    final key = (filter: filter, subject: c.subjectFilter, limit: limit);
     final rows = ref.watch(reviewListProvider(key));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,7 +96,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     ChoiceChip(
                       label: Text(context.tr(e.value)),
                       selected: filter == e.key,
-                      onSelected: (_) => setState(() => filter = e.key),
+                      onSelected: (_) => setState(() {
+                        filter = e.key;
+                        limit = 200;
+                      }),
                     ),
                 ],
               ),
@@ -137,8 +141,24 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       horizontal: 20,
                       vertical: 8,
                     ),
-                    itemCount: items.length,
+                    itemCount: items.length + 1,
                     itemBuilder: (ctx, i) {
+                      if (i == items.length) {
+                        // A full page may hide later-due reviews, which
+                        // have no search to reach them otherwise.
+                        if (items.length < limit) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Center(
+                            child: TextButton(
+                              onPressed: () => setState(() => limit += 200),
+                              child: Text(context.tr("加载更多")),
+                            ),
+                          ),
+                        );
+                      }
                       final item = items[i], s = item.schedule;
                       final colors = Theme.of(context).colorScheme;
                       return Padding(
@@ -192,8 +212,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                     child: Text(context.tr("开始复习")),
                                   ),
                                   TextButton(
-                                    onPressed: () =>
-                                        showReviewHistory(context, ref, item),
+                                    onPressed: () => act(
+                                      context,
+                                      () =>
+                                          showReviewHistory(context, ref, item),
+                                    ),
                                     child: Text(context.tr("调度依据与历史")),
                                   ),
                                   PopupMenuButton<String>(

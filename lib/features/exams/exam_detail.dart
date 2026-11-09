@@ -154,6 +154,7 @@ Future<void> editExam(
   final title = TextEditingController(text: event.title);
   final storedDate = event.date.toUtc();
   var date = DateTime(storedDate.year, storedDate.month, storedDate.day);
+  String? error;
   try {
     final yes = await showExamDialog<bool>(
       context: context,
@@ -181,6 +182,11 @@ Future<void> editExam(
                   if (next != null && ctx.mounted) set(() => date = next);
                 },
               ),
+              if (error != null)
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                ),
             ],
           ),
           actions: [
@@ -189,7 +195,13 @@ Future<void> editExam(
               child: Text(ctx.tr('取消')),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () {
+                if (title.text.trim().isEmpty || title.text.length > 120) {
+                  set(() => error = ctx.tr('考试名称需为 1–120 字。'));
+                  return;
+                }
+                Navigator.pop(ctx, true);
+              },
               child: Text(ctx.tr('保存')),
             ),
           ],

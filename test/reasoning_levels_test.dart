@@ -32,6 +32,9 @@ void main() {
       'xhigh',
       'max',
     ]);
+    // gpt-6-pro must hit the -pro rule, not the gpt-6 prefix rule.
+    expect(AiOptions(gpt('gpt-6-pro')).reasoningEfforts, isEmpty);
+    expect(AiOptions(gpt('gpt-6.1-pro')).reasoningEfforts, isEmpty);
     expect(AiOptions(gpt('gpt-5')).reasoningEfforts, [
       'minimal',
       'low',

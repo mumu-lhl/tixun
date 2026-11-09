@@ -471,6 +471,15 @@ class BackupService {
             .startsWith('.tixun-previous-')) {
       throw const FormatException('恢复记录无效；为保护资料，已停止自动处理。');
     }
+    // 'staging' is optional (journals written before it existed lack it)
+    // and only names the container activate() staged the new data in.
+    final staging = data['staging'];
+    if (staging != null &&
+        (staging is! String ||
+            !p.isWithin(root.parent.absolute.path, staging) ||
+            !p.basename(staging).startsWith('.tixun-stage-'))) {
+      throw const FormatException('恢复记录无效；为保护资料，已停止自动处理。');
+    }
     return data;
   }
 
@@ -485,12 +494,39 @@ class BackupService {
 
   /// Call before opening the live database. A killed restore cannot strand data
   /// between the two directory renames.
+  ///
+  /// When activation was killed between `root -> previous` and
+  /// `staging/data -> root`, the new data is still in the staging
+  /// directory: resume by moving it into place instead of discarding it
+  /// and forcing the user to restore from the backup file again. The
+  /// previous directory stays as the undo point either way.
   static Future<void> recoverPending(Directory root) async {
     final data = await _readJournal(root);
     if (data == null || data['state'] == 'complete') return;
     final previous = Directory(data['previous'] as String);
-    if (!await root.exists() && await previous.exists()) {
-      await previous.rename(root.path);
+    if (!await root.exists()) {
+      final staging = data['staging'] as String?;
+      if (staging != null) {
+        final stagedData = Directory(p.join(staging, 'data'));
+        if (await stagedData.exists()) {
+          try {
+            _checkDatabase(p.join(stagedData.path, 'tixun.sqlite'));
+            await stagedData.rename(root.path);
+            try {
+              await Directory(staging).delete(recursive: true);
+            } catch (_) {
+              // An empty staging container is harmless; leave it.
+            }
+            await _writeJournal(_journal(root), {...data, 'state': 'complete'});
+            return;
+          } catch (_) {
+            // Staged data unusable: fall through to restoring previous.
+          }
+        }
+      }
+      if (await previous.exists()) {
+        await previous.rename(root.path);
+      }
     }
     if (!await root.exists()) throw const FormatException('恢复尚未完成，未找到可用的数据目录。');
     try {
@@ -541,6 +577,9 @@ class BackupService {
     await _writeJournal(receipt.journal, {
       'root': root.absolute.path,
       'previous': previous.absolute.path,
+      // Recorded so recoverPending can resume the activation from the
+      // staged data if the process dies between the two renames below.
+      'staging': prepared.container.absolute.path,
       'state': 'activating',
     });
     try {

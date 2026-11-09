@@ -18,7 +18,7 @@ import 'question_spec.dart';
 final practiceListProvider = FutureProvider.autoDispose
     .family<
       List<PracticeQuestion>,
-      ({String query, bool trash, String subject})
+      ({String query, bool trash, String subject, int limit})
     >(
       (ref, filter) => ref
           .watch(practiceStoreProvider)
@@ -26,6 +26,7 @@ final practiceListProvider = FutureProvider.autoDispose
             query: filter.query,
             subject: filter.subject,
             trash: filter.trash,
+            limit: filter.limit,
           ),
     );
 
@@ -38,10 +39,16 @@ class PracticeScreen extends ConsumerStatefulWidget {
 class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   String query = '';
   bool trash = false;
+  int limit = 200;
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
-    final filter = (query: query, trash: trash, subject: c.subjectFilter);
+    final filter = (
+      query: query,
+      trash: trash,
+      subject: c.subjectFilter,
+      limit: limit,
+    );
     final rows = ref.watch(practiceListProvider(filter));
     return Column(
       children: [
@@ -66,7 +73,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   ),
                   IconButton(
                     tooltip: trash ? context.tr("返回题库") : context.tr("练习回收区"),
-                    onPressed: () => setState(() => trash = !trash),
+                    onPressed: () => setState(() {
+                      trash = !trash;
+                      limit = 200;
+                    }),
                     icon: Icon(
                       trash
                           ? Icons.edit_note
@@ -182,7 +192,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   prefixIcon: Icon(Icons.search),
                   hintText: context.tr("搜索题干"),
                 ),
-                onChanged: (v) => setState(() => query = v.trim()),
+                onChanged: (v) => setState(() {
+                  query = v.trim();
+                  limit = 200;
+                }),
               ),
             ],
           ),
@@ -210,9 +223,25 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                       horizontal: 20,
                       vertical: 8,
                     ),
-                    itemCount: rows.length,
+                    itemCount: rows.length + 1,
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, i) {
+                      if (i == rows.length) {
+                        // A full page may hide older questions: offer the
+                        // next page instead of silently stopping at 200.
+                        if (rows.length < limit) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Center(
+                            child: TextButton(
+                              onPressed: () => setState(() => limit += 200),
+                              child: Text(context.tr("加载更多")),
+                            ),
+                          ),
+                        );
+                      }
                       final q = rows[i];
                       return ListTile(
                         key: Key('practice-row-${q.id}'),

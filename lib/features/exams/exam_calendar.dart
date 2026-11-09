@@ -25,9 +25,11 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
   DateTime selected = DateUtils.dateOnly(DateTime.now());
   late DateTime month = DateTime(selected.year, selected.month);
   Stream<List<ExamEvent>>? events;
+  // Turning the page only moves the displayed month. The selected day is
+  // kept even when it is not in the new month (the list below is then
+  // empty), so "记录考试" still targets the day the user picked.
   void move(int delta) => setState(() {
     month = DateTime(month.year, month.month + delta);
-    selected = month;
     events = null;
   });
   @override
@@ -202,31 +204,51 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
 
   Future<void> _create(DateTime date) async {
     final title = TextEditingController();
+    String? error;
     try {
       final accepted = await showExamDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(ctx.tr('记录考试')),
-          content: TextField(
-            controller: title,
-            autofocus: true,
-            maxLength: 120,
-            decoration: InputDecoration(
-              labelText: ctx.tr('考试名称'),
-              hintText: ctx.tr('例如：高三上学期期中考试'),
-            ),
-            onSubmitted: (_) => Navigator.pop(ctx, true),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(ctx.tr('取消')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(ctx.tr('创建')),
-            ),
-          ],
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, set) {
+            void submit() {
+              if (title.text.trim().isEmpty || title.text.length > 120) {
+                set(() => error = ctx.tr('考试名称需为 1–120 字。'));
+                return;
+              }
+              Navigator.pop(ctx, true);
+            }
+
+            return AlertDialog(
+              title: Text(ctx.tr('记录考试')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: title,
+                    autofocus: true,
+                    maxLength: 120,
+                    decoration: InputDecoration(
+                      labelText: ctx.tr('考试名称'),
+                      hintText: ctx.tr('例如：高三上学期期中考试'),
+                    ),
+                    onSubmitted: (_) => submit(),
+                  ),
+                  if (error != null)
+                    Text(
+                      error!,
+                      style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(ctx.tr('取消')),
+                ),
+                FilledButton(onPressed: submit, child: Text(ctx.tr('创建'))),
+              ],
+            );
+          },
         ),
       );
       if (accepted == true && mounted) {

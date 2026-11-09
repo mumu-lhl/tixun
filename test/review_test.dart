@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/features/practice/practice_store.dart';
@@ -86,7 +88,7 @@ void main() {
       );
     },
   );
-  test('Grade and review commit atomically, duplicate evidence and early repeats cannot inflate intervals', () async {
+  test('Grade commits when review scheduling fails; duplicate evidence and early repeats cannot inflate intervals', () async {
     final db = AppDatabase.memory();
     final review = ReviewStore(db),
         practice = PracticeStore(db)..onGraded = review.record;
@@ -142,17 +144,150 @@ void main() {
     await review.adjust(s.id, reset: true);
     expect((await review.forQuestion(q))!.repetitions, 0);
     expect((await review.history(s.id)).any((r) => r.event == 'reset'), true);
+    // adjust() no longer resumes a paused schedule: resume explicitly so
+    // the next grading actually reaches the review write below.
+    await review.pause(s.id, false);
     final next = await practice.begin(q, retry: true);
     await db.customStatement(
       "CREATE TRIGGER reject_review BEFORE INSERT ON review_records BEGIN SELECT RAISE(ABORT,'test failure'); END",
     );
-    await expectLater(practice.submit(next.id, ['4']), throwsA(anything));
+    await expectLater(
+      practice.submit(next.id, ['4']),
+      throwsA(isA<FormatException>()),
+    );
     expect(
       (await practice.detail(q)).latest!.status,
-      'draft',
-      reason: 'Review write failure rolls grading back',
+      'graded',
+      reason: 'Review scheduling failure keeps the grade',
     );
+    expect(await review.history(s.id), hasLength(4));
+    expect((await review.forQuestion(q))!.repetitions, 0);
     expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+  });
+  test('Adjusting a paused review date does not resume it', () async {
+    final db = AppDatabase.memory();
+    final review = ReviewStore(db);
+    addTearDown(() async {
+      review.dispose();
+      await db.close();
+    });
+    final practice = PracticeStore(db)..onGraded = review.record;
+    addTearDown(() async {
+      practice.dispose();
+    });
+    final q = await practice.create(
+      const QuestionSpec(
+        kind: 'numeric',
+        stem: '2+2',
+        answers: [
+          ['4'],
+        ],
+      ),
+    );
+    await review.enroll(q);
+    final s = (await review.forQuestion(q))!;
+    await review.pause(s.id, true);
+    expect((await review.forQuestion(q))!.enabled, false);
+    final due = DateTime.now().add(const Duration(days: 30));
+    await review.adjust(s.id, dueAt: due);
+    final after = (await review.forQuestion(q))!;
+    expect(after.enabled, false);
+    expect(
+      (after.dueAt.year, after.dueAt.month, after.dueAt.day),
+      (due.year, due.month, due.day),
+    );
+  });
+  test('Corrupt review state cannot roll grading back; scheduling failure is reported', () async {
+    final db = AppDatabase.memory();
+    final review = ReviewStore(db);
+    final practice = PracticeStore(db)..onGraded = review.record;
+    addTearDown(() async {
+      practice.dispose();
+      review.dispose();
+      await db.close();
+    });
+    final q = await practice.create(
+      const QuestionSpec(
+        kind: 'numeric',
+        stem: '2+2',
+        answers: [
+          ['4'],
+        ],
+      ),
+    );
+    await review.enroll(q);
+    await db.customStatement(
+      "UPDATE review_schedules SET ease=1.0 WHERE question_id='$q'",
+    );
+    final a = await practice.begin(q);
+    await expectLater(
+      practice.submit(a.id, ['4']),
+      throwsA(
+        isA<FormatException>().having(
+          (e) => e.message,
+          'message',
+          '复习安排失败，可稍后重试。',
+        ),
+      ),
+    );
+    expect((await practice.detail(q)).latest!.status, 'graded');
+    expect((await review.forQuestion(q))!.ease, 1.0);
+    final self = await practice.create(
+      const QuestionSpec(kind: 'short_answer', stem: '解释', answers: []),
+    );
+    await review.enroll(self);
+    await db.customStatement(
+      "UPDATE review_schedules SET repetitions=-1 WHERE question_id='$self'",
+    );
+    final sa = await practice.begin(self);
+    await practice.submit(sa.id, ['我的解释']);
+    await expectLater(
+      practice.selfGrade(sa.id, true),
+      throwsA(
+        isA<FormatException>().having(
+          (e) => e.message,
+          'message',
+          '复习安排失败，可稍后重试。',
+        ),
+      ),
+    );
+    expect((await practice.detail(self)).latest!.status, 'graded');
+  });
+  test('Learning profile load falls back per field instead of dropping the whole profile', () async {
+    final db = AppDatabase.memory();
+    addTearDown(() async => db.close());
+    await db.setPreference(
+      'learning_profile',
+      jsonEncode({
+        'stage': 42,
+        'exam': '中考',
+        'exam_date': 'not-a-date',
+        'daily_minutes': 45.0,
+        'scope': '数学',
+        'teaching': 'direct',
+      }),
+    );
+    final loaded = await LearningProfile.load(db);
+    expect(loaded.stage, '高中');
+    expect(loaded.exam, '中考');
+    expect(loaded.examDate, isNull);
+    expect(loaded.dailyMinutes, 45);
+    expect(loaded.scope, '数学');
+    expect(loaded.teaching, 'direct');
+    expect(loaded.partialFallback, true);
+    await const LearningProfile(
+      stage: '初中',
+      exam: '中考',
+      dailyMinutes: 60,
+      scope: '数学',
+      teaching: 'direct',
+    ).save(db);
+    expect((await LearningProfile.load(db)).partialFallback, false);
+    await db.setPreference('learning_profile', '{broken');
+    final broken = await LearningProfile.load(db);
+    expect(broken.stage, '高中');
+    expect(broken.dailyMinutes, 45);
+    expect(broken.partialFallback, true);
   });
   test('Diagnosis uses distinct latest independently checked questions; self and AI reference are separate', () async {
     final db = AppDatabase.memory();

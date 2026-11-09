@@ -300,6 +300,179 @@ void main() {
       },
     );
 
+    Future<LearningRunResult> runConfirmed(
+      ScriptProvider provider, {
+      List<ChatMessage> history = const [],
+    }) =>
+        LearningRun(
+          db,
+          AttachmentStore(dir),
+          study,
+          practice,
+          review,
+          provider,
+        ).run(
+          sessionId: session.id,
+          runId: 'reply',
+          requestConfig: config,
+          requestPrompts: PromptSettings(),
+          history: history,
+          images: [],
+          mode: 'guided',
+          authorized: true,
+          cancel: CancelToken(),
+          confirm: (_, _, _) async => true,
+          onProgress: (_) async {},
+        );
+
+    test('A successful study write with empty final text returns a placeholder instead of failing', () async {
+      final provider = ScriptProvider(
+        (turn) => turn == 1
+            ? [
+                const AiChunk(
+                  completed: true,
+                  calls: [
+                    ToolCall(
+                      'write',
+                      'create_knowledge',
+                      '{"title":"t","subject":"数学","content":"c"}',
+                    ),
+                  ],
+                ),
+              ]
+            : [const AiChunk(text: '', completed: true)],
+      );
+      final result = await runConfirmed(provider);
+      expect(result.text, '已保存，可在知识库查看。');
+      expect((await study.searchKnowledge()).single.title, 't');
+    });
+
+    test('A duplicate completed chunk from a trailing usage frame does not fail the round', () async {
+      final provider = ScriptProvider(
+        (_) => [
+          const AiChunk(text: '正文'),
+          const AiChunk(completed: true),
+          const AiChunk(tokens: 7, completed: true),
+        ],
+      );
+      final result = await run(provider);
+      expect(result.text, '正文');
+      expect(result.tokens, 7);
+    });
+
+    test(
+      'A session deleted before the run starts reports a missing session',
+      () async {
+        await (db.delete(
+          db.chatSessions,
+        )..where((s) => s.id.equals(session.id))).go();
+        await expectLater(
+          run(
+            ScriptProvider((_) => [const AiChunk(text: 'x', completed: true)]),
+          ),
+          throwsA(
+            isA<AiFailure>().having(
+              (e) => e.message,
+              'message',
+              contains('会话不存在'),
+            ),
+          ),
+        );
+      },
+    );
+
+    test('Practice state is attached to recent assistant messages from one batched lookup', () async {
+      await db
+          .into(db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: 'u1',
+              sessionId: session.id,
+              role: 'user',
+              content: '出题',
+              createdAt: DateTime.now(),
+            ),
+          );
+      const assistantId = 'a1';
+      await db
+          .into(db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: assistantId,
+              sessionId: session.id,
+              role: 'assistant',
+              content: '已出题',
+              createdAt: DateTime.now(),
+            ),
+          );
+      await practice.create(
+        const QuestionSpec(
+          kind: 'numeric',
+          stem: '2+2',
+          answers: [
+            ['4'],
+          ],
+        ),
+        origin: 'ai',
+        verification: 'unverified',
+        sessionId: session.id,
+        messageId: assistantId,
+      );
+      final provider = ScriptProvider(
+        (_) => [const AiChunk(text: '好的', completed: true)],
+      );
+      final history = await db.messages(session.id);
+      final result = await runConfirmed(provider, history: history);
+      expect(result.text, '好的');
+      final sent = provider.requests.single.messages;
+      expect(
+        sent.any((m) => m.text.contains('已出题') && m.text.contains('应用保存的练习状态')),
+        true,
+      );
+    });
+
+    test(
+      'Teaching state survives when history ends with an assistant message',
+      () async {
+        await db
+            .into(db.chatMessages)
+            .insert(
+              ChatMessagesCompanion.insert(
+                id: 'u1',
+                sessionId: session.id,
+                role: 'user',
+                content: '问题',
+                createdAt: DateTime.now(),
+              ),
+            );
+        await db
+            .into(db.chatMessages)
+            .insert(
+              ChatMessagesCompanion.insert(
+                id: 'a1',
+                sessionId: session.id,
+                role: 'assistant',
+                content: '回答',
+                createdAt: DateTime.now(),
+              ),
+            );
+        final provider = ScriptProvider(
+          (_) => [const AiChunk(text: '好的', completed: true)],
+        );
+        final history = await db.messages(session.id);
+        await runConfirmed(provider, history: history);
+        final sent = provider.requests.single.messages;
+        final userMessage = sent.firstWhere((m) => m.role == AiRole.user);
+        expect(userMessage.text, contains('应用教学状态'));
+        expect(
+          sent
+              .where((m) => m.role == AiRole.assistant)
+              .every((m) => !m.text.contains('应用教学状态')),
+          true,
+        );
+      },
+    );
+
     test(
       'Turn totals replace streaming estimates and sum correctly across tools',
       () async {

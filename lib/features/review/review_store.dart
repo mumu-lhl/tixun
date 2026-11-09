@@ -153,6 +153,7 @@ class ReviewStore extends DatabaseNotifier {
     DateTime? now,
     bool paused = false,
     String subject = '',
+    int limit = 200,
   }) async {
     final joined = db.select(db.reviewSchedules).join([
       innerJoin(
@@ -173,7 +174,7 @@ class ReviewStore extends DatabaseNotifier {
       );
     }
     joined.orderBy([OrderingTerm.asc(db.reviewSchedules.dueAt)]);
-    joined.limit(200);
+    joined.limit(limit);
     return (await joined.get())
         .map(
           (r) => ReviewItem(
@@ -226,7 +227,6 @@ class ReviewStore extends DatabaseNotifier {
           )..where((s) => s.id.equals(id))).write(
             ReviewSchedulesCompanion(
               dueAt: Value(due),
-              enabled: const Value(true),
               repetitions: reset ? const Value(0) : const Value.absent(),
               intervalDays: reset ? const Value(0) : const Value.absent(),
               ease: reset ? const Value(2.5) : const Value.absent(),

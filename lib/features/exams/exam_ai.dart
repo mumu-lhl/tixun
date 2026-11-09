@@ -7,13 +7,68 @@ import '../../core/database/database.dart';
 import '../../core/platform/attachment_store.dart';
 import 'exam_store.dart';
 
+/// A parse failure that keeps the model's raw reply: without it, one small
+/// formatting slip discards a whole long generation and the user can only
+/// regenerate or re-enter everything by hand.
+class ExamScoresParseFailure extends FormatException {
+  const ExamScoresParseFailure(super.message, this.rawText);
+  final String rawText;
+}
+
 List<ScoreDraft> parseExamScores(String text) {
-  var source = text.trim();
-  if (source.startsWith('```json') && source.endsWith('```')) {
-    source = source.substring(7, source.length - 3).trim();
-  } else if (source.startsWith('```') && source.endsWith('```')) {
-    source = source.substring(3, source.length - 3).trim();
+  try {
+    return _parseExamScores(text);
+  } on FormatException catch (e) {
+    if (e is ExamScoresParseFailure) rethrow;
+    throw ExamScoresParseFailure(e.message, text);
   }
+}
+
+/// Extracts the JSON object from a model reply that may wrap it in a fence
+/// (```json, ```JSON, ``` json, plain ```) and may add prose before or
+/// after it. Falls back to the first balanced {...} object, then to the
+/// raw text so jsonDecode still reports a real syntax error.
+String _extractExamJson(String source) {
+  final fence = RegExp(r'```[^\n`]*\n?([\s\S]*?)```').firstMatch(source);
+  if (fence != null) {
+    final inner = fence.group(1)!.trim();
+    if (inner.startsWith('{')) return inner;
+  }
+  final start = source.indexOf('{');
+  if (start >= 0) {
+    var depth = 0;
+    var inString = false;
+    var escape = false;
+    for (var i = start; i < source.length; i++) {
+      final ch = source[i];
+      if (inString) {
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        if (ch == '\\') {
+          escape = true;
+          continue;
+        }
+        if (ch == '"') inString = false;
+        continue;
+      }
+      if (ch == '"') {
+        inString = true;
+        continue;
+      }
+      if (ch == '{') depth++;
+      if (ch == '}') {
+        depth--;
+        if (depth == 0) return source.substring(start, i + 1);
+      }
+    }
+  }
+  return source;
+}
+
+List<ScoreDraft> _parseExamScores(String text) {
+  final source = _extractExamJson(text.trim());
   if (source.length > 150000) throw const FormatException('AI 小分表过大。');
   final dynamic json = jsonDecode(source);
   if (json is! Map ||
