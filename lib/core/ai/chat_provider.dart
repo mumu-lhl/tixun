@@ -154,9 +154,6 @@ Future<AiRequest> prepareAiRequest(
   if (includedImages.isNotEmpty && !AiOptions(config).vision) {
     throw const AiFailure('当前对话包含图片，所选模型不支持视觉。请切换到 Flash 或启用支持图片的模型。');
   }
-  if (includedImages.length > 4) {
-    throw const AiFailure('本次上下文超过 4 张图片，请新建会话分批提问。');
-  }
   final messages = <AiMessage>[];
   for (final m in selected) {
     final attachments = includedImages.where((a) => a.messageId == m.id);

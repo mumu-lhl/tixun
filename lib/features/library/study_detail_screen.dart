@@ -541,7 +541,7 @@ class StudyDetailScreen extends ConsumerWidget {
       mistakeId: m?.item.id,
     );
     final selectedImages = store.preferredImages(k?.images ?? m!.images);
-    for (final image in selectedImages.take(4)) {
+    for (final image in selectedImages) {
       await c.addImage(c.files.resolve(image.relativePath).path);
     }
     await c.draft(text);
@@ -549,11 +549,7 @@ class StudyDetailScreen extends ConsumerWidget {
       context.go('/chat');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            selectedImages.length > 4
-                ? context.tr("已填入文字和前 4 张图片，请检查后发送。")
-                : context.tr("资料已填入新对话，请检查后发送。"),
-          ),
+          content: Text(context.tr("资料已填入新对话，请检查后发送。")),
         ),
       );
     }

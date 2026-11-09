@@ -546,7 +546,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
   void initState() {
     super.initState();
     selected.addAll(
-      widget.images.where((i) => i.role != 'paper').take(4).map((i) => i.id),
+      widget.images.where((i) => i.role != 'paper').map((i) => i.id),
     );
   }
 
@@ -567,7 +567,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
         children: [
           Text(
             context.tr(
-              '仅上传勾选的 1–4 张照片。建议同时选择答题卡和参考答案；主观题没有评分依据时留空。AI 建议必须人工核对。',
+              '仅上传勾选的照片。建议同时选择答题卡和参考答案；主观题没有评分依据时留空。AI 建议必须人工核对。',
             ),
           ),
           if (c.demo) Text(context.tr('Mock 模式不读取照片评分，请使用手动录入验证小分表。')),
@@ -623,8 +623,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
                 busy ||
                     c.demo ||
                     !AiOptions(config).vision ||
-                    selected.isEmpty ||
-                    selected.length > 4
+                    selected.isEmpty
                 ? null
                 : () async {
                     setState(() {

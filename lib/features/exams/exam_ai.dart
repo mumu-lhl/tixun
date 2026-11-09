@@ -76,8 +76,8 @@ Future<List<ScoreDraft>> generateExamScores({
   if (!AiOptions(config).vision) {
     throw const FormatException('当前模型不支持图片，请选择支持视觉的模型。');
   }
-  if (images.isEmpty || images.length > 4) {
-    throw const FormatException('请选择 1–4 张图片供 AI 整理。');
+  if (images.isEmpty) {
+    throw const FormatException('请选择图片供 AI 整理。');
   }
   final attachments = <AiImage>[];
   var size = 0;

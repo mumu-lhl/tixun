@@ -338,7 +338,6 @@ class _ConversationState extends ConsumerState<Conversation> {
         context,
         takePhoto: type == 'camera',
         filesOnly: type == 'file',
-        limit: 4 - c.attachments.where((a) => a.messageId == null).length,
       );
       final added = <Attachment>[];
       for (final file in picked) {

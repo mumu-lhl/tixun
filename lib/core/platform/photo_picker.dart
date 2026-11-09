@@ -13,9 +13,7 @@ Future<List<XFile>> pickPhotos(
   BuildContext context, {
   bool takePhoto = false,
   bool filesOnly = false,
-  int limit = 4,
 }) async {
-  if (limit < 1) throw const FormatException('一次最多添加 4 张图片。');
   if (!Platform.isAndroid || filesOnly) {
     final files = await openFiles(
       acceptedTypeGroups: const [
@@ -25,7 +23,6 @@ Future<List<XFile>> pickPhotos(
         ),
       ],
     );
-    if (files.length > limit) throw const FormatException('一次最多添加 4 张图片。');
     return files;
   }
   final english = AppStrings.of(context).locale.languageCode == 'en';
@@ -55,7 +52,7 @@ Future<List<XFile>> pickPhotos(
     context,
     pickerConfig: assets.AssetPickerConfig(
       requestType: assets.RequestType.image,
-      maxAssets: limit,
+      // No app-level cap: the picker's own default maxAssets applies.
       pickerTheme: Theme.of(context),
       textDelegate: english
           ? const assets.EnglishAssetPickerTextDelegate()

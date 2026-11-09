@@ -585,9 +585,6 @@ class AppController extends ChangeNotifier {
     if (busy) throw const FormatException('请先停止生成，再添加图片。');
     if (selected == null) await newSession();
     final s = selected!;
-    if (attachments.where((a) => a.messageId == null).length >= 4) {
-      throw const FormatException('一次最多添加 4 张图片。');
-    }
     final image = await files.importFile(path);
     final id = const Uuid().v4();
     try {
@@ -1008,7 +1005,6 @@ class AppController extends ChangeNotifier {
         for (final image in preferredStudyImages(
           await study.images(item.id, isMistake: true),
         )) {
-          if (attachments.where((a) => a.messageId == null).length >= 4) break;
           await addImage(files.resolve(image.relativePath).path);
         }
       }
@@ -1060,7 +1056,7 @@ class AppController extends ChangeNotifier {
     for (final link in links.take(5)) {
       await study.linkChat(selected!.id, knowledgeId: link.knowledgeId);
     }
-    for (final image in detail.images.take(4)) {
+    for (final image in detail.images) {
       await addImage(files.resolve(image.relativePath).path);
     }
     await draft(
