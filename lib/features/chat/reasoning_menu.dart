@@ -7,22 +7,20 @@ import '../../core/ai/ai_options.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 
-const reasoningLabels = {
-  '': '跟随全局默认',
-  'off': '关闭思考',
-  'low': '低',
-  'high': '高',
-  'max': '最高',
-};
-
 class ReasoningMenu extends ConsumerWidget {
   const ReasoningMenu({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(appControllerProvider);
     final effective = c.sessionConfig;
+    final options = AiOptions(c.config);
+    final labels = {
+      '': '跟随全局默认',
+      'off': options.offChoiceLabel,
+      for (final level in options.reasoningEfforts) level: options.label(level),
+    };
     final label = effective.thinking
-        ? context.tr(reasoningLabels[effective.effort] ?? effective.effort)
+        ? context.tr(options.label(effective.effort))
         : context.tr(AiOptions(c.config).offLabel);
     return PopupMenuButton<String>(
       key: const Key('reasoning-menu'),
@@ -52,7 +50,7 @@ class ReasoningMenu extends ConsumerWidget {
                 : context.tr("当前模型未声明支持思考参数"),
           ),
         ),
-        for (final entry in reasoningLabels.entries)
+        for (final entry in labels.entries)
           CheckedPopupMenuItem(
             key: Key('reasoning-${entry.key.isEmpty ? 'default' : entry.key}'),
             value: entry.key,

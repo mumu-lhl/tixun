@@ -1877,6 +1877,17 @@ class $ProviderConfigsTable extends ProviderConfigs
     requiredDuringInsert: false,
     defaultValue: const Constant('high'),
   );
+  static const VerificationMeta _reasoningLevelsMeta = const VerificationMeta(
+    'reasoningLevels',
+  );
+  @override
+  late final GeneratedColumn<String> reasoningLevels = GeneratedColumn<String>(
+    'reasoning_levels',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1888,6 +1899,7 @@ class $ProviderConfigsTable extends ProviderConfigs
     thinking,
     supportsThinking,
     effort,
+    reasoningLevels,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1958,6 +1970,15 @@ class $ProviderConfigsTable extends ProviderConfigs
         effort.isAcceptableOrUnknown(data['effort']!, _effortMeta),
       );
     }
+    if (data.containsKey('reasoning_levels')) {
+      context.handle(
+        _reasoningLevelsMeta,
+        reasoningLevels.isAcceptableOrUnknown(
+          data['reasoning_levels']!,
+          _reasoningLevelsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2003,6 +2024,10 @@ class $ProviderConfigsTable extends ProviderConfigs
         DriftSqlType.string,
         data['${effectivePrefix}effort'],
       )!,
+      reasoningLevels: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reasoning_levels'],
+      ),
     );
   }
 
@@ -2022,6 +2047,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
   final bool thinking;
   final bool supportsThinking;
   final String effort;
+  final String? reasoningLevels;
   const ProviderConfig({
     required this.id,
     required this.kind,
@@ -2032,6 +2058,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     required this.thinking,
     required this.supportsThinking,
     required this.effort,
+    this.reasoningLevels,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2045,6 +2072,9 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     map['thinking'] = Variable<bool>(thinking);
     map['supports_thinking'] = Variable<bool>(supportsThinking);
     map['effort'] = Variable<String>(effort);
+    if (!nullToAbsent || reasoningLevels != null) {
+      map['reasoning_levels'] = Variable<String>(reasoningLevels);
+    }
     return map;
   }
 
@@ -2059,6 +2089,9 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
       thinking: Value(thinking),
       supportsThinking: Value(supportsThinking),
       effort: Value(effort),
+      reasoningLevels: reasoningLevels == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reasoningLevels),
     );
   }
 
@@ -2077,6 +2110,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
       thinking: serializer.fromJson<bool>(json['thinking']),
       supportsThinking: serializer.fromJson<bool>(json['supportsThinking']),
       effort: serializer.fromJson<String>(json['effort']),
+      reasoningLevels: serializer.fromJson<String?>(json['reasoningLevels']),
     );
   }
   @override
@@ -2092,6 +2126,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
       'thinking': serializer.toJson<bool>(thinking),
       'supportsThinking': serializer.toJson<bool>(supportsThinking),
       'effort': serializer.toJson<String>(effort),
+      'reasoningLevels': serializer.toJson<String?>(reasoningLevels),
     };
   }
 
@@ -2105,6 +2140,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     bool? thinking,
     bool? supportsThinking,
     String? effort,
+    Value<String?> reasoningLevels = const Value.absent(),
   }) => ProviderConfig(
     id: id ?? this.id,
     kind: kind ?? this.kind,
@@ -2115,6 +2151,9 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     thinking: thinking ?? this.thinking,
     supportsThinking: supportsThinking ?? this.supportsThinking,
     effort: effort ?? this.effort,
+    reasoningLevels: reasoningLevels.present
+        ? reasoningLevels.value
+        : this.reasoningLevels,
   );
   ProviderConfig copyWithCompanion(ProviderConfigsCompanion data) {
     return ProviderConfig(
@@ -2131,6 +2170,9 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
           ? data.supportsThinking.value
           : this.supportsThinking,
       effort: data.effort.present ? data.effort.value : this.effort,
+      reasoningLevels: data.reasoningLevels.present
+          ? data.reasoningLevels.value
+          : this.reasoningLevels,
     );
   }
 
@@ -2145,7 +2187,8 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
           ..write('supportsTools: $supportsTools, ')
           ..write('thinking: $thinking, ')
           ..write('supportsThinking: $supportsThinking, ')
-          ..write('effort: $effort')
+          ..write('effort: $effort, ')
+          ..write('reasoningLevels: $reasoningLevels')
           ..write(')'))
         .toString();
   }
@@ -2161,6 +2204,7 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
     thinking,
     supportsThinking,
     effort,
+    reasoningLevels,
   );
   @override
   bool operator ==(Object other) =>
@@ -2174,7 +2218,8 @@ class ProviderConfig extends DataClass implements Insertable<ProviderConfig> {
           other.supportsTools == this.supportsTools &&
           other.thinking == this.thinking &&
           other.supportsThinking == this.supportsThinking &&
-          other.effort == this.effort);
+          other.effort == this.effort &&
+          other.reasoningLevels == this.reasoningLevels);
 }
 
 class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
@@ -2187,6 +2232,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
   final Value<bool> thinking;
   final Value<bool> supportsThinking;
   final Value<String> effort;
+  final Value<String?> reasoningLevels;
   const ProviderConfigsCompanion({
     this.id = const Value.absent(),
     this.kind = const Value.absent(),
@@ -2197,6 +2243,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     this.thinking = const Value.absent(),
     this.supportsThinking = const Value.absent(),
     this.effort = const Value.absent(),
+    this.reasoningLevels = const Value.absent(),
   });
   ProviderConfigsCompanion.insert({
     this.id = const Value.absent(),
@@ -2208,6 +2255,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     this.thinking = const Value.absent(),
     this.supportsThinking = const Value.absent(),
     this.effort = const Value.absent(),
+    this.reasoningLevels = const Value.absent(),
   });
   static Insertable<ProviderConfig> custom({
     Expression<int>? id,
@@ -2219,6 +2267,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     Expression<bool>? thinking,
     Expression<bool>? supportsThinking,
     Expression<String>? effort,
+    Expression<String>? reasoningLevels,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2230,6 +2279,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
       if (thinking != null) 'thinking': thinking,
       if (supportsThinking != null) 'supports_thinking': supportsThinking,
       if (effort != null) 'effort': effort,
+      if (reasoningLevels != null) 'reasoning_levels': reasoningLevels,
     });
   }
 
@@ -2243,6 +2293,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     Value<bool>? thinking,
     Value<bool>? supportsThinking,
     Value<String>? effort,
+    Value<String?>? reasoningLevels,
   }) {
     return ProviderConfigsCompanion(
       id: id ?? this.id,
@@ -2254,6 +2305,7 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
       thinking: thinking ?? this.thinking,
       supportsThinking: supportsThinking ?? this.supportsThinking,
       effort: effort ?? this.effort,
+      reasoningLevels: reasoningLevels ?? this.reasoningLevels,
     );
   }
 
@@ -2287,6 +2339,9 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
     if (effort.present) {
       map['effort'] = Variable<String>(effort.value);
     }
+    if (reasoningLevels.present) {
+      map['reasoning_levels'] = Variable<String>(reasoningLevels.value);
+    }
     return map;
   }
 
@@ -2301,7 +2356,8 @@ class ProviderConfigsCompanion extends UpdateCompanion<ProviderConfig> {
           ..write('supportsTools: $supportsTools, ')
           ..write('thinking: $thinking, ')
           ..write('supportsThinking: $supportsThinking, ')
-          ..write('effort: $effort')
+          ..write('effort: $effort, ')
+          ..write('reasoningLevels: $reasoningLevels')
           ..write(')'))
         .toString();
   }

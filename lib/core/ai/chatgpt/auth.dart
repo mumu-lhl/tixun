@@ -55,9 +55,10 @@ class _AccountRecord {
 }
 
 class ChatGptModel {
-  const ChatGptModel(this.id, this.name, this.vision);
+  const ChatGptModel(this.id, this.name, this.vision, {this.reasoningEfforts});
   final String id, name;
   final bool vision;
+  final List<String>? reasoningEfforts;
 }
 
 /// Tokens and registration metadata live in one secure-store record, never SQLite.
@@ -566,7 +567,11 @@ class ChatGptAuth {
             ChatGptModel(
               row['slug'] as String,
               row['display_name'] as String,
-              (row['input_modalities'] as List? ?? []).contains('image'),
+              (row['input_modalities'] is List
+                      ? row['input_modalities'] as List
+                      : [])
+                  .contains('image'),
+              reasoningEfforts: advertisedReasoningLevels(row),
             ),
       ];
     } on AiFailure {

@@ -30,7 +30,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   static const _kinds = ['deepseek', 'compatible', 'chatgpt'];
   static const _deepseekModels = ['deepseek-flash', 'deepseek-v4-pro'];
-  static const _efforts = ['low', 'high', 'max'];
+  String? _reasoningLevels;
+  List<String> get _efforts => AiOptions(_candidate()).reasoningEfforts;
 
   /// Loads a stored config into the form, replacing values outside the
   /// dropdowns' item lists with valid defaults. Without this, a legacy or
@@ -47,7 +48,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _thinking = c.thinking;
     _supportsThinking = c.supportsThinking;
     _supportsTools = c.supportsTools;
-    _effort = _efforts.contains(c.effort) ? c.effort : 'high';
+    _reasoningLevels = c.reasoningLevels;
+    _effort = c.effort;
+    _effort = AiOptions(_candidate()).preferredEffort;
   }
 
   @override
@@ -77,6 +80,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     supportsThinking: _supportsThinking,
     supportsTools: _supportsTools,
     effort: _effort,
+    reasoningLevels: _reasoningLevels,
   );
   Future<void> _perform({bool test = false, bool remove = false}) async {
     setState(() {
@@ -262,6 +266,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ? null
                         : (kind) => setState(() {
                             _kind = kind!;
+                            _reasoningLevels = null;
                             _base.text = kind == 'deepseek'
                                 ? 'https://api.deepseek.com'
                                 : 'https://api.openai.com/v1';
@@ -340,6 +345,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   else
                     TextField(
                       controller: _model,
+                      onChanged: (_) => setState(() => _reasoningLevels = null),
                       enabled: !_working,
                       autocorrect: false,
                       decoration: InputDecoration(
@@ -444,25 +450,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         padding: const EdgeInsets.only(bottom: 16),
                         child: DropdownButtonFormField<String>(
                           isExpanded: true,
+                          key: ValueKey(
+                            'api-effort-$_kind-${_model.text}-$_effort-${_efforts.join()}',
+                          ),
                           initialValue: _efforts.contains(_effort)
                               ? _effort
-                              : 'high',
+                              : _efforts.firstOrNull,
                           decoration: InputDecoration(
                             labelText: context.tr("默认思考强度"),
                           ),
                           items: [
-                            DropdownMenuItem(
-                              value: 'low',
-                              child: Text(context.tr("低")),
-                            ),
-                            DropdownMenuItem(
-                              value: 'high',
-                              child: Text(context.tr("高")),
-                            ),
-                            DropdownMenuItem(
-                              value: 'max',
-                              child: Text(context.tr("最高")),
-                            ),
+                            for (final level in _efforts)
+                              DropdownMenuItem(
+                                value: level,
+                                child: Text(
+                                  context.tr(
+                                    AiOptions(_candidate()).label(level),
+                                  ),
+                                ),
+                              ),
                           ],
                           onChanged: _working
                               ? null

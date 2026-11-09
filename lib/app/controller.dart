@@ -315,7 +315,7 @@ class AppController extends ChangeNotifier {
     messages = loaded[0] as List<ChatMessage>;
     attachments = loaded[1] as List<Attachment>;
     final override = loaded[2] as String;
-    sessionReasoning = ['', 'off', 'low', 'high', 'max'].contains(override)
+    sessionReasoning = AiOptions(config).supportsOverride(override)
         ? override
         : '';
     error = null;
@@ -412,13 +412,14 @@ class AppController extends ChangeNotifier {
   Future<void> setSessionReasoning(String value) => preferences.runOperation(
     () async {
       if (busy || selected == null) throw const AiFailure('请先停止生成，再调整本会话思考强度。');
-      if (!['', 'off', 'low', 'high', 'max'].contains(value)) {
-        throw const FormatException('思考强度无效。');
-      }
       if (value.isNotEmpty && value != 'off' && !config.supportsThinking) {
         throw const AiFailure('当前模型未声明支持思考参数。');
       }
-      final thinking = value.isEmpty ? config.thinking : value != 'off';
+      if (!AiOptions(config).supportsOverride(value)) {
+        throw const FormatException('思考强度无效。');
+      }
+      final thinking = AiOptions(AiOptions.forSession(config, value))
+          .reasoningEnabled;
       if (thinking &&
           !AiOptions(config).reasoningWithTools &&
           (selected!.toolsEnabled || selected!.mode == 'exam')) {
@@ -434,7 +435,7 @@ class AppController extends ChangeNotifier {
     if (AiOptions(config).reasoningWithTools) return;
     await setSessionReasoning('off');
     if (config.thinking) {
-      notice = '本次任务需要工具调用，已仅为此会话关闭思考；全局默认未改变。';
+      notice = '本次任务已仅为此会话改用模型默认强度；全局默认未改变。';
       changed();
     }
   }
@@ -443,11 +444,12 @@ class AppController extends ChangeNotifier {
   /// effort configured in Settings, when the model supports thinking with
   /// tools. Providers that don't (compatible) still force it off.
   Future<void> useQuizReasoning() async {
-    if (!config.supportsThinking) return;
+    if (!config.supportsThinking ||
+        AiOptions(config).reasoningEfforts.isEmpty) {
+      return;
+    }
     if (AiOptions(config).reasoningWithTools) {
-      await setSessionReasoning(
-        ['low', 'high', 'max'].contains(config.effort) ? config.effort : 'high',
-      );
+      await setSessionReasoning(AiOptions(config).preferredEffort);
     } else {
       await useToolReasoning();
     }

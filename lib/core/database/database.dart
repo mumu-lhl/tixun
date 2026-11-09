@@ -83,6 +83,7 @@ class ProviderConfigs extends Table {
   BoolColumn get supportsThinking =>
       boolean().withDefault(const Constant(true))();
   TextColumn get effort => text().withDefault(const Constant('high'))();
+  TextColumn get reasoningLevels => text().nullable()();
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -138,7 +139,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 10;
+  static const latestSchemaVersion = 11;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -245,6 +246,17 @@ class AppDatabase extends _$AppDatabase {
           "WHEN title LIKE '地理 · %' THEN '地理' "
           "WHEN title LIKE '政治 · %' THEN '政治' "
           "ELSE NULL END",
+        );
+      }
+      if (from < 11) {
+        await m.addColumn(providerConfigs, providerConfigs.reasoningLevels);
+        // Before v11 the ChatGPT UI's "max" was an alias for xhigh. Preserve
+        // existing request behavior while making new max a distinct API level.
+        await customStatement(
+          "UPDATE preferences SET value='xhigh' WHERE name GLOB 'ai_reasoning:*' AND value='max' AND EXISTS(SELECT 1 FROM provider_configs WHERE id=1 AND kind='chatgpt')",
+        );
+        await customStatement(
+          "UPDATE provider_configs SET effort='xhigh' WHERE kind='chatgpt' AND effort='max'",
         );
       }
       if (from < 10) {

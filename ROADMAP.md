@@ -138,3 +138,8 @@ Flutter 3.47.9 / Dart 3.13.7；`flutter analyze`、`flutter test`。Linux GUI �
 - [x] schema v10 安全迁移、跨科目校验、并发分类保护与完整备份回归。
 - [x] 本地 152 项 Flutter 测试通过，新增考试和目录 GUI 均运行并检查手机/英文桌面截图；修复浅色标签对比度。
 - [ ] 最终 Android 签名构建与十组 GUI 的完整 Nightly 验证。
+
+## GPT 思考档位
+
+- [x] 模型能力驱动的档位、medium/minimal/none 等支持、独立 xhigh/max，以及公开模型目录声明的额外档位。
+- [x] 默认与 none 分离、旧 ChatGPT max 别名迁移、能力持久化与协议测试；更新 ChatGPT 原生 GUI 覆盖档位选择。

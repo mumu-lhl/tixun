@@ -511,10 +511,9 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
             items: [
               for (final e in {
                 '': '跟随全局默认',
-                'off': '关闭思考',
-                'low': '低',
-                'high': '高',
-                'max': '最高',
+                'off': AiOptions(c.config).offChoiceLabel,
+                for (final level in AiOptions(c.config).reasoningEfforts)
+                  level: AiOptions(c.config).label(level),
               }.entries)
                 DropdownMenuItem(
                   value: e.key,

@@ -176,6 +176,10 @@ class ChatGptFixture {
             'display_name': 'Fixture vision model',
             'visibility': 'list',
             'input_modalities': ['text', 'image'],
+            'supported_reasoning_levels': [
+              for (final effort in ['low', 'medium', 'high', 'xhigh', 'max'])
+                {'effort': effort, 'description': 'Fixture level'},
+            ],
           },
           {'slug': 'hidden', 'display_name': 'Hidden', 'visibility': 'hide'},
         ],

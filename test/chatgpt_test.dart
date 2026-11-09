@@ -23,6 +23,7 @@ const config = ProviderConfig(
   kind: 'chatgpt',
   baseUrl: chatGptResource,
   model: 'fixture-vision',
+  reasoningLevels: '["low","medium","high","xhigh","max"]',
   vision: true,
   thinking: true,
   supportsThinking: true,

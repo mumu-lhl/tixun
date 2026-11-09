@@ -76,3 +76,5 @@ Choose Manage directory in Knowledge or Mistakes to create subject modules and s
 Use Choose modules on a record to assign one or more entries. Open a directory chip or use the list filter to find related material; parent modules include their submodules. Existing chapter text is kept, and uncategorized records remain under Unclassified. Deleting a directory entry removes its links, while keeping study material and practice.
 
 Practice this module prepares an editable Chat request from up to 5 recent notes or 3 mistakes. Review it before sending. With material tools enabled in Chat, AI can inspect existing entries and propose new modules or associations, each requiring your confirmation.
+
+GPT reasoning choices follow model capabilities. For example, GPT‑6.1 Sol exposes `low`, `medium`, `high`, `xhigh` and `max`; `xhigh` and `max` are distinct. Model default omits effort, while `none` explicitly requests no reasoning and is shown only where supported. Additional account-advertised levels are preserved.

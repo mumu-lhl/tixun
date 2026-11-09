@@ -914,5 +914,14 @@
   "更换科目": "Change subject",
   "更换科目会清除原科目的目录关联。资料正文和图片会保留。": "Changing the subject removes its previous module links. Text and photos are kept.",
   "继续保存": "Continue saving",
-  "已选 {0} / 20 个目录": "{0} / 20 entries selected"
+  "已选 {0} / 20 个目录": "{0} / 20 entries selected",
+  "不推理（none）": "No reasoning (none)",
+  "极低（minimal）": "Minimal (minimal)",
+  "中": "Medium",
+  "极高（xhigh）": "Extra high (xhigh)",
+  "最大（max）": "Maximum (max)",
+  "超高（ultra）": "Ultra (ultra)",
+  "模型思考档位声明无效。": "Invalid declared reasoning levels.",
+  "档位按模型能力显示；xhigh 与 max 独立。模型默认不发送强度参数，none 明确请求不推理，两者不同。所有资料写入仍需确认。": "Levels follow the model’s capabilities; xhigh and max are separate. Model default omits effort, whereas none explicitly requests no reasoning. Material writes still require confirmation.",
+  "本次任务已仅为此会话改用模型默认强度；全局默认未改变。": "This session now uses the model’s default effort for the task. Your global default is unchanged."
 }

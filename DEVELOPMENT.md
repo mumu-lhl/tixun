@@ -32,7 +32,7 @@ scripts/gui_tests.sh
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。截图和日志保存在 `artifacts/gui/`；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
-不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。数据库 schema v1/v3/v4/v5/v6/v7/v8/v9 → v10 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
+不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。数据库 schema v1/v3/v4/v5/v6/v7/v8/v9/v10 → v11 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
 
 ```bash
 dart run build_runner build
@@ -144,3 +144,11 @@ CI 的签名测试与 Android 构建统一使用 Temurin **Java 25 LTS**；Flutt
 schema v10 新增两级科目目录、知识目录关联与错题目录关联三张表。根模块名用 SQLite 表达式唯一索引去重；分类与正文修订独立，改名不会重写每条笔记，旧章节保持原样。资料科目变更时移除不匹配关联；手动整组选取比较旧关联集合，防止覆盖并发分类。删除目录有 UI 确认，级联解除关联，资料和练习保留。完整备份包含目录与关联。
 
 AI 工具 `list_subject_modules`、`create_subject_module` 和 `link_study_module` 复用原有授权、参数校验、确认与操作审计，不执行任意 SQL。新增关联为幂等追加，不覆盖其他模块。查询工具可按模块过滤。`modules_flow_test.dart` 是第十组原生 GUI，覆盖创建目录、两类归类、筛选和准备专项训练请求。没有新增 Golden 比较。
+
+## GPT 思考档位
+
+`AiOptions` 统一设置、聊天和考试图片整理的档位策略。优先保留官方 `/models` 的 `supported_reasoning_levels` / `supported_reasoning_efforts`，并将选中模型的公开能力元数据保存到 Provider 配置；列表未声明时采用明确的模型文档回退，未知订阅模型只使用模型默认。兼容 API 的自定义模型由用户声明推理参数能力，具体支持范围以服务商为准。
+
+`xhigh`、`max` 按原值发送，`none` 与省略参数独立。只有模型目录明确声明时才展示额外档位（例如 `ultra`）。schema v11 将旧 ChatGPT `max` 别名迁移为 `xhigh`，保留旧配置的实际请求行为；DeepSeek 和兼容 API 的 `max` 不变。
+
+核对来源（2026-11-09）：[推理指南](https://developers.openai.com/api/docs/guides/reasoning)、[Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)、[GPT‑6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol)、[GPT‑5](https://developers.openai.com/api/docs/models/gpt-5)、[GPT‑5.2 Pro](https://developers.openai.com/api/docs/models/gpt-5.2-pro)、[GPT‑5.5 Pro](https://developers.openai.com/api/docs/models/gpt-5.5-pro)、[Codex 配置参考](https://developers.openai.com/codex/config-reference)。Codex 客户端参数不一概等同于公开 Responses API 支持的取值。

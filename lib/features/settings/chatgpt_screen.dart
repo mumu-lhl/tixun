@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -102,16 +104,32 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
     }
   }
 
-  ProviderConfig candidate() => ProviderConfig(
-    id: 1,
-    kind: 'chatgpt',
-    baseUrl: chatGptResource,
-    model: model!,
-    vision: vision,
-    supportsTools: true,
-    supportsThinking: true,
-    thinking: effort != 'default',
-    effort: effort == 'default' ? 'high' : effort,
+  ProviderConfig modelConfiguration() {
+    final declared = models
+        .where((m) => m.id == model)
+        .firstOrNull
+        ?.reasoningEfforts;
+    return ProviderConfig(
+      id: 1,
+      kind: 'chatgpt',
+      baseUrl: chatGptResource,
+      model: model ?? '',
+      vision: vision,
+      supportsTools: true,
+      supportsThinking: true,
+      thinking: effort != 'default',
+      effort: effort == 'default' ? 'high' : effort,
+      reasoningLevels: declared == null ? null : jsonEncode(declared),
+    );
+  }
+
+  List<String> get availableEfforts =>
+      AiOptions(modelConfiguration()).reasoningEfforts;
+  String get selectedEffort =>
+      availableEfforts.contains(effort) ? effort : 'default';
+  ProviderConfig candidate() => modelConfiguration().copyWith(
+    supportsThinking: availableEfforts.isNotEmpty,
+    thinking: selectedEffort != 'default',
   );
 
   @override
@@ -351,8 +369,10 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    key: ValueKey('chatgpt-effort-$effort'),
-                    initialValue: effort,
+                    key: ValueKey(
+                      'chatgpt-effort-$model-$selectedEffort-${availableEfforts.join()}',
+                    ),
+                    initialValue: selectedEffort,
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: context.tr('默认思考强度'),
@@ -360,9 +380,8 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                     items: [
                       for (final e in {
                         'default': '模型默认',
-                        'low': '低',
-                        'high': '高',
-                        'max': '最高',
+                        for (final level in availableEfforts)
+                          level: AiOptions(modelConfiguration()).label(level),
                       }.entries)
                         DropdownMenuItem(
                           value: e.key,
@@ -376,7 +395,7 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                   const SizedBox(height: 8),
                   Text(
                     context.tr(
-                      '最高对应 xhigh。模型默认不发送强度参数；实际思考能力由模型决定。资料工具也可保留思考，所有写入仍需确认。',
+                      '档位按模型能力显示；xhigh 与 max 独立。模型默认不发送强度参数，none 明确请求不推理，两者不同。所有资料写入仍需确认。',
                     ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),

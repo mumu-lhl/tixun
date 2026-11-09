@@ -1,3 +1,5 @@
+import 'package:tixun/core/ai/ai_options.dart';
+
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -69,9 +71,22 @@ void main() {
       await click(t, find.text('测试连接'));
       await ready(t, () => find.text('连接成功，已收到模型回复。').evaluate().isNotEmpty);
       expect(c.config.kind, 'deepseek');
+      await click(
+        t,
+        find.widgetWithText(DropdownButtonFormField<String>, '默认思考强度'),
+      );
+      await click(t, find.text('中').last);
       await click(t, find.byKey(const Key('use-chatgpt')));
       await ready(t, () => c.config.kind == 'chatgpt');
       expect(c.config.vision, true);
+      expect(c.config.effort, 'medium');
+      expect(AiOptions(c.config).reasoningEfforts, [
+        'low',
+        'medium',
+        'high',
+        'xhigh',
+        'max',
+      ]);
       await guiCapture('chatgpt', 'connected-desktop');
       await resizeGui(t, 390, 844);
       await t.drag(find.byType(ListView).last, const Offset(0, 1200));
@@ -83,6 +98,14 @@ void main() {
       await c.newSession();
       scope.read(routerProvider).go('/chat');
       await t.pumpAndSettle();
+      await click(t, find.byKey(const Key('reasoning-menu')));
+      expect(find.byKey(const Key('reasoning-none')), findsNothing);
+      expect(find.byKey(const Key('reasoning-xhigh')), findsOneWidget);
+      expect(find.byKey(const Key('reasoning-max')), findsOneWidget);
+      await guiCapture('chatgpt', 'reasoning-levels-phone');
+      await click(t, find.byKey(const Key('reasoning-max')));
+      expect(c.sessionConfig.effort, 'max');
+      expect(c.config.effort, 'medium');
       await t.enterText(
         find.byKey(const Key('chat-input')),
         'Explain the first step.',

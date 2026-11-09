@@ -63,12 +63,13 @@ void main() {
     );
     final chat = base.copyWith(
       kind: 'chatgpt',
+      model: 'gpt-6.1-sol',
       baseUrl: 'https://api.openai.com/v1',
       thinking: true,
       effort: 'max',
     );
     expect(AiOptions(chat).toolsAvailable, true);
-    expect(AiOptions(chat).effortParameter, 'xhigh');
+    expect(AiOptions(chat).effortParameter, 'max');
     expect(AiOptions(chat).offLabel, '模型默认');
     expect(AiOptions(base.copyWith(kind: 'compatible')).offChoiceLabel, '模型默认');
     expect(AiOptions.forSession(chat, 'off').thinking, false);
@@ -188,6 +189,7 @@ void main() {
       session = await db.createSession(mode: 'exam');
       config = (await db.config()).copyWith(
         kind: 'chatgpt',
+        model: 'gpt-6.1-sol',
         baseUrl: 'https://api.openai.com/v1',
         thinking: true,
       );

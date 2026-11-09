@@ -107,7 +107,7 @@ class ChatGptResponses implements ChatProvider {
       if (config.thinking)
         'reasoning': {
           'effort': AiOptions(config).effortParameter,
-          'summary': 'auto',
+          if (AiOptions(config).reasoningEnabled) 'summary': 'auto',
         },
       if (request.tools.isNotEmpty)
         'tools': [

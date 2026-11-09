@@ -369,7 +369,8 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation(
-        (request, cancel) => _complete(request, cancel, config.thinking),
+        (request, cancel) =>
+            _complete(request, cancel, AiOptions(config).reasoningEnabled),
       );
   Stream<AiChunk> _complete(
     AiRequest request,

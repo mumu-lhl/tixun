@@ -1,3 +1,5 @@
+import '../../core/ai/ai_options.dart';
+
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,7 +53,8 @@ class MessageReasoning extends ConsumerWidget {
     final text = message.reasoningTrace ?? message.reasoningContent ?? '';
     if (text.isEmpty &&
         (message.status != 'generating' ||
-            !ref.read(appControllerProvider).sessionConfig.thinking)) {
+            !AiOptions(ref.read(appControllerProvider).sessionConfig)
+                .reasoningEnabled)) {
       return const SizedBox.shrink();
     }
     final locked = ref.watch(reasoningLockedProvider(message.id));
