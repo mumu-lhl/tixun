@@ -55,7 +55,8 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    const content = r'价格是 $5 and $10，总计 $15。点 $(2,-1)$ 与 $x$、$x^2$、$-1$、$0$、$3.14$。';
+    const content =
+        r'价格是 $5 and $10，总计 $15。点 $(2,-1)$ 与 $x$、$x^2$、$-1$、$0$、$3.14$。';
     await tester.pumpWidget(
       MaterialApp(
         theme: appTheme(Brightness.light),

@@ -27,7 +27,7 @@
 - [x] 可选地区与已有学习阶段嵌入背景上下文；精简重复提示和按任务筛选工具。
 - [x] 中断照片恢复保留剩余路径，支持下次启动重试、进度原子提交与复用恢复会话。
 - [x] 中英文 README、开发与架构文档核对实际入口、上下文、模型能力、图片、更新和发布方式。
-- [ ] 完成本轮最终 CI、最新截图与 Android 实机复验；代码实现和通过的验证分别记录。
+- [x] 完成本地静态分析、完整回归及定向补测、Linux Release 构建、资料 GUI 流程和截图读取；Android 实机与真实账号仍待复验。
 
 ## 仍需验收或后续完善
 
@@ -43,6 +43,7 @@
 
 | 日期 / 代码 | 已确认的结果 |
 | --- | --- |
+| 2026-11-10，`89cb130`–`0e185fb` | 本地完整 Flutter 回归 338 项及后续定向补测、38 项脚本测试、5 场景原生资料 GUI 与最终整理流程复验；Linux Release 构建和 GUI 冒烟通过，手机/桌面截图已读取。最终 CI 状态见[运行记录](https://github.com/mumu-lhl/tixun/actions/workflows/ci.yml)。 |
 | 2026-11-10，`7007fa8` | [普通 CI 42836728324](https://github.com/mumu-lhl/tixun/actions/runs/42836728324) 通过，包含静态分析、自动化测试、Android Debug APK、Linux Release 与 GUI 启动冒烟。 |
 | 2026-11-10，`c969767` | [Nightly 42834281394](https://github.com/mumu-lhl/tixun/actions/runs/42834281394) 成功发布四份签名 Release APK、Linux 包和校验文件；该流程跳过单元测试与完整 GUI 回归，不冒充全套测试验收。 |
 | 2026-11-09，`9ad3514` | [完整 Nightly 42621285295](https://github.com/mumu-lhl/tixun/actions/runs/42621285295) 验证当时的考试/目录、签名 APK 和完整 GUI 流程。历史结果不自动覆盖后续改动。 |

@@ -51,7 +51,7 @@ There is no fixed business limit on image count. Each image is limited to **8 MB
 
 Choose your subjects under Settings → Study subjects, including custom subjects. Switch the current subject at the top of Study. Knowledge and Mistakes share a two-level subject directory; records can belong to multiple modules. Parent filters include submodules. Removing a directory entry keeps your study material.
 
-In Settings → Learning goals, optionally add your stage (such as final-year high school), region, target exam and scope. AI uses these as background for explanations and practice, without assuming an exact local syllabus.
+In Settings → Learning goals, optionally add your stage (such as final-year high school), region, target exam and scope. AI uses these as background for explanations and practice, without assuming an exact local syllabus. [View the settings example](docs/screenshots/learning-profile-phone.png).
 
 From saved notes and mistakes, request explanations, targeted practice or reviews. AI can propose directory entries and associations, subject to confirmation.
 
