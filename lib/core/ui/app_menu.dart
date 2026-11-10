@@ -45,16 +45,6 @@ class _AppSelectFieldState<T> extends State<AppSelectField<T>> {
   T? pending;
   bool hasPending = false, open = false;
   @override
-  void initState() {
-    super.initState();
-    focus.addListener(_focusChanged);
-  }
-
-  void _focusChanged() {
-    if (mounted) setState(() {});
-  }
-
-  @override
   void didUpdateWidget(covariant AppSelectField<T> old) {
     super.didUpdateWidget(old);
     if (old.initialValue != widget.initialValue) value = widget.initialValue;
@@ -63,7 +53,6 @@ class _AppSelectFieldState<T> extends State<AppSelectField<T>> {
 
   @override
   void dispose() {
-    focus.removeListener(_focusChanged);
     focus.dispose();
     super.dispose();
   }
@@ -201,7 +190,7 @@ class _AppSelectFieldState<T> extends State<AppSelectField<T>> {
                       )
                     : InputDecorator(
                         isEmpty: choice == null,
-                        isFocused: open || focus.hasFocus,
+                        isFocused: open,
                         decoration: widget.decoration
                             .copyWith(
                               enabled: enabled,

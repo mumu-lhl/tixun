@@ -4,6 +4,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/ui/app_menu.dart';
 
 void main() {
+  testWidgets('outside dismissal clears the expanded field highlight', (
+    t,
+  ) async {
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AppSelectField<String>(
+            initialValue: 'A',
+            items: const [DropdownMenuItem(value: 'A', child: Text('Alpha'))],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+    await t.tap(find.byType(AppSelectField<String>));
+    await t.pumpAndSettle();
+    expect(
+      t.widget<InputDecorator>(find.byType(InputDecorator)).isFocused,
+      true,
+    );
+    await t.tapAt(const Offset(700, 550));
+    await t.pumpAndSettle();
+    expect(find.byType(MenuItemButton), findsNothing);
+    expect(
+      t.widget<InputDecorator>(find.byType(InputDecorator)).isFocused,
+      false,
+    );
+  });
+
   testWidgets('selection commits after closing and follows external changes', (
     t,
   ) async {

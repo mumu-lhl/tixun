@@ -56,6 +56,12 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                   children: [
                     Row(
                       children: [
+                        BackButton(
+                          key: const Key('exam-calendar-back'),
+                          onPressed: () => context.canPop()
+                              ? context.pop()
+                              : context.go('/study'),
+                        ),
                         Expanded(
                           child: Text(
                             context.tr('考试记录'),
@@ -79,9 +85,14 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                           onPressed: () => move(-1),
                           icon: const Icon(Icons.chevron_left),
                         ),
-                        Text(
-                          '${month.year} / ${month.month}',
-                          style: Theme.of(context).textTheme.titleLarge,
+                        Expanded(
+                          child: Text(
+                            '${month.year} / ${month.month}',
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                         ),
                         TextButton(
                           onPressed: () => setState(() {

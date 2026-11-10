@@ -110,7 +110,11 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       side: BorderSide(color: colors.outlineVariant.withValues(alpha: .5)),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      labelStyle: TextStyle(fontSize: 12, color: colors.onSurface),
+      labelStyle: TextStyle(
+        fontFamily: 'NotoSansSC',
+        fontSize: 12,
+        color: colors.onSurface,
+      ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(

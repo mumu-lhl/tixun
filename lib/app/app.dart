@@ -29,6 +29,21 @@ import '../features/settings/settings_screen.dart';
 import 'controller.dart';
 import 'theme.dart';
 
+// Ink belongs to its route, not the shell's Scaffold below the Navigator.
+// Otherwise an outgoing page can leave its splash on top of a pushed page.
+GoRoute _materialRoute({
+  required String path,
+  required GoRouterWidgetBuilder builder,
+  List<RouteBase> routes = const [],
+}) => GoRoute(
+  path: path,
+  routes: routes,
+  builder: (context, state) => Material(
+    color: Theme.of(context).colorScheme.surface,
+    child: builder(context, state),
+  ),
+);
+
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: const String.fromEnvironment(
@@ -69,15 +84,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) =>
             AppShell(path: state.uri.path, child: child),
         routes: [
-          GoRoute(
+          _materialRoute(
             path: '/exams',
             builder: (_, _) => const ExamCalendarScreen(),
             routes: [
-              GoRoute(
+              _materialRoute(
                 path: ':id',
                 builder: (_, s) => ExamDetailScreen(s.pathParameters['id']!),
                 routes: [
-                  GoRoute(
+                  _materialRoute(
                     path: 'subject/:subjectId',
                     builder: (_, s) =>
                         ExamSubjectScreen(s.pathParameters['subjectId']!),
@@ -86,25 +101,34 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          GoRoute(path: '/study', builder: (_, _) => const DashboardScreen()),
-          GoRoute(path: '/review', builder: (_, _) => const ReviewScreen()),
-          GoRoute(path: '/progress', builder: (_, _) => const ProgressScreen()),
-          GoRoute(
+          _materialRoute(
+            path: '/study',
+            builder: (_, _) => const DashboardScreen(),
+          ),
+          _materialRoute(
+            path: '/review',
+            builder: (_, _) => const ReviewScreen(),
+          ),
+          _materialRoute(
+            path: '/progress',
+            builder: (_, _) => const ProgressScreen(),
+          ),
+          _materialRoute(
             path: '/practice',
             builder: (_, _) => const PracticeScreen(),
             routes: [
-              GoRoute(
+              _materialRoute(
                 path: 'run',
                 builder: (_, _) => const PracticeRunScreen(),
               ),
-              GoRoute(
+              _materialRoute(
                 path: ':id',
                 builder: (_, s) => PracticeDetailScreen(
                   s.pathParameters['id']!,
                   attemptId: s.uri.queryParameters['attempt'],
                 ),
                 routes: [
-                  GoRoute(
+                  _materialRoute(
                     path: 'history',
                     builder: (_, s) =>
                         PracticeHistoryScreen(s.pathParameters['id']!),
@@ -113,25 +137,28 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          GoRoute(path: '/chat', builder: (_, _) => const ChatScreen()),
-          GoRoute(
+          _materialRoute(path: '/chat', builder: (_, _) => const ChatScreen()),
+          _materialRoute(
             path: '/settings',
             builder: (_, _) => const SettingsScreen(),
             routes: [
-              GoRoute(
+              _materialRoute(
                 path: 'subjects',
                 builder: (_, _) => const SubjectsScreen(),
               ),
-              GoRoute(path: 'ai', builder: (_, _) => const AiSettingsScreen()),
-              GoRoute(
+              _materialRoute(
+                path: 'ai',
+                builder: (_, _) => const AiSettingsScreen(),
+              ),
+              _materialRoute(
                 path: 'chatgpt',
                 builder: (_, _) => const ChatGptScreen(),
               ),
-              GoRoute(
+              _materialRoute(
                 path: 'prompts',
                 builder: (_, _) => const PromptScreen(),
                 routes: [
-                  GoRoute(
+                  _materialRoute(
                     path: ':id',
                     builder: (_, state) =>
                         PromptEditorScreen(state.pathParameters['id']!),
@@ -140,14 +167,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          GoRoute(
+          _materialRoute(
             path: '/knowledge',
             builder: (_, s) => LibraryScreen(
               isMistake: false,
               initialModule: s.uri.queryParameters['module'],
             ),
             routes: [
-              GoRoute(
+              _materialRoute(
                 path: ':id',
                 builder: (_, state) => StudyDetailScreen(
                   id: state.pathParameters['id']!,
@@ -156,14 +183,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          GoRoute(
+          _materialRoute(
             path: '/mistakes',
             builder: (_, s) => LibraryScreen(
               isMistake: true,
               initialModule: s.uri.queryParameters['module'],
             ),
             routes: [
-              GoRoute(
+              _materialRoute(
                 path: ':id',
                 builder: (_, state) => StudyDetailScreen(
                   id: state.pathParameters['id']!,
