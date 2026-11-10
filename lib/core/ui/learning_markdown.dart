@@ -9,13 +9,13 @@ import '../l10n/app_strings.dart';
 class MathInlineSyntax extends md.InlineSyntax {
   // A single-$ span is only a formula when its content carries a LaTeX
   // feature character (\ ^ _ { } = ( ) < > /) or is a bare variable
-  // ($x$). Plain money such as "$5 and $10" has neither, so it stays
+  // ($x$), or a fully delimited number ($-1$). Plain money such as "$5 and $10" has neither, so it stays
   // literal text instead of being parsed as a formula and losing its
   // `$` signs when the (invalid) formula falls back. `$$...$$`,
   // `\(...\)` and `\[...\]` are unchanged.
   MathInlineSyntax()
     : super(
-        r'\$\$([^$]+?)\$\$|\$((?:[^\n$]*[\\^_{}=()<>\\/][^\n$]*?)|(?:[A-Za-z][A-Za-z0-9_]*))\$|\\\((.+?)\\\)|\\\[([^\]]+?)\\\]',
+        r'\$\$([^$]+?)\$\$|\$((?:[^\n$]*[\\^_{}=()<>\\/][^\n$]*?)|(?:[A-Za-z][A-Za-z0-9_]*)|(?:[+-]?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)))\$|\\\((.+?)\\\)|\\\[([^\]]+?)\\\]',
       );
   @override
   bool onMatch(md.InlineParser parser, Match match) {

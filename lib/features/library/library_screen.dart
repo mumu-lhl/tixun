@@ -422,7 +422,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Widget build(BuildContext context) {
     final store = ref.watch(studyStoreProvider);
     final colors = Theme.of(context).colorScheme;
-    final name = widget.isMistake ? '错题本' : '知识库';
+    final name = context.tr(widget.isMistake ? '错题本' : '知识库');
     // The list follows the global subject filter; a change reloads.
     final subjectFilter = ref.watch(
       appControllerProvider.select((c) => c.subjectFilter),

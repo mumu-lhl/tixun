@@ -340,7 +340,7 @@ void main() {
         find.byKey(const Key('ai-study-instruction')),
         '整理二次函数的顶点公式与适用条件',
       );
-      await t.pump();
+      await t.pumpAndSettle();
       await guiCapture('writing', 'create-knowledge-phone');
       await t.tap(find.byKey(const Key('start-ai-study-writing')));
       await until(t, () => c.pendingTool != null);
@@ -399,7 +399,7 @@ void main() {
       final fields = find.byType(TextField);
       await t.enterText(fields.at(0), '高三');
       await t.enterText(fields.at(1), '浙江');
-      await t.pump();
+      await t.pumpAndSettle();
       await guiCapture('writing', 'profile-region-phone');
       await t.tap(find.text('保存').last);
       await until(t, () => find.byType(AlertDialog).evaluate().isEmpty);

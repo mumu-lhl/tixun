@@ -55,7 +55,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    const content = r'价格是 $5 and $10，总计 $15。点 $(2,-1)$ 与 $x$、$x^2$。';
+    const content = r'价格是 $5 and $10，总计 $15。点 $(2,-1)$ 与 $x$、$x^2$、$-1$、$0$、$3.14$。';
     await tester.pumpWidget(
       MaterialApp(
         theme: appTheme(Brightness.light),
@@ -70,10 +70,10 @@ void main() {
     // as a formula and dropped by the fallback.
     expect(find.textContaining('\$5'), findsWidgets);
     expect(find.textContaining('\$10'), findsWidgets);
-    // The three real formulas still render as math (one tooltip each).
+    // Formulas and explicitly delimited numbers render as math, not currency.
     expect(
       find.byWidgetPredicate((w) => w is Tooltip && w.message == '长按复制 LaTeX'),
-      findsNWidgets(3),
+      findsNWidgets(6),
     );
   });
 
