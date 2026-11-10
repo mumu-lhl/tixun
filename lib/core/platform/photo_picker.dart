@@ -1,9 +1,9 @@
-import 'dart:io';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart' as assets;
-import 'package:wechat_camera_picker/wechat_camera_picker.dart' as camera;
+import 'package:image_picker/image_picker.dart' as system;
 
 import '../l10n/app_strings.dart';
 
@@ -14,7 +14,7 @@ Future<List<XFile>> pickPhotos(
   bool takePhoto = false,
   bool filesOnly = false,
 }) async {
-  if (!Platform.isAndroid || filesOnly) {
+  if (defaultTargetPlatform != TargetPlatform.android || filesOnly) {
     final files = await openFiles(
       acceptedTypeGroups: const [
         XTypeGroup(
@@ -27,32 +27,23 @@ Future<List<XFile>> pickPhotos(
   }
   final english = AppStrings.of(context).locale.languageCode == 'en';
   if (takePhoto) {
-    String? path;
-    final navigator = Navigator.of(context, rootNavigator: true);
-    await camera.CameraPicker.pickFromCamera(
-      context,
-      pickerConfig: camera.CameraPickerConfig(
-        enableAudio: false,
-        enableRecording: false,
-        // The app handles storage and review; no gallery write permission needed.
-        shouldDeletePreviewFile: false,
-        textDelegate: english
-            ? const camera.EnglishCameraPickerTextDelegate()
-            : const camera.CameraPickerTextDelegate(),
-        onXFileCaptured: (file, type) {
-          path = file.path;
-          navigator.pop();
-          return true;
-        },
-      ),
-    );
-    return path == null ? [] : [XFile(path!)];
+    // Let the device's camera app own preview and camera permissions. Some
+    // Android devices display a black embedded CameraX preview without errors.
+    try {
+      final file = await system.ImagePicker().pickImage(
+        source: system.ImageSource.camera,
+      );
+      return file == null ? [] : [XFile(file.path)];
+    } on PlatformException {
+      throw const FormatException('无法打开系统相机或完成拍照，请检查系统相机权限，或改用相册 / 图片文件。');
+    }
   }
   final picked = await assets.AssetPicker.pickAssets(
     context,
     pickerConfig: assets.AssetPickerConfig(
       requestType: assets.RequestType.image,
-      // No app-level cap: the picker's own default maxAssets applies.
+      // The API requires a positive int. Avoid its implicit 9-photo cap.
+      maxAssets: 0x7fffffff,
       pickerTheme: Theme.of(context),
       textDelegate: english
           ? const assets.EnglishAssetPickerTextDelegate()

@@ -1062,4 +1062,5 @@ const englishMessages = <String, String>{
   "超过上限时，旧对话先由模型摘要压缩，再与最近对话一起发送。默认 128000；实际按模型窗口与该值中较小者执行。": "When the limit is exceeded, older turns are summarized by the model first, then sent with the recent turns. Default 128000; the effective cap is the smaller of the model window and this value.",
   "最大上下文 Token 数应为 4096–1048576 的整数。":
       "Max context tokens must be an integer between 4096 and 1048576.",
+  "无法打开系统相机或完成拍照，请检查系统相机权限，或改用相册 / 图片文件。": "Could not open the system camera or take a photo. Check the camera app permissions, or choose a photo or image file.",
 };
