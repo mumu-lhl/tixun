@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:image_picker/image_picker.dart';
+import 'package:drift/drift.dart' show BooleanExpressionOperators;
 import 'package:flutter/material.dart';
 
 import '../../core/platform/photo_picker.dart';
 import 'image_editor.dart';
 import '../../core/database/database.dart';
+import '../../core/database/attachment_cleanup.dart';
 
 import '../../app/controller.dart';
 
@@ -43,45 +45,106 @@ class StudyPhotoIntake {
   static Future<bool> recover(AppController c, List<XFile> files) async {
     final value = await c.db.preference(preference);
     if (value == null || value.isEmpty) return false;
+    late Map<String, dynamic> target;
     try {
-      final target = (jsonDecode(value) as Map).cast<String, dynamic>();
-      if (target['mistake'] is! bool ||
-          (target['id'] != null && target['id'] is! String) ||
-          target['subject'] is! String) {
+      final decoded = jsonDecode(value);
+      if (decoded is! Map<String, dynamic> ||
+          decoded['mistake'] is! bool ||
+          (decoded['id'] != null && decoded['id'] is! String) ||
+          decoded['subject'] is! String ||
+          (decoded['id'] == null && decoded['mistake'] != true) ||
+          (decoded['chatSession'] != null &&
+              decoded['chatSession'] is! String) ||
+          (decoded['files'] != null &&
+              (decoded['files'] is! List ||
+                  (decoded['files'] as List).any((p) => p is! String)))) {
         throw const FormatException('照片恢复目标无效。');
       }
-      final owner = target['id'] as String?;
-      if (owner == null && target['mistake'] != true) {
-        throw const FormatException('照片恢复目标无效。');
-      }
-      if (owner != null) {
-        try {
-          if (target['mistake'] == true) {
-            await c.study.mistake(owner);
-          } else {
-            await c.study.knowledge(owner);
-          }
-        } on FormatException {
-          for (var i = 0; i < files.length; i++) {
-            if (i % 4 == 0) await c.newSession();
-            await c.addImage(files[i].path);
-          }
-          c.notice = '原资料已删除，照片已保留到新对话草稿。请检查后重新关联，未自动上传。';
-          return true;
-        }
-      }
-      var recovered = 0;
-      for (final file in files) {
-        await _apply(c, file, target);
-        recovered++;
-      }
-      c.notice =
-          '已将 $recovered 张照片恢复到${target['mistake'] == true ? '错题本' : '知识库'}。请检查内容并补充解析。';
-      return true;
-    } finally {
+      target = decoded;
+    } on FormatException {
       await c.db.setPreference(preference, '');
+      rethrow;
     }
+    // retrieveLostData is consumed once. Retained paths must work on the next
+    // launch even when Android no longer returns the original result.
+    final pending = target['files'] is List
+        ? (target['files'] as List).cast<String>().map(XFile.new).toList()
+        : files;
+    if (pending.isEmpty) {
+      await c.db.setPreference(preference, '');
+      return false;
+    }
+    var missingOwner = false;
+    final owner = target['id'] as String?;
+    if (owner != null) {
+      try {
+        if (target['mistake'] == true) {
+          await c.study.mistake(owner);
+        } else {
+          await c.study.knowledge(owner);
+        }
+      } on FormatException {
+        missingOwner = true;
+      }
+    }
+    if (missingOwner) {
+      final chatId = target['chatSession'] as String?;
+      final session = chatId == null
+          ? null
+          : await (c.db.select(c.db.chatSessions)
+                  ..where((t) => t.id.equals(chatId) & t.deleted.equals(false)))
+                .getSingleOrNull();
+      if (session == null) {
+        await c.newSession();
+      } else {
+        await c.selectSession(session);
+      }
+      target['chatSession'] = c.selected!.id;
+    }
+    await _retainRemaining(c, target, pending, 0);
+    final importedPaths = <String>[];
+    try {
+      for (var i = 0; i < pending.length; i++) {
+        // Insertion and cursor advance commit together, including on retries.
+        await c.db.transaction(() async {
+          if (missingOwner) {
+            final image = await c.addImage(pending[i].path);
+            importedPaths.add(image.relativePath);
+          } else {
+            final (_, image) = await _apply(c, pending[i], target);
+            importedPaths.add(image.relativePath);
+          }
+          await _retainRemaining(c, target, pending, i + 1);
+        });
+      }
+    } catch (_) {
+      await cleanupPurgedAttachments(c.db, c.files, importedPaths);
+      // A failed cursor write also rolls back the insert; refresh any draft
+      // snapshot loaded inside that transaction before showing the error.
+      if (missingOwner && c.selected != null) {
+        await c.selectSession(c.selected!);
+      }
+      rethrow;
+    }
+    await c.db.setPreference(preference, '');
+    c.notice = missingOwner
+        ? '原资料已删除，照片已保留到新对话草稿。请检查后重新关联，未自动上传。'
+        : '已将 ${pending.length} 张照片恢复到${target['mistake'] == true ? '错题本' : '知识库'}。请检查内容并补充解析。';
+    return true;
   }
+
+  static Future<void> _retainRemaining(
+    AppController c,
+    Map<String, dynamic> target,
+    List<XFile> files,
+    int next,
+  ) => c.db.setPreference(
+    preference,
+    jsonEncode({
+      ...target,
+      'files': files.skip(next).map((f) => f.path).toList(),
+    }),
+  );
 
   static Future<(String, StudyAttachment)> _apply(
     AppController c,

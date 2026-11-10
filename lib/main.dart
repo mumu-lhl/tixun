@@ -79,6 +79,11 @@ Future<void> main() async {
     if (Platform.isAndroid && !demo) {
       try {
         final lost = await ImagePicker().retrieveLostData();
+        if (lost.files?.isNotEmpty != true) {
+          // Retry saved batches after retrieveLostData has consumed its result.
+          await ExamPhotoIntake.recover(c, []);
+          await StudyPhotoIntake.recover(c, []);
+        }
         if (lost.files?.isNotEmpty == true) {
           if (!await ExamPhotoIntake.recover(c, lost.files!) &&
               !await StudyPhotoIntake.recover(c, lost.files!)) {
@@ -88,10 +93,6 @@ Future<void> main() async {
             }
             c.notice = '已将中断选择的图片恢复到对话草稿，请检查后发送。';
           }
-        }
-        if (lost.files?.isNotEmpty != true) {
-          await c.db.setPreference(StudyPhotoIntake.preference, '');
-          await c.db.setPreference(ExamPhotoIntake.preference, '');
         }
         if (lost.exception != null) c.notice = '上次图片选择未完成，请重新选择。';
       } catch (_) {
