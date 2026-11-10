@@ -78,8 +78,6 @@ const englishMessages = <String, String>{
   "先合上答案回忆和作答，再根据反馈订正。": "Recall and answer before checking the reference, then correct your work.",
   "先回忆，再核对。到期任务在应用内提醒，离线也能继续。": "Recall first, then check. Due tasks appear in the app, and existing practice works offline.",
   "先对照参考，再给自己的作答判分": "Compare with the reference, then assess your answer",
-  "先提交答案，再查看反馈与解析": "Submit before viewing feedback and explanations",
-  "先理解，再独立尝试": "Understand, then try independently",
   "全选已加载": "Select loaded items",
   "全部对话": "All conversations",
   "全部科目": "All subjects",

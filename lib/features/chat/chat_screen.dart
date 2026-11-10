@@ -669,20 +669,6 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                 ),
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          c.selected!.mode == 'exam'
-                                              ? context.tr("先提交答案，再查看反馈与解析")
-                                              : context.tr("先理解，再独立尝试"),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: colors.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
