@@ -682,7 +682,6 @@
   "模型默认": "Model default",
   "ChatGPT 不支持此消息内容。": "ChatGPT does not support this message content.",
   "ChatGPT 消息角色无效。": "Invalid ChatGPT message role.",
-  "ChatGPT 未返回有效的流式回复。": "ChatGPT did not return a valid response stream.",
   "ChatGPT 登录已失效，请重新登录。": "Your ChatGPT sign-in has expired. Sign in again.",
   "ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。": "ChatGPT plan allowance or permissions are unavailable. Check usage in ChatGPT. Requests will not fall back to API billing.",
   "ChatGPT 不支持当前模型或参数，请刷新模型列表或改用模型默认思考设置。": "ChatGPT does not support this model or parameter. Refresh the model list or use the default reasoning setting.",
@@ -981,5 +980,9 @@
   "最大上下文 Token 数": "Max context tokens",
   "超过上限时，旧对话先由模型摘要压缩，再与最近对话一起发送。默认 128000；实际按模型窗口与该值中较小者执行。": "When the limit is exceeded, older turns are summarized by the model first, then sent with the recent turns. Default 128000; the effective cap is the smaller of the model window and this value.",
   "最大上下文 Token 数应为 4096–1048576 的整数。": "Max context tokens must be an integer between 4096 and 1048576.",
-  "无法打开系统相机或完成拍照，请检查系统相机权限，或改用相册 / 图片文件。": "Could not open the system camera or take a photo. Check the camera app permissions, or choose a photo or image file."
+  "无法打开系统相机或完成拍照，请检查系统相机权限，或改用相册 / 图片文件。": "Could not open the system camera or take a photo. Check the camera app permissions, or choose a photo or image file.",
+  "ChatGPT 非流式回复过大，请新建会话或重试。": "The non-streaming ChatGPT response is too large. Start a new conversation or try again.",
+  "ChatGPT 返回了网页而不是 AI 回复，请检查网络或代理后重试。": "ChatGPT returned a web page rather than an AI response. Check your network or proxy and try again.",
+  "ChatGPT 返回了无法识别的回复格式，请检查服务后重试。": "ChatGPT returned an unrecognized format. Check the service and try again.",
+  "ChatGPT 服务返回了错误，请刷新模型列表或重新登录后重试。": "ChatGPT returned an error. Refresh the model list or sign in again and retry."
 }

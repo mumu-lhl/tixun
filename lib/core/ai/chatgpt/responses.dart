@@ -161,13 +161,14 @@ class ChatGptResponses implements ChatProvider {
           },
         ),
       );
-      if (!(response.headers.value('content-type') ?? '').contains(
-        'text/event-stream',
-      )) {
-        throw const AiFailure('ChatGPT 未返回有效的流式回复。');
-      }
+      final mediaType = (response.headers.value('content-type') ?? '')
+          .toLowerCase();
+      final bytes = response.data!.stream.timeout(const Duration(seconds: 60));
+      final responseEvents = mediaType.contains('text/event-stream')
+          ? bytes
+          : _compatibleResponseEvents(bytes, mediaType, cancel);
       await for (final chunk in decodeResponses(
-        response.data!.stream.timeout(const Duration(seconds: 60)),
+        responseEvents,
         (id, items) => context[id] = items,
       )) {
         cancel.checkCancelled();
@@ -195,11 +196,79 @@ class ChatGptResponses implements ChatProvider {
   }
 }
 
+// A proxy can alter the media type, and a service may return a complete
+// JSON Response even with stream=true. Only normalize validated Responses
+// payloads; an HTML page or JSON error must never become a successful answer.
+Stream<List<int>> _compatibleResponseEvents(
+  Stream<List<int>> stream,
+  String mediaType,
+  CancelToken cancel,
+) async* {
+  final body = <int>[];
+  await for (final bytes in stream) {
+    cancel.checkCancelled();
+    if (body.length + bytes.length > 2 * 1024 * 1024) {
+      throw const AiFailure('ChatGPT 非流式回复过大，请新建会话或重试。');
+    }
+    body.addAll(bytes);
+  }
+  cancel.checkCancelled();
+  late String text;
+  try {
+    text = utf8.decode(body).replaceFirst('\ufeff', '').trimLeft();
+  } on FormatException {
+    throw const AiFailure('ChatGPT 回复格式无效，请重试。');
+  }
+  if (text.startsWith('data:') ||
+      text.startsWith('event:') ||
+      text.startsWith(':')) {
+    yield utf8.encode(text);
+    return;
+  }
+  if (mediaType.contains('text/html') || text.startsWith('<')) {
+    throw const AiFailure('ChatGPT 返回了网页而不是 AI 回复，请检查网络或代理后重试。');
+  }
+  dynamic decoded;
+  try {
+    decoded = jsonDecode(text);
+  } catch (_) {
+    throw const AiFailure('ChatGPT 返回了无法识别的回复格式，请检查服务后重试。');
+  }
+  if (decoded is! Map<String, dynamic>) {
+    throw const AiFailure('ChatGPT 回复格式无效，请重试。');
+  }
+  if (decoded['error'] != null) {
+    final error = decoded['error'];
+    final code = error is Map ? error['code'] : null;
+    // Never display raw server messages: they may echo user input or tokens.
+    throw AiFailure(switch (code) {
+      'subscription_sharing_usage_limit_exceeded' ||
+      'subscription_sharing_usage_unavailable' ||
+      'insufficient_quota' ||
+      'rate_limit_exceeded' =>
+        'ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。',
+      'invalid_api_key' ||
+      'invalid_token' ||
+      'token_expired' => 'ChatGPT 登录已失效，请重新登录。',
+      'model_not_found' ||
+      'invalid_request_error' ||
+      'unsupported_value' => 'ChatGPT 不支持当前模型或参数，请刷新模型列表或改用模型默认思考设置。',
+      _ => 'ChatGPT 服务返回了错误，请刷新模型列表或重新登录后重试。',
+    });
+  }
+  if (decoded['status'] != 'completed' || decoded['output'] is! List) {
+    throw const AiFailure('ChatGPT 未完成回复，已保留收到的内容。请重试。');
+  }
+  yield utf8.encode(
+    'data: ${jsonEncode({'type': 'response.completed', 'response': decoded})}\n\n',
+  );
+}
+
 Stream<AiChunk> decodeResponses(
   Stream<List<int>> bytes,
   void Function(String id, List<dynamic> context)? retainContext,
 ) async* {
-  var completed = false, summarySeen = false;
+  var completed = false, summarySeen = false, textSeen = false;
   await for (final data in sseData(bytes)) {
     if (data == '[DONE]') break;
     Map<String, dynamic> event;
@@ -214,6 +283,7 @@ Stream<AiChunk> decodeResponses(
           'response.refusal.delta',
         ].contains(type) &&
         event['delta'] is String) {
+      textSeen = textSeen || (event['delta'] as String).isNotEmpty;
       yield AiChunk(text: event['delta'] as String);
     } else if (type == 'response.reasoning_summary_text.delta' &&
         event['delta'] is String) {
@@ -244,6 +314,19 @@ Stream<AiChunk> decodeResponses(
         throw const AiFailure('ChatGPT 回复格式无效，请重试。');
       }
       final output = response['output'] as List;
+      if (!textSeen) {
+        for (final item in output.whereType<Map>()) {
+          if (item['type'] != 'message' || item['content'] is! List) continue;
+          for (final part in (item['content'] as List).whereType<Map>()) {
+            final text = part['type'] == 'output_text'
+                ? part['text']
+                : part['type'] == 'refusal'
+                ? part['refusal']
+                : null;
+            if (text is String && text.isNotEmpty) yield AiChunk(text: text);
+          }
+        }
+      }
       if (!summarySeen) {
         for (final item in output.whereType<Map>()) {
           if (item['type'] != 'reasoning') continue;
