@@ -76,6 +76,9 @@ class AppController extends ChangeNotifier {
   String sessionReasoning = '';
   String get languageChoice => preferences.languageChoice;
   bool get dynamicColors => preferences.dynamicColors;
+  int get maxContextTokens => preferences.maxContextTokens;
+  Future<void> setMaxContextTokens(int value) =>
+      preferences.setMaxContextTokens(value);
   Locale? get appLocale => preferences.appLocale;
   String get promptLanguage => preferences.promptLanguage;
   String uiText(String key, [List<Object?> arguments = const []]) =>

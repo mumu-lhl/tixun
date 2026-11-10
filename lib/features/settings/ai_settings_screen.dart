@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
 import '../../core/ai/chat_provider.dart';
+import '../../core/ai/context_compactor.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
@@ -17,7 +18,7 @@ class AiSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
-  late TextEditingController _base, _model;
+  late TextEditingController _base, _model, _maxContext;
   final _key = TextEditingController();
   late String _kind, _effort;
   late bool _vision, _thinking, _supportsThinking, _supportsTools;
@@ -57,6 +58,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     final c = ref.read(appControllerProvider).config;
     _base = TextEditingController();
     _model = TextEditingController();
+    _maxContext = TextEditingController(
+      text: ref.read(appControllerProvider).maxContextTokens.toString(),
+    );
     _applyConfig(c);
   }
 
@@ -64,6 +68,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   void dispose() {
     _base.dispose();
     _model.dispose();
+    _maxContext.dispose();
     _key.dispose();
     super.dispose();
   }
@@ -93,6 +98,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
           _key.text.trim().isEmpty ? null : _key.text,
         );
       } else {
+        final parsed = int.tryParse(_maxContext.text.trim());
+        if (parsed == null || !isValidMaxContextTokens(parsed)) {
+          throw const FormatException('最大上下文 Token 数应为 4096–1048576 的整数。');
+        }
+        await c.setMaxContextTokens(parsed);
         await c.saveSettings(
           _candidate(),
           remove
@@ -416,6 +426,20 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                         ),
                       ),
                   ],
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _maxContext,
+                    enabled: !_working,
+                    autocorrect: false,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: context.tr('最大上下文 Token 数'),
+                      helperText: context.tr(
+                        '超过上限时，旧对话先由模型摘要压缩，再与最近对话一起发送。默认 128000；实际按模型窗口与该值中较小者执行。',
+                      ),
+                      helperMaxLines: 3,
+                    ),
+                  ),
                   Padding(
                     padding: EdgeInsets.only(bottom: 16),
                     child: Text(

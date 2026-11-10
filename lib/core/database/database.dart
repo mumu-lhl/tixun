@@ -19,6 +19,10 @@ class ChatSessions extends Table {
   TextColumn get stage => text().withDefault(const Constant('diagnosing'))();
   BoolColumn get toolsEnabled => boolean().withDefault(const Constant(false))();
   TextColumn get draft => text().withDefault(const Constant(''))();
+  // Context compression state: the summary of older turns (persisted so
+  // later sends reuse it) and the id of the last message it covers.
+  TextColumn get contextSummary => text().nullable()();
+  TextColumn get contextSummaryUpToId => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
@@ -139,7 +143,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 12;
+  static const latestSchemaVersion = 13;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -247,6 +251,10 @@ class AppDatabase extends _$AppDatabase {
           "WHEN title LIKE '政治 · %' THEN '政治' "
           "ELSE NULL END",
         );
+      }
+      if (from < 13) {
+        await m.addColumn(chatSessions, chatSessions.contextSummary);
+        await m.addColumn(chatSessions, chatSessions.contextSummaryUpToId);
       }
       if (from >= 9 && from < 12) {
         await m.addColumn(examAttachments, examAttachments.originalPath);
@@ -498,6 +506,14 @@ class AppDatabase extends _$AppDatabase {
       ChatSessionsCompanion(subject: Value(subject)),
     );
   }
+
+  Future<void> setContextSummary(String id, String? summary, String? upToId) =>
+      (update(chatSessions)..where((s) => s.id.equals(id))).write(
+        ChatSessionsCompanion(
+          contextSummary: Value(summary),
+          contextSummaryUpToId: Value(upToId),
+        ),
+      );
 
   Future<void> setDeleted(String id, bool deleted) async {
     await (update(chatSessions)..where((s) => s.id.equals(id))).write(

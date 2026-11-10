@@ -83,6 +83,28 @@ class $ChatSessionsTable extends ChatSessions
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _contextSummaryMeta = const VerificationMeta(
+    'contextSummary',
+  );
+  @override
+  late final GeneratedColumn<String> contextSummary = GeneratedColumn<String>(
+    'context_summary',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contextSummaryUpToIdMeta =
+      const VerificationMeta('contextSummaryUpToId');
+  @override
+  late final GeneratedColumn<String> contextSummaryUpToId =
+      GeneratedColumn<String>(
+        'context_summary_up_to_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -129,6 +151,8 @@ class $ChatSessionsTable extends ChatSessions
     stage,
     toolsEnabled,
     draft,
+    contextSummary,
+    contextSummaryUpToId,
     createdAt,
     updatedAt,
     deleted,
@@ -191,6 +215,24 @@ class $ChatSessionsTable extends ChatSessions
         draft.isAcceptableOrUnknown(data['draft']!, _draftMeta),
       );
     }
+    if (data.containsKey('context_summary')) {
+      context.handle(
+        _contextSummaryMeta,
+        contextSummary.isAcceptableOrUnknown(
+          data['context_summary']!,
+          _contextSummaryMeta,
+        ),
+      );
+    }
+    if (data.containsKey('context_summary_up_to_id')) {
+      context.handle(
+        _contextSummaryUpToIdMeta,
+        contextSummaryUpToId.isAcceptableOrUnknown(
+          data['context_summary_up_to_id']!,
+          _contextSummaryUpToIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -250,6 +292,14 @@ class $ChatSessionsTable extends ChatSessions
         DriftSqlType.string,
         data['${effectivePrefix}draft'],
       )!,
+      contextSummary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}context_summary'],
+      ),
+      contextSummaryUpToId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}context_summary_up_to_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -279,6 +329,8 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
   final String stage;
   final bool toolsEnabled;
   final String draft;
+  final String? contextSummary;
+  final String? contextSummaryUpToId;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool deleted;
@@ -290,6 +342,8 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     required this.stage,
     required this.toolsEnabled,
     required this.draft,
+    this.contextSummary,
+    this.contextSummaryUpToId,
     required this.createdAt,
     required this.updatedAt,
     required this.deleted,
@@ -306,6 +360,12 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     map['stage'] = Variable<String>(stage);
     map['tools_enabled'] = Variable<bool>(toolsEnabled);
     map['draft'] = Variable<String>(draft);
+    if (!nullToAbsent || contextSummary != null) {
+      map['context_summary'] = Variable<String>(contextSummary);
+    }
+    if (!nullToAbsent || contextSummaryUpToId != null) {
+      map['context_summary_up_to_id'] = Variable<String>(contextSummaryUpToId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['deleted'] = Variable<bool>(deleted);
@@ -323,6 +383,12 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       stage: Value(stage),
       toolsEnabled: Value(toolsEnabled),
       draft: Value(draft),
+      contextSummary: contextSummary == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contextSummary),
+      contextSummaryUpToId: contextSummaryUpToId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contextSummaryUpToId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deleted: Value(deleted),
@@ -342,6 +408,10 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       stage: serializer.fromJson<String>(json['stage']),
       toolsEnabled: serializer.fromJson<bool>(json['toolsEnabled']),
       draft: serializer.fromJson<String>(json['draft']),
+      contextSummary: serializer.fromJson<String?>(json['contextSummary']),
+      contextSummaryUpToId: serializer.fromJson<String?>(
+        json['contextSummaryUpToId'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deleted: serializer.fromJson<bool>(json['deleted']),
@@ -358,6 +428,8 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       'stage': serializer.toJson<String>(stage),
       'toolsEnabled': serializer.toJson<bool>(toolsEnabled),
       'draft': serializer.toJson<String>(draft),
+      'contextSummary': serializer.toJson<String?>(contextSummary),
+      'contextSummaryUpToId': serializer.toJson<String?>(contextSummaryUpToId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deleted': serializer.toJson<bool>(deleted),
@@ -372,6 +444,8 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     String? stage,
     bool? toolsEnabled,
     String? draft,
+    Value<String?> contextSummary = const Value.absent(),
+    Value<String?> contextSummaryUpToId = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? deleted,
@@ -383,6 +457,12 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     stage: stage ?? this.stage,
     toolsEnabled: toolsEnabled ?? this.toolsEnabled,
     draft: draft ?? this.draft,
+    contextSummary: contextSummary.present
+        ? contextSummary.value
+        : this.contextSummary,
+    contextSummaryUpToId: contextSummaryUpToId.present
+        ? contextSummaryUpToId.value
+        : this.contextSummaryUpToId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deleted: deleted ?? this.deleted,
@@ -398,6 +478,12 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
           ? data.toolsEnabled.value
           : this.toolsEnabled,
       draft: data.draft.present ? data.draft.value : this.draft,
+      contextSummary: data.contextSummary.present
+          ? data.contextSummary.value
+          : this.contextSummary,
+      contextSummaryUpToId: data.contextSummaryUpToId.present
+          ? data.contextSummaryUpToId.value
+          : this.contextSummaryUpToId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
@@ -414,6 +500,8 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
           ..write('stage: $stage, ')
           ..write('toolsEnabled: $toolsEnabled, ')
           ..write('draft: $draft, ')
+          ..write('contextSummary: $contextSummary, ')
+          ..write('contextSummaryUpToId: $contextSummaryUpToId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted')
@@ -430,6 +518,8 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     stage,
     toolsEnabled,
     draft,
+    contextSummary,
+    contextSummaryUpToId,
     createdAt,
     updatedAt,
     deleted,
@@ -445,6 +535,8 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
           other.stage == this.stage &&
           other.toolsEnabled == this.toolsEnabled &&
           other.draft == this.draft &&
+          other.contextSummary == this.contextSummary &&
+          other.contextSummaryUpToId == this.contextSummaryUpToId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deleted == this.deleted);
@@ -458,6 +550,8 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
   final Value<String> stage;
   final Value<bool> toolsEnabled;
   final Value<String> draft;
+  final Value<String?> contextSummary;
+  final Value<String?> contextSummaryUpToId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> deleted;
@@ -470,6 +564,8 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     this.stage = const Value.absent(),
     this.toolsEnabled = const Value.absent(),
     this.draft = const Value.absent(),
+    this.contextSummary = const Value.absent(),
+    this.contextSummaryUpToId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deleted = const Value.absent(),
@@ -483,6 +579,8 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     this.stage = const Value.absent(),
     this.toolsEnabled = const Value.absent(),
     this.draft = const Value.absent(),
+    this.contextSummary = const Value.absent(),
+    this.contextSummaryUpToId = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deleted = const Value.absent(),
@@ -499,6 +597,8 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     Expression<String>? stage,
     Expression<bool>? toolsEnabled,
     Expression<String>? draft,
+    Expression<String>? contextSummary,
+    Expression<String>? contextSummaryUpToId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? deleted,
@@ -512,6 +612,9 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
       if (stage != null) 'stage': stage,
       if (toolsEnabled != null) 'tools_enabled': toolsEnabled,
       if (draft != null) 'draft': draft,
+      if (contextSummary != null) 'context_summary': contextSummary,
+      if (contextSummaryUpToId != null)
+        'context_summary_up_to_id': contextSummaryUpToId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deleted != null) 'deleted': deleted,
@@ -527,6 +630,8 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     Value<String>? stage,
     Value<bool>? toolsEnabled,
     Value<String>? draft,
+    Value<String?>? contextSummary,
+    Value<String?>? contextSummaryUpToId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? deleted,
@@ -540,6 +645,8 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
       stage: stage ?? this.stage,
       toolsEnabled: toolsEnabled ?? this.toolsEnabled,
       draft: draft ?? this.draft,
+      contextSummary: contextSummary ?? this.contextSummary,
+      contextSummaryUpToId: contextSummaryUpToId ?? this.contextSummaryUpToId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deleted: deleted ?? this.deleted,
@@ -571,6 +678,14 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     if (draft.present) {
       map['draft'] = Variable<String>(draft.value);
     }
+    if (contextSummary.present) {
+      map['context_summary'] = Variable<String>(contextSummary.value);
+    }
+    if (contextSummaryUpToId.present) {
+      map['context_summary_up_to_id'] = Variable<String>(
+        contextSummaryUpToId.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -596,6 +711,8 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
           ..write('stage: $stage, ')
           ..write('toolsEnabled: $toolsEnabled, ')
           ..write('draft: $draft, ')
+          ..write('contextSummary: $contextSummary, ')
+          ..write('contextSummaryUpToId: $contextSummaryUpToId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')

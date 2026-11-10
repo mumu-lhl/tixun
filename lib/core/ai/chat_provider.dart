@@ -132,48 +132,6 @@ String teachingPrompt(
       '${selectedMode == 'exam' ? '考试训练必须使用 create_quiz 生成结构化题目；用户提交前不得在正文透露答案或解析。' : ''}';
 }
 
-List<ChatMessage> selectContextHistory(List<ChatMessage> history) {
-  // Keep complete turns within a transparent, conservative character budget.
-  // One overlong message must not brick the whole session: older overlong
-  // messages are skipped, and only the newest user message is kept, truncated
-  // in place with a note. Callers that need the skip count can compare the
-  // returned ids against the input.
-  const maxMessageChars = 32000;
-  final newestUser = history.lastIndexWhere((m) => m.role == 'user');
-  final selected = <ChatMessage>[];
-  var chars = 0;
-  for (var i = history.length - 1; i >= 0; i--) {
-    final m = history[i];
-    if (m.role == 'assistant' && m.status != 'complete') continue;
-    if (m.content.length > maxMessageChars) {
-      if (i == newestUser) {
-        // What the user just sent: keep it, truncated, so this send still
-        // goes out. It alone fills the budget; older turns are dropped by
-        // the budget check below.
-        final truncated = m.copyWith(
-          content:
-              '${m.content.substring(0, maxMessageChars)}\n[内容过长，已截断前 32000 字符。]',
-        );
-        selected.insert(0, truncated);
-        chars += truncated.content.length;
-      }
-      // Older overlong messages are skipped: the model sees the surrounding
-      // turns, and later sends keep working.
-      continue;
-    }
-    if (selected.length >= 30 ||
-        (chars + m.content.length > 32000 && selected.isNotEmpty)) {
-      break;
-    }
-    selected.insert(0, m);
-    chars += m.content.length;
-  }
-  while (selected.isNotEmpty && selected.first.role != 'user') {
-    selected.removeAt(0);
-  }
-  return selected;
-}
-
 /// Single-image cap (also enforced by the import path) and the total raw
 /// bytes of images attached to one request. The total cap keeps a long
 /// session with many large images from building an oversized payload that
@@ -186,23 +144,21 @@ Future<AiRequest> prepareAiRequest(
   List<ChatMessage> history,
   List<Attachment> images,
   AttachmentStore files,
-  String mode,
-) async {
+  String mode, {
+  List<ChatMessage>? selectedHistory,
+  int droppedUncovered = 0,
+}) async {
   try {
     validateConfig(config);
   } on FormatException catch (e) {
     throw AiFailure(e.message);
   }
-  final selected = selectContextHistory(history);
+  // The caller owns context selection (see `compactContext`): it decides
+  // which turns go verbatim and which are covered by a summary. Without
+  // an explicit selection everything is sent — the 30-message / 32000-char
+  // caps are gone; the token budget governs instead.
+  final selected = selectedHistory ?? history;
   final ids = selected.map((m) => m.id).toSet();
-  // Only overlong messages inside the scanned window (newest 30) count as
-  // skipped; older ones were never candidates for this request.
-  final window = history.length > 30
-      ? history.sublist(history.length - 30)
-      : history;
-  final skippedLong = window
-      .where((m) => m.content.length > 32000 && !ids.contains(m.id))
-      .length;
   final includedImages = images
       .where((a) => a.messageId != null && ids.contains(a.messageId))
       .toList();
@@ -246,11 +202,15 @@ Future<AiRequest> prepareAiRequest(
             ),
     );
   }
-  if ((skippedLong > 0 || skippedImages > 0) && messages.isNotEmpty) {
+  if ((droppedUncovered > 0 || skippedImages > 0) && messages.isNotEmpty) {
     // Bracketed app note, same style as the other context notes: the model
     // can tell the user what was left out instead of failing silently.
+    // Only turns dropped WITHOUT a summary count here; summarized turns
+    // are covered by the context summary, not skipped.
     var note = '';
-    if (skippedLong > 0) note += '\n[应用提示：本次请求略过了 $skippedLong 条过长历史消息。]';
+    if (droppedUncovered > 0) {
+      note += '\n[应用提示：本次请求略过了 $droppedUncovered 条历史消息（超出上下文上限且未被摘要覆盖）。]';
+    }
     if (skippedImages > 0) {
       note += '\n[应用提示：本次请求跳过了 $skippedImages 张图片（文件缺失或超过大小上限），请重新导入后再次发送。]';
     }

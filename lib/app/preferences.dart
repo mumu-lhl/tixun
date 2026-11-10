@@ -4,6 +4,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/material.dart';
 
 import '../core/ai/chat_provider.dart';
+import '../core/ai/context_compactor.dart';
 import '../core/ai/prompt_settings.dart';
 import '../core/database/database.dart';
 import '../core/database/database_notifier.dart';
@@ -20,6 +21,7 @@ class AppPreferences extends DatabaseNotifier {
   List<String> learningSubjects = const ['语文', '数学', '英语'];
   static const subjectsPreference = 'learning_subjects_v1';
   late ProviderConfig config;
+  int maxContextTokens = kDefaultMaxContextTokens;
   PromptSettings _prompts = PromptSettings();
   PromptSettings get prompts {
     if (_prompts.language != promptLanguage) {
@@ -41,6 +43,7 @@ class AppPreferences extends DatabaseNotifier {
   ThemeMode themeMode = ThemeMode.system;
   Future<void> load() async {
     config = await db.config();
+    maxContextTokens = await loadMaxContextTokens(db);
     await loadSubjects();
     final language = await db.preference('app_language') ?? 'zh';
     languageChoice = ['zh', 'en', 'system'].contains(language)
@@ -135,6 +138,15 @@ class AppPreferences extends DatabaseNotifier {
   Future<void> setDynamicColors(bool value) => runOperation(() async {
     await db.setPreference('dynamic_colors', value.toString());
     dynamicColors = value;
+    changed();
+  });
+
+  Future<void> setMaxContextTokens(int value) => runOperation(() async {
+    if (!isValidMaxContextTokens(value)) {
+      throw const FormatException('最大上下文 Token 数应为 4096–1048576 的整数。');
+    }
+    await db.setPreference('max_context_tokens', value.toString());
+    maxContextTokens = value;
     changed();
   });
 

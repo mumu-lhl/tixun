@@ -10,6 +10,25 @@ import 'dart:io';
 import 'generated_migrations/schema.dart';
 
 void main() {
+  test('Schema v12 adds context summary columns to chat sessions', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(12);
+    schema.rawDatabase.execute(
+      "INSERT INTO chat_sessions(id,title,draft,created_at,updated_at) VALUES('s','旧会话','',1,1)",
+    );
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+    final session = (await db.sessions()).single;
+    expect(session.contextSummary, isNull);
+    expect(session.contextSummaryUpToId, isNull);
+    await db.setContextSummary('s', '已学二次函数', 'm1');
+    final updated = (await db.sessions()).single;
+    expect(updated.contextSummary, '已学二次函数');
+    expect(updated.contextSummaryUpToId, 'm1');
+    expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+  });
+
   test(
     'Schema v11 keeps exam photo references while adding original preservation',
     () async {

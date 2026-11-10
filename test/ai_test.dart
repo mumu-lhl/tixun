@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
+import 'package:tixun/core/ai/context_compactor.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 
@@ -310,26 +311,27 @@ void main() {
     status: 'complete',
     createdAt: DateTime(2026),
   );
-  test(
-    'Overlong history messages are skipped instead of bricking the session',
-    () {
-      final long = 'x' * 40000;
-      final selected = selectContextHistory([
-        historyMessage('u1', '第一问'),
-        historyMessage('a1', long, role: 'assistant'),
-        historyMessage('u2', '继续问'),
-      ]);
-      expect(selected.map((m) => m.id), ['u1', 'u2']);
-      // The newest user message is kept, truncated, so the send still goes out.
-      final truncated = selectContextHistory([
-        historyMessage('u1', '第一问'),
-        historyMessage('u2', long),
-      ]);
-      expect(truncated.map((m) => m.id), ['u2']);
-      expect(truncated.single.content, contains('已截断'));
-      expect(truncated.single.content.length, lessThanOrEqualTo(32050));
-    },
-  );
+  test('Context selection keeps whole turns within a token budget', () {
+    // 'a' * 400 and '中' * 100 each estimate to 125 tokens.
+    final selected = selectRecentWithinBudget([
+      historyMessage('u1', 'a' * 400),
+      historyMessage('a1', '中' * 100, role: 'assistant'),
+      historyMessage('u2', 'a' * 400),
+      historyMessage('a2', '中' * 100, role: 'assistant'),
+      historyMessage('u3', 'a' * 400),
+    ], tokenBudget: 500);
+    expect(selected.map((m) => m.id), ['u2', 'a2', 'u3']);
+  });
+  test('The newest user message is kept whole, never truncated', () {
+    // The 30-message / 32000-char caps are gone: the current request is
+    // always sent in full, the token budget only trims older history.
+    final selected = selectRecentWithinBudget([
+      historyMessage('u1', '第一问'),
+      historyMessage('u2', 'x' * 40000),
+    ], tokenBudget: 300);
+    expect(selected.map((m) => m.id), ['u2']);
+    expect(selected.single.content, 'x' * 40000);
+  });
   test(
     'Missing and oversized images are skipped with a note, not an abort',
     () async {
@@ -357,10 +359,15 @@ void main() {
         [missing],
         store,
         'guided',
+        selectedHistory: [
+          historyMessage('u1', '看图'),
+          historyMessage('u2', '继续'),
+        ],
+        droppedUncovered: 1,
       );
       expect(request.messages.map((m) => m.text), [
         '看图',
-        contains('略过了 1 条过长历史消息'),
+        contains('略过了 1 条历史消息'),
       ]);
       expect(request.messages.first.images, isEmpty);
       expect(request.messages.last.text, contains('跳过了 1 张图片'));
