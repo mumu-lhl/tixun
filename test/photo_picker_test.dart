@@ -1,8 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/platform/photo_picker.dart';
+import 'package:tixun/core/platform/camera_capture_screen.dart';
+import 'package:wechat_camera_picker/wechat_camera_picker.dart' as camera;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -31,18 +33,8 @@ void main() {
             return outcome;
           });
           addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
-          late BuildContext context;
-          await t.pumpWidget(
-            MaterialApp(
-              home: Builder(
-                builder: (c) {
-                  context = c;
-                  return const Scaffold();
-                },
-              ),
-            ),
-          );
-          final request = pickPhotos(context, takePhoto: true);
+          await t.pumpWidget(MaterialApp(home: const Scaffold()));
+          final request = captureSystemPhoto();
           if (outcome is PlatformException) {
             await expectLater(
               request,
@@ -57,7 +49,7 @@ void main() {
           } else {
             final result = await request;
             expect(
-              result.map((f) => f.path).toList(),
+              result == null ? <String>[] : [result.path],
               outcome == null ? isEmpty : [outcome],
             );
           }
@@ -73,4 +65,41 @@ void main() {
       },
     );
   }
+  testWidgets(
+    'Embedded camera failure shows an error and can release to the system fallback',
+    (t) async {
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const channels = [
+        'plugins.flutter.io/camera',
+        'dev.fluttercommunity.plus/sensors/method',
+        'dev.fluttercommunity.plus/sensors/accelerometer',
+      ];
+      for (final name in channels) {
+        messenger.setMockMethodCallHandler(
+          MethodChannel(name),
+          (call) async => call.method == 'availableCameras' ? <Object>[] : null,
+        );
+        addTearDown(
+          () => messenger.setMockMethodCallHandler(MethodChannel(name), null),
+        );
+      }
+      final nav = GlobalKey<NavigatorState>();
+      await t.pumpWidget(
+        MaterialApp(navigatorKey: nav, home: const Scaffold()),
+      );
+      final result = nav.currentState!.push<CameraCaptureResult>(
+        MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
+      );
+      for (var i = 0; i < 20; i++) {
+        await t.pump(const Duration(milliseconds: 30));
+      }
+      expect(find.byType(camera.CameraPicker), findsOneWidget);
+      expect(find.text('相机报告异常，可返回重试或使用系统相机。'), findsOneWidget);
+      await t.tap(find.byKey(const Key('system-camera-fallback')));
+      await t.pumpAndSettle();
+      expect((await result)?.useSystemCamera, true);
+      expect(t.takeException(), isNull);
+    },
+  );
 }

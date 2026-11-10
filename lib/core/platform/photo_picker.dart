@@ -6,6 +6,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart' as assets;
 import 'package:image_picker/image_picker.dart' as system;
 
 import '../l10n/app_strings.dart';
+import 'camera_capture_screen.dart';
 
 /// Only the picker is platform-specific. Callers copy results into managed
 /// storage before opening the shared crop editor; picker cache paths never persist.
@@ -27,16 +28,15 @@ Future<List<XFile>> pickPhotos(
   }
   final english = AppStrings.of(context).locale.languageCode == 'en';
   if (takePhoto) {
-    // Let the device's camera app own preview and camera permissions. Some
-    // Android devices display a black embedded CameraX preview without errors.
-    try {
-      final file = await system.ImagePicker().pickImage(
-        source: system.ImageSource.camera,
-      );
-      return file == null ? [] : [XFile(file.path)];
-    } on PlatformException {
-      throw const FormatException('无法打开系统相机或完成拍照，请检查系统相机权限，或改用相册 / 图片文件。');
+    final result = await Navigator.of(context, rootNavigator: true)
+        .push<CameraCaptureResult>(
+          MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
+        );
+    if (result?.useSystemCamera == true) {
+      final file = await captureSystemPhoto();
+      return file == null ? [] : [file];
     }
+    return result?.path == null ? [] : [XFile(result!.path!)];
   }
   final picked = await assets.AssetPicker.pickAssets(
     context,
@@ -57,4 +57,16 @@ Future<List<XFile>> pickPhotos(
     result.add(XFile(file.path));
   }
   return result;
+}
+
+/// Explicit fallback, also used to verify the platform request without hardware.
+Future<XFile?> captureSystemPhoto() async {
+  try {
+    final file = await system.ImagePicker().pickImage(
+      source: system.ImageSource.camera,
+    );
+    return file == null ? null : XFile(file.path);
+  } on PlatformException {
+    throw const FormatException('无法打开系统相机或完成拍照，请检查系统相机权限，或改用相册 / 图片文件。');
+  }
 }

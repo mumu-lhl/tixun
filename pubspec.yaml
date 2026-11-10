@@ -32,6 +32,8 @@ dependencies:
   package_info_plus: ^10.2.2
   device_info_plus: ^13.3.0
   extended_image: ^10.1.0
+  wechat_camera_picker: ^4.6.0
+  camera_android: ^0.10.12
 dev_dependencies:
   flutter_test:
     sdk: flutter

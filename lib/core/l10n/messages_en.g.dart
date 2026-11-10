@@ -1064,4 +1064,8 @@ const englishMessages = <String, String>{
   "ChatGPT 返回了网页而不是 AI 回复，请检查网络或代理后重试。": "ChatGPT returned a web page rather than an AI response. Check your network or proxy and try again.",
   "ChatGPT 返回了无法识别的回复格式，请检查服务后重试。": "ChatGPT returned an unrecognized format. Check the service and try again.",
   "ChatGPT 服务返回了错误，请刷新模型列表或重新登录后重试。": "ChatGPT returned an error. Refresh the model list or sign in again and retry.",
+  "使用系统相机": "Use system camera",
+  "正在切换相机…": "Switching camera…",
+  "相机尚未释放，请返回后重试。": "The camera is still busy. Go back and try again.",
+  "相机报告异常，可返回重试或使用系统相机。": "The camera reported an error. Go back and retry or use the system camera.",
 };
