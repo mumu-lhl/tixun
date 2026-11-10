@@ -52,4 +52,4 @@ AppController 仍是现有 UI 的协调入口，没有强行把每个动作拆�
 
 历史验收（2026-11-07）：提交 `a6ea5eb` 的[完整 CI](https://github.com/mumu-lhl/tixun/actions/runs/42376246976)已通过：静态分析、90 项 Flutter 测试、16 项脚本测试、Android Debug APK、Linux Release、Mock 启动与七组原生 GUI 回归（九个测试场景）。本地还运行了生产版 Linux GUI，并读取了主页、ChatGPT 设置、提示词编辑和备份恢复截图。真实订阅账号推理与 Android 实机验证仍需对应账号和设备，Mock/协议测试不代替这两项验证。
 
-当前功能和待验收项以 [ROADMAP](../ROADMAP.md) 为准。路由内的 Material 表面隔离点击波纹；图片查看共用 `image_viewer.dart`，裁剪共用 `StudyImageEditor`；相机使用系统拍摄入口。未新增通用媒体工作流或多层数据映射。
+当前功能和待验收项以 [ROADMAP](../ROADMAP.md) 为准。路由内的 Material 表面隔离点击波纹；图片查看共用 `image_viewer.dart`，裁剪共用 `StudyImageEditor`；相机保留 WeChat 拍摄界面，选用 Camera2 后端，并提供系统相机替代入口。未新增通用媒体工作流或多层数据映射。

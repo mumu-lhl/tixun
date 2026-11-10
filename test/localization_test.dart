@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/app.dart';
+import 'package:tixun/features/progress/learning_profile.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/ai/prompt_settings.dart';
@@ -64,6 +65,7 @@ void main() {
       );
       await c.setLanguage('en');
       await c.setDynamicColors(false);
+      await const LearningProfile(stage: '高三', region: '浙江').save(c.db);
       await c.savePrompt('guided', '请保留这段提示词。');
       await c.shutdown();
       c = await AppController.openRoot(
@@ -72,6 +74,8 @@ void main() {
         keyStore: keys,
         chatProvider: MockChatProvider(),
       );
+      expect((await LearningProfile.load(c.db)).region, '浙江');
+      expect((await LearningProfile.load(c.db)).stage, '高三');
       expect(c.languageChoice, 'en');
       expect(c.dynamicColors, false);
       expect(c.prompts.text('guided'), '请保留这段提示词。');

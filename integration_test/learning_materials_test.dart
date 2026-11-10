@@ -318,4 +318,105 @@ void main() {
       await c.files.root.delete(recursive: true);
     },
   );
+  testWidgets(
+    'AI knowledge creation, selected merge, editing and regional profile work on phones',
+    (t) async {
+      final c = await AppController.open(demo: true);
+      final scope = ProviderContainer(
+        overrides: [appControllerProvider.overrideWith((ref) => c)],
+      );
+      final router = scope.read(routerProvider);
+      await t.pumpWidget(
+        UncontrolledProviderScope(container: scope, child: const TixunApp()),
+      );
+      await t.pumpAndSettle();
+      await resizeGui(t, 390, 844);
+      router.go('/knowledge');
+      await t.pumpAndSettle();
+      final before = (await c.study.searchKnowledge()).map((k) => k.id).toSet();
+      await t.tap(find.byKey(const Key('ai-create-knowledge')));
+      await t.pumpAndSettle();
+      await t.enterText(
+        find.byKey(const Key('ai-study-instruction')),
+        '整理二次函数的顶点公式与适用条件',
+      );
+      await t.pump();
+      await guiCapture('writing', 'create-knowledge-phone');
+      await t.tap(find.byKey(const Key('start-ai-study-writing')));
+      await until(t, () => c.pendingTool != null);
+      expect((await c.study.searchKnowledge()).length, before.length);
+      await guiCapture('writing', 'confirm-knowledge-phone');
+      await t.ensureVisible(find.byKey(const Key('approve-tool')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('approve-tool')));
+      await until(t, () => !c.busy);
+      final note = (await c.study.searchKnowledge()).singleWhere(
+        (k) => !before.contains(k.id),
+      );
+      // Use the actual assistant-message action and searchable target picker.
+      await t.tap(find.byTooltip('保存学习资料').last);
+      await t.pumpAndSettle();
+      await t.tap(find.text('AI 整合到已有知识'));
+      await until(
+        t,
+        () => find
+            .byKey(ValueKey('ai-knowledge-target-${note.id}'))
+            .evaluate()
+            .isNotEmpty,
+      );
+      await guiCapture('writing', 'select-knowledge-phone');
+      await t.tap(find.byKey(ValueKey('ai-knowledge-target-${note.id}')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('start-ai-study-writing')));
+      await until(t, () => c.pendingTool != null);
+      await t.ensureVisible(find.byKey(const Key('approve-tool')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('approve-tool')));
+      await until(t, () => !c.busy);
+      expect((await c.study.knowledge(note.id)).revision, 2);
+      router.go('/knowledge/${note.id}');
+      await t.pumpAndSettle();
+      await until(
+        t,
+        () => find.byKey(const Key('ai-edit-knowledge')).evaluate().isNotEmpty,
+      );
+      await t.ensureVisible(find.byKey(const Key('ai-edit-knowledge')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('ai-edit-knowledge')));
+      await t.pumpAndSettle();
+      await guiCapture('writing', 'edit-knowledge-phone');
+      await t.tap(find.byKey(const Key('start-ai-study-writing')));
+      await until(t, () => c.pendingTool != null);
+      await t.ensureVisible(find.byKey(const Key('approve-tool')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('approve-tool')));
+      await until(t, () => !c.busy);
+      expect((await c.study.knowledge(note.id)).revision, 3);
+      router.go('/settings');
+      await t.pumpAndSettle();
+      await t.tap(find.text('学习目标'));
+      await t.pumpAndSettle();
+      final fields = find.byType(TextField);
+      await t.enterText(fields.at(0), '高三');
+      await t.enterText(fields.at(1), '浙江');
+      await t.pump();
+      await guiCapture('writing', 'profile-region-phone');
+      await t.tap(find.text('保存').last);
+      await until(t, () => find.byType(AlertDialog).evaluate().isEmpty);
+      expect(await c.db.preference('learning_profile'), contains('浙江'));
+      await c.setLanguage('en');
+      router.go('/knowledge');
+      await t.pumpAndSettle();
+      await resizeGui(t, 1280, 900);
+      await t.tap(find.byKey(const Key('ai-create-knowledge')));
+      await t.pumpAndSettle();
+      await guiCapture('writing', 'create-knowledge-desktop-english');
+      expect(find.text('Create knowledge with AI'), findsOneWidget);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox.shrink());
+      await t.pumpAndSettle();
+      scope.dispose();
+      await c.shutdown();
+    },
+  );
 }

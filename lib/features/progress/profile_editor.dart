@@ -17,6 +17,7 @@ class ProfileEditor extends ConsumerStatefulWidget {
 
 class _ProfileEditorState extends ConsumerState<ProfileEditor> {
   late final stage = TextEditingController(text: widget.profile.stage),
+      region = TextEditingController(text: widget.profile.region),
       exam = TextEditingController(text: widget.profile.exam),
       minutes = TextEditingController(text: '${widget.profile.dailyMinutes}'),
       scope = TextEditingController(text: widget.profile.scope);
@@ -26,7 +27,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
   String? failure;
   @override
   void dispose() {
-    for (final c in [stage, exam, minutes, scope]) {
+    for (final c in [stage, region, exam, minutes, scope]) {
       c.dispose();
     }
     super.dispose();
@@ -51,6 +52,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
             ),
           for (final (ctrl, label, lines, keyboard) in [
             (stage, '学习阶段', 1, null),
+            (region, '地区（可选，如浙江）', 1, null),
             (exam, '目标考试（可选）', 1, null),
             (minutes, '每日可用分钟数（5–480）', 1, TextInputType.number),
             (scope, '学科与学习范围（自由填写）', 3, null),
@@ -144,6 +146,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                   if (n == null) throw const FormatException('每日时间请输入整数分钟。');
                   await LearningProfile(
                     stage: stage.text,
+                    region: region.text,
                     exam: exam.text,
                     examDate: date,
                     dailyMinutes: n,

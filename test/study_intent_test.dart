@@ -89,6 +89,27 @@ void main() {
     );
   }
   test(
+    'Coordinated quiz opt-outs remain reference requests in exam mode',
+    () async {
+      final root = await Directory.systemTemp.createTemp('tixun-quiz-optout');
+      final c = AppController(
+        AppDatabase.memory(),
+        AttachmentStore(root),
+        MemoryKeyStore(),
+        _QuizChoice(),
+      );
+      await c.initialize();
+      addTearDown(() async {
+        await c.shutdown();
+        await root.delete(recursive: true);
+      });
+      await c.mode('exam');
+      await c.send('不要出题和测验，只要数学公式清单');
+      expect(c.messages.last.content, contains('公式清单'));
+      expect(await c.db.select(c.db.practiceQuestions).get(), isEmpty);
+    },
+  );
+  test(
     'Unadvertised quiz calls cannot modify data during a material request',
     () async {
       final root = await Directory.systemTemp.createTemp('tixun-intent-tool');

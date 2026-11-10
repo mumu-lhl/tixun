@@ -39,15 +39,19 @@ A connection test sends a short request and may consume provider usage. Without 
 
 Start a conversation from Study. Guided teaching offers hints and invites you to try; Direct answer provides a full explanation. Exam mode lets you answer before showing feedback. Replies stream, and interactive question cards save actual answers. AI-generated reference answers remain unverified until checked.
 
+An AI reply’s save menu can organize it into knowledge or a mistake, or merge it into an existing note you select. Review the process in a separate chat and confirm each write. Knowledge also has AI create and edit actions; edits preserve revision history.
+
 On phones, the chat's more menu contains material tools, linked material and model settings. Enable material tools to let AI search notes or propose changes. Application permissions and confirmation still apply. DeepSeek and ChatGPT support reasoning with tools; compatible services follow their declared capabilities.
 
 ## Photos and study material
 
-Android supports the system camera, gallery previews and multiple selection, plus image files. Linux uses file selection. Imported photos open an editor for cropping, rotating and zooming. Save uses the edited result; closing retains the uncropped photo. Originals are preserved in chat, knowledge, mistakes and exam records. Tap a thumbnail for fullscreen viewing.
+Android provides WeChat-style capture and gallery previews with multiple selection, plus image files. The capture screen also offers a system-camera fallback. Linux uses file selection. Imported photos open an editor for cropping, rotating and zooming. Save uses the edited result; closing retains the uncropped photo. Originals are preserved in chat, knowledge, mistakes and exam records. Tap a thumbnail for fullscreen viewing.
 
 There is no fixed business limit on image count. Each image is limited to **8 MB**, with additional pixel and decoding safeguards in the editor. Model capability, context budget and request-size limits still apply.
 
 Choose your subjects under Settings → Study subjects, including custom subjects. Switch the current subject at the top of Study. Knowledge and Mistakes share a two-level subject directory; records can belong to multiple modules. Parent filters include submodules. Removing a directory entry keeps your study material.
+
+In Settings → Learning goals, optionally add your stage (such as final-year high school), region, target exam and scope. AI uses these as background for explanations and practice, without assuming an exact local syllabus.
 
 From saved notes and mistakes, request explanations, targeted practice or reviews. AI can propose directory entries and associations, subject to confirmation.
 

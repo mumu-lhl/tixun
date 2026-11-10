@@ -12,7 +12,7 @@ import 'study_tools.dart';
 
 final quizToolSchema = AiTool(
   name: 'create_quiz',
-  description: '仅在用户请求出题、测验或训练时，在聊天中创建真实交互题；不得替代用户要求的公式清单、复习提纲或直接讲解。创建题目的正文不要提前公布该题答案。答案必须按位置给出二维数组，填空每个位置可有多个等价文字答案，多选每个正确选项单独一项。只检查结构一致性，模型答案仍待用户核对。题目依赖本次请求的图片时，必须用 image_indices 明确引用图片序号；纯文字题不填写。仅本次请求中的前 4 张图片可用 image_indices 引用（序号从 0 开始）。',
+  description: '仅用户请求出题、测验或训练时创建交互题，不代替资料整理或讲解；本条出题回复不得透露答案与解析。answers 为按位置排列的二维数组：填空每项包含等价答案，多选每个正确选项单独一项。仅校验结构，答案仍待核对。依赖图片时用 image_indices 引用本次请求前4张图片（0起）；纯文字题不填。',
   parameters: {
     'type': 'object',
     'additionalProperties': false,

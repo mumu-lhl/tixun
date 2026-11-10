@@ -5,6 +5,7 @@ import '../../core/database/database.dart';
 class LearningProfile {
   const LearningProfile({
     this.stage = '高中',
+    this.region = '',
     this.exam = '高考',
     this.examDate,
     this.dailyMinutes = 45,
@@ -12,7 +13,7 @@ class LearningProfile {
     this.teaching = 'guided',
     this.partialFallback = false,
   });
-  final String stage, exam, scope, teaching;
+  final String stage, region, exam, scope, teaching;
   final DateTime? examDate;
   final int dailyMinutes;
 
@@ -67,6 +68,11 @@ class LearningProfile {
     }
 
     var teachingValue = 'guided';
+    var region = stringField('region', '').trim();
+    if (region.length > 100) {
+      region = '';
+      partial = true;
+    }
     final teaching = data['teaching'];
     if (teaching is String && ['guided', 'direct', 'exam'].contains(teaching)) {
       teachingValue = teaching;
@@ -75,6 +81,7 @@ class LearningProfile {
     }
     return LearningProfile(
       stage: stringField('stage', '高中'),
+      region: region,
       exam: stringField('exam', '高考'),
       examDate: dateField(),
       dailyMinutes: minutesField(),
@@ -87,6 +94,7 @@ class LearningProfile {
   Future<void> save(AppDatabase db) async {
     if (stage.trim().isEmpty ||
         stage.length > 100 ||
+        region.length > 100 ||
         exam.length > 100 ||
         scope.length > 4000 ||
         dailyMinutes < 5 ||
@@ -98,6 +106,7 @@ class LearningProfile {
       'learning_profile',
       jsonEncode({
         'stage': stage.trim(),
+        'region': region.trim(),
         'exam': exam.trim(),
         'exam_date': examDate?.toIso8601String(),
         'daily_minutes': dailyMinutes,

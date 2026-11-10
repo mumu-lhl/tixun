@@ -4,6 +4,45 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/ui/app_menu.dart';
 
 void main() {
+  testWidgets('selection fields support intrinsic dialog layout', (t) async {
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  scrollable: true,
+                  content: SizedBox(
+                    width: 520,
+                    child: AppSelectField<String>(
+                      initialValue: 'A',
+                      decoration: const InputDecoration(
+                        labelText: 'Teaching mode',
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'A', child: Text('Guided')),
+                      ],
+                      onChanged: (_) {},
+                    ),
+                  ),
+                ),
+              ),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await t.tap(find.text('Open'));
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+    await t.tap(find.byType(AppSelectField<String>));
+    await t.pumpAndSettle();
+    expect(find.byType(MenuItemButton), findsOneWidget);
+  });
+
   testWidgets('outside dismissal clears the expanded field highlight', (
     t,
   ) async {

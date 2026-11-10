@@ -17,6 +17,7 @@ import 'library_providers.dart';
 import 'study_editor.dart';
 import 'study_images.dart';
 import 'study_store.dart';
+import 'ai_study_actions.dart';
 
 class StudyDetailScreen extends ConsumerWidget {
   const StudyDetailScreen({
@@ -215,6 +216,23 @@ class StudyDetailScreen extends ConsumerWidget {
                                           : context.tr("向 AI 请教"),
                                     ),
                                   ),
+                                  if (k != null)
+                                    OutlinedButton.icon(
+                                      key: const Key('ai-edit-knowledge'),
+                                      onPressed: () => act(
+                                        context,
+                                        () => startAiStudyWriting(
+                                          context,
+                                          ref,
+                                          knowledge: k.item,
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.auto_awesome_outlined,
+                                        size: 18,
+                                      ),
+                                      label: Text(context.tr('AI 编辑')),
+                                    ),
                                   FilledButton.tonalIcon(
                                     onPressed: () => act(context, () async {
                                       final id = await ref

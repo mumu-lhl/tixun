@@ -16,6 +16,7 @@ import 'library_providers.dart';
 import 'split_suggestions.dart';
 import 'study_editor.dart';
 import 'study_store.dart';
+import 'ai_study_actions.dart';
 
 const toolLabels = {
   'create_subject_module': '新增科目目录',
@@ -165,6 +166,24 @@ class ChatStudyMenu extends ConsumerWidget {
     itemBuilder: (_) => [
       PopupMenuItem(value: 'knowledge', child: Text(context.tr("保存到知识库"))),
       PopupMenuItem(value: 'mistake', child: Text(context.tr("保存到错题本"))),
+      if (message.role == 'assistant' && message.content.trim().isNotEmpty) ...[
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'ai-knowledge',
+          enabled: !ref.read(appControllerProvider).busy,
+          child: Text(context.tr('AI 整理成知识')),
+        ),
+        PopupMenuItem(
+          value: 'ai-merge',
+          enabled: !ref.read(appControllerProvider).busy,
+          child: Text(context.tr('AI 整合到已有知识')),
+        ),
+        PopupMenuItem(
+          value: 'ai-mistake',
+          enabled: !ref.read(appControllerProvider).busy,
+          child: Text(context.tr('AI 整理成错题')),
+        ),
+      ],
       if (message.role == 'assistant')
         PopupMenuItem(
           value: 'analysis',
@@ -176,6 +195,20 @@ class ChatStudyMenu extends ConsumerWidget {
   Future<void> _save(BuildContext context, WidgetRef ref, String type) async {
     final c = ref.read(appControllerProvider);
     final store = ref.read(studyStoreProvider);
+    if (type.startsWith('ai-')) {
+      final target = type == 'ai-merge'
+          ? await pickKnowledgeForAi(context, store)
+          : null;
+      if ((type == 'ai-merge' && target == null) || !context.mounted) return;
+      await startAiStudyWriting(
+        context,
+        ref,
+        source: message,
+        knowledge: target,
+        mistake: type == 'ai-mistake',
+      );
+      return;
+    }
     final index = c.messages.indexWhere((m) => m.id == message.id);
     if (index < 0 || c.selected == null) {
       throw const FormatException('请重新打开此会话后保存。');

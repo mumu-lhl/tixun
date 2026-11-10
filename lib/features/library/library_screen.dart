@@ -1,4 +1,5 @@
 import 'image_editor.dart';
+import 'ai_study_actions.dart';
 import '../../core/ui/app_menu.dart';
 import 'module_widgets.dart';
 
@@ -470,6 +471,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                   ),
+                  if (!widget.isMistake && !_trash)
+                    IconButton(
+                      key: const Key('ai-create-knowledge'),
+                      tooltip: context.tr('AI 生成知识'),
+                      icon: const Icon(Icons.auto_awesome_outlined),
+                      onPressed: _bulkBusy
+                          ? null
+                          : () => act(
+                              context,
+                              () => startAiStudyWriting(context, ref),
+                            ),
+                    ),
                   IconButton(
                     tooltip: context.tr("选择多条资料"),
                     onPressed: _bulkBusy

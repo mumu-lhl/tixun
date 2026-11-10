@@ -182,10 +182,12 @@ class StudyToolRunner {
     this.confirm,
     this.reviews,
     this.sourceImages = const [],
+    this.sourceSessionId,
   });
   final StudyStore store;
   final ReviewStore? reviews;
   final String sessionId, runId;
+  final String? sourceSessionId;
 
   /// Only set by the explicit app UI. Model/user text never sets this capability.
   final bool authorized;
@@ -332,6 +334,28 @@ class StudyToolRunner {
       cancel.checkCancelled();
       final result = await db.transaction(() async {
         final value = await _invoke(call.name, args);
+        if (sourceSessionId != null &&
+            value['id'] is String &&
+            [
+              'create_knowledge',
+              'update_knowledge',
+              'create_mistake',
+            ].contains(call.name)) {
+          final source = await (db.select(
+            db.chatSessions,
+          )..where((t) => t.id.equals(sourceSessionId!))).getSingleOrNull();
+          if (source != null && !source.deleted) {
+            await store.linkChat(
+              sourceSessionId!,
+              knowledgeId: call.name == 'create_mistake'
+                  ? null
+                  : value['id'] as String,
+              mistakeId: call.name == 'create_mistake'
+                  ? value['id'] as String
+                  : null,
+            );
+          }
+        }
         cancel.checkCancelled();
         final result = {'ok': true, ...value};
         await _result(operationId, 'succeeded', result);

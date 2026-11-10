@@ -84,145 +84,141 @@ class _AppSelectFieldState<T> extends State<AppSelectField<T>> {
           overflow: TextOverflow.ellipsis,
         );
     final textStyle = widget.style ?? Theme.of(context).textTheme.bodyLarge!;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final fieldWidth = widget.compact
-            ? 132.0
-            : constraints.hasBoundedWidth
-            ? constraints.maxWidth
-            : 280.0;
-        final menuWidth = math.min(
-          math.max(fieldWidth, 220.0),
-          math.min(480.0, MediaQuery.sizeOf(context).width - 24),
-        );
-        return MenuAnchor(
-          controller: controller,
-          childFocusNode: focus,
-          animated: !MediaQuery.disableAnimationsOf(context),
-          consumeOutsideTap: true,
-          style: (Theme.of(context).menuTheme.style ?? const MenuStyle())
-              .copyWith(
-                alignment: AlignmentDirectional.bottomStart,
-                minimumSize: WidgetStatePropertyAll(Size(menuWidth, 0)),
-                maximumSize: WidgetStatePropertyAll(
-                  Size(
-                    menuWidth,
-                    math.min(440, MediaQuery.sizeOf(context).height * .6),
-                  ),
+    // Dialogs query intrinsic sizes; LayoutBuilder cannot answer those queries.
+    // Let the parent size the field and use a bounded, viewport-safe menu.
+    final fieldWidth = widget.compact ? 132.0 : null;
+    final menuWidth = math.min(
+      widget.compact ? 220.0 : 280.0,
+      MediaQuery.sizeOf(context).width - 24,
+    );
+    return LimitedBox(
+      maxWidth: 280,
+      child: MenuAnchor(
+        controller: controller,
+        childFocusNode: focus,
+        animated: !MediaQuery.disableAnimationsOf(context),
+        consumeOutsideTap: true,
+        style: (Theme.of(context).menuTheme.style ?? const MenuStyle())
+            .copyWith(
+              alignment: AlignmentDirectional.bottomStart,
+              minimumSize: WidgetStatePropertyAll(Size(menuWidth, 0)),
+              maximumSize: WidgetStatePropertyAll(
+                Size(
+                  menuWidth,
+                  math.min(440, MediaQuery.sizeOf(context).height * .6),
                 ),
-              ),
-          alignmentOffset: const Offset(0, 6),
-          onOpen: () => setState(() => open = true),
-          onClose: closed,
-          menuChildren: [
-            for (final item in widget.items)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: SizedBox(
-                  width: menuWidth - 8,
-                  child: MenuItemButton(
-                    closeOnActivate: false,
-                    style: ButtonStyle(
-                      shape: WidgetStatePropertyAll(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                      ),
-                      backgroundColor: item.value == value
-                          ? WidgetStatePropertyAll(
-                              colors.primaryContainer.withValues(alpha: .65),
-                            )
-                          : null,
-                    ),
-                    leadingIcon: SizedBox(
-                      width: 20,
-                      child: item.value == value
-                          ? Icon(
-                              Icons.check_rounded,
-                              size: 18,
-                              color: colors.primary,
-                            )
-                          : null,
-                    ),
-                    onPressed: item.enabled && enabled
-                        ? () {
-                            pending = item.value;
-                            hasPending = true;
-                            controller.close();
-                          }
-                        : null,
-                    child: DefaultTextStyle(
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: item.enabled
-                            ? colors.onSurface
-                            : colors.onSurfaceVariant,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      child: item.child,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-          builder: (context, menu, child) => SizedBox(
-            width: fieldWidth,
-            child: Semantics(
-              button: true,
-              enabled: enabled,
-              expanded: open,
-              child: InkWell(
-                focusNode: focus,
-                borderRadius: BorderRadius.circular(12),
-                onTap: enabled
-                    ? () {
-                        focus.requestFocus();
-                        menu.isOpen ? menu.close() : menu.open();
-                      }
-                    : null,
-                child: widget.compact
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 8,
-                        ),
-                        child: _row(label, textStyle, enabled, colors),
-                      )
-                    : InputDecorator(
-                        isEmpty: choice == null,
-                        isFocused: open,
-                        decoration: widget.decoration
-                            .copyWith(
-                              enabled: enabled,
-                              suffixIcon: AnimatedRotation(
-                                turns: open ? .5 : 0,
-                                duration:
-                                    MediaQuery.disableAnimationsOf(context)
-                                    ? Duration.zero
-                                    : const Duration(milliseconds: 180),
-                                curve: Curves.easeOutCubic,
-                                child: const Icon(Icons.expand_more_rounded),
-                              ),
-                            )
-                            .applyDefaults(
-                              Theme.of(context).inputDecorationTheme,
-                            ),
-                        child: DefaultTextStyle(
-                          style: textStyle.copyWith(
-                            color: enabled
-                                ? colors.onSurface
-                                : colors.onSurfaceVariant,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          child: label,
-                        ),
-                      ),
               ),
             ),
+        alignmentOffset: const Offset(0, 6),
+        onOpen: () => setState(() => open = true),
+        onClose: closed,
+        menuChildren: [
+          for (final item in widget.items)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: SizedBox(
+                width: menuWidth - 8,
+                child: MenuItemButton(
+                  closeOnActivate: false,
+                  style: ButtonStyle(
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                    ),
+                    backgroundColor: item.value == value
+                        ? WidgetStatePropertyAll(
+                            colors.primaryContainer.withValues(alpha: .65),
+                          )
+                        : null,
+                  ),
+                  leadingIcon: SizedBox(
+                    width: 20,
+                    child: item.value == value
+                        ? Icon(
+                            Icons.check_rounded,
+                            size: 18,
+                            color: colors.primary,
+                          )
+                        : null,
+                  ),
+                  onPressed: item.enabled && enabled
+                      ? () {
+                          pending = item.value;
+                          hasPending = true;
+                          controller.close();
+                        }
+                      : null,
+                  child: DefaultTextStyle(
+                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      color: item.enabled
+                          ? colors.onSurface
+                          : colors.onSurfaceVariant,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    child: item.child,
+                  ),
+                ),
+              ),
+            ),
+        ],
+        builder: (context, menu, child) => SizedBox(
+          width: fieldWidth,
+          child: Semantics(
+            button: true,
+            enabled: enabled,
+            expanded: open,
+            child: InkWell(
+              focusNode: focus,
+              borderRadius: BorderRadius.circular(12),
+              onTap: enabled
+                  ? () {
+                      focus.requestFocus();
+                      menu.isOpen ? menu.close() : menu.open();
+                    }
+                  : null,
+              child: widget.compact
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 8,
+                      ),
+                      child: _row(label, textStyle, enabled, colors),
+                    )
+                  : InputDecorator(
+                      isEmpty: choice == null,
+                      isFocused: open,
+                      decoration: widget.decoration
+                          .copyWith(
+                            enabled: enabled,
+                            suffixIcon: AnimatedRotation(
+                              turns: open ? .5 : 0,
+                              duration: MediaQuery.disableAnimationsOf(context)
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 180),
+                              curve: Curves.easeOutCubic,
+                              child: const Icon(Icons.expand_more_rounded),
+                            ),
+                          )
+                          .applyDefaults(
+                            Theme.of(context).inputDecorationTheme,
+                          ),
+                      child: DefaultTextStyle(
+                        style: textStyle.copyWith(
+                          color: enabled
+                              ? colors.onSurface
+                              : colors.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        child: label,
+                      ),
+                    ),
+            ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 

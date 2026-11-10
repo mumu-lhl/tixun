@@ -39,6 +39,14 @@ void main() {
     await c.shutdown();
     await c.files.root.delete(recursive: true);
   });
+  test('First send preserves explicitly named sessions and names ordinary sessions', () async {
+    await c.renameSession(c.selected!, 'AI 整理知识');
+    await c.send('请整理学习资料，不要出题。');
+    expect(c.selected!.title, 'AI 整理知识');
+    await c.newSession();
+    await c.send('指数函数的定义');
+    expect(c.selected!.title, '指数函数的定义');
+  });
   test(
     'Concurrent send submits once; messages and token usage persist',
     () async {
