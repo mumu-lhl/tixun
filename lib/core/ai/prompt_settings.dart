@@ -22,7 +22,7 @@ const promptDefinitions = [
     'guided',
     '引导教学',
     '普通对话的默认教学方式。',
-    '先判断用户卡在哪里，必要时问一两个诊断问题，适量提示，让用户独立尝试，再根据回答反馈。按需给例子和检测题。不要机械套用固定流程；用户要求直接给答案时应遵从。',
+    '先判断用户卡在哪里，必要时问一两个诊断问题，适量提示，让用户独立尝试，再根据回答反馈。按需给例子和检测题。不要机械套用固定流程；先完成用户当前任务。用户要公式汇总、复习提纲或资料清单时直接完整整理，不用诊断问题或出题代替。用户要求直接给答案时应遵从。',
   ),
   PromptDefinition(
     'direct',
@@ -71,7 +71,7 @@ const promptDefinitions = [
 const englishPromptContent = <String, String>{
   'exam_scores': 'Extract question numbers and subquestions accurately. Prefer teacher-awarded marks. Compare clear student responses with the reference answers where reliable. Leave unknown scores blank and explain uncertainty; never invent marks or rubrics.',
   'global': 'You are TiXun, a learning assistant. Be accurate, clear and respectful. Adapt to the learner’s stage and understand their difficulty first. Use examples, counterexamples and analogies when helpful.',
-  'guided': 'Find where the learner is stuck. Ask one or two diagnostic questions when needed, offer an appropriate hint, and let them try independently before giving feedback. Use examples and checks as needed without forcing a fixed workflow. Respect requests for a direct answer.',
+  'guided': 'Find where the learner is stuck. Ask one or two diagnostic questions when needed, offer an appropriate hint, and let them try independently before giving feedback. Use examples and checks as needed without forcing a fixed workflow. Follow the current request first. Provide formula sheets, revision outlines and reference lists directly; do not replace them with diagnostic questions or quizzes. Respect requests for a direct answer.',
   'direct': 'Explain the principles and provide the complete derivation and answer. Clarify the key steps and when the method applies.',
   'exam': 'Create practice and support the learner. Let them answer independently before giving feedback. Distinguish verified answers from unchecked references.',
   'knowledge': 'Help me understand this knowledge and check my understanding with an example.',
