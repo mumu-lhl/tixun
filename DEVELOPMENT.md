@@ -30,9 +30,9 @@ scripts/gui_smoke.sh
 scripts/gui_tests.sh
 ```
 
-Linux debug / release 共享临时引擎目录，**必须顺序构建**。截图和日志保存在 `artifacts/gui/`；脚本通过不代表视觉审查完成，仍需读取截图检查。
+Linux debug / release 共享临时引擎目录，**必须顺序构建**。启动冒烟截图保存在 `artifacts/gui/`，集成场景截图在 `artifacts/gui-*/`，各入口日志由 `TIXUN_GUI_LOG_DIR` 指定（默认当前目录）；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
-不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。数据库 schema v1/v3/v4/v5/v6/v7/v8/v9/v10 → v11 迁移有保留历史数据的测试；新增字段和表时必须继续提供显式迁移。
+不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。当前数据库为 schema v13，迁移测试使用 `test/fixtures/` 中的历史快照验证保留旧数据；新增字段和表时必须继续提供显式迁移。
 
 ```bash
 dart run build_runner build
@@ -42,7 +42,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布或手动勾选 `full_gui` 时运行；Nightly 跳过单元测试与完整 GUI 回归。十个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于把标签 baked 进构建。
+普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布或手动勾选 `full_gui` 时运行；Nightly 跳过单元测试与完整 GUI 回归。十一个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
 
 ## 按版本标签发布
 
@@ -123,7 +123,7 @@ Golden 像素比对及基线图片已移除；Widget 行为、窄屏/键盘布�
 
 Flutter SDK、Android/Linux 引擎和 Pub 依赖使用版本化缓存；SDK 缓存未命中时先在检查任务预下载双平台引擎，供后续构建复用。Pub 缓存按锁文件区分。Gradle 使用官方 `setup-gradle` 管理依赖与任务缓存，并开启 `org.gradle.caching`。PR 与非默认分支只读 Gradle 缓存，默认分支成功构建后写入；版本标签可复用默认分支缓存。签名密钥只在 Runner 临时目录中保存，打包/签名校验任务禁用输出缓存，不缓存最终签名 APK。不缓存测试通过结果或开启 Gradle configuration cache。
 
-首次缓存是冷启动，后续收益以 Actions 的命中记录和 Gradle 任务统计为准，不能承诺固定提速比例。缓存丢失时仍能完整构建。普通 CI 不再运行七组原生 GUI 测试，这与缓存是两项独立优化。
+首次缓存是冷启动，后续收益以 Actions 的命中记录和 Gradle 任务统计为准，不能承诺固定提速比例。缓存丢失时仍能完整构建。普通 CI 不运行完整的原生 GUI 回归，这与缓存是两项独立优化。
 
 job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的 `Android Debug APK` / `Android Release APK and signature`、`Linux Release and GUI tests`。两个发布入口分别显示标签准备、构建验证和对应发布阶段；若分支保护绑定了旧的检查显示名，需要同步规则。
 
@@ -131,19 +131,19 @@ job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的
 
 `test/reasoning_display_test.dart` 覆盖流式思考、跨轮显示与协议隔离、错误后保留、Responses 公开摘要及作答前隐藏。`test/scratchpad_test.dart` 覆盖多页、局部擦除、串行保存、关联删除和完整备份；旧 schema v7 的思考可迁移到 v8。画板不含任何外部 AI 请求。
 
-`integration_test/scratchpad_reasoning_test.dart` 是新增的第八组原生 GUI 入口，验证流式展示、彩色短笔画起点、橡皮/撤销、多页保存、平移缩放/复位与重开，并生成手机、桌面英文截图。普通 CI 仍只做启动冒烟，完整 GUI 在版本发布或手动勾选 `full_gui` 时执行。
+`integration_test/scratchpad_reasoning_test.dart` 覆盖流式展示、彩色短笔画起点、橡皮/撤销、多页保存、平移缩放/复位与重开，并生成手机、桌面英文截图。普通 CI 仍只做启动冒烟，完整 GUI 在版本发布或手动勾选 `full_gui` 时执行。
 
 CI 的签名测试与 Android 构建统一使用 Temurin **Java 25 LTS**；Flutter 显式选择 CI 的 JAVA_HOME。Gradle 9.3.1 支持运行在 Java 25（[兼容性表](https://docs.gradle.org/9.3.1/userguide/compatibility.html)）。Android Java/Kotlin 字节码目标仍为 17，不因此提高 Android 最低版本。
 
 ## 考试记录
 
-考试使用 schema v9 的四张独立表，按日期查询并关联科目、两级小分表与分类照片。小分表整表替换在事务中完成，以独立 revision 检测并发修改；裸分与明细合计独立。完整备份验证考试附件引用。`exam_flow_test.dart` 是第九组原生 GUI 测试。真实模型识别准确率及 Android 实机拍照/活动恢复仍需设备验证。
+考试使用 schema v9 的四张独立表，按日期查询并关联科目、两级小分表与分类照片。小分表整表替换在事务中完成，以独立 revision 检测并发修改；裸分与明细合计独立。完整备份验证考试附件引用。`exam_flow_test.dart` 覆盖考试原生 GUI。真实模型识别准确率及 Android 实机拍照/活动恢复仍需设备验证。
 
 ## 科目目录
 
 schema v10 新增两级科目目录、知识目录关联与错题目录关联三张表。根模块名用 SQLite 表达式唯一索引去重；分类与正文修订独立，改名不会重写每条笔记，旧章节保持原样。资料科目变更时移除不匹配关联；手动整组选取比较旧关联集合，防止覆盖并发分类。删除目录有 UI 确认，级联解除关联，资料和练习保留。完整备份包含目录与关联。
 
-AI 工具 `list_subject_modules`、`create_subject_module` 和 `link_study_module` 复用原有授权、参数校验、确认与操作审计，不执行任意 SQL。新增关联为幂等追加，不覆盖其他模块。查询工具可按模块过滤。`modules_flow_test.dart` 是第十组原生 GUI，覆盖创建目录、两类归类、筛选和准备专项训练请求。没有新增 Golden 比较。
+AI 工具 `list_subject_modules`、`create_subject_module` 和 `link_study_module` 复用原有授权、参数校验、确认与操作审计，不执行任意 SQL。新增关联为幂等追加，不覆盖其他模块。查询工具可按模块过滤。`modules_flow_test.dart` 覆盖创建目录、两类归类、筛选和准备专项训练请求。没有新增 Golden 比较。
 
 ## GPT 思考档位
 
@@ -155,8 +155,19 @@ AI 工具 `list_subject_modules`、`create_subject_module` 和 `link_study_modul
 
 ## 照片导入
 
-Android 使用 FlutterCandies 的 `wechat_assets_picker` 10.1.3 和 `wechat_camera_picker` 4.6.0，按其 pub.dev API 与 Android 权限说明接入。图库只请求图片与受限图片访问；相机关闭录音，通过 `onXFileCaptured` 转入应用存储和预览，不请求相册写入。Linux 保留 `file_selector`；`image_picker` 保留历史 Android 外部选择器丢失数据恢复。
+Android 图库使用 `wechat_assets_picker`，支持预览多选。拍照通过 `image_picker` 调用系统相机：vivo Y35 / Android 13 报告应用内预览全黑后，移除 `wechat_camera_picker` 及其传感器依赖；未把替换实现当作已完成实机验收。题训本身不使用摄像头或录音权限，图库只请求图片与受限图片访问。Linux 使用 `file_selector`。
 
 所有入口先复制到应用附件目录，再复用 `StudyImageEditor`。普通编辑隐藏分题动作；退出编辑保留原导入。考试照片在 schema v12 增加可空原图引用，覆盖编辑使用当前路径并发校验；清理和备份同时检查两条引用。GUI 的文件选择器测试只替换系统返回的文件路径，导入、裁剪、保存和磁盘检查均真实执行。Android 相机、相册权限与设备恢复仍需实机验证。
 
 消融：未引入第二套裁剪库、通用媒体工作流引擎或媒体 Repository；共用一个平台选择函数和已有编辑器，保留各业务现有的恢复目标。
+
+
+## 长对话与应用内更新
+
+`context_compactor.dart` / `token_estimator.dart` 按估算 Token 预算选择上下文；不再使用固定 30 条/32000 字符。默认预算 128000，设置范围 4096–1048576，保留回复与指令空间。旧对话分批摘要，schema v13 持久化摘要与覆盖位置；原始消息保留，摘要失败有降级反馈。普通聊天不设置固定输出上限，连接测试等窄用途可以显式限制。修改时运行 `test/context_compactor_test.dart` 及对应 Provider/控制器测试。
+
+`features/update/` 按正式版、预发布、Nightly 选择 GitHub 发布，核对下载校验信息；Android 选择匹配 ABI 并交给系统安装器，Linux 暂存后在重启时切换。自动检查与手动检查共用节流记录，启动检查不阻塞页面。下载与程序更新不写入学习资料目录；不能把这类发布信息请求描述成学习数据遥测。
+
+## 维护文档
+
+README 面向使用者，中英文同步；DESIGN 说明当前边界，ROADMAP 区分代码实现、自动化结果与真实账号/设备验收。按代码和工作流更新入口、限制及运行命令，不把旧版本说明继续追加成当前结论。历史验证注明日期和代码，Nightly 下载链接使用稳定的筛选入口，避免引用会被保留策略删除的 Tag。

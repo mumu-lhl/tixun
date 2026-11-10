@@ -4,77 +4,89 @@ English · [简体中文](README.md)
 
 **Understand a question. Practise until you can solve it yourself.**
 
-TiXun is an open-source learning app for Android and Linux. Ask AI for help, keep your notes and mistakes, then check your understanding through practice and spaced review.
+TiXun is an open-source learning app for Android and Linux. Ask AI for help, keep knowledge notes and mistakes, then check your understanding with independent practice and spaced review.
 
-No TiXun account is needed. Your learning data stays on your device. Saved material and existing exercises work offline; AI requests need an internet connection and your own provider API key.
+No TiXun account is required. Learning data stays on your device, and saved material and existing exercises work offline. AI needs an internet connection and either your provider's API key or an eligible ChatGPT account signed in through the app.
 
-## Get the app
+## Download
 
-Download the latest package from [GitHub Releases](https://github.com/mumu-lhl/tixun/releases/latest):
+Use the [latest Nightly](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true) for recent features. This README describes the current main branch; recent changes are delivered through Nightly and may still need further validation. The older [stable v0.5.2](https://github.com/mumu-lhl/tixun/releases/latest) remains available but does not include all of them.
 
-- **Android 10 or later:** install the `android-release.apk` attachment.
-- **Linux x86_64:** extract the `linux-x64.tar.gz` attachment and run `./tixun`. Keep its `lib` and `data` folders alongside the executable. GTK 3 and an unlocked Secret Service keyring are required for the desktop app and secure key storage.
+Choose a file under **Assets**:
 
-Packages use Release build mode. The published v0.5.2 Android package uses a development key; the main branch configures a stable release key for future builds. Back up your data before the first signature change, then uninstall the old package, install and restore. Later builds with the same signing key can update in place. Physical Android device checks and real provider acceptance tests are still pending.
+| Platform | File name contains | Instructions |
+| --- | --- | --- |
+| Android 10+, most modern phones | `android-arm64-v8a-release.apk` | Download and install the APK. |
+| Android, unsure of architecture | `android-universal-release.apk` | Includes all supported architectures; larger download. |
+| Other Android architectures | `armeabi-v7a` or `x86_64` APK | For compatible 32-bit devices or x86_64 devices/emulators. |
+| Linux x86_64 | `linux-x64.tar.gz` | Extract and run `./tixun`. Keep the adjacent `lib` and `data` folders. |
+
+Published packages use **Release mode**. Current Nightly APKs share the same release signing key; `SHA256SUMS` provides download checksums. v0.5.2 uses an older development key: export a full backup before uninstalling it, then install the new version and restore your data.
+
+Linux needs GTK 3 and, for credentials, an unlocked Secret Service keyring such as GNOME Keyring. Missing secure storage is reported; keys are not silently saved as plain text. Run `chmod u+x tixun` if needed.
+
+Nightly builds start daily at 20:30 UTC, subject to GitHub scheduling and successful verification. Only the latest successful Nightly release, assets and tag are retained. Stable releases are preserved.
 
 ## Start learning
 
-1. Open Settings, choose a provider, save your API key and test the connection. DeepSeek Flash accepts images; DeepSeek V4 Pro is text-only. OpenAI-compatible services can use a custom URL, model and declared capabilities.
-2. Ask a question or attach an image. Guided teaching offers hints and lets you try; switch to direct answers when you want the complete explanation.
-3. Save useful knowledge or a mistake from the conversation. Keep the original image, your answer and your own explanation.
-4. Answer a practice question before viewing its solution. Review tasks are scheduled from actual answers, rather than from reading explanations.
+Open **Settings → Models and connections** and choose:
 
-AI answers and generated questions can be wrong. Check important results; unchecked AI reference answers do not count as verified mastery evidence.
+- **DeepSeek:** save your API key and test the connection. Flash supports images; V4 Pro is text-only.
+- **OpenAI-compatible:** configure the URL, model ID, key and actual model capabilities.
+- **ChatGPT:** open the plan sign-in page from model settings and choose **Continue with ChatGPT**. Authorize in your browser, then select your account and model. Available models and allowance depend on your account's permissions. Requests do not automatically fall back to API billing. [Integration details](docs/CHATGPT_PROVIDER.md).
 
-## New on the main branch
+A connection test sends a short request and may consume provider usage. Without AI configured, you can still organize material and practise existing questions.
 
-These settings are not included in the published v0.5.2 package yet:
+Start a conversation from Study. Guided teaching offers hints and invites you to try; Direct answer provides a full explanation. Exam mode lets you answer before showing feedback. Replies stream, and interactive question cards save actual answers. AI-generated reference answers remain unverified until checked.
 
-- **Chinese and English:** select either language or follow the system under Settings → Appearance. Existing notes, conversations and custom prompts retain their original content.
-- **Dynamic colors:** use Android 12+ wallpaper colors or a supported Linux desktop accent. TiXun falls back to its default palette when system colors are unavailable. Light and dark themes remain available.
-- **Reasoning effort:** set a global default in Settings or override it for one conversation using the reasoning button. DeepSeek and ChatGPT plan requests support reasoning with tools. Quiz preparation enables the configured effort for that conversation; compatible providers follow their configured capabilities. Your global preference is preserved.
-- **Prompt management:** edit, search, preview and reset prompts for teaching and study tasks under Settings → Prompts. Changes apply to future requests. Application permissions and answer-submission rules remain in force.
+On phones, the chat's more menu contains material tools, linked material and model settings. Enable material tools to let AI search notes or propose changes. Application permissions and confirmation still apply. DeepSeek and ChatGPT support reasoning with tools; compatible services follow their declared capabilities.
 
-**ChatGPT plan sign-in** is also available on the main branch, outside the published v0.5.2 package. Open Settings → ChatGPT plan → **Continue with ChatGPT**. Complete authorization in your system browser, return to TiXun, select a model and choose **Use this account and model**. Available models and allowance depend on the permissions granted by your account. Requests never fall back to API billing.
+## Photos and study material
 
-You can switch accounts, authorize again, sign out or restore your previous API settings. Tokens stay in system secure storage and are excluded from backups; another device needs a fresh sign-in. Image input is off unless the catalog declares support or you confirm it from model documentation. Protocol and isolated GUI tests pass; **real Plus/Pro account and physical Android acceptance checks remain pending**. See [integration details](docs/CHATGPT_PROVIDER.md).
+Android supports the system camera, gallery previews and multiple selection, plus image files. Linux uses file selection. Imported photos open an editor for cropping, rotating and zooming. Save uses the edited result; closing retains the uncropped photo. Originals are preserved in chat, knowledge, mistakes and exam records. Tap a thumbnail for fullscreen viewing.
 
-## Keep your data safe
+There is no fixed business limit on image count. Each image is limited to **8 MB**, with additional pixel and decoding safeguards in the editor. Model capability, context budget and request-size limits still apply.
 
-Use Settings → Backup to export your database, images, notes, conversations and practice history. API keys are excluded. Restore requires checking the backup before it replaces the active data; a recovery copy is retained.
+Choose your subjects under Settings → Study subjects, including custom subjects. Switch the current subject at the top of Study. Knowledge and Mistakes share a two-level subject directory; records can belong to multiple modules. Parent filters include submodules. Removing a directory entry keeps your study material.
 
-Only the conversation and material needed for an AI request are sent to the chosen provider. TiXun does not automatically upload your entire library or collect analytics. Keys use system secure storage and are never silently saved as plain text.
+From saved notes and mistakes, request explanations, targeted practice or reviews. AI can propose directory entries and associations, subject to confirmation.
 
-[Report a problem](https://github.com/mumu-lhl/tixun/issues) · [Development guide](DEVELOPMENT.md) · [Project status](ROADMAP.md)
+## Exams, review and scratchpads
 
-## Nightly builds
+Open Exam records from Study, choose a calendar date and add subjects. Chinese, mathematics and English use raw scores only; other subjects may also record scaled scores. Unknown marks can stay blank.
 
-[Daily prereleases](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true) build the default branch at 20:30 UTC, subject to GitHub scheduling and successful verification. Each has an independent timestamp tag, a signed Release APK, a Linux Release bundle and checksums. Nightlies do not replace the stable Latest release and may contain unfinished changes. Only the latest successful nightly is retained; publishing a new one removes older nightly releases, assets and tags.
+Keep papers, answer sheets and reference answers separately. The score breakdown supports questions and subquestions, with quick next-entry actions. Child scores determine parent totals; the breakdown does not overwrite the raw score. AI extraction sends only selected photos, up to 20 MB combined, to a vision model. Review suggestions before saving, which replaces the previous breakdown. Mock mode does not pretend to grade real photos.
 
-Future stable and nightly Android releases include `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `universal` APKs. Most modern phones use arm64-v8a; choose Universal if unsure. All variants share the same application ID, version code and signing key. Existing v0.5.2 assets are unchanged.
+Review dates use actual answers, hint use and answer verification. Reading a solution does not count as mastery. Reminders currently appear in the app, without background system notifications.
 
-## Reasoning and handwritten drafts
+Chat sessions, mistakes and practice questions have multi-page scratchpads. Use colored pens, adjustable widths, a radius eraser, undo/redo and pan/zoom on an unbounded canvas. Reset view preserves ink. Pages and view positions save locally; undo history lasts for the current opening. Drafts are not automatically sent to AI.
 
-Chat replies stream incrementally. Enable reasoning to view provider-returned reasoning or public summaries in a collapsed panel. ChatGPT encrypted internal state is never decoded or displayed. Exercise-generation reasoning stays hidden until the current questions are submitted; reasoning is not proof that an answer is correct. Saved questions and AI-sourced study material link back to the same reasoning record.
+## Make it yours
 
-Chat sessions, mistakes and practice questions each have a Scratchpad button. Every scratchpad supports multiple pages, colored pens with adjustable width, a radius eraser, undo/redo, page navigation and confirmed deletion. The canvas can pan in any direction. Switch to pan/zoom mode for touch gestures or the Linux mouse wheel; Reset view preserves the ink. Pages and view positions save locally, survive reopening and are included in full backups. They are not automatically sent to AI. Permanently deleting the owner also deletes its scratchpad.
+Settings provides Chinese/English, system language, light/dark themes and dynamic colors. Android 12+ wallpaper colors and supported Linux desktop accents fall back to the default palette when unavailable.
 
-### Exam records
+Set a global reasoning effort or override it for a conversation or exam extraction. Choices follow model capabilities: `xhigh` and `max` are distinct, as are Model default and explicit `none`. Returned reasoning or public summaries can be expanded and copied; internal encrypted state is not displayed. Exercise reasoning stays hidden until submission.
 
-Open Exam records from Study, select a calendar date and add an exam and its subjects. Chinese, mathematics and English use raw scores only; other subjects may also record scaled scores. Unknown marks can stay blank.
+Prompt management supports searching, editing, previewing and resetting teaching and task prompts. Changes affect future requests, without bypassing permissions or rewriting history. Long conversations use a configurable context-token budget and summaries of older turns. Full history stays local; summarization may consume additional model usage.
 
-Store exam papers, answer sheets and reference answers separately. Android supports camera and photo selection; Linux supports file selection. Original images stay local and are included in complete backups.
+## Updates, backups and privacy
 
-The question breakdown supports questions and subquestions. Next question and Next subquestion number entries, focus marks and reuse the previous sibling's maximum. Questions with subquestions use their child totals. Blank means unknown; `0` means zero marks. Totals never overwrite the exam's raw score.
+At the bottom of Settings, select Stable, Prerelease or Nightly and check for updates. Automatic startup checks are at least six hours apart and do not block learning; manual checks are not throttled by that interval. Downloads are checked before installation. Android chooses an appropriate APK and opens the system installer; Linux stages an update for restart. Manual downloads remain available.
 
-AI extraction uploads only 1–4 selected photos, up to 20 MB combined, to a vision-capable model. Prefer teacher-awarded marks and review every suggestion before saving. Saving replaces the previous breakdown. Reasoning strength is configurable for this request; its prompt is editable in Prompt manager. Mock mode supports manual entry and does not pretend to grade photos.
+Export a full backup under Settings → Backup and restore before uninstalling or changing devices. It includes chats, notes, mistakes, photos, exams, practice, reviews and scratchpads, but **not API keys or ChatGPT tokens**. Restore replaces current learning data and retains a copy for undoing the last restore. Deleted notes and mistakes can be recovered from Trash until permanently removed.
 
-### Subject modules for notes and mistakes
+AI receives only the context, images and selected material needed for the request, not your entire library by default. Update checks access GitHub release information without uploading learning data. No behavior analytics are enabled by default. Check important answers: AI explanations and generated questions can be wrong.
 
-Choose Manage directory in Knowledge or Mistakes to create subject modules and submodules, for example Mathematics → Functions and derivatives → Monotonicity and extrema. Custom subjects, renaming and ordering are supported. Both libraries share the directory.
+## Preview and contribute
 
-Use Choose modules on a record to assign one or more entries. Open a directory chip or use the list filter to find related material; parent modules include their submodules. Existing chapter text is kept, and uncategorized records remain under Unclassified. Deleting a directory entry removes its links, while keeping study material and practice.
+These screenshots were captured on 2026-11-10 in isolated Mock mode, using fixed replies rather than real model results.
 
-Practice this module prepares an editable Chat request from up to 5 recent notes or 3 mistakes. Review it before sending. With material tools enabled in Chat, AI can inspect existing entries and propose new modules or associations, each requiring your confirmation.
+![Desktop chat](docs/screenshots/chat-desktop.png)
 
-GPT reasoning choices follow model capabilities. For example, GPT‑6.1 Sol exposes `low`, `medium`, `high`, `xhigh` and `max`; `xhigh` and `max` are distinct. Model default omits effort, while `none` explicitly requests no reasoning and is shown only where supported. Additional account-advertised levels are preserved.
+<img src="docs/screenshots/study-phone.png" width="320" alt="Study on a phone" /> <img src="docs/screenshots/chat-phone.png" width="320" alt="Chat on a phone" />
+
+[Report an issue](https://github.com/mumu-lhl/tixun/issues) with your platform and reproduction steps; do not share credentials or private material. See the [development guide](DEVELOPMENT.md), [design](DESIGN.md) and [status](ROADMAP.md).
+
+Physical Android camera/permission checks and real AI/ChatGPT account acceptance still require separate validation. Mock and protocol tests do not replace them.
+
+Code is [MIT licensed](LICENSE); bundled fonts use the OFL license.
