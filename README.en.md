@@ -87,7 +87,7 @@ AI receives only the context, images and selected material needed for the reques
 
 ## Preview and contribute
 
-These screenshots were captured on 2026-11-10 in isolated Mock mode, using fixed replies rather than real model results.
+These screenshots were captured on 2026-11-11 in isolated Mock mode, using fixed replies rather than real model results.
 
 ![Desktop chat](docs/screenshots/chat-desktop.png)
 
