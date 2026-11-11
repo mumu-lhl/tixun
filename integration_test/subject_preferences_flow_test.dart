@@ -112,6 +112,19 @@ void main() {
         t,
         () => c.subjectFilter == '物理' && c.selected?.subject == '数学',
       );
+      final mathSessionId = c.selected!.id;
+      scope.read(routerProvider).go('/chat');
+      await t.pumpAndSettle();
+      await click(t, find.byTooltip('会话列表'));
+      expect(find.byKey(const Key('session-show-all')), findsOneWidget);
+      await guiCapture('subjects', 'sessions-filtered-phone');
+      await click(t, find.byKey(const Key('session-show-all')));
+      expect(c.sessions.map((s) => s.id), contains(mathSessionId));
+      await guiCapture('subjects', 'sessions-all-phone');
+      await click(t, find.widgetWithText(ListTile, '数学 · 导数与函数单调性的一次完整复盘'));
+      expect(c.selected!.id, mathSessionId);
+      expect(c.messages.length, 2);
+      await c.setSubjectFilter('物理');
       scope.read(routerProvider).go('/knowledge');
       await t.pumpAndSettle();
       await ready(t, () => find.text('物理受力分析的步骤').evaluate().isNotEmpty);

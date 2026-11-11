@@ -71,6 +71,30 @@ class _SessionListState extends ConsumerState<SessionList> {
             ],
           ),
         ),
+        if (c.subjectFilter.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.tr('当前科目：{0}', [
+                      context.subjectName(c.subjectFilter),
+                    ]),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                TextButton(
+                  key: const Key('session-show-all'),
+                  onPressed: () => act(context, () async {
+                    await c.searchSessions('');
+                    await c.setSubjectFilter('');
+                  }),
+                  child: Text(context.tr('查看全部会话')),
+                ),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: TextField(
@@ -100,9 +124,11 @@ class _SessionListState extends ConsumerState<SessionList> {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      c.search.isEmpty
-                          ? context.tr("还没有对话\n从一个问题开始吧")
-                          : context.tr("没有找到相关对话"),
+                      c.search.isNotEmpty
+                          ? context.tr("没有找到相关对话")
+                          : c.subjectFilter.isNotEmpty
+                          ? context.tr('当前科目下没有会话')
+                          : context.tr("还没有对话\n从一个问题开始吧"),
                       textAlign: TextAlign.center,
                     ),
                   ),

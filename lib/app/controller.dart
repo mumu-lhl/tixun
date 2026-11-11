@@ -228,7 +228,8 @@ class AppController extends ChangeNotifier {
     }
     await reload();
     final lastId = await db.preference('selected_session');
-    final last = sessions.where((s) => s.id == lastId).firstOrNull;
+    // A list filter must not prevent restoring a conversation that still exists.
+    final last = allSessions.where((s) => s.id == lastId).firstOrNull;
     if (last != null) await selectSession(last);
   }
 
@@ -753,7 +754,9 @@ class AppController extends ChangeNotifier {
     }
     await _startRequest(() async {
       if (selected == null) {
-        selected = await db.createSession();
+        selected = await db.createSession(
+          subject: subjectFilter.isEmpty ? null : subjectFilter,
+        );
         messages = [];
         attachments = [];
       }
@@ -1264,17 +1267,16 @@ class AppController extends ChangeNotifier {
       final originalImages = attachments;
       final parent = selected!;
       final reasoning = sessionReasoning;
-      final branch = await db.createSession(title: '${selected!.title} · 重问');
+      final branch = await db.createSession(
+        title: '${parent.title} · 重问',
+        mode: parent.mode,
+        subject: parent.subject,
+      );
       await db.transaction(() async {
         await db.setPreference('ai_reasoning:${branch.id}', reasoning);
         await db
             .update(db.chatSessions)
-            .replace(
-              branch.copyWith(
-                mode: parent.mode,
-                toolsEnabled: parent.toolsEnabled,
-              ),
-            );
+            .replace(branch.copyWith(toolsEnabled: parent.toolsEnabled));
         final links = await (db.select(
           db.studyChatLinks,
         )..where((t) => t.sessionId.equals(parent.id))).get();

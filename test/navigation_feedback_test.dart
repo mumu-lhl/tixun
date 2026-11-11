@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tixun/features/exams/exam_calendar.dart';
+import 'package:tixun/features/chat/session_list.dart';
 import 'package:tixun/app/app.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/app/theme.dart';
@@ -123,6 +124,32 @@ void main() {
       await t.pumpAndSettle();
     },
   );
+
+  testWidgets('Session list exposes hidden conversations by clearing filters', (
+    t,
+  ) async {
+    await c.setSubjectFilter('物理');
+    await c.searchSessions('受力');
+    expect(c.sessions.length, lessThan(c.allSessions.length));
+    await t.pumpWidget(
+      UncontrolledProviderScope(
+        container: scope,
+        child: MaterialApp(
+          theme: appTheme(Brightness.light),
+          home: const Scaffold(body: SessionList()),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('session-show-all')));
+    await t.pumpAndSettle();
+    expect(c.subjectFilter, isEmpty);
+    expect(c.search, isEmpty);
+    expect(c.sessions.length, c.allSessions.length);
+    expect(find.text('二次函数：从配方理解顶点'), findsOneWidget);
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpAndSettle();
+  });
 
   testWidgets('settings link ink cannot paint on the pushed page', (t) async {
     final ink = _InkFactory();

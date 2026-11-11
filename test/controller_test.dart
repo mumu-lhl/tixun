@@ -149,15 +149,62 @@ void main() {
     },
   );
   test('Editing branches history and retains original session', () async {
+    await c.setSessionSubject(c.selected!, '数学');
+    await c.setSubjectFilter('数学');
     await c.send('原问题');
     final original = c.selected!.id;
     final message = c.messages.first;
     await c.editAndResend(message, '修改后的问题');
     expect(c.selected!.id, isNot(original));
     expect(c.messages.first.content, '修改后的问题');
+    expect(c.selected!.subject, '数学');
+    expect(c.sessions.map((s) => s.id), contains(c.selected!.id));
     expect((await c.db.messages(original)).first.content, '原问题');
     expect(c.sessions.length, 2);
   });
+  test('First send in an empty filtered view inherits its subject', () async {
+    await c.deleteSession(c.selected!);
+    await c.setSubjectFilter('数学');
+    await c.send('二次函数');
+    expect(c.selected!.subject, '数学');
+    expect(c.sessions.single.id, c.selected!.id);
+  });
+  test(
+    'Restart restores the last conversation even when a filter hides it',
+    () async {
+      final root = await Directory.systemTemp.createTemp('tixun-chat-restart');
+      final first = await AppController.openRoot(
+        root,
+        demo: false,
+        keyStore: MemoryKeyStore(),
+        chatProvider: FastProvider(),
+      );
+      await first.setSubjectFilter('数学');
+      await first.newSession();
+      await first.send('重启后需要保留的对话');
+      final id = first.selected!.id;
+      await first.setSubjectFilter('物理');
+      expect(first.sessions, isEmpty);
+      expect(first.selected!.id, id);
+      await first.shutdown();
+      final reopened = await AppController.openRoot(
+        root,
+        demo: false,
+        keyStore: MemoryKeyStore(),
+        chatProvider: FastProvider(),
+      );
+      try {
+        expect(reopened.subjectFilter, '物理');
+        expect(reopened.selected?.id, id);
+        expect(reopened.messages.first.content, '重启后需要保留的对话');
+        await reopened.setSubjectFilter('');
+        expect(reopened.sessions.single.id, id);
+      } finally {
+        await reopened.shutdown();
+        await root.delete(recursive: true);
+      }
+    },
+  );
   test(
     'Draft, mode, rename and reversible deletion use database state',
     () async {
