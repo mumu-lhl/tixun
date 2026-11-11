@@ -33,6 +33,10 @@ void main() {
         TixunHost(root: root, demo: true, initialController: c),
       );
       await tester.pumpAndSettle();
+      if (find.byKey(const Key('chat-back')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('chat-back')));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byKey(const Key('nav-4')));
       await tester.pumpAndSettle();
       var container = ProviderScope.containerOf(
@@ -52,6 +56,10 @@ void main() {
       await prepared.discard();
       await tester.pumpAndSettle();
       // The old provider scope is gone; the new one starts at the learning page.
+      if (find.byKey(const Key('chat-back')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('chat-back')));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byKey(const Key('nav-4')));
       await tester.pumpAndSettle();
       container = ProviderScope.containerOf(
@@ -83,6 +91,10 @@ void main() {
       await reverting;
       await undo.discard();
       await tester.pumpAndSettle();
+      if (find.byKey(const Key('chat-back')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('chat-back')));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byKey(const Key('nav-4')));
       await tester.pumpAndSettle();
       container = ProviderScope.containerOf(

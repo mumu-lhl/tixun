@@ -186,3 +186,19 @@ AI 资料整理按操作筛选工具，本地 `estimateTokens` 对同一套序�
 | 新建错题 | 361 |
 
 消融：复用现有生成和审批链，只保留任务权限元数据与共享对话框；没有新建通用工作流、另一套 AI 客户端或地区身份模型。`test/study_writing_test.dart` 覆盖真实写入、拒绝、合并修订、来源关联、越界与截断保护、背景和工具预算；原生资料 GUI 测试覆盖手机操作及英文桌面。
+
+## 嵌入 Python 的构建与验证
+
+运行时固定 `serious_python` 6.1.3 / CPython 3.13（具体补丁版本由锁定插件决定）。依赖固定在 `python/requirements.txt`，仅包含纯 Python 包；新增原生扩展必须逐 ABI 验证，不能直接复制桌面 wheel。
+
+```bash
+bash scripts/prepare_python.sh Linux
+bash scripts/flutter_python.sh build linux --release
+# Android 改为 prepare_python.sh Android，再用同一个 wrapper 构建 APK。
+python3 -m unittest discover -s python -p 'test_*.py'
+bash scripts/flutter_python.sh test integration_test/python_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true
+```
+
+需要 Python 3 与 pip。CI 的构建任务自动准备包并缓存上游运行时下载；Android 保留 arm64-v8a、armeabi-v7a、x86_64 与 Universal 产物。宿主打包 Python 和嵌入解释器不同版本仍可安装这里使用的纯 Python wheel；不在应用运行时安装依赖。普通 `flutter build` 也必须设置 wrapper 中的三个环境变量。
+
+消融：复用原工具循环、审批卡与审计表；没有预设数学函数白名单、独立服务器、Flask 服务或另一套 AI 客户端。传输长度和输出展示上限不限制 Python 语法或模块能力。`test/python_tool_test.dart` 验证拒绝/关闭/自动授权、参数及重复执行；Python 单测验证标准库、文件、异常、时限与输出；原生 GUI 测试真实运行打包 SymPy、审查/自动允许、查看结果及手机全屏导航。

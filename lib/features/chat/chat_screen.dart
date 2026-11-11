@@ -50,6 +50,19 @@ class ChatScreen extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
+                    if (MediaQuery.sizeOf(context).width < 800)
+                      IconButton(
+                        key: const Key('chat-back'),
+                        tooltip: context.tr('返回'),
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/study');
+                          }
+                        },
+                      ),
                     if (!wide)
                       IconButton(
                         tooltip: context.tr("会话列表"),

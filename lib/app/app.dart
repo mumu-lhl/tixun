@@ -1,5 +1,6 @@
 import '../core/ui/app_menu.dart';
 import '../features/settings/ai_settings_screen.dart';
+import '../features/settings/python_settings.dart';
 import '../features/settings/subjects_screen.dart';
 import '../features/exams/exam_calendar.dart';
 import '../features/exams/exam_detail.dart';
@@ -153,6 +154,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               _materialRoute(
                 path: 'chatgpt',
                 builder: (_, _) => const ChatGptScreen(),
+              ),
+              _materialRoute(
+                path: 'python',
+                builder: (_, _) => const PythonSettings(),
               ),
               _materialRoute(
                 path: 'prompts',
@@ -504,7 +509,17 @@ class AppShell extends ConsumerWidget {
                       ),
                       const VerticalDivider(width: 1),
                     ],
-                    Expanded(child: child),
+                    Expanded(
+                      child: path == '/chat' && !wide
+                          ? PopScope(
+                              canPop: context.canPop(),
+                              onPopInvokedWithResult: (didPop, result) {
+                                if (!didPop) context.go('/study');
+                              },
+                              child: child,
+                            )
+                          : child,
+                    ),
                   ],
                 ),
               ),
@@ -517,11 +532,20 @@ class AppShell extends ConsumerWidget {
         // nothing highlighted; the side rail (wide layout) simply shows
         // no selected tile on those pages.
         bottomNavigationBar:
-            wide || MediaQuery.viewInsetsOf(context).bottom > 0 || index < 0
+            wide ||
+                path == '/chat' ||
+                MediaQuery.viewInsetsOf(context).bottom > 0 ||
+                index < 0
             ? null
             : NavigationBar(
                 selectedIndex: index,
-                onDestinationSelected: (i) => context.go(paths[i]),
+                onDestinationSelected: (i) {
+                  if (i == 1) {
+                    context.push(paths[i]);
+                  } else {
+                    context.go(paths[i]);
+                  }
+                },
                 destinations: [
                   for (var i = 0; i < paths.length; i++)
                     NavigationDestination(

@@ -428,7 +428,29 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       }
     }
     final history = request.messages;
-    final names = request.tools.map((t) => t.name).toSet();
+    final names = request.tools
+        .where((t) => t.name != 'run_python')
+        .map((t) => t.name)
+        .toSet();
+    if (history.isNotEmpty &&
+        history.last.role == AiRole.user &&
+        history.last.text.toLowerCase().contains('python') &&
+        request.tools.any((t) => t.name == 'run_python')) {
+      yield AiChunk(
+        calls: [
+          ToolCall(
+            'mock-python',
+            'run_python',
+            jsonEncode({
+              'purpose': '用 SymPy 核对定积分',
+              'code': "import sympy as sp\nx = sp.symbols('x')\nprint(sp.integrate(x**2, (x, 0, 3)))",
+            }),
+          ),
+        ],
+        completed: true,
+      );
+      return;
+    }
     // Focused writing fixtures remain isolated in Mock mode.
     if (history.isNotEmpty &&
         names.length == 2 &&
@@ -595,7 +617,9 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       if (last.role == AiRole.tool) {
         final result = jsonDecode(last.text) as Map;
         yield AiChunk(
-          text: result['ok'] == true
+          text: last.callId == 'mock-python'
+              ? 'Python 执行结果：${result['stdout'] ?? result['error']}'
+              : result['ok'] == true
               ? '工具已确认保存成功。你可以在知识库查看和编辑这条记录，并追溯来源对话。'
               : '没有保存资料：${result['error']}',
         );

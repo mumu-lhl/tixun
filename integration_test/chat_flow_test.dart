@@ -62,6 +62,10 @@ void main() {
         '明天继续的问题',
         reason: 'draft callback before navigation',
       );
+      if (find.byKey(const Key('chat-back')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('chat-back')));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byKey(const Key('nav-4')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('nav-1')));

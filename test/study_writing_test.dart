@@ -138,7 +138,10 @@ void main() {
           hasLength(1),
         );
         expect(links.where((l) => l.sessionId == c.selected!.id), hasLength(1));
-        final tools = provider.requests[1].tools.map((t) => t.name).toSet();
+        final tools = provider.requests[1].tools
+            .where((t) => t.name != 'run_python')
+            .map((t) => t.name)
+            .toSet();
         expect(
           tools,
           mistake

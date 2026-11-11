@@ -138,6 +138,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      if (find.byKey(const Key('chat-back')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('chat-back')));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byKey(const Key('nav-2')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('顶点的纵坐标为什么不是常数项？'));
@@ -246,6 +250,10 @@ void main() {
       );
       expect(note.sourceSessionId, c.selected!.id);
       expect(note.sourceMessageId, c.messages.last.id);
+      if (find.byKey(const Key('chat-back')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('chat-back')));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byKey(const Key('nav-3')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('二次函数的顶点与配方'));
@@ -273,6 +281,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      if (find.byKey(const Key('chat-back')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('chat-back')));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byKey(const Key('nav-2')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('顶点的纵坐标为什么不是常数项？'));

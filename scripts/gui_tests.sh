@@ -7,6 +7,7 @@ log_dir="${TIXUN_GUI_LOG_DIR:-.}"
 mkdir -p "$log_dir"
 tests=(
   'chat_flow:integration.log'
+  'python_flow:integration-python.log'
   'learning_materials:integration-materials.log'
   'practice_flow:integration-practice.log'
   'backup_flow:integration-backup.log'

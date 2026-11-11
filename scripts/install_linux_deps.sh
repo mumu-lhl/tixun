@@ -6,6 +6,6 @@ if [[ "$(id -u)" != 0 ]]; then
 fi
 apt-get update
 apt-get install -y --no-install-recommends \
-  ca-certificates curl git unzip xz-utils clang cmake ninja-build pkg-config \
+  python3-pip ca-certificates curl git unzip xz-utils clang cmake ninja-build pkg-config \
   libgtk-3-dev g++ libsecret-1-dev libjsoncpp-dev \
   libgl1-mesa-dri mesa-utils xvfb xauth xdotool imagemagick ripgrep dbus-x11

@@ -194,16 +194,16 @@ case "$2" in *"$FAIL_GUI"*) if [ -n "$FAIL_GUI" ]; then exit 23; fi;; esac''',
         code, calls, logs = self.run_gui()
         self.assertEqual(code, 0)
         self.assertEqual([Path(p).stem for p in calls], [
-            'chat_flow_test', 'learning_materials_test', 'practice_flow_test',
+            'chat_flow_test', 'python_flow_test', 'learning_materials_test', 'practice_flow_test',
             'backup_flow_test', 'practice_management_test', 'ai_preferences_test', 'chatgpt_flow_test',
             'scratchpad_reasoning_test', 'exam_flow_test', 'modules_flow_test', 'subject_preferences_flow_test'])
-        self.assertEqual(len(logs), 11)
+        self.assertEqual(len(logs), 12)
         self.assertIn('practice_management_test', logs['integration-management.log'])
 
     def test_first_failure_stops_later_builds_and_preserves_exit_code_and_log(self):
         code, calls, logs = self.run_gui('learning_materials')
         self.assertEqual(code, 23)
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 3)
         self.assertIn('learning_materials_test', logs['integration-materials.log'])
         self.assertNotIn('integration-practice.log', logs)
 

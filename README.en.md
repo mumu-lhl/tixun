@@ -45,6 +45,10 @@ On phones, the chat's more menu contains material tools, linked material and mod
 
 ## Photos and study material
 
+Python execution is available under Settings → Python execution. By default you review the exact code before allowing it; you can disable execution or explicitly enable automatic permission. Chat, question generation, mistake explanations and AI knowledge writing share the tool. CPython, SymPy and mpmath are bundled locally. Expand execution history to inspect code, output and errors; output is sent to the current model.
+
+**Arbitrary Python runs with the app’s file and network access; it is not a sandbox.** Code can damage local data. Stop requests may not immediately interrupt native code or I/O. Generated files are not automatically included in study records or backups. Mobile Chat fills the screen and provides a Back button.
+
 Android provides WeChat-style capture and gallery previews with multiple selection, plus image files. The capture screen also offers a system-camera fallback. Linux uses file selection. Imported photos open an editor for cropping, rotating and zooming. Save uses the edited result; closing retains the uncropped photo. Originals are preserved in chat, knowledge, mistakes and exam records. Tap a thumbnail for fullscreen viewing.
 
 There is no fixed business limit on image count. Each image is limited to **8 MB**, with additional pixel and decoding safeguards in the editor. Model capability, context budget and request-size limits still apply.

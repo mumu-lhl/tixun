@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import '../../core/python/python_tool.dart';
+
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 
@@ -49,14 +51,16 @@ class LearningRun {
     this.study,
     this.practice,
     this.review,
-    this.provider,
-  );
+    this.provider, {
+    PythonTool? pythonTool,
+  }) : python = pythonTool ?? PythonTool(db, files.root);
   final AppDatabase db;
   final AttachmentStore files;
   final StudyStore study;
   final PracticeStore practice;
   final ReviewStore review;
   final ChatProvider provider;
+  final PythonTool python;
 
   Future<LearningRunResult> run({
     required String sessionId,
@@ -82,7 +86,10 @@ class LearningRun {
     );
     var text = '';
     int? tokens;
-    var quizCreated = false, regionsCreated = false, studyChanged = false;
+    var quizCreated = false,
+        regionsCreated = false,
+        studyChanged = false,
+        pythonExecuted = false;
     String? lastRoundReasoning;
     var activeReasoning = '', trace = '';
     final latestUser =
@@ -276,10 +283,12 @@ class LearningRun {
                 ? 'Provide the requested material in full; do not replace it with a quiz or diagnostic questions.'
                 : '完整提供本次所需资料，不以测验或诊断问题代替。')
           : '';
+      final pythonPolicy = await db.preference(pythonPolicyKey) ?? 'ask';
       if (quizEnabled) {
         request = request.copyWith(
           messages: contextMessages,
           tools: [
+            if (['ask', 'auto'].contains(pythonPolicy)) pythonToolSchema,
             if (!materialRequest) quizToolSchema,
             if (!exam && sourceImages.isNotEmpty && studyTask == null)
               regionToolSchema,
@@ -373,7 +382,10 @@ class LearningRun {
             )) {
           throw const AiFailure('模型尝试调用未开放的工具，已阻止。');
         }
-        if (studyTask != null && calls.any((call) => !studyTask.allows(call))) {
+        if (studyTask != null &&
+            calls.any(
+              (call) => call.name != 'run_python' && !studyTask.allows(call),
+            )) {
           throw const AiFailure('已阻止修改未选中的资料，请重新发起整理。');
         }
         callsUsed += calls.length;
@@ -395,7 +407,15 @@ class LearningRun {
               !selectedKnowledgeRead) {
             throw const AiFailure('修改前必须完整读取所选知识；正文过长时请先手动拆分，避免覆盖未读取的内容。');
           }
-          final result = call.name == 'suggest_question_regions' && !exam
+          final result = call.name == 'run_python'
+              ? await python.run(
+                  call,
+                  sessionId: sessionId,
+                  runId: runId,
+                  cancel: cancel,
+                  confirm: (name, args) => confirm(name, args, 0),
+                )
+              : call.name == 'suggest_question_regions' && !exam
               ? (sourceImages.isNotEmpty
                     ? await executeRegionTool(
                         db,
@@ -426,6 +446,9 @@ class LearningRun {
                 result['id'] == studyTask!.knowledgeId &&
                 result['truncated'] == false;
           }
+          if (call.name == 'run_python' && result['ok'] == true) {
+            pythonExecuted = true;
+          }
           if (call.name == 'suggest_question_regions' && result['ok'] == true) {
             regionsCreated = true;
           }
@@ -438,6 +461,7 @@ class LearningRun {
           if (result['ok'] == true &&
               call.name != 'suggest_question_regions' &&
               call.name != 'create_quiz' &&
+              call.name != 'run_python' &&
               isWriteStudyTool(call.name)) {
             studyChanged = true;
           }
@@ -469,6 +493,8 @@ class LearningRun {
           // The write already landed; report success with a placeholder
           // instead of an error that would invite a duplicate retry.
           text = '已保存，可在知识库查看。';
+        } else if (pythonExecuted) {
+          text = 'Python 执行完成，可展开查看代码和结果。';
         } else {
           throw const AiFailure('模型没有返回可显示的正文，请重试。');
         }

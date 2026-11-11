@@ -2,9 +2,9 @@ name: Build and verify
 on:
   push:
     branches: ['**']
-    paths: ['lib/**', 'test/**', 'integration_test/**', 'assets/**', 'pubspec.*', 'build.yaml', 'analysis_options.yaml', 'android/**', 'linux/**', 'scripts/**', 'cliff.toml', '.github/workflows/**']
+    paths: ['lib/**', 'python/**', 'test/**', 'integration_test/**', 'assets/**', 'pubspec.*', 'build.yaml', 'analysis_options.yaml', 'android/**', 'linux/**', 'scripts/**', 'cliff.toml', '.github/workflows/**']
   pull_request:
-    paths: ['lib/**', 'test/**', 'integration_test/**', 'assets/**', 'pubspec.*', 'build.yaml', 'analysis_options.yaml', 'android/**', 'linux/**', 'scripts/**', 'cliff.toml', '.github/workflows/**']
+    paths: ['lib/**', 'python/**', 'test/**', 'integration_test/**', 'assets/**', 'pubspec.*', 'build.yaml', 'analysis_options.yaml', 'android/**', 'linux/**', 'scripts/**', 'cliff.toml', '.github/workflows/**']
   workflow_dispatch:
     inputs:
       android_release:
@@ -68,6 +68,9 @@ concurrency:
 env:
   FLUTTER_VERSION: '3.47.9'
   JAVA_VERSION: '25'
+  SERIOUS_PYTHON_VERSION: '3.13'
+  SERIOUS_PYTHON_APP: ${{ github.workspace }}/python/runtime
+  SERIOUS_PYTHON_SITE_PACKAGES: ${{ github.workspace }}/build/python-packages
 jobs:
   checks:
     name: Analyze and test
@@ -80,6 +83,7 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+      - run: python3 -m unittest discover -s python -p 'test_*.py'
       - uses: subosito/flutter-action@v2
         id: flutter
         with:
@@ -135,6 +139,12 @@ jobs:
       - name: Use the CI JDK for Flutter Android builds
         run: flutter config --jdk-dir="$JAVA_HOME"
       - run: flutter pub get --enforce-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: ~/.flet/cache
+          key: python-runtime-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: python-runtime-${{ runner.os }}-${{ runner.arch }}-
+      - run: bash scripts/prepare_python.sh Android
       - name: Resolve Android artifact
         id: artifact
         env:
@@ -206,6 +216,12 @@ jobs:
       - run: flutter config --no-analytics
       - run: flutter pub get --enforce-lockfile
       - run: flutter doctor -v | tee doctor.log
+      - uses: actions/cache@v4
+        with:
+          path: ~/.flet/cache
+          key: python-runtime-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: python-runtime-${{ runner.os }}-${{ runner.arch }}-
+      - run: bash scripts/prepare_python.sh
       - name: Resolve Linux artifact
         id: artifact
         run: python3 scripts/build_artifacts.py metadata linux >> "$GITHUB_OUTPUT"

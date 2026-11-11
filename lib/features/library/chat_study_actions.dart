@@ -19,6 +19,7 @@ import 'study_store.dart';
 import 'ai_study_actions.dart';
 
 const toolLabels = {
+  'run_python': '运行 Python',
   'create_subject_module': '新增科目目录',
   'link_study_module': '关联资料与模块',
   'schedule_review': '加入复习',
@@ -33,6 +34,9 @@ const toolLabels = {
   'link_mistake_to_knowledge': '关联错题与知识',
 };
 const fieldLabels = {
+  'purpose': '运行用途',
+  'code': 'Python 代码',
+  'timeout_seconds': '期望执行时限（秒）',
   'name': '目录名称',
   'title': '标题',
   'content': '知识正文',
@@ -110,18 +114,27 @@ class ToolApprovalCard extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            fieldLabels[e.key]!,
+                            context.tr(fieldLabels[e.key]!),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          LearningMarkdown(
-                            e.value is List
-                                ? (e.value as List).join('、')
-                                : e.value.toString(),
-                          ),
+                          if (e.key == 'code')
+                            SelectableText(
+                              e.value.toString(),
+                              style: const TextStyle(
+                                fontFamily: 'TixunMono',
+                                fontSize: 12,
+                              ),
+                            )
+                          else
+                            LearningMarkdown(
+                              e.value is List
+                                  ? (e.value as List).join('、')
+                                  : e.value.toString(),
+                            ),
                         ],
                       ),
                     ),
@@ -131,6 +144,17 @@ class ToolApprovalCard extends ConsumerWidget {
               ),
             ),
           ),
+          if (request.name == 'run_python') ...[
+            Text(
+              context.tr('代码可访问应用文件与网络，输出会发送给当前模型；只有你允许后才执行。'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            TextButton(
+              onPressed: () =>
+                  showPythonCode(context, request.arguments['code'].toString()),
+              child: Text(context.tr('查看完整代码')),
+            ),
+          ],
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -144,7 +168,9 @@ class ToolApprovalCard extends ConsumerWidget {
               FilledButton(
                 key: const Key('approve-tool'),
                 onPressed: () => c.decideTool(true),
-                child: Text(context.tr("确认执行")),
+                child: Text(
+                  context.tr(request.name == 'run_python' ? '允许运行' : '确认执行'),
+                ),
               ),
             ],
           ),
@@ -318,12 +344,12 @@ class ChatStudyMenu extends ConsumerWidget {
   }
 }
 
-final _toolHistoryProvider = FutureProvider.autoDispose
+final _toolHistoryProvider = StreamProvider.autoDispose
     .family<List<AiToolOperation>, String>((ref, id) {
       final store = ref.watch(studyStoreProvider);
       return (store.db.select(
         store.db.aiToolOperations,
-      )..where((t) => t.runId.equals(id))).get();
+      )..where((t) => t.runId.equals(id))).watch();
     });
 
 class ToolHistory extends ConsumerWidget {
@@ -343,6 +369,7 @@ class ToolHistory extends ConsumerWidget {
             } catch (_) {
               /* Audit display must not break chat history. */
             }
+            if (op.name == 'run_python') return PythonHistoryCard(op);
             if (success && op.name == 'suggest_question_regions') {
               return SplitSuggestionCard(op);
             }
@@ -455,4 +482,97 @@ Future<void> openChatStudyLinks(BuildContext context, WidgetRef ref) async {
     ),
   );
   if (path != null && context.mounted) context.push(path);
+}
+
+Future<void> showPythonCode(BuildContext context, String code) =>
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.tr('Python 代码')),
+        content: SizedBox(
+          width: 760,
+          height: MediaQuery.sizeOf(ctx).height * .6,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              code,
+              style: const TextStyle(fontFamily: 'TixunMono', fontSize: 13),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ctx.tr('关闭')),
+          ),
+        ],
+      ),
+    );
+
+class PythonHistoryCard extends StatelessWidget {
+  const PythonHistoryCard(this.operation, {super.key});
+  final AiToolOperation operation;
+  @override
+  Widget build(BuildContext context) {
+    Map args = {}, result = {};
+    try {
+      args = jsonDecode(operation.arguments) as Map;
+    } catch (_) {}
+    try {
+      result = jsonDecode(operation.result ?? '{}') as Map;
+    } catch (_) {}
+    final status = switch (operation.status) {
+      'succeeded' => '执行完成',
+      'recording_failed' => '执行完成，记录异常',
+      'rejected' => '未允许运行',
+      'running' => '执行中',
+      'stop_requested' => '已请求停止',
+      'pending' => '等待审查',
+      _ => '执行失败',
+    };
+    return ExpansionTile(
+      key: PageStorageKey('python-history-${operation.id}'),
+      tilePadding: EdgeInsets.zero,
+      leading: const Icon(Icons.code, size: 20),
+      title: Text(
+        context.tr('Python · {0}', [context.tr(status)]),
+        style: const TextStyle(fontSize: 13),
+      ),
+      subtitle: Text(
+        args['purpose']?.toString() ?? '',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () =>
+                showPythonCode(context, args['code']?.toString() ?? ''),
+            child: Text(context.tr('查看完整代码')),
+          ),
+        ),
+        if (result.isNotEmpty)
+          SizedBox(
+            width: double.infinity,
+            child: SingleChildScrollView(
+              key: PageStorageKey('python-output-${operation.id}'),
+              scrollDirection: Axis.horizontal,
+              child: SelectableText(
+                [
+                  if (result['stdout'] != null) result['stdout'],
+                  if (result['stderr'] != null && result['stderr'] != '')
+                    'stderr:\n${result['stderr']}',
+                  if (result['traceback'] != null) result['traceback'],
+                  if (result['error'] != null)
+                    context.tr(result['error'].toString()),
+                  if (result['output_truncated'] == true)
+                    context.tr('输出过长，已截断展示。'),
+                ].join('\n'),
+                style: const TextStyle(fontFamily: 'TixunMono', fontSize: 12),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }

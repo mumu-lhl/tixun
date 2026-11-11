@@ -117,6 +117,15 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/settings/prompts'),
                 ),
+                ListTile(
+                  key: const Key('settings-python'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.code),
+                  title: Text(context.tr('Python 执行')),
+                  subtitle: Text(context.tr('审查 AI 代码或设置自动执行权限')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/python'),
+                ),
                 heading('外观'),
                 const LanguageColorSettings(),
                 SingleChildScrollView(
