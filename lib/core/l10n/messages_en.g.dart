@@ -1157,4 +1157,7 @@ const englishMessages = <String, String>{
   "执行权限读取失败，请重新打开此页。":
       "Could not load execution permissions. Reopen this page.",
   "教学风格与学习任务提示词": "Teaching style and study-task prompts",
+  "ChatGPT 回复字段类型不兼容，请重试并反馈此提示。": "ChatGPT returned incompatible response fields. Retry and report this message if it persists.",
+  "ChatGPT 流式事件无法解析，请重试并检查网络或代理。": "Could not parse a ChatGPT stream event. Retry and check your network or proxy.",
+  "ChatGPT 回复结束事件不完整，请重试并反馈此提示。": "The ChatGPT completion event was incomplete. Retry and report this message if it persists.",
 };

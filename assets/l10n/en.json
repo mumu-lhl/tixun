@@ -1069,5 +1069,8 @@
   "代码已执行，但执行记录保存异常；不要重复运行有副作用的代码。": "The code ran, but its execution record could not be saved normally. Do not repeat code with side effects.",
   "已请求停止，但状态保存失败；代码可能仍在运行。": "Stop was requested but its status could not be saved. Code may still be running.",
   "执行权限读取失败，请重新打开此页。": "Could not load execution permissions. Reopen this page.",
-  "教学风格与学习任务提示词": "Teaching style and study-task prompts"
+  "教学风格与学习任务提示词": "Teaching style and study-task prompts",
+  "ChatGPT 回复字段类型不兼容，请重试并反馈此提示。": "ChatGPT returned incompatible response fields. Retry and report this message if it persists.",
+  "ChatGPT 流式事件无法解析，请重试并检查网络或代理。": "Could not parse a ChatGPT stream event. Retry and check your network or proxy.",
+  "ChatGPT 回复结束事件不完整，请重试并反馈此提示。": "The ChatGPT completion event was incomplete. Retry and report this message if it persists."
 }

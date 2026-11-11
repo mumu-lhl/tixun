@@ -190,6 +190,8 @@ class ChatGptResponses implements ChatProvider {
       });
     } on TimeoutException {
       throw const AiFailure('等待回复超时，已保留收到的内容。');
+    } on TypeError {
+      throw const AiFailure('ChatGPT 回复字段类型不兼容，请重试并反馈此提示。');
     } catch (_) {
       throw const AiFailure('ChatGPT 回复格式无效，请重试。');
     }
@@ -270,12 +272,13 @@ Stream<AiChunk> decodeResponses(
 ) async* {
   var completed = false, summarySeen = false, textSeen = false;
   await for (final data in sseData(bytes)) {
-    if (data == '[DONE]') break;
+    if (data.trim().isEmpty) continue; // Empty SSE heartbeat, not a JSON event.
+    if (data.trim() == '[DONE]') break;
     Map<String, dynamic> event;
     try {
       event = jsonDecode(data) as Map<String, dynamic>;
     } catch (_) {
-      throw const AiFailure('ChatGPT 回复格式无效，请重试。');
+      throw const AiFailure('ChatGPT 流式事件无法解析，请重试并检查网络或代理。');
     }
     final type = event['type'];
     if ([
@@ -311,9 +314,15 @@ Stream<AiChunk> decodeResponses(
       if (response == null ||
           response['status'] != 'completed' ||
           response['output'] is! List) {
-        throw const AiFailure('ChatGPT 回复格式无效，请重试。');
+        throw const AiFailure('ChatGPT 回复结束事件不完整，请重试并反馈此提示。');
       }
       final output = response['output'] as List;
+      // Usage is optional accounting metadata. A different numeric encoding
+      // must not invalidate an otherwise complete response or tool call.
+      final usage = response['usage'];
+      final tokens = usage is Map && usage['total_tokens'] is int
+          ? usage['total_tokens'] as int
+          : null;
       if (!textSeen) {
         for (final item in output.whereType<Map>()) {
           if (item['type'] != 'message' || item['content'] is! List) continue;
@@ -377,25 +386,13 @@ Stream<AiChunk> decodeResponses(
         }
         validateToolCalls(parts);
         retainContext?.call(parts.first.id, context);
-        yield AiChunk(
-          calls: parts,
-          completed: true,
-          tokens: response['usage'] is Map
-              ? response['usage']['total_tokens'] as int?
-              : null,
-        );
+        yield AiChunk(calls: parts, completed: true, tokens: tokens);
       }
       if (calls.isNotEmpty) {
         completed = true;
         break;
       }
-      final usage = response['usage'];
-      yield AiChunk(
-        tokens: usage is Map && usage['total_tokens'] is int
-            ? usage['total_tokens'] as int
-            : null,
-        completed: true,
-      );
+      yield AiChunk(tokens: tokens, completed: true);
       completed = true;
       break;
     }

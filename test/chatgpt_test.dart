@@ -236,6 +236,94 @@ void main() {
     );
   });
 
+  test(
+    'Optional usage metadata cannot invalidate a complete tool response',
+    () async {
+      final f = ChatGptFixture();
+      await f.seed();
+      for (final total in [17.0, '17', null]) {
+        var requests = 0;
+        final client = Dio()
+          ..httpClientAdapter = FixtureAdapter((_) {
+            final event = completed(
+              output: ++requests == 1
+                  ? [
+                      {
+                        'type': 'message',
+                        'content': [
+                          {'type': 'output_text', 'text': 'OK'},
+                        ],
+                      },
+                    ]
+                  : [
+                      {
+                        'type': 'function_call',
+                        'call_id': 'quiz',
+                        'name': 'create_quiz',
+                        'namespace': 'tixun',
+                        'arguments': '{}',
+                      },
+                    ],
+            );
+            (event['response'] as Map)['usage'] = {'total_tokens': total};
+            return fixtureSse([event]);
+          });
+        final provider = ChatGptResponses(f.auth, client: client);
+        final model = config.copyWith(model: 'gpt-6.1-terra', effort: 'high');
+        final connection = await provider
+            .start(model)
+            .complete(
+              AiRequest(
+                instructions: '',
+                messages: [const AiMessage.user('只回复 OK')],
+              ),
+              CancelToken(),
+            )
+            .toList();
+        expect(connection.map((c) => c.text).join(), 'OK');
+        final chat = await provider
+            .start(model)
+            .complete(
+              AiRequest(
+                instructions: 'Guide the student.',
+                messages: [const AiMessage.user('出一道练习题')],
+                tools: [
+                  const AiTool(
+                    name: 'create_quiz',
+                    description: 'Quiz',
+                    parameters: {'type': 'object'},
+                  ),
+                ],
+              ),
+              CancelToken(),
+            )
+            .toList();
+        expect(chat.last.completed, true);
+        expect(chat.last.calls.single.name, 'create_quiz');
+        expect(chat.last.tokens, isNull);
+      }
+    },
+  );
+
+  test('Empty SSE heartbeats do not invalidate text or reasoning', () async {
+    final text =
+        'data:\n\ndata:  \n\n: heartbeat\n\n'
+        'data: ${jsonEncode({'type': 'response.reasoning_summary_text.delta', 'delta': '核对条件'})}\n\n'
+        'data:\n\ndata: ${jsonEncode({'type': 'response.output_text.delta', 'delta': '答案'})}\n\n'
+        'data: ${jsonEncode(completed())}\n\n';
+    final chunks = await decodeResponses(
+      Stream.value(utf8.encode(text)),
+      null,
+    ).toList();
+    expect(chunks.map((c) => c.text).join(), '答案');
+    expect(chunks.map((c) => c.reasoning).join(), '核对条件');
+    expect(chunks.last.completed, true);
+    await expectLater(
+      decodeResponses(Stream.value(utf8.encode('data:\n\n')), null).toList(),
+      throwsA(isA<AiFailure>()),
+    );
+  });
+
   test('Quota failure, invalid JSON and interrupted streams never become successful replies', () async {
     for (final tail in [
       'data: ${jsonEncode({
