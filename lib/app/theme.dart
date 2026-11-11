@@ -16,9 +16,9 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
     fontFamily: 'NotoSansSC',
     scaffoldBackgroundColor: colors.surface,
     splashFactory: InkRipple.splashFactory,
-    splashColor: colors.primary.withValues(alpha: dark ? .12 : .08),
-    highlightColor: colors.primary.withValues(alpha: .035),
-    hoverColor: colors.primary.withValues(alpha: .045),
+    splashColor: colors.onSurface.withValues(alpha: dark ? .16 : .12),
+    highlightColor: colors.onSurface.withValues(alpha: dark ? .10 : .08),
+    hoverColor: colors.onSurface.withValues(alpha: .045),
     listTileTheme: ListTileThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),

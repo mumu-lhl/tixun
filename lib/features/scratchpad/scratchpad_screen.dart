@@ -389,109 +389,140 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        for (final value in _Tool.values)
-                          IconButton.filledTonal(
-                            key: Key('scratch-tool-${value.name}'),
-                            isSelected: tool == value,
-                            tooltip: context.tr(switch (value) {
-                              _Tool.pen => '画笔',
-                              _Tool.eraser => '橡皮擦',
-                              _Tool.move => '移动和缩放',
-                            }),
-                            onPressed: () {
-                              _finish();
-                              setState(
-                                () => tool =
-                                    value == _Tool.move && tool == _Tool.move
-                                    ? _Tool.pen
-                                    : value,
-                              );
-                            },
-                            icon: Icon(switch (value) {
-                              _Tool.pen => Icons.edit,
-                              _Tool.eraser => Icons.auto_fix_normal,
-                              _Tool.move => Icons.pan_tool_outlined,
-                            }),
-                          ),
-                        if (tool == _Tool.pen)
-                          for (final value in [
-                            0xff1f2937,
-                            0xff2563eb,
-                            0xffdc3d43,
-                            0xff177d56,
-                            0xff8b5cf6,
-                          ])
-                            Semantics(
-                              label: context.tr('画笔颜色 {0}', [
-                                context.tr(
-                                  {
-                                    0xff1f2937: '黑色',
-                                    0xff2563eb: '蓝色',
-                                    0xffdc3d43: '红色',
-                                    0xff177d56: '绿色',
-                                    0xff8b5cf6: '紫色',
-                                  }[value]!,
-                                ),
-                              ]),
-                              selected: color == value,
-                              child: IconButton(
-                                key: ValueKey('scratch-color-$value'),
-                                onPressed: () {
-                                  _finish();
-                                  setState(() => color = value);
-                                },
-                                icon: Icon(
-                                  color == value
-                                      ? Icons.check_circle
-                                      : Icons.circle,
-                                  color: Color(value),
-                                ),
-                              ),
-                            ),
-                        if (tool != _Tool.move)
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
                           SizedBox(
-                            width: 210,
+                            // Three tool targets and five colors fit on desktop;
+                            // narrower screens scroll only the color choices.
+                            width: tool == _Tool.pen
+                                ? math.min(constraints.maxWidth, 384)
+                                : null,
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  context.tr(tool == _Tool.pen ? '粗细' : '橡皮范围'),
-                                ),
-                                Expanded(
-                                  child: Slider(
-                                    key: const Key('scratch-size'),
-                                    min: tool == _Tool.pen ? 1 : 8,
-                                    max: tool == _Tool.pen ? 12 : 64,
-                                    value: tool == _Tool.pen
-                                        ? width
-                                        : eraserSize,
-                                    label:
-                                        (tool == _Tool.pen ? width : eraserSize)
-                                            .round()
-                                            .toString(),
-                                    onChanged: (value) {
+                                for (final value in _Tool.values)
+                                  IconButton.filledTonal(
+                                    key: Key('scratch-tool-${value.name}'),
+                                    isSelected: tool == value,
+                                    tooltip: context.tr(switch (value) {
+                                      _Tool.pen => '画笔',
+                                      _Tool.eraser => '橡皮擦',
+                                      _Tool.move => '移动和缩放',
+                                    }),
+                                    onPressed: () {
                                       _finish();
-                                      setState(() {
-                                        if (tool == _Tool.pen) {
-                                          width = value;
-                                        } else {
-                                          eraserSize = value;
-                                        }
-                                      });
+                                      setState(
+                                        () => tool =
+                                            value == _Tool.move &&
+                                                tool == _Tool.move
+                                            ? _Tool.pen
+                                            : value,
+                                      );
                                     },
+                                    icon: Icon(switch (value) {
+                                      _Tool.pen => Icons.edit,
+                                      _Tool.eraser => Icons.auto_fix_normal,
+                                      _Tool.move => Icons.pan_tool_outlined,
+                                    }),
                                   ),
-                                ),
+                                if (tool == _Tool.pen)
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      key: const Key('scratch-colors'),
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: [
+                                          for (final value in [
+                                            0xff1f2937,
+                                            0xff2563eb,
+                                            0xffdc3d43,
+                                            0xff177d56,
+                                            0xff8b5cf6,
+                                          ])
+                                            Semantics(
+                                              label: context.tr('画笔颜色 {0}', [
+                                                context.tr(
+                                                  {
+                                                    0xff1f2937: '黑色',
+                                                    0xff2563eb: '蓝色',
+                                                    0xffdc3d43: '红色',
+                                                    0xff177d56: '绿色',
+                                                    0xff8b5cf6: '紫色',
+                                                  }[value]!,
+                                                ),
+                                              ]),
+                                              selected: color == value,
+                                              child: IconButton(
+                                                key: ValueKey(
+                                                  'scratch-color-$value',
+                                                ),
+                                                onPressed: () {
+                                                  _finish();
+                                                  setState(() => color = value);
+                                                },
+                                                icon: Icon(
+                                                  color == value
+                                                      ? Icons.check_circle
+                                                      : Icons.circle,
+                                                  color: Color(value),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
-                        action(
-                          '清空当前页',
-                          Icons.layers_clear_outlined,
-                          () => _confirm(false),
-                        ),
-                      ],
+                          if (tool != _Tool.move)
+                            SizedBox(
+                              width: 210,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    context.tr(
+                                      tool == _Tool.pen ? '粗细' : '橡皮范围',
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Slider(
+                                      key: const Key('scratch-size'),
+                                      min: tool == _Tool.pen ? 1 : 8,
+                                      max: tool == _Tool.pen ? 12 : 64,
+                                      value: tool == _Tool.pen
+                                          ? width
+                                          : eraserSize,
+                                      label:
+                                          (tool == _Tool.pen
+                                                  ? width
+                                                  : eraserSize)
+                                              .round()
+                                              .toString(),
+                                      onChanged: (value) {
+                                        _finish();
+                                        setState(() {
+                                          if (tool == _Tool.pen) {
+                                            width = value;
+                                          } else {
+                                            eraserSize = value;
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          action(
+                            '清空当前页',
+                            Icons.layers_clear_outlined,
+                            () => _confirm(false),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Expanded(

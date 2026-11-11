@@ -47,7 +47,8 @@ void main() {
       final press = await t.startGesture(
         t.getCenter(find.byKey(const Key('settings-subjects'))),
       );
-      await t.pump(const Duration(milliseconds: 120));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 40));
       await guiCapture('ai-preferences', 'settings-rounded-pressed-phone');
       await press.up();
       await t.pumpAndSettle();

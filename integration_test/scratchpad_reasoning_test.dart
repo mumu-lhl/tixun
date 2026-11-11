@@ -57,6 +57,33 @@ void main() {
         t,
         () => find.byKey(const Key('scratch-canvas')).evaluate().isNotEmpty,
       );
+      await resizeGui(t, 320, 844);
+      final palette = find.byKey(const Key('scratch-colors'));
+      final firstColor = find.byKey(const ValueKey('scratch-color-4280232247'));
+      final lastColor = find.byKey(const ValueKey('scratch-color-4287323382'));
+      expect(
+        (t.getCenter(firstColor).dy - t.getCenter(lastColor).dy).abs(),
+        lessThan(1),
+        reason: 'Colors stay in one row on a narrow screen',
+      );
+      final scroll = t.state<ScrollableState>(
+        find.descendant(of: palette, matching: find.byType(Scrollable)),
+      );
+      final needsScrolling = scroll.position.maxScrollExtent > 0;
+      await t.drag(palette, const Offset(-160, 0));
+      await t.pumpAndSettle();
+      if (needsScrolling) {
+        expect(scroll.position.pixels, greaterThan(0));
+      }
+      await click(t, lastColor);
+      expect(
+        (t.widget<IconButton>(lastColor).icon as Icon).icon,
+        Icons.check_circle,
+      );
+      await guiCapture('scratchpad', 'palette-narrow-phone');
+      await t.drag(palette, const Offset(160, 0));
+      await t.pumpAndSettle();
+      await resizeGui(t, 390, 844);
       Future<void> draw() async {
         final rect = t.getRect(find.byKey(const Key('scratch-canvas')));
         await t.dragFrom(
