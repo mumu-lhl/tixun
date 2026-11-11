@@ -207,7 +207,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - run: sudo bash scripts/install_linux_deps.sh
+      - name: Install Linux dependencies
+        timeout-minutes: 8
+        run: sudo bash scripts/install_linux_deps.sh --github-runner
       - uses: subosito/flutter-action@v2
         id: flutter
         with:

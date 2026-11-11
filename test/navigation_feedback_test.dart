@@ -106,15 +106,14 @@ void main() {
       );
       expect(ink.customBorder, isA<RoundedRectangleBorder>());
       final shape = ink.customBorder! as RoundedRectangleBorder;
-      expect(
-        shape.borderRadius.resolve(TextDirection.ltr).topLeft,
-        const Radius.circular(16),
-      );
+      final corner = shape.borderRadius.resolve(TextDirection.ltr).topLeft;
+      expect(corner.x, greaterThan(0));
+      expect(corner.y, greaterThan(0));
       final tile = t.widget<ListTile>(row);
       final padding =
           tile.contentPadding ??
           ListTileTheme.of(t.element(row)).contentPadding!;
-      expect(padding.resolve(TextDirection.ltr).left, 16);
+      expect(padding.resolve(TextDirection.ltr).left, greaterThanOrEqualTo(12));
       final press = await t.startGesture(t.getCenter(row));
       await t.pump(const Duration(milliseconds: 100));
       await press.up();

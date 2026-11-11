@@ -118,11 +118,13 @@ AI 请求只发送本次所需的对话、图片或选中资料，不默认上�
 
 ## 界面预览
 
-以下截图采集于 2026-11-10，来自隔离 Mock 模式下的实际运行，固定回复仅用于展示界面，不代表真实模型效果。
+以下截图采集于 2026-11-11，来自隔离 Mock 模式下的实际运行，固定回复仅用于展示界面，不代表真实模型效果。
 
 ![桌面聊天与数学公式](docs/screenshots/chat-desktop.png)
 
 <img src="docs/screenshots/study-phone.png" width="320" alt="手机学习首页" /> <img src="docs/screenshots/chat-phone.png" width="320" alt="手机聊天界面" />
+
+<img src="docs/screenshots/settings-phone.png" width="320" alt="设置与学习偏好" />
 
 ## 反馈与参与
 

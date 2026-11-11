@@ -80,10 +80,23 @@ class LearningRun {
     confirm,
     required Future<void> Function(LearningRunResult progress) onProgress,
   }) async {
-    final timer = Timer(
-      const Duration(minutes: 3),
-      () => cancel.cancel('timeout'),
-    );
+    Timer deadline() =>
+        Timer(const Duration(minutes: 3), () => cancel.cancel('timeout'));
+    var timer = deadline();
+    Future<bool> approve(
+      String name,
+      Map<String, dynamic> args,
+      int count,
+    ) async {
+      // Human review time is not inference time. Stop remains available.
+      timer.cancel();
+      try {
+        return await confirm(name, args, count);
+      } finally {
+        timer = deadline();
+      }
+    }
+
     var text = '';
     int? tokens;
     var quizCreated = false,
@@ -315,7 +328,7 @@ class LearningRun {
         authorized: toolsEnabled,
         sourceImages: sourceImages,
         sourceSessionId: studyTask?.sourceSessionId,
-        confirm: (name, args) => confirm(name, args, sourceImages.length),
+        confirm: (name, args) => approve(name, args, sourceImages.length),
       );
       final conversation = provider.start(requestConfig);
       var finished = false;
@@ -413,7 +426,7 @@ class LearningRun {
                   sessionId: sessionId,
                   runId: runId,
                   cancel: cancel,
-                  confirm: (name, args) => confirm(name, args, 0),
+                  confirm: (name, args) => approve(name, args, 0),
                 )
               : call.name == 'suggest_question_regions' && !exam
               ? (sourceImages.isNotEmpty
