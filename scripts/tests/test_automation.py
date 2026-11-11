@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -52,6 +53,27 @@ class ApkTests(unittest.TestCase):
         self.path.write_text('not an APK')
         with self.assertRaises(ValueError):
             verify_apk(self.path, 'release', '')
+
+
+class LinuxMirrorTests(unittest.TestCase):
+    def test_installer_rewrites_runner_mirrors_with_valid_sed(self):
+        script = (SCRIPTS / 'install_linux_deps.sh').read_text()
+        command = shlex.split(next(
+            line.strip() for line in script.splitlines()
+            if line.strip().startswith('sed -Ei ')
+        ))
+        with tempfile.TemporaryDirectory() as directory:
+            mirrors = Path(directory) / 'mirrors.txt'
+            mirrors.write_text(
+                'http://azure.archive.ubuntu.com/ubuntu\n'
+                'https://archive.ubuntu.com/ubuntu\n'
+                'http://security.ubuntu.com/ubuntu\n'
+                'https://example.org/ubuntu\n'
+            )
+            subprocess.run([*command[:-1], str(mirrors)], check=True)
+            self.assertEqual(mirrors.read_text(),
+                'https://mirrors.edge.kernel.org/ubuntu\n' * 3
+                + 'https://example.org/ubuntu\n')
 
 
 class TagTests(unittest.TestCase):
