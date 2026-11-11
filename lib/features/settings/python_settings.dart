@@ -15,16 +15,26 @@ class PythonSettings extends ConsumerStatefulWidget {
 
 class _PythonSettingsState extends ConsumerState<PythonSettings> {
   String? policy;
+  String? loadError;
   bool saving = false;
   int selection = 0;
   @override
   void initState() {
     super.initState();
-    ref.read(appControllerProvider).db.preference(pythonPolicyKey).then((v) {
-      if (mounted) {
-        setState(() => policy = ['ask', 'auto', 'off'].contains(v) ? v : 'ask');
-      }
-    });
+    ref
+        .read(appControllerProvider)
+        .db
+        .preference(pythonPolicyKey)
+        .then((v) {
+          if (mounted) {
+            setState(
+              () => policy = ['ask', 'auto', 'off'].contains(v) ? v : 'ask',
+            );
+          }
+        })
+        .onError((error, stack) {
+          if (mounted) setState(() => loadError = '执行权限读取失败，请重新打开此页。');
+        });
   }
 
   Future<void> change(String? next) async {
@@ -80,7 +90,12 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
           ),
         ),
         const SizedBox(height: 20),
-        if (policy == null)
+        if (loadError != null)
+          Text(
+            context.tr(loadError!),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          )
+        else if (policy == null)
           const LinearProgressIndicator()
         else
           SizedBox(

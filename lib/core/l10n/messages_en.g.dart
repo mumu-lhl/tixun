@@ -1154,4 +1154,7 @@ const englishMessages = <String, String>{
   "执行完成，记录异常": "Executed; recording error",
   "代码已执行，但执行记录保存异常；不要重复运行有副作用的代码。": "The code ran, but its execution record could not be saved normally. Do not repeat code with side effects.",
   "已请求停止，但状态保存失败；代码可能仍在运行。": "Stop was requested but its status could not be saved. Code may still be running.",
+  "执行权限读取失败，请重新打开此页。":
+      "Could not load execution permissions. Reopen this page.",
+  "教学风格与学习任务提示词": "Teaching style and study-task prompts",
 };

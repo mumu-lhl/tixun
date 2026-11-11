@@ -184,6 +184,8 @@ jobs:
       - name: Verify Release build mode, architectures and versions
         if: inputs.android_release
         run: python3 scripts/build_artifacts.py verify-android-release artifacts/android-release
+      - name: Verify embedded Python in every APK
+        run: python3 scripts/check_python_bundle.py android build/app/outputs/flutter-apk/*.apk
       - name: Verify actual Debug APK build mode
         if: ${{ !inputs.android_release }}
         env:
@@ -231,6 +233,8 @@ jobs:
           else
             flutter build linux --release
           fi
+      - name: Verify embedded Python in production bundle
+        run: python3 scripts/check_python_bundle.py linux build/linux/x64/release/bundle
       - name: Preserve production bundle
         env:
           BUNDLE_PATH: ${{ steps.artifact.outputs.bundle_path }}

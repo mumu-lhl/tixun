@@ -8,11 +8,13 @@ export SERIOUS_PYTHON_SITE_PACKAGES="$PWD/build/python-packages"
 python3 -m pip install --disable-pip-version-check --only-binary=:all: --no-compile \
   --target "$SERIOUS_PYTHON_SITE_PACKAGES" -r python/requirements.txt
 # Android's plugin consumes per-ABI trees, Linux the root tree. These packages
-# have no native extensions; copy only the two package directories.
+# have no native extensions; include their distribution metadata too.
 if [[ "${1:-Linux}" == Android ]]; then
   for abi in arm64-v8a armeabi-v7a x86_64; do
     mkdir -p "$SERIOUS_PYTHON_SITE_PACKAGES/$abi"
-    cp -R "$SERIOUS_PYTHON_SITE_PACKAGES/sympy" "$SERIOUS_PYTHON_SITE_PACKAGES/mpmath" "$SERIOUS_PYTHON_SITE_PACKAGES/$abi/"
+    cp -R "$SERIOUS_PYTHON_SITE_PACKAGES/sympy" "$SERIOUS_PYTHON_SITE_PACKAGES/mpmath" \
+      "$SERIOUS_PYTHON_SITE_PACKAGES"/sympy-*.dist-info \
+      "$SERIOUS_PYTHON_SITE_PACKAGES"/mpmath-*.dist-info "$SERIOUS_PYTHON_SITE_PACKAGES/$abi/"
   done
 fi
 

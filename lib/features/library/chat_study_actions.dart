@@ -126,6 +126,7 @@ class ToolApprovalCard extends ConsumerWidget {
                               e.value.toString(),
                               style: const TextStyle(
                                 fontFamily: 'TixunMono',
+                                fontFamilyFallback: ['NotoSansSC'],
                                 fontSize: 12,
                               ),
                             )
@@ -495,7 +496,11 @@ Future<void> showPythonCode(BuildContext context, String code) =>
           child: SingleChildScrollView(
             child: SelectableText(
               code,
-              style: const TextStyle(fontFamily: 'TixunMono', fontSize: 13),
+              style: const TextStyle(
+                fontFamily: 'TixunMono',
+                fontFamilyFallback: ['NotoSansSC'],
+                fontSize: 13,
+              ),
             ),
           ),
         ),
@@ -568,7 +573,11 @@ class PythonHistoryCard extends StatelessWidget {
                   if (result['output_truncated'] == true)
                     context.tr('输出过长，已截断展示。'),
                 ].join('\n'),
-                style: const TextStyle(fontFamily: 'TixunMono', fontSize: 12),
+                style: const TextStyle(
+                  fontFamily: 'TixunMono',
+                  fontFamilyFallback: ['NotoSansSC'],
+                  fontSize: 12,
+                ),
               ),
             ),
           ),

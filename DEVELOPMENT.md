@@ -202,3 +202,5 @@ bash scripts/flutter_python.sh test integration_test/python_flow_test.dart -d li
 需要 Python 3 与 pip。CI 的构建任务自动准备包并缓存上游运行时下载；Android 保留 arm64-v8a、armeabi-v7a、x86_64 与 Universal 产物。宿主打包 Python 和嵌入解释器不同版本仍可安装这里使用的纯 Python wheel；不在应用运行时安装依赖。普通 `flutter build` 也必须设置 wrapper 中的三个环境变量。
 
 消融：复用原工具循环、审批卡与审计表；没有预设数学函数白名单、独立服务器、Flask 服务或另一套 AI 客户端。传输长度和输出展示上限不限制 Python 语法或模块能力。`test/python_tool_test.dart` 验证拒绝/关闭/自动授权、参数及重复执行；Python 单测验证标准库、文件、异常、时限与输出；原生 GUI 测试真实运行打包 SymPy、审查/自动允许、查看结果及手机全屏导航。
+
+发布检查还会逐个确认 APK 与 Linux 包内含实际 Python 运行时、工作脚本、SymPy 和 mpmath，防止仅编译成功却漏打包依赖。
