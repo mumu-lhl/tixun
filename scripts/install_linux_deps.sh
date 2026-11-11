@@ -6,12 +6,12 @@ if [[ "$(id -u)" != 0 ]]; then
 fi
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
-# A hosted runner's Azure mirror can fail DNS while other mirrors work.
-# APT's index fallback does not reliably redirect package downloads too.
+# Use a reachable Ubuntu mirror on hosted runners. Keep Ubuntu's signed
+# indexes and normal APT verification; local machines retain their own mirror.
 if [[ "${1:-}" == --github-runner ]]; then
   for mirror_list in /etc/apt/apt-mirrors.txt /etc/apt/apt-security-mirrors.txt; do
     if [[ -f "$mirror_list" ]]; then
-      sed -i 's|https\?://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$mirror_list"
+      sed -Ei 's|https?://(azure\.archive|archive|security)\.ubuntu\.com/ubuntu|https://mirrors.edge.kernel.org/ubuntu|g' "$mirror_list"
     fi
   done
 fi
