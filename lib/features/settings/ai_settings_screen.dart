@@ -183,7 +183,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                 ),
                 const SizedBox(height: 20),
                 ListTile(
-                  contentPadding: EdgeInsets.zero,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   title: Text(context.tr('ChatGPT 订阅')),
                   subtitle: Text(context.tr('使用 Plus/Pro 等账号获准共享的额度，通过浏览器登录')),
                   trailing: const Icon(Icons.chevron_right),

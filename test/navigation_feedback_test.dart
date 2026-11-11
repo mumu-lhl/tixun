@@ -92,6 +92,39 @@ void main() {
     if (await c.files.root.exists()) await c.files.root.delete(recursive: true);
   });
 
+  testWidgets(
+    'settings rows have rounded ink boundaries and comfortable insets',
+    (t) async {
+      scope.read(routerProvider).go('/settings');
+      await t.pumpWidget(
+        UncontrolledProviderScope(container: scope, child: const TixunApp()),
+      );
+      await t.pumpAndSettle();
+      final row = find.byKey(const Key('settings-subjects'));
+      final ink = t.widget<InkWell>(
+        find.descendant(of: row, matching: find.byType(InkWell)),
+      );
+      expect(ink.customBorder, isA<RoundedRectangleBorder>());
+      final shape = ink.customBorder! as RoundedRectangleBorder;
+      expect(
+        shape.borderRadius.resolve(TextDirection.ltr).topLeft,
+        const Radius.circular(16),
+      );
+      final tile = t.widget<ListTile>(row);
+      final padding =
+          tile.contentPadding ??
+          ListTileTheme.of(t.element(row)).contentPadding!;
+      expect(padding.resolve(TextDirection.ltr).left, 16);
+      final press = await t.startGesture(t.getCenter(row));
+      await t.pump(const Duration(milliseconds: 100));
+      await press.up();
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox.shrink());
+      await t.pumpAndSettle();
+    },
+  );
+
   testWidgets('settings link ink cannot paint on the pushed page', (t) async {
     final ink = _InkFactory();
     final router = scope.read(routerProvider)..go('/settings');

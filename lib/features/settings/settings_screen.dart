@@ -20,11 +20,13 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(appControllerProvider);
+    final colors = Theme.of(context).colorScheme;
     Widget heading(String title) => Padding(
-      padding: const EdgeInsets.only(top: 24, bottom: 8),
+      padding: const EdgeInsets.fromLTRB(12, 24, 12, 10),
       child: Text(
         context.tr(title),
-        style: Theme.of(context).textTheme.titleMedium,
+        style: Theme.of(context).textTheme.labelLarge
+            ?.copyWith(color: colors.onSurfaceVariant),
       ),
     );
     return ListView(
@@ -43,88 +45,91 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(context.tr('让学习助手适合你的使用习惯')),
                 heading('学习'),
-                ListTile(
-                  key: const Key('settings-subjects'),
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.school_outlined),
-                  title: Text(context.tr('学习科目')),
-                  subtitle: Text(
-                    c.learningSubjects.map(context.subjectName).join(' · '),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/settings/subjects'),
-                ),
-                ref
-                    .watch(learningProfileProvider)
-                    .when(
-                      data: (p) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.flag_outlined),
-                        title: Text(context.tr('学习目标')),
-                        subtitle: Text(
-                          context.tr('{0} · 每日 {1} 分钟', [
-                            p.stage,
-                            p.dailyMinutes,
-                          ]),
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => showDialog<void>(
-                          context: context,
-                          builder: (_) => ProfileEditor(p),
-                        ),
+                _SettingsGroup(
+                  children: [
+                    ListTile(
+                      key: const Key('settings-subjects'),
+                      leading: const _SettingsIcon(Icons.school_outlined),
+                      title: Text(context.tr('学习科目')),
+                      subtitle: Text(
+                        c.learningSubjects.map(context.subjectName).join(' · '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      loading: () => const LinearProgressIndicator(),
-                      error: (_, _) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(context.tr('学习设置读取失败')),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(0, 48),
-                            ),
-                            onPressed: () =>
-                                ref.invalidate(learningProfileProvider),
-                            child: Text(context.tr('重试')),
-                          ),
-                        ],
-                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/settings/subjects'),
                     ),
+                    ref
+                        .watch(learningProfileProvider)
+                        .when(
+                          data: (p) => ListTile(
+                            leading: const _SettingsIcon(Icons.flag_outlined),
+                            title: Text(context.tr('学习目标')),
+                            subtitle: Text(
+                              context.tr('{0} · 每日 {1} 分钟', [
+                                p.stage,
+                                p.dailyMinutes,
+                              ]),
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => showDialog<void>(
+                              context: context,
+                              builder: (_) => ProfileEditor(p),
+                            ),
+                          ),
+                          loading: () => const LinearProgressIndicator(),
+                          error: (_, _) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(context.tr('学习设置读取失败')),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(0, 48),
+                                ),
+                                onPressed: () =>
+                                    ref.invalidate(learningProfileProvider),
+                                child: Text(context.tr('重试')),
+                              ),
+                            ],
+                          ),
+                        ),
+                  ],
+                ),
                 heading('AI 服务'),
-                ListTile(
-                  key: const Key('settings-ai'),
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.hub_outlined),
-                  title: Text(context.tr('模型与连接')),
-                  subtitle: Text(
-                    '${c.config.kind == 'chatgpt'
-                        ? 'ChatGPT'
-                        : c.config.kind == 'deepseek'
-                        ? 'DeepSeek'
-                        : 'OpenAI-compatible'} · ${c.config.model}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/settings/ai'),
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.edit_note_outlined),
-                  title: Text(context.tr('提示词管理')),
-                  subtitle: Text(context.tr('自定义教学风格、讲解、出题与分题提示词')),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/settings/prompts'),
-                ),
-                ListTile(
-                  key: const Key('settings-python'),
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.code),
-                  title: Text(context.tr('Python 执行')),
-                  subtitle: Text(context.tr('审查 AI 代码或设置自动执行权限')),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/settings/python'),
+                _SettingsGroup(
+                  children: [
+                    ListTile(
+                      key: const Key('settings-ai'),
+                      leading: const _SettingsIcon(Icons.hub_outlined),
+                      title: Text(context.tr('模型与连接')),
+                      subtitle: Text(
+                        '${c.config.kind == 'chatgpt'
+                            ? 'ChatGPT'
+                            : c.config.kind == 'deepseek'
+                            ? 'DeepSeek'
+                            : 'OpenAI-compatible'} · ${c.config.model}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/settings/ai'),
+                    ),
+                    ListTile(
+                      leading: const _SettingsIcon(Icons.edit_note_outlined),
+                      title: Text(context.tr('提示词管理')),
+                      subtitle: Text(context.tr('教学风格与学习任务提示词')),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/settings/prompts'),
+                    ),
+                    ListTile(
+                      key: const Key('settings-python'),
+                      leading: const _SettingsIcon(Icons.code),
+                      title: Text(context.tr('Python 执行')),
+                      subtitle: Text(context.tr('审查 AI 代码或设置自动执行权限')),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/settings/python'),
+                    ),
+                  ],
                 ),
                 heading('外观'),
                 const LanguageColorSettings(),
@@ -310,6 +315,57 @@ class _UpdateSettings extends ConsumerWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// One surface per settings section; each row keeps its own rounded ink path.
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.children});
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: colors.brightness == Brightness.dark
+          ? colors.surfaceContainer
+          : colors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: ListTileTheme(
+        data: ListTileTheme.of(context).copyWith(minTileHeight: 78),
+        child: Column(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0)
+                Divider(
+                  indent: 70,
+                  endIndent: 16,
+                  color: colors.outlineVariant.withValues(alpha: .45),
+                ),
+              children[i],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsIcon extends StatelessWidget {
+  const _SettingsIcon(this.icon);
+  final IconData icon;
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: colors.secondaryContainer.withValues(alpha: .65),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, size: 20, color: colors.onSecondaryContainer),
     );
   }
 }

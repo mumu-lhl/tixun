@@ -75,7 +75,7 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                     key: Key('prompt-${p.id}'),
                     contentPadding: const EdgeInsets.symmetric(
                       vertical: 8,
-                      horizontal: 4,
+                      horizontal: 16,
                     ),
                     title: Text(context.tr(p.title)),
                     subtitle: Text(

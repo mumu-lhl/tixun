@@ -481,6 +481,11 @@ class AppShell extends ConsumerWidget {
                                 ),
                                 child: ListTile(
                                   key: Key('nav-$i'),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  minTileHeight: 56,
+                                  minVerticalPadding: 4,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),

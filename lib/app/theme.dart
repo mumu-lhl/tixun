@@ -15,6 +15,30 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
     brightness: brightness,
     fontFamily: 'NotoSansSC',
     scaffoldBackgroundColor: colors.surface,
+    splashFactory: InkRipple.splashFactory,
+    splashColor: colors.primary.withValues(alpha: dark ? .12 : .08),
+    highlightColor: colors.primary.withValues(alpha: .035),
+    hoverColor: colors.primary.withValues(alpha: .045),
+    listTileTheme: ListTileThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      minTileHeight: 64,
+      minVerticalPadding: 10,
+      horizontalTitleGap: 14,
+      iconColor: colors.onSurfaceVariant,
+      titleTextStyle: TextStyle(
+        fontFamily: 'NotoSansSC',
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: colors.onSurface,
+      ),
+      subtitleTextStyle: TextStyle(
+        fontFamily: 'NotoSansSC',
+        fontSize: 13,
+        height: 1.5,
+        color: colors.onSurfaceVariant,
+      ),
+    ),
     textTheme: const TextTheme(
       headlineLarge: TextStyle(
         fontSize: 32,
