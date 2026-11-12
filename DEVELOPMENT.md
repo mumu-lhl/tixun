@@ -51,13 +51,13 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 例如，发布下一个版本（先更新并提交版本号）：
 
 ```bash
-# 先将 pubspec.yaml 更新为 version: 0.5.3+8，并将代码提交到远程仓库
+# 先将 pubspec.yaml 更新为 version: 0.6.1+9，并将代码提交到远程仓库
 # 后续版本需要先更新 pubspec.yaml 的版本号及构建号
-git tag -a v0.5.3 -m 'TiXun 0.5.3'
-git push origin v0.5.3
+git tag -a v0.6.1 -m 'TiXun 0.6.1'
+git push origin v0.6.1
 ```
 
-标签必须与 `pubspec.yaml` 的版本名一致，不包含 `+` 后的构建号。预发布可使用 `v0.6.0-rc.1`，对应 `version: 0.6.0-rc.1+7`；此类标签会自动标记为 GitHub Prerelease。
+标签必须与 `pubspec.yaml` 的版本名一致，不包含 `+` 后的构建号。预发布可使用 `v0.6.1-rc.1`，对应 `version: 0.6.1-rc.1+9`；此类标签会自动标记为 GitHub Prerelease。
 
 更新说明由 git-cliff 2.14.2 和 [cliff.toml](cliff.toml) 生成，使用 GitHub 风格的 What's Changed、贡献者信息及 Full Changelog 比较链接。包含普通提交和 Conventional Commits；第一版列出完整历史；后续以当前标签可达、最近公开发布的版本为基线（包括公开的预发布版本）。草稿、失败构建和未发布标签不会截断记录，Full Changelog 链接也使用这个基线。生成的是 Release 正文，不自动提交 CHANGELOG 文件。
 

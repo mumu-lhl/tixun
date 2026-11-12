@@ -12,10 +12,10 @@
 
 ## 下载应用
 
-- **想体验近期功能：** 下载[最新 Nightly](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true)。本文介绍当前主分支的功能，近期改动通过 Nightly 提供；Nightly 可能包含尚未充分验证的改动。
-- **较早的稳定版：** [v0.5.2](https://github.com/mumu-lhl/tixun/releases/latest) 保留下载，不包含全部近期功能。
+- **正式版：** 下载[最新正式版](https://github.com/mumu-lhl/tixun/releases/latest)。当前版本为 **v0.6.0**。
+- **想体验后续改动：** 下载[最新 Nightly](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true)。Nightly 跟随主分支更新，可能包含尚未充分验证的改动。
 
-Nightly 附件在 Releases 的 **Assets** 中，无需登录 GitHub。根据设备选择：
+安装包在 Releases 的 **Assets** 中，无需登录 GitHub。根据设备选择：
 
 | 平台 | 选择的文件 | 使用方法 |
 | --- | --- | --- |
@@ -24,7 +24,7 @@ Nightly 附件在 Releases 的 **Assets** 中，无需登录 GitHub。根据设�
 | Android 其他架构 | `armeabi-v7a` 或 `x86_64` APK | 分别用于兼容的 32 位设备、x86_64 设备或模拟器。 |
 | Linux x86_64 | 名称含 `linux-x64.tar.gz` | 解压后运行 `./tixun`，保留旁边的 `lib` 和 `data` 目录。 |
 
-发布附件使用 **Release 模式**。当前 Nightly 的四种 APK 使用同一发布签名；`SHA256SUMS` 用于校验文件。v0.5.2 使用旧开发签名，首次换到新签名版本前，需先导出备份，再卸载旧版、安装并恢复资料。不要直接卸载未备份的应用。
+发布附件使用 **Release 模式**。v0.6.0 和当前 Nightly 的四种 APK 使用同一发布签名；`SHA256SUMS` 用于校验文件。v0.5.2 使用旧开发签名，首次换到新签名版本前，需先导出备份，再卸载旧版、安装并恢复资料。不要直接卸载未备份的应用。
 
 Linux 需要 GTK 3 等运行库。保存密钥还需要已解锁的系统密钥环，例如 GNOME Keyring；不可用时会明确报错，不会改为明文保存。必要时在解压目录运行：
 

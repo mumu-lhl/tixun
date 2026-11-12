@@ -100,7 +100,7 @@ jobs:
           - **Linux x86_64**：解压 `linux-x64.tar.gz`，运行其中的 `tixun`，保留同目录下的 `lib` 和 `data`。需要 GTK 3，保存密钥需要可用的系统密钥环。
           - `SHA256SUMS` 用于检查下载文件是否完整。
 
-          学习数据默认保存在本地。AI 功能需要自行配置 API Key。
+          学习数据默认保存在本地。AI 功能需要联网，并使用自己的 API Key，或通过应用登录具有相应权限的 ChatGPT 账号。
           NOTES
       - name: Create or resume a draft, then publish complete assets
         run: |

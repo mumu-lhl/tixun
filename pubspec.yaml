@@ -1,7 +1,7 @@
 name: tixun
 description: 题训 — 理解知识，独立练习，真正掌握。
 publish_to: none
-version: 0.5.2+7
+version: 0.6.0+8
 environment:
   sdk: '>=3.13.0 <4.0.0'
 dependencies:
