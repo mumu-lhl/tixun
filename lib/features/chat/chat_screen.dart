@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
+import '../../core/ai/study_tools.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/platform/photo_picker.dart';
@@ -120,7 +121,7 @@ class ChatScreen extends ConsumerWidget {
                       IconButton(
                         tooltip: context.tr(
                           c.selected?.toolsEnabled == true
-                              ? '关闭本会话资料工具'
+                              ? '管理本会话资料工具'
                               : '开启本会话资料工具',
                         ),
                         onPressed: c.busy || c.selected == null
@@ -186,7 +187,7 @@ class ChatScreen extends ConsumerWidget {
                             child: Text(
                               ctx.tr(
                                 c.selected?.toolsEnabled == true
-                                    ? '关闭本会话资料工具'
+                                    ? '管理本会话资料工具'
                                     : '开启本会话资料工具',
                               ),
                             ),
@@ -234,31 +235,64 @@ class ChatScreen extends ConsumerWidget {
 Future<void> _toggleStudyTools(BuildContext context, AppController c) async {
   final session = c.selected;
   if (session == null || c.busy) return;
-  if (session.toolsEnabled) {
-    await c.setTools(false);
-    return;
-  }
-  final approved = await showDialog<bool>(
+  final selection = session.toolsEnabled
+      ? {...c.studyToolCategories}
+      : <StudyToolCategory>{};
+  final categories = await showDialog<Set<StudyToolCategory>>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(ctx.tr('允许本会话使用学习资料？')),
-      content: Text(
-        ctx.tr('AI 可以检索相关知识和错题，并读取选中的资料正文。新增、修改、删除和关联仍须由你逐项确认。图片不会通过检索工具自动上传。'),
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, update) => AlertDialog(
+        scrollable: true,
+        title: Text(ctx.tr('资料工具')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(ctx.tr('只向 AI 开放选中的类别。新增、修改、删除和关联仍须逐项确认；检索不会自动上传图片。')),
+            const SizedBox(height: 12),
+            for (final (category, label) in const [
+              (StudyToolCategory.knowledge, '知识'),
+              (StudyToolCategory.mistakes, '错题'),
+              (StudyToolCategory.modules, '科目目录'),
+              (StudyToolCategory.progress, '学习进度'),
+              (StudyToolCategory.review, '复习安排'),
+            ])
+              CheckboxListTile(
+                key: Key('study-tools-${category.name}'),
+                value: selection.contains(category),
+                title: Text(ctx.tr(label)),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onChanged: (enabled) => update(() {
+                  enabled == true
+                      ? selection.add(category)
+                      : selection.remove(category);
+                }),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, <StudyToolCategory>{}),
+            child: Text(ctx.tr('关闭全部')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, allStudyToolCategories),
+            child: Text(ctx.tr('全部启用')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, selection),
+            child: Text(ctx.tr('保存')),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: Text(ctx.tr('取消')),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: Text(ctx.tr('允许')),
-        ),
-      ],
     ),
   );
-  if (approved == true && context.mounted && c.selected?.id == session.id) {
-    await c.setTools(true);
+  if (categories != null && context.mounted && c.selected?.id == session.id) {
+    await c.setStudyToolCategories(categories);
   }
 }
 

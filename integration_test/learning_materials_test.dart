@@ -267,6 +267,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await resizeGui(tester, 390, 844);
       await tester.tap(find.byKey(const Key('start-chat')));
       await tester.pumpAndSettle();
       if (find.byKey(const Key('chat-more')).evaluate().isNotEmpty) {
@@ -279,7 +280,8 @@ void main() {
         await tester.tap(find.byTooltip('开启本会话资料工具'));
       }
       await tester.pumpAndSettle();
-      await tester.tap(find.text('允许'));
+      await guiCapture('tools', 'categories-phone');
+      await tester.tap(find.text('全部启用'));
       await until(tester, () => c.selected!.toolsEnabled);
       await tester.enterText(find.byKey(const Key('chat-input')), '请总结并保存知识');
       await tester

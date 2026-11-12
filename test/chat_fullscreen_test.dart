@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tixun/core/ai/study_tools.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tixun/app/app.dart';
 import 'package:tixun/app/controller.dart';
@@ -54,6 +55,34 @@ void main() {
     c.dispose();
     await c.db.close();
     await root.delete(recursive: true);
+  });
+  testWidgets('Material tools support individual categories and all-on/off', (
+    t,
+  ) async {
+    router.go('/chat');
+    await t.pumpWidget(
+      UncontrolledProviderScope(container: scope, child: const TixunApp()),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.byTooltip('开启本会话资料工具'));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('study-tools-knowledge')));
+    await t.tap(find.text('保存'));
+    await t.pumpAndSettle();
+    expect(c.studyToolCategories, {StudyToolCategory.knowledge});
+    expect(c.selected!.toolsEnabled, isTrue);
+    await t.tap(find.byTooltip('管理本会话资料工具'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('全部启用'));
+    await t.pumpAndSettle();
+    expect(c.studyToolCategories, allStudyToolCategories);
+    await t.tap(find.byTooltip('管理本会话资料工具'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('关闭全部'));
+    await t.pumpAndSettle();
+    expect(c.selected!.toolsEnabled, isFalse);
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpAndSettle();
   });
   testWidgets('Return-to-bottom appears only when reading history at rest', (
     t,

@@ -41,6 +41,36 @@ void main() {
     await store.db.close();
     await store.files.root.delete(recursive: true);
   });
+  test('Module links cannot access a disabled material category', () async {
+    final categories = {StudyToolCategory.knowledge, StudyToolCategory.modules};
+    final advertised = studyToolsFor(categories);
+    final link = advertised.singleWhere((t) => t.name == 'link_study_module');
+    expect(((link.parameters['properties'] as Map)['kind'] as Map)['enum'], [
+      'knowledge',
+    ]);
+    expect(
+      advertised.any((t) => t.name == 'link_mistake_to_knowledge'),
+      isFalse,
+    );
+    final scoped = StudyToolRunner(
+      store,
+      sessionId: session,
+      runId: 'run',
+      authorized: true,
+      categories: categories,
+    );
+    final result = await scoped.execute(
+      ToolCall(
+        'blocked',
+        'link_study_module',
+        '{"id":"private-mistake","kind":"mistake","module_id":"any"}',
+      ),
+      CancelToken(),
+    );
+    expect(result['ok'], isFalse);
+    expect(result['error'], contains('未在本会话中启用'));
+    expect(await store.db.select(store.db.aiToolOperations).get(), isEmpty);
+  });
   ToolCall call(String id, String name, Map<String, dynamic> args) =>
       ToolCall(id, name, jsonEncode(args));
   StudyToolRunner runner({bool authorized = true, ConfirmStudyTool? confirm}) =>

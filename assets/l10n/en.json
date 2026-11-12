@@ -883,7 +883,7 @@
   "根据所选试卷、答题卡和参考答案整理待核对的小分表。": "Extract an unverified breakdown from selected exam papers, answer sheets and reference answers.",
   "考试照片已恢复，未自动上传。": "Exam photos recovered. Nothing was uploaded.",
   "原考试科目已删除，照片已恢复到对话草稿，未自动上传。": "The exam subject was deleted. Photos were recovered to a chat draft and were not uploaded.",
-  "科目目录": "Subject directory",
+  "科目目录": "Subject modules",
   "按教辅目录整理模块和子模块，知识与错题共用。目录名称由你决定，也可以在授权资料工具后请 AI 创建。": "Organize modules and submodules like a textbook contents page. Notes and mistakes share the directory. Choose your own names, or ask AI to create entries after enabling material tools.",
   "目录名称": "Directory name",
   "新增模块": "Add module",
@@ -1088,5 +1088,11 @@
   "引导我重做": "Guide me through it",
   "错题分析": "Mistake analysis",
   "从错题详情请求完整解析时使用。": "Used when requesting a complete explanation from a mistake.",
-  "保存错题解析": "Save mistake explanation"
+  "保存错题解析": "Save mistake explanation",
+  "管理本会话资料工具": "Manage material tools",
+  "资料工具": "Material tools",
+  "只向 AI 开放选中的类别。新增、修改、删除和关联仍须逐项确认；检索不会自动上传图片。": "Only selected categories are available to AI. Writes and links still need individual approval; search does not upload images.",
+  "学习进度": "Learning progress",
+  "关闭全部": "Disable all",
+  "全部启用": "Enable all"
 }

@@ -11,6 +11,78 @@ import 'ai_types.dart';
 export 'ai_types.dart' show ToolCall;
 
 const _string = {'type': 'string'};
+
+enum StudyToolCategory { knowledge, mistakes, modules, progress, review }
+
+const allStudyToolCategories = {...StudyToolCategory.values};
+String studyToolCategoriesKey(String sessionId) => 'study_tools:$sessionId';
+
+Set<StudyToolCategory> readStudyToolCategories(String? value) => value == null
+    ? allStudyToolCategories
+    : StudyToolCategory.values
+          .where((category) => value.split(',').contains(category.name))
+          .toSet();
+
+bool allowsStudyTool(
+  String name,
+  Set<StudyToolCategory> categories, {
+  String? kind,
+}) {
+  final knowledge = categories.contains(StudyToolCategory.knowledge);
+  final mistakes = categories.contains(StudyToolCategory.mistakes);
+  return switch (name) {
+    'search_knowledge' ||
+    'get_knowledge' ||
+    'create_knowledge' ||
+    'update_knowledge' ||
+    'delete_knowledge' => knowledge,
+    'search_mistakes' ||
+    'get_mistake' ||
+    'create_mistake' ||
+    'update_mistake' ||
+    'delete_mistake' => mistakes,
+    'link_mistake_to_knowledge' => knowledge && mistakes,
+    'list_subject_modules' ||
+    'create_subject_module' => categories.contains(StudyToolCategory.modules),
+    'link_study_module' =>
+      categories.contains(StudyToolCategory.modules) &&
+          (kind == null
+              ? knowledge || mistakes
+              : kind == 'knowledge'
+              ? knowledge
+              : kind == 'mistake' && mistakes),
+    'get_learning_progress' => categories.contains(StudyToolCategory.progress),
+    'schedule_review' => categories.contains(StudyToolCategory.review),
+    _ => false,
+  };
+}
+
+List<AiTool> studyToolsFor(Set<StudyToolCategory> categories) => [
+  for (final tool in studyToolSchemas)
+    if (allowsStudyTool(tool.name, categories))
+      if (tool.name == 'link_study_module')
+        AiTool(
+          name: tool.name,
+          description: tool.description,
+          parameters: {
+            ...tool.parameters,
+            'properties': {
+              ...tool.parameters['properties'] as Map<String, dynamic>,
+              'kind': {
+                'type': 'string',
+                'enum': [
+                  if (categories.contains(StudyToolCategory.knowledge))
+                    'knowledge',
+                  if (categories.contains(StudyToolCategory.mistakes))
+                    'mistake',
+                ],
+              },
+            },
+          },
+        )
+      else
+        tool,
+];
 const _integer = {'type': 'integer', 'minimum': 1};
 const _tags = {'type': 'array', 'items': _string, 'maxItems': 20};
 const _knowledgeFields = {
@@ -179,6 +251,7 @@ class StudyToolRunner {
     required this.sessionId,
     required this.runId,
     required this.authorized,
+    this.categories = allStudyToolCategories,
     this.confirm,
     this.reviews,
     this.sourceImages = const [],
@@ -191,6 +264,7 @@ class StudyToolRunner {
 
   /// Only set by the explicit app UI. Model/user text never sets this capability.
   final bool authorized;
+  final Set<StudyToolCategory> categories;
   final ConfirmStudyTool? confirm;
   final List<Attachment> sourceImages;
   AppDatabase get db => store.db;
@@ -204,6 +278,13 @@ class StudyToolRunner {
     try {
       if (call.arguments.length > 64000) throw const FormatException('参数过长。');
       args = (jsonDecode(call.arguments) as Map).cast<String, dynamic>();
+      if (!allowsStudyTool(
+        call.name,
+        categories,
+        kind: args['kind'] as String?,
+      )) {
+        return {'ok': false, 'error': '此类资料工具未在本会话中启用。'};
+      }
       final schema = studyToolSchemas
           .where((t) => t.name == call.name)
           .firstOrNull;

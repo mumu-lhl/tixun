@@ -226,6 +226,9 @@ class LearningRun {
       }
       cancel.checkCancelled();
       final toolsEnabled = authorized;
+      final toolCategories = readStudyToolCategories(
+        await db.preference(studyToolCategoriesKey(sessionId)),
+      );
       if (toolsEnabled && !AiOptions(requestConfig).toolsAvailable) {
         throw AiFailure(
           requestConfig.supportsTools
@@ -306,7 +309,7 @@ class LearningRun {
             if (!exam && sourceImages.isNotEmpty && studyTask == null)
               regionToolSchema,
             if (toolsEnabled)
-              ...studyToolSchemas.where(
+              ...studyToolsFor(toolCategories).where(
                 (t) => studyTask == null || studyTask.tools.contains(t.name),
               ),
           ],
@@ -326,6 +329,7 @@ class LearningRun {
         sessionId: sessionId,
         runId: runId,
         authorized: toolsEnabled,
+        categories: toolCategories,
         sourceImages: sourceImages,
         sourceSessionId: studyTask?.sourceSessionId,
         confirm: (name, args) => approve(name, args, sourceImages.length),

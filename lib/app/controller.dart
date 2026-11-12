@@ -21,6 +21,7 @@ import '../core/ai/chatgpt/auth.dart';
 import '../core/ai/chatgpt/responses.dart';
 import '../core/ai/prompt_settings.dart';
 import '../core/ai/study_write_task.dart';
+import '../core/ai/study_tools.dart';
 import '../core/database/attachment_cleanup.dart';
 import '../core/database/database.dart';
 import '../core/platform/attachment_store.dart';
@@ -75,6 +76,7 @@ class AppController extends ChangeNotifier {
   PromptSettings get prompts => preferences.prompts;
   set prompts(PromptSettings value) => preferences.prompts = value;
   String sessionReasoning = '';
+  Set<StudyToolCategory> studyToolCategories = allStudyToolCategories;
   String get languageChoice => preferences.languageChoice;
   bool get dynamicColors => preferences.dynamicColors;
   int get maxContextTokens => preferences.maxContextTokens;
@@ -328,6 +330,9 @@ class AppController extends ChangeNotifier {
       db.messages(session.id),
       db.images(session.id),
       db.preference('ai_reasoning:${session.id}').then((v) => v ?? ''),
+      db
+          .preference(studyToolCategoriesKey(session.id))
+          .then((v) => readStudyToolCategories(v)),
     ]);
     if (_epoch != current) return;
     final row = await (db.select(
@@ -340,6 +345,7 @@ class AppController extends ChangeNotifier {
     messages = loaded[0] as List<ChatMessage>;
     attachments = loaded[1] as List<Attachment>;
     final override = loaded[2] as String;
+    studyToolCategories = loaded[3] as Set<StudyToolCategory>;
     sessionReasoning = AiOptions(config).supportsOverride(override)
         ? override
         : '';
@@ -480,8 +486,12 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  Future<void> setTools(bool enabled) async {
+  Future<void> setTools(bool enabled) =>
+      setStudyToolCategories(enabled ? allStudyToolCategories : {});
+
+  Future<void> setStudyToolCategories(Set<StudyToolCategory> categories) async {
     if (busy || selected == null) return;
+    final enabled = categories.isNotEmpty;
     if (enabled && !AiOptions(sessionConfig).toolsAvailable) {
       throw AiFailure(
         sessionConfig.supportsTools
@@ -489,10 +499,21 @@ class AppController extends ChangeNotifier {
             : '资料工具需要支持工具调用的模型。',
       );
     }
-    final row = selected!.copyWith(toolsEnabled: enabled);
-    await db.update(db.chatSessions).replace(row);
-    selected = row;
-    changed();
+    final sessionId = selected!.id;
+    final saved = Set<StudyToolCategory>.unmodifiable(categories);
+    await db.transaction(() async {
+      await db.setPreference(
+        studyToolCategoriesKey(sessionId),
+        saved.map((c) => c.name).join(','),
+      );
+      await (db.update(db.chatSessions)..where((s) => s.id.equals(sessionId)))
+          .write(ChatSessionsCompanion(toolsEnabled: Value(enabled)));
+    });
+    if (selected?.id == sessionId) {
+      selected = selected!.copyWith(toolsEnabled: enabled);
+      studyToolCategories = saved;
+      changed();
+    }
   }
 
   void decideTool(bool approve) {
@@ -1248,6 +1269,7 @@ class AppController extends ChangeNotifier {
       final originalImages = attachments;
       final parent = selected!;
       final reasoning = sessionReasoning;
+      final categories = studyToolCategories;
       final branch = await db.createSession(
         title: '${parent.title} · 重问',
         mode: parent.mode,
@@ -1255,6 +1277,10 @@ class AppController extends ChangeNotifier {
       );
       await db.transaction(() async {
         await db.setPreference('ai_reasoning:${branch.id}', reasoning);
+        await db.setPreference(
+          studyToolCategoriesKey(branch.id),
+          categories.map((c) => c.name).join(','),
+        );
         await db
             .update(db.chatSessions)
             .replace(branch.copyWith(toolsEnabled: parent.toolsEnabled));

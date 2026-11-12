@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
+import 'package:tixun/core/ai/study_tools.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
@@ -36,6 +37,47 @@ void main() {
     await c.shutdown();
     await c.files.root.delete(recursive: true);
   });
+  test(
+    'Category permissions persist and reject unadvertised model calls',
+    () async {
+      final scoped = await openWithToolArgs(
+        '{"question_id":"private-question"}',
+      );
+      addTearDown(() async {
+        await scoped.shutdown();
+        await scoped.files.root.delete(recursive: true);
+      });
+      await scoped.setStudyToolCategories({StudyToolCategory.knowledge});
+      final session = scoped.selected!;
+      await scoped.newSession();
+      await scoped.selectSession(session);
+      expect(scoped.studyToolCategories, {StudyToolCategory.knowledge});
+      await scoped.send('请查找知识');
+      final sent = (scoped.provider as ScriptedToolProvider)
+          .requests
+          .first
+          .tools
+          .map((t) => t.name)
+          .toSet();
+      expect(sent, contains('search_knowledge'));
+      expect(
+        sent.intersection({
+          'search_mistakes',
+          'schedule_review',
+          'link_mistake_to_knowledge',
+        }),
+        isEmpty,
+      );
+      expect(await scoped.db.select(scoped.db.aiToolOperations).get(), isEmpty);
+      expect(scoped.pendingTool, isNull);
+      await scoped.editAndResend(scoped.messages.first, '重新查找知识');
+      expect(scoped.studyToolCategories, {StudyToolCategory.knowledge});
+      await scoped.setTools(false);
+      expect(scoped.selected!.toolsEnabled, isFalse);
+      await scoped.setTools(true);
+      expect(scoped.studyToolCategories, allStudyToolCategories);
+    },
+  );
   test('Chat completes multi-round tool execution only after approval and preserves provenance', () async {
     final pending = c.send('请保存知识');
     await waitFor(() => c.pendingTool != null);
@@ -96,9 +138,11 @@ class ScriptedToolProvider implements ChatProvider {
   ScriptedToolProvider(this.args);
   final String args;
   var turns = 0;
+  final requests = <AiRequest>[];
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
+        requests.add(request);
         turns++;
         if (turns == 1) {
           yield AiChunk(

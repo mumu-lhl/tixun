@@ -43,7 +43,7 @@ The composer supports multiple lines; Ctrl+Enter sends on desktop. When you brow
 
 An AI reply’s save menu can organize it into knowledge or a mistake, or merge it into an existing note you select. Review the process in a separate chat and confirm each write. Knowledge also has AI create and edit actions; edits preserve revision history.
 
-On phones, the chat's more menu contains material tools, linked material and model settings. Enable material tools to let AI search notes or propose changes. Application permissions and confirmation still apply. DeepSeek and ChatGPT support reasoning with tools; compatible services follow their declared capabilities.
+On phones, the chat's more menu contains material tools, linked material and model settings. Choose knowledge, mistakes, subject modules, learning progress and review scheduling separately, or enable/disable all at once. Your choices are saved per conversation. Disabled categories are not offered to AI; writes still require application permissions and confirmation. DeepSeek and ChatGPT support reasoning with tools; compatible services follow their declared capabilities.
 
 ## Photos and study material
 
