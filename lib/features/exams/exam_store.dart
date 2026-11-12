@@ -81,22 +81,24 @@ class ExamStore extends DatabaseNotifier {
   final AppDatabase db;
   final AttachmentStore files;
 
-  Stream<List<ExamEvent>> watchMonth(DateTime month) =>
-      (db.select(db.examEvents)
-            ..where(
-              (t) =>
-                  t.date.isBiggerOrEqualValue(
-                    DateTime.utc(month.year, month.month),
-                  ) &
-                  t.date.isSmallerThanValue(
-                    DateTime.utc(month.year, month.month + 1),
-                  ),
-            )
-            ..orderBy([
-              (t) => OrderingTerm.asc(t.date),
-              (t) => OrderingTerm.asc(t.title),
-            ]))
-          .watch();
+  Stream<List<ExamEvent>> watchEvents({DateTime? month}) {
+    final query = db.select(db.examEvents)
+      ..orderBy([
+        (t) => OrderingTerm.desc(t.date),
+        (t) => OrderingTerm.desc(t.updatedAt),
+        (t) => OrderingTerm.desc(t.id),
+      ]);
+    if (month != null) {
+      query.where(
+        (t) =>
+            t.date.isBiggerOrEqualValue(DateTime.utc(month.year, month.month)) &
+            t.date.isSmallerThanValue(
+              DateTime.utc(month.year, month.month + 1),
+            ),
+      );
+    }
+    return query.watch();
+  }
 
   Future<String> saveEvent({
     String? id,

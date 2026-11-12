@@ -77,6 +77,21 @@ void main() {
       expect(saved.last.earned, 3);
       expect(saved.last.parentId, saved.first.id);
       await guiCapture('exams', 'subject-phone');
+      await c.exams.saveEvent(title: '上学期月考', date: DateTime(2025, 9, 12));
+      scope.read(routerProvider).go('/exams');
+      await t.pumpAndSettle();
+      await click(t, find.text('列表'));
+      await ready(t, () => find.text('上学期月考').evaluate().isNotEmpty);
+      expect(
+        t.getTopLeft(find.text('高三上学期期中考试 · 联考成绩记录')).dy,
+        lessThan(t.getTopLeft(find.text('上学期月考')).dy),
+      );
+      await guiCapture('exams', 'timeline-phone');
+      await click(t, find.byKey(const Key('exam-add')));
+      expect(find.byKey(const Key('exam-record-date')), findsOneWidget);
+      await click(t, find.text('取消'));
+      await click(t, find.text('日历'));
+      expect(find.text('上学期月考'), findsNothing);
       await resizeGui(t, 1280, 900);
       await c.setLanguage('en');
       await t.pumpAndSettle();

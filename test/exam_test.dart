@@ -25,6 +25,32 @@ void main() {
     await db.close();
     await root.delete(recursive: true);
   });
+  test(
+    'Exam timeline includes all months from newest date to oldest',
+    () async {
+      final old = await store.saveEvent(
+        title: '上学期期末',
+        date: DateTime(2026, 1, 20),
+      );
+      final next = await store.saveEvent(
+        title: '本学期期中',
+        date: DateTime(2026, 11, 12),
+      );
+      final middle = await store.saveEvent(
+        title: '月考',
+        date: DateTime(2026, 10, 10),
+      );
+      expect((await store.watchEvents().first).map((e) => e.id), [
+        next,
+        middle,
+        old,
+      ]);
+      expect(
+        (await store.watchEvents(month: DateTime(2026, 10)).first).single.id,
+        middle,
+      );
+    },
+  );
   test('Calendar scopes dates, main subjects never retain scaled scores, unknown differs from zero', () async {
     final id = await store.saveEvent(
       title: '期中考试',
@@ -32,7 +58,8 @@ void main() {
     );
     await store.saveEvent(title: '另一次考试', date: DateTime(2026, 12, 1));
     expect(
-      (await store.watchMonth(DateTime(2026, 11)).first).single.date.toUtc(),
+      (await store.watchEvents(month: DateTime(2026, 11)).first).single.date
+          .toUtc(),
       DateTime.utc(2026, 11, 9),
     );
     await store.saveSubject(

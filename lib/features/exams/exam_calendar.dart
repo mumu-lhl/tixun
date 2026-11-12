@@ -25,6 +25,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
   DateTime selected = DateUtils.dateOnly(DateTime.now());
   late DateTime month = DateTime(selected.year, selected.month);
   Stream<List<ExamEvent>>? events;
+  bool listView = false;
   // Turning the page only moves the displayed month. The selected day is
   // kept even when it is not in the new month (the list below is then
   // empty), so "记录考试" still targets the day the user picked.
@@ -35,179 +36,250 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final store = ref.read(appControllerProvider).exams;
-    events ??= store.watchMonth(month);
+    events ??= store.watchEvents(month: listView ? null : month);
     return StreamBuilder<List<ExamEvent>>(
+      key: ValueKey((listView, month.year, month.month)),
       stream: events,
       builder: (context, snap) {
         final all = snap.data ?? [];
         final dayEvents = all
             .where((e) => DateUtils.isSameDay(e.date.toUtc(), selected))
             .toList();
+        final visible = listView ? all : dayEvents;
         final first = DateTime(month.year, month.month).weekday - 1;
         final days = DateUtils.getDaysInMonth(month.year, month.month);
-        return ListView(
+        return ListView.builder(
+          key: PageStorageKey(listView ? 'exam-timeline' : 'exam-calendar'),
           padding: const EdgeInsets.all(20),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 850),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
+          itemCount: visible.length + 1,
+          itemBuilder: (context, index) => Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 850),
+              child: index > 0
+                  ? ListTile(
+                      key: ValueKey('exam-event-${visible[index - 1].id}'),
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.event_note_outlined),
+                      title: Text(visible[index - 1].title),
+                      subtitle: Text(examDate(visible[index - 1].date.toUtc())),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          context.push('/exams/${visible[index - 1].id}'),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        BackButton(
-                          key: const Key('exam-calendar-back'),
-                          onPressed: () => context.canPop()
-                              ? context.pop()
-                              : context.go('/study'),
+                        Row(
+                          children: [
+                            BackButton(
+                              key: const Key('exam-calendar-back'),
+                              onPressed: () => context.canPop()
+                                  ? context.pop()
+                                  : context.go('/study'),
+                            ),
+                            Expanded(
+                              child: Text(
+                                context.tr('考试记录'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium,
+                              ),
+                            ),
+                            FilledButton.icon(
+                              key: const Key('exam-add'),
+                              onPressed: () => _create(
+                                listView
+                                    ? DateUtils.dateOnly(DateTime.now())
+                                    : selected,
+                              ),
+                              icon: const Icon(Icons.add),
+                              label: Text(context.tr('记录考试')),
+                            ),
+                          ],
                         ),
-                        Expanded(
-                          child: Text(
-                            context.tr('考试记录'),
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                        ),
-                        FilledButton.icon(
-                          key: const Key('exam-add'),
-                          onPressed: () => _create(selected),
-                          icon: const Icon(Icons.add),
-                          label: Text(context.tr('记录考试')),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          tooltip: context.tr('上个月'),
-                          onPressed: () => move(-1),
-                          icon: const Icon(Icons.chevron_left),
-                        ),
-                        Expanded(
-                          child: Text(
-                            '${month.year} / ${month.month}',
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => setState(() {
-                            selected = DateUtils.dateOnly(DateTime.now());
-                            month = DateTime(selected.year, selected.month);
+                        const SizedBox(height: 16),
+                        SegmentedButton<bool>(
+                          key: const Key('exam-view'),
+                          segments: [
+                            ButtonSegment(
+                              value: false,
+                              icon: const Icon(Icons.calendar_month_outlined),
+                              label: Text(context.tr('日历')),
+                            ),
+                            ButtonSegment(
+                              value: true,
+                              icon: const Icon(Icons.view_list_outlined),
+                              label: Text(context.tr('列表')),
+                            ),
+                          ],
+                          selected: {listView},
+                          onSelectionChanged: (value) => setState(() {
+                            listView = value.single;
                             events = null;
                           }),
-                          child: Text(context.tr('今天')),
                         ),
-                        IconButton(
-                          tooltip: context.tr('下个月'),
-                          onPressed: () => move(1),
-                          icon: const Icon(Icons.chevron_right),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        for (final day in ['一', '二', '三', '四', '五', '六', '日'])
-                          Expanded(
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(10),
-                                child: Text(context.tr(day)),
-                              ),
-                            ),
+                        const SizedBox(height: 16),
+                        if (listView)
+                          Text(
+                            context.tr('按考试日期从新到旧'),
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
-                      ],
-                    ),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: ((first + days + 6) ~/ 7) * 7,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 7,
-                            mainAxisExtent: 48,
-                          ),
-                      itemBuilder: (_, i) {
-                        final day = i - first + 1;
-                        if (day < 1 || day > days) return const SizedBox();
-                        final date = DateTime(month.year, month.month, day);
-                        final count = all
-                            .where(
-                              (e) => DateUtils.isSameDay(e.date.toUtc(), date),
-                            )
-                            .length;
-                        final active = DateUtils.isSameDay(date, selected);
-                        final colors = Theme.of(context).colorScheme;
-                        return Semantics(
-                          label:
-                              '${examDate(date)}, $count ${context.tr('场考试')}',
-                          selected: active,
-                          child: InkWell(
-                            onTap: () => setState(() => selected = date),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              margin: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: active ? colors.primaryContainer : null,
-                                borderRadius: BorderRadius.circular(12),
+                        if (!listView) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                tooltip: context.tr('上个月'),
+                                onPressed: () => move(-1),
+                                icon: const Icon(Icons.chevron_left),
                               ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    '$day',
-                                    style: TextStyle(
-                                      fontWeight: active
-                                          ? FontWeight.bold
-                                          : null,
+                              Expanded(
+                                child: Text(
+                                  '${month.year} / ${month.month}',
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => setState(() {
+                                  selected = DateUtils.dateOnly(DateTime.now());
+                                  month = DateTime(
+                                    selected.year,
+                                    selected.month,
+                                  );
+                                  events = null;
+                                }),
+                                child: Text(context.tr('今天')),
+                              ),
+                              IconButton(
+                                tooltip: context.tr('下个月'),
+                                onPressed: () => move(1),
+                                icon: const Icon(Icons.chevron_right),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              for (final day in [
+                                '一',
+                                '二',
+                                '三',
+                                '四',
+                                '五',
+                                '六',
+                                '日',
+                              ])
+                                Expanded(
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(10),
+                                      child: Text(context.tr(day)),
                                     ),
                                   ),
-                                  if (count > 0)
-                                    Container(
-                                      width: 5,
-                                      height: 5,
-                                      decoration: BoxDecoration(
-                                        color: colors.primary,
-                                        shape: BoxShape.circle,
-                                      ),
+                                ),
+                            ],
+                          ),
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: ((first + days + 6) ~/ 7) * 7,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 7,
+                                  mainAxisExtent: 48,
+                                ),
+                            itemBuilder: (_, i) {
+                              final day = i - first + 1;
+                              if (day < 1 || day > days) {
+                                return const SizedBox();
+                              }
+                              final date = DateTime(
+                                month.year,
+                                month.month,
+                                day,
+                              );
+                              final count = all
+                                  .where(
+                                    (e) => DateUtils.isSameDay(
+                                      e.date.toUtc(),
+                                      date,
                                     ),
-                                ],
+                                  )
+                                  .length;
+                              final active = DateUtils.isSameDay(
+                                date,
+                                selected,
+                              );
+                              final colors = Theme.of(context).colorScheme;
+                              return Semantics(
+                                label:
+                                    '${examDate(date)}, $count ${context.tr('场考试')}',
+                                selected: active,
+                                child: InkWell(
+                                  onTap: () => setState(() => selected = date),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    margin: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: active
+                                          ? colors.primaryContainer
+                                          : null,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '$day',
+                                          style: TextStyle(
+                                            fontWeight: active
+                                                ? FontWeight.bold
+                                                : null,
+                                          ),
+                                        ),
+                                        if (count > 0)
+                                          Container(
+                                            width: 5,
+                                            height: 5,
+                                            decoration: BoxDecoration(
+                                              color: colors.primary,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const Divider(height: 32),
+                          Text(
+                            examDate(selected),
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ],
+                        if (snap.hasError) Text(context.tr('考试记录读取失败，请重新打开。')),
+                        if (snap.connectionState == ConnectionState.waiting)
+                          const LinearProgressIndicator(),
+                        if (visible.isEmpty && snap.hasData)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 30),
+                            child: Text(
+                              context.tr(
+                                listView
+                                    ? '还没有考试记录，点击“记录考试”开始。'
+                                    : '这一天还没有考试记录，点击“记录考试”开始。',
                               ),
                             ),
                           ),
-                        );
-                      },
+                      ],
                     ),
-                    const Divider(height: 32),
-                    Text(
-                      examDate(selected),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    if (snap.hasError) Text(context.tr('考试记录读取失败，请重新打开。')),
-                    if (snap.connectionState == ConnectionState.waiting)
-                      const LinearProgressIndicator(),
-                    if (dayEvents.isEmpty && snap.hasData)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 30),
-                        child: Text(context.tr('这一天还没有考试记录，点击“记录考试”开始。')),
-                      ),
-                    for (final event in dayEvents)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(event.title),
-                        subtitle: Text(examDate(event.date.toUtc())),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('/exams/${event.id}'),
-                      ),
-                  ],
-                ),
-              ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -215,6 +287,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
 
   Future<void> _create(DateTime date) async {
     final title = TextEditingController();
+    var recordDate = date;
     String? error;
     try {
       final accepted = await showExamDialog<bool>(
@@ -244,6 +317,22 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                     ),
                     onSubmitted: (_) => submit(),
                   ),
+                  TextButton.icon(
+                    key: const Key('exam-record-date'),
+                    icon: const Icon(Icons.calendar_today_outlined),
+                    label: Text(examDate(recordDate)),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: recordDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null && ctx.mounted) {
+                        set(() => recordDate = picked);
+                      }
+                    },
+                  ),
                   if (error != null)
                     Text(
                       error!,
@@ -267,7 +356,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
           final id = await ref
               .read(appControllerProvider)
               .exams
-              .saveEvent(title: title.text, date: date);
+              .saveEvent(title: title.text, date: recordDate);
           if (mounted) context.push('/exams/$id');
         });
       }
