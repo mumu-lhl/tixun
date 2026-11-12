@@ -79,7 +79,7 @@ Settings provides Chinese/English, system language, light/dark themes and dynami
 
 Set a global reasoning effort or override it for a conversation or exam extraction. Choices follow model capabilities: `xhigh` and `max` are distinct, as are Model default and explicit `none`. Returned reasoning or public summaries can be expanded and copied; internal encrypted state is not displayed. Exercise reasoning stays hidden until submission.
 
-Prompt management supports searching, editing, previewing and resetting teaching and task prompts. Changes affect future requests, without bypassing permissions or rewriting history. Long conversations use a configurable context-token budget and summaries of older turns. Full history stays local; summarization may consume additional model usage.
+Prompt management supports searching, editing, previewing and resetting teaching and task prompts. Knowledge generation/organization and editing/merging have separate prompts. Changes affect future requests, without bypassing permissions or rewriting history. Long conversations use a configurable context-token budget and summaries of older turns. Full history stays local; summarization may consume additional model usage.
 
 ## Updates, backups and privacy
 

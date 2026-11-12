@@ -43,6 +43,18 @@ const promptDefinitions = [
     '请帮我理解这条知识，并用例子检验我的理解。',
   ),
   PromptDefinition(
+    'knowledge_writing',
+    '知识生成与整理',
+    '从知识页生成知识，或将 AI 回复整理为新知识时使用。',
+    '按要求覆盖知识范围，按主题组织核心概念、公式及适用条件；例子和易错点按需补充。长解释用分段，表格只作简短对照。不确定处注明，不把来源回复当作已核实事实。',
+  ),
+  PromptDefinition(
+    'knowledge_editing',
+    '知识编辑与合并',
+    '用 AI 编辑现有知识，或将回复合并到所选知识时使用。',
+    '按用户要求整理所选知识，保留有效内容，去除重复并统一符号与结构。检查新旧内容的冲突，缺少依据时标明，不静默覆盖有争议的结论。长解释用分段，表格只作简短对照。',
+  ),
+  PromptDefinition(
     'mistake_analysis',
     '错题分析',
     '从错题详情请求完整解析时使用。',
@@ -81,6 +93,8 @@ const englishPromptContent = <String, String>{
   'direct': 'Explain the principles and provide the complete derivation and answer. Clarify the key steps and when the method applies.',
   'exam': 'Create practice and support the learner. Let them answer independently before giving feedback. Distinguish verified answers from unchecked references.',
   'knowledge': 'Help me understand this knowledge and check my understanding with an example.',
+  'knowledge_writing': 'Cover the requested scope, organizing concepts, formulas and their conditions by topic. Add examples and pitfalls when useful. Use paragraphs for long explanations and tables only for brief comparisons. Mark uncertainty; do not treat source replies as verified facts.',
+  'knowledge_editing': 'Revise the selected knowledge as requested, preserving valid content, removing duplication and using consistent notation and structure. Check conflicts with new material; flag unsupported claims instead of silently replacing disputed conclusions. Use paragraphs for long explanations and tables only for brief comparisons.',
   'mistake_analysis': 'Explain this question with the answer, complete steps and key concepts. Do not quiz me. Without my own response, do not infer why I got it wrong. Ask about unclear image details instead of inventing conditions.',
   'mistake': 'Guide me through this mistake. Diagnose my difficulty before showing the complete answer.',
   'quiz': 'Create one question appropriate for my learning stage that I can answer interactively. Include all necessary conditions and do not reveal the answer before I submit.',

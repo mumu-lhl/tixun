@@ -158,10 +158,19 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
           .update(widget.id, input.text);
       final mode = ['guided', 'direct', 'exam'].contains(widget.id)
           ? widget.id
+          : ['knowledge_writing', 'knowledge_editing'].contains(widget.id)
+          ? 'direct'
           : widget.id == 'quiz'
           ? 'exam'
           : 'guided';
-      final system = teachingPrompt(mode, prompts: settings);
+      final system = teachingPrompt(
+        mode,
+        prompts: settings,
+        toolsEnabled: [
+          'knowledge_writing',
+          'knowledge_editing',
+        ].contains(widget.id),
+      );
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -174,7 +183,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                 system,
                 ['global', 'guided', 'direct', 'exam'].contains(widget.id)
                     ? ''
-                    : context.tr("\n\n【任务请求；发送前可编辑】\n{0}", [
+                    : context.tr("\n\n【任务提示词】\n{0}", [
                         settings.text(widget.id),
                       ]),
               ]),

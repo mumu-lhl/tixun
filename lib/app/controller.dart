@@ -1099,14 +1099,15 @@ class AppController extends ChangeNotifier {
         ? 'create_mistake'
         : 'create_knowledge';
     final body = StringBuffer()
-      ..writeln(uiText('请整理学习资料，不要出题。'))
+      ..writeln(uiText('这是资料整理任务，直接完成整理，不进行互动测验。'))
       ..writeln(
         knowledgeId != null
-            ? uiText('整合或改写所选知识，保留原有有效内容；无法安全整合时说明原因。')
+            ? prompts.text('knowledge_editing')
             : mistake
-            ? uiText('请从所选对话中整理一道真实错题并保存，区分原题、答案和解析。不要编造我的原答案或错误原因。')
-            : uiText('请整理生成一条结构清楚、易于复习的知识并保存，保留公式适用条件和重要限制。'),
+            ? uiText('请从所选对话中整理一道真实错题，区分原题、答案和解析。不要编造我的原答案或错误原因。')
+            : prompts.text('knowledge_writing'),
       )
+      ..writeln(uiText('使用提供的资料工具保存结果，等待应用确认后再视为已保存。'))
       ..writeln(
         target != null ||
                 (original?.subject?.isNotEmpty ?? false) ||

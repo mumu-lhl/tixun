@@ -104,6 +104,30 @@ void main() {
     await c.shutdown();
     await c.files.root.delete(recursive: true);
   });
+  test('Knowledge generation and merging use managed task prompts', () async {
+    await c.savePrompt('knowledge_writing', '先按主题列结论，再给适用条件。');
+    var prompt = await c.prepareStudyWriting(instruction: '整理导数公式');
+    expect(prompt, contains('先按主题列结论，再给适用条件。'));
+    expect(prompt, contains('整理导数公式'));
+    expect(
+      (await StudyWriteTask.load(c.db, c.selected!.id, prompt))!.tools,
+      contains('create_knowledge'),
+    );
+    final target = await c.study.saveKnowledge(
+      const KnowledgeDraft(title: '导数', content: '已有有效内容', subject: '数学'),
+    );
+    await c.savePrompt('knowledge_editing', '保留原有例子，并补上条件。');
+    prompt = await c.prepareStudyWriting(
+      knowledgeId: target.id,
+      instruction: '合并公式',
+    );
+    expect(prompt, contains('保留原有例子，并补上条件。'));
+    expect(prompt, isNot(contains('先按主题列结论')));
+    expect(
+      (await StudyWriteTask.load(c.db, c.selected!.id, prompt))!.knowledgeId,
+      target.id,
+    );
+  });
 
   for (final mistake in [false, true]) {
     test(

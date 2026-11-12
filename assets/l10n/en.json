@@ -1094,5 +1094,13 @@
   "只向 AI 开放选中的类别。新增、修改、删除和关联仍须逐项确认；检索不会自动上传图片。": "Only selected categories are available to AI. Writes and links still need individual approval; search does not upload images.",
   "学习进度": "Learning progress",
   "关闭全部": "Disable all",
-  "全部启用": "Enable all"
+  "全部启用": "Enable all",
+  "知识生成与整理": "Knowledge generation and organization",
+  "从知识页生成知识，或将 AI 回复整理为新知识时使用。": "Used when generating knowledge from the library or organizing an AI reply into new knowledge.",
+  "知识编辑与合并": "Knowledge editing and merging",
+  "用 AI 编辑现有知识，或将回复合并到所选知识时使用。": "Used when editing existing knowledge or merging a reply into the selected note.",
+  "这是资料整理任务，直接完成整理，不进行互动测验。": "This is a material-writing task. Complete it directly without an interactive quiz.",
+  "使用提供的资料工具保存结果，等待应用确认后再视为已保存。": "Save the result using the supplied material tools. Treat it as saved only after application approval.",
+  "请从所选对话中整理一道真实错题，区分原题、答案和解析。不要编造我的原答案或错误原因。": "Organize one real mistake from the selected conversation, distinguishing the question, answer and explanation. Do not invent my original answer or error cause.",
+  "\n\n【任务提示词】\n{0}": "\n\n[Task prompt]\n{0}"
 }
