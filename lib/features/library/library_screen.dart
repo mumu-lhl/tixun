@@ -745,10 +745,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               final entries = [...snapshot.data!, ..._extra];
               _visible = entries;
               final canLoadMore = snapshot.data!.length == 100 && _hasMore;
-              final hasFilters =
-                  _query.isNotEmpty ||
-                  subjectFilter.isNotEmpty ||
-                  _moduleId.isNotEmpty;
+              final hasFilters = _query.isNotEmpty || _moduleId.isNotEmpty;
               if (entries.isEmpty) {
                 // Scrollable so the empty state fits short screens
                 // (the shell subject bar takes 48px of height).
@@ -817,9 +814,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                   _moduleId = '';
                                   _epoch = -1;
                                 });
-                                await ref
-                                    .read(appControllerProvider)
-                                    .setSubjectFilter('');
                               }),
                               icon: const Icon(Icons.filter_alt_off_outlined),
                               label: Text(context.tr('清除筛选')),

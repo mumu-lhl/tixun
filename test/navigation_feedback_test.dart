@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tixun/features/exams/exam_calendar.dart';
 import 'package:tixun/features/chat/session_list.dart';
+import 'package:tixun/features/library/library_screen.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/app/theme.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
@@ -36,6 +37,35 @@ void main() {
     if (await c.files.root.exists()) await c.files.root.delete(recursive: true);
   });
 
+  testWidgets('Empty knowledge and mistakes retain the selected subject', (
+    t,
+  ) async {
+    await c.setSubjectFilter('化学');
+    for (final mistake in [false, true]) {
+      await t.pumpWidget(
+        UncontrolledProviderScope(
+          container: scope,
+          child: MaterialApp(
+            home: Scaffold(
+              body: LibraryScreen(key: ValueKey(mistake), isMistake: mistake),
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('clear-library-filters')), findsNothing);
+      expect(c.subjectFilter, '化学');
+      await t.enterText(find.byKey(const Key('library-search')), '不存在的关键词');
+      await t.pump(const Duration(milliseconds: 400));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('clear-library-filters')));
+      await t.pumpAndSettle();
+      expect(c.subjectFilter, '化学');
+      expect(find.byKey(const Key('clear-library-filters')), findsNothing);
+    }
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpAndSettle();
+  });
   testWidgets('Session list exposes hidden conversations by clearing filters', (
     t,
   ) async {

@@ -345,11 +345,6 @@ class _ConversationState extends ConsumerState<Conversation> {
   late final TextEditingController _input;
   final _focus = FocusNode();
   bool _stick = true, _scrolling = false;
-  // Text of the last sent message. The field stays editable while a send is
-  // being prepared, so the auto-clear below must only wipe the field when it
-  // still shows exactly what was sent — otherwise it would discard text the
-  // user typed after tapping send.
-  String? _lastSent;
   Size? _reportedViewport;
   String? _reportedSessionId;
   String? _composerSessionId;
@@ -402,17 +397,7 @@ class _ConversationState extends ConsumerState<Conversation> {
     super.dispose();
   }
 
-  Future<void> _send() async {
-    final c = ref.read(appControllerProvider);
-    final before = _input.text;
-    _lastSent = before;
-    final future = c.send(before);
-    await future;
-    if (!mounted) return;
-    if (c.selected?.draft.isEmpty == true && _input.text == before) {
-      _input.clear();
-    }
-  }
+  Future<void> _send() => ref.read(appControllerProvider).send(_input.text);
 
   Future<void> _import(String type) async {
     final c = ref.read(appControllerProvider);
@@ -504,14 +489,13 @@ class _ConversationState extends ConsumerState<Conversation> {
 
     final pending = c.attachments.where((a) => a.messageId == null).toList();
     _followBottom();
-    // Clear immediately after the user message has committed, including during streaming.
-    // Only wipe the field when it still shows exactly the sent text: the
-    // field stays editable while the send is prepared, so the user may have
-    // typed past it already.
+    // Data-writing flows can send outside this widget. Observe committed
+    // messages rather than a local send-button flag, including instant replies.
+    // A newer draft or different text must survive the send.
+    final sent = c.messages.where((m) => m.role == 'user').lastOrNull;
     if (c.selected?.draft.isEmpty == true &&
-        c.busy &&
         _input.text.isNotEmpty &&
-        _input.text == _lastSent) {
+        _input.text.trim() == sent?.content.trim()) {
       _input.clear();
     }
     return LayoutBuilder(

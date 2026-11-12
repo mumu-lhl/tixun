@@ -405,6 +405,13 @@ void main() {
       await t.tap(find.byKey(const Key('start-ai-study-writing')));
       await until(t, () => c.pendingTool != null);
       expect((await c.study.searchKnowledge()).length, before.length);
+      expect(
+        t
+            .widget<TextField>(find.byKey(const Key('chat-input')))
+            .controller!
+            .text,
+        isEmpty,
+      );
       await guiCapture('writing', 'confirm-knowledge-phone');
       await t.ensureVisible(find.byKey(const Key('approve-tool')));
       await t.pumpAndSettle();

@@ -84,6 +84,35 @@ void main() {
     await t.pumpWidget(const SizedBox.shrink());
     await t.pumpAndSettle();
   });
+  testWidgets('Externally sent drafts clear without losing new typing', (
+    t,
+  ) async {
+    await c.draft('整理这份知识');
+    router.go('/chat');
+    await t.pumpWidget(
+      UncontrolledProviderScope(container: scope, child: const TixunApp()),
+    );
+    await t.pumpAndSettle();
+    final input = find.byKey(const Key('chat-input'));
+    expect(t.widget<TextField>(input).controller!.text, '整理这份知识');
+    await t.runAsync(() => c.send('整理这份知识'));
+    await t.pumpAndSettle();
+    expect(t.widget<TextField>(input).controller!.text, isEmpty);
+    await t.enterText(input, '第二个问题');
+    late Future<void> pending;
+    await t.runAsync(() async {
+      pending = c.send('第二个问题');
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await t.pump();
+    await t.enterText(input, '还没发出的新问题');
+    await t.runAsync(() => pending);
+    await t.pumpAndSettle();
+    expect(t.widget<TextField>(input).controller!.text, '还没发出的新问题');
+    expect(c.selected!.draft, '还没发出的新问题');
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpAndSettle();
+  });
   testWidgets('Return-to-bottom appears only when reading history at rest', (
     t,
   ) async {
