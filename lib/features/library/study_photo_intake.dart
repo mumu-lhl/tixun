@@ -14,7 +14,7 @@ import '../../app/controller.dart';
 /// Records the destination before Android may destroy the activity for a picker.
 class StudyPhotoIntake {
   static const preference = 'pending_study_photo_target';
-  static Future<int> pick(
+  static Future<List<String>> pick(
     AppController c, {
     required BuildContext context,
     String? ownerId,
@@ -25,7 +25,7 @@ class StudyPhotoIntake {
     final target = {'id': ownerId, 'mistake': isMistake, 'subject': subject};
     await c.db.setPreference(preference, jsonEncode(target));
     try {
-      if (!context.mounted) return 0;
+      if (!context.mounted) return [];
       final files = await pickPhotos(context, takePhoto: camera);
       final added = <(String, StudyAttachment)>[];
       for (final file in files) {
@@ -36,7 +36,7 @@ class StudyPhotoIntake {
         if (!context.mounted) break;
         await cropImportedStudyPhoto(context, id, image, isMistake: isMistake);
       }
-      return files.length;
+      return added.map((item) => item.$1).toList();
     } finally {
       await c.db.setPreference(preference, '');
     }

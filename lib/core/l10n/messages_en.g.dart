@@ -1163,4 +1163,18 @@ const englishMessages = <String, String>{
   "当前科目：{0}": "Current subject: {0}",
   "查看全部会话": "Show all conversations",
   "当前科目下没有会话": "No conversations in this subject",
+  "日历": "Calendar",
+  "列表": "List",
+  "按考试日期从新到旧": "Newest exam date first",
+  "还没有考试记录，点击“记录考试”开始。": "No exams yet. Select “Record exam” to start.",
+  "从文件导入": "Import from files",
+  "导入照片": "Import photos",
+  "文字录入": "Text entry",
+  "导入题目照片，裁剪后即可请 AI 分析。\n题目文字和自己的作答可以稍后补充。": "Import and crop a question photo, then ask AI to explain it.\nYou can add the question text and your own answer later.",
+  "AI 分析错题": "Analyze with AI",
+  "引导我重做": "Guide me through it",
+  "错题分析": "Mistake analysis",
+  "从错题详情请求完整解析时使用。":
+      "Used when requesting a complete explanation from a mistake.",
+  "保存错题解析": "Save mistake explanation",
 };

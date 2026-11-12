@@ -17,14 +17,16 @@ class StudyEditor extends ConsumerStatefulWidget {
     this.initialMistake,
     this.sourceSessionId,
     this.sourceMessageId,
+    this.analysisOnly = false,
     super.key,
-  });
+  }) : assert(!analysisOnly || (isMistake && mistake != null));
   final bool isMistake;
   final KnowledgeDetail? knowledge;
   final MistakeDetail? mistake;
   final KnowledgeDraft? initialKnowledge;
   final MistakeDraft? initialMistake;
   final String? sourceSessionId, sourceMessageId;
+  final bool analysisOnly;
   @override
   ConsumerState<StudyEditor> createState() => _StudyEditorState();
 }
@@ -221,7 +223,11 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
             icon: const Icon(Icons.close),
           ),
           title: Text(
-            widget.isMistake ? context.tr("整理错题") : context.tr("编辑知识"),
+            widget.analysisOnly
+                ? context.tr('保存错题解析')
+                : widget.isMistake
+                ? context.tr("整理错题")
+                : context.tr("编辑知识"),
           ),
           actions: [
             Padding(
@@ -245,97 +251,112 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _input(
-                        'title',
-                        '标题',
-                        key: const Key('study-title'),
-                        maxLength: 160,
-                      ),
-                      _input('subject', '科目（可以自定义）', maxLength: 40),
-                      if (!widget.isMistake)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: AppSelectField<String>(
-                            initialValue: _kind,
-                            decoration: InputDecoration(
-                              labelText: context.tr("知识类型"),
-                            ),
-                            items: knowledgeKinds
-                                .map(
-                                  (v) => DropdownMenuItem(
-                                    value: v,
-                                    child: Text(context.tr(v)),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) => setState(() {
-                              _kind = v!;
-                              _dirty = true;
-                            }),
-                          ),
-                        ),
-                      _input('chapter', '章节 / 学习范围', maxLength: 160),
-                      _input('tags', '标签（逗号分隔）', maxLength: 800),
-                      if (!widget.isMistake)
-                        _input(
-                          'content',
-                          '正文 · 支持 Markdown 和 LaTeX',
-                          key: const Key('study-content'),
-                          lines: 12,
-                        )
-                      else ...[
-                        _input(
-                          'question',
-                          '题目文本（图片题可以留空）',
-                          key: const Key('study-content'),
-                          lines: 5,
-                        ),
-                        _input('correctAnswer', '正确答案', lines: 3),
-                        _input('originalAnswer', '我的原答案', lines: 3),
-                        _input('ownAnalysis', '我的分析与想法', lines: 4),
-                        _input('aiAnalysis', 'AI 解析（请核对结论）', lines: 6),
-                        _input(
-                          'errorReason',
-                          '我确认的错误原因 · 支持自定义',
-                          maxLength: 100,
-                        ),
-                        ValueListenableBuilder<TextEditingValue>(
-                          valueListenable: field('errorReason'),
-                          builder: (context, value, _) => Wrap(
-                            spacing: 6,
-                            children: mistakeReasons.map((r) {
-                              final selected = value.text == r;
-                              final colors = Theme.of(context).colorScheme;
-                              return ActionChip(
-                                label: Text(
-                                  context.tr(r),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: selected
-                                        ? colors.onPrimaryContainer
-                                        : null,
-                                  ),
-                                ),
-                                backgroundColor: selected
-                                    ? colors.primaryContainer
-                                    : null,
-                                onPressed: () => field('errorReason').text = r,
-                              );
-                            }).toList(),
-                          ),
+                      if (widget.analysisOnly) ...[
+                        Text(
+                          widget.mistake!.item.title,
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 16),
                         _input(
-                          'suggestedReason',
-                          'AI 建议的原因（未经确认）',
-                          lines: 2,
-                          maxLength: 500,
+                          'aiAnalysis',
+                          'AI 解析（请核对结论）',
+                          key: const Key('study-ai-analysis'),
+                          lines: 12,
+                        ),
+                      ] else ...[
+                        _input(
+                          'title',
+                          '标题',
+                          key: const Key('study-title'),
+                          maxLength: 160,
+                        ),
+                        _input('subject', '科目（可以自定义）', maxLength: 40),
+                        if (!widget.isMistake)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: AppSelectField<String>(
+                              initialValue: _kind,
+                              decoration: InputDecoration(
+                                labelText: context.tr("知识类型"),
+                              ),
+                              items: knowledgeKinds
+                                  .map(
+                                    (v) => DropdownMenuItem(
+                                      value: v,
+                                      child: Text(context.tr(v)),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) => setState(() {
+                                _kind = v!;
+                                _dirty = true;
+                              }),
+                            ),
+                          ),
+                        _input('chapter', '章节 / 学习范围', maxLength: 160),
+                        _input('tags', '标签（逗号分隔）', maxLength: 800),
+                        if (!widget.isMistake)
+                          _input(
+                            'content',
+                            '正文 · 支持 Markdown 和 LaTeX',
+                            key: const Key('study-content'),
+                            lines: 12,
+                          )
+                        else ...[
+                          _input(
+                            'question',
+                            '题目文本（图片题可以留空）',
+                            key: const Key('study-content'),
+                            lines: 5,
+                          ),
+                          _input('correctAnswer', '正确答案', lines: 3),
+                          _input('originalAnswer', '我的原答案', lines: 3),
+                          _input('ownAnalysis', '我的分析与想法', lines: 4),
+                          _input('aiAnalysis', 'AI 解析（请核对结论）', lines: 6),
+                          _input(
+                            'errorReason',
+                            '我确认的错误原因 · 支持自定义',
+                            maxLength: 100,
+                          ),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: field('errorReason'),
+                            builder: (context, value, _) => Wrap(
+                              spacing: 6,
+                              children: mistakeReasons.map((r) {
+                                final selected = value.text == r;
+                                final colors = Theme.of(context).colorScheme;
+                                return ActionChip(
+                                  label: Text(
+                                    context.tr(r),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: selected
+                                          ? colors.onPrimaryContainer
+                                          : null,
+                                    ),
+                                  ),
+                                  backgroundColor: selected
+                                      ? colors.primaryContainer
+                                      : null,
+                                  onPressed: () =>
+                                      field('errorReason').text = r,
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _input(
+                            'suggestedReason',
+                            'AI 建议的原因（未经确认）',
+                            lines: 2,
+                            maxLength: 500,
+                          ),
+                        ],
+                        Text(
+                          context.tr("图片可在保存后的详情页添加。知识的文本版本会自动保留，修改不会覆盖历史。"),
+                          style: TextStyle(fontSize: 12),
                         ),
                       ],
-                      Text(
-                        context.tr("图片可在保存后的详情页添加。知识的文本版本会自动保留，修改不会覆盖历史。"),
-                        style: TextStyle(fontSize: 12),
-                      ),
                       const SizedBox(height: 30),
                     ],
                   ),

@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:drift/drift.dart';
 
 import '../../app/controller.dart';
+import '../../core/database/database.dart';
 import 'study_store.dart';
 
 final studyStoreProvider = ChangeNotifierProvider<StudyStore>((ref) {
@@ -16,6 +18,20 @@ final mistakeDetailProvider = FutureProvider.autoDispose
     .family<MistakeDetail, String>(
       (ref, id) => ref.watch(studyStoreProvider).mistakeDetail(id),
     );
+
+final linkedMistakesProvider = StreamProvider.autoDispose
+    .family<List<Mistake>, String>((ref, session) {
+      final db = ref.watch(studyStoreProvider).db;
+      final links = db.selectOnly(db.studyChatLinks)
+        ..addColumns([db.studyChatLinks.mistakeId])
+        ..where(
+          db.studyChatLinks.sessionId.equals(session) &
+              db.studyChatLinks.mistakeId.isNotNull(),
+        );
+      return (db.select(
+        db.mistakes,
+      )..where((m) => m.deleted.equals(false) & m.id.isInQuery(links))).watch();
+    });
 
 final studyCountsProvider = FutureProvider<({int knowledge, int mistakes})>((
   ref,

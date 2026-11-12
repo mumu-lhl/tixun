@@ -43,6 +43,12 @@ const promptDefinitions = [
     '请帮我理解这条知识，并用例子检验我的理解。',
   ),
   PromptDefinition(
+    'mistake_analysis',
+    '错题分析',
+    '从错题详情请求完整解析时使用。',
+    '请分析这道错题，给出答案、完整步骤和关键知识，不要出题。未提供我的作答时，不推断错误原因；图片条件看不清时先确认，不编造。',
+  ),
+  PromptDefinition(
     'mistake',
     '错题讲解',
     '从错题详情发起引导讲解时使用。',
@@ -75,6 +81,7 @@ const englishPromptContent = <String, String>{
   'direct': 'Explain the principles and provide the complete derivation and answer. Clarify the key steps and when the method applies.',
   'exam': 'Create practice and support the learner. Let them answer independently before giving feedback. Distinguish verified answers from unchecked references.',
   'knowledge': 'Help me understand this knowledge and check my understanding with an example.',
+  'mistake_analysis': 'Explain this question with the answer, complete steps and key concepts. Do not quiz me. Without my own response, do not infer why I got it wrong. Ask about unclear image details instead of inventing conditions.',
   'mistake': 'Guide me through this mistake. Diagnose my difficulty before showing the complete answer.',
   'quiz': 'Create one question appropriate for my learning stage that I can answer interactively. Include all necessary conditions and do not reveal the answer before I submit.',
   'variant': 'Guide me to correct the following question, then create an interactive variation testing the same ideas. Do not reveal the answer early. Include all conditions and do not refer to missing figures or tables.',

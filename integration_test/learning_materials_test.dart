@@ -92,7 +92,7 @@ void main() {
       await guiCapture('split', 'import-edited-chat-phone');
       container.read(routerProvider).go('/mistakes');
       await t.pumpAndSettle();
-      await t.tap(find.byTooltip('多图录入（每张独立建题）'));
+      await t.tap(find.byKey(const Key('import-mistake')));
       await until(
         t,
         () => find.byKey(const Key('crop-canvas')).evaluate().isNotEmpty,
@@ -117,6 +117,52 @@ void main() {
       for (final image in images) {
         expect(await c.files.resolve(image.relativePath).exists(), true);
       }
+      await until(
+        t,
+        () => find.byKey(const Key('study-to-chat')).evaluate().isNotEmpty,
+      );
+      await c.setSubjectFilter('物理');
+      await t.tap(find.byKey(const Key('study-to-chat')));
+      await until(
+        t,
+        () => find.byKey(const Key('chat-input')).evaluate().isNotEmpty,
+      );
+      expect(c.selected!.subject, imported.subject);
+      expect(c.selected!.mode, 'direct');
+      expect(c.selected!.draft, contains('不要出题'));
+      await t.tap(find.byKey(const Key('send-message')));
+      await until(t, () => !c.busy && c.messages.length == 2);
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('保存学习资料').last);
+      await t.pumpAndSettle();
+      await t.tap(find.text('写入关联错题的 AI 解析'));
+      await until(
+        t,
+        () => find.byKey(const Key('study-ai-analysis')).evaluate().isNotEmpty,
+      );
+      expect(find.byKey(const Key('study-title')), findsNothing);
+      await t.enterText(
+        find.byKey(const Key('study-ai-analysis')),
+        '已经核对的图片题解析',
+      );
+      await guiCapture('split', 'save-photo-analysis-phone');
+      await t.tap(find.byKey(const Key('save-study')));
+      await until(
+        t,
+        () => find.byKey(const Key('study-ai-analysis')).evaluate().isEmpty,
+      );
+      final analyzed = await c.study.mistake(imported.id);
+      expect(analyzed.aiAnalysis, '已经核对的图片题解析');
+      expect(analyzed.question, imported.question);
+      expect(analyzed.subject, imported.subject);
+      expect(analyzed.sourceMessageId, c.messages.last.id);
+      expect(
+        (await c.study.images(
+          imported.id,
+          isMistake: true,
+        )).map((i) => i.role).toSet(),
+        {'original', 'crop'},
+      );
 
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox.shrink());

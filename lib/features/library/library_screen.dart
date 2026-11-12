@@ -1,6 +1,5 @@
 import 'image_editor.dart';
 import 'ai_study_actions.dart';
-import '../../core/ui/app_menu.dart';
 import 'module_widgets.dart';
 
 import 'dart:async';
@@ -321,6 +320,26 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
   }
 
+  Future<void> _pickMistakePhotos() =>
+      Platform.isAndroid ? _nativeImport('gallery') : _import();
+
+  void _showImportedMistakes(List<String> ids) {
+    if (!mounted || ids.isEmpty) return;
+    if (ids.length == 1) {
+      context.push('/mistakes/${ids.single}');
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.tr('已录入 {0} 道图片错题，可分别补充答案与解析。', [ids.length])),
+        action: SnackBarAction(
+          label: context.tr('查看'),
+          onPressed: () => context.push('/mistakes/${ids.first}'),
+        ),
+      ),
+    );
+  }
+
   Future<void> _import() async {
     if (_importing) return;
     final picked = await pickStudyImages(context);
@@ -330,7 +349,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       _importTotal = picked.length;
       _importDone = 0;
     });
-    var imported = 0;
+    final imported = <String>[];
     try {
       for (final file in picked) {
         final c = ref.read(appControllerProvider);
@@ -339,6 +358,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           file.name,
           subject: _defaultSubject(),
         );
+        imported.add(row.id);
+        if (mounted) setState(() => _importDone = imported.length);
         final detail = await c.study.mistakeDetail(row.id);
         if (mounted) {
           await cropImportedStudyPhoto(
@@ -348,23 +369,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             isMistake: true,
           );
         }
-        imported++;
-        if (mounted) setState(() => _importDone = imported);
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr("已录入 {0} 道图片错题，可分别补充答案与解析。", [imported])),
-          ),
-        );
-      }
+      _showImportedMistakes(imported);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               context.tr("已保存 {0} 道；{1}", [
-                imported,
+                imported.length,
                 e is FormatException ? e.message : context.tr("其余图片导入失败，请重试。"),
               ]),
             ),
@@ -387,7 +400,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (_importing) return;
     setState(() => _importing = true);
     try {
-      final count = await StudyPhotoIntake.pick(
+      final ids = await StudyPhotoIntake.pick(
         ref.read(appControllerProvider),
         context: context,
         isMistake: true,
@@ -396,16 +409,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       );
       if (mounted) {
         setState(() {
-          _importTotal = count;
-          _importDone = count;
+          _importTotal = ids.length;
+          _importDone = ids.length;
         });
-        if (count > 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.tr("已录入 {0} 道图片错题，可分别补充答案与解析。", [count])),
-            ),
-          );
-        }
+        _showImportedMistakes(ids);
       }
     } finally {
       if (mounted) {
@@ -513,16 +520,72 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           : Icons.restore_from_trash_outlined,
                     ),
                   ),
-                  FilledButton.icon(
-                    key: const Key('create-study'),
-                    onPressed: _trash || _bulkBusy
-                        ? null
-                        : () => act(context, _create),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(context.tr("新建")),
-                  ),
+                  if (!widget.isMistake)
+                    FilledButton.icon(
+                      key: const Key('create-study'),
+                      onPressed: _trash || _bulkBusy
+                          ? null
+                          : () => act(context, _create),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(context.tr("新建")),
+                    ),
+                  if (widget.isMistake && Platform.isAndroid && !_trash)
+                    IconButton(
+                      tooltip: context.tr('从文件导入'),
+                      onPressed: _importing || _bulkBusy
+                          ? null
+                          : () => act(context, _import),
+                      icon: const Icon(Icons.attach_file),
+                    ),
                 ],
               ),
+              if (widget.isMistake && !_trash)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      FilledButton.icon(
+                        key: const Key('import-mistake'),
+                        onPressed: _importing || _bulkBusy
+                            ? null
+                            : () => act(context, _pickMistakePhotos),
+                        icon: _importing
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.add_photo_alternate_outlined,
+                                size: 18,
+                              ),
+                        label: Text(context.tr('导入照片')),
+                      ),
+                      if (Platform.isAndroid)
+                        IconButton.outlined(
+                          tooltip: context.tr('拍照录题'),
+                          onPressed: _importing || _bulkBusy
+                              ? null
+                              : () =>
+                                    act(context, () => _nativeImport('camera')),
+                          icon: const Icon(Icons.camera_alt_outlined),
+                        ),
+                      TextButton.icon(
+                        key: const Key('create-study'),
+                        onPressed: _importing || _bulkBusy
+                            ? null
+                            : () => act(context, _create),
+                        icon: const Icon(Icons.edit_note, size: 18),
+                        label: Text(context.tr('文字录入')),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 8),
               Text(
                 widget.isMistake
@@ -579,50 +642,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 },
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  if (widget.isMistake && !_trash)
-                    if (Platform.isAndroid)
-                      PopupMenuButton<String>(
-                        popUpAnimationStyle: menuAnimation(context),
-                        tooltip: context.tr("快速录入错题"),
-                        enabled: !_importing,
-                        icon: const Icon(Icons.add_a_photo_outlined),
-                        onSelected: (kind) =>
-                            act(context, () => _nativeImport(kind)),
-                        itemBuilder: (_) => [
-                          PopupMenuItem(
-                            value: 'camera',
-                            child: Text(context.tr("拍照录题")),
-                          ),
-                          PopupMenuItem(
-                            value: 'gallery',
-                            child: Text(context.tr("相册录题（每张独立）")),
-                          ),
-                          PopupMenuItem(
-                            value: 'file',
-                            child: Text(context.tr("文件录题（每张独立）")),
-                          ),
-                        ],
-                      )
-                    else
-                      IconButton(
-                        tooltip: context.tr("多图录入（每张独立建题）"),
-                        onPressed: _importing
-                            ? null
-                            : () => act(context, _import),
-                        icon: _importing
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.add_photo_alternate_outlined),
-                      ),
-                ],
-              ),
               if (_importing)
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
@@ -768,7 +787,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 ? context.tr("删除的资料可在这里恢复。")
                                 : widget.isMistake
                                 ? context.tr(
-                                    "手动记录题目、导入图片，或从对话保存。\n多张图片导入后，每张建立独立记录。",
+                                    "导入题目照片，裁剪后即可请 AI 分析。\n题目文字和自己的作答可以稍后补充。",
                                   )
                                 : context.tr(
                                     "自由记录自己的理解，支持 Markdown 与数学公式。\n也可以从对话中保存内容，再补充自己的思考。",
@@ -809,13 +828,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             Padding(
                               padding: const EdgeInsets.only(top: 20),
                               child: OutlinedButton(
-                                onPressed: () => act(context, _create),
+                                onPressed: _importing
+                                    ? null
+                                    : () => act(
+                                        context,
+                                        widget.isMistake
+                                            ? _pickMistakePhotos
+                                            : _create,
+                                      ),
                                 child: Text(
-                                  context.tr("新建{0}", [
-                                    widget.isMistake
-                                        ? context.tr("错题")
-                                        : context.tr("知识"),
-                                  ]),
+                                  widget.isMistake
+                                      ? context.tr('导入照片')
+                                      : context.tr('新建知识'),
                                 ),
                               ),
                             ),

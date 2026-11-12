@@ -2,7 +2,6 @@ import '../../core/ui/app_menu.dart';
 
 import 'dart:convert';
 
-import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -185,40 +184,52 @@ class ChatStudyMenu extends ConsumerWidget {
   const ChatStudyMenu({required this.message, super.key});
   final ChatMessage message;
   @override
-  Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<String>(
-    popUpAnimationStyle: menuAnimation(context),
-    tooltip: context.tr("保存学习资料"),
-    icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-    enabled: message.status != 'generating',
-    itemBuilder: (_) => [
-      PopupMenuItem(value: 'knowledge', child: Text(context.tr("保存到知识库"))),
-      PopupMenuItem(value: 'mistake', child: Text(context.tr("保存到错题本"))),
-      if (message.role == 'assistant' && message.content.trim().isNotEmpty) ...[
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'ai-knowledge',
-          enabled: !ref.read(appControllerProvider).busy,
-          child: Text(context.tr('AI 整理成知识')),
-        ),
-        PopupMenuItem(
-          value: 'ai-merge',
-          enabled: !ref.read(appControllerProvider).busy,
-          child: Text(context.tr('AI 整合到已有知识')),
-        ),
-        PopupMenuItem(
-          value: 'ai-mistake',
-          enabled: !ref.read(appControllerProvider).busy,
-          child: Text(context.tr('AI 整理成错题')),
-        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessionId = ref.watch(
+      appControllerProvider.select((c) => c.selected?.id),
+    );
+    final hasMistake =
+        message.role == 'assistant' &&
+        sessionId != null &&
+        (ref.watch(linkedMistakesProvider(sessionId)).value?.isNotEmpty ??
+            false);
+    return PopupMenuButton<String>(
+      popUpAnimationStyle: menuAnimation(context),
+      tooltip: context.tr("保存学习资料"),
+      icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+      enabled: message.status != 'generating',
+      itemBuilder: (_) => [
+        if (hasMistake && message.content.trim().isNotEmpty)
+          PopupMenuItem(
+            value: 'analysis',
+            child: Text(context.tr('写入关联错题的 AI 解析')),
+          ),
+        PopupMenuItem(value: 'knowledge', child: Text(context.tr("保存到知识库"))),
+        PopupMenuItem(value: 'mistake', child: Text(context.tr("保存到错题本"))),
+        if (message.role == 'assistant' &&
+            message.content.trim().isNotEmpty) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem(
+            value: 'ai-knowledge',
+            enabled: !ref.read(appControllerProvider).busy,
+            child: Text(context.tr('AI 整理成知识')),
+          ),
+          PopupMenuItem(
+            value: 'ai-merge',
+            enabled: !ref.read(appControllerProvider).busy,
+            child: Text(context.tr('AI 整合到已有知识')),
+          ),
+          PopupMenuItem(
+            value: 'ai-mistake',
+            enabled: !ref.read(appControllerProvider).busy,
+            child: Text(context.tr('AI 整理成错题')),
+          ),
+        ],
       ],
-      if (message.role == 'assistant')
-        PopupMenuItem(
-          value: 'analysis',
-          child: Text(context.tr("写入关联错题的 AI 解析")),
-        ),
-    ],
-    onSelected: (type) => act(context, () => _save(context, ref, type)),
-  );
+      onSelected: (type) => act(context, () => _save(context, ref, type)),
+    );
+  }
+
   Future<void> _save(BuildContext context, WidgetRef ref, String type) async {
     final c = ref.read(appControllerProvider);
     final store = ref.read(studyStoreProvider);
@@ -244,29 +255,16 @@ class ChatStudyMenu extends ConsumerWidget {
         ? message
         : c.messages.take(index).where((m) => m.role == 'user').lastOrNull;
     if (type == 'analysis') {
-      final links =
-          await (c.db.select(c.db.studyChatLinks)..where(
-                (t) =>
-                    t.sessionId.equals(c.selected!.id) &
-                    t.mistakeId.isNotNull(),
-              ))
-              .get();
-      final candidates = <MistakeDetail>[];
-      for (final link in links) {
-        try {
-          final detail = await store.mistakeDetail(link.mistakeId!);
-          if (!detail.item.deleted) candidates.add(detail);
-        } on FormatException {
-          /* Deleted relations are omitted. */
-        }
-      }
+      final candidates = await ref.read(
+        linkedMistakesProvider(c.selected!.id).future,
+      );
       if (candidates.isEmpty) {
         throw const FormatException('此对话没有关联错题，请先从错题详情发起学习对话。');
       }
       if (!context.mounted) return;
       var selected = candidates.first;
       if (candidates.length > 1) {
-        final chosen = await showDialog<MistakeDetail>(
+        final chosen = await showDialog<Mistake>(
           context: context,
           builder: (context) => SimpleDialog(
             title: Text(context.tr("选择要更新的错题")),
@@ -274,7 +272,7 @@ class ChatStudyMenu extends ConsumerWidget {
                 .map(
                   (m) => SimpleDialogOption(
                     onPressed: () => Navigator.pop(context, m),
-                    child: Text(m.item.title),
+                    child: Text(m.title),
                   ),
                 )
                 .toList(),
@@ -283,16 +281,21 @@ class ChatStudyMenu extends ConsumerWidget {
         if (chosen == null || !context.mounted) return;
         selected = chosen;
       }
+      final detail = await store.mistakeDetail(selected.id);
+      if (!context.mounted) return;
       await showDialog<String>(
         context: context,
         useSafeArea: false,
         builder: (_) => StudyEditor(
           isMistake: true,
+          analysisOnly: true,
+          sourceSessionId: message.sessionId,
+          sourceMessageId: message.id,
           mistake: MistakeDetail(
-            selected.item.copyWith(aiAnalysis: message.content),
-            selected.tags,
-            selected.images,
-            selected.knowledge,
+            detail.item.copyWith(aiAnalysis: message.content),
+            detail.tags,
+            detail.images,
+            detail.knowledge,
           ),
         ),
       );
