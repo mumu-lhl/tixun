@@ -86,7 +86,7 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
       children: [
         Text(
           context.tr(
-            'AI 可以编写完整 Python 代码，在本机计算、验证答案或生成文件。已打包标准库、SymPy 和 mpmath，不需要 Termux。执行输出会发送给当前模型以继续回答。',
+            'AI 可以编写完整 Python 代码，在本机计算、验证答案或生成文件。已打包标准库、NumPy、SymPy 和 mpmath，不需要 Termux。执行输出会发送给当前模型以继续回答。',
           ),
         ),
         const SizedBox(height: 20),

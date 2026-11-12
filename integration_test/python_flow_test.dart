@@ -69,6 +69,14 @@ void main() {
       );
       expect(result['ok'], true, reason: result.toString());
       expect(result['stdout'], '285\n');
+      final numeric = await PythonRuntime.instance.execute(
+        code: 'import numpy as np\nprint(np.__version__)\nprint((np.array([1, 2, 3]) ** 2).tolist())\nprint(np.linalg.solve([[2, 0], [0, 4]], [6, 8]).tolist())',
+        workspace: Directory('${c.files.root.path}/python-check'),
+        timeoutSeconds: 20,
+        cancel: CancelToken(),
+      );
+      expect(numeric['ok'], true, reason: numeric.toString());
+      expect(numeric['stdout'], '2.4.6\n[1, 4, 9]\n[3.0, 2.0]\n');
       expect(
         await File('${c.files.root.path}/python-check/generated.txt')
             .readAsString(),

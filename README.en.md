@@ -47,7 +47,7 @@ On phones, the chat's more menu contains material tools, linked material and mod
 
 ## Photos and study material
 
-Python execution is available under Settings → Python execution. By default you review the exact code before allowing it; you can disable execution or explicitly enable automatic permission. Chat, question generation, mistake explanations and AI knowledge writing share the tool. CPython, SymPy and mpmath are bundled locally. Expand execution history to inspect code, output and errors; output is sent to the current model.
+Python execution is available under Settings → Python execution. By default you review the exact code before allowing it; you can disable execution or explicitly enable automatic permission. Chat, question generation, mistake explanations and AI knowledge writing share the tool. CPython, NumPy, SymPy and mpmath are bundled locally. Expand execution history to inspect code, output and errors; output is sent to the current model.
 
 **Arbitrary Python runs with the app’s file and network access; it is not a sandbox.** Code can damage local data. Stop requests may not immediately interrupt native code or I/O. Generated files are not automatically included in study records or backups. Mobile Chat fills the screen and provides a Back button.
 

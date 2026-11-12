@@ -13,7 +13,7 @@ import 'python_runtime.dart';
 const pythonPolicyKey = 'python_execution_policy';
 final pythonToolSchema = AiTool(
   name: 'run_python',
-  description: 'Execute Python code locally for calculations or checking answers. Standard library, SymPy and mpmath are available. Use print() to return results. The app may ask the user to approve the exact code. Files persist in WORKSPACE. This is unrestricted Python, not a sandbox. A computed result verifies only the supplied mathematical model, not the whole question. Do not use code to bypass application approval for study-data edits.',
+  description: 'Execute Python code locally for calculations or checking answers. Standard library, NumPy, SymPy and mpmath are available. Use print() to return results. The app may ask the user to approve the exact code. Files persist in WORKSPACE. This is unrestricted Python, not a sandbox. A computed result verifies only the supplied mathematical model, not the whole question. Do not use code to bypass application approval for study-data edits.',
   parameters: {
     'type': 'object',
     'additionalProperties': false,

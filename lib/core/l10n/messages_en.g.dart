@@ -1121,7 +1121,7 @@ const englishMessages = <String, String>{
   "自动允许运行任意 Python 代码？": "Automatically allow arbitrary Python code?",
   "Python 与题训拥有相同的文件和网络权限，代码可能读取、修改或删除本地资料，或导致应用退出。自动允许将跳过代码审查；这些操作无法保证撤销。": "Python has the same file and network access as TiXun. Code can read, modify or delete local data, or terminate the app. Automatic permission skips code review; effects may be irreversible.",
   "仍然自动允许": "Allow automatically anyway",
-  "AI 可以编写完整 Python 代码，在本机计算、验证答案或生成文件。已打包标准库、SymPy 和 mpmath，不需要 Termux。": "AI can write full Python scripts to calculate, check answers or create files locally. The standard library, SymPy and mpmath are bundled; Termux is not required.",
+  "AI 可以编写完整 Python 代码，在本机计算、验证答案或生成文件。已打包标准库、NumPy、SymPy 和 mpmath，不需要 Termux。": "AI can write full Python scripts to calculate, check answers or create files locally. The standard library, NumPy, SymPy and mpmath are bundled; Termux is not required.",
   "这不是安全沙箱。停止会请求中断 Python；阻塞的原生计算或 I/O 可能需要等待，必要时重启应用。工作目录生成的文件不自动加入学习资料或备份。": "This is not a security sandbox. Stop requests an interruption; blocking native code or I/O may take time, and you may need to restart the app. Files in the working directory are not automatically added to study material or backups.",
   "运行 Python": "Run Python",
   "运行用途": "Purpose",
@@ -1148,7 +1148,7 @@ const englishMessages = <String, String>{
   "Python 执行失败，请检查运行时或重启应用。":
       "Python execution failed. Check the runtime or restart the app.",
   "代码可访问应用文件与网络，输出会发送给当前模型；只有你允许后才执行。": "Code can access app files and the network. Output is sent to the current model. Execution requires your permission.",
-  "AI 可以编写完整 Python 代码，在本机计算、验证答案或生成文件。已打包标准库、SymPy 和 mpmath，不需要 Termux。执行输出会发送给当前模型以继续回答。": "AI can write full Python scripts to calculate, check answers or create files locally. The standard library, SymPy and mpmath are bundled; Termux is not required. Execution output is sent to the current model to continue its answer.",
+  "AI 可以编写完整 Python 代码，在本机计算、验证答案或生成文件。已打包标准库、NumPy、SymPy 和 mpmath，不需要 Termux。执行输出会发送给当前模型以继续回答。": "AI can write full Python scripts to calculate, check answers or create files locally. The standard library, NumPy, SymPy and mpmath are bundled; Termux is not required. Execution output is sent to the current model to continue its answer.",
   "Python 执行完成，可展开查看代码和结果。":
       "Python execution completed. Expand to see the code and results.",
   "执行完成，记录异常": "Executed; recording error",
