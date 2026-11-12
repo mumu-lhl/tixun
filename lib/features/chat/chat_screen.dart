@@ -339,6 +339,15 @@ class _ConversationState extends ConsumerState<Conversation> {
     if (mounted && active != _scrolling) setState(() => _scrolling = active);
   }
 
+  void _followBottom() {
+    if (!_stick || _scrolling) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scroll.hasClients && _stick && !_scrolling) {
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      }
+    });
+  }
+
   @override
   void dispose() {
     _input.dispose();
@@ -448,13 +457,7 @@ class _ConversationState extends ConsumerState<Conversation> {
     }
 
     final pending = c.attachments.where((a) => a.messageId == null).toList();
-    if (_stick && !_scrolling) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _scroll.hasClients && _stick && !_scrolling) {
-          _scroll.jumpTo(_scroll.position.maxScrollExtent);
-        }
-      });
-    }
+    _followBottom();
     // Clear immediately after the user message has committed, including during streaming.
     // Only wipe the field when it still shows exactly the sent text: the
     // field stays editable while the send is prepared, so the user may have
@@ -489,125 +492,134 @@ class _ConversationState extends ConsumerState<Conversation> {
           child: Column(
             children: [
               Expanded(
-                child: Stack(
-                  children: [
-                    c.messages.isEmpty
-                        ? SingleChildScrollView(
-                            child: Padding(
-                              padding: const EdgeInsets.all(32),
-                              child: Center(
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 560,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const SizedBox(height: 24),
-                                      Text(
-                                        context.tr("今天，想弄懂什么？"),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .headlineMedium,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        context.tr(
-                                          "不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。",
+                child: NotificationListener<ScrollMetricsNotification>(
+                  onNotification: (notice) {
+                    if (notice.depth == 0) _followBottom();
+                    return false;
+                  },
+                  child: Stack(
+                    children: [
+                      c.messages.isEmpty
+                          ? SingleChildScrollView(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 560,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const SizedBox(height: 24),
+                                        Text(
+                                          context.tr("今天，想弄懂什么？"),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .headlineMedium,
                                         ),
-                                        style: TextStyle(
-                                          color: colors.onSurfaceVariant,
-                                          height: 1.8,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 28),
-                                      for (final prompt in [
-                                        '二次函数的顶点公式，怎样理解而不是死记？',
-                                        '我会做这道题，但不知道为什么要用这个方法。',
-                                      ])
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 12,
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          context.tr(
+                                            "不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。",
                                           ),
-                                          child: OutlinedButton(
-                                            onPressed: () {
-                                              _input.text = prompt;
-                                              c.draft(prompt);
-                                              _focus.requestFocus();
-                                            },
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 12,
-                                                  ),
-                                              child: Text(prompt),
+                                          style: TextStyle(
+                                            color: colors.onSurfaceVariant,
+                                            height: 1.8,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 28),
+                                        for (final prompt in [
+                                          '二次函数的顶点公式，怎样理解而不是死记？',
+                                          '我会做这道题，但不知道为什么要用这个方法。',
+                                        ])
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 12,
+                                            ),
+                                            child: OutlinedButton(
+                                              onPressed: () {
+                                                _input.text = prompt;
+                                                c.draft(prompt);
+                                                _focus.requestFocus();
+                                              },
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 12,
+                                                    ),
+                                                child: Text(prompt),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          )
-                        : ListView.builder(
-                            controller: _scroll,
-                            key: PageStorageKey('messages-${c.selected!.id}'),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 24,
-                            ),
-                            itemCount:
-                                c.messages.length +
-                                (c.pendingTool != null ? 1 : 0),
-                            itemBuilder: (context, index) =>
-                                index == c.messages.length
-                                ? Align(
-                                    alignment: Alignment.topCenter,
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 790,
+                            )
+                          : ListView.builder(
+                              controller: _scroll,
+                              key: PageStorageKey('messages-${c.selected!.id}'),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 24,
+                              ),
+                              itemCount:
+                                  c.messages.length +
+                                  (c.pendingTool != null ? 1 : 0),
+                              itemBuilder: (context, index) =>
+                                  index == c.messages.length
+                                  ? Align(
+                                      alignment: Alignment.topCenter,
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 790,
+                                        ),
+                                        child: const ToolApprovalCard(),
                                       ),
-                                      child: const ToolApprovalCard(),
+                                    )
+                                  : Align(
+                                      alignment: Alignment.topCenter,
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 790,
+                                        ),
+                                        child: MessageView(
+                                          message: c.messages[index],
+                                          isLast:
+                                              index == c.messages.length - 1,
+                                        ),
+                                      ),
                                     ),
-                                  )
-                                : Align(
-                                    alignment: Alignment.topCenter,
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 790,
-                                      ),
-                                      child: MessageView(
-                                        message: c.messages[index],
-                                        isLast: index == c.messages.length - 1,
-                                      ),
-                                    ),
-                                  ),
+                            ),
+                      if (c.messages.isNotEmpty && !_stick && !_scrolling)
+                        Positioned(
+                          right: 16,
+                          bottom: 16,
+                          child: IconButton.filledTonal(
+                            key: const Key('chat-scroll-bottom'),
+                            style: IconButton.styleFrom(
+                              backgroundColor: colors.surfaceContainerHighest
+                                  .withValues(alpha: .88),
+                              foregroundColor: colors.onSurface,
+                              shape: const CircleBorder(),
+                            ),
+                            tooltip: context.tr("回到最新消息"),
+                            onPressed: () {
+                              setState(() => _stick = true);
+                              if (_scroll.hasClients) {
+                                _scroll.jumpTo(
+                                  _scroll.position.maxScrollExtent,
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.arrow_downward),
                           ),
-                    if (c.messages.isNotEmpty && !_stick && !_scrolling)
-                      Positioned(
-                        right: 16,
-                        bottom: 16,
-                        child: IconButton.filledTonal(
-                          key: const Key('chat-scroll-bottom'),
-                          style: IconButton.styleFrom(
-                            backgroundColor: colors.surfaceContainerHighest
-                                .withValues(alpha: .88),
-                            foregroundColor: colors.onSurface,
-                            shape: const CircleBorder(),
-                          ),
-                          tooltip: context.tr("回到最新消息"),
-                          onPressed: () {
-                            setState(() => _stick = true);
-                            if (_scroll.hasClients) {
-                              _scroll.jumpTo(_scroll.position.maxScrollExtent);
-                            }
-                          },
-                          icon: const Icon(Icons.arrow_downward),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               // Hide optional actions while typing, leaving room for photos
@@ -830,8 +842,11 @@ class _ConversationState extends ConsumerState<Conversation> {
                                           // while busy, and send() refuses while
                                           // busy). The draft is saved via onChanged.
                                           onChanged: c.draft,
+                                          keyboardType: TextInputType.multiline,
+                                          textInputAction:
+                                              TextInputAction.newline,
                                           minLines: 1,
-                                          maxLines: 1,
+                                          maxLines: 4,
                                           maxLength: 32000,
                                           decoration: InputDecoration(
                                             hintText: context.tr(

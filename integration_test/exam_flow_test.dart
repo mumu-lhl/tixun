@@ -78,6 +78,12 @@ void main() {
       expect(saved.last.parentId, saved.first.id);
       await guiCapture('exams', 'subject-phone');
       await c.exams.saveEvent(title: '上学期月考', date: DateTime(2025, 9, 12));
+      for (var i = 0; i < 15; i++) {
+        await c.exams.saveEvent(
+          title: '历史月考 ${i + 1}',
+          date: DateTime(2024, i + 1, 10),
+        );
+      }
       scope.read(routerProvider).go('/exams');
       await t.pumpAndSettle();
       await click(t, find.text('列表'));
@@ -87,6 +93,16 @@ void main() {
         lessThan(t.getTopLeft(find.text('上学期月考')).dy),
       );
       await guiCapture('exams', 'timeline-phone');
+      await t.drag(
+        find.byKey(const PageStorageKey('exam-timeline')),
+        const Offset(0, -600),
+      );
+      await t.pumpAndSettle();
+      expect(
+        find.byKey(const Key('exam-calendar-back')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('exam-add')).hitTestable(), findsOneWidget);
       await click(t, find.byKey(const Key('exam-add')));
       expect(find.byKey(const Key('exam-record-date')), findsOneWidget);
       await click(t, find.text('取消'));

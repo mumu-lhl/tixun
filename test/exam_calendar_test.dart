@@ -60,12 +60,15 @@ void main() {
     final c = await _controller(tester);
     await _pumpCalendar(tester, c);
     await tester.ensureVisible(find.text('15'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('15'));
     await tester.pumpAndSettle();
     final now = DateTime.now();
     final picked = '${now.year}-${now.month.toString().padLeft(2, '0')}-15';
     expect(find.text(picked), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.ensureVisible(find.byTooltip('下个月'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('下个月'));
     await tester.pumpAndSettle();
     expect(
       find.text(picked),

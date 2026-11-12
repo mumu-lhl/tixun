@@ -106,6 +106,13 @@ void main() {
     await t.pumpAndSettle();
     expect(bottom, findsNothing);
     expect(find.textContaining('第 34 条学习记录。'), findsOneWidget);
+    await t.enterText(
+      find.byKey(const Key('chat-input')),
+      '长问题第一行\n第二行\n第三行\n第四行',
+    );
+    await t.pumpAndSettle();
+    expect(find.textContaining('第 34 条学习记录。').hitTestable(), findsOneWidget);
+    expect(bottom, findsNothing);
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox.shrink());
     await t.pumpAndSettle();

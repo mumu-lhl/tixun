@@ -39,6 +39,8 @@ A connection test sends a short request and may consume provider usage. Without 
 
 Start a conversation from Study. Guided teaching offers hints and invites you to try; Direct answer provides a full explanation. Exam mode lets you answer before showing feedback. Replies stream, and interactive question cards save actual answers. AI-generated reference answers remain unverified until checked.
 
+The composer supports multiple lines; Ctrl+Enter sends on desktop. When you browse older messages, a translucent return-to-latest button appears once scrolling stops and hides during scrolling.
+
 An AI reply’s save menu can organize it into knowledge or a mistake, or merge it into an existing note you select. Review the process in a separate chat and confirm each write. Knowledge also has AI create and edit actions; edits preserve revision history.
 
 On phones, the chat's more menu contains material tools, linked material and model settings. Enable material tools to let AI search notes or propose changes. Application permissions and confirmation still apply. DeepSeek and ChatGPT support reasoning with tools; compatible services follow their declared capabilities.
@@ -53,6 +55,8 @@ Android provides WeChat-style capture and gallery previews with multiple selecti
 
 There is no fixed business limit on image count. Each image is limited to **8 MB**, with additional pixel and decoding safeguards in the editor. Model capability, context budget and request-size limits still apply.
 
+Mistakes prioritizes importing photos, with direct capture on Android. Importing and cropping one photo opens its record. Text entry remains available. Choose **Analyze with AI**, review the prepared chat and send; use guided redoing when you want to work through it yourself. The reply’s save menu can update the linked mistake’s explanation without re-entering its other fields.
+
 Choose your subjects under Settings → Study subjects, including custom subjects. Switch the current subject at the top of Study. Knowledge and Mistakes share a two-level subject directory; records can belong to multiple modules. Parent filters include submodules. Removing a directory entry keeps your study material.
 
 In Settings → Learning goals, optionally add your stage (such as final-year high school), region, target exam and scope. AI uses these as background for explanations and practice, without assuming an exact local syllabus. [View the settings example](docs/screenshots/learning-profile-phone.png).
@@ -61,7 +65,7 @@ From saved notes and mistakes, request explanations, targeted practice or review
 
 ## Exams, review and scratchpads
 
-Open Exam records from Study, choose a calendar date and add subjects. Chinese, mathematics and English use raw scores only; other subjects may also record scaled scores. Unknown marks can stay blank.
+Open Exam records from Study and switch between Calendar and a newest-first list spanning all months. Back and record controls stay visible while browsing. Choose the date when creating an exam, then add subjects. Chinese, mathematics and English use raw scores only; other subjects may also record scaled scores. Unknown marks can stay blank.
 
 Keep papers, answer sheets and reference answers separately. The score breakdown supports questions and subquestions, with quick next-entry actions. Child scores determine parent totals; the breakdown does not overwrite the raw score. AI extraction sends only selected photos, up to 20 MB combined, to a vision model. Review suggestions before saving, which replaces the previous breakdown. Mock mode does not pretend to grade real photos.
 

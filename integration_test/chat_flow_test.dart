@@ -138,6 +138,28 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('关闭预览'));
       await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('chat-input')),
+        '请再举一个例子\n说明关键步骤',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('send-message')));
+      for (var i = 0; i < 100 && c.busy; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(c.messages.length, 4);
+      expect(c.messages[c.messages.length - 2].content, contains('\n'));
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(PageStorageKey('messages-${c.selected!.id}')),
+        const Offset(0, 240),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('chat-scroll-bottom')), findsOneWidget);
+      await guiCapture('chat', 'history-return-button-phone');
+      await tester.tap(find.byKey(const Key('chat-scroll-bottom')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('chat-scroll-bottom')), findsNothing);
       await resizeGui(tester, 1280, 900);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
