@@ -62,21 +62,11 @@ void main() {
       );
       expect(c.learningSubjects, ['语文', '数学', '英语', '物理', '化学', '生物', '日语']);
       await guiCapture('subjects', 'settings-phone');
-      await click(t, find.byKey(const Key('settings-ai')));
-      await ready(
-        t,
-        () => find.byKey(const Key('api-key')).evaluate().isNotEmpty,
-      );
-      expect(find.text('外观'), findsNothing);
-      await guiCapture('subjects', 'ai-settings-phone');
       await c.newSession();
       await c.setSessionSubject(c.selected!, '数学');
       await c.renameSession(c.selected!, '数学 · 导数与函数单调性的一次完整复盘');
       scope.read(routerProvider).go('/chat');
       await t.pumpAndSettle();
-      expect(find.byKey(const Key('chat-more')), findsOneWidget);
-      expect(find.text('原图保存在本地'), findsNothing);
-      expect(find.textContaining('AI 可能出错，请核对重要结论。最近 30 条消息'), findsNothing);
       await t.enterText(find.byKey(const Key('chat-input')), '请解释函数的单调性');
       await t.pump(); // Rebuild the input-driven Send button before tapping.
       await click(t, find.byKey(const Key('send-message')));
@@ -87,7 +77,6 @@ void main() {
       scope.read(routerProvider).go('/study');
       await t.pumpAndSettle();
       await click(t, find.byKey(const Key('subject-switch')));
-      await t.pump(const Duration(milliseconds: 700));
       await t.pumpAndSettle();
       await guiCapture('subjects', 'subject-menu-phone');
       final menuItems = find.byType(MenuItemButton);

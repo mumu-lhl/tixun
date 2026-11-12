@@ -11,7 +11,7 @@ export NEEDRESTART_MODE=a
 if [[ "${1:-}" == --github-runner ]]; then
   for mirror_list in /etc/apt/apt-mirrors.txt /etc/apt/apt-security-mirrors.txt; do
     if [[ -f "$mirror_list" ]]; then
-      sed -Ei 's#https?://(azure\.archive|archive|security)\.ubuntu\.com/ubuntu#https://mirrors.edge.kernel.org/ubuntu#g' "$mirror_list"
+      printf '%s\n' 'https://mirrors.edge.kernel.org/ubuntu' > "$mirror_list"
     fi
   done
 fi

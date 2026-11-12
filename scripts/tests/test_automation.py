@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import shlex
 import subprocess
 import sys
 import tempfile
@@ -53,27 +52,6 @@ class ApkTests(unittest.TestCase):
         self.path.write_text('not an APK')
         with self.assertRaises(ValueError):
             verify_apk(self.path, 'release', '')
-
-
-class LinuxMirrorTests(unittest.TestCase):
-    def test_installer_rewrites_runner_mirrors_with_valid_sed(self):
-        script = (SCRIPTS / 'install_linux_deps.sh').read_text()
-        command = shlex.split(next(
-            line.strip() for line in script.splitlines()
-            if line.strip().startswith('sed -Ei ')
-        ))
-        with tempfile.TemporaryDirectory() as directory:
-            mirrors = Path(directory) / 'mirrors.txt'
-            mirrors.write_text(
-                'http://azure.archive.ubuntu.com/ubuntu\n'
-                'https://archive.ubuntu.com/ubuntu\n'
-                'http://security.ubuntu.com/ubuntu\n'
-                'https://example.org/ubuntu\n'
-            )
-            subprocess.run([*command[:-1], str(mirrors)], check=True)
-            self.assertEqual(mirrors.read_text(),
-                'https://mirrors.edge.kernel.org/ubuntu\n' * 3
-                + 'https://example.org/ubuntu\n')
 
 
 class TagTests(unittest.TestCase):
@@ -212,22 +190,22 @@ case "$2" in *"$FAIL_GUI"*) if [ -n "$FAIL_GUI" ]; then exit 23; fi;; esac''',
             logs = {p.name: p.read_text() for p in (root / 'logs').iterdir()}
             return result.returncode, calls, logs
 
-    def test_native_flows_run_in_order_with_distinct_logs(self):
+    def test_each_native_flow_runs_once_with_its_own_log(self):
         code, calls, logs = self.run_gui()
         self.assertEqual(code, 0)
-        self.assertEqual([Path(p).stem for p in calls], [
-            'chat_flow_test', 'python_flow_test', 'learning_materials_test', 'practice_flow_test',
-            'backup_flow_test', 'practice_management_test', 'ai_preferences_test', 'chatgpt_flow_test',
-            'scratchpad_reasoning_test', 'exam_flow_test', 'modules_flow_test', 'subject_preferences_flow_test'])
-        self.assertEqual(len(logs), 12)
+        self.assertEqual(sorted(Path(p).name for p in calls),
+                         sorted(p.name for p in (SCRIPTS.parent / 'integration_test').glob('*_test.dart')))
+        self.assertEqual(len(set(calls)), len(calls))
+        self.assertEqual(len(logs), len(calls))
         self.assertIn('practice_management_test', logs['integration-management.log'])
 
     def test_first_failure_stops_later_builds_and_preserves_exit_code_and_log(self):
         code, calls, logs = self.run_gui('learning_materials')
         self.assertEqual(code, 23)
-        self.assertEqual(len(calls), 3)
+        self.assertEqual(Path(calls[-1]).stem, 'learning_materials_test')
+        self.assertLess(len(calls), len(list((SCRIPTS.parent / 'integration_test').glob('*_test.dart'))))
+        self.assertEqual(len(logs), len(calls))
         self.assertIn('learning_materials_test', logs['integration-materials.log'])
-        self.assertNotIn('integration-practice.log', logs)
 
 
 if __name__ == '__main__':

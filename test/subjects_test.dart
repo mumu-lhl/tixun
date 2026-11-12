@@ -53,6 +53,9 @@ void main() {
     await c.setSubjectFilter('日语');
     await c.newSession();
     expect(c.selected!.subject, '日语');
+    await c.prepareQuickQuiz();
+    expect(c.selected!.subject, '日语');
+    expect(c.selected!.mode, 'exam');
   });
   test('Invalid selections cannot overwrite saved preferences and malformed stored data is recoverable', () async {
     await c.setLearningSubjects(['数学', '日语']);
@@ -75,27 +78,5 @@ void main() {
     expect(c.preferences.loadNotice, isNotNull);
     await c.setLearningSubjects(['数学']);
     expect(c.learningSubjects, ['数学']);
-  });
-  test('Chat subject switching selects a matching session or empty view, preserves drafts and does not create placeholder records', () async {
-    await c.newSession();
-    final math = c.selected!;
-    await c.setSessionSubject(math, '数学');
-    await c.draft('未发送的数学草稿');
-    final physics = await c.db.createSession(title: '物理对话', subject: '物理');
-    await c.setSubjectFilter('物理', activateChat: true);
-    expect(c.selected!.id, physics.id);
-    final count = c.allSessions.length;
-    await c.setLearningSubjects(['数学', '物理', '日语']);
-    await c.setSubjectFilter('日语', activateChat: true);
-    expect(c.selected, isNull);
-    expect(c.allSessions, hasLength(count));
-    expect(
-      (await c.db.sessions()).firstWhere((s) => s.id == math.id).draft,
-      '未发送的数学草稿',
-    );
-    await c.setLearningSubjects(['日语']);
-    await c.prepareQuickQuiz();
-    expect(c.selected!.subject, '日语');
-    expect(c.selected!.mode, 'exam');
   });
 }

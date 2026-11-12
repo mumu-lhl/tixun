@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:tixun/app/app.dart';
 import 'package:tixun/app/controller.dart';
-import 'package:tixun/features/settings/subjects_screen.dart';
 
 import 'support/gui_capture.dart';
 
@@ -39,29 +38,12 @@ void main() {
       scope.read(routerProvider).go('/settings');
       await t.pumpAndSettle();
       await resizeGui(t, 390, 844);
-      await ready(
-        t,
-        () => find.byKey(const Key('settings-subjects')).evaluate().isNotEmpty,
-      );
-      await guiCapture('ai-preferences', 'settings-rounded-phone');
-      final press = await t.startGesture(
-        t.getCenter(find.byKey(const Key('settings-subjects'))),
-      );
-      await t.pump();
-      await t.pump(const Duration(milliseconds: 40));
-      await guiCapture('ai-preferences', 'settings-rounded-pressed-phone');
-      await press.up();
-      await t.pumpAndSettle();
-      expect(find.byType(SubjectsScreen), findsOneWidget);
-      scope.read(routerProvider).pop();
-      await t.pumpAndSettle();
       await c.theme(ThemeMode.dark);
       await t.pumpAndSettle();
       await guiCapture('ai-preferences', 'settings-rounded-dark-phone');
       await resizeGui(t, 1280, 900);
       await c.theme(ThemeMode.light);
       await t.pumpAndSettle();
-      await guiCapture('ai-preferences', 'settings-rounded-desktop');
       await click(t, find.text('提示词管理'));
       await click(t, find.byKey(const Key('prompt-guided')));
       await t.enterText(

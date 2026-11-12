@@ -122,35 +122,16 @@ class AppController extends ChangeNotifier {
       ? rows
       : rows.where((s) => s.subject == subjectFilter).toList();
 
-  Future<void> setSubjectFilter(
-    String value, {
-    bool activateChat = false,
-  }) async {
+  Future<void> setSubjectFilter(String value) async {
     if (value != '' &&
         !schoolSubjects.contains(value) &&
         !learningSubjects.contains(value)) {
       throw const FormatException('科目无效。');
     }
     if (value == subjectFilter) return;
-    if (activateChat && busy) await stop();
     subjectFilter = value;
     await db.setPreference('subject_filter', value);
     await reload();
-    if (activateChat && value.isNotEmpty && selected?.subject != value) {
-      if (sessions.isNotEmpty) {
-        await selectSession(sessions.first);
-      } else {
-        await stop();
-        _epoch++;
-        selected = null;
-        messages = [];
-        attachments = [];
-        sessionReasoning = '';
-        error = null;
-        await db.setPreference('selected_session', '');
-        changed();
-      }
-    }
   }
 
   // Session subjects are free text like knowledge subjects (custom

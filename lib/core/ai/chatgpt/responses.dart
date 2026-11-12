@@ -387,8 +387,6 @@ Stream<AiChunk> decodeResponses(
         validateToolCalls(parts);
         retainContext?.call(parts.first.id, context);
         yield AiChunk(calls: parts, completed: true, tokens: tokens);
-      }
-      if (calls.isNotEmpty) {
         completed = true;
         break;
       }

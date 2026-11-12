@@ -399,11 +399,7 @@ class AppShell extends ConsumerWidget {
                                 ],
                                 onChanged: (value) {
                                   if (value != null) {
-                                    // This switch only renders on /study,
-                                    // so there is no chat page to activate
-                                    // from here; setSubjectFilter's
-                                    // activateChat branch has no production
-                                    // caller left (see controller tests).
+                                    // Filtering never switches the conversation.
                                     act(
                                       context,
                                       () => c.setSubjectFilter(value),
