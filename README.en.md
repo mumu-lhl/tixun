@@ -91,11 +91,13 @@ AI receives only the context, images and selected material needed for the reques
 
 ## Preview and contribute
 
-These screenshots were captured on 2026-11-11 in isolated Mock mode, using fixed replies rather than real model results.
+These screenshots show actual runs in isolated Mock mode, using fixed replies rather than real model results.
 
 ![Desktop chat](docs/screenshots/chat-desktop.png)
 
 <img src="docs/screenshots/study-phone.png" width="320" alt="Study on a phone" /> <img src="docs/screenshots/chat-phone.png" width="320" alt="Chat on a phone" />
+
+<img src="docs/screenshots/exams-list-phone.png" width="320" alt="Exams ordered from newest to oldest" />
 
 [Report an issue](https://github.com/mumu-lhl/tixun/issues) with your platform and reproduction steps; do not share credentials or private material. See the [development guide](DEVELOPMENT.md), [design](DESIGN.md) and [status](ROADMAP.md).
 
