@@ -4,6 +4,7 @@ import '../scratchpad/scratchpad_screen.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -303,9 +304,9 @@ class Conversation extends ConsumerStatefulWidget {
 class _ConversationState extends ConsumerState<Conversation> {
   late final _scroll = ScrollController(
     onAttach: (position) =>
-        position.isScrollingNotifier.addListener(_scrollActivityChanged),
+        position.isScrollingNotifier.addListener(_refreshScrollState),
     onDetach: (position) =>
-        position.isScrollingNotifier.removeListener(_scrollActivityChanged),
+        position.isScrollingNotifier.removeListener(_refreshScrollState),
   );
   late final TextEditingController _input;
   final _focus = FocusNode();
@@ -325,18 +326,29 @@ class _ConversationState extends ConsumerState<Conversation> {
     _input = TextEditingController(
       text: ref.read(appControllerProvider).selected?.draft ?? '',
     );
-    _scroll.addListener(() {
-      final stick =
-          !_scroll.hasClients ||
-          _scroll.position.maxScrollExtent - _scroll.offset <= 24;
-      if (stick != _stick) setState(() => _stick = stick);
-    });
+    _scroll.addListener(() => _refreshScrollState(positionChanged: true));
   }
 
-  void _scrollActivityChanged() {
-    final active =
-        _scroll.hasClients && _scroll.position.isScrollingNotifier.value;
-    if (mounted && active != _scrolling) setState(() => _scrolling = active);
+  void _refreshScrollState({bool positionChanged = false}) {
+    if (!mounted) return;
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _refreshScrollState(positionChanged: positionChanged),
+      );
+      return;
+    }
+    final position = _scroll.hasClients ? _scroll.position : null;
+    final active = position?.isScrollingNotifier.value ?? false;
+    final stick = positionChanged
+        ? position == null || position.maxScrollExtent - position.pixels <= 24
+        : _stick;
+    if (active != _scrolling || stick != _stick) {
+      setState(() {
+        _scrolling = active;
+        _stick = stick;
+      });
+    }
   }
 
   void _followBottom() {

@@ -113,6 +113,8 @@ void main() {
     await t.pumpAndSettle();
     expect(find.textContaining('第 34 条学习记录。').hitTestable(), findsOneWidget);
     expect(bottom, findsNothing);
+    t.view.physicalSize = const Size(1280, 900);
+    await t.pumpAndSettle();
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox.shrink());
     await t.pumpAndSettle();
