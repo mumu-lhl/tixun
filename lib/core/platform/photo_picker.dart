@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart' as system;
 
 import '../l10n/app_strings.dart';
 import 'camera_capture_screen.dart';
+import 'photo_picker_delegate.dart';
 
 /// Only the picker is platform-specific. Callers copy results into managed
 /// storage before opening the shared crop editor; picker cache paths never persist.
@@ -38,12 +39,25 @@ Future<List<XFile>> pickPhotos(
     }
     return result?.path == null ? [] : [XFile(result!.path!)];
   }
-  final picked = await assets.AssetPicker.pickAssets(
+  const permissions = assets.PermissionRequestOption(
+    androidPermission: assets.AndroidPermission(
+      type: assets.RequestType.image,
+      mediaLocation: false,
+    ),
+  );
+  final permission = await assets.AssetPicker.permissionCheck(
+    requestOption: permissions,
+  );
+  if (!context.mounted) return [];
+  final picked = await assets.AssetPicker.pickAssetsWithDelegate(
     context,
-    pickerConfig: assets.AssetPickerConfig(
-      requestType: assets.RequestType.image,
-      // The API requires a positive int. Avoid its implicit 9-photo cap.
-      maxAssets: 0x7fffffff,
+    permissionRequestOption: permissions,
+    delegate: PhotoPickerBuilder(
+      provider: assets.DefaultAssetPickerProvider(
+        requestType: assets.RequestType.image,
+        maxAssets: 0x7fffffff,
+      ),
+      initialPermission: permission,
       pickerTheme: Theme.of(context),
       textDelegate: english
           ? const assets.EnglishAssetPickerTextDelegate()
