@@ -301,10 +301,15 @@ class Conversation extends ConsumerStatefulWidget {
 }
 
 class _ConversationState extends ConsumerState<Conversation> {
-  final _scroll = ScrollController();
+  late final _scroll = ScrollController(
+    onAttach: (position) =>
+        position.isScrollingNotifier.addListener(_scrollActivityChanged),
+    onDetach: (position) =>
+        position.isScrollingNotifier.removeListener(_scrollActivityChanged),
+  );
   late final TextEditingController _input;
   final _focus = FocusNode();
-  bool _stick = true;
+  bool _stick = true, _scrolling = false;
   // Text of the last sent message. The field stays editable while a send is
   // being prepared, so the auto-clear below must only wipe the field when it
   // still shows exactly what was sent — otherwise it would discard text the
@@ -323,9 +328,15 @@ class _ConversationState extends ConsumerState<Conversation> {
     _scroll.addListener(() {
       final stick =
           !_scroll.hasClients ||
-          _scroll.position.maxScrollExtent - _scroll.offset < 160;
+          _scroll.position.maxScrollExtent - _scroll.offset <= 24;
       if (stick != _stick) setState(() => _stick = stick);
     });
+  }
+
+  void _scrollActivityChanged() {
+    final active =
+        _scroll.hasClients && _scroll.position.isScrollingNotifier.value;
+    if (mounted && active != _scrolling) setState(() => _scrolling = active);
   }
 
   @override
@@ -437,9 +448,9 @@ class _ConversationState extends ConsumerState<Conversation> {
     }
 
     final pending = c.attachments.where((a) => a.messageId == null).toList();
-    if (_stick) {
+    if (_stick && !_scrolling) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _scroll.hasClients && _stick) {
+        if (mounted && _scroll.hasClients && _stick && !_scrolling) {
           _scroll.jumpTo(_scroll.position.maxScrollExtent);
         }
       });
@@ -574,12 +585,18 @@ class _ConversationState extends ConsumerState<Conversation> {
                                     ),
                                   ),
                           ),
-                    if (c.messages.isNotEmpty && !_stick)
+                    if (c.messages.isNotEmpty && !_stick && !_scrolling)
                       Positioned(
                         right: 16,
                         bottom: 16,
-                        child: FloatingActionButton(
-                          heroTag: 'scroll-to-bottom',
+                        child: IconButton.filledTonal(
+                          key: const Key('chat-scroll-bottom'),
+                          style: IconButton.styleFrom(
+                            backgroundColor: colors.surfaceContainerHighest
+                                .withValues(alpha: .88),
+                            foregroundColor: colors.onSurface,
+                            shape: const CircleBorder(),
+                          ),
                           tooltip: context.tr("回到最新消息"),
                           onPressed: () {
                             setState(() => _stick = true);
@@ -587,7 +604,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                               _scroll.jumpTo(_scroll.position.maxScrollExtent);
                             }
                           },
-                          child: const Icon(Icons.arrow_downward),
+                          icon: const Icon(Icons.arrow_downward),
                         ),
                       ),
                   ],

@@ -106,10 +106,8 @@ class ChatGptResponses implements ChatProvider {
       'store': false,
       'stream': true,
       'input': input,
-      // max_output_tokens is intentionally not sent here: the only
-      // production caller that sets a limit is the connection test
-      // (maxOutputTokens: 16), which cancels after the first text instead
-      // of relying on a server-side cap. See chatgpt_test.dart.
+      // The subscription route omits the output cap. Connection tests still
+      // read through the terminal event before reporting success.
       'include': ['reasoning.encrypted_content'],
       if (request.instructions.isNotEmpty) 'instructions': request.instructions,
       if (config.thinking)
@@ -207,25 +205,48 @@ Stream<List<int>> _compatibleResponseEvents(
   CancelToken cancel,
 ) async* {
   final body = <int>[];
+  var streaming = false;
   await for (final bytes in stream) {
     cancel.checkCancelled();
+    if (streaming) {
+      yield bytes;
+      continue;
+    }
     if (body.length + bytes.length > 2 * 1024 * 1024) {
       throw const AiFailure('ChatGPT 非流式回复过大，请新建会话或重试。');
     }
     body.addAll(bytes);
+    // Sniff only the ASCII framing, retaining original bytes so a split UTF-8
+    // character is never decoded and re-encoded prematurely.
+    var start = 0;
+    while (start < body.length) {
+      if ([9, 10, 13, 32].contains(body[start])) {
+        start++;
+      } else if (body.length >= start + 3 &&
+          body[start] == 0xef &&
+          body[start + 1] == 0xbb &&
+          body[start + 2] == 0xbf) {
+        start += 3;
+      } else {
+        break;
+      }
+    }
+    final prefix = String.fromCharCodes(body.skip(start).take(6));
+    if (prefix.startsWith('data:') ||
+        prefix.startsWith('event:') ||
+        prefix.startsWith(':')) {
+      streaming = true;
+      yield body.sublist(start);
+      body.clear();
+    }
   }
   cancel.checkCancelled();
+  if (streaming) return;
   late String text;
   try {
     text = utf8.decode(body).replaceFirst('\ufeff', '').trimLeft();
   } on FormatException {
     throw const AiFailure('ChatGPT 回复格式无效，请重试。');
-  }
-  if (text.startsWith('data:') ||
-      text.startsWith('event:') ||
-      text.startsWith(':')) {
-    yield utf8.encode(text);
-    return;
   }
   if (mediaType.contains('text/html') || text.startsWith('<')) {
     throw const AiFailure('ChatGPT 返回了网页而不是 AI 回复，请检查网络或代理后重试。');
@@ -270,7 +291,8 @@ Stream<AiChunk> decodeResponses(
   Stream<List<int>> bytes,
   void Function(String id, List<dynamic> context)? retainContext,
 ) async* {
-  var completed = false, summarySeen = false, textSeen = false;
+  var completed = false, summarySeen = false;
+  final streamedText = StringBuffer();
   await for (final data in sseData(bytes)) {
     if (data.trim().isEmpty) continue; // Empty SSE heartbeat, not a JSON event.
     if (data.trim() == '[DONE]') break;
@@ -286,7 +308,7 @@ Stream<AiChunk> decodeResponses(
           'response.refusal.delta',
         ].contains(type) &&
         event['delta'] is String) {
-      textSeen = textSeen || (event['delta'] as String).isNotEmpty;
+      streamedText.write(event['delta'] as String);
       yield AiChunk(text: event['delta'] as String);
     } else if (type == 'response.reasoning_summary_text.delta' &&
         event['delta'] is String) {
@@ -323,18 +345,23 @@ Stream<AiChunk> decodeResponses(
       final tokens = usage is Map && usage['total_tokens'] is int
           ? usage['total_tokens'] as int
           : null;
-      if (!textSeen) {
-        for (final item in output.whereType<Map>()) {
-          if (item['type'] != 'message' || item['content'] is! List) continue;
-          for (final part in (item['content'] as List).whereType<Map>()) {
-            final text = part['type'] == 'output_text'
-                ? part['text']
-                : part['type'] == 'refusal'
-                ? part['refusal']
-                : null;
-            if (text is String && text.isNotEmpty) yield AiChunk(text: text);
-          }
+      final fullText = StringBuffer();
+      for (final item in output.whereType<Map>()) {
+        if (item['type'] != 'message' || item['content'] is! List) continue;
+        for (final part in (item['content'] as List).whereType<Map>()) {
+          final text = part['type'] == 'output_text'
+              ? part['text']
+              : part['type'] == 'refusal'
+              ? part['refusal']
+              : null;
+          if (text is String) fullText.write(text);
         }
+      }
+      final finalText = fullText.toString(),
+          receivedText = streamedText.toString();
+      if (finalText.startsWith(receivedText) &&
+          finalText.length > receivedText.length) {
+        yield AiChunk(text: finalText.substring(receivedText.length));
       }
       if (!summarySeen) {
         for (final item in output.whereType<Map>()) {

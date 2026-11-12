@@ -51,8 +51,64 @@ void main() {
   tearDown(() async {
     scope.dispose();
     router.dispose();
-    await c.shutdown();
+    c.dispose();
+    await c.db.close();
     await root.delete(recursive: true);
+  });
+  testWidgets('Return-to-bottom appears only when reading history at rest', (
+    t,
+  ) async {
+    addTearDown(() async {
+      await t.pumpWidget(const SizedBox.shrink());
+      await t.pumpAndSettle();
+    });
+    t.view.physicalSize = const Size(390, 844);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    final session = c.selected!;
+    for (var i = 0; i < 35; i++) {
+      await c.db
+          .into(c.db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: 'history-$i',
+              sessionId: session.id,
+              role: i.isEven ? 'user' : 'assistant',
+              content: '第 $i 条学习记录。\n解释知识与独立尝试。\n记录这一轮的学习结果。',
+              createdAt: DateTime(2026, 11, 12, 10, i),
+            ),
+          );
+    }
+    await c.selectSession(session);
+    router.go('/chat');
+    await t.pumpWidget(
+      UncontrolledProviderScope(container: scope, child: const TixunApp()),
+    );
+    await t.pumpAndSettle();
+    final bottom = find.byKey(const Key('chat-scroll-bottom'));
+    final messages = find.byKey(PageStorageKey('messages-${session.id}'));
+    expect(bottom, findsNothing);
+    final drag = await t.startGesture(t.getCenter(messages));
+    await drag.moveBy(const Offset(0, 20));
+    await t.pump();
+    await drag.moveBy(const Offset(0, 280));
+    await t.pump();
+    expect(
+      bottom,
+      findsNothing,
+      reason: 'The shortcut must not cover an active scroll',
+    );
+    await drag.up();
+    await t.pumpAndSettle();
+    expect(bottom, findsOneWidget);
+    await t.tap(bottom);
+    await t.pumpAndSettle();
+    expect(bottom, findsNothing);
+    expect(find.textContaining('第 34 条学习记录。'), findsOneWidget);
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpAndSettle();
   });
   testWidgets(
     'Phone Chat fills the screen and returns to its originating tab',

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
@@ -302,6 +303,82 @@ void main() {
         expect(chat.last.calls.single.name, 'create_quiz');
         expect(chat.last.tokens, isNull);
       }
+    },
+  );
+
+  test('Mislabeled SSE is delivered before the connection closes', () async {
+    final f = ChatGptFixture();
+    await f.seed();
+    final wire = StreamController<Uint8List>();
+    final client = Dio()
+      ..httpClientAdapter = FixtureAdapter(
+        (_) => ResponseBody(
+          wire.stream,
+          200,
+          headers: {
+            'content-type': ['application/json'],
+          },
+        ),
+      );
+    final firstText = Completer<void>();
+    final result = ChatGptResponses(f.auth, client: client)
+        .start(config)
+        .complete(
+          AiRequest(instructions: '', messages: [const AiMessage.user('你好')]),
+          CancelToken(),
+        )
+        .map((chunk) {
+          if (chunk.text.isNotEmpty && !firstText.isCompleted) {
+            firstText.complete();
+          }
+          return chunk;
+        })
+        .toList();
+    final delta =
+        ' \r\n\ufeffdata: ${jsonEncode({'type': 'response.output_text.delta', 'delta': '你好'})}\n\n';
+    for (final byte in utf8.encode(delta)) {
+      wire.add(Uint8List.fromList([byte]));
+    }
+    try {
+      await expectLater(
+        firstText.future.timeout(const Duration(seconds: 1)),
+        completes,
+      );
+    } finally {
+      wire.add(
+        Uint8List.fromList(utf8.encode('data: ${jsonEncode(completed())}\n\n')),
+      );
+      // Completion cancels the consumer; don't wait on a paused fixture stream.
+      unawaited(wire.close());
+      final chunks = await result.timeout(const Duration(seconds: 3));
+      expect(chunks.map((c) => c.text).join(), '你好');
+      expect(chunks.last.completed, true);
+    }
+  });
+
+  test(
+    'A completed response fills a missing text delta without repeating text',
+    () async {
+      final events = [
+        {'type': 'response.output_text.delta', 'delta': '关键步骤'},
+        completed(
+          output: [
+            {
+              'type': 'message',
+              'content': [
+                {'type': 'output_text', 'text': '关键步骤与完整结论'},
+              ],
+            },
+          ],
+        ),
+      ];
+      final wire = events.map((e) => 'data: ${jsonEncode(e)}\n\n').join();
+      final chunks = await decodeResponses(
+        Stream.value(utf8.encode(wire)),
+        null,
+      ).toList();
+      expect(chunks.map((c) => c.text).join(), '关键步骤与完整结论');
+      expect(chunks.last.completed, true);
     },
   );
 
