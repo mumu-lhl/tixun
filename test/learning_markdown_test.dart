@@ -5,6 +5,38 @@ import 'package:tixun/core/ui/learning_markdown.dart';
 
 void main() {
   testWidgets(
+    'Wide tables keep long cells readable and scroll to the last column',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final explanation = '这里需要解释公式的适用条件与推导步骤，避免把长段文字挤成一条很细的竖列。' * 5;
+      final content =
+          '| 考点 | 公式 | 条件 | 详细解释 | 例子 | 补充 |\n| --- | --- | --- | --- | --- | --- |\n| 顶点 | x² | a≠0 | $explanation | 配方 | 最后一列的完整内容 |';
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: LearningMarkdown(content)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final paragraph = find.textContaining(explanation, findRichText: true);
+      expect(tester.getSize(paragraph).width, greaterThan(140));
+      final horizontal = find.byWidgetPredicate(
+        (w) =>
+            w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
+      );
+      expect(horizontal, findsOneWidget);
+      await tester.dragFrom(const Offset(180, 25), const Offset(-1500, 0));
+      await tester.pumpAndSettle();
+      final last = find.text('最后一列的完整内容', findRichText: true);
+      expect(tester.getCenter(last).dx, inInclusiveRange(0, 390));
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
     'Inline code renders as a chip; fenced blocks keep block rendering',
     (tester) async {
       tester.view.physicalSize = const Size(390, 1000);

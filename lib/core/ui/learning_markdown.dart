@@ -144,6 +144,20 @@ class _InlineCodeBuilder extends MarkdownElementBuilder {
   }
 }
 
+// Intrinsic sizing keeps short columns compact and enables the Markdown
+// package's horizontal scrolling. Cap long cells so prose still wraps.
+class _ReadableTableColumnWidth extends IntrinsicColumnWidth {
+  const _ReadableTableColumnWidth();
+
+  @override
+  double minIntrinsicWidth(Iterable<RenderBox> cells, double containerWidth) =>
+      super.minIntrinsicWidth(cells, containerWidth).clamp(72, 260);
+
+  @override
+  double maxIntrinsicWidth(Iterable<RenderBox> cells, double containerWidth) =>
+      super.maxIntrinsicWidth(cells, containerWidth).clamp(72, 260);
+}
+
 class LearningMarkdown extends StatelessWidget {
   const LearningMarkdown(this.data, {super.key});
   final String data;
@@ -174,6 +188,19 @@ class LearningMarkdown extends StatelessWidget {
         styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
           p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
           blockSpacing: 14,
+          tableColumnWidth: const _ReadableTableColumnWidth(),
+          tableScrollbarThumbVisibility: true,
+          tableVerticalAlignment: TableCellVerticalAlignment.top,
+          tableCellsPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
+          tableBody: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+          tableHead: theme.textTheme.bodyLarge?.copyWith(
+            height: 1.6,
+            fontWeight: FontWeight.w600,
+          ),
+          tableBorder: TableBorder.all(color: theme.colorScheme.outlineVariant),
           code: TextStyle(
             fontFamily: 'TixunMono',
             fontSize: 14,

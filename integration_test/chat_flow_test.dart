@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:tixun/app/app.dart';
 import 'package:tixun/app/controller.dart';
+import 'package:tixun/core/database/database.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -161,6 +162,36 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('chat-scroll-bottom')), findsNothing);
       await resizeGui(tester, 1280, 900);
+      expect(tester.takeException(), isNull);
+      await c.newSession();
+      await c.db
+          .into(c.db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: 'readable-table',
+              sessionId: c.selected!.id,
+              role: 'assistant',
+              content: r'''| 知识点 | 核心解释 | 公式 | 条件 | 易错点 | 例子 |
+| --- | --- | --- | --- | --- | --- |
+| 二次函数 | 配方能把二次函数化为顶点式。先提出二次项系数，再配成完全平方；括号内补入的常数要在括号外抵消。这样可以直接看出对称轴、顶点以及最大值或最小值。解释较长时仍按正常宽度换行，不挤成竖排。 | $f(x)=a(x-h)^2+k$ | $a\ne0$ | 注意括号外系数，避免补项后漏乘。 | $x^2-4x+3=(x-2)^2-1$ |
+''',
+              createdAt: DateTime.now(),
+            ),
+          );
+      await c.selectSession(c.selected!);
+      await resizeGui(tester, 390, 844);
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(Table)).width, greaterThan(390));
+      await guiCapture('markdown', 'wide-table-phone');
+      final table = tester.getRect(find.byType(Table));
+      await tester.dragFrom(
+        Offset(200, table.top + 20),
+        const Offset(-1500, 0),
+      );
+      await tester.pumpAndSettle();
+      await guiCapture('markdown', 'wide-table-phone-scrolled');
+      await resizeGui(tester, 1280, 900);
+      await guiCapture('markdown', 'wide-table-desktop');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       container.dispose();
