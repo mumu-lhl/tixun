@@ -107,6 +107,7 @@ void main() {
   test('Knowledge generation and merging use managed task prompts', () async {
     await c.savePrompt('knowledge_writing', '先按主题列结论，再给适用条件。');
     var prompt = await c.prepareStudyWriting(instruction: '整理导数公式');
+    expect(c.studyToolCategories, {StudyToolCategory.knowledge});
     expect(prompt, contains('先按主题列结论，再给适用条件。'));
     expect(prompt, contains('整理导数公式'));
     expect(
@@ -141,6 +142,9 @@ void main() {
           instruction: '保留适用条件',
         );
         expect(c.selected!.id, isNot(original));
+        expect(c.studyToolCategories, {
+          mistake ? StudyToolCategory.mistakes : StudyToolCategory.knowledge,
+        });
         expect(prompt, contains(source.content));
         final pending = c.send(prompt);
         await waitFor(() => c.pendingTool != null);

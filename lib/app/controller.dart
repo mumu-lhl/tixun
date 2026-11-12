@@ -1172,7 +1172,9 @@ class AppController extends ChangeNotifier {
       knowledgeId: knowledgeId,
       sourceSessionId: original?.id,
     ).save(db, selected!.id);
-    await setTools(true);
+    await setStudyToolCategories({
+      mistake ? StudyToolCategory.mistakes : StudyToolCategory.knowledge,
+    });
     await draft(text);
     return text;
   }
