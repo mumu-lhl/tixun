@@ -133,7 +133,7 @@ void main() {
       await ready(
         t,
         () =>
-            c.subjectFilter == '' &&
+            c.subjectFilter == '物理' &&
             find.text('物理受力分析的步骤').evaluate().isNotEmpty,
       );
       await resizeGui(t, 1280, 900);
