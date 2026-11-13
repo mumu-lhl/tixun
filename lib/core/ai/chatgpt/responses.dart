@@ -377,6 +377,17 @@ Stream<AiChunk> decodeResponses(
       'response.incomplete',
       'error',
     ].contains(type)) {
+      // A failed or incomplete response can still report billable usage. Hand
+      // it to the caller before throwing so the usage ledger keeps it.
+      final response = event['response'];
+      if (type != 'error' && response is Map && response['usage'] is Map) {
+        final usage = parseResponsesUsage(response['usage'] as Map);
+        if (usage.totalTokens != null ||
+            usage.inputTokens != null ||
+            usage.outputTokens != null) {
+          yield AiChunk(usage: usage);
+        }
+      }
       final error = type == 'error'
           ? event
           : (event['response'] as Map?)?['error'];

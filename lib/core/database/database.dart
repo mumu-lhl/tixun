@@ -139,6 +139,8 @@ class AiModelPrices extends Table {
   IntColumn get inputRateNanoUsdPerMillion => integer()();
   IntColumn get cachedInputRateNanoUsdPerMillion => integer()();
   IntColumn get outputRateNanoUsdPerMillion => integer()();
+  IntColumn get offPeakDiscountPercent =>
+      integer().withDefault(const Constant(0))();
   TextColumn get source => text().withDefault(const Constant('user'))();
   DateTimeColumn get updatedAt => dateTime()();
   @override
@@ -191,7 +193,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 14;
+  static const latestSchemaVersion = 15;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -321,6 +323,14 @@ class AppDatabase extends _$AppDatabase {
         );
         await customStatement(
           'CREATE INDEX ai_usage_action ON ai_usage_events(action_id)',
+        );
+      }
+      if (from >= 14 && from < 15) {
+        await m.addColumn(aiModelPrices, aiModelPrices.offPeakDiscountPercent);
+        // Built-in DeepSeek rows hold peak rates. Existing user-edited rows
+        // stay peak-only until the user opts into an off-peak discount.
+        await customStatement(
+          "UPDATE ai_model_prices SET off_peak_discount_percent = 50 WHERE source = 'deepseek_official_peak'",
         );
       }
       if (from >= 9 && from < 12) {

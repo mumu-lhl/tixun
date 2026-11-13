@@ -104,6 +104,11 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     final output = TextEditingController(
       text: price == null ? '' : _rateText(price.outputRateNanoUsdPerMillion),
     );
+    final discount = TextEditingController(
+      text: price == null
+          ? (initialProvider == 'deepseek' ? '50' : '0')
+          : price.offPeakDiscountPercent.toString(),
+    );
     final model = TextEditingController(
       text:
           price?.model ??
@@ -129,6 +134,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
             int input,
             int cached,
             int output,
+            int discount,
           })
         >(
           context: context,
@@ -215,6 +221,15 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                           labelText: context.l10n.outputPricePerMillion,
                         ),
                       ),
+                      TextField(
+                        controller: discount,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: context.l10n.offPeakDiscount,
+                          helperText: context.l10n.offPeakDiscountHint,
+                          helperMaxLines: 3,
+                        ),
+                      ),
                       if (validationError != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
@@ -242,8 +257,12 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                               double.tryParse(controller.text.trim()),
                         )
                         .toList();
+                    final discountPercent = int.tryParse(discount.text.trim());
                     if (model.text.trim().isEmpty ||
                         endpoint.text.trim().isEmpty ||
+                        discountPercent == null ||
+                        discountPercent < 0 ||
+                        discountPercent > 100 ||
                         rates.any(
                           (rate) =>
                               rate == null ||
@@ -264,6 +283,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                       input: (rates[0]! * 1000000000).round(),
                       cached: (rates[1]! * 1000000000).round(),
                       output: (rates[2]! * 1000000000).round(),
+                      discount: discountPercent,
                     ));
                   },
                   child: Text(context.l10n.save),
@@ -275,6 +295,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     input.dispose();
     cached.dispose();
     output.dispose();
+    discount.dispose();
     model.dispose();
     endpoint.dispose();
     if (result == null) return;
@@ -285,6 +306,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
       inputRateNanoUsdPerMillion: result.input,
       cachedInputRateNanoUsdPerMillion: result.cached,
       outputRateNanoUsdPerMillion: result.output,
+      offPeakDiscountPercent: result.discount,
     );
     if (mounted) _reloadPrices();
   }
@@ -630,11 +652,12 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: Text('${price.providerKind} · ${price.model}'),
                     subtitle: Text(
-                      '${price.endpoint}\n'
+                      '${price.endpoint} · '
+                      '${l10n.usagePriceUpdated(_dateOnly(price.updatedAt.toLocal()))}\n'
                       '${_usdRate(price.inputRateNanoUsdPerMillion)} / '
                       '${_usdRate(price.cachedInputRateNanoUsdPerMillion)} / '
                       '${_usdRate(price.outputRateNanoUsdPerMillion)}'
-                      ' · ${l10n.usagePriceUpdated(_dateOnly(price.updatedAt.toLocal()))}',
+                      '${price.offPeakDiscountPercent > 0 ? ' · ${l10n.usageOffPeakDiscount(l10nArgument(_int(price.offPeakDiscountPercent)))}' : ''}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -907,6 +930,8 @@ class _UsageRequestTile extends StatelessWidget {
       row.totalTokens == null
           ? l10n.providerUsageUnavailable
           : '${l10n.tokenTotal}: ${_int(row.totalTokens!)}',
+      if (row.rateSource?.endsWith('_off_peak') ?? false)
+        l10n.usageOffPeakShort,
       if (row.durationMs != null) _duration(row.durationMs!),
       if (row.usageSource == 'legacy_total') l10n.legacyUsageTotalOnly,
     ].join(' · ');

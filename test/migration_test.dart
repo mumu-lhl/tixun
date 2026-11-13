@@ -34,6 +34,31 @@ void main() {
     },
   );
 
+  test('Schema v14 gives built-in DeepSeek prices the off-peak discount', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(14);
+    const columns =
+        'provider_kind,endpoint,model,input_rate_nano_usd_per_million,'
+        'cached_input_rate_nano_usd_per_million,'
+        'output_rate_nano_usd_per_million,source,updated_at';
+    schema.rawDatabase.execute(
+      "INSERT INTO ai_model_prices($columns) VALUES('deepseek','https://api.deepseek.com','deepseek-flash',300000000,6000000,1200000000,'deepseek_official_peak',1)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO ai_model_prices($columns) VALUES('compatible','https://api.example.test','model-x',1000000000,100000000,2000000000,'user',1)",
+    );
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+    final prices = await db.select(db.aiModelPrices).get();
+    final builtin = prices.singleWhere(
+      (row) => row.source == 'deepseek_official_peak',
+    );
+    final user = prices.singleWhere((row) => row.source == 'user');
+    expect(builtin.offPeakDiscountPercent, 50);
+    expect(user.offPeakDiscountPercent, 0);
+  });
+
   test('Schema v12 adds context summary columns to chat sessions', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final schema = await verifier.schemaAt(12);

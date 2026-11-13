@@ -2040,7 +2040,18 @@
   "imageInputs": "Image inputs",
   "toolCalls": "Tool calls",
   "officialPricingPage": "Official pricing details",
-  "ratePeakNote": "DeepSeek prices are prefilled with official peak rates; off-peak rates are about half and prices may change.",
+  "ratePeakNote": "DeepSeek prices use official peak rates; off-peak requests apply the configured discount (50% by default). Prices may change.",
+  "offPeakDiscount": "Off-peak discount (%)",
+  "offPeakDiscountHint": "Applied during DeepSeek's off-peak window (16:30–00:30 UTC); 0 disables the discount.",
+  "usageOffPeakDiscount": "Off-peak -{arg0}%",
+  "@usageOffPeakDiscount": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usageOffPeakShort": "Off-peak",
   "fileExportCancelled": "Export canceled.",
   "usageLoadFailed": "Could not load usage. Try again.",
   "usageRefresh": "Refresh",

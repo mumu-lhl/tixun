@@ -79,6 +79,15 @@ void main() {
     await tester.scrollUntilVisible(find.text('请求明细'), 250);
     expect(find.text('请求明细'), findsOneWidget);
     expect(find.byKey(const Key('add-ai-model-price')), findsOneWidget);
+    expect(find.textContaining('离峰 -50%'), findsWidgets);
+
+    await tester.ensureVisible(find.byKey(const Key('add-ai-model-price')));
+    await tester.tap(find.byKey(const Key('add-ai-model-price')));
+    await tester.pumpAndSettle();
+    expect(find.text('离峰折扣（%）'), findsOneWidget);
+    expect(find.textContaining('00:30–08:30'), findsOneWidget);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('请求明细'));
     await tester.pumpAndSettle();

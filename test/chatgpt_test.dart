@@ -428,6 +428,32 @@ void main() {
     }
   });
 
+  test('Incomplete and failed responses keep reported usage before throwing', () async {
+    for (final type in ['response.incomplete', 'response.failed']) {
+      final wire =
+          'data: ${jsonEncode({'type': 'response.output_text.delta', 'delta': 'Partial'})}\n\n'
+          'data: ${jsonEncode({
+            'type': type,
+            'response': {
+              'status': 'failed',
+              'usage': {'input_tokens': 80, 'output_tokens': 20, 'total_tokens': 100},
+            },
+          })}\n\n';
+      final chunks = <AiChunk>[];
+      await expectLater(
+        decodeResponses(
+          Stream.value(utf8.encode(wire)),
+          null,
+        ).forEach(chunks.add),
+        throwsA(isA<AiFailure>()),
+      );
+      expect(chunks.where((chunk) => chunk.usage != null), hasLength(1));
+      expect(chunks.last.usage?.inputTokens, 80);
+      expect(chunks.last.usage?.totalTokens, 100);
+      expect(chunks.last.completed, isFalse);
+    }
+  });
+
   test('History with tool calls but no retained context synthesizes a fallback function_call', () async {
     final f = ChatGptFixture();
     await f.seed();

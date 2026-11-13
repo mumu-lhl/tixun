@@ -128,6 +128,7 @@ void main() {
       expect(price.inputRateNanoUsdPerMillion, 300000000);
       expect(price.cachedInputRateNanoUsdPerMillion, 6000000);
       expect(price.outputRateNanoUsdPerMillion, 1200000000);
+      expect(price.offPeakDiscountPercent, 50);
 
       await store.savePrice(
         providerKind: price.providerKind,
@@ -151,6 +152,61 @@ void main() {
       );
     },
   );
+
+  test('DeepSeek off-peak requests snapshot the discounted rates', () async {
+    await store.savePrice(
+      providerKind: 'deepseek',
+      endpoint: 'https://api.deepseek.com',
+      model: 'deepseek-flash',
+      inputRateNanoUsdPerMillion: 1000000000,
+      cachedInputRateNanoUsdPerMillion: 500000000,
+      outputRateNanoUsdPerMillion: 2000000000,
+      offPeakDiscountPercent: 50,
+    );
+    for (final (action, at) in [
+      ('peak', DateTime.utc(2026, 1, 2, 12)),
+      ('off-peak', DateTime.utc(2026, 1, 2, 17)),
+    ]) {
+      await store.record(
+        AiUsageCapture(
+          actionId: action,
+          providerKind: 'deepseek',
+          endpoint: 'https://api.deepseek.com',
+          model: 'deepseek-flash',
+          feature: 'chat',
+          status: 'complete',
+          occurredAt: at,
+          usage: const AiTokenUsage(
+            inputTokens: 100,
+            cachedInputTokens: 50,
+            outputTokens: 25,
+            reportedTotalTokens: 125,
+          ),
+        ),
+      );
+    }
+
+    final rows = await store.events();
+    final peak = rows.singleWhere((row) => row.actionId == 'peak');
+    final offPeak = rows.singleWhere((row) => row.actionId == 'off-peak');
+    expect(peak.costNanoUsd, 125000);
+    expect(peak.inputRateNanoUsdPerMillion, 1000000000);
+    expect(peak.rateSource, 'user');
+    expect(offPeak.costNanoUsd, 62500);
+    expect(offPeak.inputRateNanoUsdPerMillion, 500000000);
+    expect(offPeak.cachedInputRateNanoUsdPerMillion, 250000000);
+    expect(offPeak.outputRateNanoUsdPerMillion, 1000000000);
+    expect(offPeak.rateSource, 'user_off_peak');
+  });
+
+  test('DeepSeek off-peak starts at 16:30 and ends at 00:30 UTC', () {
+    expect(isDeepSeekOffPeak(DateTime.utc(2026, 1, 2, 16, 29)), isFalse);
+    expect(isDeepSeekOffPeak(DateTime.utc(2026, 1, 2, 16, 30)), isTrue);
+    expect(isDeepSeekOffPeak(DateTime.utc(2026, 1, 2, 23, 59)), isTrue);
+    expect(isDeepSeekOffPeak(DateTime.utc(2026, 1, 3, 0, 29)), isTrue);
+    expect(isDeepSeekOffPeak(DateTime.utc(2026, 1, 3, 0, 30)), isFalse);
+    expect(isDeepSeekOffPeak(DateTime.utc(2026, 1, 3, 12)), isFalse);
+  });
 
   test('ChatGPT plan usage has no invented per-token cash cost', () async {
     await store.record(

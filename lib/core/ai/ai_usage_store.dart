@@ -72,9 +72,23 @@ class AiUsageStore {
             (price != null &&
                 price.cachedInputRateNanoUsdPerMillion ==
                     price.inputRateNanoUsdPerMillion));
+    final offPeak =
+        price != null &&
+        price.offPeakDiscountPercent > 0 &&
+        isDeepSeekOffPeak(capture.occurredAt);
+    final discount = offPeak ? price.offPeakDiscountPercent : 0;
+    final inputRate = price == null
+        ? null
+        : _discountedRate(price.inputRateNanoUsdPerMillion, discount);
+    final cachedRate = price == null
+        ? null
+        : _discountedRate(price.cachedInputRateNanoUsdPerMillion, discount);
+    final outputRate = price == null
+        ? null
+        : _discountedRate(price.outputRateNanoUsdPerMillion, discount);
     final cost = price == null || usage == null || !canEstimateCost
         ? null
-        : _estimateCostNanoUsd(usage, price);
+        : _estimateCostNanoUsd(usage, inputRate!, cachedRate!, outputRate!);
     await db
         .into(db.aiUsageEvents)
         .insertOnConflictUpdate(
@@ -108,16 +122,16 @@ class AiUsageStore {
                   ? 'unknown'
                   : 'estimate',
             ),
-            inputRateNanoUsdPerMillion: Value(
-              price?.inputRateNanoUsdPerMillion,
+            inputRateNanoUsdPerMillion: Value(inputRate),
+            cachedInputRateNanoUsdPerMillion: Value(cachedRate),
+            outputRateNanoUsdPerMillion: Value(outputRate),
+            rateSource: Value(
+              price == null
+                  ? null
+                  : offPeak
+                  ? '${price.source}_off_peak'
+                  : price.source,
             ),
-            cachedInputRateNanoUsdPerMillion: Value(
-              price?.cachedInputRateNanoUsdPerMillion,
-            ),
-            outputRateNanoUsdPerMillion: Value(
-              price?.outputRateNanoUsdPerMillion,
-            ),
-            rateSource: Value(price?.source),
             rateUpdatedAt: Value(price?.updatedAt),
           ),
         );
@@ -173,6 +187,7 @@ class AiUsageStore {
               inputRateNanoUsdPerMillion: price.input,
               cachedInputRateNanoUsdPerMillion: price.cached,
               outputRateNanoUsdPerMillion: price.output,
+              offPeakDiscountPercent: const Value(50),
               source: const Value('deepseek_official_peak'),
               updatedAt: DateTime.now(),
             ),
@@ -189,11 +204,14 @@ class AiUsageStore {
     required int inputRateNanoUsdPerMillion,
     required int cachedInputRateNanoUsdPerMillion,
     required int outputRateNanoUsdPerMillion,
+    int offPeakDiscountPercent = 0,
   }) async {
     if (model.trim().isEmpty ||
         inputRateNanoUsdPerMillion < 0 ||
         cachedInputRateNanoUsdPerMillion < 0 ||
-        outputRateNanoUsdPerMillion < 0) {
+        outputRateNanoUsdPerMillion < 0 ||
+        offPeakDiscountPercent < 0 ||
+        offPeakDiscountPercent > 100) {
       throw ArgumentError('模型名和价格必须有效。');
     }
     await db
@@ -206,6 +224,7 @@ class AiUsageStore {
             inputRateNanoUsdPerMillion: inputRateNanoUsdPerMillion,
             cachedInputRateNanoUsdPerMillion: cachedInputRateNanoUsdPerMillion,
             outputRateNanoUsdPerMillion: outputRateNanoUsdPerMillion,
+            offPeakDiscountPercent: Value(offPeakDiscountPercent),
             source: const Value('user'),
             updatedAt: DateTime.now(),
           ),
@@ -296,17 +315,31 @@ class AiUsageStore {
       )
       .join('\n');
 
-  int _estimateCostNanoUsd(AiTokenUsage usage, AiModelPrice price) {
+  int _estimateCostNanoUsd(
+    AiTokenUsage usage,
+    int inputRate,
+    int cachedRate,
+    int outputRate,
+  ) {
     final input = usage.inputTokens ?? 0;
     final cached = (usage.cachedInputTokens ?? 0).clamp(0, input).toInt();
     final output = usage.outputTokens ?? 0;
     final uncached = input - cached;
-    return (uncached * price.inputRateNanoUsdPerMillion +
-            cached * price.cachedInputRateNanoUsdPerMillion +
-            output * price.outputRateNanoUsdPerMillion) ~/
+    return (uncached * inputRate + cached * cachedRate + output * outputRate) ~/
         _tokensPerMillion;
   }
 }
+
+/// DeepSeek discounts requests in the 16:30–00:30 UTC window
+/// (00:30–08:30 Beijing time).
+bool isDeepSeekOffPeak(DateTime time) {
+  final utc = time.toUtc();
+  final minutes = utc.hour * 60 + utc.minute;
+  return minutes >= 16 * 60 + 30 || minutes < 30;
+}
+
+int _discountedRate(int rate, int discountPercent) =>
+    discountPercent == 0 ? rate : rate * (100 - discountPercent) ~/ 100;
 
 String _normalizeEndpoint(String endpoint) {
   final trimmed = endpoint.trim().replaceAll(RegExp(r'/+$'), '');

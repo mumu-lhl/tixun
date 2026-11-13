@@ -4263,6 +4263,17 @@ class $AiModelPricesTable extends AiModelPrices
         type: DriftSqlType.int,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _offPeakDiscountPercentMeta =
+      const VerificationMeta('offPeakDiscountPercent');
+  @override
+  late final GeneratedColumn<int> offPeakDiscountPercent = GeneratedColumn<int>(
+    'off_peak_discount_percent',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _sourceMeta = const VerificationMeta('source');
   @override
   late final GeneratedColumn<String> source = GeneratedColumn<String>(
@@ -4292,6 +4303,7 @@ class $AiModelPricesTable extends AiModelPrices
     inputRateNanoUsdPerMillion,
     cachedInputRateNanoUsdPerMillion,
     outputRateNanoUsdPerMillion,
+    offPeakDiscountPercent,
     source,
     updatedAt,
   ];
@@ -4365,6 +4377,15 @@ class $AiModelPricesTable extends AiModelPrices
     } else if (isInserting) {
       context.missing(_outputRateNanoUsdPerMillionMeta);
     }
+    if (data.containsKey('off_peak_discount_percent')) {
+      context.handle(
+        _offPeakDiscountPercentMeta,
+        offPeakDiscountPercent.isAcceptableOrUnknown(
+          data['off_peak_discount_percent']!,
+          _offPeakDiscountPercentMeta,
+        ),
+      );
+    }
     if (data.containsKey('source')) {
       context.handle(
         _sourceMeta,
@@ -4412,6 +4433,10 @@ class $AiModelPricesTable extends AiModelPrices
         DriftSqlType.int,
         data['${effectivePrefix}output_rate_nano_usd_per_million'],
       )!,
+      offPeakDiscountPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}off_peak_discount_percent'],
+      )!,
       source: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}source'],
@@ -4436,6 +4461,7 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
   final int inputRateNanoUsdPerMillion;
   final int cachedInputRateNanoUsdPerMillion;
   final int outputRateNanoUsdPerMillion;
+  final int offPeakDiscountPercent;
   final String source;
   final DateTime updatedAt;
   const AiModelPrice({
@@ -4445,6 +4471,7 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
     required this.inputRateNanoUsdPerMillion,
     required this.cachedInputRateNanoUsdPerMillion,
     required this.outputRateNanoUsdPerMillion,
+    required this.offPeakDiscountPercent,
     required this.source,
     required this.updatedAt,
   });
@@ -4463,6 +4490,7 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
     map['output_rate_nano_usd_per_million'] = Variable<int>(
       outputRateNanoUsdPerMillion,
     );
+    map['off_peak_discount_percent'] = Variable<int>(offPeakDiscountPercent);
     map['source'] = Variable<String>(source);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -4476,6 +4504,7 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
       inputRateNanoUsdPerMillion: Value(inputRateNanoUsdPerMillion),
       cachedInputRateNanoUsdPerMillion: Value(cachedInputRateNanoUsdPerMillion),
       outputRateNanoUsdPerMillion: Value(outputRateNanoUsdPerMillion),
+      offPeakDiscountPercent: Value(offPeakDiscountPercent),
       source: Value(source),
       updatedAt: Value(updatedAt),
     );
@@ -4499,6 +4528,9 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
       outputRateNanoUsdPerMillion: serializer.fromJson<int>(
         json['outputRateNanoUsdPerMillion'],
       ),
+      offPeakDiscountPercent: serializer.fromJson<int>(
+        json['offPeakDiscountPercent'],
+      ),
       source: serializer.fromJson<String>(json['source']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -4519,6 +4551,7 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
       'outputRateNanoUsdPerMillion': serializer.toJson<int>(
         outputRateNanoUsdPerMillion,
       ),
+      'offPeakDiscountPercent': serializer.toJson<int>(offPeakDiscountPercent),
       'source': serializer.toJson<String>(source),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -4531,6 +4564,7 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
     int? inputRateNanoUsdPerMillion,
     int? cachedInputRateNanoUsdPerMillion,
     int? outputRateNanoUsdPerMillion,
+    int? offPeakDiscountPercent,
     String? source,
     DateTime? updatedAt,
   }) => AiModelPrice(
@@ -4544,6 +4578,8 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
         this.cachedInputRateNanoUsdPerMillion,
     outputRateNanoUsdPerMillion:
         outputRateNanoUsdPerMillion ?? this.outputRateNanoUsdPerMillion,
+    offPeakDiscountPercent:
+        offPeakDiscountPercent ?? this.offPeakDiscountPercent,
     source: source ?? this.source,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -4564,6 +4600,9 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
       outputRateNanoUsdPerMillion: data.outputRateNanoUsdPerMillion.present
           ? data.outputRateNanoUsdPerMillion.value
           : this.outputRateNanoUsdPerMillion,
+      offPeakDiscountPercent: data.offPeakDiscountPercent.present
+          ? data.offPeakDiscountPercent.value
+          : this.offPeakDiscountPercent,
       source: data.source.present ? data.source.value : this.source,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -4580,6 +4619,7 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
             'cachedInputRateNanoUsdPerMillion: $cachedInputRateNanoUsdPerMillion, ',
           )
           ..write('outputRateNanoUsdPerMillion: $outputRateNanoUsdPerMillion, ')
+          ..write('offPeakDiscountPercent: $offPeakDiscountPercent, ')
           ..write('source: $source, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -4594,6 +4634,7 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
     inputRateNanoUsdPerMillion,
     cachedInputRateNanoUsdPerMillion,
     outputRateNanoUsdPerMillion,
+    offPeakDiscountPercent,
     source,
     updatedAt,
   );
@@ -4609,6 +4650,7 @@ class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
               this.cachedInputRateNanoUsdPerMillion &&
           other.outputRateNanoUsdPerMillion ==
               this.outputRateNanoUsdPerMillion &&
+          other.offPeakDiscountPercent == this.offPeakDiscountPercent &&
           other.source == this.source &&
           other.updatedAt == this.updatedAt);
 }
@@ -4620,6 +4662,7 @@ class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
   final Value<int> inputRateNanoUsdPerMillion;
   final Value<int> cachedInputRateNanoUsdPerMillion;
   final Value<int> outputRateNanoUsdPerMillion;
+  final Value<int> offPeakDiscountPercent;
   final Value<String> source;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -4630,6 +4673,7 @@ class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
     this.inputRateNanoUsdPerMillion = const Value.absent(),
     this.cachedInputRateNanoUsdPerMillion = const Value.absent(),
     this.outputRateNanoUsdPerMillion = const Value.absent(),
+    this.offPeakDiscountPercent = const Value.absent(),
     this.source = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -4641,6 +4685,7 @@ class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
     required int inputRateNanoUsdPerMillion,
     required int cachedInputRateNanoUsdPerMillion,
     required int outputRateNanoUsdPerMillion,
+    this.offPeakDiscountPercent = const Value.absent(),
     this.source = const Value.absent(),
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -4659,6 +4704,7 @@ class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
     Expression<int>? inputRateNanoUsdPerMillion,
     Expression<int>? cachedInputRateNanoUsdPerMillion,
     Expression<int>? outputRateNanoUsdPerMillion,
+    Expression<int>? offPeakDiscountPercent,
     Expression<String>? source,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -4674,6 +4720,8 @@ class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
             cachedInputRateNanoUsdPerMillion,
       if (outputRateNanoUsdPerMillion != null)
         'output_rate_nano_usd_per_million': outputRateNanoUsdPerMillion,
+      if (offPeakDiscountPercent != null)
+        'off_peak_discount_percent': offPeakDiscountPercent,
       if (source != null) 'source': source,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -4687,6 +4735,7 @@ class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
     Value<int>? inputRateNanoUsdPerMillion,
     Value<int>? cachedInputRateNanoUsdPerMillion,
     Value<int>? outputRateNanoUsdPerMillion,
+    Value<int>? offPeakDiscountPercent,
     Value<String>? source,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -4702,6 +4751,8 @@ class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
           this.cachedInputRateNanoUsdPerMillion,
       outputRateNanoUsdPerMillion:
           outputRateNanoUsdPerMillion ?? this.outputRateNanoUsdPerMillion,
+      offPeakDiscountPercent:
+          offPeakDiscountPercent ?? this.offPeakDiscountPercent,
       source: source ?? this.source,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -4735,6 +4786,11 @@ class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
         outputRateNanoUsdPerMillion.value,
       );
     }
+    if (offPeakDiscountPercent.present) {
+      map['off_peak_discount_percent'] = Variable<int>(
+        offPeakDiscountPercent.value,
+      );
+    }
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
@@ -4758,6 +4814,7 @@ class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
             'cachedInputRateNanoUsdPerMillion: $cachedInputRateNanoUsdPerMillion, ',
           )
           ..write('outputRateNanoUsdPerMillion: $outputRateNanoUsdPerMillion, ')
+          ..write('offPeakDiscountPercent: $offPeakDiscountPercent, ')
           ..write('source: $source, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
