@@ -240,11 +240,12 @@ class AppPreferences extends DatabaseNotifier {
     final previous = ProviderConfig.fromJson(
       jsonDecode(raw) as Map<String, dynamic>,
     );
-    if (previous.kind == 'chatgpt')
+    if (previous.kind == 'chatgpt') {
       throw const AppFormatException(
         AppErrorCode.previousAPISettingsAreInvalid,
         '原 API 配置无效。',
       );
+    }
     await saveSettings(previous, null);
     // A successful restore consumes the saved provider; leaving the
     // stale value would let a second restore silently re-apply it.

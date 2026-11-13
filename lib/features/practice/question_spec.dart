@@ -58,12 +58,13 @@ class QuestionSpec {
     }
     String str(String k, [String fallback = '']) {
       final v = a[k] ?? fallback;
-      if (v is! String)
+      if (v is! String) {
         throw AppFormatException(
           AppErrorCode.errorParameterMustBeText,
           '$k 必须是文字。',
           [k],
         );
+      }
       return v;
     }
 
@@ -87,12 +88,13 @@ class QuestionSpec {
     }
     double numValue(String k, double fallback) {
       final v = a[k] ?? fallback;
-      if (v is! num)
+      if (v is! num) {
         throw AppFormatException(
           AppErrorCode.errorParameterMustBeNumber,
           '$k 必须是数字。',
           [k],
         );
+      }
       return v.toDouble();
     }
 
@@ -230,11 +232,12 @@ class QuestionSpec {
   int get responseCount => kind == 'fill_blank' ? answers.length : 1;
   bool grade(List<String> responses) {
     validate();
-    if (kind == 'short_answer')
+    if (kind == 'short_answer') {
       throw const AppFormatException(
         AppErrorCode.errorThisQuestionRequiresSelfGrading,
         '此题需要自主判分。',
       );
+    }
     if (['single_choice', 'multiple_choice', 'true_false'].contains(kind)) {
       final correct = answers.map((a) => a.single).toSet();
       return responses.toSet().length == responses.length &&

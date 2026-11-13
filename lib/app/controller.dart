@@ -450,11 +450,12 @@ class AppController extends ChangeNotifier {
 
   Future<void> setSessionReasoning(String value) =>
       preferences.runOperation(() async {
-        if (busy || selected == null)
+        if (busy || selected == null) {
           throw const AiFailure.localized(
             AppErrorCode.stopGeneratingBeforeChangingReasoning,
             '请先停止生成，再调整本会话思考强度。',
           );
+        }
         if (value.isNotEmpty && value != 'off' && !config.supportsThinking) {
           throw const AiFailure.localized(
             AppErrorCode.theCurrentModelHasNot,
@@ -557,18 +558,20 @@ class AppController extends ChangeNotifier {
     // which parameter is missing.
     String argString(String key) {
       final value = args[key];
-      if (value == null)
+      if (value == null) {
         throw AppFormatException(
           AppErrorCode.errorMissingParameter,
           '缺少参数：$key。',
           [key],
         );
-      if (value is! String)
+      }
+      if (value is! String) {
         throw AppFormatException(
           AppErrorCode.errorInvalidParameterType,
           '参数 $key 类型无效。',
           [key],
         );
+      }
       return value;
     }
 
@@ -586,11 +589,12 @@ class AppController extends ChangeNotifier {
     if (name == 'create_subject_module' && args['parent_id'] is String) {
       final all = await study.modules.list(argString('subject'));
       final parent = all.where((m) => m.id == args['parent_id']).firstOrNull;
-      if (parent == null)
+      if (parent == null) {
         throw const AppFormatException(
           AppErrorCode.errorTheParentModuleDoesNotExist,
           '上级模块不存在。',
         );
+      }
       target = '${parent.name} / ${argString('name')}';
     }
     if (name == 'link_study_module') {
@@ -611,11 +615,12 @@ class AppController extends ChangeNotifier {
       final all = await study.modules.list(subject);
       final moduleId = argString('module_id');
       final module = all.where((m) => m.id == moduleId).firstOrNull;
-      if (module == null)
+      if (module == null) {
         throw const AppFormatException(
           AppErrorCode.errorTheFolderDoesNotExistOr,
           '目录不存在或科目不匹配。',
         );
+      }
       target = '$title → $subject / ${modulePath(module, all)}';
     }
     if (name == 'schedule_review') {
@@ -658,11 +663,12 @@ class AppController extends ChangeNotifier {
   }
 
   Future<Attachment> addImage(String path) => study.runOperation(() async {
-    if (busy)
+    if (busy) {
       throw const AppFormatException(
         AppErrorCode.stopTheReplyBeforeAdding,
         '请先停止生成，再添加图片。',
       );
+    }
     if (selected == null) await newSession();
     final s = selected!;
     final image = await files.importFile(path);
@@ -719,11 +725,12 @@ class AppController extends ChangeNotifier {
                           a.messageId.isNull(),
                     ))
                     .getSingleOrNull();
-            if (row == null)
+            if (row == null) {
               throw const AppFormatException(
                 AppErrorCode.theImageWasSentOr,
                 '图片已发送或草稿已切换，请重新打开编辑。',
               );
+            }
             final file = files.resolve(path);
             await file.parent.create(recursive: true);
             await file.writeAsBytes(bytes, flush: true);
@@ -1135,11 +1142,12 @@ class AppController extends ChangeNotifier {
     bool mistake = false,
     required String instruction,
   }) async {
-    if (busy)
+    if (busy) {
       throw AppFormatException(
         AppErrorCode.stopGenerationBeforeOrganizingMaterial,
         l10n.stopGenerationBeforeOrganizingMaterial,
       );
+    }
     if (!AiOptions(config).toolsAvailable) {
       throw AiFailure.localized(
         AppErrorCode.chooseAModelThatSupports,
@@ -1210,8 +1218,9 @@ class AppController extends ChangeNotifier {
             : l10n.chooseTheAppropriateSubjectBased,
       )
       ..writeln(l10n.instructions(l10nArgument(instruction.trim())));
-    if (target != null)
+    if (target != null) {
       body.writeln(l10n.selectedKnowledge(l10nArgument(target.title)));
+    }
     if (source != null) {
       body
         ..writeln(l10n.theSelectedContentBelowIs)

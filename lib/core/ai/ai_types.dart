@@ -18,8 +18,11 @@ class AiFailure implements Exception, LocalizedAppFailure {
       arguments = error is LocalizedAppFailure
           ? (error as LocalizedAppFailure).arguments
           : const [];
+  @override
   final AppErrorCode? code;
+  @override
   final String message;
+  @override
   final List<String> arguments;
   @override
   String toString() => message;
@@ -164,11 +167,12 @@ extension CancelGuard on CancelToken {
 
 void validateToolCalls(List<ToolCall> calls) {
   final ids = <String>{};
-  if (calls.length > 8)
+  if (calls.length > 8) {
     throw const AiFailure.localized(
       AppErrorCode.errorAtMost8ToolCallsAre,
       '一次最多允许 8 个工具调用。',
     );
+  }
   for (final c in calls) {
     if (c.id.isEmpty || c.name.isEmpty || !ids.add(c.id)) {
       throw const AiFailure.localized(

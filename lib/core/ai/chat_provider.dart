@@ -76,11 +76,12 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
       final choice = choices.first as Map<String, dynamic>;
       final delta = choice['delta'] as Map<String, dynamic>? ?? {};
       if (delta['tool_calls'] != null) {
-        if (delta['tool_calls'] is! List)
+        if (delta['tool_calls'] is! List) {
           throw const AiFailure.localized(
             AppErrorCode.invalidToolCallFormat,
             '工具调用格式无效。',
           );
+        }
         collector.add(delta['tool_calls'] as List);
       }
       if (delta['content'] is String) {
@@ -129,11 +130,12 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
       );
     }
   }
-  if (!ended)
+  if (!ended) {
     throw const AiFailure.localized(
       AppErrorCode.theConnectionEndedEarlyReceived,
       '连接提前断开，已保留收到的内容。请重新生成。',
     );
+  }
 }
 
 String providerKeyId(ProviderConfig config) =>
@@ -688,11 +690,12 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
     final text = request.messages.any((m) => m.text.contains('模拟失败'))
         ? null
         : explanation;
-    if (text == null)
+    if (text == null) {
       throw const AiFailure.localized(
         AppErrorCode.errorSimulatedNetworkFailureSelectRegenerateTo,
         '模拟网络失败：可点击重新生成验证重试流程。',
       );
+    }
     for (var i = 0; i < text.length; i += 12) {
       await Future<void>.delayed(const Duration(milliseconds: 24));
       cancel.checkCancelled();

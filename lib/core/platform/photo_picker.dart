@@ -81,11 +81,12 @@ Future<List<XFile>> pickPhotos(
   final result = <XFile>[];
   for (final entity in picked ?? <assets.AssetEntity>[]) {
     final file = await entity.file;
-    if (file == null)
+    if (file == null) {
       throw const AppFormatException(
         AppErrorCode.cannotReadTheSelectedPhoto,
         '无法读取所选图片，请重新选择。',
       );
+    }
     result.add(XFile(file.path));
   }
   return result;

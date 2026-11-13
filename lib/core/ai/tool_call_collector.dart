@@ -5,11 +5,12 @@ import 'ai_types.dart';
 class ToolCallCollector {
   final _calls = <int, Map<String, String>>{};
   void add(List<dynamic> parts) {
-    if (parts.length > 8)
+    if (parts.length > 8) {
       throw const AiFailure.localized(
         AppErrorCode.errorAtMost8ToolCallsAre,
         '一次最多允许 8 个工具调用。',
       );
+    }
     for (final raw in parts) {
       if (raw is! Map ||
           raw['index'] is! int ||
@@ -25,27 +26,30 @@ class ToolCallCollector {
         () => {'id': '', 'name': '', 'arguments': ''},
       );
       if (raw['id'] != null) {
-        if (raw['id'] is! String)
+        if (raw['id'] is! String) {
           throw const AiFailure.localized(
             AppErrorCode.errorInvalidToolCallID,
             '工具调用 ID 无效。',
           );
+        }
         call['id'] = raw['id'] as String;
       }
       if (raw['function'] != null) {
-        if (raw['function'] is! Map)
+        if (raw['function'] is! Map) {
           throw const AiFailure.localized(
             AppErrorCode.invalidToolCallFormat,
             '工具调用格式无效。',
           );
+        }
         final f = raw['function'] as Map;
         for (final key in ['name', 'arguments']) {
           if (f[key] != null) {
-            if (f[key] is! String)
+            if (f[key] is! String) {
               throw const AiFailure.localized(
                 AppErrorCode.errorInvalidToolArgumentFragment,
                 '工具参数片段无效。',
               );
+            }
             call[key] = '${call[key]}${f[key]}';
           }
         }

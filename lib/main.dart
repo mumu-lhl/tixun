@@ -95,8 +95,9 @@ Future<void> main() async {
             c.notice = const AppNotice(AppNoticeKind.interruptedImageRestored);
           }
         }
-        if (lost.exception != null)
+        if (lost.exception != null) {
           c.notice = const AppNotice(AppNoticeKind.imageSelectionIncomplete);
+        }
       } catch (_) {
         c.notice = const AppNotice(AppNoticeKind.imageRecoveryFailed);
       }

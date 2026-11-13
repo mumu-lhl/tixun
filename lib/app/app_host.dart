@@ -157,11 +157,12 @@ class _TixunHostState extends State<TixunHost> {
     _HostOperation operation,
     Future<T> Function() action,
   ) async {
-    if (_working)
+    if (_working) {
       throw const AppFormatException(
         AppErrorCode.errorAnotherBackupOperationIsStillIn,
         '另一项备份操作尚未完成。',
       );
+    }
     setState(() {
       _working = true;
       _operation = operation;

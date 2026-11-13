@@ -50,11 +50,12 @@ Future<Map<String, dynamic>> executeRegionTool(
 }) async {
   try {
     cancel.checkCancelled();
-    if (call.arguments.length > 64000)
+    if (call.arguments.length > 64000) {
       throw const AppFormatException(
         AppErrorCode.errorTheSuggestedQuestionRegionsAreToo,
         '分题建议过长。',
       );
+    }
     final args = (jsonDecode(call.arguments) as Map).cast<String, dynamic>();
     if (args.keys.any((k) => !['image_index', 'regions'].contains(k)) ||
         args['image_index'] is! int ||
@@ -75,11 +76,12 @@ Future<Map<String, dynamic>> executeRegionTool(
       );
     }
     final image = sourceImages[index];
-    if (image.sessionId != sessionId)
+    if (image.sessionId != sessionId) {
       throw const AppFormatException(
         AppErrorCode.errorTheImageDoesNotBelongTo,
         '图片不属于本次请求。',
       );
+    }
     final regions = raw
         .map((r) => QuestionRegion.fromJson((r as Map).cast<String, dynamic>()))
         .toList();

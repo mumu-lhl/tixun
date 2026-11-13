@@ -45,7 +45,7 @@ void main() {
       await t.tap(find.byKey(const Key('approve-tool')));
       await until(t, () => !c.busy);
       await pending;
-      expect(c.messages.last.status, 'complete', reason: c.error);
+      expect(c.messages.last.status, 'complete', reason: c.error?.name);
       expect(c.messages.last.content, contains('9'));
       final operation = (await c.db.select(c.db.aiToolOperations).get())
           .singleWhere((op) => op.name == 'run_python');

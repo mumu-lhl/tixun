@@ -399,10 +399,11 @@ Future<void> editSubject(
 double? parsePoints(String text) {
   if (text.trim().isEmpty) return null;
   final value = double.tryParse(text.trim());
-  if (value == null || !value.isFinite)
+  if (value == null || !value.isFinite) {
     throw const AppFormatException(
       AppErrorCode.errorInvalidScoreFormat,
       '分数格式无效。',
     );
+  }
   return value;
 }

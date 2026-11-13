@@ -188,11 +188,12 @@ Future<CompactedContext> compactContext({
   final session = await (db.select(
     db.chatSessions,
   )..where((s) => s.id.equals(sessionId))).getSingleOrNull();
-  if (session == null)
+  if (session == null) {
     throw const AiFailure.localized(
       AppErrorCode.errorTheConversationNoLongerExistsSelect,
       '会话不存在，请重新选择会话。',
     );
+  }
   final budget = effectiveContextBudget(
     config: config,
     maxContextTokens: maxContextTokens,
@@ -329,10 +330,11 @@ Future<String> _summarize(
     buffer.write(chunk.text);
   }
   final summary = buffer.toString().trim();
-  if (summary.isEmpty)
+  if (summary.isEmpty) {
     throw const AiFailure.localized(
       AppErrorCode.errorTheSummaryIsEmptyTheContext,
       '摘要为空，未压缩上下文。',
     );
+  }
   return summary;
 }

@@ -2,6 +2,7 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   exclude:
     - '**/*.g.dart'
+    - 'lib/core/l10n/generated/**'
     - build/**
     - android/**
     - linux/**

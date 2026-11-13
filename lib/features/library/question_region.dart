@@ -60,11 +60,12 @@ class QuestionRegion {
         t = coordinate('top'),
         r = coordinate('right'),
         b = coordinate('bottom');
-    if (r - l < .02 || b - t < .02)
+    if (r - l < .02 || b - t < .02) {
       throw const AppFormatException(
         AppErrorCode.errorTheQuestionRegionIsTooSmall,
         '分题范围太小或方向错误。',
       );
+    }
     return QuestionRegion(label.trim(), subject.trim(), l, t, r, b, question);
   }
   Map<String, dynamic> toJson() => {

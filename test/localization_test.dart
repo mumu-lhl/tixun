@@ -70,8 +70,9 @@ void main() {
     ).listSync(recursive: true).whereType<File>()) {
       if (!file.path.endsWith('.dart') ||
           file.path.endsWith('.g.dart') ||
-          file.path.contains('/generated/'))
+          file.path.contains('/generated/')) {
         continue;
+      }
       visitor.path = file.path;
       parseString(
         content: file.readAsStringSync(),
@@ -199,8 +200,8 @@ void main() {
       'The service returned an error：{用户}. Check the model configuration and try again.',
     );
     expect(
-      chatFailureText(en, '${chatFailurePrefix}{invalid'),
-      '${chatFailurePrefix}{invalid',
+      chatFailureText(en, '$chatFailurePrefix{invalid'),
+      '$chatFailurePrefix{invalid',
     );
     try {
       parseExamScores('{"questions":[{"label":"1","earned":"5"}]}');

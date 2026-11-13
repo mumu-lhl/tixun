@@ -73,18 +73,20 @@ class ModuleStore extends DatabaseNotifier {
         // The AI create_subject_module tool documents reuse of an
         // existing directory; the UI create path opts out (see
         // ModuleManager.create) so a duplicate name is reported.
-        if (!reuseExisting)
+        if (!reuseExisting) {
           throw const AppFormatException(
             AppErrorCode.aDirectoryWithThisName,
             '已存在该目录。',
           );
+        }
         return existing.id;
       }
-      if (all.length >= 500)
+      if (all.length >= 500) {
         throw const AppFormatException(
           AppErrorCode.errorEachSubjectCanHaveAtMost,
           '每个科目最多 500 个目录。',
         );
+      }
       final key = const Uuid().v4();
       final position = all.fold(
         0,
@@ -220,11 +222,12 @@ class ModuleStore extends DatabaseNotifier {
             variables: [Variable(id)],
           )
           .getSingleOrNull();
-      if (item == null)
+      if (item == null) {
         throw const AppFormatException(
           AppErrorCode.errorTheMaterialDoesNotExistOr,
           '资料不存在或已在回收区。',
         );
+      }
       final current = await ids(id, mistake);
       if (expected != null) {
         final previous = expected.toSet().toList()..sort();

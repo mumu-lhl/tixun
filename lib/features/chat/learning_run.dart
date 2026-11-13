@@ -402,11 +402,12 @@ class LearningRun {
         // Keep the reasoning of the round that just streamed, even if the
         // text is later replaced by the quiz placeholder below.
         lastRoundReasoning = roundReasoning.isEmpty ? null : roundReasoning;
-        if (!completed)
+        if (!completed) {
           throw const AiFailure.localized(
             AppErrorCode.theConnectionEndedEarlyReceived,
             '连接提前断开，已保留收到的内容。请重新生成。',
           );
+        }
         validateToolCalls(calls);
         if (calls.isEmpty) {
           finished = true;
@@ -431,11 +432,12 @@ class LearningRun {
           );
         }
         callsUsed += calls.length;
-        if (callsUsed > 8)
+        if (callsUsed > 8) {
           throw const AiFailure.localized(
             AppErrorCode.thisRequestReachedTheLimit,
             '已达到本次最多 8 个工具调用的限制。',
           );
+        }
         request = request.copyWith(
           messages: [
             ...request.messages,
@@ -533,11 +535,12 @@ class LearningRun {
         }
         if (text.isNotEmpty) text += '\n\n';
       }
-      if (!finished)
+      if (!finished) {
         throw const AiFailure.localized(
           AppErrorCode.theLimitOf4Tool,
           '已达到 4 轮工具调用限制。已完成的资料修改仍然保留，可继续提问。',
         );
+      }
       if (exam && !quizCreated) {
         text = '考试模式需要结构化题目，当前模型未成功创建。请重试，或切换教学模式查看文字讲解。';
       }

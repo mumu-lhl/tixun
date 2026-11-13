@@ -278,11 +278,12 @@ class StudyToolRunner {
     cancel.checkCancelled();
     Map<String, dynamic> args;
     try {
-      if (call.arguments.length > 64000)
+      if (call.arguments.length > 64000) {
         throw const AppFormatException(
           AppErrorCode.errorTheArgumentIsTooLong,
           '参数过长。',
         );
+      }
       args = (jsonDecode(call.arguments) as Map).cast<String, dynamic>();
       if (!allowsStudyTool(
         call.name,
@@ -294,8 +295,9 @@ class StudyToolRunner {
       final schema = studyToolSchemas
           .where((t) => t.name == call.name)
           .firstOrNull;
-      if (schema == null)
+      if (schema == null) {
         throw const AppFormatException(AppErrorCode.errorUnknownTool, '未知工具。');
+      }
       final p = schema.parameters;
       for (final key in args.keys) {
         if (!(p['properties'] as Map).containsKey(key)) {
@@ -307,12 +309,13 @@ class StudyToolRunner {
         }
       }
       for (final key in p['required'] as List) {
-        if (!args.containsKey(key))
+        if (!args.containsKey(key)) {
           throw AppFormatException(
             AppErrorCode.errorMissingParameter,
             '缺少参数：$key',
             [key],
           );
+        }
       }
       for (final entry in args.entries) {
         final prop = p['properties'][entry.key] as Map;

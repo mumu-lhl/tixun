@@ -90,8 +90,9 @@ void validateConfig(ProviderConfig c) {
       '当前模型不支持所选思考参数。',
     );
   }
-  if (c.model.trim().isEmpty)
+  if (c.model.trim().isEmpty) {
     throw const AppFormatException(AppErrorCode.enterAModelID, '请填写模型 ID。');
+  }
   if (c.kind == 'deepseek' &&
       !['deepseek-flash', 'deepseek-v4-pro'].contains(c.model)) {
     throw const AppFormatException(

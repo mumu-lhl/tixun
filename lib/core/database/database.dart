@@ -497,11 +497,12 @@ class AppDatabase extends _$AppDatabase {
         ChatSessionsCompanion(draft: Value(draft)),
       );
   Future<void> rename(String id, String title) async {
-    if (title.trim().isEmpty)
+    if (title.trim().isEmpty) {
       throw const AppFormatException(
         AppErrorCode.errorTheConversationNameCannotBeEmpty,
         '会话名称不能为空',
       );
+    }
     await (update(chatSessions)..where((s) => s.id.equals(id))).write(
       ChatSessionsCompanion(
         title: Value(title.trim()),

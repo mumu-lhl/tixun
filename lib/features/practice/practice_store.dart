@@ -752,11 +752,12 @@ class PracticeStore extends DatabaseNotifier {
     () async {
       final next = await db.transaction(() async {
         final run = await loadRun();
-        if (run == null)
+        if (run == null) {
           throw const AppFormatException(
             AppErrorCode.errorThisQuizRoundDoesNotExist,
             '本轮小测不存在。',
           );
+        }
         if (run.completed) return run;
         final a = run.attempts[run.index];
         if (expectedAttemptId != null && a != expectedAttemptId) return run;

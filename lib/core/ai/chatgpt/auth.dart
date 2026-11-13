@@ -213,16 +213,18 @@ class ChatGptAuth {
           .replaceAll('=', '');
 
   Future<ChatGptAccount> signIn({String? accountId}) async {
-    if (_signingOut)
+    if (_signingOut) {
       throw const AiFailure.localized(
         AppErrorCode.signingOutOfChatGPTTry,
         '正在退出 ChatGPT，请稍后重试。',
       );
-    if (_login != null)
+    }
+    if (_login != null) {
       throw const AiFailure.localized(
         AppErrorCode.aChatGPTSignInIs,
         '已有 ChatGPT 登录正在进行。',
       );
+    }
     final cancel = _login = CancelToken();
     HttpServer? server;
     Timer? timer;
@@ -331,11 +333,12 @@ class ChatGptAuth {
           '无法打开系统浏览器，请检查浏览器设置。',
         );
       }
-      if (!opened)
+      if (!opened) {
         throw const AiFailure.localized(
           AppErrorCode.couldNotOpenSystemBrowser,
           '无法打开系统浏览器，请检查浏览器设置。',
         );
+      }
       final answer = await callback;
       cancel.checkCancelled();
       if (answer.containsKey('error')) {
@@ -398,11 +401,12 @@ class ChatGptAuth {
     } on AiFailure {
       rethrow;
     } catch (_) {
-      if (cancel.isCancelled)
+      if (cancel.isCancelled) {
         throw const AiFailure.localized(
           AppErrorCode.chatGPTSignInCancelled,
           '已取消 ChatGPT 登录。',
         );
+      }
       throw const AiFailure.localized(
         AppErrorCode.chatGPTSignInFailedCheck,
         'ChatGPT 登录失败，请检查网络、系统时间和安全存储后重试。',
@@ -423,11 +427,12 @@ class ChatGptAuth {
     // This also enforces the mitigation for GHSA-vm9r-h74p-hg97 independently
     // of JOSE dependency key-selection behavior.
     final parts = raw.split('.');
-    if (parts.length != 3)
+    if (parts.length != 3) {
       throw const AiFailure.localized(
         AppErrorCode.chatGPTIdentityVerificationFailedSign,
         'ChatGPT 账号身份校验失败，请重新登录。',
       );
+    }
     final header = jsonDecode(
       utf8.decode(base64Url.decode(base64Url.normalize(parts.first))),
     );
@@ -623,11 +628,12 @@ class ChatGptAuth {
 
   /// Clear local tokens even if remote revocation is unavailable; report that case.
   Future<bool> signOut(String id) async {
-    if (_signingOut)
+    if (_signingOut) {
       throw const AiFailure.localized(
         AppErrorCode.signingOutOfChatGPTTry,
         '正在退出 ChatGPT，请稍后重试。',
       );
+    }
     _signingOut = true;
     cancelLogin();
     _accountEpoch++;
@@ -682,11 +688,12 @@ class ChatGptAuth {
         '$chatGptResource/models',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       )).data!;
-      if (data['models'] is! List)
+      if (data['models'] is! List) {
         throw const AiFailure.localized(
           AppErrorCode.invalidChatGPTModelCatalog,
           'ChatGPT 模型列表格式无效。',
         );
+      }
       return [
         for (final row in data['models'] as List)
           if (row is Map &&

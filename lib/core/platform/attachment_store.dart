@@ -19,11 +19,12 @@ class AttachmentStore {
   final Directory root;
   File resolve(String relative) {
     final target = p.normalize(p.join(root.path, relative));
-    if (!p.isWithin(root.path, target))
+    if (!p.isWithin(root.path, target)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidAttachmentPath,
         '附件路径无效',
       );
+    }
     return File(target);
   }
 

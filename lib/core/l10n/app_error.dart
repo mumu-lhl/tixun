@@ -318,6 +318,8 @@ class AppFormatException extends FormatException
     super.message, [
     this.arguments = const [],
   ]);
+  @override
   final AppErrorCode code;
+  @override
   final List<String> arguments;
 }

@@ -126,11 +126,12 @@ class BackupService {
       final length = await entry.value.length();
       _checkSize(entry.key, length);
       bytes += length;
-      if (bytes > _maxBytes)
+      if (bytes > _maxBytes) {
         throw const AppFormatException(
           AppErrorCode.errorTheUncompressedBackupExceedsThe8,
           '备份原始数据超过 8 GiB 上限。',
         );
+      }
       manifestFiles.add({
         'path': entry.key,
         'size': length,
@@ -254,11 +255,12 @@ class BackupService {
         throwOnError: true,
       );
       final entry = archive.findFile('manifest.json');
-      if (entry == null)
+      if (entry == null) {
         throw const AppFormatException(
           AppErrorCode.errorTheBackupManifestIsMissing,
           '缺少备份清单。',
         );
+      }
       final manifest = (jsonDecode(utf8.decode(entry.readBytes()!)) as Map)
           .cast<String, dynamic>();
       if (manifest['format'] != 'tixun-backup' ||
@@ -616,11 +618,12 @@ class BackupService {
         await previous.rename(root.path);
       }
     }
-    if (!await root.exists())
+    if (!await root.exists()) {
       throw const AppFormatException(
         AppErrorCode.errorRecoveryIsIncompleteAndNoUsable,
         '恢复尚未完成，未找到可用的数据目录。',
       );
+    }
     try {
       _checkDatabase(p.join(root.path, 'tixun.sqlite'));
     } catch (_) {
@@ -727,11 +730,12 @@ class BackupService {
 
   static Future<PreparedBackup> preparePrevious(Directory root) async {
     final previous = await previousRoot(root);
-    if (previous == null)
+    if (previous == null) {
       throw const AppFormatException(
         AppErrorCode.errorThereIsNoRestoreToUndo,
         '没有可撤销的恢复记录。',
       );
+    }
     final container = await Directory(
       p.join(root.parent.path, '.tixun-stage-${const Uuid().v4()}'),
     ).create(recursive: true);

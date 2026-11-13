@@ -141,8 +141,9 @@ class _ManagerState extends ConsumerState<ModuleManager> {
               StreamBuilder<List<SubjectModule>>(
                 stream: store.watch(discipline),
                 builder: (ctx, snapshot) {
-                  if (snapshot.hasError)
+                  if (snapshot.hasError) {
                     return Text(ctx.l10n.couldNotLoadTheDirectory);
+                  }
                   if (!snapshot.hasData) return const LinearProgressIndicator();
                   final all = snapshot.data!;
                   if (all.isEmpty) {

@@ -156,11 +156,12 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                 setState(() => saving = true);
                 try {
                   final n = int.tryParse(minutes.text.trim());
-                  if (n == null)
+                  if (n == null) {
                     throw const AppFormatException(
                       AppErrorCode.errorEnterTheDailyTimeAsA,
                       '每日时间请输入整数分钟。',
                     );
+                  }
                   await LearningProfile(
                     stage: stage.text,
                     region: region.text,

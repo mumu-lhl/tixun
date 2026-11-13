@@ -88,11 +88,12 @@ String _extractExamJson(String source) {
 
 List<ScoreDraft> _parseExamScores(String text) {
   final source = _extractExamJson(text.trim());
-  if (source.length > 150000)
+  if (source.length > 150000) {
     throw const AppFormatException(
       AppErrorCode.errorTheAIScoreBreakdownIsToo,
       'AI 小分表过大。',
     );
+  }
   final dynamic json = jsonDecode(source);
   if (json is! Map ||
       json['questions'] is! List ||
@@ -115,11 +116,12 @@ List<ScoreDraft> _parseExamScores(String text) {
     double? number(String key) {
       final n = data[key];
       if (n == null) return null;
-      if (n is! num)
+      if (n is! num) {
         throw const AppFormatException(
           AppErrorCode.errorTheAIScoreFormatIsInvalid,
           'AI 分数格式无效，请核对。',
         );
+      }
       return n.toDouble();
     }
 
@@ -151,11 +153,12 @@ List<ScoreDraft> _parseExamScores(String text) {
       }
       rows.add(read(child, parent.id));
     }
-    if (rows.length > 500)
+    if (rows.length > 500) {
       throw const AppFormatException(
         AppErrorCode.errorAScoreBreakdownCanHaveAt,
         '小分表最多 500 行。',
       );
+    }
   }
   validateScores(rows);
   return rows;
@@ -242,17 +245,19 @@ Future<List<ScoreDraft>> generateExamScores({
       );
     }
     onReasoning(reasoning);
-    if (chunk.calls.isNotEmpty)
+    if (chunk.calls.isNotEmpty) {
       throw const AiFailure.localized(
         AppErrorCode.errorToolCallsAreNotAllowedWhile,
         '本次小分表整理不允许工具调用。',
       );
+    }
     completed |= chunk.completed;
   }
-  if (!completed)
+  if (!completed) {
     throw const AiFailure.localized(
       AppErrorCode.errorTheConnectionClosedEarlyTheScore,
       '连接提前断开，未应用小分表。',
     );
+  }
   return parseExamScores(text);
 }

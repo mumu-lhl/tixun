@@ -16,11 +16,12 @@ Future<void> startAiStudyWriting(
   bool mistake = false,
 }) async {
   final c = ref.read(appControllerProvider);
-  if (c.busy)
+  if (c.busy) {
     throw const AppFormatException(
       AppErrorCode.stopGenerationBeforeOrganizingMaterial,
       '请先停止生成，再整理资料。',
     );
+  }
   final title = knowledge != null
       ? source == null
             ? context.l10n.editKnowledgeWithAI

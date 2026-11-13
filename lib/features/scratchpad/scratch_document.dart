@@ -59,11 +59,12 @@ class ScratchDocument {
   ScratchDocument select(int value) =>
       ScratchDocument(pages: pages, index: value.clamp(0, pages.length - 1));
   ScratchDocument addPage() {
-    if (pages.length >= 100)
+    if (pages.length >= 100) {
       throw const ScratchpadException(
         ScratchpadError.tooManyPages,
         '一个草稿最多支持 100 页。',
       );
+    }
     return ScratchDocument(
       pages: [...pages, ScratchPage()],
       index: pages.length,

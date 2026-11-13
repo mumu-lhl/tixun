@@ -166,11 +166,12 @@ class StudyStore extends DatabaseNotifier {
   }
 
   List<String> cleanTags(List<String> tags) {
-    if (tags.length > 20)
+    if (tags.length > 20) {
       throw const AppFormatException(
         AppErrorCode.errorEachMaterialCanHaveAtMost,
         '每条资料最多 20 个标签。',
       );
+    }
     return tags
         .map((t) => _checked(t, StudyErrorField.tag, 40))
         .where((s) => s.isNotEmpty)
@@ -232,11 +233,12 @@ class StudyStore extends DatabaseNotifier {
                 .getSingle();
         final data = (jsonDecode(op.result!) as Map).cast<String, dynamic>();
         final regions = data['regions'] as List;
-        if (index >= regions.length)
+        if (index >= regions.length) {
           throw const AppFormatException(
             AppErrorCode.errorTheSuggestedQuestionRegionWasNot,
             '未找到此分题建议。',
           );
+        }
         final region = QuestionRegion.fromJson(
           (regions[index] as Map).cast<String, dynamic>(),
         );

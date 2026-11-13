@@ -442,11 +442,12 @@ Stream<AiChunk> decodeResponses(
       final calls = output
           .where((o) => o is Map && o['type'] == 'function_call')
           .toList();
-      if (calls.length > 8)
+      if (calls.length > 8) {
         throw const AiFailure.localized(
           AppErrorCode.thisRequestReachedTheLimit,
           '已达到本次最多 8 个工具调用的限制。',
         );
+      }
       if (calls.isNotEmpty) {
         final context = output
             .where(
@@ -497,9 +498,10 @@ Stream<AiChunk> decodeResponses(
       break;
     }
   }
-  if (!completed)
+  if (!completed) {
     throw const AiFailure.localized(
       AppErrorCode.theConnectionEndedEarlyReceived,
       '连接提前断开，已保留收到的内容。请重新生成。',
     );
+  }
 }

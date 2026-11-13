@@ -26,11 +26,12 @@ class ScoreDraft {
 }
 
 void validateScores(List<ScoreDraft> rows) {
-  if (rows.length > 500)
+  if (rows.length > 500) {
     throw const AppFormatException(
       AppErrorCode.errorAScoreBreakdownCanHaveAt,
       '小分表最多 500 行。',
     );
+  }
   final ids = <String, ScoreDraft>{};
   for (final row in rows) {
     if (row.id.isEmpty ||

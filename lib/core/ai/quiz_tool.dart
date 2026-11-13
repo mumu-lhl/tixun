@@ -72,11 +72,12 @@ Future<Map<String, dynamic>> executeQuizTool(
 }) async {
   try {
     cancel.checkCancelled();
-    if (call.arguments.length > 64000)
+    if (call.arguments.length > 64000) {
       throw const AppFormatException(
         AppErrorCode.errorQuestionDataIsTooLong,
         '题目数据过长。',
       );
+    }
     final args = (jsonDecode(call.arguments) as Map).cast<String, dynamic>();
     final indices = args.containsKey('image_indices')
         ? args['image_indices']
