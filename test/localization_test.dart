@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,7 +19,47 @@ import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 
+class _TranslationCalls extends RecursiveAstVisitor<void> {
+  final missing = <String>[];
+  String path = '';
+
+  @override
+  void visitMethodInvocation(MethodInvocation node) {
+    if (node.methodName.name == 'tr' &&
+        node.argumentList.arguments.isNotEmpty) {
+      final argument = node.argumentList.arguments.first.argumentExpression;
+      if (argument is SimpleStringLiteral &&
+          RegExp(r'[\u3400-\u9fff]').hasMatch(argument.value) &&
+          !englishMessages.containsKey(argument.value)) {
+        missing.add('$path: ${argument.value}');
+      }
+    }
+    super.visitMethodInvocation(node);
+  }
+}
+
 void main() {
+  test('Literal UI translations have English catalog entries', () {
+    final visitor = _TranslationCalls();
+    for (final file in Directory(
+      'lib',
+    ).listSync(recursive: true).whereType<File>()) {
+      if (!file.path.endsWith('.dart') || file.path.endsWith('.g.dart')) {
+        continue;
+      }
+      visitor.path = file.path;
+      parseString(
+        content: file.readAsStringSync(),
+        throwIfDiagnostics: false,
+      ).unit.accept(visitor);
+    }
+    expect(
+      visitor.missing,
+      isEmpty,
+      reason: 'Add English translations for these UI messages',
+    );
+  });
+
   test(
     'English catalog matches its source and preserves all argument slots',
     () {
