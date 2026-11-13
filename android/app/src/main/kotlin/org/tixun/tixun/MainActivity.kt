@@ -20,7 +20,9 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "org.tixun/backup_files")
             .setMethodCallHandler { call, result ->
-                if (call.method != "saveBackup") {
+                val isBackup = call.method == "saveBackup"
+                val isUsage = call.method == "saveUsage"
+                if (!isBackup && !isUsage) {
                     result.notImplemented()
                     return@setMethodCallHandler
                 }
@@ -31,17 +33,29 @@ class MainActivity : FlutterActivity() {
                 try {
                     val source = File(call.argument<String>("source") ?: "").canonicalFile
                     val cache = cacheDir.canonicalFile
+                    val validExtension = if (isBackup) {
+                        source.name.endsWith(".tixun-backup")
+                    } else {
+                        source.extension in setOf("csv", "jsonl")
+                    }
                     if (!source.path.startsWith(cache.path + File.separator) ||
-                        !source.isFile || !source.name.endsWith(".tixun-backup")) {
-                        result.error("INVALID_FILE", "备份暂存文件无效。", null)
+                        !source.isFile || !validExtension) {
+                        result.error("INVALID_FILE", "导出暂存文件无效。", null)
                         return@setMethodCallHandler
                     }
-                    val name = call.argument<String>("name") ?: "tixun.tixun-backup"
+                    val name = call.argument<String>("name") ?:
+                        if (isBackup) "tixun.tixun-backup" else source.name
                     pendingSave = result
                     pendingSource = source
                     val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                         addCategory(Intent.CATEGORY_OPENABLE)
-                        type = "application/zip"
+                        type = if (isBackup) {
+                            "application/zip"
+                        } else if (source.extension == "csv") {
+                            "text/csv"
+                        } else {
+                            "application/json"
+                        }
                         putExtra(Intent.EXTRA_TITLE, File(name).name)
                     }
                     @Suppress("DEPRECATION")

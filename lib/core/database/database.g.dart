@@ -2688,6 +2688,2084 @@ class PreferencesCompanion extends UpdateCompanion<Preference> {
   }
 }
 
+class $AiUsageEventsTable extends AiUsageEvents
+    with TableInfo<$AiUsageEventsTable, AiUsageEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AiUsageEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionIdMeta = const VerificationMeta(
+    'actionId',
+  );
+  @override
+  late final GeneratedColumn<String> actionId = GeneratedColumn<String>(
+    'action_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _messageIdMeta = const VerificationMeta(
+    'messageId',
+  );
+  @override
+  late final GeneratedColumn<String> messageId = GeneratedColumn<String>(
+    'message_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _providerKindMeta = const VerificationMeta(
+    'providerKind',
+  );
+  @override
+  late final GeneratedColumn<String> providerKind = GeneratedColumn<String>(
+    'provider_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endpointMeta = const VerificationMeta(
+    'endpoint',
+  );
+  @override
+  late final GeneratedColumn<String> endpoint = GeneratedColumn<String>(
+    'endpoint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _featureMeta = const VerificationMeta(
+    'feature',
+  );
+  @override
+  late final GeneratedColumn<String> feature = GeneratedColumn<String>(
+    'feature',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _usageSourceMeta = const VerificationMeta(
+    'usageSource',
+  );
+  @override
+  late final GeneratedColumn<String> usageSource = GeneratedColumn<String>(
+    'usage_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unknown'),
+  );
+  static const VerificationMeta _occurredAtMeta = const VerificationMeta(
+    'occurredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> occurredAt = GeneratedColumn<DateTime>(
+    'occurred_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _imageCountMeta = const VerificationMeta(
+    'imageCount',
+  );
+  @override
+  late final GeneratedColumn<int> imageCount = GeneratedColumn<int>(
+    'image_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _toolCallCountMeta = const VerificationMeta(
+    'toolCallCount',
+  );
+  @override
+  late final GeneratedColumn<int> toolCallCount = GeneratedColumn<int>(
+    'tool_call_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _inputTokensMeta = const VerificationMeta(
+    'inputTokens',
+  );
+  @override
+  late final GeneratedColumn<int> inputTokens = GeneratedColumn<int>(
+    'input_tokens',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cachedInputTokensMeta = const VerificationMeta(
+    'cachedInputTokens',
+  );
+  @override
+  late final GeneratedColumn<int> cachedInputTokens = GeneratedColumn<int>(
+    'cached_input_tokens',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _outputTokensMeta = const VerificationMeta(
+    'outputTokens',
+  );
+  @override
+  late final GeneratedColumn<int> outputTokens = GeneratedColumn<int>(
+    'output_tokens',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reasoningTokensMeta = const VerificationMeta(
+    'reasoningTokens',
+  );
+  @override
+  late final GeneratedColumn<int> reasoningTokens = GeneratedColumn<int>(
+    'reasoning_tokens',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _totalTokensMeta = const VerificationMeta(
+    'totalTokens',
+  );
+  @override
+  late final GeneratedColumn<int> totalTokens = GeneratedColumn<int>(
+    'total_tokens',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _costNanoUsdMeta = const VerificationMeta(
+    'costNanoUsd',
+  );
+  @override
+  late final GeneratedColumn<int> costNanoUsd = GeneratedColumn<int>(
+    'cost_nano_usd',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _costBasisMeta = const VerificationMeta(
+    'costBasis',
+  );
+  @override
+  late final GeneratedColumn<String> costBasis = GeneratedColumn<String>(
+    'cost_basis',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unknown'),
+  );
+  static const VerificationMeta _inputRateNanoUsdPerMillionMeta =
+      const VerificationMeta('inputRateNanoUsdPerMillion');
+  @override
+  late final GeneratedColumn<int> inputRateNanoUsdPerMillion =
+      GeneratedColumn<int>(
+        'input_rate_nano_usd_per_million',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _cachedInputRateNanoUsdPerMillionMeta =
+      const VerificationMeta('cachedInputRateNanoUsdPerMillion');
+  @override
+  late final GeneratedColumn<int> cachedInputRateNanoUsdPerMillion =
+      GeneratedColumn<int>(
+        'cached_input_rate_nano_usd_per_million',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _outputRateNanoUsdPerMillionMeta =
+      const VerificationMeta('outputRateNanoUsdPerMillion');
+  @override
+  late final GeneratedColumn<int> outputRateNanoUsdPerMillion =
+      GeneratedColumn<int>(
+        'output_rate_nano_usd_per_million',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _rateSourceMeta = const VerificationMeta(
+    'rateSource',
+  );
+  @override
+  late final GeneratedColumn<String> rateSource = GeneratedColumn<String>(
+    'rate_source',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rateUpdatedAtMeta = const VerificationMeta(
+    'rateUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> rateUpdatedAt =
+      GeneratedColumn<DateTime>(
+        'rate_updated_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    actionId,
+    sessionId,
+    messageId,
+    providerKind,
+    endpoint,
+    model,
+    feature,
+    status,
+    usageSource,
+    occurredAt,
+    durationMs,
+    imageCount,
+    toolCallCount,
+    inputTokens,
+    cachedInputTokens,
+    outputTokens,
+    reasoningTokens,
+    totalTokens,
+    costNanoUsd,
+    costBasis,
+    inputRateNanoUsdPerMillion,
+    cachedInputRateNanoUsdPerMillion,
+    outputRateNanoUsdPerMillion,
+    rateSource,
+    rateUpdatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ai_usage_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AiUsageEvent> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('action_id')) {
+      context.handle(
+        _actionIdMeta,
+        actionId.isAcceptableOrUnknown(data['action_id']!, _actionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_actionIdMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    }
+    if (data.containsKey('message_id')) {
+      context.handle(
+        _messageIdMeta,
+        messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta),
+      );
+    }
+    if (data.containsKey('provider_kind')) {
+      context.handle(
+        _providerKindMeta,
+        providerKind.isAcceptableOrUnknown(
+          data['provider_kind']!,
+          _providerKindMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_providerKindMeta);
+    }
+    if (data.containsKey('endpoint')) {
+      context.handle(
+        _endpointMeta,
+        endpoint.isAcceptableOrUnknown(data['endpoint']!, _endpointMeta),
+      );
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelMeta);
+    }
+    if (data.containsKey('feature')) {
+      context.handle(
+        _featureMeta,
+        feature.isAcceptableOrUnknown(data['feature']!, _featureMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_featureMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('usage_source')) {
+      context.handle(
+        _usageSourceMeta,
+        usageSource.isAcceptableOrUnknown(
+          data['usage_source']!,
+          _usageSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+        _occurredAtMeta,
+        occurredAt.isAcceptableOrUnknown(data['occurred_at']!, _occurredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_occurredAtMeta);
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('image_count')) {
+      context.handle(
+        _imageCountMeta,
+        imageCount.isAcceptableOrUnknown(data['image_count']!, _imageCountMeta),
+      );
+    }
+    if (data.containsKey('tool_call_count')) {
+      context.handle(
+        _toolCallCountMeta,
+        toolCallCount.isAcceptableOrUnknown(
+          data['tool_call_count']!,
+          _toolCallCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('input_tokens')) {
+      context.handle(
+        _inputTokensMeta,
+        inputTokens.isAcceptableOrUnknown(
+          data['input_tokens']!,
+          _inputTokensMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cached_input_tokens')) {
+      context.handle(
+        _cachedInputTokensMeta,
+        cachedInputTokens.isAcceptableOrUnknown(
+          data['cached_input_tokens']!,
+          _cachedInputTokensMeta,
+        ),
+      );
+    }
+    if (data.containsKey('output_tokens')) {
+      context.handle(
+        _outputTokensMeta,
+        outputTokens.isAcceptableOrUnknown(
+          data['output_tokens']!,
+          _outputTokensMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reasoning_tokens')) {
+      context.handle(
+        _reasoningTokensMeta,
+        reasoningTokens.isAcceptableOrUnknown(
+          data['reasoning_tokens']!,
+          _reasoningTokensMeta,
+        ),
+      );
+    }
+    if (data.containsKey('total_tokens')) {
+      context.handle(
+        _totalTokensMeta,
+        totalTokens.isAcceptableOrUnknown(
+          data['total_tokens']!,
+          _totalTokensMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cost_nano_usd')) {
+      context.handle(
+        _costNanoUsdMeta,
+        costNanoUsd.isAcceptableOrUnknown(
+          data['cost_nano_usd']!,
+          _costNanoUsdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cost_basis')) {
+      context.handle(
+        _costBasisMeta,
+        costBasis.isAcceptableOrUnknown(data['cost_basis']!, _costBasisMeta),
+      );
+    }
+    if (data.containsKey('input_rate_nano_usd_per_million')) {
+      context.handle(
+        _inputRateNanoUsdPerMillionMeta,
+        inputRateNanoUsdPerMillion.isAcceptableOrUnknown(
+          data['input_rate_nano_usd_per_million']!,
+          _inputRateNanoUsdPerMillionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cached_input_rate_nano_usd_per_million')) {
+      context.handle(
+        _cachedInputRateNanoUsdPerMillionMeta,
+        cachedInputRateNanoUsdPerMillion.isAcceptableOrUnknown(
+          data['cached_input_rate_nano_usd_per_million']!,
+          _cachedInputRateNanoUsdPerMillionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('output_rate_nano_usd_per_million')) {
+      context.handle(
+        _outputRateNanoUsdPerMillionMeta,
+        outputRateNanoUsdPerMillion.isAcceptableOrUnknown(
+          data['output_rate_nano_usd_per_million']!,
+          _outputRateNanoUsdPerMillionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('rate_source')) {
+      context.handle(
+        _rateSourceMeta,
+        rateSource.isAcceptableOrUnknown(data['rate_source']!, _rateSourceMeta),
+      );
+    }
+    if (data.containsKey('rate_updated_at')) {
+      context.handle(
+        _rateUpdatedAtMeta,
+        rateUpdatedAt.isAcceptableOrUnknown(
+          data['rate_updated_at']!,
+          _rateUpdatedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AiUsageEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AiUsageEvent(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      actionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action_id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      ),
+      messageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_id'],
+      ),
+      providerKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_kind'],
+      )!,
+      endpoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}endpoint'],
+      )!,
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      )!,
+      feature: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}feature'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      usageSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}usage_source'],
+      )!,
+      occurredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}occurred_at'],
+      )!,
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      imageCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}image_count'],
+      )!,
+      toolCallCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tool_call_count'],
+      )!,
+      inputTokens: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}input_tokens'],
+      ),
+      cachedInputTokens: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cached_input_tokens'],
+      ),
+      outputTokens: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}output_tokens'],
+      ),
+      reasoningTokens: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reasoning_tokens'],
+      ),
+      totalTokens: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_tokens'],
+      ),
+      costNanoUsd: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cost_nano_usd'],
+      ),
+      costBasis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cost_basis'],
+      )!,
+      inputRateNanoUsdPerMillion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}input_rate_nano_usd_per_million'],
+      ),
+      cachedInputRateNanoUsdPerMillion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cached_input_rate_nano_usd_per_million'],
+      ),
+      outputRateNanoUsdPerMillion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}output_rate_nano_usd_per_million'],
+      ),
+      rateSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rate_source'],
+      ),
+      rateUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}rate_updated_at'],
+      ),
+    );
+  }
+
+  @override
+  $AiUsageEventsTable createAlias(String alias) {
+    return $AiUsageEventsTable(attachedDatabase, alias);
+  }
+}
+
+class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
+  final String id;
+  final String actionId;
+  final String? sessionId;
+  final String? messageId;
+  final String providerKind;
+  final String endpoint;
+  final String model;
+  final String feature;
+  final String status;
+  final String usageSource;
+  final DateTime occurredAt;
+  final int? durationMs;
+  final int imageCount;
+  final int toolCallCount;
+  final int? inputTokens;
+  final int? cachedInputTokens;
+  final int? outputTokens;
+  final int? reasoningTokens;
+  final int? totalTokens;
+  final int? costNanoUsd;
+  final String costBasis;
+  final int? inputRateNanoUsdPerMillion;
+  final int? cachedInputRateNanoUsdPerMillion;
+  final int? outputRateNanoUsdPerMillion;
+  final String? rateSource;
+  final DateTime? rateUpdatedAt;
+  const AiUsageEvent({
+    required this.id,
+    required this.actionId,
+    this.sessionId,
+    this.messageId,
+    required this.providerKind,
+    required this.endpoint,
+    required this.model,
+    required this.feature,
+    required this.status,
+    required this.usageSource,
+    required this.occurredAt,
+    this.durationMs,
+    required this.imageCount,
+    required this.toolCallCount,
+    this.inputTokens,
+    this.cachedInputTokens,
+    this.outputTokens,
+    this.reasoningTokens,
+    this.totalTokens,
+    this.costNanoUsd,
+    required this.costBasis,
+    this.inputRateNanoUsdPerMillion,
+    this.cachedInputRateNanoUsdPerMillion,
+    this.outputRateNanoUsdPerMillion,
+    this.rateSource,
+    this.rateUpdatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['action_id'] = Variable<String>(actionId);
+    if (!nullToAbsent || sessionId != null) {
+      map['session_id'] = Variable<String>(sessionId);
+    }
+    if (!nullToAbsent || messageId != null) {
+      map['message_id'] = Variable<String>(messageId);
+    }
+    map['provider_kind'] = Variable<String>(providerKind);
+    map['endpoint'] = Variable<String>(endpoint);
+    map['model'] = Variable<String>(model);
+    map['feature'] = Variable<String>(feature);
+    map['status'] = Variable<String>(status);
+    map['usage_source'] = Variable<String>(usageSource);
+    map['occurred_at'] = Variable<DateTime>(occurredAt);
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    map['image_count'] = Variable<int>(imageCount);
+    map['tool_call_count'] = Variable<int>(toolCallCount);
+    if (!nullToAbsent || inputTokens != null) {
+      map['input_tokens'] = Variable<int>(inputTokens);
+    }
+    if (!nullToAbsent || cachedInputTokens != null) {
+      map['cached_input_tokens'] = Variable<int>(cachedInputTokens);
+    }
+    if (!nullToAbsent || outputTokens != null) {
+      map['output_tokens'] = Variable<int>(outputTokens);
+    }
+    if (!nullToAbsent || reasoningTokens != null) {
+      map['reasoning_tokens'] = Variable<int>(reasoningTokens);
+    }
+    if (!nullToAbsent || totalTokens != null) {
+      map['total_tokens'] = Variable<int>(totalTokens);
+    }
+    if (!nullToAbsent || costNanoUsd != null) {
+      map['cost_nano_usd'] = Variable<int>(costNanoUsd);
+    }
+    map['cost_basis'] = Variable<String>(costBasis);
+    if (!nullToAbsent || inputRateNanoUsdPerMillion != null) {
+      map['input_rate_nano_usd_per_million'] = Variable<int>(
+        inputRateNanoUsdPerMillion,
+      );
+    }
+    if (!nullToAbsent || cachedInputRateNanoUsdPerMillion != null) {
+      map['cached_input_rate_nano_usd_per_million'] = Variable<int>(
+        cachedInputRateNanoUsdPerMillion,
+      );
+    }
+    if (!nullToAbsent || outputRateNanoUsdPerMillion != null) {
+      map['output_rate_nano_usd_per_million'] = Variable<int>(
+        outputRateNanoUsdPerMillion,
+      );
+    }
+    if (!nullToAbsent || rateSource != null) {
+      map['rate_source'] = Variable<String>(rateSource);
+    }
+    if (!nullToAbsent || rateUpdatedAt != null) {
+      map['rate_updated_at'] = Variable<DateTime>(rateUpdatedAt);
+    }
+    return map;
+  }
+
+  AiUsageEventsCompanion toCompanion(bool nullToAbsent) {
+    return AiUsageEventsCompanion(
+      id: Value(id),
+      actionId: Value(actionId),
+      sessionId: sessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sessionId),
+      messageId: messageId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(messageId),
+      providerKind: Value(providerKind),
+      endpoint: Value(endpoint),
+      model: Value(model),
+      feature: Value(feature),
+      status: Value(status),
+      usageSource: Value(usageSource),
+      occurredAt: Value(occurredAt),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      imageCount: Value(imageCount),
+      toolCallCount: Value(toolCallCount),
+      inputTokens: inputTokens == null && nullToAbsent
+          ? const Value.absent()
+          : Value(inputTokens),
+      cachedInputTokens: cachedInputTokens == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cachedInputTokens),
+      outputTokens: outputTokens == null && nullToAbsent
+          ? const Value.absent()
+          : Value(outputTokens),
+      reasoningTokens: reasoningTokens == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reasoningTokens),
+      totalTokens: totalTokens == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalTokens),
+      costNanoUsd: costNanoUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(costNanoUsd),
+      costBasis: Value(costBasis),
+      inputRateNanoUsdPerMillion:
+          inputRateNanoUsdPerMillion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(inputRateNanoUsdPerMillion),
+      cachedInputRateNanoUsdPerMillion:
+          cachedInputRateNanoUsdPerMillion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cachedInputRateNanoUsdPerMillion),
+      outputRateNanoUsdPerMillion:
+          outputRateNanoUsdPerMillion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(outputRateNanoUsdPerMillion),
+      rateSource: rateSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rateSource),
+      rateUpdatedAt: rateUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rateUpdatedAt),
+    );
+  }
+
+  factory AiUsageEvent.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AiUsageEvent(
+      id: serializer.fromJson<String>(json['id']),
+      actionId: serializer.fromJson<String>(json['actionId']),
+      sessionId: serializer.fromJson<String?>(json['sessionId']),
+      messageId: serializer.fromJson<String?>(json['messageId']),
+      providerKind: serializer.fromJson<String>(json['providerKind']),
+      endpoint: serializer.fromJson<String>(json['endpoint']),
+      model: serializer.fromJson<String>(json['model']),
+      feature: serializer.fromJson<String>(json['feature']),
+      status: serializer.fromJson<String>(json['status']),
+      usageSource: serializer.fromJson<String>(json['usageSource']),
+      occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      imageCount: serializer.fromJson<int>(json['imageCount']),
+      toolCallCount: serializer.fromJson<int>(json['toolCallCount']),
+      inputTokens: serializer.fromJson<int?>(json['inputTokens']),
+      cachedInputTokens: serializer.fromJson<int?>(json['cachedInputTokens']),
+      outputTokens: serializer.fromJson<int?>(json['outputTokens']),
+      reasoningTokens: serializer.fromJson<int?>(json['reasoningTokens']),
+      totalTokens: serializer.fromJson<int?>(json['totalTokens']),
+      costNanoUsd: serializer.fromJson<int?>(json['costNanoUsd']),
+      costBasis: serializer.fromJson<String>(json['costBasis']),
+      inputRateNanoUsdPerMillion: serializer.fromJson<int?>(
+        json['inputRateNanoUsdPerMillion'],
+      ),
+      cachedInputRateNanoUsdPerMillion: serializer.fromJson<int?>(
+        json['cachedInputRateNanoUsdPerMillion'],
+      ),
+      outputRateNanoUsdPerMillion: serializer.fromJson<int?>(
+        json['outputRateNanoUsdPerMillion'],
+      ),
+      rateSource: serializer.fromJson<String?>(json['rateSource']),
+      rateUpdatedAt: serializer.fromJson<DateTime?>(json['rateUpdatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'actionId': serializer.toJson<String>(actionId),
+      'sessionId': serializer.toJson<String?>(sessionId),
+      'messageId': serializer.toJson<String?>(messageId),
+      'providerKind': serializer.toJson<String>(providerKind),
+      'endpoint': serializer.toJson<String>(endpoint),
+      'model': serializer.toJson<String>(model),
+      'feature': serializer.toJson<String>(feature),
+      'status': serializer.toJson<String>(status),
+      'usageSource': serializer.toJson<String>(usageSource),
+      'occurredAt': serializer.toJson<DateTime>(occurredAt),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'imageCount': serializer.toJson<int>(imageCount),
+      'toolCallCount': serializer.toJson<int>(toolCallCount),
+      'inputTokens': serializer.toJson<int?>(inputTokens),
+      'cachedInputTokens': serializer.toJson<int?>(cachedInputTokens),
+      'outputTokens': serializer.toJson<int?>(outputTokens),
+      'reasoningTokens': serializer.toJson<int?>(reasoningTokens),
+      'totalTokens': serializer.toJson<int?>(totalTokens),
+      'costNanoUsd': serializer.toJson<int?>(costNanoUsd),
+      'costBasis': serializer.toJson<String>(costBasis),
+      'inputRateNanoUsdPerMillion': serializer.toJson<int?>(
+        inputRateNanoUsdPerMillion,
+      ),
+      'cachedInputRateNanoUsdPerMillion': serializer.toJson<int?>(
+        cachedInputRateNanoUsdPerMillion,
+      ),
+      'outputRateNanoUsdPerMillion': serializer.toJson<int?>(
+        outputRateNanoUsdPerMillion,
+      ),
+      'rateSource': serializer.toJson<String?>(rateSource),
+      'rateUpdatedAt': serializer.toJson<DateTime?>(rateUpdatedAt),
+    };
+  }
+
+  AiUsageEvent copyWith({
+    String? id,
+    String? actionId,
+    Value<String?> sessionId = const Value.absent(),
+    Value<String?> messageId = const Value.absent(),
+    String? providerKind,
+    String? endpoint,
+    String? model,
+    String? feature,
+    String? status,
+    String? usageSource,
+    DateTime? occurredAt,
+    Value<int?> durationMs = const Value.absent(),
+    int? imageCount,
+    int? toolCallCount,
+    Value<int?> inputTokens = const Value.absent(),
+    Value<int?> cachedInputTokens = const Value.absent(),
+    Value<int?> outputTokens = const Value.absent(),
+    Value<int?> reasoningTokens = const Value.absent(),
+    Value<int?> totalTokens = const Value.absent(),
+    Value<int?> costNanoUsd = const Value.absent(),
+    String? costBasis,
+    Value<int?> inputRateNanoUsdPerMillion = const Value.absent(),
+    Value<int?> cachedInputRateNanoUsdPerMillion = const Value.absent(),
+    Value<int?> outputRateNanoUsdPerMillion = const Value.absent(),
+    Value<String?> rateSource = const Value.absent(),
+    Value<DateTime?> rateUpdatedAt = const Value.absent(),
+  }) => AiUsageEvent(
+    id: id ?? this.id,
+    actionId: actionId ?? this.actionId,
+    sessionId: sessionId.present ? sessionId.value : this.sessionId,
+    messageId: messageId.present ? messageId.value : this.messageId,
+    providerKind: providerKind ?? this.providerKind,
+    endpoint: endpoint ?? this.endpoint,
+    model: model ?? this.model,
+    feature: feature ?? this.feature,
+    status: status ?? this.status,
+    usageSource: usageSource ?? this.usageSource,
+    occurredAt: occurredAt ?? this.occurredAt,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    imageCount: imageCount ?? this.imageCount,
+    toolCallCount: toolCallCount ?? this.toolCallCount,
+    inputTokens: inputTokens.present ? inputTokens.value : this.inputTokens,
+    cachedInputTokens: cachedInputTokens.present
+        ? cachedInputTokens.value
+        : this.cachedInputTokens,
+    outputTokens: outputTokens.present ? outputTokens.value : this.outputTokens,
+    reasoningTokens: reasoningTokens.present
+        ? reasoningTokens.value
+        : this.reasoningTokens,
+    totalTokens: totalTokens.present ? totalTokens.value : this.totalTokens,
+    costNanoUsd: costNanoUsd.present ? costNanoUsd.value : this.costNanoUsd,
+    costBasis: costBasis ?? this.costBasis,
+    inputRateNanoUsdPerMillion: inputRateNanoUsdPerMillion.present
+        ? inputRateNanoUsdPerMillion.value
+        : this.inputRateNanoUsdPerMillion,
+    cachedInputRateNanoUsdPerMillion: cachedInputRateNanoUsdPerMillion.present
+        ? cachedInputRateNanoUsdPerMillion.value
+        : this.cachedInputRateNanoUsdPerMillion,
+    outputRateNanoUsdPerMillion: outputRateNanoUsdPerMillion.present
+        ? outputRateNanoUsdPerMillion.value
+        : this.outputRateNanoUsdPerMillion,
+    rateSource: rateSource.present ? rateSource.value : this.rateSource,
+    rateUpdatedAt: rateUpdatedAt.present
+        ? rateUpdatedAt.value
+        : this.rateUpdatedAt,
+  );
+  AiUsageEvent copyWithCompanion(AiUsageEventsCompanion data) {
+    return AiUsageEvent(
+      id: data.id.present ? data.id.value : this.id,
+      actionId: data.actionId.present ? data.actionId.value : this.actionId,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+      providerKind: data.providerKind.present
+          ? data.providerKind.value
+          : this.providerKind,
+      endpoint: data.endpoint.present ? data.endpoint.value : this.endpoint,
+      model: data.model.present ? data.model.value : this.model,
+      feature: data.feature.present ? data.feature.value : this.feature,
+      status: data.status.present ? data.status.value : this.status,
+      usageSource: data.usageSource.present
+          ? data.usageSource.value
+          : this.usageSource,
+      occurredAt: data.occurredAt.present
+          ? data.occurredAt.value
+          : this.occurredAt,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      imageCount: data.imageCount.present
+          ? data.imageCount.value
+          : this.imageCount,
+      toolCallCount: data.toolCallCount.present
+          ? data.toolCallCount.value
+          : this.toolCallCount,
+      inputTokens: data.inputTokens.present
+          ? data.inputTokens.value
+          : this.inputTokens,
+      cachedInputTokens: data.cachedInputTokens.present
+          ? data.cachedInputTokens.value
+          : this.cachedInputTokens,
+      outputTokens: data.outputTokens.present
+          ? data.outputTokens.value
+          : this.outputTokens,
+      reasoningTokens: data.reasoningTokens.present
+          ? data.reasoningTokens.value
+          : this.reasoningTokens,
+      totalTokens: data.totalTokens.present
+          ? data.totalTokens.value
+          : this.totalTokens,
+      costNanoUsd: data.costNanoUsd.present
+          ? data.costNanoUsd.value
+          : this.costNanoUsd,
+      costBasis: data.costBasis.present ? data.costBasis.value : this.costBasis,
+      inputRateNanoUsdPerMillion: data.inputRateNanoUsdPerMillion.present
+          ? data.inputRateNanoUsdPerMillion.value
+          : this.inputRateNanoUsdPerMillion,
+      cachedInputRateNanoUsdPerMillion:
+          data.cachedInputRateNanoUsdPerMillion.present
+          ? data.cachedInputRateNanoUsdPerMillion.value
+          : this.cachedInputRateNanoUsdPerMillion,
+      outputRateNanoUsdPerMillion: data.outputRateNanoUsdPerMillion.present
+          ? data.outputRateNanoUsdPerMillion.value
+          : this.outputRateNanoUsdPerMillion,
+      rateSource: data.rateSource.present
+          ? data.rateSource.value
+          : this.rateSource,
+      rateUpdatedAt: data.rateUpdatedAt.present
+          ? data.rateUpdatedAt.value
+          : this.rateUpdatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiUsageEvent(')
+          ..write('id: $id, ')
+          ..write('actionId: $actionId, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('messageId: $messageId, ')
+          ..write('providerKind: $providerKind, ')
+          ..write('endpoint: $endpoint, ')
+          ..write('model: $model, ')
+          ..write('feature: $feature, ')
+          ..write('status: $status, ')
+          ..write('usageSource: $usageSource, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('imageCount: $imageCount, ')
+          ..write('toolCallCount: $toolCallCount, ')
+          ..write('inputTokens: $inputTokens, ')
+          ..write('cachedInputTokens: $cachedInputTokens, ')
+          ..write('outputTokens: $outputTokens, ')
+          ..write('reasoningTokens: $reasoningTokens, ')
+          ..write('totalTokens: $totalTokens, ')
+          ..write('costNanoUsd: $costNanoUsd, ')
+          ..write('costBasis: $costBasis, ')
+          ..write('inputRateNanoUsdPerMillion: $inputRateNanoUsdPerMillion, ')
+          ..write(
+            'cachedInputRateNanoUsdPerMillion: $cachedInputRateNanoUsdPerMillion, ',
+          )
+          ..write('outputRateNanoUsdPerMillion: $outputRateNanoUsdPerMillion, ')
+          ..write('rateSource: $rateSource, ')
+          ..write('rateUpdatedAt: $rateUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    actionId,
+    sessionId,
+    messageId,
+    providerKind,
+    endpoint,
+    model,
+    feature,
+    status,
+    usageSource,
+    occurredAt,
+    durationMs,
+    imageCount,
+    toolCallCount,
+    inputTokens,
+    cachedInputTokens,
+    outputTokens,
+    reasoningTokens,
+    totalTokens,
+    costNanoUsd,
+    costBasis,
+    inputRateNanoUsdPerMillion,
+    cachedInputRateNanoUsdPerMillion,
+    outputRateNanoUsdPerMillion,
+    rateSource,
+    rateUpdatedAt,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AiUsageEvent &&
+          other.id == this.id &&
+          other.actionId == this.actionId &&
+          other.sessionId == this.sessionId &&
+          other.messageId == this.messageId &&
+          other.providerKind == this.providerKind &&
+          other.endpoint == this.endpoint &&
+          other.model == this.model &&
+          other.feature == this.feature &&
+          other.status == this.status &&
+          other.usageSource == this.usageSource &&
+          other.occurredAt == this.occurredAt &&
+          other.durationMs == this.durationMs &&
+          other.imageCount == this.imageCount &&
+          other.toolCallCount == this.toolCallCount &&
+          other.inputTokens == this.inputTokens &&
+          other.cachedInputTokens == this.cachedInputTokens &&
+          other.outputTokens == this.outputTokens &&
+          other.reasoningTokens == this.reasoningTokens &&
+          other.totalTokens == this.totalTokens &&
+          other.costNanoUsd == this.costNanoUsd &&
+          other.costBasis == this.costBasis &&
+          other.inputRateNanoUsdPerMillion == this.inputRateNanoUsdPerMillion &&
+          other.cachedInputRateNanoUsdPerMillion ==
+              this.cachedInputRateNanoUsdPerMillion &&
+          other.outputRateNanoUsdPerMillion ==
+              this.outputRateNanoUsdPerMillion &&
+          other.rateSource == this.rateSource &&
+          other.rateUpdatedAt == this.rateUpdatedAt);
+}
+
+class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
+  final Value<String> id;
+  final Value<String> actionId;
+  final Value<String?> sessionId;
+  final Value<String?> messageId;
+  final Value<String> providerKind;
+  final Value<String> endpoint;
+  final Value<String> model;
+  final Value<String> feature;
+  final Value<String> status;
+  final Value<String> usageSource;
+  final Value<DateTime> occurredAt;
+  final Value<int?> durationMs;
+  final Value<int> imageCount;
+  final Value<int> toolCallCount;
+  final Value<int?> inputTokens;
+  final Value<int?> cachedInputTokens;
+  final Value<int?> outputTokens;
+  final Value<int?> reasoningTokens;
+  final Value<int?> totalTokens;
+  final Value<int?> costNanoUsd;
+  final Value<String> costBasis;
+  final Value<int?> inputRateNanoUsdPerMillion;
+  final Value<int?> cachedInputRateNanoUsdPerMillion;
+  final Value<int?> outputRateNanoUsdPerMillion;
+  final Value<String?> rateSource;
+  final Value<DateTime?> rateUpdatedAt;
+  final Value<int> rowid;
+  const AiUsageEventsCompanion({
+    this.id = const Value.absent(),
+    this.actionId = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.messageId = const Value.absent(),
+    this.providerKind = const Value.absent(),
+    this.endpoint = const Value.absent(),
+    this.model = const Value.absent(),
+    this.feature = const Value.absent(),
+    this.status = const Value.absent(),
+    this.usageSource = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.imageCount = const Value.absent(),
+    this.toolCallCount = const Value.absent(),
+    this.inputTokens = const Value.absent(),
+    this.cachedInputTokens = const Value.absent(),
+    this.outputTokens = const Value.absent(),
+    this.reasoningTokens = const Value.absent(),
+    this.totalTokens = const Value.absent(),
+    this.costNanoUsd = const Value.absent(),
+    this.costBasis = const Value.absent(),
+    this.inputRateNanoUsdPerMillion = const Value.absent(),
+    this.cachedInputRateNanoUsdPerMillion = const Value.absent(),
+    this.outputRateNanoUsdPerMillion = const Value.absent(),
+    this.rateSource = const Value.absent(),
+    this.rateUpdatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AiUsageEventsCompanion.insert({
+    required String id,
+    required String actionId,
+    this.sessionId = const Value.absent(),
+    this.messageId = const Value.absent(),
+    required String providerKind,
+    this.endpoint = const Value.absent(),
+    required String model,
+    required String feature,
+    required String status,
+    this.usageSource = const Value.absent(),
+    required DateTime occurredAt,
+    this.durationMs = const Value.absent(),
+    this.imageCount = const Value.absent(),
+    this.toolCallCount = const Value.absent(),
+    this.inputTokens = const Value.absent(),
+    this.cachedInputTokens = const Value.absent(),
+    this.outputTokens = const Value.absent(),
+    this.reasoningTokens = const Value.absent(),
+    this.totalTokens = const Value.absent(),
+    this.costNanoUsd = const Value.absent(),
+    this.costBasis = const Value.absent(),
+    this.inputRateNanoUsdPerMillion = const Value.absent(),
+    this.cachedInputRateNanoUsdPerMillion = const Value.absent(),
+    this.outputRateNanoUsdPerMillion = const Value.absent(),
+    this.rateSource = const Value.absent(),
+    this.rateUpdatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       actionId = Value(actionId),
+       providerKind = Value(providerKind),
+       model = Value(model),
+       feature = Value(feature),
+       status = Value(status),
+       occurredAt = Value(occurredAt);
+  static Insertable<AiUsageEvent> custom({
+    Expression<String>? id,
+    Expression<String>? actionId,
+    Expression<String>? sessionId,
+    Expression<String>? messageId,
+    Expression<String>? providerKind,
+    Expression<String>? endpoint,
+    Expression<String>? model,
+    Expression<String>? feature,
+    Expression<String>? status,
+    Expression<String>? usageSource,
+    Expression<DateTime>? occurredAt,
+    Expression<int>? durationMs,
+    Expression<int>? imageCount,
+    Expression<int>? toolCallCount,
+    Expression<int>? inputTokens,
+    Expression<int>? cachedInputTokens,
+    Expression<int>? outputTokens,
+    Expression<int>? reasoningTokens,
+    Expression<int>? totalTokens,
+    Expression<int>? costNanoUsd,
+    Expression<String>? costBasis,
+    Expression<int>? inputRateNanoUsdPerMillion,
+    Expression<int>? cachedInputRateNanoUsdPerMillion,
+    Expression<int>? outputRateNanoUsdPerMillion,
+    Expression<String>? rateSource,
+    Expression<DateTime>? rateUpdatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (actionId != null) 'action_id': actionId,
+      if (sessionId != null) 'session_id': sessionId,
+      if (messageId != null) 'message_id': messageId,
+      if (providerKind != null) 'provider_kind': providerKind,
+      if (endpoint != null) 'endpoint': endpoint,
+      if (model != null) 'model': model,
+      if (feature != null) 'feature': feature,
+      if (status != null) 'status': status,
+      if (usageSource != null) 'usage_source': usageSource,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (imageCount != null) 'image_count': imageCount,
+      if (toolCallCount != null) 'tool_call_count': toolCallCount,
+      if (inputTokens != null) 'input_tokens': inputTokens,
+      if (cachedInputTokens != null) 'cached_input_tokens': cachedInputTokens,
+      if (outputTokens != null) 'output_tokens': outputTokens,
+      if (reasoningTokens != null) 'reasoning_tokens': reasoningTokens,
+      if (totalTokens != null) 'total_tokens': totalTokens,
+      if (costNanoUsd != null) 'cost_nano_usd': costNanoUsd,
+      if (costBasis != null) 'cost_basis': costBasis,
+      if (inputRateNanoUsdPerMillion != null)
+        'input_rate_nano_usd_per_million': inputRateNanoUsdPerMillion,
+      if (cachedInputRateNanoUsdPerMillion != null)
+        'cached_input_rate_nano_usd_per_million':
+            cachedInputRateNanoUsdPerMillion,
+      if (outputRateNanoUsdPerMillion != null)
+        'output_rate_nano_usd_per_million': outputRateNanoUsdPerMillion,
+      if (rateSource != null) 'rate_source': rateSource,
+      if (rateUpdatedAt != null) 'rate_updated_at': rateUpdatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AiUsageEventsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? actionId,
+    Value<String?>? sessionId,
+    Value<String?>? messageId,
+    Value<String>? providerKind,
+    Value<String>? endpoint,
+    Value<String>? model,
+    Value<String>? feature,
+    Value<String>? status,
+    Value<String>? usageSource,
+    Value<DateTime>? occurredAt,
+    Value<int?>? durationMs,
+    Value<int>? imageCount,
+    Value<int>? toolCallCount,
+    Value<int?>? inputTokens,
+    Value<int?>? cachedInputTokens,
+    Value<int?>? outputTokens,
+    Value<int?>? reasoningTokens,
+    Value<int?>? totalTokens,
+    Value<int?>? costNanoUsd,
+    Value<String>? costBasis,
+    Value<int?>? inputRateNanoUsdPerMillion,
+    Value<int?>? cachedInputRateNanoUsdPerMillion,
+    Value<int?>? outputRateNanoUsdPerMillion,
+    Value<String?>? rateSource,
+    Value<DateTime?>? rateUpdatedAt,
+    Value<int>? rowid,
+  }) {
+    return AiUsageEventsCompanion(
+      id: id ?? this.id,
+      actionId: actionId ?? this.actionId,
+      sessionId: sessionId ?? this.sessionId,
+      messageId: messageId ?? this.messageId,
+      providerKind: providerKind ?? this.providerKind,
+      endpoint: endpoint ?? this.endpoint,
+      model: model ?? this.model,
+      feature: feature ?? this.feature,
+      status: status ?? this.status,
+      usageSource: usageSource ?? this.usageSource,
+      occurredAt: occurredAt ?? this.occurredAt,
+      durationMs: durationMs ?? this.durationMs,
+      imageCount: imageCount ?? this.imageCount,
+      toolCallCount: toolCallCount ?? this.toolCallCount,
+      inputTokens: inputTokens ?? this.inputTokens,
+      cachedInputTokens: cachedInputTokens ?? this.cachedInputTokens,
+      outputTokens: outputTokens ?? this.outputTokens,
+      reasoningTokens: reasoningTokens ?? this.reasoningTokens,
+      totalTokens: totalTokens ?? this.totalTokens,
+      costNanoUsd: costNanoUsd ?? this.costNanoUsd,
+      costBasis: costBasis ?? this.costBasis,
+      inputRateNanoUsdPerMillion:
+          inputRateNanoUsdPerMillion ?? this.inputRateNanoUsdPerMillion,
+      cachedInputRateNanoUsdPerMillion:
+          cachedInputRateNanoUsdPerMillion ??
+          this.cachedInputRateNanoUsdPerMillion,
+      outputRateNanoUsdPerMillion:
+          outputRateNanoUsdPerMillion ?? this.outputRateNanoUsdPerMillion,
+      rateSource: rateSource ?? this.rateSource,
+      rateUpdatedAt: rateUpdatedAt ?? this.rateUpdatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (actionId.present) {
+      map['action_id'] = Variable<String>(actionId.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (messageId.present) {
+      map['message_id'] = Variable<String>(messageId.value);
+    }
+    if (providerKind.present) {
+      map['provider_kind'] = Variable<String>(providerKind.value);
+    }
+    if (endpoint.present) {
+      map['endpoint'] = Variable<String>(endpoint.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (feature.present) {
+      map['feature'] = Variable<String>(feature.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (usageSource.present) {
+      map['usage_source'] = Variable<String>(usageSource.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (imageCount.present) {
+      map['image_count'] = Variable<int>(imageCount.value);
+    }
+    if (toolCallCount.present) {
+      map['tool_call_count'] = Variable<int>(toolCallCount.value);
+    }
+    if (inputTokens.present) {
+      map['input_tokens'] = Variable<int>(inputTokens.value);
+    }
+    if (cachedInputTokens.present) {
+      map['cached_input_tokens'] = Variable<int>(cachedInputTokens.value);
+    }
+    if (outputTokens.present) {
+      map['output_tokens'] = Variable<int>(outputTokens.value);
+    }
+    if (reasoningTokens.present) {
+      map['reasoning_tokens'] = Variable<int>(reasoningTokens.value);
+    }
+    if (totalTokens.present) {
+      map['total_tokens'] = Variable<int>(totalTokens.value);
+    }
+    if (costNanoUsd.present) {
+      map['cost_nano_usd'] = Variable<int>(costNanoUsd.value);
+    }
+    if (costBasis.present) {
+      map['cost_basis'] = Variable<String>(costBasis.value);
+    }
+    if (inputRateNanoUsdPerMillion.present) {
+      map['input_rate_nano_usd_per_million'] = Variable<int>(
+        inputRateNanoUsdPerMillion.value,
+      );
+    }
+    if (cachedInputRateNanoUsdPerMillion.present) {
+      map['cached_input_rate_nano_usd_per_million'] = Variable<int>(
+        cachedInputRateNanoUsdPerMillion.value,
+      );
+    }
+    if (outputRateNanoUsdPerMillion.present) {
+      map['output_rate_nano_usd_per_million'] = Variable<int>(
+        outputRateNanoUsdPerMillion.value,
+      );
+    }
+    if (rateSource.present) {
+      map['rate_source'] = Variable<String>(rateSource.value);
+    }
+    if (rateUpdatedAt.present) {
+      map['rate_updated_at'] = Variable<DateTime>(rateUpdatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiUsageEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('actionId: $actionId, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('messageId: $messageId, ')
+          ..write('providerKind: $providerKind, ')
+          ..write('endpoint: $endpoint, ')
+          ..write('model: $model, ')
+          ..write('feature: $feature, ')
+          ..write('status: $status, ')
+          ..write('usageSource: $usageSource, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('imageCount: $imageCount, ')
+          ..write('toolCallCount: $toolCallCount, ')
+          ..write('inputTokens: $inputTokens, ')
+          ..write('cachedInputTokens: $cachedInputTokens, ')
+          ..write('outputTokens: $outputTokens, ')
+          ..write('reasoningTokens: $reasoningTokens, ')
+          ..write('totalTokens: $totalTokens, ')
+          ..write('costNanoUsd: $costNanoUsd, ')
+          ..write('costBasis: $costBasis, ')
+          ..write('inputRateNanoUsdPerMillion: $inputRateNanoUsdPerMillion, ')
+          ..write(
+            'cachedInputRateNanoUsdPerMillion: $cachedInputRateNanoUsdPerMillion, ',
+          )
+          ..write('outputRateNanoUsdPerMillion: $outputRateNanoUsdPerMillion, ')
+          ..write('rateSource: $rateSource, ')
+          ..write('rateUpdatedAt: $rateUpdatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AiModelPricesTable extends AiModelPrices
+    with TableInfo<$AiModelPricesTable, AiModelPrice> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AiModelPricesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _providerKindMeta = const VerificationMeta(
+    'providerKind',
+  );
+  @override
+  late final GeneratedColumn<String> providerKind = GeneratedColumn<String>(
+    'provider_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endpointMeta = const VerificationMeta(
+    'endpoint',
+  );
+  @override
+  late final GeneratedColumn<String> endpoint = GeneratedColumn<String>(
+    'endpoint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _inputRateNanoUsdPerMillionMeta =
+      const VerificationMeta('inputRateNanoUsdPerMillion');
+  @override
+  late final GeneratedColumn<int> inputRateNanoUsdPerMillion =
+      GeneratedColumn<int>(
+        'input_rate_nano_usd_per_million',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _cachedInputRateNanoUsdPerMillionMeta =
+      const VerificationMeta('cachedInputRateNanoUsdPerMillion');
+  @override
+  late final GeneratedColumn<int> cachedInputRateNanoUsdPerMillion =
+      GeneratedColumn<int>(
+        'cached_input_rate_nano_usd_per_million',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _outputRateNanoUsdPerMillionMeta =
+      const VerificationMeta('outputRateNanoUsdPerMillion');
+  @override
+  late final GeneratedColumn<int> outputRateNanoUsdPerMillion =
+      GeneratedColumn<int>(
+        'output_rate_nano_usd_per_million',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('user'),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    providerKind,
+    endpoint,
+    model,
+    inputRateNanoUsdPerMillion,
+    cachedInputRateNanoUsdPerMillion,
+    outputRateNanoUsdPerMillion,
+    source,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ai_model_prices';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AiModelPrice> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('provider_kind')) {
+      context.handle(
+        _providerKindMeta,
+        providerKind.isAcceptableOrUnknown(
+          data['provider_kind']!,
+          _providerKindMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_providerKindMeta);
+    }
+    if (data.containsKey('endpoint')) {
+      context.handle(
+        _endpointMeta,
+        endpoint.isAcceptableOrUnknown(data['endpoint']!, _endpointMeta),
+      );
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelMeta);
+    }
+    if (data.containsKey('input_rate_nano_usd_per_million')) {
+      context.handle(
+        _inputRateNanoUsdPerMillionMeta,
+        inputRateNanoUsdPerMillion.isAcceptableOrUnknown(
+          data['input_rate_nano_usd_per_million']!,
+          _inputRateNanoUsdPerMillionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_inputRateNanoUsdPerMillionMeta);
+    }
+    if (data.containsKey('cached_input_rate_nano_usd_per_million')) {
+      context.handle(
+        _cachedInputRateNanoUsdPerMillionMeta,
+        cachedInputRateNanoUsdPerMillion.isAcceptableOrUnknown(
+          data['cached_input_rate_nano_usd_per_million']!,
+          _cachedInputRateNanoUsdPerMillionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cachedInputRateNanoUsdPerMillionMeta);
+    }
+    if (data.containsKey('output_rate_nano_usd_per_million')) {
+      context.handle(
+        _outputRateNanoUsdPerMillionMeta,
+        outputRateNanoUsdPerMillion.isAcceptableOrUnknown(
+          data['output_rate_nano_usd_per_million']!,
+          _outputRateNanoUsdPerMillionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_outputRateNanoUsdPerMillionMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {providerKind, endpoint, model};
+  @override
+  AiModelPrice map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AiModelPrice(
+      providerKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_kind'],
+      )!,
+      endpoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}endpoint'],
+      )!,
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      )!,
+      inputRateNanoUsdPerMillion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}input_rate_nano_usd_per_million'],
+      )!,
+      cachedInputRateNanoUsdPerMillion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cached_input_rate_nano_usd_per_million'],
+      )!,
+      outputRateNanoUsdPerMillion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}output_rate_nano_usd_per_million'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AiModelPricesTable createAlias(String alias) {
+    return $AiModelPricesTable(attachedDatabase, alias);
+  }
+}
+
+class AiModelPrice extends DataClass implements Insertable<AiModelPrice> {
+  final String providerKind;
+  final String endpoint;
+  final String model;
+  final int inputRateNanoUsdPerMillion;
+  final int cachedInputRateNanoUsdPerMillion;
+  final int outputRateNanoUsdPerMillion;
+  final String source;
+  final DateTime updatedAt;
+  const AiModelPrice({
+    required this.providerKind,
+    required this.endpoint,
+    required this.model,
+    required this.inputRateNanoUsdPerMillion,
+    required this.cachedInputRateNanoUsdPerMillion,
+    required this.outputRateNanoUsdPerMillion,
+    required this.source,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['provider_kind'] = Variable<String>(providerKind);
+    map['endpoint'] = Variable<String>(endpoint);
+    map['model'] = Variable<String>(model);
+    map['input_rate_nano_usd_per_million'] = Variable<int>(
+      inputRateNanoUsdPerMillion,
+    );
+    map['cached_input_rate_nano_usd_per_million'] = Variable<int>(
+      cachedInputRateNanoUsdPerMillion,
+    );
+    map['output_rate_nano_usd_per_million'] = Variable<int>(
+      outputRateNanoUsdPerMillion,
+    );
+    map['source'] = Variable<String>(source);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  AiModelPricesCompanion toCompanion(bool nullToAbsent) {
+    return AiModelPricesCompanion(
+      providerKind: Value(providerKind),
+      endpoint: Value(endpoint),
+      model: Value(model),
+      inputRateNanoUsdPerMillion: Value(inputRateNanoUsdPerMillion),
+      cachedInputRateNanoUsdPerMillion: Value(cachedInputRateNanoUsdPerMillion),
+      outputRateNanoUsdPerMillion: Value(outputRateNanoUsdPerMillion),
+      source: Value(source),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory AiModelPrice.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AiModelPrice(
+      providerKind: serializer.fromJson<String>(json['providerKind']),
+      endpoint: serializer.fromJson<String>(json['endpoint']),
+      model: serializer.fromJson<String>(json['model']),
+      inputRateNanoUsdPerMillion: serializer.fromJson<int>(
+        json['inputRateNanoUsdPerMillion'],
+      ),
+      cachedInputRateNanoUsdPerMillion: serializer.fromJson<int>(
+        json['cachedInputRateNanoUsdPerMillion'],
+      ),
+      outputRateNanoUsdPerMillion: serializer.fromJson<int>(
+        json['outputRateNanoUsdPerMillion'],
+      ),
+      source: serializer.fromJson<String>(json['source']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'providerKind': serializer.toJson<String>(providerKind),
+      'endpoint': serializer.toJson<String>(endpoint),
+      'model': serializer.toJson<String>(model),
+      'inputRateNanoUsdPerMillion': serializer.toJson<int>(
+        inputRateNanoUsdPerMillion,
+      ),
+      'cachedInputRateNanoUsdPerMillion': serializer.toJson<int>(
+        cachedInputRateNanoUsdPerMillion,
+      ),
+      'outputRateNanoUsdPerMillion': serializer.toJson<int>(
+        outputRateNanoUsdPerMillion,
+      ),
+      'source': serializer.toJson<String>(source),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  AiModelPrice copyWith({
+    String? providerKind,
+    String? endpoint,
+    String? model,
+    int? inputRateNanoUsdPerMillion,
+    int? cachedInputRateNanoUsdPerMillion,
+    int? outputRateNanoUsdPerMillion,
+    String? source,
+    DateTime? updatedAt,
+  }) => AiModelPrice(
+    providerKind: providerKind ?? this.providerKind,
+    endpoint: endpoint ?? this.endpoint,
+    model: model ?? this.model,
+    inputRateNanoUsdPerMillion:
+        inputRateNanoUsdPerMillion ?? this.inputRateNanoUsdPerMillion,
+    cachedInputRateNanoUsdPerMillion:
+        cachedInputRateNanoUsdPerMillion ??
+        this.cachedInputRateNanoUsdPerMillion,
+    outputRateNanoUsdPerMillion:
+        outputRateNanoUsdPerMillion ?? this.outputRateNanoUsdPerMillion,
+    source: source ?? this.source,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  AiModelPrice copyWithCompanion(AiModelPricesCompanion data) {
+    return AiModelPrice(
+      providerKind: data.providerKind.present
+          ? data.providerKind.value
+          : this.providerKind,
+      endpoint: data.endpoint.present ? data.endpoint.value : this.endpoint,
+      model: data.model.present ? data.model.value : this.model,
+      inputRateNanoUsdPerMillion: data.inputRateNanoUsdPerMillion.present
+          ? data.inputRateNanoUsdPerMillion.value
+          : this.inputRateNanoUsdPerMillion,
+      cachedInputRateNanoUsdPerMillion:
+          data.cachedInputRateNanoUsdPerMillion.present
+          ? data.cachedInputRateNanoUsdPerMillion.value
+          : this.cachedInputRateNanoUsdPerMillion,
+      outputRateNanoUsdPerMillion: data.outputRateNanoUsdPerMillion.present
+          ? data.outputRateNanoUsdPerMillion.value
+          : this.outputRateNanoUsdPerMillion,
+      source: data.source.present ? data.source.value : this.source,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiModelPrice(')
+          ..write('providerKind: $providerKind, ')
+          ..write('endpoint: $endpoint, ')
+          ..write('model: $model, ')
+          ..write('inputRateNanoUsdPerMillion: $inputRateNanoUsdPerMillion, ')
+          ..write(
+            'cachedInputRateNanoUsdPerMillion: $cachedInputRateNanoUsdPerMillion, ',
+          )
+          ..write('outputRateNanoUsdPerMillion: $outputRateNanoUsdPerMillion, ')
+          ..write('source: $source, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    providerKind,
+    endpoint,
+    model,
+    inputRateNanoUsdPerMillion,
+    cachedInputRateNanoUsdPerMillion,
+    outputRateNanoUsdPerMillion,
+    source,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AiModelPrice &&
+          other.providerKind == this.providerKind &&
+          other.endpoint == this.endpoint &&
+          other.model == this.model &&
+          other.inputRateNanoUsdPerMillion == this.inputRateNanoUsdPerMillion &&
+          other.cachedInputRateNanoUsdPerMillion ==
+              this.cachedInputRateNanoUsdPerMillion &&
+          other.outputRateNanoUsdPerMillion ==
+              this.outputRateNanoUsdPerMillion &&
+          other.source == this.source &&
+          other.updatedAt == this.updatedAt);
+}
+
+class AiModelPricesCompanion extends UpdateCompanion<AiModelPrice> {
+  final Value<String> providerKind;
+  final Value<String> endpoint;
+  final Value<String> model;
+  final Value<int> inputRateNanoUsdPerMillion;
+  final Value<int> cachedInputRateNanoUsdPerMillion;
+  final Value<int> outputRateNanoUsdPerMillion;
+  final Value<String> source;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const AiModelPricesCompanion({
+    this.providerKind = const Value.absent(),
+    this.endpoint = const Value.absent(),
+    this.model = const Value.absent(),
+    this.inputRateNanoUsdPerMillion = const Value.absent(),
+    this.cachedInputRateNanoUsdPerMillion = const Value.absent(),
+    this.outputRateNanoUsdPerMillion = const Value.absent(),
+    this.source = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AiModelPricesCompanion.insert({
+    required String providerKind,
+    this.endpoint = const Value.absent(),
+    required String model,
+    required int inputRateNanoUsdPerMillion,
+    required int cachedInputRateNanoUsdPerMillion,
+    required int outputRateNanoUsdPerMillion,
+    this.source = const Value.absent(),
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : providerKind = Value(providerKind),
+       model = Value(model),
+       inputRateNanoUsdPerMillion = Value(inputRateNanoUsdPerMillion),
+       cachedInputRateNanoUsdPerMillion = Value(
+         cachedInputRateNanoUsdPerMillion,
+       ),
+       outputRateNanoUsdPerMillion = Value(outputRateNanoUsdPerMillion),
+       updatedAt = Value(updatedAt);
+  static Insertable<AiModelPrice> custom({
+    Expression<String>? providerKind,
+    Expression<String>? endpoint,
+    Expression<String>? model,
+    Expression<int>? inputRateNanoUsdPerMillion,
+    Expression<int>? cachedInputRateNanoUsdPerMillion,
+    Expression<int>? outputRateNanoUsdPerMillion,
+    Expression<String>? source,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (providerKind != null) 'provider_kind': providerKind,
+      if (endpoint != null) 'endpoint': endpoint,
+      if (model != null) 'model': model,
+      if (inputRateNanoUsdPerMillion != null)
+        'input_rate_nano_usd_per_million': inputRateNanoUsdPerMillion,
+      if (cachedInputRateNanoUsdPerMillion != null)
+        'cached_input_rate_nano_usd_per_million':
+            cachedInputRateNanoUsdPerMillion,
+      if (outputRateNanoUsdPerMillion != null)
+        'output_rate_nano_usd_per_million': outputRateNanoUsdPerMillion,
+      if (source != null) 'source': source,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AiModelPricesCompanion copyWith({
+    Value<String>? providerKind,
+    Value<String>? endpoint,
+    Value<String>? model,
+    Value<int>? inputRateNanoUsdPerMillion,
+    Value<int>? cachedInputRateNanoUsdPerMillion,
+    Value<int>? outputRateNanoUsdPerMillion,
+    Value<String>? source,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return AiModelPricesCompanion(
+      providerKind: providerKind ?? this.providerKind,
+      endpoint: endpoint ?? this.endpoint,
+      model: model ?? this.model,
+      inputRateNanoUsdPerMillion:
+          inputRateNanoUsdPerMillion ?? this.inputRateNanoUsdPerMillion,
+      cachedInputRateNanoUsdPerMillion:
+          cachedInputRateNanoUsdPerMillion ??
+          this.cachedInputRateNanoUsdPerMillion,
+      outputRateNanoUsdPerMillion:
+          outputRateNanoUsdPerMillion ?? this.outputRateNanoUsdPerMillion,
+      source: source ?? this.source,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (providerKind.present) {
+      map['provider_kind'] = Variable<String>(providerKind.value);
+    }
+    if (endpoint.present) {
+      map['endpoint'] = Variable<String>(endpoint.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (inputRateNanoUsdPerMillion.present) {
+      map['input_rate_nano_usd_per_million'] = Variable<int>(
+        inputRateNanoUsdPerMillion.value,
+      );
+    }
+    if (cachedInputRateNanoUsdPerMillion.present) {
+      map['cached_input_rate_nano_usd_per_million'] = Variable<int>(
+        cachedInputRateNanoUsdPerMillion.value,
+      );
+    }
+    if (outputRateNanoUsdPerMillion.present) {
+      map['output_rate_nano_usd_per_million'] = Variable<int>(
+        outputRateNanoUsdPerMillion.value,
+      );
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiModelPricesCompanion(')
+          ..write('providerKind: $providerKind, ')
+          ..write('endpoint: $endpoint, ')
+          ..write('model: $model, ')
+          ..write('inputRateNanoUsdPerMillion: $inputRateNanoUsdPerMillion, ')
+          ..write(
+            'cachedInputRateNanoUsdPerMillion: $cachedInputRateNanoUsdPerMillion, ',
+          )
+          ..write('outputRateNanoUsdPerMillion: $outputRateNanoUsdPerMillion, ')
+          ..write('source: $source, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $KnowledgeItemsTable extends KnowledgeItems
     with TableInfo<$KnowledgeItemsTable, KnowledgeItem> {
   @override
@@ -15579,6 +17657,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $PreferencesTable preferences = $PreferencesTable(this);
+  late final $AiUsageEventsTable aiUsageEvents = $AiUsageEventsTable(this);
+  late final $AiModelPricesTable aiModelPrices = $AiModelPricesTable(this);
   late final $KnowledgeItemsTable knowledgeItems = $KnowledgeItemsTable(this);
   late final $KnowledgeRevisionsTable knowledgeRevisions =
       $KnowledgeRevisionsTable(this);
@@ -15642,6 +17722,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     attachments,
     providerConfigs,
     preferences,
+    aiUsageEvents,
+    aiModelPrices,
     knowledgeItems,
     knowledgeRevisions,
     mistakes,

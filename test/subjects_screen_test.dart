@@ -83,5 +83,25 @@ void main() {
         .map((subject) => tester.getTopLeft(find.text(subject)).dy)
         .toList();
     expect(menuPositions, orderedEquals([...menuPositions]..sort()));
+
+    scope.read(routerProvider).go('/settings/python');
+    tester.view.physicalSize = const Size(1280, 844);
+    await tester.pumpAndSettle();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pumpAndSettle();
+    final pythonContent = tester.getRect(
+      find.byKey(const Key('python-policy')),
+    );
+    expect(pythonContent.center.dx, closeTo((203 + 1280) / 2, 1));
+    expect(pythonContent.width, lessThanOrEqualTo(760));
+
+    scope.read(routerProvider).go('/settings/ai-usage');
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('AI 用量'), findsOneWidget);
+    expect(find.byKey(const Key('add-ai-model-price')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

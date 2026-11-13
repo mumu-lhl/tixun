@@ -406,10 +406,9 @@ Stream<AiChunk> decodeResponses(
       final output = response['output'] as List;
       // Usage is optional accounting metadata. A different numeric encoding
       // must not invalidate an otherwise complete response or tool call.
-      final usage = response['usage'];
-      final tokens = usage is Map && usage['total_tokens'] is int
-          ? usage['total_tokens'] as int
-          : null;
+      final rawUsage = response['usage'];
+      final usage = rawUsage is Map ? parseResponsesUsage(rawUsage) : null;
+      final tokens = usage?.totalTokens;
       final fullText = StringBuffer();
       for (final item in output.whereType<Map>()) {
         if (item['type'] != 'message' || item['content'] is! List) continue;
@@ -489,11 +488,16 @@ Stream<AiChunk> decodeResponses(
         }
         validateToolCalls(parts);
         retainContext?.call(parts.first.id, context);
-        yield AiChunk(calls: parts, completed: true, tokens: tokens);
+        yield AiChunk(
+          calls: parts,
+          completed: true,
+          tokens: tokens,
+          usage: usage,
+        );
         completed = true;
         break;
       }
-      yield AiChunk(tokens: tokens, completed: true);
+      yield AiChunk(tokens: tokens, completed: true, usage: usage);
       completed = true;
       break;
     }

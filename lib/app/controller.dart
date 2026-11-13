@@ -20,6 +20,7 @@ import 'package:uuid/uuid.dart';
 import 'preferences.dart';
 
 import '../core/ai/chat_provider.dart';
+import '../core/ai/ai_usage_store.dart';
 import '../core/ai/chatgpt/auth.dart';
 import '../core/ai/chatgpt/responses.dart';
 import '../core/ai/prompt_settings.dart';
@@ -202,6 +203,7 @@ class AppController extends ChangeNotifier {
 
   Future<void> initialize({bool seed = true}) async {
     await preferences.load();
+    await AiUsageStore(db).ensureBuiltinPrices();
     notice = preferences.loadNotice;
     final savedSubject = await db.preference('subject_filter');
     if (savedSubject != null &&
@@ -1463,6 +1465,10 @@ class AppController extends ChangeNotifier {
       const Duration(seconds: 35),
       () => cancel.cancel('timeout'),
     );
+    final actionId = const Uuid().v4();
+    final startedAt = DateTime.now();
+    AiTokenUsage? usage;
+    var requestStatus = 'error';
     try {
       var receivedText = false;
       await for (final chunk
@@ -1481,12 +1487,13 @@ class AppController extends ChangeNotifier {
                 ),
                 cancel,
               )) {
+        if (chunk.usage != null) usage = chunk.usage;
         receivedText = receivedText || chunk.text.isNotEmpty;
         if (receivedText && chunk.completed && chunk.calls.isEmpty) {
-          cancel.cancel();
-          return;
+          requestStatus = 'complete';
         }
       }
+      if (requestStatus == 'complete') return;
       throw const AiFailure.localized(
         AppErrorCode.connectedButNoResponseText,
         '连接成功但没有收到正文。',
@@ -1506,6 +1513,25 @@ class AppController extends ChangeNotifier {
       rethrow;
     } finally {
       timer.cancel();
+      if (provider is! MockChatProvider) {
+        try {
+          await AiUsageStore(db).record(
+            AiUsageCapture(
+              actionId: actionId,
+              providerKind: candidate.kind,
+              endpoint: candidate.baseUrl,
+              model: candidate.model,
+              feature: 'connection_test',
+              status: requestStatus,
+              occurredAt: startedAt,
+              durationMs: DateTime.now().difference(startedAt).inMilliseconds,
+              usage: usage,
+            ),
+          );
+        } catch (_) {
+          // A usage write must not override the connection-test result.
+        }
+      }
     }
   }
 

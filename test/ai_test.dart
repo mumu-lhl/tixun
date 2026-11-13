@@ -24,6 +24,23 @@ void main() {
     expect(chunks.map((c) => c.text).join(), '你好');
     expect(chunks.any((c) => c.tokens == 42), true);
   });
+  test('Chat Completions usage chunks retain token breakdowns', () async {
+    final chunks = await decodeCompletion(
+      bytes('''data: {"choices":[],"usage":{"prompt_tokens":120,"completion_tokens":30,"total_tokens":150,"prompt_tokens_details":{"cached_tokens":60}}}
+
+data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+
+data: [DONE]
+
+'''),
+    ).toList();
+    final usage = chunks.singleWhere((chunk) => chunk.usage != null).usage!;
+    expect(usage.inputTokens, 120);
+    expect(usage.cachedInputTokens, 60);
+    expect(usage.outputTokens, 30);
+    expect(usage.totalTokens, 150);
+  });
+
   test(
     'Malformed JSON, unexpected close and malformed tools fail explicitly',
     () async {

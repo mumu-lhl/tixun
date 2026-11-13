@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/controller.dart';
 import '../../core/ai/ai_options.dart';
+import '../../core/ai/ai_usage_store.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
@@ -659,6 +660,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
                         subject: widget.subject.subject,
                         prompt: c.prompts.text('exam_scores'),
                         cancel: cancel,
+                        usageStore: AiUsageStore(c.db),
                         onReasoning: (value) {
                           if (mounted && value != reasoning) {
                             setState(() => reasoning = value);

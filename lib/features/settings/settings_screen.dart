@@ -100,6 +100,14 @@ class SettingsScreen extends ConsumerWidget {
                 _SettingsGroup(
                   children: [
                     ListTile(
+                      key: const Key('settings-ai-usage'),
+                      leading: const _SettingsIcon(Icons.analytics_outlined),
+                      title: Text(context.l10n.aiUsage),
+                      subtitle: Text(context.l10n.aiUsageHelp),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/settings/ai-usage'),
+                    ),
+                    ListTile(
                       key: const Key('settings-ai'),
                       leading: const _SettingsIcon(Icons.hub_outlined),
                       title: Text(context.l10n.modelsAndConnections),

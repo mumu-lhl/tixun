@@ -9,8 +9,10 @@ import '../database/database.dart';
 import '../platform/attachment_store.dart';
 import 'prompt_settings.dart';
 import 'ai_types.dart';
+import 'ai_usage.dart';
 import 'ai_options.dart';
 export 'ai_options.dart';
+export 'ai_usage.dart';
 import 'tool_call_collector.dart';
 import '../platform/key_store.dart';
 export 'ai_types.dart';
@@ -67,9 +69,14 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
           [detail],
         );
       }
-      final usage = json['usage'] as Map<String, dynamic>?;
-      if (usage?['total_tokens'] is int) {
-        yield AiChunk(tokens: usage!['total_tokens'] as int);
+      final usage = json['usage'];
+      if (usage is Map) {
+        final parsedUsage = parseChatCompletionsUsage(usage);
+        if (parsedUsage.totalTokens != null ||
+            parsedUsage.inputTokens != null ||
+            parsedUsage.outputTokens != null) {
+          yield AiChunk(tokens: parsedUsage.totalTokens, usage: parsedUsage);
+        }
       }
       final choices = json['choices'] as List? ?? [];
       if (choices.isEmpty) continue;

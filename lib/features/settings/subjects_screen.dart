@@ -80,23 +80,7 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
       await _leave();
     },
     child: Scaffold(
-      appBar: AppBar(
-        title: Text(context.l10n.studySubjects),
-        actions: [
-          if (saving)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Tooltip(
-                message: context.l10n.savingEllipsis,
-                child: const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
-        ],
-      ),
+      appBar: AppBar(title: Text(context.l10n.studySubjects)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),

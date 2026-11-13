@@ -101,6 +101,50 @@ class Preferences extends Table {
   Set<Column> get primaryKey => {name};
 }
 
+class AiUsageEvents extends Table {
+  TextColumn get id => text()();
+  TextColumn get actionId => text()();
+  TextColumn get sessionId => text().nullable()();
+  TextColumn get messageId => text().nullable()();
+  TextColumn get providerKind => text()();
+  TextColumn get endpoint => text().withDefault(const Constant(''))();
+  TextColumn get model => text()();
+  TextColumn get feature => text()();
+  TextColumn get status => text()();
+  TextColumn get usageSource => text().withDefault(const Constant('unknown'))();
+  DateTimeColumn get occurredAt => dateTime()();
+  IntColumn get durationMs => integer().nullable()();
+  IntColumn get imageCount => integer().withDefault(const Constant(0))();
+  IntColumn get toolCallCount => integer().withDefault(const Constant(0))();
+  IntColumn get inputTokens => integer().nullable()();
+  IntColumn get cachedInputTokens => integer().nullable()();
+  IntColumn get outputTokens => integer().nullable()();
+  IntColumn get reasoningTokens => integer().nullable()();
+  IntColumn get totalTokens => integer().nullable()();
+  IntColumn get costNanoUsd => integer().nullable()();
+  TextColumn get costBasis => text().withDefault(const Constant('unknown'))();
+  IntColumn get inputRateNanoUsdPerMillion => integer().nullable()();
+  IntColumn get cachedInputRateNanoUsdPerMillion => integer().nullable()();
+  IntColumn get outputRateNanoUsdPerMillion => integer().nullable()();
+  TextColumn get rateSource => text().nullable()();
+  DateTimeColumn get rateUpdatedAt => dateTime().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class AiModelPrices extends Table {
+  TextColumn get providerKind => text()();
+  TextColumn get endpoint => text().withDefault(const Constant(''))();
+  TextColumn get model => text()();
+  IntColumn get inputRateNanoUsdPerMillion => integer()();
+  IntColumn get cachedInputRateNanoUsdPerMillion => integer()();
+  IntColumn get outputRateNanoUsdPerMillion => integer()();
+  TextColumn get source => text().withDefault(const Constant('user'))();
+  DateTimeColumn get updatedAt => dateTime()();
+  @override
+  Set<Column> get primaryKey => {providerKind, endpoint, model};
+}
+
 @DriftDatabase(
   tables: [
     ChatSessions,
@@ -108,6 +152,8 @@ class Preferences extends Table {
     Attachments,
     ProviderConfigs,
     Preferences,
+    AiUsageEvents,
+    AiModelPrices,
     KnowledgeItems,
     KnowledgeRevisions,
     Mistakes,
@@ -145,7 +191,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 13;
+  static const latestSchemaVersion = 14;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -158,6 +204,12 @@ class AppDatabase extends _$AppDatabase {
       await _createPracticeLinkIndex();
       await _createModuleIndexes();
       await _createExamIndexes();
+      await customStatement(
+        'CREATE INDEX ai_usage_occurred ON ai_usage_events(occurred_at)',
+      );
+      await customStatement(
+        'CREATE INDEX ai_usage_action ON ai_usage_events(action_id)',
+      );
       await customStatement(
         'CREATE INDEX messages_session_time ON chat_messages(session_id, created_at)',
       );
@@ -257,6 +309,19 @@ class AppDatabase extends _$AppDatabase {
       if (from < 13) {
         await m.addColumn(chatSessions, chatSessions.contextSummary);
         await m.addColumn(chatSessions, chatSessions.contextSummaryUpToId);
+      }
+      if (from < 14) {
+        await m.createTable(aiUsageEvents);
+        await m.createTable(aiModelPrices);
+        await customStatement(
+          "INSERT INTO ai_usage_events (id,action_id,session_id,message_id,provider_kind,endpoint,model,feature,status,usage_source,occurred_at,total_tokens,cost_basis) SELECT 'legacy:' || id,id,session_id,id,'unknown','',COALESCE(model,'unknown'),'chat',status,'legacy_total',created_at,total_tokens,'unknown' FROM chat_messages WHERE role='assistant' AND total_tokens IS NOT NULL",
+        );
+        await customStatement(
+          'CREATE INDEX ai_usage_occurred ON ai_usage_events(occurred_at)',
+        );
+        await customStatement(
+          'CREATE INDEX ai_usage_action ON ai_usage_events(action_id)',
+        );
       }
       if (from >= 9 && from < 12) {
         await m.addColumn(examAttachments, examAttachments.originalPath);

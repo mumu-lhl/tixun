@@ -10,6 +10,30 @@ import 'dart:io';
 import 'generated_migrations/schema.dart';
 
 void main() {
+  test(
+    'Schema v13 preserves legacy aggregate tokens without inventing a split',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(13);
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_sessions(id,title,created_at,updated_at) VALUES('s','Legacy',1,1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_messages(id,session_id,role,content,model,total_tokens,created_at) VALUES('m','s','assistant','reply','deepseek-flash',42,2)",
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+      final usage = (await db.select(db.aiUsageEvents).get()).single;
+      expect(usage.totalTokens, 42);
+      expect(usage.inputTokens, isNull);
+      expect(usage.cachedInputTokens, isNull);
+      expect(usage.outputTokens, isNull);
+      expect(usage.usageSource, 'legacy_total');
+      expect(usage.costBasis, 'unknown');
+    },
+  );
+
   test('Schema v12 adds context summary columns to chat sessions', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final schema = await verifier.schemaAt(12);

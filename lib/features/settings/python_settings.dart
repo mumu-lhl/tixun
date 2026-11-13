@@ -77,41 +77,48 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(context.l10n.pythonExecution)),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Text(context.l10n.aiPythonCapabilities),
-        const SizedBox(height: 20),
-        if (loadError)
-          Text(
-            context.l10n.couldNotLoadExecutionPermissions,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          )
-        else if (policy == null)
-          const LinearProgressIndicator()
-        else
-          SizedBox(
-            key: const Key('python-policy'),
-            child: AppSelectField<String>(
-              key: ValueKey('$policy-$selection'),
-              initialValue: policy,
-              decoration: InputDecoration(
-                labelText: context.l10n.executionPermission,
+    body: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(context.l10n.aiPythonCapabilities),
+            const SizedBox(height: 20),
+            if (loadError)
+              Text(
+                context.l10n.couldNotLoadExecutionPermissions,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              )
+            else if (policy == null)
+              const LinearProgressIndicator()
+            else
+              SizedBox(
+                key: const Key('python-policy'),
+                child: AppSelectField<String>(
+                  key: ValueKey('$policy-$selection'),
+                  initialValue: policy,
+                  decoration: InputDecoration(
+                    labelText: context.l10n.executionPermission,
+                  ),
+                  items: [
+                    for (final pair in [
+                      ('off', context.l10n.close),
+                      ('ask', context.l10n.reviewEveryScript),
+                      ('auto', context.l10n.automaticallyAllowArbitraryCode),
+                    ])
+                      DropdownMenuItem(value: pair.$1, child: Text(pair.$2)),
+                  ],
+                  onChanged: saving
+                      ? null
+                      : (v) => act(context, () => change(v)),
+                ),
               ),
-              items: [
-                for (final pair in [
-                  ('off', context.l10n.close),
-                  ('ask', context.l10n.reviewEveryScript),
-                  ('auto', context.l10n.automaticallyAllowArbitraryCode),
-                ])
-                  DropdownMenuItem(value: pair.$1, child: Text(pair.$2)),
-              ],
-              onChanged: saving ? null : (v) => act(context, () => change(v)),
-            ),
-          ),
-        const SizedBox(height: 20),
-        Text(context.l10n.thisIsNotASecurity),
-      ],
+            const SizedBox(height: 20),
+            Text(context.l10n.thisIsNotASecurity),
+          ],
+        ),
+      ),
     ),
   );
 }

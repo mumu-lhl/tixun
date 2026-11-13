@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 
 import '../database/database.dart';
-import 'ai_types.dart';
+import 'ai_usage_store.dart';
 import 'chat_provider.dart';
 import 'token_estimator.dart';
 
@@ -177,6 +177,10 @@ class CompactedContext {
 Future<CompactedContext> compactContext({
   required AppDatabase db,
   required String sessionId,
+  String? actionId,
+  String? messageId,
+  String providerKind = '',
+  String endpoint = '',
   required List<ChatMessage> history,
   required List<Attachment> images,
   required ProviderConfig config,
@@ -264,8 +268,14 @@ Future<CompactedContext> compactContext({
         provider,
         config,
         toSummarize,
+        db: db,
         language: language,
         cancel: cancel,
+        actionId: actionId,
+        sessionId: sessionId,
+        messageId: messageId,
+        providerKind: providerKind,
+        endpoint: endpoint,
       );
     } catch (_) {
       // Summarization failed: keep the old summary and fall through to
@@ -309,8 +319,14 @@ Future<String> _summarize(
   ChatProvider provider,
   ProviderConfig config,
   List<ChatMessage> turns, {
+  required AppDatabase db,
   required String language,
   required CancelToken cancel,
+  String? actionId,
+  String? sessionId,
+  String? messageId,
+  String? providerKind,
+  String? endpoint,
 }) async {
   final request = AiRequest(
     instructions: _summaryPrompt(language == 'en'),
@@ -325,10 +341,41 @@ Future<String> _summarize(
   // No tools and no thinking: the summary is a plain completion, the same
   // way pi summarizes through its core client.
   final conversation = provider.start(config.copyWith(thinking: false));
+  final startedAt = DateTime.now();
+  AiTokenUsage? usage;
   final buffer = StringBuffer();
-  await for (final chunk in conversation.complete(request, cancel)) {
-    buffer.write(chunk.text);
+  try {
+    await for (final chunk in conversation.complete(request, cancel)) {
+      buffer.write(chunk.text);
+      if (chunk.usage != null) usage = chunk.usage;
+    }
+  } catch (_) {
+    await _recordCompactionUsage(
+      db: db,
+      actionId: actionId,
+      sessionId: sessionId,
+      messageId: messageId,
+      providerKind: provider is MockChatProvider ? null : providerKind,
+      endpoint: endpoint,
+      config: config,
+      startedAt: startedAt,
+      usage: usage,
+      status: 'error',
+    );
+    rethrow;
   }
+  await _recordCompactionUsage(
+    db: db,
+    actionId: actionId,
+    sessionId: sessionId,
+    messageId: messageId,
+    providerKind: provider is MockChatProvider ? null : providerKind,
+    endpoint: endpoint,
+    config: config,
+    startedAt: startedAt,
+    usage: usage,
+    status: 'complete',
+  );
   final summary = buffer.toString().trim();
   if (summary.isEmpty) {
     throw const AiFailure.localized(
@@ -337,4 +384,38 @@ Future<String> _summarize(
     );
   }
   return summary;
+}
+
+Future<void> _recordCompactionUsage({
+  required AppDatabase db,
+  required String? actionId,
+  required String? sessionId,
+  required String? messageId,
+  required String? providerKind,
+  required String? endpoint,
+  required ProviderConfig config,
+  required DateTime startedAt,
+  required AiTokenUsage? usage,
+  required String status,
+}) async {
+  if (actionId == null || providerKind == null || endpoint == null) return;
+  try {
+    await AiUsageStore(db).record(
+      AiUsageCapture(
+        actionId: actionId,
+        sessionId: sessionId,
+        messageId: messageId,
+        providerKind: providerKind,
+        endpoint: endpoint,
+        model: config.model,
+        feature: 'context_compaction',
+        status: status,
+        occurredAt: startedAt,
+        durationMs: DateTime.now().difference(startedAt).inMilliseconds,
+        usage: usage,
+      ),
+    );
+  } catch (_) {
+    // Accounting failures must not prevent an otherwise usable summary.
+  }
 }

@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
 import '../../core/ai/study_tools.dart';
+import '../../core/ai/ai_usage_store.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/platform/photo_picker.dart';
@@ -1185,14 +1186,19 @@ class MessageView extends ConsumerWidget {
                       style: TextStyle(fontSize: 12),
                     ),
                   ),
-                if (!user && message.totalTokens != null)
+                if (!user && message.model != null)
                   Expanded(
-                    child: Text(
-                      '${message.totalTokens} tokens',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: colors.onSurfaceVariant,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        key: ValueKey('message-usage-${message.id}'),
+                        onPressed: () => _showMessageUsage(context, c, message),
+                        icon: const Icon(Icons.analytics_outlined, size: 15),
+                        label: Text(
+                          message.totalTokens == null
+                              ? context.l10n.requestDetails
+                              : '${message.totalTokens} tokens',
+                        ),
                       ),
                     ),
                   ),
@@ -1203,6 +1209,131 @@ class MessageView extends ConsumerWidget {
     );
   }
 }
+
+void _showMessageUsage(
+  BuildContext context,
+  AppController controller,
+  ChatMessage message,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        child: FutureBuilder<List<AiUsageEvent>>(
+          future: AiUsageStore(controller.db).eventsForAction(message.id),
+          builder: (context, snapshot) {
+            final rows = snapshot.data ?? const <AiUsageEvent>[];
+            final input = rows.fold<int>(
+              0,
+              (sum, row) => sum + (row.inputTokens ?? 0),
+            );
+            final cached = rows.fold<int>(
+              0,
+              (sum, row) => sum + (row.cachedInputTokens ?? 0),
+            );
+            final output = rows.fold<int>(
+              0,
+              (sum, row) => sum + (row.outputTokens ?? 0),
+            );
+            final inputLabel = rows.any((row) => row.inputTokens != null)
+                ? '$input'
+                : '—';
+            final cachedLabel = rows.any((row) => row.cachedInputTokens != null)
+                ? '$cached'
+                : '—';
+            final outputLabel = rows.any((row) => row.outputTokens != null)
+                ? '$output'
+                : '—';
+            final estimated = rows
+                .where((row) => row.costBasis == 'estimate')
+                .fold<int>(0, (sum, row) => sum + (row.costNanoUsd ?? 0));
+            final hasEstimate = rows.any((row) => row.costBasis == 'estimate');
+            final hasSubscription = rows.any(
+              (row) => row.costBasis == 'subscription',
+            );
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.l10n.requestDetails,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  const LinearProgressIndicator()
+                else if (rows.isEmpty)
+                  Text(
+                    message.totalTokens == null
+                        ? context.l10n.providerUsageUnavailable
+                        : '${context.l10n.providerUsageUnavailable} · '
+                              '${message.totalTokens} tokens',
+                  )
+                else ...[
+                  Text(
+                    '${context.l10n.inputTokens}: $inputLabel · '
+                    '${context.l10n.cachedInputTokens}: $cachedLabel · '
+                    '${context.l10n.outputTokens}: $outputLabel',
+                  ),
+                  const SizedBox(height: 6),
+                  if (hasEstimate)
+                    Text(
+                      '${context.l10n.estimatedCost}: '
+                      '\$${(estimated / 1000000000).toStringAsFixed(6)}',
+                    ),
+                  if (hasSubscription) Text(context.l10n.subscriptionUsage),
+                  if (rows.any((row) => row.costBasis == 'unknown'))
+                    Text(context.l10n.unknownCost),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        for (final row in rows)
+                          ListTile(
+                            dense: true,
+                            title: Text(
+                              '${_usageFeature(context, row.feature)} · ${row.model}',
+                            ),
+                            subtitle: Text(
+                              '${row.providerKind} · ${row.model} · '
+                              '${row.inputTokens ?? '—'} / '
+                              '${row.cachedInputTokens ?? '—'} / '
+                              '${row.outputTokens ?? '—'}'
+                              '${row.usageSource == 'legacy_total' ? ' · ${context.l10n.legacyUsageTotalOnly}' : ''}',
+                            ),
+                            trailing: Text(
+                              row.costBasis == 'estimate' &&
+                                      row.costNanoUsd != null
+                                  ? '\$${(row.costNanoUsd! / 1000000000).toStringAsFixed(6)}'
+                                  : row.costBasis == 'subscription'
+                                  ? context.l10n.subscriptionUsage
+                                  : context.l10n.unknownCost,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+      ),
+    ),
+  );
+}
+
+String _usageFeature(BuildContext context, String feature) => switch (feature) {
+  'chat' => context.l10n.usageFeatureChat,
+  'context_compaction' => context.l10n.usageFeatureContextCompaction,
+  'exam_scores' => context.l10n.usageFeatureExamScores,
+  'connection_test' => context.l10n.usageFeatureConnectionTest,
+  _ => feature,
+};
 
 class AttachmentImage extends ConsumerWidget {
   const AttachmentImage({

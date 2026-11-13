@@ -1,5 +1,6 @@
 import '../core/ui/app_menu.dart';
 import '../features/settings/ai_settings_screen.dart';
+import '../features/settings/ai_usage_screen.dart';
 import '../features/settings/python_settings.dart';
 import '../features/settings/subjects_screen.dart';
 import '../features/exams/exam_calendar.dart';
@@ -150,6 +151,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               _materialRoute(
                 path: 'ai',
                 builder: (_, _) => const AiSettingsScreen(),
+              ),
+              _materialRoute(
+                path: 'ai-usage',
+                builder: (_, _) => const AiUsageScreen(),
               ),
               _materialRoute(
                 path: 'chatgpt',

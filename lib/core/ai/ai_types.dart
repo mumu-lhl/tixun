@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../database/database.dart';
 import '../l10n/app_error.dart';
+import 'ai_usage.dart';
 
 class AiFailure implements Exception, LocalizedAppFailure {
   const AiFailure(this.message) : code = null, arguments = const [];
@@ -132,6 +133,7 @@ class AiChunk {
     this.text = '',
     this.reasoning = '',
     this.tokens,
+    this.usage,
     this.completed = false,
     this.calls = const [],
   });
@@ -140,8 +142,11 @@ class AiChunk {
   /// Reasoning delta for this event, if the provider streams one.
   final String reasoning;
 
-  /// Cumulative usage for this turn; later events replace earlier estimates.
+  /// Legacy total-token count; providers should prefer [usage].
   final int? tokens;
+
+  /// Provider-reported token breakdown for this model request.
+  final AiTokenUsage? usage;
   final bool completed;
   final List<ToolCall> calls;
 }

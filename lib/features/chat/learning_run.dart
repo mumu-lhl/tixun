@@ -9,6 +9,7 @@ import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/ai/chat_provider.dart';
+import '../../core/ai/ai_usage_store.dart';
 import '../../core/ai/context_compactor.dart';
 import '../../core/ai/study_tools.dart';
 import '../../core/ai/quiz_tool.dart';
@@ -134,6 +135,10 @@ class LearningRun {
       final compacted = await compactContext(
         db: db,
         sessionId: sessionId,
+        actionId: runId,
+        messageId: runId,
+        providerKind: requestConfig.kind,
+        endpoint: requestConfig.baseUrl,
         history: history,
         images: images,
         config: requestConfig,
@@ -356,49 +361,85 @@ class LearningRun {
         var traceStarted = false;
         var roundTokens = 0;
         var completed = false;
-        await for (final chunk in conversation.complete(request, cancel)) {
-          cancel.checkCancelled();
-          text += chunk.text;
-          roundText += chunk.text;
-          if (chunk.reasoning.isNotEmpty) {
-            if (!traceStarted && trace.isNotEmpty) trace += '\n\n---\n\n';
-            traceStarted = true;
-            trace += chunk.reasoning;
+        AiTokenUsage? roundUsage;
+        final requestStartedAt = DateTime.now();
+        final requestImageCount = request.messages.fold<int>(
+          0,
+          (count, message) => count + message.images.length,
+        );
+        try {
+          await for (final chunk in conversation.complete(request, cancel)) {
+            cancel.checkCancelled();
+            if (chunk.usage != null) roundUsage = chunk.usage;
+            text += chunk.text;
+            roundText += chunk.text;
+            if (chunk.reasoning.isNotEmpty) {
+              if (!traceStarted && trace.isNotEmpty) trace += '\n\n---\n\n';
+              traceStarted = true;
+              trace += chunk.reasoning;
+            }
+            roundReasoning += chunk.reasoning;
+            activeReasoning = roundReasoning;
+            final reportedTokens = chunk.usage?.totalTokens ?? chunk.tokens;
+            if (reportedTokens != null) {
+              tokens = (tokens ?? 0) - roundTokens + reportedTokens;
+              roundTokens = reportedTokens;
+            }
+            if (completed &&
+                chunk.text.isEmpty &&
+                chunk.reasoning.isEmpty &&
+                chunk.calls.isEmpty) {
+              // Duplicate completion frame (e.g. a final usage chunk restating
+              // finish_reason): ignore it instead of failing the round.
+              continue;
+            }
+            if (completed &&
+                (chunk.completed ||
+                    chunk.calls.isNotEmpty ||
+                    chunk.text.isNotEmpty ||
+                    chunk.reasoning.isNotEmpty)) {
+              throw const AiFailure.localized(
+                AppErrorCode.theServiceReturnedAnError,
+                '服务返回错误，请检查模型配置后重试。',
+              );
+            }
+            if (chunk.calls.isNotEmpty && !chunk.completed) {
+              throw const AiFailure.localized(
+                AppErrorCode.theToolResponseDidNot,
+                '工具响应未正常结束，未执行本轮资料修改。',
+              );
+            }
+            calls.addAll(chunk.calls);
+            completed = completed || chunk.completed;
+            await publish();
           }
-          roundReasoning += chunk.reasoning;
-          activeReasoning = roundReasoning;
-          if (chunk.tokens != null) {
-            tokens = (tokens ?? 0) - roundTokens + chunk.tokens!;
-            roundTokens = chunk.tokens!;
-          }
-          if (completed &&
-              chunk.text.isEmpty &&
-              chunk.reasoning.isEmpty &&
-              chunk.calls.isEmpty) {
-            // Duplicate completion frame (e.g. a final usage chunk restating
-            // finish_reason): ignore it instead of failing the round.
-            continue;
-          }
-          if (completed &&
-              (chunk.completed ||
-                  chunk.calls.isNotEmpty ||
-                  chunk.text.isNotEmpty ||
-                  chunk.reasoning.isNotEmpty)) {
-            throw const AiFailure.localized(
-              AppErrorCode.theServiceReturnedAnError,
-              '服务返回错误，请检查模型配置后重试。',
-            );
-          }
-          if (chunk.calls.isNotEmpty && !chunk.completed) {
-            throw const AiFailure.localized(
-              AppErrorCode.theToolResponseDidNot,
-              '工具响应未正常结束，未执行本轮资料修改。',
-            );
-          }
-          calls.addAll(chunk.calls);
-          completed = completed || chunk.completed;
-          await publish();
+        } catch (_) {
+          await _recordUsage(
+            actionId: runId,
+            sessionId: sessionId,
+            messageId: runId,
+            config: requestConfig,
+            feature: 'chat',
+            status: 'error',
+            startedAt: requestStartedAt,
+            imageCount: requestImageCount,
+            toolCallCount: calls.length,
+            usage: roundUsage,
+          );
+          rethrow;
         }
+        await _recordUsage(
+          actionId: runId,
+          sessionId: sessionId,
+          messageId: runId,
+          config: requestConfig,
+          feature: 'chat',
+          status: completed ? 'complete' : 'incomplete',
+          startedAt: requestStartedAt,
+          imageCount: requestImageCount,
+          toolCallCount: calls.length,
+          usage: roundUsage,
+        );
         // Keep the reasoning of the round that just streamed, even if the
         // text is later replaced by the quiz placeholder below.
         lastRoundReasoning = roundReasoning.isEmpty ? null : roundReasoning;
@@ -568,6 +609,43 @@ class LearningRun {
       );
     } finally {
       timer.cancel();
+    }
+  }
+
+  Future<void> _recordUsage({
+    required String actionId,
+    required String sessionId,
+    required String messageId,
+    required ProviderConfig config,
+    required String feature,
+    required String status,
+    required DateTime startedAt,
+    required int imageCount,
+    required int toolCallCount,
+    required AiTokenUsage? usage,
+  }) async {
+    if (provider is MockChatProvider) return;
+    try {
+      await AiUsageStore(db).record(
+        AiUsageCapture(
+          actionId: actionId,
+          sessionId: sessionId,
+          messageId: messageId,
+          providerKind: config.kind,
+          endpoint: config.baseUrl,
+          model: config.model,
+          feature: feature,
+          status: status,
+          occurredAt: startedAt,
+          durationMs: DateTime.now().difference(startedAt).inMilliseconds,
+          imageCount: imageCount,
+          toolCallCount: toolCallCount,
+          usage: usage,
+          usageSource: provider is MockChatProvider ? 'mock' : null,
+        ),
+      );
+    } catch (_) {
+      // Usage-accounting failures must never fail a learning request.
     }
   }
 }
