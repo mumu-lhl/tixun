@@ -359,7 +359,11 @@ class StudyDetailScreen extends ConsumerWidget {
                                 ),
                               )
                             else
-                              LearningMarkdown(k.item.content),
+                              _panel(
+                                context,
+                                context.l10n.knowledgeContent,
+                                LearningMarkdown(k.item.content),
+                              ),
                             const SizedBox(height: 24),
                             StudyImages(
                               id: id,
@@ -368,14 +372,21 @@ class StudyDetailScreen extends ConsumerWidget {
                               editable: !deleted,
                             ),
                           ] else ...[
-                            Text(
+                            _panel(
+                              context,
                               context.l10n.originalQuestion,
-                              style: Theme.of(context).textTheme.titleLarge,
+                              m!.item.question.isEmpty
+                                  ? Text(
+                                      context
+                                          .l10n
+                                          .questionTextOptionalForImages,
+                                      style: TextStyle(
+                                        color: colors.onSurfaceVariant,
+                                      ),
+                                    )
+                                  : LearningMarkdown(m.item.question),
                             ),
-                            const SizedBox(height: 12),
-                            if (m!.item.question.isNotEmpty)
-                              LearningMarkdown(m.item.question),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             StudyImages(
                               id: id,
                               isMistake: true,
@@ -384,27 +395,38 @@ class StudyDetailScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 24),
                             if (m.item.originalAnswer.isNotEmpty)
-                              _section(context, '我的原答案', m.item.originalAnswer),
-                            if (m.item.ownAnalysis.isNotEmpty)
-                              _section(context, '我的思路', m.item.ownAnalysis),
-                            Text(
-                              context.l10n.errorCauses,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(m.item.errorReason),
-                            if (m.item.suggestedReason.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(
-                                  context.l10n.aiSuggestionUnconfirmed(
-                                    l10nArgument((m.item.suggestedReason)),
-                                  ),
-                                  style: TextStyle(
-                                    color: colors.onSurfaceVariant,
-                                  ),
-                                ),
+                              _section(
+                                context,
+                                context.l10n.myOriginalAnswer,
+                                m.item.originalAnswer,
                               ),
+                            if (m.item.ownAnalysis.isNotEmpty)
+                              _section(
+                                context,
+                                context.l10n.myAnalysisAndThoughts,
+                                m.item.ownAnalysis,
+                              ),
+                            _panel(
+                              context,
+                              context.l10n.errorCauses,
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(m.item.errorReason),
+                                  if (m.item.suggestedReason.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      context.l10n.aiSuggestionUnconfirmed(
+                                        l10nArgument((m.item.suggestedReason)),
+                                      ),
+                                      style: TextStyle(
+                                        color: colors.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                             const SizedBox(height: 20),
                             ExpansionTile(
                               tilePadding: EdgeInsets.zero,
@@ -420,13 +442,13 @@ class StudyDetailScreen extends ConsumerWidget {
                                 if (m.item.correctAnswer.isNotEmpty)
                                   _section(
                                     context,
-                                    '参考答案',
+                                    context.l10n.correctAnswer,
                                     m.item.correctAnswer,
                                   ),
                                 if (m.item.aiAnalysis.isNotEmpty)
                                   _section(
                                     context,
-                                    'AI 解析 · 请核对结论',
+                                    context.l10n.aiExplanationCheckConclusion,
                                     m.item.aiAnalysis,
                                   ),
                                 if (m.item.correctAnswer.isEmpty &&
@@ -538,14 +560,22 @@ class StudyDetailScreen extends ConsumerWidget {
   }
 
   Widget _section(BuildContext context, String title, String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 24),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 10),
-        LearningMarkdown(text),
-      ],
+    padding: const EdgeInsets.only(bottom: 12),
+    child: _panel(context, title, LearningMarkdown(text)),
+  );
+
+  Widget _panel(BuildContext context, String title, Widget child) => Card(
+    margin: EdgeInsets.zero,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
     ),
   );
   Future<void> _source(

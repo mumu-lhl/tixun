@@ -14,6 +14,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/app_menu.dart';
 import 'library_providers.dart';
 import 'study_editor.dart';
 import 'study_images.dart';
@@ -515,37 +516,50 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                               () => startAiStudyWriting(context, ref),
                             ),
                     ),
-                  IconButton(
-                    tooltip: context.l10n.selectMultipleItems,
-                    onPressed: _bulkBusy
-                        ? null
-                        : () {
-                            FocusScope.of(context).unfocus();
-                            setState(() {
-                              _selecting = !_selecting;
-                              _selected.clear();
-                            });
-                          },
-                    icon: Icon(_selecting ? Icons.close : Icons.checklist),
-                  ),
-                  IconButton(
-                    tooltip: _trash
-                        ? context.l10n.backToMaterial
-                        : context.l10n.openTrash,
-                    onPressed: _bulkBusy
-                        ? null
-                        : () {
-                            FocusScope.of(context).unfocus();
-                            setState(() {
-                              _trash = !_trash;
-                              _epoch = -1;
-                            });
-                          },
-                    icon: Icon(
-                      _trash
-                          ? Icons.inventory_2_outlined
-                          : Icons.restore_from_trash_outlined,
-                    ),
+                  PopupMenuButton<String>(
+                    tooltip: context.l10n.moreActions,
+                    enabled: !_bulkBusy,
+                    popUpAnimationStyle: menuAnimation(context),
+                    onSelected: (action) {
+                      FocusScope.of(context).unfocus();
+                      if (action == 'select') {
+                        setState(() {
+                          _selecting = !_selecting;
+                          _selected.clear();
+                        });
+                      } else if (action == 'trash') {
+                        setState(() {
+                          _trash = !_trash;
+                          _epoch = -1;
+                        });
+                      } else if (action == 'import-files') {
+                        act(context, _import);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'select',
+                        child: Text(
+                          _selecting
+                              ? context.l10n.cancel
+                              : context.l10n.selectMultipleItems,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'trash',
+                        child: Text(
+                          _trash
+                              ? context.l10n.backToMaterial
+                              : context.l10n.openTrash,
+                        ),
+                      ),
+                      if (widget.isMistake && Platform.isAndroid && !_trash)
+                        PopupMenuItem(
+                          value: 'import-files',
+                          enabled: !_importing,
+                          child: Text(context.l10n.importFromFiles),
+                        ),
+                    ],
                   ),
                   if (!widget.isMistake)
                     FilledButton.icon(
@@ -555,14 +569,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           : () => act(context, _create),
                       icon: const Icon(Icons.add, size: 18),
                       label: Text(context.l10n.newItem),
-                    ),
-                  if (widget.isMistake && Platform.isAndroid && !_trash)
-                    IconButton(
-                      tooltip: context.l10n.importFromFiles,
-                      onPressed: _importing || _bulkBusy
-                          ? null
-                          : () => act(context, _import),
-                      icon: const Icon(Icons.attach_file),
                     ),
                 ],
               ),
@@ -668,6 +674,31 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   });
                 },
               ),
+              if (_query.isNotEmpty || _moduleId.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const Key('clear-library-filters'),
+                    onPressed: () => act(context, () async {
+                      _debounce?.cancel();
+                      _searchController.clear();
+                      ref
+                              .read(
+                                libraryModuleFilterProvider(widget.isMistake)
+                                    .notifier,
+                              )
+                              .state =
+                          '';
+                      setState(() {
+                        _query = '';
+                        _moduleId = '';
+                        _epoch = -1;
+                      });
+                    }),
+                    icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                    label: Text(context.l10n.clearFilters),
+                  ),
+                ),
               const SizedBox(height: 10),
               if (_importing)
                 Padding(
@@ -824,7 +855,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           ),
                           if (hasFilters)
                             TextButton.icon(
-                              key: const Key('clear-library-filters'),
+                              key: const Key('clear-empty-library-filters'),
                               onPressed: () => act(context, () async {
                                 _debounce?.cancel();
                                 _searchController.clear();
@@ -876,7 +907,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   vertical: 8,
                 ),
                 itemCount: entries.length + (canLoadMore ? 1 : 0),
-                separatorBuilder: (_, _) => const Divider(),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   if (index == entries.length) {
                     return Padding(
@@ -894,74 +925,101 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     );
                   }
                   final e = entries[index];
-                  return ListTile(
-                    key: ValueKey(e.id),
-                    selected: _selected.containsKey(e.id),
-                    leading: _selecting
-                        ? Checkbox(
-                            value: _selected.containsKey(e.id),
-                            onChanged: _bulkBusy ? null : (_) => _toggle(e),
-                          )
-                        : null,
-                    onLongPress: () => _toggle(e),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 12,
-                    ),
-                    title: Text(
-                      e.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${e.subject} · ${e.chapter.isEmpty ? e.badge : e.chapter}',
-                            style: TextStyle(
-                              color: colors.primary,
-                              fontSize: 12,
+                  return Card(
+                    key: ValueKey('card-${e.id}'),
+                    margin: EdgeInsets.zero,
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      key: ValueKey(e.id),
+                      selected: _selected.containsKey(e.id),
+                      leading: _selecting
+                          ? Checkbox(
+                              value: _selected.containsKey(e.id),
+                              onChanged: _bulkBusy ? null : (_) => _toggle(e),
+                            )
+                          : Icon(
+                              widget.isMistake
+                                  ? Icons.error_outline
+                                  : Icons.lightbulb_outline,
+                              color: widget.isMistake
+                                  ? colors.tertiary
+                                  : colors.primary,
                             ),
-                          ),
-                          if (e.preview.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 5),
-                              child: Text(
-                                e.preview,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                        ],
+                      onLongPress: () => _toggle(e),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
                       ),
-                    ),
-                    trailing: _selecting
-                        ? null
-                        : _trash
-                        ? TextButton(
-                            onPressed: () => act(
-                              context,
-                              () => store.setDeleted(
-                                e.id,
-                                isMistake: widget.isMistake,
-                                deleted: false,
-                                expectedRevision: e.revision,
+                      title: Text(
+                        e.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${e.subject}${e.chapter.isEmpty ? '' : ' · ${e.chapter}'}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: colors.primary,
+                                fontSize: 12,
                               ),
                             ),
-                            child: Text(context.l10n.restore),
-                          )
-                        : const Icon(Icons.chevron_right),
-                    onTap: _selecting
-                        ? () => _toggle(e)
-                        : _trash
-                        ? null
-                        : () => context.push(
-                            '${widget.isMistake ? '/mistakes' : '/knowledge'}/${e.id}',
-                          ),
+                            if (e.badge.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  e.badge,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            if (e.preview.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Text(
+                                  e.preview,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      trailing: _selecting
+                          ? null
+                          : _trash
+                          ? TextButton(
+                              onPressed: () => act(
+                                context,
+                                () => store.setDeleted(
+                                  e.id,
+                                  isMistake: widget.isMistake,
+                                  deleted: false,
+                                  expectedRevision: e.revision,
+                                ),
+                              ),
+                              child: Text(context.l10n.restore),
+                            )
+                          : const Icon(Icons.chevron_right),
+                      onTap: _selecting
+                          ? () => _toggle(e)
+                          : _trash
+                          ? null
+                          : () => context.push(
+                              '${widget.isMistake ? '/mistakes' : '/knowledge'}/${e.id}',
+                            ),
+                    ),
                   );
                 },
               );

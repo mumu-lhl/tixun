@@ -271,128 +271,170 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                           lines: 12,
                         ),
                       ] else ...[
-                        _input(
-                          'title',
-                          context.l10n.titleLabel,
-                          key: const Key('study-title'),
-                          maxLength: 160,
-                        ),
-                        _input(
-                          'subject',
-                          context.l10n.subjectCustomizable,
-                          maxLength: 40,
-                        ),
-                        if (!widget.isMistake)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: AppSelectField<String>(
-                              initialValue: _kind,
-                              decoration: InputDecoration(
-                                labelText: context.l10n.knowledgeType,
-                              ),
-                              items: knowledgeKinds
-                                  .map(
-                                    (v) => DropdownMenuItem(
-                                      value: v,
-                                      child: Text(
-                                        knowledgeKindLabel(context, v),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (v) => setState(() {
-                                _kind = v!;
-                                _dirty = true;
-                              }),
+                        _formSection(
+                          context.l10n.basicInformation,
+                          Icons.info_outline,
+                          [
+                            _input(
+                              'title',
+                              context.l10n.titleLabel,
+                              key: const Key('study-title'),
+                              maxLength: 160,
                             ),
-                          ),
-                        _input(
-                          'chapter',
-                          context.l10n.chapterLearningScope,
-                          maxLength: 160,
-                        ),
-                        _input(
-                          'tags',
-                          context.l10n.tagsCommaSeparated,
-                          maxLength: 800,
+                            _input(
+                              'subject',
+                              context.l10n.subjectCustomizable,
+                              maxLength: 40,
+                            ),
+                            if (!widget.isMistake)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: AppSelectField<String>(
+                                  initialValue: _kind,
+                                  decoration: InputDecoration(
+                                    labelText: context.l10n.knowledgeType,
+                                  ),
+                                  items: knowledgeKinds
+                                      .map(
+                                        (v) => DropdownMenuItem(
+                                          value: v,
+                                          child: Text(
+                                            knowledgeKindLabel(context, v),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (v) => setState(() {
+                                    _kind = v!;
+                                    _dirty = true;
+                                  }),
+                                ),
+                              ),
+                            _input(
+                              'chapter',
+                              context.l10n.chapterLearningScope,
+                              maxLength: 160,
+                            ),
+                            _input(
+                              'tags',
+                              context.l10n.tagsCommaSeparated,
+                              maxLength: 800,
+                            ),
+                          ],
                         ),
                         if (!widget.isMistake)
-                          _input(
-                            'content',
-                            context.l10n.contentMarkdownLatex,
-                            key: const Key('study-content'),
-                            lines: 12,
+                          _formSection(
+                            context.l10n.knowledgeContent,
+                            Icons.menu_book_outlined,
+                            [
+                              _input(
+                                'content',
+                                context.l10n.contentMarkdownLatex,
+                                key: const Key('study-content'),
+                                lines: 12,
+                              ),
+                            ],
                           )
                         else ...[
-                          _input(
-                            'question',
-                            context.l10n.questionTextOptionalForImages,
-                            key: const Key('study-content'),
-                            lines: 5,
+                          _formSection(
+                            context.l10n.questionAndImages,
+                            Icons.help_outline,
+                            [
+                              _input(
+                                'question',
+                                context.l10n.questionTextOptionalForImages,
+                                key: const Key('study-content'),
+                                lines: 5,
+                              ),
+                              Text(
+                                context.l10n.addImagesFromTheSaved,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
-                          _input(
-                            'correctAnswer',
-                            context.l10n.correctAnswer,
-                            lines: 3,
+                          _formSection(
+                            context.l10n.yourAttempt,
+                            Icons.edit_note,
+                            [
+                              _input(
+                                'originalAnswer',
+                                context.l10n.myOriginalAnswer,
+                                lines: 3,
+                              ),
+                              _input(
+                                'ownAnalysis',
+                                context.l10n.myAnalysisAndThoughts,
+                                lines: 4,
+                              ),
+                            ],
                           ),
-                          _input(
-                            'originalAnswer',
-                            context.l10n.myOriginalAnswer,
-                            lines: 3,
-                          ),
-                          _input(
-                            'ownAnalysis',
-                            context.l10n.myAnalysisAndThoughts,
-                            lines: 4,
-                          ),
-                          _input(
-                            'aiAnalysis',
-                            context.l10n.aiExplanationCheckConclusion,
-                            lines: 6,
-                          ),
-                          _input(
-                            'errorReason',
-                            context.l10n.confirmedErrorReasonCustomizable,
-                            maxLength: 100,
-                          ),
-                          ValueListenableBuilder<TextEditingValue>(
-                            valueListenable: field('errorReason'),
-                            builder: (context, value, _) => Wrap(
-                              spacing: 6,
-                              children: mistakeReasons.map((r) {
-                                final selected = value.text == r;
-                                final colors = Theme.of(context).colorScheme;
-                                return ActionChip(
-                                  label: Text(
-                                    mistakeReasonLabel(context, r),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: selected
-                                          ? colors.onPrimaryContainer
+                          _formSection(
+                            context.l10n.errorAnalysis,
+                            Icons.manage_search_outlined,
+                            [
+                              _input(
+                                'errorReason',
+                                context.l10n.confirmedErrorReasonCustomizable,
+                                maxLength: 100,
+                              ),
+                              ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: field('errorReason'),
+                                builder: (context, value, _) => Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: mistakeReasons.map((r) {
+                                    final selected = value.text == r;
+                                    final colors = Theme.of(context)
+                                        .colorScheme;
+                                    return ActionChip(
+                                      label: Text(
+                                        mistakeReasonLabel(context, r),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: selected
+                                              ? colors.onPrimaryContainer
+                                              : null,
+                                        ),
+                                      ),
+                                      backgroundColor: selected
+                                          ? colors.primaryContainer
                                           : null,
-                                    ),
-                                  ),
-                                  backgroundColor: selected
-                                      ? colors.primaryContainer
-                                      : null,
-                                  onPressed: () =>
-                                      field('errorReason').text = r,
-                                );
-                              }).toList(),
-                            ),
+                                      onPressed: () =>
+                                          field('errorReason').text = r,
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                              _input(
+                                'suggestedReason',
+                                context.l10n.aiSuggestedCauseUnverified,
+                                lines: 2,
+                                maxLength: 500,
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          _input(
-                            'suggestedReason',
-                            context.l10n.aiSuggestedCauseUnverified,
-                            lines: 2,
-                            maxLength: 500,
+                          _formSection(
+                            context.l10n.answerAndExplanation,
+                            Icons.fact_check_outlined,
+                            [
+                              _input(
+                                'correctAnswer',
+                                context.l10n.correctAnswer,
+                                lines: 3,
+                              ),
+                              _input(
+                                'aiAnalysis',
+                                context.l10n.aiExplanationCheckConclusion,
+                                lines: 6,
+                              ),
+                            ],
                           ),
                         ],
-                        Text(
-                          context.l10n.addImagesFromTheSaved,
-                          style: TextStyle(fontSize: 12),
-                        ),
                       ],
                       const SizedBox(height: 30),
                     ],
@@ -405,6 +447,32 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       ),
     ),
   );
+  Widget _formSection(String title, IconData icon, List<Widget> children) =>
+      Card(
+        margin: const EdgeInsets.only(bottom: 14),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                ],
+              ),
+              const SizedBox(height: 14),
+              ...children,
+            ],
+          ),
+        ),
+      );
+
   Widget _input(
     String name,
     String label, {
