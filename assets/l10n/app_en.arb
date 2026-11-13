@@ -1447,6 +1447,10 @@
   "studySubjects": "Study subjects",
   "selectTheSubjectsYouStudy": "Select the subjects you study. Removing a selection only changes quick switching; your saved material is kept. All subjects always includes every record.",
   "selectedSubjectsOutOf20": "{arg0} / 20 subjects selected",
+  "selectedSubjects": "Selected subjects (drag to reorder)",
+  "availableSubjects": "Available subjects",
+  "selectAtLeastOneSubject": "Select at least one subject.",
+  "removeSubject": "Remove subject",
   "@selectedSubjectsOutOf20": {
     "placeholders": {
       "arg0": {

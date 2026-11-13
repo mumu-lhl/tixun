@@ -14,10 +14,9 @@ class SubjectsScreen extends ConsumerStatefulWidget {
 
 class _SubjectsState extends ConsumerState<SubjectsScreen> {
   final custom = TextEditingController();
-  late final selected = ref
-      .read(appControllerProvider)
-      .learningSubjects
-      .toSet();
+  late final selected = List<String>.of(
+    ref.read(appControllerProvider).learningSubjects,
+  );
   late final available = {
     '语文',
     '数学',
@@ -25,7 +24,9 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
     ...schoolSubjects,
     ...selected,
   }.toList();
-  bool saving = false, dirty = false;
+  bool saving = false;
+  int _revision = 0;
+  Future<void> _saveQueue = Future<void>.value();
   String? error;
   @override
   void dispose() {
@@ -33,76 +34,67 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
     super.dispose();
   }
 
-  Future<void> save() async {
+  void _saveSelection() {
+    final revision = ++_revision;
+    final snapshot = List<String>.of(selected);
     setState(() {
       saving = true;
       error = null;
     });
-    try {
-      await ref
-          .read(appControllerProvider)
-          .setLearningSubjects(available.where(selected.contains).toList());
-      if (mounted) {
-        setState(() {
-          dirty = false;
-          saving = false;
-        });
-        // Go back explicitly instead of popping: this page can be the
-        // initial route of a deep link (/settings/subjects), where a
-        // pop would exit the app instead of returning to Settings.
-        context.go('/settings');
+    _saveQueue = _saveQueue.then((_) async {
+      // Coalesce quick successive edits; only the latest queued selection
+      // needs to reach storage.
+      if (revision != _revision) return;
+      try {
+        await ref.read(appControllerProvider).setLearningSubjects(snapshot);
+      } catch (_) {
+        if (mounted && revision == _revision) {
+          setState(() => error = context.l10n.couldNotSaveSubjectsCheck);
+        }
+      } finally {
+        if (mounted && revision == _revision) setState(() => saving = false);
       }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          saving = false;
-          error = context.l10n.couldNotSaveSubjectsCheck;
-        });
-      }
+    });
+  }
+
+  Future<void> _leave() async {
+    if (saving) await _saveQueue;
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.couldNotSaveSubjectsCheck)),
+      );
+      return;
     }
+    // Use an explicit route because this page can be the app's deep-link
+    // entry point; popping could exit instead of returning to Settings.
+    context.go('/settings');
   }
 
   @override
   Widget build(BuildContext context) => PopScope(
-    // Never pop this page directly: as a deep-link entry point it may
-    // be the only route, where a pop would exit the app. Every exit
-    // goes through context.go('/settings') below instead.
+    // Never pop directly: this route can be the app's deep-link entry point.
     canPop: false,
     onPopInvokedWithResult: (popped, _) async {
-      if (popped || saving) return;
-      if (dirty) {
-        final yes = await showDialog<bool>(
-          context: context,
-          builder: (d) => AlertDialog(
-            title: Text(d.l10n.discardSubjectSelectionChanges),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(d),
-                child: Text(d.l10n.keepEditing),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(d, true),
-                child: Text(d.l10n.discard),
-              ),
-            ],
-          ),
-        );
-        if (yes != true || !context.mounted) return;
-        setState(() => dirty = false);
-      }
-      if (context.mounted) context.go('/settings');
+      if (popped) return;
+      await _leave();
     },
     child: Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.studySubjects),
         actions: [
-          TextButton(
-            key: const Key('save-subjects'),
-            onPressed: saving || selected.isEmpty || selected.length > 20
-                ? null
-                : save,
-            child: Text(context.l10n.save),
-          ),
+          if (saving)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Tooltip(
+                message: context.l10n.savingEllipsis,
+                child: const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
         ],
       ),
       body: Center(
@@ -119,23 +111,90 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                 ),
                 style: Theme.of(context).textTheme.titleSmall,
               ),
+              const SizedBox(height: 20),
+              Text(
+                context.l10n.selectedSubjects,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              if (selected.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(context.l10n.selectAtLeastOneSubject),
+                )
+              else
+                ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  itemCount: selected.length,
+                  onReorderItem: (oldIndex, newIndex) {
+                    setState(() {
+                      final subject = selected.removeAt(oldIndex);
+                      selected.insert(newIndex, subject);
+                    });
+                    _saveSelection();
+                  },
+                  itemBuilder: (context, index) {
+                    final subject = selected[index];
+                    return Card(
+                      key: ValueKey('selected-study-subject-$subject'),
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      child: ListTile(
+                        dense: true,
+                        leading: ReorderableDragStartListener(
+                          index: index,
+                          child: const Icon(Icons.drag_handle),
+                        ),
+                        title: Text(context.subjectName(subject)),
+                        trailing: IconButton(
+                          key: ValueKey('remove-study-subject-$subject'),
+                          tooltip: context.l10n.removeSubject,
+                          onPressed: saving || selected.length <= 1
+                              ? null
+                              : () {
+                                  setState(() => selected.removeAt(index));
+                                  _saveSelection();
+                                },
+                          icon: const Icon(Icons.close),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              const SizedBox(height: 16),
+              Text(
+                context.l10n.availableSubjects,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final subject in available)
+                  for (final subject in available.where(
+                    (subject) => !selected.contains(subject),
+                  ))
                     FilterChip(
                       key: ValueKey('study-subject-$subject'),
                       label: Text(context.subjectName(subject)),
-                      selected: selected.contains(subject),
+                      selected: false,
                       onSelected: saving
                           ? null
-                          : (v) => setState(() {
-                              v
-                                  ? selected.add(subject)
-                                  : selected.remove(subject);
-                              dirty = true;
-                            }),
+                          : (_) {
+                              if (selected.length >= 20) {
+                                setState(
+                                  () =>
+                                      error = context.l10n.selectUpTo20Subjects,
+                                );
+                                return;
+                              }
+                              setState(() {
+                                selected.add(subject);
+                                error = null;
+                              });
+                              _saveSelection();
+                            },
                     ),
                 ],
               ),
@@ -151,15 +210,32 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                 ),
                 onSubmitted: (_) => add(),
               ),
+              const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: saving ? null : add,
                 icon: const Icon(Icons.add),
                 label: Text(context.l10n.addSubject),
               ),
               if (error != null)
-                Text(
-                  error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          error!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                      if (error == context.l10n.couldNotSaveSubjectsCheck)
+                        TextButton(
+                          onPressed: saving ? null : _saveSelection,
+                          child: Text(context.l10n.retry),
+                        ),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -177,12 +253,13 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
       setState(() => error = context.l10n.selectUpTo20Subjects);
       return;
     }
+    final changed = !selected.contains(name);
     setState(() {
       if (!available.contains(name)) available.add(name);
-      selected.add(name);
+      if (changed) selected.add(name);
       custom.clear();
       error = null;
-      dirty = true;
     });
+    if (changed) _saveSelection();
   }
 }

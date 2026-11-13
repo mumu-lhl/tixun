@@ -393,11 +393,14 @@ class AppShell extends ConsumerWidget {
                                     value: '',
                                     child: Text(context.l10n.allSubjects),
                                   ),
-                                  for (final subject in {
+                                  for (final subject in [
                                     ...shell.subjects,
-                                    if (shell.subjectFilter.isNotEmpty)
+                                    if (shell.subjectFilter.isNotEmpty &&
+                                        !shell.subjects.contains(
+                                          shell.subjectFilter,
+                                        ))
                                       shell.subjectFilter,
-                                  })
+                                  ])
                                     DropdownMenuItem(
                                       value: subject,
                                       child: Text(

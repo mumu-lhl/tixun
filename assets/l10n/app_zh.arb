@@ -1447,6 +1447,10 @@
   "studySubjects": "学习科目",
   "selectTheSubjectsYouStudy": "只选择你正在学习的科目。取消选择只影响快捷切换，不会删除已有资料；“全部科目”始终可以查看所有资料。",
   "selectedSubjectsOutOf20": "已选 {arg0} / 20 个科目",
+  "selectedSubjects": "已选科目（拖动可排序）",
+  "availableSubjects": "可添加科目",
+  "selectAtLeastOneSubject": "请至少选择一个科目。",
+  "removeSubject": "移除科目",
   "@selectedSubjectsOutOf20": {
     "placeholders": {
       "arg0": {
