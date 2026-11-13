@@ -1192,4 +1192,12 @@ const englishMessages = <String, String>{
   "请从所选对话中整理一道真实错题，区分原题、答案和解析。不要编造我的原答案或错误原因。": "Organize one real mistake from the selected conversation, distinguishing the question, answer and explanation. Do not invent my original answer or error cause.",
   "\n\n【任务提示词】\n{0}": "\n\n[Task prompt]\n{0}",
   "图片操作": "Image actions",
+  "新建知识": "New knowledge",
+  "科目（可以自定义）": "Subject (customizable)",
+  "删除": "Delete",
+  "创建": "Create",
+  "返回": "Back",
+  "备注": "Notes",
+  "删除图片": "Delete image",
+  "思考强度": "Reasoning effort",
 };
