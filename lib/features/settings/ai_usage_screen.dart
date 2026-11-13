@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/controller.dart';
 import '../../core/ai/ai_usage_store.dart';
+import '../../core/ai/ai_usage_summary.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/platform/usage_file_picker.dart';
@@ -17,16 +18,50 @@ class AiUsageScreen extends ConsumerStatefulWidget {
 class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
   String range = '30d';
   bool exporting = false;
+  late Future<List<AiUsageEvent>> events;
+  late Future<List<AiModelPrice>> prices;
 
-  DateTime? get _from => switch (range) {
-    '7d' => DateTime.now().subtract(const Duration(days: 7)),
-    '30d' => DateTime.now().subtract(const Duration(days: 30)),
-    _ => null,
-  };
+  AiUsageStore get _store => AiUsageStore(ref.read(appControllerProvider).db);
 
-  Future<void> _export(AiUsageStore store, String extension) async {
+  /// Aligns the queried range with the calendar-day trend chart.
+  DateTime? get _from {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return switch (range) {
+      '7d' => today.subtract(const Duration(days: 6)),
+      '30d' => today.subtract(const Duration(days: 29)),
+      _ => null,
+    };
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    events = _store.events(from: _from);
+    prices = _store.prices();
+  }
+
+  void _reloadEvents() => setState(() => events = _store.events(from: _from));
+
+  void _reloadPrices() => setState(() => prices = _store.prices());
+
+  void _reloadAll() => setState(() {
+    events = _store.events(from: _from);
+    prices = _store.prices();
+  });
+
+  void _setRange(String value) {
+    if (value == range) return;
+    setState(() {
+      range = value;
+      events = _store.events(from: _from);
+    });
+  }
+
+  Future<void> _export(String extension) async {
     setState(() => exporting = true);
     try {
+      final store = _store;
       final rows = await store.events(from: _from);
       final contents = extension == 'csv'
           ? store.toCsv(rows)
@@ -48,7 +83,12 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     }
   }
 
-  Future<void> _editPrice(AiUsageStore store, [AiModelPrice? price]) async {
+  Future<void> _deletePrice(AiModelPrice price) async {
+    await _store.deletePrice(price);
+    if (mounted) _reloadPrices();
+  }
+
+  Future<void> _editPrice([AiModelPrice? price]) async {
     final currentConfig = ref.read(appControllerProvider).config;
     final initialProvider =
         price?.providerKind ??
@@ -140,6 +180,14 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          context.l10n.modelPrices,
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
                       TextField(
                         controller: input,
                         keyboardType: const TextInputType.numberWithOptions(
@@ -167,8 +215,6 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                           labelText: context.l10n.outputPricePerMillion,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(context.l10n.modelPrices),
                       if (validationError != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
@@ -199,7 +245,11 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                     if (model.text.trim().isEmpty ||
                         endpoint.text.trim().isEmpty ||
                         rates.any(
-                          (rate) => rate == null || !rate.isFinite || rate < 0,
+                          (rate) =>
+                              rate == null ||
+                              !rate.isFinite ||
+                              rate < 0 ||
+                              rate > 100000,
                         )) {
                       setDialogState(
                         () => validationError = context.l10n.invalidModelPrice,
@@ -228,7 +278,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     model.dispose();
     endpoint.dispose();
     if (result == null) return;
-    await store.savePrice(
+    await _store.savePrice(
       providerKind: result.provider,
       endpoint: result.endpoint,
       model: result.model,
@@ -236,21 +286,25 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
       cachedInputRateNanoUsdPerMillion: result.cached,
       outputRateNanoUsdPerMillion: result.output,
     );
-    if (mounted) setState(() {});
+    if (mounted) _reloadPrices();
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = ref.watch(appControllerProvider);
-    final store = AiUsageStore(controller.db);
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.aiUsage),
         actions: [
+          IconButton(
+            key: const Key('refresh-ai-usage'),
+            tooltip: context.l10n.usageRefresh,
+            onPressed: _reloadAll,
+            icon: const Icon(Icons.refresh),
+          ),
           PopupMenuButton<String>(
             enabled: !exporting,
-            tooltip: context.l10n.requestDetails,
-            onSelected: (extension) => _export(store, extension),
+            tooltip: context.l10n.usageExport,
+            onSelected: _export,
             itemBuilder: (context) => [
               PopupMenuItem(value: 'csv', child: Text(context.l10n.exportCsv)),
               PopupMenuItem(
@@ -270,61 +324,17 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 820),
+          constraints: const BoxConstraints(maxWidth: 900),
           child: FutureBuilder<List<AiUsageEvent>>(
-            key: ValueKey(range),
-            future: store.events(from: _from),
+            future: events,
             builder: (context, snapshot) {
+              final waiting =
+                  snapshot.connectionState == ConnectionState.waiting;
               final rows = snapshot.data ?? const <AiUsageEvent>[];
-              final input = _sum(rows, (row) => row.inputTokens);
-              final cached = _sum(rows, (row) => row.cachedInputTokens);
-              final output = _sum(rows, (row) => row.outputTokens);
-              final total = _sum(rows, (row) => row.totalTokens);
-              final estimateRows = rows
-                  .where((row) => row.costBasis == 'estimate')
-                  .toList();
-              final estimatedCost = estimateRows.fold<int>(
-                0,
-                (sum, row) => sum + (row.costNanoUsd ?? 0),
+              final summary = AiUsageSummary.fromRows(
+                rows,
+                trendDays: range == '7d' ? 7 : 30,
               );
-              final unknownCosts = rows
-                  .where((row) => row.costBasis == 'unknown')
-                  .length;
-              final cacheKnownRows = rows
-                  .where(
-                    (row) =>
-                        row.inputTokens != null &&
-                        row.cachedInputTokens != null,
-                  )
-                  .toList();
-              final inputKnown = cacheKnownRows.fold<int>(
-                0,
-                (sum, row) => sum + row.inputTokens!,
-              );
-              final cachedKnown = cacheKnownRows.fold<int>(
-                0,
-                (sum, row) => sum + row.cachedInputTokens!,
-              );
-              final cacheRate = inputKnown == 0
-                  ? '—'
-                  : '${(cachedKnown * 100 / inputKnown).toStringAsFixed(1)}%';
-              final models = <String, List<AiUsageEvent>>{};
-              final features = <String, List<AiUsageEvent>>{};
-              for (final row in rows) {
-                models
-                    .putIfAbsent(
-                      '${row.providerKind} · ${row.endpoint} · ${row.model}',
-                      () => [],
-                    )
-                    .add(row);
-                features.putIfAbsent(row.feature, () => []).add(row);
-              }
-              final timedRows = rows
-                  .where((row) => row.durationMs != null)
-                  .toList();
-              final averageLatency = timedRows.isEmpty
-                  ? '—'
-                  : '${timedRows.fold<int>(0, (sum, row) => sum + row.durationMs!) ~/ timedRows.length}';
               return ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
@@ -346,187 +356,74 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                       ),
                     ],
                     selected: {range},
-                    onSelectionChanged: (value) =>
-                        setState(() => range = value.first),
+                    onSelectionChanged: (value) => _setRange(value.first),
                   ),
                   const SizedBox(height: 16),
-                  if (snapshot.connectionState == ConnectionState.waiting)
-                    const LinearProgressIndicator()
-                  else if (snapshot.hasError)
-                    Text(context.l10n.errorSaveTryAgain)
-                  else ...[
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        _StatCard(
-                          context.l10n.requestCount,
-                          '${_requestCount(rows)}',
-                        ),
-                        _StatCard(context.l10n.tokenTotal, total),
-                        _StatCard(context.l10n.inputTokens, input),
-                        _StatCard(context.l10n.cachedInputTokens, cached),
-                        _StatCard(context.l10n.outputTokens, output),
-                        _StatCard(
-                          context.l10n.imageInputs,
-                          '${rows.fold<int>(0, (sum, row) => sum + row.imageCount)}',
-                        ),
-                        _StatCard(
-                          context.l10n.toolCalls,
-                          '${rows.fold<int>(0, (sum, row) => sum + row.toolCallCount)}',
-                        ),
-                        _StatCard(context.l10n.cacheHitRate, cacheRate),
-                        _StatCard(context.l10n.averageLatency, averageLatency),
-                        _StatCard(
-                          context.l10n.requestErrors,
-                          '${rows.where((row) => row.status == 'error' && row.usageSource != 'legacy_total').length}',
-                        ),
-                        _StatCard(
-                          context.l10n.estimatedCost,
-                          estimateRows.isEmpty ? '—' : _usd(estimatedCost),
-                        ),
-                      ],
+                  if (waiting)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: LinearProgressIndicator(),
                     ),
-                    const SizedBox(height: 8),
-                    Text(context.l10n.costEstimateOnly),
-                    if (unknownCosts > 0)
-                      Text('${context.l10n.unknownCost}: $unknownCosts'),
-                    if (rows.any((row) => row.costBasis == 'subscription'))
-                      Text(context.l10n.subscriptionUsage),
-                    const SizedBox(height: 18),
-                    Text(
-                      context.l10n.usageByModel,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    if (models.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Text(context.l10n.noAiUsageYet),
-                      )
-                    else
-                      for (final entry in models.entries)
-                        ListTile(
-                          title: Text(entry.key),
-                          subtitle: Text(
-                            '${context.l10n.requestCount}: ${_requestCount(entry.value)} · '
-                            '${context.l10n.tokenTotal}: ${_sum(entry.value, (row) => row.totalTokens)}',
-                          ),
-                          trailing: Text(
-                            entry.value.any((row) => row.costNanoUsd != null)
-                                ? _usd(
-                                    entry.value.fold<int>(
-                                      0,
-                                      (sum, row) =>
-                                          sum + (row.costNanoUsd ?? 0),
-                                    ),
-                                  )
-                                : '—',
-                          ),
-                        ),
-                    const SizedBox(height: 18),
-                    Text(
-                      context.l10n.usageByFeature,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    for (final entry in features.entries)
-                      ListTile(
-                        title: Text(_feature(context, entry.key)),
-                        subtitle: Text(
-                          '${context.l10n.requestCount}: ${_requestCount(entry.value)} · '
-                          '${context.l10n.tokenTotal}: ${_sum(entry.value, (row) => row.totalTokens)}',
-                        ),
-                        trailing: Text(
-                          entry.value.any((row) => row.costNanoUsd != null)
-                              ? _usd(
-                                  entry.value.fold<int>(
-                                    0,
-                                    (sum, row) => sum + (row.costNanoUsd ?? 0),
-                                  ),
-                                )
-                              : '—',
-                        ),
+                  if (snapshot.hasError) ...[
+                    Text(context.l10n.usageLoadFailed),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: _reloadEvents,
+                        child: Text(context.l10n.retry),
                       ),
-                    const SizedBox(height: 18),
-                    Text(
-                      context.l10n.requestDetails,
-                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    for (final row in rows.take(50))
-                      ListTile(
-                        dense: true,
-                        title: Text('${row.providerKind} · ${row.model}'),
-                        subtitle: Text(
-                          '${_feature(context, row.feature)} · '
-                          '${_status(context, row.status)} · '
-                          '${row.occurredAt.toLocal()} · '
-                          '${row.totalTokens ?? context.l10n.providerUsageUnavailable}'
-                          '${row.usageSource == 'legacy_total' ? ' · ${context.l10n.legacyUsageTotalOnly}' : ''}'
-                          '${row.durationMs == null ? '' : ' · ${row.durationMs} ms'}',
-                        ),
-                        trailing: Text(
-                          row.costBasis == 'estimate' && row.costNanoUsd != null
-                              ? _usd(row.costNanoUsd!)
-                              : row.costBasis == 'subscription'
-                              ? context.l10n.subscriptionUsage
-                              : context.l10n.unknownCost,
-                        ),
-                      ),
-                    const Divider(height: 32),
-                    Row(
-                      children: [
-                        Expanded(
+                  ] else if (snapshot.hasData) ...[
+                    if (rows.isEmpty) ...[
+                      Text(context.l10n.noAiUsageYet),
+                      const SizedBox(height: 16),
+                      _pricesSection(context),
+                    ] else ...[
+                      _summaryGrid(context, summary),
+                      if (summary.imageInputs > 0 || summary.toolCalls > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            context.l10n.modelPrices,
-                            style: Theme.of(context).textTheme.titleMedium,
+                            '${context.l10n.imageInputs}: ${_int(summary.imageInputs)}'
+                            ' · ${context.l10n.toolCalls}: ${_int(summary.toolCalls)}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
                           ),
                         ),
-                        IconButton(
-                          key: const Key('add-ai-model-price'),
-                          tooltip: context.l10n.addModelPrice,
-                          onPressed: () => _editPrice(store),
-                          icon: const Icon(Icons.add),
+                      const SizedBox(height: 10),
+                      _notes(context, summary),
+                      if (summary.days.any((day) => day.tokens > 0)) ...[
+                        const SizedBox(height: 20),
+                        _UsageTrend(
+                          days: summary.days,
+                          caption: range == 'all'
+                              ? context.l10n.last30Days
+                              : null,
                         ),
                       ],
-                    ),
-                    Text(context.l10n.ratePeakNote),
-                    TextButton(
-                      onPressed: () => launchUrl(
-                        Uri.parse(
-                          'https://api-docs.deepseek.com/quick_start/pricing/',
-                        ),
-                        mode: LaunchMode.externalApplication,
+                      const SizedBox(height: 20),
+                      _breakdownSection(
+                        context,
+                        context.l10n.usageByFeature,
+                        summary.features,
+                        localize: true,
                       ),
-                      child: Text(context.l10n.officialPricingPage),
-                    ),
-                    FutureBuilder<List<AiModelPrice>>(
-                      future: store.prices(),
-                      builder: (context, snapshot) => Column(
-                        children: [
-                          for (final price in snapshot.data ?? const [])
-                            ListTile(
-                              title: Text(
-                                '${price.providerKind} · ${price.model}',
-                              ),
-                              subtitle: Text(
-                                '${price.endpoint}\n'
-                                '${_usdRate(price.inputRateNanoUsdPerMillion)} / '
-                                '${_usdRate(price.cachedInputRateNanoUsdPerMillion)} / '
-                                '${_usdRate(price.outputRateNanoUsdPerMillion)}',
-                              ),
-                              isThreeLine: true,
-                              onTap: () => _editPrice(store, price),
-                              trailing: IconButton(
-                                tooltip: context.l10n.delete,
-                                onPressed: () async {
-                                  await store.deletePrice(price);
-                                  if (mounted) setState(() {});
-                                },
-                                icon: const Icon(Icons.delete_outline),
-                              ),
-                            ),
-                        ],
+                      const SizedBox(height: 20),
+                      _breakdownSection(
+                        context,
+                        context.l10n.usageByModel,
+                        summary.models,
+                        localize: false,
                       ),
-                    ),
+                      const SizedBox(height: 24),
+                      _pricesSection(context),
+                      const SizedBox(height: 8),
+                      _detailsSection(context, summary),
+                    ],
                   ],
                 ],
               );
@@ -537,66 +434,574 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     );
   }
 
-  static int _requestCount(List<AiUsageEvent> rows) =>
-      rows.where((row) => row.usageSource != 'legacy_total').length;
-
-  static String _sum(
-    List<AiUsageEvent> rows,
-    int? Function(AiUsageEvent) value,
-  ) {
-    final known = rows.where((row) => value(row) != null).toList();
-    if (known.isEmpty) return '—';
-    final sum = known.fold<int>(0, (total, row) => total + value(row)!);
-    return known.length == rows.length ? '$sum' : '$sum *';
+  Widget _summaryGrid(BuildContext context, AiUsageSummary summary) {
+    final l10n = context.l10n;
+    final cards = <_StatData>[
+      _StatData(
+        l10n.requestCount,
+        _int(summary.requests),
+        summary.legacyRows > 0
+            ? l10n.usageLegacyRows(l10nArgument(_int(summary.legacyRows)))
+            : null,
+      ),
+      _StatData(l10n.tokenTotal, _sumText(summary.total), null),
+      _StatData(l10n.inputTokens, _sumText(summary.input), null),
+      _StatData(l10n.outputTokens, _sumText(summary.output), null),
+      _StatData(
+        l10n.cacheHitRate,
+        summary.cacheHitRate == null
+            ? '—'
+            : '${summary.cacheHitRate!.toStringAsFixed(1)}%',
+        summary.cacheHitRate == null
+            ? null
+            : '${l10n.cachedInputTokens}: ${_int(summary.cachedInput.value)}',
+      ),
+      _StatData(
+        l10n.averageLatency,
+        summary.averageLatencyMs == null
+            ? '—'
+            : _duration(summary.averageLatencyMs!),
+        null,
+      ),
+      _StatData(l10n.requestErrors, _int(summary.errors), null),
+      _StatData(
+        l10n.estimatedCost,
+        summary.estimatedRows == 0 ? '—' : _usd(summary.estimatedCostNanoUsd),
+        summary.priceableRows == 0
+            ? null
+            : l10n.usageCostCoverage(
+                l10nArgument(_int(summary.estimatedRows)),
+                l10nArgument(_int(summary.priceableRows)),
+              ),
+      ),
+    ];
+    return LayoutBuilder(
+      key: const Key('ai-usage-summary'),
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 780
+            ? 4
+            : constraints.maxWidth >= 540
+            ? 3
+            : 2;
+        const spacing = 10.0;
+        final width =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final card in cards)
+              _StatCard(
+                width: width,
+                label: card.label,
+                value: card.value,
+                hint: card.hint,
+              ),
+          ],
+        );
+      },
+    );
   }
 
-  static String _status(BuildContext context, String status) =>
-      switch (status) {
-        'complete' => context.l10n.usageStatusComplete,
-        'error' => context.l10n.usageStatusError,
-        'incomplete' => context.l10n.usageStatusIncomplete,
-        _ => status,
-      };
+  Widget _notes(BuildContext context, AiUsageSummary summary) {
+    final l10n = context.l10n;
+    final style = Theme.of(context).textTheme.bodySmall
+        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
+    final lines = <String>[
+      if (summary.estimatedRows > 0) l10n.costEstimateOnly,
+      if (summary.missingPrice > 0)
+        l10n.usageCostNoPrice(l10nArgument(_int(summary.missingPrice))),
+      if (summary.missingUsage > 0)
+        l10n.usageCostNoUsage(l10nArgument(_int(summary.missingUsage))),
+      if (summary.missingDetail > 0)
+        l10n.usageCostNoDetail(l10nArgument(_int(summary.missingDetail))),
+      if (summary.subscriptionRows > 0) l10n.subscriptionUsage,
+      if (summary.legacyRows > 0)
+        l10n.usageLegacyRows(l10nArgument(_int(summary.legacyRows))),
+      if (summary.hasPartialSums) l10n.usagePartialSum,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final line in lines)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(line, style: style),
+          ),
+      ],
+    );
+  }
 
-  static String _feature(BuildContext context, String feature) =>
-      switch (feature) {
-        'chat' => context.l10n.usageFeatureChat,
-        'context_compaction' => context.l10n.usageFeatureContextCompaction,
-        'exam_scores' => context.l10n.usageFeatureExamScores,
-        'connection_test' => context.l10n.usageFeatureConnectionTest,
-        _ => feature,
-      };
+  Widget _breakdownSection(
+    BuildContext context,
+    String title,
+    List<UsageSlice> slices, {
+    required bool localize,
+  }) {
+    if (slices.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        for (final slice in slices)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            title: Text(
+              localize ? _featureLabel(context, slice.label) : slice.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            subtitle: Text(
+              [
+                '${context.l10n.requestCount}: ${_int(slice.requests)}',
+                '${context.l10n.tokenTotal}: ${_sumText(slice.tokens)}',
+                if (!localize && slice.detail != null) slice.detail!,
+              ].join(' · '),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: subtitleStyle,
+            ),
+            trailing: Text(
+              slice.hasEstimate ? _usd(slice.estimatedCostNanoUsd) : '—',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _pricesSection(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(l10n.modelPrices, style: theme.textTheme.titleMedium),
+            ),
+            IconButton(
+              key: const Key('add-ai-model-price'),
+              tooltip: l10n.addModelPrice,
+              onPressed: _editPrice,
+              icon: const Icon(Icons.add),
+            ),
+          ],
+        ),
+        Text(l10n.ratePeakNote, style: style),
+        const SizedBox(height: 2),
+        Text(l10n.usagePriceSnapshotNote, style: style),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => launchUrl(
+              Uri.parse('https://api-docs.deepseek.com/quick_start/pricing/'),
+              mode: LaunchMode.externalApplication,
+            ),
+            child: Text(l10n.officialPricingPage),
+          ),
+        ),
+        FutureBuilder<List<AiModelPrice>>(
+          future: prices,
+          builder: (context, snapshot) {
+            final list = snapshot.data ?? const <AiModelPrice>[];
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                list.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: LinearProgressIndicator(),
+              );
+            }
+            return Column(
+              children: [
+                for (final price in list)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('${price.providerKind} · ${price.model}'),
+                    subtitle: Text(
+                      '${price.endpoint}\n'
+                      '${_usdRate(price.inputRateNanoUsdPerMillion)} / '
+                      '${_usdRate(price.cachedInputRateNanoUsdPerMillion)} / '
+                      '${_usdRate(price.outputRateNanoUsdPerMillion)}'
+                      ' · ${l10n.usagePriceUpdated(_dateOnly(price.updatedAt.toLocal()))}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    isThreeLine: true,
+                    onTap: () => _editPrice(price),
+                    trailing: price.source == 'user'
+                        ? IconButton(
+                            tooltip: l10n.delete,
+                            onPressed: () => _deletePrice(price),
+                            icon: const Icon(Icons.delete_outline),
+                          )
+                        : null,
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _detailsSection(BuildContext context, AiUsageSummary summary) {
+    if (summary.recent.isEmpty) return const SizedBox.shrink();
+    final l10n = context.l10n;
+    return ExpansionTile(
+      key: const Key('ai-usage-request-details'),
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(bottom: 8),
+      title: Text(
+        l10n.requestDetails,
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      subtitle: Text(
+        l10n.usageRecentLimit,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      children: [for (final row in summary.recent) _UsageRequestTile(row: row)],
+    );
+  }
+}
+
+class _StatData {
+  const _StatData(this.label, this.value, this.hint);
+  final String label;
+  final String value;
+  final String? hint;
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard(this.label, this.value);
+  const _StatCard({
+    required this.width,
+    required this.label,
+    required this.value,
+    this.hint,
+  });
+
+  final double width;
   final String label;
   final String value;
+  final String? hint;
+
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 174,
-    child: Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(height: 6),
-            Text(value, style: Theme.of(context).textTheme.titleMedium),
-          ],
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return SizedBox(
+      width: width,
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 28,
+                child: Text(
+                  hint ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
-String _usd(int nanoUsd) => '\$${(nanoUsd / 1000000000).toStringAsFixed(6)}';
+class _UsageTrend extends StatelessWidget {
+  const _UsageTrend({required this.days, this.caption});
+
+  final List<UsageDay> days;
+  final String? caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final maxTokens = days.fold<int>(
+      0,
+      (max, day) => day.tokens > max ? day.tokens : max,
+    );
+    final total = days.fold<int>(0, (sum, day) => sum + day.tokens);
+    final today = DateTime.now();
+    final todayKey = DateTime(today.year, today.month, today.day);
+    return Column(
+      key: const Key('ai-usage-trend'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                context.l10n.usageDailyTokens,
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
+            Text(
+              '${context.l10n.tokenTotal}: ${_int(total)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        if (caption != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              caption!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 88,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (final day in days)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                    child: _bar(context, day, maxTokens, todayKey),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        _axisLabels(context),
+      ],
+    );
+  }
+
+  Widget _bar(
+    BuildContext context,
+    UsageDay day,
+    int maxTokens,
+    DateTime todayKey,
+  ) {
+    final colors = Theme.of(context).colorScheme;
+    final message = [
+      _dateOnly(day.day),
+      '${context.l10n.tokenTotal}: ${_int(day.tokens)}',
+      '${context.l10n.requestCount}: ${_int(day.requests)}',
+      if (day.estimatedCostNanoUsd > 0)
+        '${context.l10n.estimatedCost}: ${_usd(day.estimatedCostNanoUsd)}',
+    ].join('\n');
+    final ratio = maxTokens == 0 ? 0.0 : day.tokens / maxTokens;
+    final height = day.tokens == 0
+        ? (day.requests > 0 ? 2.0 : 1.0)
+        : 6 + 76 * ratio;
+    final isToday = day.day == todayKey;
+    final hasActivity = day.tokens > 0 || day.requests > 0;
+    return Tooltip(
+      message: message,
+      child: Semantics(
+        label: message,
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            color: !hasActivity
+                ? colors.outlineVariant.withValues(alpha: .35)
+                : colors.primary.withValues(alpha: isToday ? 1 : .55),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _axisLabels(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+      fontSize: 10,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
+    if (days.isEmpty) return const SizedBox.shrink();
+    if (days.length <= 7) {
+      return Row(
+        children: [
+          for (final day in days)
+            Expanded(
+              child: Text(
+                _shortDate(day.day),
+                textAlign: TextAlign.center,
+                style: style,
+              ),
+            ),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Text(_shortDate(days.first.day), style: style),
+        const Spacer(),
+        Text(_shortDate(days.last.day), style: style),
+      ],
+    );
+  }
+}
+
+class _UsageRequestTile extends StatelessWidget {
+  const _UsageRequestTile({required this.row});
+
+  final AiUsageEvent row;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final colors = Theme.of(context).colorScheme;
+    final (icon, color) = switch (row.status) {
+      'complete' => (Icons.check_circle_outline, colors.primary),
+      'incomplete' => (Icons.pending_outlined, colors.tertiary),
+      _ => (Icons.error_outline, colors.error),
+    };
+    final details = [
+      _statusLabel(context, row.status),
+      _featureLabel(context, row.feature),
+      _dateTime(row.occurredAt.toLocal()),
+      row.totalTokens == null
+          ? l10n.providerUsageUnavailable
+          : '${l10n.tokenTotal}: ${_int(row.totalTokens!)}',
+      if (row.durationMs != null) _duration(row.durationMs!),
+      if (row.usageSource == 'legacy_total') l10n.legacyUsageTotalOnly,
+    ].join(' · ');
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      leading: Tooltip(
+        message: _statusLabel(context, row.status),
+        child: Icon(icon, size: 18, color: color),
+      ),
+      title: Text(
+        '${row.providerKind} · ${row.model}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(details, maxLines: 2, overflow: TextOverflow.ellipsis),
+      trailing: _costLabel(context, row),
+    );
+  }
+
+  Widget _costLabel(BuildContext context, AiUsageEvent row) {
+    final l10n = context.l10n;
+    if (row.costBasis == 'estimate' && row.costNanoUsd != null) {
+      return Text(_usd(row.costNanoUsd!));
+    }
+    if (row.costBasis == 'subscription') {
+      return Tooltip(
+        message: l10n.subscriptionUsage,
+        child: Text(l10n.usageSubscriptionShort),
+      );
+    }
+    return Tooltip(
+      message: l10n.unknownCost,
+      child: Text(l10n.usageCostUnknownShort),
+    );
+  }
+}
+
+String _featureLabel(BuildContext context, String feature) => switch (feature) {
+  'chat' => context.l10n.usageFeatureChat,
+  'context_compaction' => context.l10n.usageFeatureContextCompaction,
+  'exam_scores' => context.l10n.usageFeatureExamScores,
+  'connection_test' => context.l10n.usageFeatureConnectionTest,
+  _ => feature,
+};
+
+String _statusLabel(BuildContext context, String status) => switch (status) {
+  'complete' => context.l10n.usageStatusComplete,
+  'error' => context.l10n.usageStatusError,
+  'incomplete' => context.l10n.usageStatusIncomplete,
+  _ => status,
+};
+
+String _int(int value) => value.toString().replaceAllMapped(
+  RegExp(r'\B(?=(\d{3})+(?!\d))'),
+  (_) => ',',
+);
+
+String _sumText(UsageSum sum) =>
+    sum.isEmpty ? '—' : '${_int(sum.value)}${sum.isPartial ? '*' : ''}';
+
+String _usd(int nanoUsd) {
+  final usd = nanoUsd / 1000000000;
+  final digits = usd >= 1
+      ? 2
+      : usd >= 0.01
+      ? 4
+      : 6;
+  final text = usd
+      .toStringAsFixed(digits)
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
+  return '\$$text';
+}
+
 String _usdRate(int nanoUsd) => (nanoUsd / 1000000000)
     .toStringAsFixed(6)
     .replaceFirst(RegExp(r'0+$'), '')
     .replaceFirst(RegExp(r'\.$'), '');
+
 String _rateText(int nanoUsd) => (nanoUsd / 1000000000)
     .toStringAsFixed(9)
     .replaceFirst(RegExp(r'0+$'), '')
     .replaceFirst(RegExp(r'\.$'), '');
+
+String _duration(int milliseconds) => milliseconds < 1000
+    ? '$milliseconds ms'
+    : '${(milliseconds / 1000).toStringAsFixed(1)} s';
+
+String _dateTime(DateTime value) =>
+    '${_dateOnly(value)} ${_two(value.hour)}:${_two(value.minute)}';
+
+String _dateOnly(DateTime value) =>
+    '${value.year}-${_two(value.month)}-${_two(value.day)}';
+
+String _shortDate(DateTime value) => '${_two(value.month)}-${_two(value.day)}';
+
+String _two(int value) => value.toString().padLeft(2, '0');

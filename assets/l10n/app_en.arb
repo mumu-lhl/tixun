@@ -2011,7 +2011,7 @@
   "costEstimateOnly": "Cost is an estimate; your provider's bill is authoritative.",
   "usageByModel": "Usage by model",
   "usageByFeature": "Usage by feature",
-  "averageLatency": "Average latency (ms)",
+  "averageLatency": "Average latency",
   "requestDetails": "Request details",
   "modelPrices": "Model prices (USD / million tokens)",
   "providerDeepSeek": "DeepSeek API",
@@ -2042,5 +2042,65 @@
   "officialPricingPage": "Official pricing details",
   "ratePeakNote": "DeepSeek prices are prefilled with official peak rates; off-peak rates are about half and prices may change.",
   "fileExportCancelled": "Export canceled.",
+  "usageLoadFailed": "Could not load usage. Try again.",
+  "usageRefresh": "Refresh",
+  "usageExport": "Export usage",
+  "usageDailyTokens": "Daily tokens",
+  "usagePartialSum": "* Some requests did not report this field; the value covers reporting requests only.",
+  "usageRecentLimit": "Showing the latest 50",
+  "usageCostCoverage": "{arg0} of {arg1} requests priced",
+  "@usageCostCoverage": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "usageCostNoUsage": "{arg0} requests returned no token details",
+  "@usageCostNoUsage": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usageCostNoDetail": "{arg0} requests have no token breakdown",
+  "@usageCostNoDetail": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usageCostNoPrice": "{arg0} requests have no price configured",
+  "@usageCostNoPrice": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usageLegacyRows": "{arg0} legacy rows contain only total tokens.",
+  "@usageLegacyRows": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usagePriceSnapshotNote": "Price edits apply to new requests; existing records keep the rate snapshot from when they were recorded.",
+  "usagePriceUpdated": "Updated {arg0}",
+  "@usagePriceUpdated": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usageCostUnknownShort": "Unknown",
+  "usageSubscriptionShort": "Plan",
   "errorFieldReason": "Error reason"
 }

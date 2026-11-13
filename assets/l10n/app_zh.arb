@@ -2011,7 +2011,7 @@
   "costEstimateOnly": "费用为估算值，实际账单以服务商为准。",
   "usageByModel": "按模型统计",
   "usageByFeature": "按功能统计",
-  "averageLatency": "平均耗时（毫秒）",
+  "averageLatency": "平均耗时",
   "requestDetails": "请求明细",
   "modelPrices": "模型价格（USD / 百万 Token）",
   "providerDeepSeek": "DeepSeek API",
@@ -2042,5 +2042,65 @@
   "officialPricingPage": "官方价格说明",
   "ratePeakNote": "DeepSeek 官方价格预填为峰时价；离峰价约为其一半，价格可能调整。",
   "fileExportCancelled": "已取消导出。",
+  "usageLoadFailed": "读取用量失败，请重试。",
+  "usageRefresh": "刷新",
+  "usageExport": "导出用量",
+  "usageDailyTokens": "每日 Token",
+  "usagePartialSum": "* 部分请求未上报该字段；数值只包含已上报的请求。",
+  "usageRecentLimit": "仅显示最近 50 条",
+  "usageCostCoverage": "{arg0} / {arg1} 条可估算",
+  "@usageCostCoverage": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "usageCostNoUsage": "{arg0} 条请求未返回 Token 明细",
+  "@usageCostNoUsage": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usageCostNoDetail": "{arg0} 条请求缺少 Token 拆分",
+  "@usageCostNoDetail": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usageCostNoPrice": "{arg0} 条请求未配置价格",
+  "@usageCostNoPrice": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usageLegacyRows": "其中 {arg0} 条为旧版记录，仅有总 Token。",
+  "@usageLegacyRows": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usagePriceSnapshotNote": "修改价格只影响之后的新请求；历史记录保留当时的费率快照。",
+  "usagePriceUpdated": "更新于 {arg0}",
+  "@usagePriceUpdated": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "usageCostUnknownShort": "未知",
+  "usageSubscriptionShort": "订阅",
   "errorFieldReason": "错误原因"
 }
