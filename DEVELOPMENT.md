@@ -4,7 +4,7 @@
 
 ## 开发环境与运行
 
-使用 Flutter **3.50.0**（Dart 3.14.0），依赖锁定于 `pubspec.lock`。 CI 与本地使用相同 SDK 版本。
+使用 Flutter **3.50.0**（Dart 3.14.0），依赖锁定于 `pubspec.lock`。 CI 与本地使用相同 SDK 版本。 Android 使用 Gradle 9.9.1、AGP 9.5.1、Kotlin 2.4.21（均为稳定版），CI 使用 Java 25 LTS。
 
 UI 使用 Flutter 官方独立的 `material_ui` 包。微信图片选择器、Markdown 等依赖仍使用旧 Material 类型，应用通过官方 `MaterialUiCompatibilityBridge` 保留主题和中英文翻译；待这些依赖迁移后移除兼容代码。
 
