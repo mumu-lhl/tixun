@@ -185,6 +185,9 @@ class HistoryTests(unittest.TestCase):
                  '--tag', current, '--repo', 'owner/repo'],
                 cwd=self.repo, env=env, text=True)
             values = dict(line.split('=', 1) for line in result.splitlines())
+            if not published:
+                # git-cliff accepts a single OID, but not a single tag name.
+                self.assertRegex(values['commit_range'], r'^[0-9a-f]{40,64}$')
             commits = self.git('log', '--format=%s', values['commit_range']).splitlines()
             self.assertIn('Current release', commits)
             self.assertIn('Failed build must remain in history', commits)
