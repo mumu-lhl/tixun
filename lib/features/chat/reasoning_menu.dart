@@ -8,6 +8,7 @@ import '../../app/controller.dart';
 import '../../core/ai/ai_options.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/reasoning_labels.dart';
 
 class ReasoningMenu extends ConsumerWidget {
   const ReasoningMenu({super.key});
@@ -20,20 +21,21 @@ class ReasoningMenu extends ConsumerWidget {
         ? c.sessionReasoning
         : '';
     final labels = {
-      '': '跟随全局默认',
-      'off': options.offChoiceLabel,
-      for (final level in options.reasoningEfforts) level: options.label(level),
+      '': context.l10n.useGlobalDefault,
+      'off': reasoningOffLabel(context, options, choice: true),
+      for (final level in options.reasoningEfforts)
+        level: reasoningEffortLabel(context, options, level),
     };
     final label = effective.thinking
-        ? context.tr(options.label(effective.effort))
-        : context.tr(AiOptions(c.config).offLabel);
+        ? reasoningEffortLabel(context, options, effective.effort)
+        : reasoningOffLabel(context, options);
     return PopupMenuButton<String>(
       popUpAnimationStyle: menuAnimation(context),
       key: const Key('reasoning-menu'),
-      tooltip: context.tr("本会话思考强度：{0}{1}", [
-        label,
-        override.isEmpty ? context.tr("（跟随默认）") : '',
-      ]),
+      tooltip: context.l10n.reasoningForThisConversation(
+        l10nArgument((label)),
+        l10nArgument((override.isEmpty ? context.l10n.followDefaultLabel : '')),
+      ),
       icon: Icon(
         Icons.psychology_outlined,
         // Highlight only when reasoning actually runs: thinking=true with
@@ -54,8 +56,8 @@ class ReasoningMenu extends ConsumerWidget {
           enabled: false,
           child: Text(
             c.config.supportsThinking
-                ? context.tr("仅影响本会话；强度越高通常越慢")
-                : context.tr("当前模型未声明支持思考参数"),
+                ? context.l10n.thisConversationOnlyHigherEffort
+                : context.l10n.thisModelHasNotDeclared,
           ),
         ),
         for (final entry in labels.entries)
@@ -69,16 +71,13 @@ class ReasoningMenu extends ConsumerWidget {
                 (entry.key.isEmpty ||
                     entry.key == 'off' ||
                     c.config.supportsThinking),
-            child: Text(
-              context.tr(
-                entry.key == 'off'
-                    ? AiOptions(c.config).offChoiceLabel
-                    : entry.value,
-              ),
-            ),
+            child: Text(entry.value),
           ),
         const PopupMenuDivider(),
-        PopupMenuItem(value: 'prompts', child: Text(context.tr("管理提示词"))),
+        PopupMenuItem(
+          value: 'prompts',
+          child: Text(context.l10n.managePrompts),
+        ),
       ],
     );
   }

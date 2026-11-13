@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -99,7 +101,10 @@ class BackupService {
           followLinks: false,
         );
         if (type == FileSystemEntityType.link) {
-          throw const FormatException('附件目录包含符号链接，无法安全备份。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheAttachmentDirectoryContainsSymbolicLinks,
+            '附件目录包含符号链接，无法安全备份。',
+          );
         }
         if (type != FileSystemEntityType.file) continue;
         final name = p.posix.joinAll(
@@ -110,7 +115,10 @@ class BackupService {
       }
     }
     if (paths.length > _maxEntries - 1) {
-      throw const FormatException('附件数量超过备份上限。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheNumberOfAttachmentsExceedsThe,
+        '附件数量超过备份上限。',
+      );
     }
     final manifestFiles = <Map<String, dynamic>>[];
     var bytes = 0;
@@ -118,7 +126,11 @@ class BackupService {
       final length = await entry.value.length();
       _checkSize(entry.key, length);
       bytes += length;
-      if (bytes > _maxBytes) throw const FormatException('备份原始数据超过 8 GiB 上限。');
+      if (bytes > _maxBytes)
+        throw const AppFormatException(
+          AppErrorCode.errorTheUncompressedBackupExceedsThe8,
+          '备份原始数据超过 8 GiB 上限。',
+        );
       manifestFiles.add({
         'path': entry.key,
         'size': length,
@@ -128,7 +140,10 @@ class BackupService {
     for (final path in info.references) {
       _checkedPath(path);
       if (!path.startsWith('attachments/') || !paths.containsKey(path)) {
-        throw const FormatException('有图片附件缺失；请修复后再备份，以免生成不完整副本。');
+        throw const AppFormatException(
+          AppErrorCode.errorSomeImageAttachmentsAreMissingRepair,
+          '有图片附件缺失；请修复后再备份，以免生成不完整副本。',
+        );
       }
     }
     final now = DateTime.now().toUtc();
@@ -141,7 +156,10 @@ class BackupService {
       'counts': info.counts,
     });
     if (utf8.encode(manifest).length > _manifestLimit) {
-      throw const FormatException('备份清单过大。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheBackupManifestIsTooLarge,
+        '备份清单过大。',
+      );
     }
     // Photos are already compressed. STORE streams every file without retaining
     // a database-sized compression buffer; restore accepts only this format.
@@ -189,7 +207,10 @@ class BackupService {
   ) async {
     final inputFile = File(inputPath);
     if (await inputFile.length() > _maxBytes + 128 * 1024 * 1024) {
-      throw const FormatException('备份文件过大。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheBackupFileIsTooLarge,
+        '备份文件过大。',
+      );
     }
     final input = InputFileStream(inputPath);
     try {
@@ -198,7 +219,10 @@ class BackupService {
       final directory = ZipDirectory()..read(input, verify: true);
       if (directory.fileHeaders.isEmpty ||
           directory.fileHeaders.length > _maxEntries) {
-        throw const FormatException('备份文件数量无效。');
+        throw const AppFormatException(
+          AppErrorCode.errorInvalidNumberOfFilesInThe,
+          '备份文件数量无效。',
+        );
       }
       final names = <String>{};
       var total = 0;
@@ -210,11 +234,17 @@ class BackupService {
             h.compressionMethod != 0 ||
             h.compressedSize != h.uncompressedSize ||
             ((h.externalFileAttributes >> 16) & 0xf000) == 0xa000) {
-          throw const FormatException('备份含重复文件、链接或不支持的压缩方式。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheBackupContainsDuplicateFilesLinks,
+            '备份含重复文件、链接或不支持的压缩方式。',
+          );
         }
         total += h.uncompressedSize;
         if (total > _maxBytes + _manifestLimit) {
-          throw const FormatException('备份展开内容过大。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheExpandedBackupIsTooLarge,
+            '备份展开内容过大。',
+          );
         }
       }
       input.position = 0;
@@ -224,7 +254,11 @@ class BackupService {
         throwOnError: true,
       );
       final entry = archive.findFile('manifest.json');
-      if (entry == null) throw const FormatException('缺少备份清单。');
+      if (entry == null)
+        throw const AppFormatException(
+          AppErrorCode.errorTheBackupManifestIsMissing,
+          '缺少备份清单。',
+        );
       final manifest = (jsonDecode(utf8.decode(entry.readBytes()!)) as Map)
           .cast<String, dynamic>();
       if (manifest['format'] != 'tixun-backup' ||
@@ -232,11 +266,17 @@ class BackupService {
           manifest['schema'] is! int ||
           manifest['schema'] < 1 ||
           manifest['schema'] > AppDatabase.latestSchemaVersion) {
-        throw const FormatException('备份格式或数据库版本不受支持，请检查应用版本。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheBackupFormatOrDatabaseVersion,
+          '备份格式或数据库版本不受支持，请检查应用版本。',
+        );
       }
       final date = DateTime.tryParse(manifest['created_at'] as String? ?? '');
       if (date == null || manifest['files'] is! List) {
-        throw const FormatException('备份清单不完整。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheBackupManifestIsIncomplete,
+          '备份清单不完整。',
+        );
       }
       final expected = <String, Map<String, dynamic>>{};
       for (final raw in manifest['files'] as List) {
@@ -245,20 +285,29 @@ class BackupService {
             m['size'] is! int ||
             m['sha256'] is! String ||
             !RegExp(r'^[a-f0-9]{64}$').hasMatch(m['sha256'] as String)) {
-          throw const FormatException('备份校验信息无效。');
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidBackupChecksumInformation,
+            '备份校验信息无效。',
+          );
         }
         final name = m['path'] as String;
         _checkedPath(name);
         _checkSize(name, m['size'] as int);
         if (name == 'manifest.json' || expected.containsKey(name)) {
-          throw const FormatException('备份清单路径重复。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheBackupManifestContainsDuplicatePaths,
+            '备份清单路径重复。',
+          );
         }
         expected[name] = m;
       }
       if (!expected.containsKey('database.sqlite') ||
           expected.length != archive.length - 1 ||
           !names.containsAll(expected.keys)) {
-        throw const FormatException('备份清单与文件不一致。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheBackupManifestDoesNotMatch,
+          '备份清单与文件不一致。',
+        );
       }
       final target = Directory(targetPath);
       await target.create(recursive: true);
@@ -270,7 +319,10 @@ class BackupService {
             f.isSymbolicLink ||
             record == null ||
             record['size'] != f.size) {
-          throw const FormatException('备份文件信息不一致。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheBackupFileInformationDoesNot,
+            '备份文件信息不一致。',
+          );
         }
         final output = File(
           p.join(
@@ -279,7 +331,10 @@ class BackupService {
           ),
         );
         if (!p.isWithin(target.path, output.path)) {
-          throw const FormatException('附件路径越界。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheAttachmentPathIsOutsideThe,
+            '附件路径越界。',
+          );
         }
         await output.parent.create(recursive: true);
         final stream = OutputFileStream(output.path);
@@ -290,19 +345,28 @@ class BackupService {
         }
         if (await output.length() != record['size'] ||
             await _hash(output) != record['sha256']) {
-          throw const FormatException('备份完整性校验失败，未修改现有数据。');
+          throw const AppFormatException(
+            AppErrorCode.errorBackupIntegrityVerificationFailedExistingData,
+            '备份完整性校验失败，未修改现有数据。',
+          );
         }
         actualBytes += await output.length();
       }
       final info = _checkDatabase(p.join(target.path, 'tixun.sqlite'));
       if (info.schema != manifest['schema']) {
-        throw const FormatException('数据库与备份版本不一致。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheDatabaseVersionDoesNotMatch,
+          '数据库与备份版本不一致。',
+        );
       }
       for (final relative in info.references) {
         _checkedPath(relative);
         if (!relative.startsWith('attachments/') ||
             !expected.containsKey(relative)) {
-          throw const FormatException('备份缺少数据库引用的附件。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheBackupIsMissingAttachmentsReferenced,
+            '备份缺少数据库引用的附件。',
+          );
         }
       }
       return BackupPreview(
@@ -315,7 +379,10 @@ class BackupService {
     } on FormatException {
       rethrow;
     } catch (_) {
-      throw const FormatException('无法读取备份，文件可能损坏或格式不受支持。');
+      throw const AppFormatException(
+        AppErrorCode.errorCannotReadTheBackupItMay,
+        '无法读取备份，文件可能损坏或格式不受支持。',
+      );
     } finally {
       await input.close();
     }
@@ -330,7 +397,10 @@ class BackupService {
       if (check.data.values.single != 'ok' ||
           (await db.customSelect('PRAGMA foreign_key_check').get())
               .isNotEmpty) {
-        throw const FormatException('数据库完整性检查失败。');
+        throw const AppFormatException(
+          AppErrorCode.errorDatabaseIntegrityCheckFailed,
+          '数据库完整性检查失败。',
+        );
       }
       // Check declared columns too: a forged user_version must not skip tables.
       for (final table in db.allTables) {
@@ -361,7 +431,10 @@ class BackupService {
         !(name == 'manifest.json' ||
             name == 'database.sqlite' ||
             name.startsWith('attachments/'))) {
-      throw const FormatException('备份附件路径无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidAttachmentPathInTheBackup,
+        '备份附件路径无效。',
+      );
     }
   }
 
@@ -372,7 +445,10 @@ class BackupService {
         ? _manifestLimit
         : _imageLimit;
     if (size < 0 || size > max) {
-      throw const FormatException('备份中的单个文件大小无效或超过上限。');
+      throw const AppFormatException(
+        AppErrorCode.errorAFileInTheBackupHas,
+        '备份中的单个文件大小无效或超过上限。',
+      );
     }
   }
 
@@ -390,7 +466,10 @@ class BackupService {
           db
               .select('SELECT * FROM pragma_foreign_key_check LIMIT 1')
               .isNotEmpty) {
-        throw const FormatException('备份数据库无效或版本不受支持。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheBackupDatabaseIsInvalidOr,
+          '备份数据库无效或版本不受支持。',
+        );
       }
       final tables = db
           .select("SELECT name FROM sqlite_master WHERE type='table'")
@@ -403,7 +482,10 @@ class BackupService {
         'provider_configs',
         'preferences',
       ])) {
-        throw const FormatException('数据库不属于题训。');
+        throw const AppFormatException(
+          AppErrorCode.errorThisDatabaseDoesNotBelongTo,
+          '数据库不属于题训。',
+        );
       }
       const counters = {
         'chat_sessions': 'chats',
@@ -469,7 +551,10 @@ class BackupService {
         !p
             .basename(data['previous'] as String)
             .startsWith('.tixun-previous-')) {
-      throw const FormatException('恢复记录无效；为保护资料，已停止自动处理。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheRecoveryRecordIsInvalidAutomatic,
+        '恢复记录无效；为保护资料，已停止自动处理。',
+      );
     }
     // 'staging' is optional (journals written before it existed lack it)
     // and only names the container activate() staged the new data in.
@@ -478,7 +563,10 @@ class BackupService {
         (staging is! String ||
             !p.isWithin(root.parent.absolute.path, staging) ||
             !p.basename(staging).startsWith('.tixun-stage-'))) {
-      throw const FormatException('恢复记录无效；为保护资料，已停止自动处理。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheRecoveryRecordIsInvalidAutomatic,
+        '恢复记录无效；为保护资料，已停止自动处理。',
+      );
     }
     return data;
   }
@@ -528,7 +616,11 @@ class BackupService {
         await previous.rename(root.path);
       }
     }
-    if (!await root.exists()) throw const FormatException('恢复尚未完成，未找到可用的数据目录。');
+    if (!await root.exists())
+      throw const AppFormatException(
+        AppErrorCode.errorRecoveryIsIncompleteAndNoUsable,
+        '恢复尚未完成，未找到可用的数据目录。',
+      );
     try {
       _checkDatabase(p.join(root.path, 'tixun.sqlite'));
     } catch (_) {
@@ -550,7 +642,10 @@ class BackupService {
     final previous = await previousRoot(root);
     if (previous == null) return;
     if (p.dirname(previous.absolute.path) != root.parent.absolute.path) {
-      throw const FormatException('安全副本路径无效，已停止删除。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheSafetyCopyPathIsInvalid,
+        '安全副本路径无效，已停止删除。',
+      );
     }
     await previous.delete(recursive: true);
     await _journal(root).delete();
@@ -567,7 +662,10 @@ class BackupService {
         ) ||
         !p.basename(prepared.container.path).startsWith('.tixun-stage-') ||
         !await prepared.data.exists()) {
-      throw const FormatException('恢复暂存目录无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidRestoreStagingDirectory,
+        '恢复暂存目录无效。',
+      );
     }
     final old = await _readJournal(root);
     final previous = Directory(
@@ -629,7 +727,11 @@ class BackupService {
 
   static Future<PreparedBackup> preparePrevious(Directory root) async {
     final previous = await previousRoot(root);
-    if (previous == null) throw const FormatException('没有可撤销的恢复记录。');
+    if (previous == null)
+      throw const AppFormatException(
+        AppErrorCode.errorThereIsNoRestoreToUndo,
+        '没有可撤销的恢复记录。',
+      );
     final container = await Directory(
       p.join(root.parent.path, '.tixun-stage-${const Uuid().v4()}'),
     ).create(recursive: true);
@@ -643,7 +745,10 @@ class BackupService {
         ).list(recursive: true, followLinks: false)) {
           if (await FileSystemEntity.type(entity.path, followLinks: false) ==
               FileSystemEntityType.link) {
-            throw const FormatException('安全副本含符号链接。');
+            throw const AppFormatException(
+              AppErrorCode.errorTheSafetyCopyContainsSymbolicLinks,
+              '安全副本含符号链接。',
+            );
           }
           if (entity is! File) continue;
           final path = File(

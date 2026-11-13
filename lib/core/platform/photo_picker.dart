@@ -1,3 +1,7 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
+import '../l10n/app_strings.dart';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:material_ui/material_ui.dart';
 // The picker still exposes legacy ThemeData in its public API.
@@ -8,7 +12,6 @@ import 'package:flutter/services.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart' as assets;
 import 'package:image_picker/image_picker.dart' as system;
 
-import '../l10n/app_strings.dart';
 import 'camera_capture_screen.dart';
 import 'photo_picker_delegate.dart';
 
@@ -30,7 +33,7 @@ Future<List<XFile>> pickPhotos(
     );
     return files;
   }
-  final english = AppStrings.of(context).locale.languageCode == 'en';
+  final english = context.l10n.localeName == 'en';
   if (takePhoto) {
     final result = await Navigator.of(context, rootNavigator: true)
         .push<CameraCaptureResult>(
@@ -78,7 +81,11 @@ Future<List<XFile>> pickPhotos(
   final result = <XFile>[];
   for (final entity in picked ?? <assets.AssetEntity>[]) {
     final file = await entity.file;
-    if (file == null) throw const FormatException('无法读取所选图片，请重新选择。');
+    if (file == null)
+      throw const AppFormatException(
+        AppErrorCode.cannotReadTheSelectedPhoto,
+        '无法读取所选图片，请重新选择。',
+      );
     result.add(XFile(file.path));
   }
   return result;
@@ -92,6 +99,9 @@ Future<XFile?> captureSystemPhoto() async {
     );
     return file == null ? null : XFile(file.path);
   } on PlatformException {
-    throw const FormatException('无法打开系统相机或完成拍照，请检查系统相机权限，或改用相册 / 图片文件。');
+    throw const AppFormatException(
+      AppErrorCode.couldNotOpenSystemCamera,
+      '无法打开系统相机或完成拍照，请检查系统相机权限，或改用相册 / 图片文件。',
+    );
   }
 }

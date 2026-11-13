@@ -18,7 +18,7 @@ class PracticeHistoryScreen extends ConsumerStatefulWidget {
 class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
   final rows = <PracticeAttempt>[];
   bool busy = false, more = true;
-  String? failure;
+  bool failed = false;
   @override
   void initState() {
     super.initState();
@@ -36,11 +36,11 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
         setState(() {
           rows.addAll(next);
           more = next.length == 50;
-          failure = null;
+          failed = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => failure = '历史记录读取失败，请重试。');
+      if (mounted) setState(() => failed = true);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -54,13 +54,13 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
         child: Row(
           children: [
             IconButton(
-              tooltip: context.tr("返回题目"),
+              tooltip: context.l10n.backToQuestion,
               onPressed: () => context.go('/practice/${widget.id}'),
               icon: const Icon(Icons.arrow_back),
             ),
             Expanded(
               child: Text(
-                context.tr("作答历史"),
+                context.l10n.attemptHistory,
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
               ),
             ),
@@ -77,16 +77,16 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    if (rows.isEmpty && !busy && failure == null)
-                      Text(context.tr("还没有作答记录。")),
-                    if (failure != null) Text(context.tr(failure!)),
+                    if (rows.isEmpty && !busy && !failed)
+                      Text(context.l10n.noAttemptsYet),
+                    if (failed) Text(context.l10n.couldNotReadTheHistory),
                     if (busy && rows.isEmpty)
                       const CircularProgressIndicator()
                     else if (more)
                       TextButton(
                         onPressed: busy ? null : () => act(context, _load),
                         child: Text(
-                          busy ? context.tr("正在读取…") : context.tr("加载更多"),
+                          busy ? context.l10n.loading : context.l10n.loadMore,
                         ),
                       ),
                   ],
@@ -101,25 +101,21 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
               ),
               title: Text(
                 a.status == 'draft'
-                    ? context.tr("未完成的作答")
+                    ? context.l10n.unfinishedAttempt
                     : a.status == 'awaiting_self_grade'
-                    ? context.tr("等待自主判分")
+                    ? context.l10n.awaitingSelfAssessment
                     : a.correct == true
-                    ? context.tr("作答正确")
-                    : context.tr("需要订正"),
+                    ? context.l10n.answerCorrect
+                    : context.l10n.needsCorrection,
               ),
               subtitle: Text(
-                context.tr("{0} · {1}{2}", [
-                  a.startedAt.toLocal().toString().substring(0, 16),
-                  a.gradingBasis == 'ai_reference'
-                      ? context.tr("AI 参考待核对")
-                      : a.gradingBasis == 'self'
-                      ? context.tr("自主判分")
-                      : a.gradingBasis == 'deterministic'
-                      ? context.tr("已核对的规则判分")
-                      : context.tr("草稿"),
-                  a.hintUsed ? context.tr(" · 有提示") : '',
-                ]),
+                '${l10nArgument(a.startedAt.toLocal().toString().substring(0, 16))} · ${l10nArgument(a.gradingBasis == 'ai_reference'
+                    ? context.l10n.aiReferenceNeedsChecking
+                    : a.gradingBasis == 'self'
+                    ? context.l10n.selfAssessed
+                    : a.gradingBasis == 'deterministic'
+                    ? context.l10n.verifiedRuleBasedGrading
+                    : context.l10n.draft)}${l10nArgument(a.hintUsed ? context.l10n.hintUsedSuffix : '')}',
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go('/practice/${widget.id}?attempt=${a.id}'),

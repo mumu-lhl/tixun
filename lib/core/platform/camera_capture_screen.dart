@@ -7,6 +7,8 @@ import '../l10n/app_strings.dart';
 
 typedef CameraCaptureResult = ({String? path, bool useSystemCamera});
 
+enum _CameraError { stillBusy, pickerFailure }
+
 /// The picker owns capture controls; this page only supplies error feedback
 /// and an escape to the device camera, after releasing the embedded controller.
 class CameraCaptureScreen extends StatefulWidget {
@@ -18,7 +20,7 @@ class CameraCaptureScreen extends StatefulWidget {
 class _CameraCaptureState extends State<CameraCaptureScreen> {
   final picker = camera.CameraPickerState();
   bool switching = false;
-  String? error;
+  _CameraError? error;
 
   Future<void> useSystemCamera() async {
     if (switching ||
@@ -41,7 +43,7 @@ class _CameraCaptureState extends State<CameraCaptureScreen> {
         ));
       }
     } catch (_) {
-      if (mounted) setState(() => error = '相机尚未释放，请返回后重试。');
+      if (mounted) setState(() => error = _CameraError.stillBusy);
     } finally {
       if (mounted) setState(() => switching = false);
     }
@@ -49,7 +51,7 @@ class _CameraCaptureState extends State<CameraCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final english = AppStrings.of(context).locale.languageCode == 'en';
+    final english = Localizations.maybeLocaleOf(context)?.languageCode == 'en';
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -64,7 +66,7 @@ class _CameraCaptureState extends State<CameraCaptureScreen> {
                   ? const camera.EnglishCameraPickerTextDelegate()
                   : const camera.CameraPickerTextDelegate(),
               onError: (_, _) {
-                if (mounted) setState(() => error = '相机报告异常，可返回重试或使用系统相机。');
+                if (mounted) setState(() => error = _CameraError.pickerFailure);
               },
               onXFileCaptured: (file, _) {
                 if (mounted &&
@@ -96,7 +98,11 @@ class _CameraCaptureState extends State<CameraCaptureScreen> {
                       ),
                       onPressed: switching ? null : useSystemCamera,
                       icon: const Icon(Icons.open_in_new, size: 16),
-                      label: Text(context.tr(switching ? '正在切换相机…' : '使用系统相机')),
+                      label: Text(
+                        (switching
+                            ? context.l10n.switchingCamera
+                            : context.l10n.useSystemCamera),
+                      ),
                     ),
                     if (error != null)
                       Padding(
@@ -107,7 +113,12 @@ class _CameraCaptureState extends State<CameraCaptureScreen> {
                           child: Padding(
                             padding: const EdgeInsets.all(10),
                             child: Text(
-                              context.tr(error!),
+                              switch (error!) {
+                                _CameraError.stillBusy =>
+                                  context.l10n.theCameraIsStillBusy,
+                                _CameraError.pickerFailure =>
+                                  context.l10n.theCameraReportedAnError,
+                              },
                               style: const TextStyle(color: Colors.white),
                               textAlign: TextAlign.center,
                             ),

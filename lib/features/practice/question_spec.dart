@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:math' as math;
 
 const questionKinds = {
@@ -49,11 +51,19 @@ class QuestionSpec {
       'time_limit_seconds',
     };
     if (a.keys.any((k) => !fields.contains(k))) {
-      throw const FormatException('题目包含未知字段。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheQuestionContainsUnknownFields,
+        '题目包含未知字段。',
+      );
     }
     String str(String k, [String fallback = '']) {
       final v = a[k] ?? fallback;
-      if (v is! String) throw FormatException('$k 必须是文字。');
+      if (v is! String)
+        throw AppFormatException(
+          AppErrorCode.errorParameterMustBeText,
+          '$k 必须是文字。',
+          [k],
+        );
       return v;
     }
 
@@ -70,11 +80,19 @@ class QuestionSpec {
         (a.containsKey('case_sensitive') && a['case_sensitive'] is! bool) ||
         (a.containsKey('time_limit_seconds') &&
             a['time_limit_seconds'] is! int)) {
-      throw const FormatException('题目选项、答案或参数格式无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidQuestionOptionsAnswersOrArguments,
+        '题目选项、答案或参数格式无效。',
+      );
     }
     double numValue(String k, double fallback) {
       final v = a[k] ?? fallback;
-      if (v is! num) throw FormatException('$k 必须是数字。');
+      if (v is! num)
+        throw AppFormatException(
+          AppErrorCode.errorParameterMustBeNumber,
+          '$k 必须是数字。',
+          [k],
+        );
       return v.toDouble();
     }
 
@@ -99,19 +117,28 @@ class QuestionSpec {
   void validate() {
     void text(String s, int max, {bool required = false}) {
       if (s.length > max || (required && s.trim().isEmpty)) {
-        throw const FormatException('题目文字为空或过长。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheQuestionTextIsEmptyOr,
+          '题目文字为空或过长。',
+        );
       }
     }
 
     if (!questionKinds.containsKey(kind)) {
-      throw const FormatException('不支持的题型。');
+      throw const AppFormatException(
+        AppErrorCode.errorUnsupportedQuestionType,
+        '不支持的题型。',
+      );
     }
     text(stem, 20000, required: true);
     text(subject, 80, required: true);
     text(explanation, 20000);
     text(hint, 4000);
     if (topics.length > 12 || topics.toSet().length != topics.length) {
-      throw const FormatException('知识点过多或重复。');
+      throw const AppFormatException(
+        AppErrorCode.errorThereAreTooManyKnowledgePoints,
+        '知识点过多或重复。',
+      );
     }
     for (final t in topics) {
       text(t, 120, required: true);
@@ -124,13 +151,19 @@ class QuestionSpec {
         absoluteTolerance > 100 ||
         (timeLimitSeconds != null &&
             (timeLimitSeconds! < 10 || timeLimitSeconds! > 7200))) {
-      throw const FormatException('容差或限时设置无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidToleranceOrTimeLimit,
+        '容差或限时设置无效。',
+      );
     }
     if (answers.length > 12 ||
         answers.any(
           (a) => a.isEmpty || a.length > 8 || a.toSet().length != a.length,
         )) {
-      throw const FormatException('答案数量无效或重复。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheNumberOfAnswersIsInvalid,
+        '答案数量无效或重复。',
+      );
     }
     for (final a in answers.expand((v) => v)) {
       text(a, 4000, required: true);
@@ -147,12 +180,18 @@ class QuestionSpec {
           answers.any((a) => a.length != 1 || !options.containsKey(a.single)) ||
           answers.map((a) => a.single).toSet().length != answers.length ||
           (kind != 'multiple_choice' && answers.length != 1)) {
-        throw const FormatException('选项和正确答案不一致。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheOptionsAndCorrectAnswersDo,
+          '选项和正确答案不一致。',
+        );
       }
       if (kind == 'true_false' &&
           (options.length != 2 ||
               !options.keys.toSet().containsAll(['true', 'false']))) {
-        throw const FormatException('判断题选项必须使用 true 和 false。');
+        throw const AppFormatException(
+          AppErrorCode.errorTrueFalseOptionsMustUseTrue,
+          '判断题选项必须使用 true 和 false。',
+        );
       }
       for (final e in options.entries) {
         text(e.key, 20, required: true);
@@ -165,7 +204,10 @@ class QuestionSpec {
               (answers.length != 1 ||
                   answers.single.length != 1 ||
                   parseNumber(answers.single.single) == null))) {
-        throw const FormatException('填空或数值答案无效。');
+        throw const AppFormatException(
+          AppErrorCode.errorInvalidFillInOrNumericAnswer,
+          '填空或数值答案无效。',
+        );
       }
     }
   }
@@ -188,7 +230,11 @@ class QuestionSpec {
   int get responseCount => kind == 'fill_blank' ? answers.length : 1;
   bool grade(List<String> responses) {
     validate();
-    if (kind == 'short_answer') throw const FormatException('此题需要自主判分。');
+    if (kind == 'short_answer')
+      throw const AppFormatException(
+        AppErrorCode.errorThisQuestionRequiresSelfGrading,
+        '此题需要自主判分。',
+      );
     if (['single_choice', 'multiple_choice', 'true_false'].contains(kind)) {
       final correct = answers.map((a) => a.single).toSet();
       return responses.toSet().length == responses.length &&

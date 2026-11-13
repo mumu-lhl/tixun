@@ -1,3 +1,4 @@
+import 'app/app_notice.dart';
 import 'features/exams/exam_photo_intake.dart';
 
 import 'dart:io';
@@ -72,7 +73,7 @@ Future<void> main() async {
     return;
   }
   AppController? c;
-  String? failure;
+  HostFailure? failure;
   try {
     await BackupService.recoverPending(root);
     c = await AppController.openRoot(root, demo: demo, seed: demo);
@@ -91,16 +92,17 @@ Future<void> main() async {
             for (final image in lost.files!) {
               await c.addImage(image.path);
             }
-            c.notice = '已将中断选择的图片恢复到对话草稿，请检查后发送。';
+            c.notice = const AppNotice(AppNoticeKind.interruptedImageRestored);
           }
         }
-        if (lost.exception != null) c.notice = '上次图片选择未完成，请重新选择。';
+        if (lost.exception != null)
+          c.notice = const AppNotice(AppNoticeKind.imageSelectionIncomplete);
       } catch (_) {
-        c.notice = '未能恢复上次选取的图片，请重新选择。已有学习记录未改变。';
+        c.notice = const AppNotice(AppNoticeKind.imageRecoveryFailed);
       }
     }
   } catch (_) {
-    failure = '无法打开本地学习数据库。请检查存储空间和目录权限，或从备份恢复。已有文件没有自动删除。';
+    failure = HostFailure.initialOpen;
   }
   runApp(
     TixunHost(

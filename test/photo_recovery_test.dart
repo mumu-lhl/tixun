@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tixun/app/controller.dart';
+import 'package:tixun/app/app_notice.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
@@ -52,7 +53,7 @@ void main() {
     expect(c.attachments.length, 1);
     expect(c.attachments.single.messageId, isNull);
     expect(await c.study.searchMistakes(), isEmpty);
-    expect(c.notice, contains('未自动上传'));
+    expect(c.notice?.kind, AppNoticeKind.studyOwnerDeleted);
   });
   test('Exam photo recovery keeps the batch when an import fails and skips imported files on retry', () async {
     final root = await Directory.systemTemp.createTemp('tixun-exam-recovery');

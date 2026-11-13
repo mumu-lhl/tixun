@@ -1,3 +1,4 @@
+import 'package:tixun/core/l10n/app_error.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,16 +23,14 @@ class ExamDetailScreen extends ConsumerWidget {
       )..where((t) => t.id.equals(id))).watchSingleOrNull(),
       builder: (context, snap) {
         if (snap.hasError) {
-          return Center(child: Text(context.tr('考试记录读取失败，请重新打开。')));
+          return Center(child: Text(context.l10n.couldNotLoadExamRecords));
         }
         if (!snap.hasData) {
           return Center(
             child: Text(
-              context.tr(
-                snap.connectionState == ConnectionState.waiting
-                    ? '正在加载…'
-                    : '记录不存在',
-              ),
+              snap.connectionState == ConnectionState.waiting
+                  ? context.l10n.loadingEllipsis
+                  : context.l10n.recordNotFound,
             ),
           );
         }
@@ -49,7 +48,7 @@ class ExamDetailScreen extends ConsumerWidget {
                       children: [
                         IconButton(
                           onPressed: () => context.go('/exams'),
-                          tooltip: context.tr('返回'),
+                          tooltip: context.l10n.back,
                           icon: const Icon(Icons.arrow_back),
                         ),
                         Expanded(
@@ -59,29 +58,29 @@ class ExamDetailScreen extends ConsumerWidget {
                           ),
                         ),
                         IconButton(
-                          tooltip: context.tr('编辑考试'),
+                          tooltip: context.l10n.editExam,
                           icon: const Icon(Icons.edit_outlined),
                           onPressed: () => editExam(context, c, event),
                         ),
                         IconButton(
-                          tooltip: context.tr('删除考试'),
+                          tooltip: context.l10n.deleteExam,
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () async {
                             final yes = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: Text(ctx.tr('删除考试')),
+                                title: Text(ctx.l10n.deleteExam),
                                 content: Text(
-                                  ctx.tr('将删除本次考试的科目、小分表和照片。此操作无法撤销。'),
+                                  ctx.l10n.thisDeletesTheExamSubjects,
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx),
-                                    child: Text(ctx.tr('取消')),
+                                    child: Text(ctx.l10n.cancel),
                                   ),
                                   FilledButton(
                                     onPressed: () => Navigator.pop(ctx, true),
-                                    child: Text(ctx.tr('删除')),
+                                    child: Text(ctx.l10n.delete),
                                   ),
                                 ],
                               ),
@@ -107,19 +106,19 @@ class ExamDetailScreen extends ConsumerWidget {
                       builder: (ctx, subjects) => Column(
                         children: [
                           if (subjects.hasError)
-                            Text(ctx.tr('考试记录读取失败，请重新打开。')),
+                            Text(ctx.l10n.couldNotLoadExamRecords),
                           if (subjects.hasData && subjects.data!.isEmpty)
                             Padding(
                               padding: const EdgeInsets.all(24),
-                              child: Text(ctx.tr('添加科目，记录成绩、试卷与小分表。')),
+                              child: Text(ctx.l10n.addASubjectToRecord),
                             ),
                           for (final subject
                               in subjects.data ?? <ExamSubject>[])
                             ListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: Text(ctx.tr(subject.subject)),
+                              title: Text(ctx.subjectName(subject.subject)),
                               subtitle: Text(
-                                '${ctx.tr('裸分')} ${points(subject.rawScore)}${subject.maximum == null ? '' : ' / ${points(subject.maximum)}'}${subject.usesScaling ? ' · ${ctx.tr('赋分')} ${points(subject.scaledScore)}' : ''}',
+                                '${ctx.l10n.rawScore} ${points(subject.rawScore)}${subject.maximum == null ? '' : ' / ${points(subject.maximum)}'}${subject.usesScaling ? ' · ${ctx.l10n.scaledScore} ${points(subject.scaledScore)}' : ''}',
                               ),
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () => context.push(
@@ -133,7 +132,7 @@ class ExamDetailScreen extends ConsumerWidget {
                     FilledButton.icon(
                       onPressed: () => editSubject(context, c, id),
                       icon: const Icon(Icons.add),
-                      label: Text(context.tr('添加科目')),
+                      label: Text(context.l10n.addSubject),
                     ),
                   ],
                 ),
@@ -160,14 +159,14 @@ Future<void> editExam(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, set) => AlertDialog(
-          title: Text(ctx.tr('编辑考试')),
+          title: Text(ctx.l10n.editExam),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: title,
                 maxLength: 120,
-                decoration: InputDecoration(labelText: ctx.tr('考试名称')),
+                decoration: InputDecoration(labelText: ctx.l10n.examName),
               ),
               TextButton.icon(
                 icon: const Icon(Icons.calendar_today),
@@ -192,17 +191,17 @@ Future<void> editExam(
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(ctx.tr('取消')),
+              child: Text(ctx.l10n.cancel),
             ),
             FilledButton(
               onPressed: () {
                 if (title.text.trim().isEmpty || title.text.length > 120) {
-                  set(() => error = ctx.tr('考试名称需为 1–120 字。'));
+                  set(() => error = ctx.l10n.examNameMustBe1);
                   return;
                 }
                 Navigator.pop(ctx, true);
               },
-              child: Text(ctx.tr('保存')),
+              child: Text(ctx.l10n.save),
             ),
           ],
         ),
@@ -254,7 +253,9 @@ Future<void> editSubject(
         builder: (ctx, set) => PopScope(
           canPop: !saving,
           child: AlertDialog(
-            title: Text(ctx.tr(existing == null ? '添加科目' : '编辑成绩')),
+            title: Text(
+              (existing == null ? ctx.l10n.addSubject : ctx.l10n.editScores),
+            ),
             content: SizedBox(
               width: 420,
               child: SingleChildScrollView(
@@ -264,7 +265,7 @@ Future<void> editSubject(
                     TextField(
                       controller: subject,
                       enabled: !saving && existing == null,
-                      decoration: InputDecoration(labelText: ctx.tr('科目')),
+                      decoration: InputDecoration(labelText: ctx.l10n.subject),
                       onChanged: (_) => set(() {}),
                     ),
                     if (existing == null)
@@ -273,7 +274,7 @@ Future<void> editSubject(
                         children: [
                           for (final name in c.learningSubjects)
                             ActionChip(
-                              label: Text(ctx.tr(name)),
+                              label: Text(ctx.subjectName(name)),
                               onPressed: saving
                                   ? null
                                   : () => set(() => subject.text = name),
@@ -290,7 +291,7 @@ Future<void> editSubject(
                               decimal: true,
                             ),
                             decoration: InputDecoration(
-                              labelText: ctx.tr('裸分'),
+                              labelText: ctx.l10n.rawScore,
                             ),
                           ),
                         ),
@@ -302,7 +303,7 @@ Future<void> editSubject(
                               decimal: true,
                             ),
                             decoration: InputDecoration(
-                              labelText: ctx.tr('满分'),
+                              labelText: ctx.l10n.maximumScore,
                             ),
                           ),
                         ),
@@ -311,7 +312,7 @@ Future<void> editSubject(
                     if (!mainExamSubjects.contains(subject.text.trim()))
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: Text(ctx.tr('记录赋分')),
+                        title: Text(ctx.l10n.recordScaledScore),
                         value: scaling,
                         onChanged: saving
                             ? null
@@ -324,12 +325,14 @@ Future<void> editSubject(
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        decoration: InputDecoration(labelText: ctx.tr('赋分')),
+                        decoration: InputDecoration(
+                          labelText: ctx.l10n.scaledScore,
+                        ),
                       ),
                     TextField(
                       controller: notes,
                       maxLines: 3,
-                      decoration: InputDecoration(labelText: ctx.tr('备注')),
+                      decoration: InputDecoration(labelText: ctx.l10n.notes),
                     ),
                     if (error != null)
                       Text(
@@ -345,7 +348,7 @@ Future<void> editSubject(
             actions: [
               TextButton(
                 onPressed: saving ? null : () => Navigator.pop(ctx),
-                child: Text(ctx.tr('取消')),
+                child: Text(ctx.l10n.cancel),
               ),
               FilledButton(
                 onPressed: saving
@@ -371,12 +374,12 @@ Future<void> editSubject(
                           if (ctx.mounted) {
                             set(() {
                               saving = false;
-                              error = ctx.tr('保存失败，请检查分数或是否重复添加了科目。');
+                              error = ctx.l10n.couldNotSaveCheckScores;
                             });
                           }
                         }
                       },
-                child: Text(ctx.tr('保存')),
+                child: Text(ctx.l10n.save),
               ),
             ],
           ),
@@ -396,6 +399,10 @@ Future<void> editSubject(
 double? parsePoints(String text) {
   if (text.trim().isEmpty) return null;
   final value = double.tryParse(text.trim());
-  if (value == null || !value.isFinite) throw const FormatException('分数格式无效。');
+  if (value == null || !value.isFinite)
+    throw const AppFormatException(
+      AppErrorCode.errorInvalidScoreFormat,
+      '分数格式无效。',
+    );
   return value;
 }

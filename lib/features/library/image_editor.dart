@@ -1,3 +1,6 @@
+import 'package:tixun/core/l10n/app_error.dart';
+import 'package:tixun/core/l10n/app_error_localization.dart';
+
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -39,7 +42,10 @@ Future<Uint8List> renderStudyCrop(
     normalized.bottom.clamp(0, 1) * h,
   );
   if (crop.width < 2 || crop.height < 2) {
-    throw const FormatException('框选范围太小，请重新选择。');
+    throw const AppFormatException(
+      AppErrorCode.errorTheSelectedAreaIsTooSmall,
+      '框选范围太小，请重新选择。',
+    );
   }
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder)..translate(-crop.left, -crop.top);
@@ -189,15 +195,15 @@ class StudyImageEditor extends ConsumerStatefulWidget {
     this.initialCrop,
     this.allowSplit = true,
     this.onCreate,
-    this.createLabel = '确认范围并保存错题',
-    this.title = '裁剪与分题',
+    this.createLabel,
+    this.title,
     super.key,
   });
   final StudyAttachment attachment;
   final String ownerId;
   final bool isMistake, allowSplit;
   final Rect? initialCrop;
-  final String createLabel, title;
+  final String? createLabel, title;
   final Future<String> Function(Uint8List bytes, Rect crop, int turns)?
   onCreate;
   @override
@@ -206,7 +212,7 @@ class StudyImageEditor extends ConsumerStatefulWidget {
 
 class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
   ui.Image? _image;
-  String? _error;
+  Object? _error;
   bool _saving = false;
   int _turns = 0;
   Rect _crop = const Rect.fromLTRB(0, 0, 1, 1);
@@ -236,14 +242,20 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
           .files
           .resolve(widget.attachment.relativePath);
       if (await file.length() > 8 * 1024 * 1024) {
-        throw const FormatException('图片超过编辑器的 8 MB 上限。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheImageExceedsTheEditorS,
+          '图片超过编辑器的 8 MB 上限。',
+        );
       }
       final bytes = await file.readAsBytes();
       final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
       final descriptor = await ui.ImageDescriptor.encoded(buffer);
       try {
         if (descriptor.width * descriptor.height > 32000000) {
-          throw const FormatException('图片分辨率过大，请先缩小图片。原图记录未改变。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheImageResolutionIsTooLarge,
+            '图片分辨率过大，请先缩小图片。原图记录未改变。',
+          );
         }
         final target = editorDecodeSize(descriptor.width, descriptor.height);
         final codec = await descriptor.instantiateCodec(
@@ -267,7 +279,12 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
     } catch (e) {
       if (mounted) {
         setState(
-          () => _error = e is FormatException ? e.message : '图片无法解码。原图记录仍然保留。',
+          () => _error = e is FormatException
+              ? e
+              : const AppFormatException(
+                  AppErrorCode.errorImageCouldNotBeDecoded,
+                  '图片无法解码。原图记录仍然保留。',
+                ),
         );
       }
     }
@@ -375,16 +392,16 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(context.tr("旋转会重置框选")),
-          content: Text(context.tr("旋转后坐标系改变，当前框选将重置为全图。")),
+          title: Text(context.l10n.rotatingResetsTheCrop),
+          content: Text(context.l10n.rotationChangesTheCoordinateSystem),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text(context.tr("取消")),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: Text(context.tr("旋转并重置")),
+              child: Text(context.l10n.rotateAndReset),
             ),
           ],
         ),
@@ -408,7 +425,10 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
     try {
       final bytes = await renderStudyCrop(_image!, _crop, _turns);
       if (bytes.length > 8 * 1024 * 1024) {
-        throw const FormatException('编辑副本超过 8 MB，请框选更小区域后重试。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheEditedCopyExceeds8MB,
+          '编辑副本超过 8 MB，请框选更小区域后重试。',
+        );
       }
       if (widget.onCreate != null) {
         final created = await widget.onCreate!(bytes, _crop, _turns);
@@ -467,7 +487,12 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
       }
       if (mounted) {
         setState(
-          () => _error = e is FormatException ? e.message : '图片保存失败，原图没有改变。',
+          () => _error = e is FormatException
+              ? e
+              : const AppFormatException(
+                  AppErrorCode.errorImageCouldNotBeSaved,
+                  '图片保存失败，原图没有改变。',
+                ),
         );
       }
     } finally {
@@ -482,31 +507,31 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            tooltip: context.tr("取消编辑"),
+            tooltip: context.l10n.cancelEditing,
             onPressed: _saving ? null : () => Navigator.pop(context),
             icon: const Icon(Icons.close),
           ),
-          title: Text(context.tr(widget.title)),
+          title: Text(widget.title ?? context.l10n.cropAndSplit),
           actions: [
             IconButton(
-              tooltip: context.tr("缩小"),
+              tooltip: context.l10n.zoomOut,
               onPressed: image == null || _saving
                   ? null
                   : () => _zoomBy(1 / 1.25),
               icon: const Icon(Icons.zoom_out),
             ),
             IconButton(
-              tooltip: context.tr("还原缩放"),
+              tooltip: context.l10n.resetZoom,
               onPressed: image == null || _saving ? null : _resetZoom,
               icon: const Icon(Icons.fit_screen),
             ),
             IconButton(
-              tooltip: context.tr("放大"),
+              tooltip: context.l10n.zoomIn,
               onPressed: image == null || _saving ? null : () => _zoomBy(1.25),
               icon: const Icon(Icons.zoom_in),
             ),
             IconButton(
-              tooltip: context.tr("顺时针旋转"),
+              tooltip: context.l10n.rotateClockwise,
               onPressed: image == null || _saving ? null : _rotate,
               icon: const Icon(Icons.rotate_right),
             ),
@@ -518,9 +543,7 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
               Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  context.tr(
-                    "拖动框选要保留的区域；框内拖动可移动，拖动手柄可调整大小；双指缩放可放大查看。原图始终保留，编辑副本最长边为 2048 像素。",
-                  ),
+                  context.l10n.dragToSelectTheArea,
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12),
                 ),
@@ -529,7 +552,7 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
-                    _error!,
+                    failureText(context.l10n, _error!),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),
@@ -618,7 +641,9 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                             ? null
                             : () => _save(),
                         child: Text(
-                          _saving ? context.tr("保存中…") : context.tr("保存编辑副本"),
+                          _saving
+                              ? context.l10n.savingEllipsis
+                              : context.l10n.saveEditedCopy,
                         ),
                       ),
                     if (widget.isMistake && widget.allowSplit)
@@ -629,8 +654,9 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                             : () => _save(split: true),
                         child: Text(
                           widget.onCreate != null
-                              ? widget.createLabel
-                              : context.tr("框选区域存为新错题"),
+                              ? (widget.createLabel ??
+                                    context.l10n.confirmCropAndSaveMistake)
+                              : context.l10n.saveSelectionAsANew,
                         ),
                       ),
                     if (!widget.allowSplit)
@@ -640,7 +666,10 @@ class _StudyImageEditorState extends ConsumerState<StudyImageEditor> {
                             ? null
                             : () => _save(),
                         child: Text(
-                          context.tr(_saving ? '保存中…' : widget.createLabel),
+                          _saving
+                              ? context.l10n.savingEllipsis
+                              : widget.createLabel ??
+                                    context.l10n.confirmCropAndSaveMistake,
                         ),
                       ),
                   ],
@@ -742,8 +771,8 @@ Future<void> cropImportedStudyPhoto(
       attachment: image,
       ownerId: ownerId,
       isMistake: isMistake,
-      title: '编辑题目图片',
-      createLabel: '保存图片编辑',
+      title: context.l10n.editPhoto,
+      createLabel: context.l10n.useEditedPhoto,
       allowSplit: false,
     ),
   );

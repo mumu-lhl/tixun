@@ -15,7 +15,7 @@ class PythonSettings extends ConsumerStatefulWidget {
 
 class _PythonSettingsState extends ConsumerState<PythonSettings> {
   String? policy;
-  String? loadError;
+  bool loadError = false;
   bool saving = false;
   int selection = 0;
   @override
@@ -33,7 +33,7 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
           }
         })
         .onError((error, stack) {
-          if (mounted) setState(() => loadError = '执行权限读取失败，请重新打开此页。');
+          if (mounted) setState(() => loadError = true);
         });
   }
 
@@ -45,21 +45,17 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
       final approved = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(ctx.tr('自动允许运行任意 Python 代码？')),
-          content: Text(
-            ctx.tr(
-              'Python 与题训拥有相同的文件和网络权限，代码可能读取、修改或删除本地资料，或导致应用退出。自动允许将跳过代码审查；这些操作无法保证撤销。',
-            ),
-          ),
+          title: Text(ctx.l10n.automaticallyAllowArbitraryPythonCode),
+          content: Text(ctx.l10n.pythonHasTheSameFile),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(ctx.tr('取消')),
+              child: Text(ctx.l10n.cancel),
             ),
             FilledButton(
               key: const Key('confirm-python-auto'),
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(ctx.tr('仍然自动允许')),
+              child: Text(ctx.l10n.allowAutomaticallyAnyway),
             ),
           ],
         ),
@@ -80,19 +76,15 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(context.tr('Python 执行'))),
+    appBar: AppBar(title: Text(context.l10n.pythonExecution)),
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          context.tr(
-            'AI 可以编写完整 Python 代码，在本机计算、验证答案或生成文件。已打包标准库、NumPy、SymPy 和 mpmath，不需要 Termux。执行输出会发送给当前模型以继续回答。',
-          ),
-        ),
+        Text(context.l10n.aiPythonCapabilities),
         const SizedBox(height: 20),
-        if (loadError != null)
+        if (loadError)
           Text(
-            context.tr(loadError!),
+            context.l10n.couldNotLoadExecutionPermissions,
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           )
         else if (policy == null)
@@ -103,27 +95,22 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
             child: AppSelectField<String>(
               key: ValueKey('$policy-$selection'),
               initialValue: policy,
-              decoration: InputDecoration(labelText: context.tr('执行权限')),
+              decoration: InputDecoration(
+                labelText: context.l10n.executionPermission,
+              ),
               items: [
                 for (final pair in [
-                  ('off', '关闭'),
-                  ('ask', '每次审查代码'),
-                  ('auto', '自动允许任意代码'),
+                  ('off', context.l10n.close),
+                  ('ask', context.l10n.reviewEveryScript),
+                  ('auto', context.l10n.automaticallyAllowArbitraryCode),
                 ])
-                  DropdownMenuItem(
-                    value: pair.$1,
-                    child: Text(context.tr(pair.$2)),
-                  ),
+                  DropdownMenuItem(value: pair.$1, child: Text(pair.$2)),
               ],
               onChanged: saving ? null : (v) => act(context, () => change(v)),
             ),
           ),
         const SizedBox(height: 20),
-        Text(
-          context.tr(
-            '这不是安全沙箱。停止会请求中断 Python；阻塞的原生计算或 I/O 可能需要等待，必要时重启应用。工作目录生成的文件不自动加入学习资料或备份。',
-          ),
-        ),
+        Text(context.l10n.thisIsNotASecurity),
       ],
     ),
   );

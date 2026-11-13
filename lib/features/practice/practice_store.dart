@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -104,7 +106,10 @@ class PracticeStore extends DatabaseNotifier {
           'template_checked',
         ].contains(verification) ||
         (origin == 'ai' && verification != 'unverified')) {
-      throw const FormatException('题目来源无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidQuestionSource,
+        '题目来源无效。',
+      );
     }
     final id = await db.transaction(() async {
       if (operation != null) {
@@ -172,7 +177,10 @@ class PracticeStore extends DatabaseNotifier {
             timeLimitSeconds: old.timeLimitSeconds,
           );
           if (canonical(normalized(oldSpec)) != canonical(normalized(spec))) {
-            throw const FormatException('该操作已创建过题目，内容与之前不一致，未覆盖旧题。');
+            throw const AppFormatException(
+              AppErrorCode.errorThisOperationAlreadyCreatedAQuestion,
+              '该操作已创建过题目，内容与之前不一致，未覆盖旧题。',
+            );
           }
           if (old.deleted) {
             await (db.update(db.practiceQuestions)
@@ -475,7 +483,10 @@ class PracticeStore extends DatabaseNotifier {
 
   void _checkResponses(List<String> a) {
     if (a.length > 12 || a.any((v) => v.length > 12000)) {
-      throw const FormatException('作答内容过长。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheAnswerIsTooLong,
+        '作答内容过长。',
+      );
     }
   }
 
@@ -503,11 +514,17 @@ class PracticeStore extends DatabaseNotifier {
       _checkResponses(answers);
       final d = await detail(a.questionId);
       if (answers.isEmpty || answers.any((v) => v.trim().isEmpty)) {
-        throw const FormatException('请先完成作答。');
+        throw const AppFormatException(
+          AppErrorCode.errorCompleteYourAnswerFirst,
+          '请先完成作答。',
+        );
       }
       if (d.spec.kind == 'fill_blank' &&
           answers.length != d.spec.answers.length) {
-        throw const FormatException('请填写所有空。');
+        throw const AppFormatException(
+          AppErrorCode.errorFillInAllBlanks,
+          '请填写所有空。',
+        );
       }
       if ([
             'single_choice',
@@ -515,11 +532,17 @@ class PracticeStore extends DatabaseNotifier {
             'true_false',
           ].contains(d.spec.kind) &&
           answers.any((v) => !d.spec.options.containsKey(v))) {
-        throw const FormatException('选项无效。');
+        throw const AppFormatException(
+          AppErrorCode.errorInvalidOption,
+          '选项无效。',
+        );
       }
       if (d.spec.kind == 'numeric' &&
           (answers.length != 1 || parseNumber(answers.single) == null)) {
-        throw const FormatException('请输入有限数值，支持小数或分数。');
+        throw const AppFormatException(
+          AppErrorCode.errorEnterAFiniteNumberDecimalOr,
+          '请输入有限数值，支持小数或分数。',
+        );
       }
       await _writeDraft(id, answers);
       final self = d.spec.kind == 'short_answer';
@@ -596,7 +619,10 @@ class PracticeStore extends DatabaseNotifier {
     try {
       await schedule(attempt);
     } catch (_) {
-      throw const FormatException('复习安排失败，可稍后重试。');
+      throw const AppFormatException(
+        AppErrorCode.reviewSchedulingFailedButYour,
+        '复习安排失败，可稍后重试。',
+      );
     }
   }
 
@@ -652,7 +678,10 @@ class PracticeStore extends DatabaseNotifier {
         db.practiceQuestions,
       )..where((q) => q.id.isIn(run.ids) & q.deleted.equals(false))).get();
       if (questions.length != run.ids.length) {
-        throw const FormatException('小测中的题目已删除，请结束本轮后重新选择。已有记录保留。');
+        throw const AppFormatException(
+          AppErrorCode.errorAQuestionInThisQuizWas,
+          '小测中的题目已删除，请结束本轮后重新选择。已有记录保留。',
+        );
       }
       final known = run.attempts.whereType<String>().toList();
       final attempts = await (db.select(
@@ -665,17 +694,26 @@ class PracticeStore extends DatabaseNotifier {
           if (a == null ||
               a.questionId != run.ids[i] ||
               (i < run.index && a.status != 'graded')) {
-            throw const FormatException('小测作答状态不一致，请结束本轮；已有记录保留。');
+            throw const AppFormatException(
+              AppErrorCode.errorTheQuizAnswerStateIsInconsistent,
+              '小测作答状态不一致，请结束本轮；已有记录保留。',
+            );
           }
         } else if (run.attempts[i] != null) {
-          throw const FormatException('小测进度不一致，请结束本轮；已有记录保留。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheQuizProgressIsInconsistentEnd,
+            '小测进度不一致，请结束本轮；已有记录保留。',
+          );
         }
       }
       return run;
     } on FormatException {
       rethrow;
     } catch (_) {
-      throw const FormatException('小测状态无法恢复，请结束本轮后重新开始；已有作答仍保留。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheQuizStateCouldNotBe,
+        '小测状态无法恢复，请结束本轮后重新开始；已有作答仍保留。',
+      );
     }
   }
 
@@ -689,7 +727,10 @@ class PracticeStore extends DatabaseNotifier {
         )
         .get();
     if (rows.isEmpty) {
-      throw const FormatException('还没有已有题目。请先手动录题、使用离线基础题，或让 AI 生成练习。');
+      throw const AppFormatException(
+        AppErrorCode.errorThereAreNoQuestionsYetEnter,
+        '还没有已有题目。请先手动录题、使用离线基础题，或让 AI 生成练习。',
+      );
     }
     final ids = rows.map((r) => r.read<String>('id')).toList();
     final run = await db.transaction(() async {
@@ -711,12 +752,19 @@ class PracticeStore extends DatabaseNotifier {
     () async {
       final next = await db.transaction(() async {
         final run = await loadRun();
-        if (run == null) throw const FormatException('本轮小测不存在。');
+        if (run == null)
+          throw const AppFormatException(
+            AppErrorCode.errorThisQuizRoundDoesNotExist,
+            '本轮小测不存在。',
+          );
         if (run.completed) return run;
         final a = run.attempts[run.index];
         if (expectedAttemptId != null && a != expectedAttemptId) return run;
         if (a == null || (await _attempt(a)).status != 'graded') {
-          throw const FormatException('请先提交答案并完成评分。');
+          throw const AppFormatException(
+            AppErrorCode.errorSubmitAndGradeTheAnswerFirst,
+            '请先提交答案并完成评分。',
+          );
         }
         final index = run.index + 1, attempts = List<String?>.of(run.attempts);
         if (index < run.ids.length) {

@@ -6,6 +6,7 @@ import '../../app/controller.dart';
 import '../../core/ai/chat_provider.dart';
 import '../../core/ai/prompt_settings.dart';
 import '../../core/l10n/app_strings.dart';
+import 'prompt_localization.dart';
 
 class PromptScreen extends ConsumerStatefulWidget {
   const PromptScreen({super.key});
@@ -20,7 +21,7 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
     final c = ref.watch(appControllerProvider);
     final rows = promptDefinitions.where(
       (p) =>
-          '${context.tr(p.title)}${context.tr(p.description)}${c.prompts.text(p.id)}'
+          '${promptTitle(context, p)}${promptDescription(context, p)}${c.prompts.text(p.id)}'
               .toLowerCase()
               .contains(query.toLowerCase()),
     );
@@ -36,31 +37,27 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: context.tr("返回设置"),
+                      tooltip: context.l10n.backToSettings,
                       onPressed: () => context.go('/settings'),
                       icon: const Icon(Icons.arrow_back),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        context.tr("提示词管理"),
+                        context.l10n.promptManager,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  context.tr(
-                    "调整教学方式和不同学习任务的提示词。保存后用于后续请求，不修改已有消息；应用的工具权限、保存确认和答题规则始终保留。",
-                  ),
-                ),
+                Text(context.l10n.editTeachingStylesAndTask),
                 const SizedBox(height: 18),
                 TextField(
                   key: const Key('prompt-search'),
                   decoration: InputDecoration(
                     prefixIcon: Icon(Icons.search),
-                    hintText: context.tr("搜索提示词"),
+                    hintText: context.l10n.searchPrompts,
                   ),
                   onChanged: (v) => setState(() => query = v.trim()),
                 ),
@@ -68,7 +65,7 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                 if (rows.isEmpty)
                   Padding(
                     padding: EdgeInsets.all(24),
-                    child: Text(context.tr("没有找到匹配的提示词。")),
+                    child: Text(context.l10n.noMatchingPrompts),
                   ),
                 for (final p in rows) ...[
                   ListTile(
@@ -77,14 +74,9 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                       vertical: 8,
                       horizontal: 16,
                     ),
-                    title: Text(context.tr(p.title)),
+                    title: Text(promptTitle(context, p)),
                     subtitle: Text(
-                      context.tr("{0} · {1}", [
-                        context.tr(
-                          c.prompts.overrides.containsKey(p.id) ? '已自定义' : '默认',
-                        ),
-                        context.tr(p.description),
-                      ]),
+                      '${c.prompts.overrides.containsKey(p.id) ? context.l10n.customized : context.l10n.defaultLabel} · ${promptDescription(context, p)}',
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.go('/settings/prompts/${p.id}'),
@@ -107,6 +99,8 @@ class PromptEditorScreen extends ConsumerStatefulWidget {
   ConsumerState<PromptEditorScreen> createState() => _PromptEditorScreenState();
 }
 
+enum _PromptUiError { saveFailed, previewFailed }
+
 class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
   late final PromptDefinition? definition = promptDefinitions
       .where((p) => p.id == widget.id)
@@ -117,7 +111,17 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
         : ref.read(appControllerProvider).prompts.text(widget.id),
   );
   bool saving = false;
-  String? failure;
+  Object? failure;
+
+  String _failureText(Object issue) => switch (issue) {
+    PromptError.invalidEntry => context.l10n.eachPromptMustHaveA,
+    PromptError.totalTooLong => context.l10n.customPromptsCannotExceed24,
+    PromptError.invalidFormat => context.l10n.invalidPromptConfiguration,
+    PromptError.invalidValues => context.l10n.promptNamesAndContentMust,
+    _PromptUiError.saveFailed => context.l10n.couldNotSaveThePrompt,
+    _PromptUiError.previewFailed => context.l10n.couldNotPreviewThePrompt,
+    _ => issue.toString(),
+  };
   @override
   void dispose() {
     input.dispose();
@@ -132,17 +136,19 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
     try {
       await ref.read(appControllerProvider).savePrompt(widget.id, input.text);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.tr("提示词已保存，将用于后续请求。"))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.promptSavedForFutureRequests)),
+        );
         context.go('/settings/prompts');
       }
     } catch (error) {
       if (mounted) {
         setState(
-          () => failure = error is FormatException
+          () => failure = error is PromptSettingsException
+              ? error.code
+              : error is FormatException
               ? error.message
-              : '提示词保存失败，请检查可用空间。',
+              : _PromptUiError.saveFailed,
         );
       }
     } finally {
@@ -174,25 +180,27 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(context.tr("提示词预览")),
+          title: Text(context.l10n.promptPreview),
           scrollable: true,
           content: SizedBox(
             width: 700,
             child: SelectableText(
-              context.tr("{0}{1}\n\n实际请求还会按当前工具授权、学习状态及所选资料补入必要内容。", [
-                system,
-                ['global', 'guided', 'direct', 'exam'].contains(widget.id)
-                    ? ''
-                    : context.tr("\n\n【任务提示词】\n{0}", [
-                        settings.text(widget.id),
-                      ]),
-              ]),
+              context.l10n.actualRequestsAlsoIncludeThe(
+                l10nArgument((system)),
+                l10nArgument(
+                  (['global', 'guided', 'direct', 'exam'].contains(widget.id)
+                      ? ''
+                      : context.l10n.taskPrompt(
+                          l10nArgument((settings.text(widget.id))),
+                        )),
+                ),
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(context.tr("关闭")),
+              child: Text(context.l10n.close),
             ),
           ],
         ),
@@ -200,7 +208,11 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
     } catch (error) {
       if (mounted) {
         setState(
-          () => failure = error is FormatException ? error.message : '无法预览提示词。',
+          () => failure = error is PromptSettingsException
+              ? error.code
+              : error is FormatException
+              ? error.message
+              : _PromptUiError.previewFailed,
         );
       }
     }
@@ -213,7 +225,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
       return Center(
         child: TextButton(
           onPressed: () => context.go('/settings/prompts'),
-          child: Text(context.tr("提示词不存在，返回管理页")),
+          child: Text(context.l10n.promptNotFoundReturnTo),
         ),
       );
     }
@@ -229,7 +241,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: context.tr("返回提示词管理"),
+                      tooltip: context.l10n.backToPromptManager,
                       onPressed: saving
                           ? null
                           : () => context.go('/settings/prompts'),
@@ -238,17 +250,17 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        context.tr(p.title),
+                        promptTitle(context, p),
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                Text(context.tr(p.description)),
+                Text(promptDescription(context, p)),
                 const SizedBox(height: 8),
                 Text(
-                  context.tr("提示词会发送给模型，并随学习数据备份保存，请勿填写 API Key 等密钥。"),
+                  context.l10n.promptsAreSentToThe,
                   style: TextStyle(fontSize: 12),
                 ),
                 const SizedBox(height: 18),
@@ -260,7 +272,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                   maxLines: 24,
                   maxLength: 6000,
                   decoration: InputDecoration(
-                    labelText: context.tr("提示词内容"),
+                    labelText: context.l10n.promptContent,
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -268,7 +280,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(
-                      context.tr(failure!),
+                      _failureText(failure!),
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
                       ),
@@ -282,12 +294,14 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                       key: const Key('save-prompt'),
                       onPressed: saving ? null : save,
                       child: Text(
-                        saving ? context.tr("保存中…") : context.tr("保存提示词"),
+                        saving
+                            ? context.l10n.savingEllipsis
+                            : context.l10n.savePrompt,
                       ),
                     ),
                     OutlinedButton(
                       onPressed: saving ? null : preview,
-                      child: Text(context.tr("预览效果")),
+                      child: Text(context.l10n.preview),
                     ),
                     TextButton(
                       onPressed: saving
@@ -296,19 +310,19 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                               final reset = await showDialog<bool>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: Text(context.tr("恢复默认提示词？")),
+                                  title: Text(context.l10n.resetThisPrompt),
                                   content: Text(
-                                    context.tr("将替换当前编辑内容，点击保存后生效。"),
+                                    context.l10n.thisReplacesTheCurrentEditor,
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(ctx, false),
-                                      child: Text(context.tr("取消")),
+                                      child: Text(context.l10n.cancel),
                                     ),
                                     FilledButton(
                                       onPressed: () => Navigator.pop(ctx, true),
-                                      child: Text(context.tr("恢复默认")),
+                                      child: Text(context.l10n.resetToDefault),
                                     ),
                                   ],
                                 ),
@@ -323,7 +337,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                                 });
                               }
                             },
-                      child: Text(context.tr("恢复默认")),
+                      child: Text(context.l10n.resetToDefault),
                     ),
                   ],
                 ),

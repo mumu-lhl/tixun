@@ -1,3 +1,5 @@
+import '../library/study_localization.dart';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,7 +18,7 @@ class ProgressScreen extends ConsumerWidget {
         error: (_, _) => Center(
           child: TextButton(
             onPressed: () => ref.invalidate(progressProvider),
-            child: Text(context.tr("记录读取失败，点击重试")),
+            child: Text(context.l10n.couldNotReadRecordsTap),
           ),
         ),
         data: (p) => ListView(
@@ -27,43 +29,49 @@ class ProgressScreen extends ConsumerWidget {
               child: TextButton.icon(
                 onPressed: () => context.go('/study'),
                 icon: const Icon(Icons.arrow_back),
-                label: Text(context.tr("返回学习")),
+                label: Text(context.l10n.backToStudy),
               ),
             ),
             Text(
-              context.tr("学习诊断"),
+              context.l10n.learningInsights,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 12),
-            Text(context.tr("只依据此设备上的真实记录。阅读解析不会增加掌握程度；暂不预测考试分数。")),
+            Text(context.l10n.basedOnlyOnRealRecords),
             const SizedBox(height: 20),
             Wrap(
               spacing: 28,
               runSpacing: 12,
               children: [
-                _metric(context, '完成作答', '${p.total}'),
-                _metric(context, '已核对答案的规则评分', '${p.checked}'),
-                _metric(context, '自主判分', '${p.self}'),
-                _metric(context, '待核对的 AI 参考评分', '${p.unverified}'),
-                _metric(context, '使用过提示', '${p.hinted}'),
+                _metric(context, context.l10n.completedAttempts, '${p.total}'),
+                _metric(
+                  context,
+                  context.l10n.gradingAgainstVerifiedAnswers,
+                  '${p.checked}',
+                ),
+                _metric(context, context.l10n.selfAssessed, '${p.self}'),
+                _metric(
+                  context,
+                  context.l10n.uncheckedAIReferenceGrading,
+                  '${p.unverified}',
+                ),
+                _metric(context, context.l10n.hintUsed, '${p.hinted}'),
               ],
             ),
             const Divider(height: 40),
             Text(
-              context.tr("知识点检测证据"),
+              context.l10n.knowledgePointEvidence,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 10),
             Text(
-              context.tr(
-                "每道题仅取最近一次已评分作答；以下只纳入已核对答案、未用提示的规则判分。题量少于 3 道不显示比例，反复重做同一题不扩充样本数。",
-              ),
+              context.l10n.onlyTheLatestGradedAttempt,
               style: TextStyle(fontSize: 12),
             ),
             if (p.topics.isEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text(context.tr("暂时没有足够的独立检测证据。可以先核对参考答案，再独立做几道不同的题。")),
+                child: Text(context.l10n.notEnoughIndependentEvidenceYet),
               ),
             for (final t in p.topics)
               ListTile(
@@ -71,11 +79,13 @@ class ProgressScreen extends ConsumerWidget {
                 title: Text('${context.subjectName(t.subject)} · ${t.name}'),
                 subtitle: Text(
                   t.questions < 3
-                      ? context.tr('样本不足：{0} 道独立检测题', [t.questions])
-                      : context.tr('最近独立检测 {0} / {1} 道正确', [
-                          t.correct,
-                          t.questions,
-                        ]),
+                      ? context.l10n.notEnoughEvidenceDistinctQuestions(
+                          l10nArgument((t.questions)),
+                        )
+                      : context.l10n.independentAnswersCorrect(
+                          l10nArgument((t.correct)),
+                          l10nArgument((t.questions)),
+                        ),
                 ),
                 trailing: t.questions >= 3 && t.correct < t.questions
                     ? const Icon(Icons.priority_high)
@@ -83,29 +93,31 @@ class ProgressScreen extends ConsumerWidget {
               ),
             const Divider(height: 32),
             Text(
-              context.tr("已记录的错误原因"),
+              context.l10n.recordedErrorCauses,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             if (p.errorReasons.isEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text(context.tr("还没有用户确认的错误原因。AI 的建议不会直接当作结论。")),
+                child: Text(context.l10n.noConfirmedErrorCausesYet),
               ),
             for (final e in p.errorReasons.entries)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(context.tr(e.key)),
-                trailing: Text(context.tr("{0} 道错题", [e.value])),
+                title: Text(mistakeReasonLabel(context, e.key)),
+                trailing: Text(
+                  context.l10n.mistakeCount(l10nArgument((e.value))),
+                ),
               ),
             const Divider(height: 32),
             Text(
-              context.tr("最近训练"),
+              context.l10n.recentPractice,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             if (p.recent.isEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text(context.tr("完成第一次训练后，这里会出现真实记录。")),
+                child: Text(context.l10n.yourActualRecordsWillAppear),
               ),
             for (final a in p.recent)
               ListTile(
@@ -116,18 +128,16 @@ class ProgressScreen extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Text(
-                  context.tr("{0} · {1}{2}", [
-                    reviewDate(a.time, context: context),
-                    a.basis == 'self'
-                        ? context.tr("自主判分")
-                        : a.basis == 'ai_reference'
-                        ? context.tr("AI 参考待核对")
-                        : context.tr("规则评分"),
-                    a.hint ? context.tr(" · 有提示") : '',
-                  ]),
+                  '${l10nArgument(reviewDate(a.time, context: context))} · ${l10nArgument(a.basis == 'self'
+                      ? context.l10n.selfAssessed
+                      : a.basis == 'ai_reference'
+                      ? context.l10n.aiReferenceNeedsChecking
+                      : context.l10n.ruleBasedGrading)}${l10nArgument(a.hint ? context.l10n.hintUsedSuffix : '')}',
                 ),
                 trailing: Text(
-                  a.correct ? context.tr("正确") : context.tr("需订正"),
+                  a.correct
+                      ? context.l10n.correct
+                      : context.l10n.correctionRequired,
                 ),
               ),
           ],
@@ -153,7 +163,7 @@ class ProgressScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            context.tr(label),
+            label,
             style: Theme.of(context).textTheme.bodySmall
                 ?.copyWith(color: colors.onSurfaceVariant),
           ),

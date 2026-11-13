@@ -83,7 +83,7 @@ class MessageReasoning extends ConsumerWidget {
           child: TextButton(
             onPressed: () =>
                 ref.invalidate(reasoningLockedProvider(message.id)),
-            child: Text(context.tr('重试')),
+            child: Text(context.l10n.retry),
           ),
         ),
       ],

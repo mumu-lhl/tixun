@@ -11,6 +11,7 @@ import '../progress/profile_editor.dart';
 import '../review/review_providers.dart';
 import '../update/android_install.dart';
 import '../update/update_models.dart';
+import '../update/update_localization.dart';
 import '../update/update_providers.dart';
 import 'backup_panel.dart';
 import 'language_color_settings.dart';
@@ -24,7 +25,7 @@ class SettingsScreen extends ConsumerWidget {
     Widget heading(String title) => Padding(
       padding: const EdgeInsets.fromLTRB(12, 24, 12, 10),
       child: Text(
-        context.tr(title),
+        title,
         style: Theme.of(context).textTheme.labelLarge
             ?.copyWith(color: colors.onSurfaceVariant),
       ),
@@ -39,18 +40,18 @@ class SettingsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  context.tr('设置'),
+                  context.l10n.settings,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
-                Text(context.tr('让学习助手适合你的使用习惯')),
-                heading('学习'),
+                Text(context.l10n.makeTheAssistantWorkFor),
+                heading(context.l10n.study),
                 _SettingsGroup(
                   children: [
                     ListTile(
                       key: const Key('settings-subjects'),
                       leading: const _SettingsIcon(Icons.school_outlined),
-                      title: Text(context.tr('学习科目')),
+                      title: Text(context.l10n.studySubjects),
                       subtitle: Text(
                         c.learningSubjects.map(context.subjectName).join(' · '),
                         maxLines: 2,
@@ -64,12 +65,12 @@ class SettingsScreen extends ConsumerWidget {
                         .when(
                           data: (p) => ListTile(
                             leading: const _SettingsIcon(Icons.flag_outlined),
-                            title: Text(context.tr('学习目标')),
+                            title: Text(context.l10n.learningGoals),
                             subtitle: Text(
-                              context.tr('{0} · 每日 {1} 分钟', [
-                                p.stage,
-                                p.dailyMinutes,
-                              ]),
+                              context.l10n.minutesPerDay(
+                                l10nArgument((p.stage)),
+                                l10nArgument((p.dailyMinutes)),
+                              ),
                             ),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => showDialog<void>(
@@ -81,27 +82,27 @@ class SettingsScreen extends ConsumerWidget {
                           error: (_, _) => Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(context.tr('学习设置读取失败')),
+                              Text(context.l10n.couldNotReadLearningSettings),
                               TextButton(
                                 style: TextButton.styleFrom(
                                   minimumSize: const Size(0, 48),
                                 ),
                                 onPressed: () =>
                                     ref.invalidate(learningProfileProvider),
-                                child: Text(context.tr('重试')),
+                                child: Text(context.l10n.retry),
                               ),
                             ],
                           ),
                         ),
                   ],
                 ),
-                heading('AI 服务'),
+                heading(context.l10n.aiService),
                 _SettingsGroup(
                   children: [
                     ListTile(
                       key: const Key('settings-ai'),
                       leading: const _SettingsIcon(Icons.hub_outlined),
-                      title: Text(context.tr('模型与连接')),
+                      title: Text(context.l10n.modelsAndConnections),
                       subtitle: Text(
                         '${c.config.kind == 'chatgpt'
                             ? 'ChatGPT'
@@ -116,22 +117,22 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     ListTile(
                       leading: const _SettingsIcon(Icons.edit_note_outlined),
-                      title: Text(context.tr('提示词管理')),
-                      subtitle: Text(context.tr('教学风格与学习任务提示词')),
+                      title: Text(context.l10n.promptManager),
+                      subtitle: Text(context.l10n.teachingStyleAndStudyTask),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.push('/settings/prompts'),
                     ),
                     ListTile(
                       key: const Key('settings-python'),
                       leading: const _SettingsIcon(Icons.code),
-                      title: Text(context.tr('Python 执行')),
-                      subtitle: Text(context.tr('审查 AI 代码或设置自动执行权限')),
+                      title: Text(context.l10n.pythonExecution),
+                      subtitle: Text(context.l10n.reviewAICodeOrConfigure),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.push('/settings/python'),
                     ),
                   ],
                 ),
-                heading('外观'),
+                heading(context.l10n.appearance),
                 const LanguageColorSettings(),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -139,15 +140,15 @@ class SettingsScreen extends ConsumerWidget {
                     segments: [
                       ButtonSegment(
                         value: ThemeMode.system,
-                        label: Text(context.tr('跟随系统')),
+                        label: Text(context.l10n.followSystem),
                       ),
                       ButtonSegment(
                         value: ThemeMode.light,
-                        label: Text(context.tr('浅色')),
+                        label: Text(context.l10n.light),
                       ),
                       ButtonSegment(
                         value: ThemeMode.dark,
-                        label: Text(context.tr('深色')),
+                        label: Text(context.l10n.dark),
                       ),
                     ],
                     selected: {c.themeMode},
@@ -158,12 +159,8 @@ class SettingsScreen extends ConsumerWidget {
                 const Divider(),
                 const SizedBox(height: 20),
                 const BackupPanel(),
-                heading('关于题训'),
-                Text(
-                  context.tr(
-                    '开源 · 本地优先 · 无需账号。已有资料和练习可离线使用，AI 请求仅发送本次所需内容。卸载应用前请先导出完整备份。',
-                  ),
-                ),
+                heading(context.l10n.aboutTiXun),
+                Text(context.l10n.openSourceLocalFirstNo),
                 const _UpdateSettings(),
                 const SizedBox(height: 32),
               ],
@@ -189,10 +186,10 @@ class _UpdateSettings extends ConsumerWidget {
         status.status == UpdateStatus.checking ||
         status.downloadProgress != null;
     final String? statusText = status.status == UpdateStatus.checking
-        ? context.tr('正在检查更新…')
+        ? context.l10n.checkingForUpdates
         : status.message == null
         ? null
-        : context.tr(status.message!, status.messageArgs);
+        : updateMessageText(context, status.message!, tag: status.messageTag);
     final showActions =
         (status.status == UpdateStatus.available &&
             !status.staged &&
@@ -207,7 +204,7 @@ class _UpdateSettings extends ConsumerWidget {
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.system_update_outlined),
-          title: Text(context.tr('当前版本')),
+          title: Text(context.l10n.currentVersion),
           subtitle: Text(
             version.when(
               data: (v) => v,
@@ -222,15 +219,15 @@ class _UpdateSettings extends ConsumerWidget {
             segments: [
               ButtonSegment(
                 value: UpdateChannel.stable,
-                label: Text(context.tr('正式版')),
+                label: Text(context.l10n.stable),
               ),
               ButtonSegment(
                 value: UpdateChannel.prerelease,
-                label: Text(context.tr('预发布')),
+                label: Text(context.l10n.prerelease),
               ),
               ButtonSegment(
                 value: UpdateChannel.nightly,
-                label: Text(context.tr('nightly')),
+                label: Text(context.l10n.nightly),
               ),
             ],
             selected: {channel},
@@ -247,7 +244,7 @@ class _UpdateSettings extends ConsumerWidget {
                 : () => ref
                       .read(updateStatusProvider.notifier)
                       .checkForUpdate(manual: true),
-            child: Text(context.tr('检查更新')),
+            child: Text(context.l10n.checkForUpdates),
           ),
         ),
         if (statusText != null) ...[
@@ -259,14 +256,14 @@ class _UpdateSettings extends ConsumerWidget {
           LinearProgressIndicator(value: status.downloadProgress),
           const SizedBox(height: 4),
           Text(
-            context.tr('正在下载… {0}%', [
-              ((status.downloadProgress ?? 0) * 100).round(),
-            ]),
+            context.l10n.downloading(
+              l10nArgument((((status.downloadProgress ?? 0) * 100).round())),
+            ),
           ),
         ],
         if (status.staged) ...[
           const SizedBox(height: 8),
-          Text(context.tr('已准备好，下次启动时更新')),
+          Text(context.l10n.readyTheUpdateWillApply),
         ],
         if (showActions) ...[
           const SizedBox(height: 12),
@@ -282,13 +279,13 @@ class _UpdateSettings extends ConsumerWidget {
                   onPressed: () => ref
                       .read(updateStatusProvider.notifier)
                       .downloadAndPrepare(),
-                  child: Text(context.tr('下载更新')),
+                  child: Text(context.l10n.downloadUpdate),
                 ),
               if (Platform.isAndroid && status.readyToInstall)
                 FilledButton(
                   onPressed: () =>
                       ref.read(updateStatusProvider.notifier).installOrApply(),
-                  child: Text(context.tr('安装')),
+                  child: Text(context.l10n.install),
                 ),
               if (status.installBlocked)
                 OutlinedButton(
@@ -297,18 +294,18 @@ class _UpdateSettings extends ConsumerWidget {
                   // failure shows a snackbar instead of an unhandled
                   // async exception.
                   onPressed: () => act(context, openInstallSettings),
-                  child: Text(context.tr('打开安装设置')),
+                  child: Text(context.l10n.openInstallSettings),
                 ),
               if (Platform.isLinux && status.staged) ...[
                 FilledButton(
                   onPressed: () =>
                       ref.read(updateStatusProvider.notifier).installOrApply(),
-                  child: Text(context.tr('立即重启更新')),
+                  child: Text(context.l10n.restartNowToUpdate),
                 ),
                 TextButton(
                   onPressed: () =>
                       ref.read(updateStatusProvider.notifier).discardStaged(),
-                  child: Text(context.tr('取消')),
+                  child: Text(context.l10n.cancel),
                 ),
               ],
             ],

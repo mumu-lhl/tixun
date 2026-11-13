@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'scratchpad_exception.dart';
+
 class InkStroke {
   InkStroke(this.color, this.width, List<Offset> points)
     : points = List.unmodifiable(points);
@@ -57,7 +59,11 @@ class ScratchDocument {
   ScratchDocument select(int value) =>
       ScratchDocument(pages: pages, index: value.clamp(0, pages.length - 1));
   ScratchDocument addPage() {
-    if (pages.length >= 100) throw const FormatException('一个草稿最多支持 100 页。');
+    if (pages.length >= 100)
+      throw const ScratchpadException(
+        ScratchpadError.tooManyPages,
+        '一个草稿最多支持 100 页。',
+      );
     return ScratchDocument(
       pages: [...pages, ScratchPage()],
       index: pages.length,
@@ -77,7 +83,10 @@ class ScratchDocument {
       'pages': pages.map((p) => p.toJson()).toList(),
     });
     if (value.length > 8 * 1024 * 1024) {
-      throw const FormatException('草稿内容过大，请整理后重试。');
+      throw const ScratchpadException(
+        ScratchpadError.tooLarge,
+        '草稿内容过大，请整理后重试。',
+      );
     }
     return value;
   }
@@ -130,7 +139,10 @@ class ScratchDocument {
       }
       return ScratchDocument(pages: pages, index: index);
     } catch (_) {
-      throw const FormatException('草稿无法读取，原内容仍保留。');
+      throw const ScratchpadException(
+        ScratchpadError.unreadable,
+        '草稿无法读取，原内容仍保留。',
+      );
     }
   }
 }

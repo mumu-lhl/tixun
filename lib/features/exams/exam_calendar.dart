@@ -57,7 +57,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                       ),
                       Expanded(
                         child: Text(
-                          context.tr('考试记录'),
+                          context.l10n.examRecords,
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),
                       ),
@@ -69,7 +69,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                               : selected,
                         ),
                         icon: const Icon(Icons.add),
-                        label: Text(context.tr('记录考试')),
+                        label: Text(context.l10n.recordExam),
                       ),
                     ],
                   ),
@@ -80,12 +80,12 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                       ButtonSegment(
                         value: false,
                         icon: const Icon(Icons.calendar_month_outlined),
-                        label: Text(context.tr('日历')),
+                        label: Text(context.l10n.calendar),
                       ),
                       ButtonSegment(
                         value: true,
                         icon: const Icon(Icons.view_list_outlined),
-                        label: Text(context.tr('列表')),
+                        label: Text(context.l10n.list),
                       ),
                     ],
                     selected: {listView},
@@ -144,7 +144,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                             children: [
                               if (listView)
                                 Text(
-                                  context.tr('按考试日期从新到旧'),
+                                  context.l10n.newestExamDateFirst,
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               if (!listView) ...[
@@ -153,7 +153,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     IconButton(
-                                      tooltip: context.tr('上个月'),
+                                      tooltip: context.l10n.previousMonth,
                                       onPressed: () => move(-1),
                                       icon: const Icon(Icons.chevron_left),
                                     ),
@@ -179,10 +179,10 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                         );
                                         events = null;
                                       }),
-                                      child: Text(context.tr('今天')),
+                                      child: Text(context.l10n.today),
                                     ),
                                     IconButton(
-                                      tooltip: context.tr('下个月'),
+                                      tooltip: context.l10n.nextMonth,
                                       onPressed: () => move(1),
                                       icon: const Icon(Icons.chevron_right),
                                     ),
@@ -191,19 +191,19 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                 Row(
                                   children: [
                                     for (final day in [
-                                      '一',
-                                      '二',
-                                      '三',
-                                      '四',
-                                      '五',
-                                      '六',
-                                      '日',
+                                      context.l10n.mon,
+                                      context.l10n.tue,
+                                      context.l10n.wed,
+                                      context.l10n.thu,
+                                      context.l10n.fri,
+                                      context.l10n.sat,
+                                      context.l10n.sun,
                                     ])
                                       Expanded(
                                         child: Center(
                                           child: Padding(
                                             padding: const EdgeInsets.all(10),
-                                            child: Text(context.tr(day)),
+                                            child: Text(day),
                                           ),
                                         ),
                                       ),
@@ -244,7 +244,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                         .colorScheme;
                                     return Semantics(
                                       label:
-                                          '${examDate(date)}, $count ${context.tr('场考试')}',
+                                          '${examDate(date)}, $count ${context.l10n.exams}',
                                       selected: active,
                                       child: InkWell(
                                         onTap: () =>
@@ -297,7 +297,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                 ),
                               ],
                               if (snap.hasError)
-                                Text(context.tr('考试记录读取失败，请重新打开。')),
+                                Text(context.l10n.couldNotLoadExamRecords),
                               if (snap.connectionState ==
                                   ConnectionState.waiting)
                                 const LinearProgressIndicator(),
@@ -307,11 +307,9 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                     vertical: 30,
                                   ),
                                   child: Text(
-                                    context.tr(
-                                      listView
-                                          ? '还没有考试记录，点击“记录考试”开始。'
-                                          : '这一天还没有考试记录，点击“记录考试”开始。',
-                                    ),
+                                    (listView
+                                        ? context.l10n.noExamsYetSelectRecord
+                                        : context.l10n.noExamsOnThisDate),
                                   ),
                                 ),
                             ],
@@ -337,14 +335,14 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
           builder: (ctx, set) {
             void submit() {
               if (title.text.trim().isEmpty || title.text.length > 120) {
-                set(() => error = ctx.tr('考试名称需为 1–120 字。'));
+                set(() => error = ctx.l10n.examNameMustBe1);
                 return;
               }
               Navigator.pop(ctx, true);
             }
 
             return AlertDialog(
-              title: Text(ctx.tr('记录考试')),
+              title: Text(ctx.l10n.recordExam),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -353,8 +351,8 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                     autofocus: true,
                     maxLength: 120,
                     decoration: InputDecoration(
-                      labelText: ctx.tr('考试名称'),
-                      hintText: ctx.tr('例如：高三上学期期中考试'),
+                      labelText: ctx.l10n.examName,
+                      hintText: ctx.l10n.forExampleMidtermExam,
                     ),
                     onSubmitted: (_) => submit(),
                   ),
@@ -384,9 +382,9 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: Text(ctx.tr('取消')),
+                  child: Text(ctx.l10n.cancel),
                 ),
-                FilledButton(onPressed: submit, child: Text(ctx.tr('创建'))),
+                FilledButton(onPressed: submit, child: Text(ctx.l10n.create)),
               ],
             );
           },

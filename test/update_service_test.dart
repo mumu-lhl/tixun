@@ -219,7 +219,7 @@ void main() {
         embeddedNightlyTag: '',
       );
       expect(outcome.kind, UpdateCheckKind.noneAvailable);
-      expect(outcome.message, '暂无预发布');
+      expect(outcome.message, UpdateMessage.noPrerelease);
     });
 
     test('stable with no candidate -> noneAvailable', () async {
@@ -232,7 +232,7 @@ void main() {
         embeddedNightlyTag: '',
       );
       expect(outcome.kind, UpdateCheckKind.noneAvailable);
-      expect(outcome.message, '暂无正式版');
+      expect(outcome.message, UpdateMessage.noStableRelease);
     });
 
     test(

@@ -56,7 +56,7 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
       if (mounted) {
         setState(() {
           saving = false;
-          error = context.tr('科目保存失败，请检查选择或稍后重试。');
+          error = context.l10n.couldNotSaveSubjectsCheck;
         });
       }
     }
@@ -74,15 +74,15 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
         final yes = await showDialog<bool>(
           context: context,
           builder: (d) => AlertDialog(
-            title: Text(d.tr('放弃科目设置的修改？')),
+            title: Text(d.l10n.discardSubjectSelectionChanges),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(d),
-                child: Text(d.tr('继续编辑')),
+                child: Text(d.l10n.keepEditing),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(d, true),
-                child: Text(d.tr('放弃')),
+                child: Text(d.l10n.discard),
               ),
             ],
           ),
@@ -94,14 +94,14 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
     },
     child: Scaffold(
       appBar: AppBar(
-        title: Text(context.tr('学习科目')),
+        title: Text(context.l10n.studySubjects),
         actions: [
           TextButton(
             key: const Key('save-subjects'),
             onPressed: saving || selected.isEmpty || selected.length > 20
                 ? null
                 : save,
-            child: Text(context.tr('保存')),
+            child: Text(context.l10n.save),
           ),
         ],
       ),
@@ -111,14 +111,12 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Text(
-                context.tr(
-                  '只选择你正在学习的科目。取消选择只影响快捷切换，不会删除已有资料；“全部科目”始终可以查看所有资料。',
-                ),
-              ),
+              Text(context.l10n.selectTheSubjectsYouStudy),
               const SizedBox(height: 12),
               Text(
-                context.tr('已选 {0} / 20 个科目', [selected.length]),
+                context.l10n.selectedSubjectsOutOf20(
+                  l10nArgument((selected.length)),
+                ),
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               Wrap(
@@ -148,15 +146,15 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                 maxLength: 40,
                 enabled: !saving,
                 decoration: InputDecoration(
-                  labelText: context.tr('自定义科目'),
-                  hintText: context.tr('例如：信息技术、日语、竞赛数学'),
+                  labelText: context.l10n.customSubject,
+                  hintText: context.l10n.forExampleComputerScienceJapanese,
                 ),
                 onSubmitted: (_) => add(),
               ),
               OutlinedButton.icon(
                 onPressed: saving ? null : add,
                 icon: const Icon(Icons.add),
-                label: Text(context.tr('添加科目')),
+                label: Text(context.l10n.addSubject),
               ),
               if (error != null)
                 Text(
@@ -172,11 +170,11 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
   void add() {
     final name = custom.text.trim();
     if (name.isEmpty || name.contains('\n') || name.length > 40) {
-      setState(() => error = context.tr('科目名称需为 1–40 字。'));
+      setState(() => error = context.l10n.subjectNamesMustContain1);
       return;
     }
     if (!selected.contains(name) && selected.length >= 20) {
-      setState(() => error = context.tr('最多选择 20 个科目。'));
+      setState(() => error = context.l10n.selectUpTo20Subjects);
       return;
     }
     setState(() {

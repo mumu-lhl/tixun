@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:convert';
 
 import '../database/database.dart';
@@ -60,7 +62,10 @@ class AiOptions {
 
 void validateConfig(ProviderConfig c) {
   if (c.kind == 'chatgpt' && c.baseUrl != 'https://api.openai.com/v1') {
-    throw const FormatException('ChatGPT 仅使用官方接口地址。');
+    throw const AppFormatException(
+      AppErrorCode.chatGPTUsesOnlyTheOfficial,
+      'ChatGPT 仅使用官方接口地址。',
+    );
   }
   final uri = Uri.tryParse(c.baseUrl);
   if (uri == null ||
@@ -71,21 +76,34 @@ void validateConfig(ProviderConfig c) {
       (uri.scheme != 'https' &&
           !(uri.scheme == 'http' &&
               ['localhost', '127.0.0.1', '::1'].contains(uri.host)))) {
-    throw const FormatException('API 地址需为 HTTPS（本机测试可用 HTTP），不可包含密钥、查询参数或片段。');
+    throw const AppFormatException(
+      AppErrorCode.useAnHTTPSAPIURL,
+      'API 地址需为 HTTPS（本机测试可用 HTTP），不可包含密钥、查询参数或片段。',
+    );
   }
   if (c.reasoningLevels != null) decodeReasoningLevels(c.reasoningLevels!);
   if (c.thinking &&
       (!c.supportsThinking ||
           !AiOptions(c).reasoningEfforts.contains(c.effort))) {
-    throw const FormatException('当前模型不支持所选思考参数。');
+    throw const AppFormatException(
+      AppErrorCode.modelDoesNotSupportReasoningParameter,
+      '当前模型不支持所选思考参数。',
+    );
   }
-  if (c.model.trim().isEmpty) throw const FormatException('请填写模型 ID。');
+  if (c.model.trim().isEmpty)
+    throw const AppFormatException(AppErrorCode.enterAModelID, '请填写模型 ID。');
   if (c.kind == 'deepseek' &&
       !['deepseek-flash', 'deepseek-v4-pro'].contains(c.model)) {
-    throw const FormatException('请选择支持的 DeepSeek 模型。');
+    throw const AppFormatException(
+      AppErrorCode.selectASupportedDeepSeekModel,
+      '请选择支持的 DeepSeek 模型。',
+    );
   }
   if (c.kind == 'deepseek' && c.model == 'deepseek-v4-pro' && c.vision) {
-    throw const FormatException('DeepSeek Pro 不支持图片，请关闭图片能力。');
+    throw const AppFormatException(
+      AppErrorCode.deepSeekProDoesNotSupport,
+      'DeepSeek Pro 不支持图片，请关闭图片能力。',
+    );
   }
 }
 
@@ -117,7 +135,10 @@ List<String> decodeReasoningLevels(String value) {
       data.any(
         (e) => e is! String || !RegExp(r'^[a-z][a-z0-9_-]{0,31}$').hasMatch(e),
       )) {
-    throw const FormatException('模型思考档位声明无效。');
+    throw const AppFormatException(
+      AppErrorCode.invalidDeclaredReasoningLevels,
+      '模型思考档位声明无效。',
+    );
   }
   return List<String>.unmodifiable(data.cast<String>().toSet());
 }

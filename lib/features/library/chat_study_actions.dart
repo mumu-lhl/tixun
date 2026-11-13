@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import '../../core/ui/app_menu.dart';
 
 import 'dart:convert';
@@ -55,6 +57,43 @@ const fieldLabels = {
   'image_indices': '引用图片序号',
 };
 
+String? toolLabel(BuildContext context, String key) => switch (key) {
+  'run_python' => context.l10n.runPython,
+  'create_subject_module' => context.l10n.createSubjectDirectoryEntry,
+  'link_study_module' => context.l10n.linkMaterialToModule,
+  'schedule_review' => context.l10n.addToReviews,
+  'create_quiz' => context.l10n.createPracticeQuestion,
+  'suggest_question_regions' => context.l10n.suggestQuestionRegions,
+  'create_knowledge' => context.l10n.createKnowledge,
+  'update_knowledge' => context.l10n.updateKnowledge,
+  'delete_knowledge' => context.l10n.moveKnowledgeToTrash,
+  'create_mistake' => context.l10n.createMistake,
+  'update_mistake' => context.l10n.updateMistake,
+  'delete_mistake' => context.l10n.moveMistakeToTrash,
+  'link_mistake_to_knowledge' => context.l10n.linkMistakeAndKnowledge,
+  _ => null,
+};
+
+String? fieldLabel(BuildContext context, String key) => switch (key) {
+  'purpose' => context.l10n.purpose,
+  'code' => context.l10n.pythonCode,
+  'timeout_seconds' => context.l10n.requestedTimeLimitSeconds,
+  'name' => context.l10n.directoryName,
+  'title' => context.l10n.titleLabel,
+  'content' => context.l10n.knowledgeContent,
+  'subject' => context.l10n.subject,
+  'kind' => context.l10n.knowledgeType,
+  'chapter' => context.l10n.chapter,
+  'tags' => context.l10n.tagsLabel,
+  'question' => context.l10n.question,
+  'correct_answer' => context.l10n.referenceAnswers,
+  'ai_analysis' => context.l10n.aiExplanation,
+  'suggested_reason' => context.l10n.aiProposedCauseNeedsConfirmation,
+  'expected_revision' => context.l10n.versionNumber,
+  'image_indices' => context.l10n.referencedImageIndices,
+  _ => null,
+};
+
 class ToolApprovalCard extends ConsumerWidget {
   const ToolApprovalCard({super.key});
   @override
@@ -75,7 +114,12 @@ class ToolApprovalCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            context.tr("请确认：{0}", [toolLabels[request.name] ?? '修改资料']),
+            context.l10n.pleaseConfirm(
+              l10nArgument(
+                (toolLabel(context, request.name) ??
+                    context.l10n.modifyMaterial),
+              ),
+            ),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           if (request.target.isNotEmpty)
@@ -89,11 +133,13 @@ class ToolApprovalCard extends ConsumerWidget {
             ),
           if (request.name == 'create_mistake' && request.imageCount > 0)
             Text(
-              context.tr("会同时保留本次上下文中的 {0} 张原题图片。", [request.imageCount]),
+              context.l10n.theOriginalQuestionImagesIn(
+                l10nArgument((request.imageCount)),
+              ),
               style: const TextStyle(fontSize: 12),
             ),
           if (request.name == 'schedule_review')
-            Text(context.tr("加入后由应用根据作答安排日期。不会因阅读资料而增加掌握次数。")),
+            Text(context.l10n.afterAddingAReviewThe),
           const SizedBox(height: 8),
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 190),
@@ -113,7 +159,7 @@ class ToolApprovalCard extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            context.tr(fieldLabels[e.key]!),
+                            fieldLabel(context, e.key)!,
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -139,20 +185,20 @@ class ToolApprovalCard extends ConsumerWidget {
                       ),
                     ),
                   if (request.name.startsWith('delete'))
-                    Text(context.tr("资料将移入回收区，可随时恢复。")),
+                    Text(context.l10n.materialWillMoveToTrash),
                 ],
               ),
             ),
           ),
           if (request.name == 'run_python') ...[
             Text(
-              context.tr('代码可访问应用文件与网络，输出会发送给当前模型；只有你允许后才执行。'),
+              context.l10n.codeAccessWarningWithModelOutput,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             TextButton(
               onPressed: () =>
                   showPythonCode(context, request.arguments['code'].toString()),
-              child: Text(context.tr('查看完整代码')),
+              child: Text(context.l10n.viewFullCode),
             ),
           ],
           const SizedBox(height: 8),
@@ -162,14 +208,16 @@ class ToolApprovalCard extends ConsumerWidget {
               TextButton(
                 key: const Key('reject-tool'),
                 onPressed: () => c.decideTool(false),
-                child: Text(context.tr("不执行")),
+                child: Text(context.l10n.doNotApply),
               ),
               const SizedBox(width: 8),
               FilledButton(
                 key: const Key('approve-tool'),
                 onPressed: () => c.decideTool(true),
                 child: Text(
-                  context.tr(request.name == 'run_python' ? '允许运行' : '确认执行'),
+                  (request.name == 'run_python'
+                      ? context.l10n.allowExecution
+                      : context.l10n.confirmAction),
                 ),
               ),
             ],
@@ -195,34 +243,40 @@ class ChatStudyMenu extends ConsumerWidget {
             false);
     return PopupMenuButton<String>(
       popUpAnimationStyle: menuAnimation(context),
-      tooltip: context.tr("保存学习资料"),
+      tooltip: context.l10n.saveLearningMaterial,
       icon: const Icon(Icons.bookmark_add_outlined, size: 18),
       enabled: message.status != 'generating',
       itemBuilder: (_) => [
         if (hasMistake && message.content.trim().isNotEmpty)
           PopupMenuItem(
             value: 'analysis',
-            child: Text(context.tr('写入关联错题的 AI 解析')),
+            child: Text(context.l10n.saveAsAIExplanationFor),
           ),
-        PopupMenuItem(value: 'knowledge', child: Text(context.tr("保存到知识库"))),
-        PopupMenuItem(value: 'mistake', child: Text(context.tr("保存到错题本"))),
+        PopupMenuItem(
+          value: 'knowledge',
+          child: Text(context.l10n.saveToKnowledge),
+        ),
+        PopupMenuItem(
+          value: 'mistake',
+          child: Text(context.l10n.saveAsAMistake),
+        ),
         if (message.role == 'assistant' &&
             message.content.trim().isNotEmpty) ...[
           const PopupMenuDivider(),
           PopupMenuItem(
             value: 'ai-knowledge',
             enabled: !ref.read(appControllerProvider).busy,
-            child: Text(context.tr('AI 整理成知识')),
+            child: Text(context.l10n.organizeAsKnowledgeWithAI),
           ),
           PopupMenuItem(
             value: 'ai-merge',
             enabled: !ref.read(appControllerProvider).busy,
-            child: Text(context.tr('AI 整合到已有知识')),
+            child: Text(context.l10n.mergeIntoExistingKnowledgeWith),
           ),
           PopupMenuItem(
             value: 'ai-mistake',
             enabled: !ref.read(appControllerProvider).busy,
-            child: Text(context.tr('AI 整理成错题')),
+            child: Text(context.l10n.organizeAsAMistakeWith),
           ),
         ],
       ],
@@ -249,7 +303,10 @@ class ChatStudyMenu extends ConsumerWidget {
     }
     final index = c.messages.indexWhere((m) => m.id == message.id);
     if (index < 0 || c.selected == null) {
-      throw const FormatException('请重新打开此会话后保存。');
+      throw const AppFormatException(
+        AppErrorCode.errorReopenThisConversationBeforeSaving,
+        '请重新打开此会话后保存。',
+      );
     }
     final question = message.role == 'user'
         ? message
@@ -259,7 +316,10 @@ class ChatStudyMenu extends ConsumerWidget {
         linkedMistakesProvider(c.selected!.id).future,
       );
       if (candidates.isEmpty) {
-        throw const FormatException('此对话没有关联错题，请先从错题详情发起学习对话。');
+        throw const AppFormatException(
+          AppErrorCode.errorThisConversationHasNoLinkedMistake,
+          '此对话没有关联错题，请先从错题详情发起学习对话。',
+        );
       }
       if (!context.mounted) return;
       var selected = candidates.first;
@@ -267,7 +327,7 @@ class ChatStudyMenu extends ConsumerWidget {
         final chosen = await showDialog<Mistake>(
           context: context,
           builder: (context) => SimpleDialog(
-            title: Text(context.tr("选择要更新的错题")),
+            title: Text(context.l10n.chooseAMistakeToUpdate),
             children: candidates
                 .map(
                   (m) => SimpleDialogOption(
@@ -337,7 +397,7 @@ class ChatStudyMenu extends ConsumerWidget {
       } catch (_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.tr("文字已保存，部分图片关联失败，请在详情中补充。"))),
+            SnackBar(content: Text(context.l10n.textSavedButSomeImages)),
           );
         }
       }
@@ -378,8 +438,10 @@ class ToolHistory extends ConsumerWidget {
               return SplitSuggestionCard(op);
             }
             final name =
-                toolLabels[op.name] ??
-                (op.name.startsWith('search') ? '检索学习资料' : '读取学习资料');
+                toolLabel(context, op.name) ??
+                (op.name.startsWith('search')
+                    ? context.l10n.searchStudyMaterials
+                    : context.l10n.readStudyMaterials);
             return Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Wrap(
@@ -392,16 +454,13 @@ class ToolHistory extends ConsumerWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   Text(
-                    context.tr("{0} · {1}", [
-                      name,
-                      success
-                          ? context.tr("已执行")
-                          : op.status == 'pending'
-                          ? context.tr("等待确认")
-                          : op.status == 'rejected'
-                          ? context.tr("未执行")
-                          : context.tr("未完成"),
-                    ]),
+                    '${l10nArgument(name)} · ${l10nArgument(success
+                        ? context.l10n.applied
+                        : op.status == 'pending'
+                        ? context.l10n.awaitingConfirmation
+                        : op.status == 'rejected'
+                        ? context.l10n.notApplied
+                        : context.l10n.notCompleted)}',
                     style: const TextStyle(fontSize: 11),
                   ),
                   if (success &&
@@ -416,7 +475,7 @@ class ToolHistory extends ConsumerWidget {
                         '${op.name.endsWith('knowledge') ? '/knowledge' : '/mistakes'}/${result['id']}',
                       ),
                       child: Text(
-                        context.tr("查看资料"),
+                        context.l10n.viewMaterial,
                         style: TextStyle(fontSize: 11),
                       ),
                     ),
@@ -454,14 +513,14 @@ Future<void> openChatStudyLinks(BuildContext context, WidgetRef ref) async {
   final path = await showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(context.tr("关联学习资料")),
+      title: Text(context.l10n.linkedLearningMaterial),
       content: SizedBox(
         width: 480,
         height: 280,
         child: entries.isEmpty
             ? Center(
                 child: Text(
-                  context.tr("还没有关联资料。\n可以从消息菜单保存知识或错题。"),
+                  context.l10n.noLinkedMaterialYetSave,
                   textAlign: TextAlign.center,
                 ),
               )
@@ -480,7 +539,7 @@ Future<void> openChatStudyLinks(BuildContext context, WidgetRef ref) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(context.tr("关闭")),
+          child: Text(context.l10n.close),
         ),
       ],
     ),
@@ -492,7 +551,7 @@ Future<void> showPythonCode(BuildContext context, String code) =>
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(ctx.tr('Python 代码')),
+        title: Text(ctx.l10n.pythonCode),
         content: SizedBox(
           width: 760,
           height: MediaQuery.sizeOf(ctx).height * .6,
@@ -510,7 +569,7 @@ Future<void> showPythonCode(BuildContext context, String code) =>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(ctx.tr('关闭')),
+            child: Text(ctx.l10n.close),
           ),
         ],
       ),
@@ -529,20 +588,20 @@ class PythonHistoryCard extends StatelessWidget {
       result = jsonDecode(operation.result ?? '{}') as Map;
     } catch (_) {}
     final status = switch (operation.status) {
-      'succeeded' => '执行完成',
-      'recording_failed' => '执行完成，记录异常',
-      'rejected' => '未允许运行',
-      'running' => '执行中',
-      'stop_requested' => '已请求停止',
-      'pending' => '等待审查',
-      _ => '执行失败',
+      'succeeded' => context.l10n.completed,
+      'recording_failed' => context.l10n.executedRecordingError,
+      'rejected' => context.l10n.executionDenied,
+      'running' => context.l10n.running,
+      'stop_requested' => context.l10n.stopRequested,
+      'pending' => context.l10n.awaitingReview,
+      _ => context.l10n.executionFailed,
     };
     return ExpansionTile(
       key: PageStorageKey('python-history-${operation.id}'),
       tilePadding: EdgeInsets.zero,
       leading: const Icon(Icons.code, size: 20),
       title: Text(
-        context.tr('Python · {0}', [context.tr(status)]),
+        context.l10n.python(l10nArgument((status))),
         style: const TextStyle(fontSize: 13),
       ),
       subtitle: Text(
@@ -556,7 +615,7 @@ class PythonHistoryCard extends StatelessWidget {
           child: TextButton(
             onPressed: () =>
                 showPythonCode(context, args['code']?.toString() ?? ''),
-            child: Text(context.tr('查看完整代码')),
+            child: Text(context.l10n.viewFullCode),
           ),
         ),
         if (result.isNotEmpty)
@@ -571,10 +630,9 @@ class PythonHistoryCard extends StatelessWidget {
                   if (result['stderr'] != null && result['stderr'] != '')
                     'stderr:\n${result['stderr']}',
                   if (result['traceback'] != null) result['traceback'],
-                  if (result['error'] != null)
-                    context.tr(result['error'].toString()),
+                  if (result['error'] != null) result['error'].toString(),
                   if (result['output_truncated'] == true)
-                    context.tr('输出过长，已截断展示。'),
+                    context.l10n.outputExceededTheDisplayLimit,
                 ].join('\n'),
                 style: const TextStyle(
                   fontFamily: 'TixunMono',

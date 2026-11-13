@@ -104,7 +104,8 @@ class _SplitPreviewState extends State<_SplitPreview> {
           child: Image.file(
             widget.file,
             fit: BoxFit.contain,
-            errorBuilder: (_, _, _) => Text(context.tr("图片无法解码。")),
+            errorBuilder: (_, _, _) =>
+                Text(context.l10n.couldNotDecodeTheImage),
           ),
         ),
         Positioned.fromRect(
@@ -134,12 +135,12 @@ class _SplitPreviewState extends State<_SplitPreview> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    context.tr("分题原图 · 双指缩放查看"),
+                    context.l10n.splitSourceImagePinchTo,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 IconButton(
-                  tooltip: context.tr("关闭预览"),
+                  tooltip: context.l10n.closePreview,
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
                 ),
@@ -177,11 +178,11 @@ class _SplitPreviewState extends State<_SplitPreview> {
         height: 200,
         cacheWidth: 700,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => Text(context.tr("图片无法解码。")),
+        errorBuilder: (_, _, _) => Text(context.l10n.couldNotDecodeTheImage),
       );
     }
     return Semantics(
-      label: context.tr("分题原图，点击放大查看"),
+      label: context.l10n.splitSourceImageTapTo,
       button: true,
       child: InkWell(
         onTap: () => _openZoom(imageSize),
@@ -290,21 +291,21 @@ class SplitSuggestionCard extends ConsumerWidget {
               children: [
                 const LinearProgressIndicator(),
                 const SizedBox(height: 8),
-                Text(context.tr("正在读取…")),
+                Text(context.l10n.loading),
               ],
             ),
             error: (_, _) => Row(
               children: [
-                Expanded(child: Text(context.tr("分题原图读取失败。"))),
+                Expanded(child: Text(context.l10n.couldNotReadSplittingImage)),
                 TextButton(
                   onPressed: () => ref.invalidate(_splitImageProvider(imageId)),
-                  child: Text(context.tr("重试")),
+                  child: Text(context.l10n.retry),
                 ),
               ],
             ),
             data: (image) {
               if (image == null || image.sessionId != operation.sessionId) {
-                return Text(context.tr("原图记录不存在，无法继续分题。"));
+                return Text(context.l10n.originalImageRecordNotFound);
               }
               return Container(
                 margin: const EdgeInsets.only(top: 14),
@@ -319,12 +320,14 @@ class SplitSuggestionCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.tr("分题建议 · {0} 个范围", [regions.length]),
+                      context.l10n.splittingSuggestionsRegions(
+                        l10nArgument((regions.length)),
+                      ),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      context.tr("AI 边界可能不准确。逐题打开检查，可重新框选、旋转后保存；原图与裁剪结果都会保留。"),
+                      context.l10n.aiBoundariesMayBeInaccurate,
                       style: TextStyle(fontSize: 12),
                     ),
                     const SizedBox(height: 12),
@@ -382,9 +385,13 @@ class SplitSuggestionCard extends ConsumerWidget {
                             if (selected != null && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(context.tr("分题已保存，原图已保留。")),
+                                  content: Text(
+                                    context
+                                        .l10n
+                                        .splitQuestionSavedOriginalImage,
+                                  ),
                                   action: SnackBarAction(
-                                    label: context.tr("查看"),
+                                    label: context.l10n.view,
                                     onPressed: () =>
                                         context.push('/mistakes/$selected'),
                                   ),
@@ -394,8 +401,8 @@ class SplitSuggestionCard extends ConsumerWidget {
                           }),
                           child: Text(
                             accepted['$i'] is String
-                                ? context.tr("查看错题")
-                                : context.tr("检查并保存"),
+                                ? context.l10n.viewMistakes
+                                : context.l10n.checkAndSave,
                           ),
                         ),
                       ),
@@ -405,7 +412,7 @@ class SplitSuggestionCard extends ConsumerWidget {
             },
           );
     } catch (_) {
-      return Text(context.tr("分题建议数据不完整，请重新请求；已有资料未改变。"));
+      return Text(context.l10n.incompleteSplittingSuggestionsRequestThem);
     }
   }
 }

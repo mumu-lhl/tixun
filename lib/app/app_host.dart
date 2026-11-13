@@ -1,3 +1,7 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
+import 'app_notice.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show PlatformDispatcher;
@@ -10,12 +14,34 @@ import 'package:path_provider/path_provider.dart';
 import '../core/backup/backup_actions.dart';
 import '../core/backup/backup_service.dart';
 import '../core/l10n/app_strings.dart';
+import '../core/l10n/generated/app_localizations.dart';
 import '../core/platform/backup_file_picker.dart';
 import '../core/ui/actions.dart';
 import '../features/update/update_providers.dart';
 import 'app.dart';
 import 'controller.dart';
 import 'theme.dart';
+
+enum HostFailure { initialOpen, reopen }
+
+enum _HostOperation {
+  checkingBackup,
+  checkingRecoveryCopy,
+  deletingRecoveryCopy,
+  creatingBackup,
+  restoringStudyData,
+  openingStudyData,
+}
+
+String _operationLabel(AppLocalizations l10n, _HostOperation operation) =>
+    switch (operation) {
+      _HostOperation.checkingBackup => l10n.checkingBackup,
+      _HostOperation.checkingRecoveryCopy => l10n.checkingRecoveryCopy,
+      _HostOperation.deletingRecoveryCopy => l10n.deletingRecoveryCopy,
+      _HostOperation.creatingBackup => l10n.creatingBackup,
+      _HostOperation.restoringStudyData => l10n.restoringStudyData,
+      _HostOperation.openingStudyData => l10n.openingStudyData,
+    };
 
 class TixunHost extends StatefulWidget {
   const TixunHost({
@@ -30,7 +56,7 @@ class TixunHost extends StatefulWidget {
   final bool demo;
   final AppController? initialController;
   final RandomAccessFile? instanceLock;
-  final String? initialError;
+  final HostFailure? initialError;
   @override
   State<TixunHost> createState() => _TixunHostState();
 }
@@ -38,17 +64,21 @@ class TixunHost extends StatefulWidget {
 class _TixunHostState extends State<TixunHost> {
   AppController? _controller;
   ProviderContainer? _container;
-  late String? _failure = widget.initialError;
+  late HostFailure? _failure = widget.initialError;
   bool _working = false, _detached = false;
-  String _operation = '';
+  _HostOperation _operation = _HostOperation.openingStudyData;
   late final BackupActions _actions = BackupActions(
     export: _export,
-    prepare: (file) =>
-        _work('正在校验备份…', () => BackupService.prepare(file, widget.root)),
-    prepareUndo: () =>
-        _work('正在检查安全副本…', () => BackupService.preparePrevious(widget.root)),
+    prepare: (file) => _work(
+      _HostOperation.checkingBackup,
+      () => BackupService.prepare(file, widget.root),
+    ),
+    prepareUndo: () => _work(
+      _HostOperation.checkingRecoveryCopy,
+      () => BackupService.preparePrevious(widget.root),
+    ),
     restore: _restore,
-    clearUndo: () => _work('正在删除恢复安全副本…', () async {
+    clearUndo: () => _work(_HostOperation.deletingRecoveryCopy, () async {
       await BackupService.clearPrevious(widget.root);
       _controller?.changed();
     }),
@@ -123,11 +153,18 @@ class _TixunHostState extends State<TixunHost> {
     super.dispose();
   }
 
-  Future<T> _work<T>(String message, Future<T> Function() action) async {
-    if (_working) throw const FormatException('另一项备份操作尚未完成。');
+  Future<T> _work<T>(
+    _HostOperation operation,
+    Future<T> Function() action,
+  ) async {
+    if (_working)
+      throw const AppFormatException(
+        AppErrorCode.errorAnotherBackupOperationIsStillIn,
+        '另一项备份操作尚未完成。',
+      );
     setState(() {
       _working = true;
-      _operation = message;
+      _operation = operation;
     });
     try {
       return await action();
@@ -136,7 +173,7 @@ class _TixunHostState extends State<TixunHost> {
     }
   }
 
-  Future<void> _export() => _work('正在生成完整备份…', () async {
+  Future<void> _export() => _work(_HostOperation.creatingBackup, () async {
     final c = _controller!;
     await c.stop();
     await c.practice.flushDrafts();
@@ -159,7 +196,7 @@ class _TixunHostState extends State<TixunHost> {
     try {
       await BackupService.export(c.db, c.files, file);
       if (await BackupFilePicker.save(file, p.basename(file.path))) {
-        c.notice = '完整备份已导出，不包含 API Key。';
+        c.notice = const AppNotice(AppNoticeKind.backupExported);
         c.changed();
       }
     } finally {
@@ -167,7 +204,7 @@ class _TixunHostState extends State<TixunHost> {
     }
   });
   Future<void> _restore(PreparedBackup prepared) =>
-      _work('正在恢复学习数据…', () async {
+      _work(_HostOperation.restoringStudyData, () async {
         final old = _controller;
         BackupActivation? receipt;
         AppController? opened;
@@ -203,7 +240,7 @@ class _TixunHostState extends State<TixunHost> {
           PaintingBinding.instance.imageCache
             ..clear()
             ..clearLiveImages();
-          opened.notice = '学习数据已恢复。可以在设置中撤销上次恢复；系统密钥保持原样。';
+          opened.notice = const AppNotice(AppNoticeKind.backupRestored);
           if (mounted) {
             setState(() => _install(opened!));
           } else {
@@ -219,7 +256,9 @@ class _TixunHostState extends State<TixunHost> {
               keyStore: old?.keys,
               chatProvider: old?.provider,
             );
-            recovered.notice = '恢复未完成，原学习数据已保留。';
+            recovered.notice = const AppNotice(
+              AppNoticeKind.backupRestoreIncomplete,
+            );
             if (mounted) {
               setState(() => _install(recovered));
             } else {
@@ -230,14 +269,17 @@ class _TixunHostState extends State<TixunHost> {
               setState(() {
                 _controller = null;
                 _detached = false;
-                _failure = '无法重新打开资料。原目录或安全副本仍保留，请从备份恢复。';
+                _failure = HostFailure.reopen;
               });
             }
           }
-          throw const FormatException('恢复未完成，已尝试保留并重新打开原数据。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheRestoreDidNotFinishThe,
+            '恢复未完成，已尝试保留并重新打开原数据。',
+          );
         }
       });
-  Future<void> _retry() => _work('正在打开资料…', () async {
+  Future<void> _retry() => _work(_HostOperation.openingStudyData, () async {
     await BackupService.recoverPending(widget.root);
     final c = await AppController.openRoot(
       widget.root,
@@ -256,12 +298,12 @@ class _TixunHostState extends State<TixunHost> {
     theme: appTheme(Brightness.light),
     darkTheme: appTheme(Brightness.dark),
     themeMode: _controller?.themeMode ?? ThemeMode.system,
-    locale:
-        _controller?.appLocale ??
-        resolveAppLocale(PlatformDispatcher.instance.locales),
-    supportedLocales: const [Locale('zh'), Locale('en')],
+    locale: _controller?.appLocale,
+    supportedLocales: supportedAppLocales,
+    localeListResolutionCallback: (requested, supported) =>
+        resolveAppLocale(requested ?? []),
     localizationsDelegates: const [
-      AppStrings.delegate,
+      AppLocalizations.delegate,
       ...GlobalMaterialLocalizations.delegates,
     ],
     home: Scaffold(
@@ -272,10 +314,11 @@ class _TixunHostState extends State<TixunHost> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  ctx.tr(_failure ?? "正在切换数据…"),
-                  textAlign: TextAlign.center,
-                ),
+                Text(switch (_failure) {
+                  HostFailure.initialOpen => ctx.l10n.couldNotOpenTheLocal,
+                  HostFailure.reopen => ctx.l10n.couldNotReopenTheData,
+                  null => ctx.l10n.switchingData,
+                }, textAlign: TextAlign.center),
                 const SizedBox(height: 16),
                 if (!_detached)
                   Wrap(
@@ -284,7 +327,7 @@ class _TixunHostState extends State<TixunHost> {
                     children: [
                       OutlinedButton(
                         onPressed: _working ? null : () => act(ctx, _retry),
-                        child: Text(ctx.tr("重试打开")),
+                        child: Text(ctx.l10n.retryOpening),
                       ),
                       FilledButton(
                         onPressed: _working
@@ -299,27 +342,33 @@ class _TixunHostState extends State<TixunHost> {
                                   final ok = await showDialog<bool>(
                                     context: ctx,
                                     builder: (dialog) => AlertDialog(
-                                      title: Text(ctx.tr("恢复备份？")),
+                                      title: Text(
+                                        ctx.l10n.confirmRestoreBackup,
+                                      ),
                                       content: Text(
-                                        ctx.tr(
-                                          "包含 {0} 段对话、{1} 条知识和 {2} 道错题。当前目录保留为最近一次安全副本；已有系统密钥不会更改。",
-                                          [
-                                            info.counts['chats'] ?? 0,
-                                            info.counts['knowledge'] ?? 0,
-                                            info.counts['mistakes'] ?? 0,
-                                          ],
-                                        ),
+                                        ctx.l10n
+                                            .includesConversationsKnowledgeNotesAnd(
+                                              l10nArgument(
+                                                (info.counts['chats'] ?? 0),
+                                              ),
+                                              l10nArgument(
+                                                (info.counts['knowledge'] ?? 0),
+                                              ),
+                                              l10nArgument(
+                                                (info.counts['mistakes'] ?? 0),
+                                              ),
+                                            ),
                                       ),
                                       actions: [
                                         TextButton(
                                           onPressed: () =>
                                               Navigator.pop(dialog, false),
-                                          child: Text(ctx.tr("取消")),
+                                          child: Text(ctx.l10n.cancel),
                                         ),
                                         FilledButton(
                                           onPressed: () =>
                                               Navigator.pop(dialog, true),
-                                          child: Text(ctx.tr("恢复数据")),
+                                          child: Text(ctx.l10n.restoreData),
                                         ),
                                       ],
                                     ),
@@ -329,7 +378,7 @@ class _TixunHostState extends State<TixunHost> {
                                   await prepared.discard();
                                 }
                               }),
-                        child: Text(ctx.tr("从备份恢复")),
+                        child: Text(ctx.l10n.restoreFromBackup),
                       ),
                     ],
                   ),
@@ -382,14 +431,17 @@ class _TixunHostState extends State<TixunHost> {
                         const CircularProgressIndicator(),
                         const SizedBox(height: 20),
                         Text(
-                          AppStrings(
-                            Locale(
-                              _controller?.promptLanguage ??
-                                  resolveAppLocale(
-                                    PlatformDispatcher.instance.locales,
-                                  ).languageCode,
+                          _operationLabel(
+                            lookupAppLocalizations(
+                              Locale(
+                                _controller?.promptLanguage ??
+                                    resolveAppLocale(
+                                      PlatformDispatcher.instance.locales,
+                                    ).languageCode,
+                              ),
                             ),
-                          ).text(_operation),
+                            _operation,
+                          ),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: overlayColors.onSurface,

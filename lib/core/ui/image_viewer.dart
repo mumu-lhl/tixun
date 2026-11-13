@@ -116,7 +116,9 @@ class _ImageViewerPageState extends State<_ImageViewerPage> {
       },
       loadStateChanged: (ExtendedImageState state) {
         if (state.extendedImageLoadState == LoadState.failed) {
-          return Center(child: Text(item.errorText ?? context.tr('图片无法读取')));
+          return Center(
+            child: Text(item.errorText ?? context.l10n.couldNotReadImage),
+          );
         }
         return null;
       },
@@ -170,7 +172,7 @@ class _ImageViewerPageState extends State<_ImageViewerPage> {
                         ),
                       ),
                       IconButton(
-                        tooltip: context.tr('关闭预览'),
+                        tooltip: context.l10n.closePreview,
                         onPressed: _close,
                         icon: const Icon(Icons.close),
                       ),

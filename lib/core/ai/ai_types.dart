@@ -1,10 +1,26 @@
 import 'package:dio/dio.dart';
 
 import '../database/database.dart';
+import '../l10n/app_error.dart';
 
-class AiFailure implements Exception {
-  const AiFailure(this.message);
+class AiFailure implements Exception, LocalizedAppFailure {
+  const AiFailure(this.message) : code = null, arguments = const [];
+  const AiFailure.localized(
+    this.code,
+    this.message, [
+    this.arguments = const [],
+  ]);
+  AiFailure.fromFormatException(FormatException error)
+    : message = error.message,
+      code = error is LocalizedAppFailure
+          ? (error as LocalizedAppFailure).code
+          : null,
+      arguments = error is LocalizedAppFailure
+          ? (error as LocalizedAppFailure).arguments
+          : const [];
+  final AppErrorCode? code;
   final String message;
+  final List<String> arguments;
   @override
   String toString() => message;
 }
@@ -148,15 +164,25 @@ extension CancelGuard on CancelToken {
 
 void validateToolCalls(List<ToolCall> calls) {
   final ids = <String>{};
-  if (calls.length > 8) throw const AiFailure('一次最多允许 8 个工具调用。');
+  if (calls.length > 8)
+    throw const AiFailure.localized(
+      AppErrorCode.errorAtMost8ToolCallsAre,
+      '一次最多允许 8 个工具调用。',
+    );
   for (final c in calls) {
     if (c.id.isEmpty || c.name.isEmpty || !ids.add(c.id)) {
-      throw const AiFailure('工具调用不完整或 ID 重复。');
+      throw const AiFailure.localized(
+        AppErrorCode.errorToolCallsAreIncompleteOrHave,
+        '工具调用不完整或 ID 重复。',
+      );
     }
     if (c.arguments.length > 64000 ||
         c.name.length > 100 ||
         c.id.length > 200) {
-      throw const AiFailure('工具调用数据过长。');
+      throw const AiFailure.localized(
+        AppErrorCode.errorToolCallDataIsTooLong,
+        '工具调用数据过长。',
+      );
     }
   }
 }

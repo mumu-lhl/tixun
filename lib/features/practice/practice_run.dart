@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 class PracticeRun {
   const PracticeRun(this.ids, this.attempts, this.index);
   final List<String> ids;
@@ -28,7 +30,10 @@ class PracticeRun {
         index is! int ||
         index < 0 ||
         index > ids.length) {
-      throw const FormatException('小测恢复状态无效，可结束本轮后重新开始；已有作答仍保留。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheQuizRecoveryStateIsInvalid,
+        '小测恢复状态无效，可结束本轮后重新开始；已有作答仍保留。',
+      );
     }
     return PracticeRun(ids.cast<String>(), attempts.cast<String?>(), index);
   }

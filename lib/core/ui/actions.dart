@@ -2,19 +2,18 @@ import 'package:material_ui/material_ui.dart';
 
 import '../ai/chat_provider.dart';
 import '../l10n/app_strings.dart';
+import '../l10n/app_error_localization.dart';
 
 Future<void> act(BuildContext context, Future<void> Function() action) async {
   try {
     await action();
   } catch (e) {
     if (!context.mounted) return;
-    final message = e is FormatException
-        ? e.message
-        : e is AiFailure
-        ? e.message
-        : '操作失败，请检查存储空间或系统密钥环后重试。';
+    final message = e is FormatException || e is AiFailure
+        ? failureText(context.l10n, e)
+        : context.l10n.couldNotCompleteTheAction;
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(context.tr(message))));
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -28,7 +27,7 @@ Future<String?> editText(
   final result = await showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(context.tr(title)),
+      title: Text(title),
       scrollable: true,
       content: SizedBox(
         width: 480,
@@ -37,13 +36,13 @@ Future<String?> editText(
           autofocus: true,
           minLines: multiline ? 4 : 1,
           maxLines: multiline ? 12 : 1,
-          decoration: InputDecoration(labelText: context.tr("内容")),
+          decoration: InputDecoration(labelText: context.l10n.content),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(context.tr("取消")),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -51,7 +50,7 @@ Future<String?> editText(
               Navigator.pop(context, controller.text.trim());
             }
           },
-          child: Text(context.tr("确定")),
+          child: Text(context.l10n.confirmChoice),
         ),
       ],
     ),

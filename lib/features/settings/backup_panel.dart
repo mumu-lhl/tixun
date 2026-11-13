@@ -55,47 +55,46 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(undo ? context.tr("撤销上次恢复？") : context.tr("恢复这份备份？")),
+          title: Text(
+            undo
+                ? context.l10n.undoTheLastRestore
+                : context.l10n.restoreThisBackup,
+          ),
           scrollable: true,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                context.tr("备份日期：{0}", [
-                  info.createdAt.toLocal().toString().substring(0, 16),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                context.tr(
-                  "包含 {0} 段对话、{1} 条知识、{2} 道错题、{3} 次作答及 {4} 个附件（含回收区）。",
-                  [
-                    info.counts['chats'] ?? 0,
-                    info.counts['knowledge'] ?? 0,
-                    info.counts['mistakes'] ?? 0,
-                    info.counts['attempts'] ?? 0,
-                    info.files,
-                  ],
+                context.l10n.backupDate(
+                  l10nArgument(
+                    (info.createdAt.toLocal().toString().substring(0, 16)),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                context.tr(
-                  "恢复会替换当前本地学习数据。原数据保留为本设备上的撤销副本，只保留最近一次；下一次恢复会替换该副本。系统中保存的 API Key 不会更改；恢复后需要重新开启对话资料工具。",
+                context.l10n.includesConversationsKnowledgeNotesMistakes(
+                  l10nArgument((info.counts['chats'] ?? 0)),
+                  l10nArgument((info.counts['knowledge'] ?? 0)),
+                  l10nArgument((info.counts['mistakes'] ?? 0)),
+                  l10nArgument((info.counts['attempts'] ?? 0)),
+                  l10nArgument((info.files)),
                 ),
               ),
+              const SizedBox(height: 12),
+              Text(context.l10n.restoringReplacesCurrentLocalLearning),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(context.tr("取消")),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               key: const Key('confirm-restore'),
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(context.tr("恢复数据")),
+              child: Text(context.l10n.restoreData),
             ),
           ],
         ),
@@ -118,14 +117,12 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          context.tr("备份与恢复"),
+          context.l10n.backupAndRestore,
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
         Text(
-          context.tr(
-            "包含数据库、原图与编辑图片、对话、知识、错题、训练、复习和必要配置。备份会检查文件和关联数据的完整性，始终排除系统密钥。",
-          ),
+          context.l10n.includesTheDatabaseOriginalAnd,
           style: TextStyle(fontSize: 12),
         ),
         const SizedBox(height: 12),
@@ -139,7 +136,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
                   ? null
                   : () => _run(() => act(context, actions.export)),
               icon: const Icon(Icons.save_alt, size: 18),
-              label: Text(context.tr("导出完整备份")),
+              label: Text(context.l10n.exportCompleteBackup),
             ),
             OutlinedButton.icon(
               key: const Key('import-backup'),
@@ -149,7 +146,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
                       () => act(context, () => _import(context, actions)),
                     ),
               icon: const Icon(Icons.restore, size: 18),
-              label: Text(context.tr("从备份恢复")),
+              label: Text(context.l10n.restoreFromBackup),
             ),
           ],
         ),
@@ -164,7 +161,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 const SizedBox(width: 10),
-                Text(context.tr("正在处理备份…")),
+                Text(context.l10n.workingOnTheBackup),
               ],
             ),
           ),
@@ -184,7 +181,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
                                 () => _import(context, actions, undo: true),
                               ),
                             ),
-                      child: Text(context.tr("撤销上次恢复")),
+                      child: Text(context.l10n.undoLastRestore),
                     ),
                     TextButton(
                       onPressed: actions == null || _busy
@@ -194,22 +191,24 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
                                 final ok = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
-                                    title: Text(context.tr("删除恢复安全副本？")),
+                                    title: Text(
+                                      context.l10n.deleteTheRestoreSafetyCopy,
+                                    ),
                                     content: Text(
-                                      context.tr(
-                                        "只删除本设备为上次恢复保留的旧数据。当前学习数据及已导出的备份不受影响；删除后将无法撤销上次恢复。",
-                                      ),
+                                      context.l10n.thisDeletesOnlyTheOld,
                                     ),
                                     actions: [
                                       TextButton(
                                         onPressed: () =>
                                             Navigator.pop(ctx, false),
-                                        child: Text(context.tr("取消")),
+                                        child: Text(context.l10n.cancel),
                                       ),
                                       FilledButton(
                                         onPressed: () =>
                                             Navigator.pop(ctx, true),
-                                        child: Text(context.tr("删除安全副本")),
+                                        child: Text(
+                                          context.l10n.deleteSafetyCopy,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -222,7 +221,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
                                 }
                               }),
                             ),
-                      child: Text(context.tr("删除恢复安全副本")),
+                      child: Text(context.l10n.deleteRestoreSafetyCopy),
                     ),
                   ],
                 ),

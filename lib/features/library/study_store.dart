@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'module_store.dart';
 
 import 'dart:async';
@@ -135,23 +137,42 @@ class StudyStore extends DatabaseNotifier {
     super.changed();
   }
 
+  String _checked(
+    String value,
+    StudyErrorField label,
+    int limit, {
+    bool required = false,
+  }) => checked(value, label.source, limit, required: required, field: label);
+
   String checked(
     String value,
     String label,
     int limit, {
     bool required = false,
+    StudyErrorField? field,
   }) {
     final s = value.trim();
     if ((required && s.isEmpty) || s.length > limit) {
-      throw FormatException('$label${s.isEmpty ? '不能为空' : '过长（最多 $limit 字符）'}');
+      final message = '$label${s.isEmpty ? '不能为空' : '过长（最多 $limit 字符）'}';
+      throw AppFormatException(
+        s.isEmpty
+            ? AppErrorCode.errorStudyFieldRequired
+            : AppErrorCode.errorStudyFieldTooLong,
+        message,
+        [field?.name ?? label, '$limit', if (field != null) 'builtin'],
+      );
     }
     return s;
   }
 
   List<String> cleanTags(List<String> tags) {
-    if (tags.length > 20) throw const FormatException('每条资料最多 20 个标签。');
+    if (tags.length > 20)
+      throw const AppFormatException(
+        AppErrorCode.errorEachMaterialCanHaveAtMost,
+        '每条资料最多 20 个标签。',
+      );
     return tags
-        .map((t) => checked(t, '标签', 40))
+        .map((t) => _checked(t, StudyErrorField.tag, 40))
         .where((s) => s.isNotEmpty)
         .toSet()
         .toList()
@@ -179,13 +200,19 @@ class StudyStore extends DatabaseNotifier {
         (crop.bottom - crop.top) <= 0 ||
         turns < 0 ||
         turns > 3) {
-      throw const FormatException('用户裁剪范围无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidUserCropArea,
+        '用户裁剪范围无效。',
+      );
     }
     if (bytes.isEmpty ||
         bytes.length > 8 * 1024 * 1024 ||
         index < 0 ||
         index > 11) {
-      throw const FormatException('分题图片或编号无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidQuestionRegionImageOrNumber,
+        '分题图片或编号无效。',
+      );
     }
     final relative = 'attachments/${const Uuid().v4()}.png';
     var used = false;
@@ -205,7 +232,11 @@ class StudyStore extends DatabaseNotifier {
                 .getSingle();
         final data = (jsonDecode(op.result!) as Map).cast<String, dynamic>();
         final regions = data['regions'] as List;
-        if (index >= regions.length) throw const FormatException('未找到此分题建议。');
+        if (index >= regions.length)
+          throw const AppFormatException(
+            AppErrorCode.errorTheSuggestedQuestionRegionWasNot,
+            '未找到此分题建议。',
+          );
         final region = QuestionRegion.fromJson(
           (regions[index] as Map).cast<String, dynamic>(),
         );
@@ -300,7 +331,10 @@ class StudyStore extends DatabaseNotifier {
       db.knowledgeItems,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
     if (row == null || (row.deleted && !includeDeleted)) {
-      throw const FormatException('知识记录不存在或已在回收区。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheKnowledgeRecordDoesNotExist,
+        '知识记录不存在或已在回收区。',
+      );
     }
     return row;
   }
@@ -310,7 +344,10 @@ class StudyStore extends DatabaseNotifier {
       db.mistakes,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
     if (row == null || (row.deleted && !includeDeleted)) {
-      throw const FormatException('错题不存在或已在回收区。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheMistakeDoesNotExistOr,
+        '错题不存在或已在回收区。',
+      );
     }
     return row;
   }
@@ -370,7 +407,10 @@ class StudyStore extends DatabaseNotifier {
       db.chatMessages,
     )..where((t) => t.id.equals(message))).getSingleOrNull();
     if (m == null || m.sessionId != session) {
-      throw const FormatException('来源对话和消息不匹配。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheSourceConversationAndMessageDo,
+        '来源对话和消息不匹配。',
+      );
     }
   }
 
@@ -381,12 +421,25 @@ class StudyStore extends DatabaseNotifier {
     String? sourceSessionId,
     String? sourceMessageId,
   }) => runOperation(() async {
-    final title = checked(draft.title, '标题', 160, required: true);
-    final content = checked(draft.content, '正文', 60000);
-    final subject = checked(draft.subject, '科目', 40, required: true);
-    final chapter = checked(draft.chapter, '章节', 160);
+    final title = _checked(
+      draft.title,
+      StudyErrorField.title,
+      160,
+      required: true,
+    );
+    final content = _checked(draft.content, StudyErrorField.body, 60000);
+    final subject = _checked(
+      draft.subject,
+      StudyErrorField.subject,
+      40,
+      required: true,
+    );
+    final chapter = _checked(draft.chapter, StudyErrorField.chapter, 160);
     if (!knowledgeKinds.contains(draft.kind)) {
-      throw const FormatException('知识类型无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidKnowledgeType,
+        '知识类型无效。',
+      );
     }
     final labels = cleanTags(draft.tags);
     final result = await db.transaction(() async {
@@ -443,8 +496,18 @@ class StudyStore extends DatabaseNotifier {
     String? sourceSessionId,
     String? sourceMessageId,
   }) => runOperation(() async {
-    final title = checked(draft.title, '标题', 160, required: true);
-    final subject = checked(draft.subject, '科目', 40, required: true);
+    final title = _checked(
+      draft.title,
+      StudyErrorField.title,
+      160,
+      required: true,
+    );
+    final subject = _checked(
+      draft.subject,
+      StudyErrorField.subject,
+      40,
+      required: true,
+    );
     for (final text in [
       draft.question,
       draft.correctAnswer,
@@ -452,11 +515,20 @@ class StudyStore extends DatabaseNotifier {
       draft.ownAnalysis,
       draft.aiAnalysis,
     ]) {
-      checked(text, '内容', 60000);
+      _checked(text, StudyErrorField.content, 60000);
     }
-    final chapter = checked(draft.chapter, '章节', 160);
-    final reason = checked(draft.errorReason, '错误原因', 100, required: true);
-    final suggestion = checked(draft.suggestedReason, '建议原因', 500);
+    final chapter = _checked(draft.chapter, StudyErrorField.chapter, 160);
+    final reason = _checked(
+      draft.errorReason,
+      StudyErrorField.reason,
+      100,
+      required: true,
+    );
+    final suggestion = _checked(
+      draft.suggestedReason,
+      StudyErrorField.suggestedReason,
+      500,
+    );
     final labels = cleanTags(draft.tags);
     final result = await db.transaction(() async {
       final old = id == null ? null : await mistake(id);
@@ -581,7 +653,10 @@ class StudyStore extends DatabaseNotifier {
     if (revisions.isEmpty ||
         revisions.length > 200 ||
         revisions.values.any((v) => v < 1)) {
-      throw const FormatException('每次请选择 1–200 条资料。');
+      throw const AppFormatException(
+        AppErrorCode.errorSelect1200MaterialsAtA,
+        '每次请选择 1–200 条资料。',
+      );
     }
   }
 
@@ -729,7 +804,7 @@ class StudyStore extends DatabaseNotifier {
     int offset,
     String moduleId,
   ) {
-    final term = checked(query, '搜索词', 300);
+    final term = _checked(query, StudyErrorField.searchTerm, 300);
     final tagTable = table == 'mistakes' ? 'mistake_tags' : 'knowledge_tags';
     final idColumn = table == 'mistakes' ? 'mistake_id' : 'knowledge_id';
     final vars = <Variable>[Variable(trash ? 1 : 0)];
@@ -808,11 +883,17 @@ class StudyStore extends DatabaseNotifier {
   Future<({String mime, int bytes})> checkImageFile(String relativePath) async {
     final file = files.resolve(relativePath);
     if (!await file.exists()) {
-      throw const FormatException('图片文件缺失。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheImageFileIsMissing,
+        '图片文件缺失。',
+      );
     }
     final bytes = await file.readAsBytes();
     if (bytes.length > 8 * 1024 * 1024) {
-      throw const FormatException('单张图片上限为 8 MB，请先缩小图片。');
+      throw const AppFormatException(
+        AppErrorCode.errorEachImageMustBeAtMost,
+        '单张图片上限为 8 MB，请先缩小图片。',
+      );
     }
     final (mime, _) = AttachmentStore.identify(bytes);
     return (mime: mime, bytes: bytes.length);
@@ -875,7 +956,10 @@ class StudyStore extends DatabaseNotifier {
     files.resolve(path);
     final row = await db.transaction(() async {
       if (!await files.resolve(path).exists()) {
-        throw const FormatException('图片文件缺失。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheImageFileIsMissing,
+          '图片文件缺失。',
+        );
       }
       if (isMistake) {
         await mistake(id);
@@ -940,9 +1024,14 @@ class StudyStore extends DatabaseNotifier {
         final id = const Uuid().v4();
         final row = Mistake(
           id: id,
-          title: checked(title, '标题', 160, required: true),
+          title: _checked(title, StudyErrorField.title, 160, required: true),
           question: '',
-          subject: checked(subject, '科目', 40, required: true),
+          subject: _checked(
+            subject,
+            StudyErrorField.subject,
+            40,
+            required: true,
+          ),
           chapter: '',
           correctAnswer: '',
           originalAnswer: '',
@@ -1013,7 +1102,10 @@ class StudyStore extends DatabaseNotifier {
         }
       } else {
         if (otherKnowledgeId == null || otherKnowledgeId == knowledgeId) {
-          throw const FormatException('请选择不同的知识记录。');
+          throw const AppFormatException(
+            AppErrorCode.errorSelectADifferentKnowledgeRecord,
+            '请选择不同的知识记录。',
+          );
         }
         await knowledge(otherKnowledgeId);
         final ids = [knowledgeId, otherKnowledgeId]..sort();

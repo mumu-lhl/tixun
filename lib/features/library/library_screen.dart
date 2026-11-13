@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error_localization.dart';
+
 import 'image_editor.dart';
 import 'ai_study_actions.dart';
 import 'module_widgets.dart';
@@ -158,9 +160,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void _toggle(_Entry e) {
     if (_bulkBusy) return;
     if (!_selected.containsKey(e.id) && _selected.length >= 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr("每次最多选择 200 条，可分批整理。"))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.selectUpTo200Items)));
       return;
     }
     setState(() {
@@ -216,22 +218,25 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(context.tr("永久删除 {0} 条资料？", [revisions.length])),
+          title: Text(
+            context.l10n.permanentlyDeleteItems(
+              l10nArgument((revisions.length)),
+            ),
+          ),
           scrollable: true,
           content: Text(
-            context.tr(
-              "{0}\n\n资料、修订和附件引用将永久删除。独立的 Chat 与训练记录会保留；其他记录仍引用的图片也会保留。已导出备份与恢复安全副本需另行管理。",
-              [names],
+            context.l10n.thisPermanentlyDeletesTheMaterial(
+              l10nArgument((names)),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(context.tr("取消")),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(context.tr("永久删除")),
+              child: Text(context.l10n.deletePermanently),
             ),
           ],
         ),
@@ -251,8 +256,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             SnackBar(
               content: Text(
                 failed == 0
-                    ? context.tr("已永久删除 {0} 条资料。", [revisions.length])
-                    : context.tr("资料记录已删除，{0} 个未引用图片未能清理，请检查目录权限。", [failed]),
+                    ? context.l10n.permanentlyDeletedItems(
+                        l10nArgument((revisions.length)),
+                      )
+                    : context.l10n.materialRecordsDeletedUnusedImagesNotRemoved(
+                        l10nArgument((failed)),
+                      ),
               ),
             ),
           );
@@ -267,13 +276,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                context.tr("已{0} {1} 条资料。", [
-                  wasTrash ? context.tr("恢复") : context.tr("移入回收区"),
-                  revisions.length,
-                ]),
+                context.l10n.items(
+                  l10nArgument(
+                    (wasTrash
+                        ? context.l10n.restore
+                        : context.l10n.moveToTrash),
+                  ),
+                  l10nArgument((revisions.length)),
+                ),
               ),
               action: SnackBarAction(
-                label: context.tr("撤销"),
+                label: context.l10n.undo,
                 onPressed: () => act(context, () async {
                   await store.batchSetDeleted(
                     next,
@@ -331,9 +344,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(context.tr('已录入 {0} 道图片错题，可分别补充答案与解析。', [ids.length])),
+        content: Text(
+          context.l10n.importedImageQuestionsAddAnswers(
+            l10nArgument((ids.length)),
+          ),
+        ),
         action: SnackBarAction(
-          label: context.tr('查看'),
+          label: context.l10n.view,
           onPressed: () => context.push('/mistakes/${ids.first}'),
         ),
       ),
@@ -376,10 +393,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              context.tr("已保存 {0} 道；{1}", [
-                imported.length,
-                e is FormatException ? e.message : context.tr("其余图片导入失败，请重试。"),
-              ]),
+              context.l10n.savedQuestions(
+                l10nArgument((imported.length)),
+                l10nArgument(
+                  (e is FormatException
+                      ? failureText(context.l10n, e)
+                      : context.l10n.couldNotImportTheRemaining),
+                ),
+              ),
             ),
           ),
         );
@@ -429,7 +450,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Widget build(BuildContext context) {
     final store = ref.watch(studyStoreProvider);
     final colors = Theme.of(context).colorScheme;
-    final name = context.tr(widget.isMistake ? '错题本' : '知识库');
+    final name = (widget.isMistake
+        ? context.l10n.mistakeBook
+        : context.l10n.knowledgeLibrary);
     // The list follows the global subject filter; a change reloads.
     final subjectFilter = ref.watch(
       appControllerProvider.select((c) => c.subjectFilter),
@@ -474,14 +497,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      _trash ? context.tr("{0} · 回收区", [name]) : name,
+                      _trash
+                          ? context.l10n.itemInTrash(l10nArgument((name)))
+                          : name,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                   ),
                   if (!widget.isMistake && !_trash)
                     IconButton(
                       key: const Key('ai-create-knowledge'),
-                      tooltip: context.tr('AI 生成知识'),
+                      tooltip: context.l10n.createKnowledgeWithAI,
                       icon: const Icon(Icons.auto_awesome_outlined),
                       onPressed: _bulkBusy
                           ? null
@@ -491,7 +516,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             ),
                     ),
                   IconButton(
-                    tooltip: context.tr("选择多条资料"),
+                    tooltip: context.l10n.selectMultipleItems,
                     onPressed: _bulkBusy
                         ? null
                         : () {
@@ -504,7 +529,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     icon: Icon(_selecting ? Icons.close : Icons.checklist),
                   ),
                   IconButton(
-                    tooltip: _trash ? context.tr("返回资料") : context.tr("打开回收区"),
+                    tooltip: _trash
+                        ? context.l10n.backToMaterial
+                        : context.l10n.openTrash,
                     onPressed: _bulkBusy
                         ? null
                         : () {
@@ -527,11 +554,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           ? null
                           : () => act(context, _create),
                       icon: const Icon(Icons.add, size: 18),
-                      label: Text(context.tr("新建")),
+                      label: Text(context.l10n.newItem),
                     ),
                   if (widget.isMistake && Platform.isAndroid && !_trash)
                     IconButton(
-                      tooltip: context.tr('从文件导入'),
+                      tooltip: context.l10n.importFromFiles,
                       onPressed: _importing || _bulkBusy
                           ? null
                           : () => act(context, _import),
@@ -564,11 +591,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 Icons.add_photo_alternate_outlined,
                                 size: 18,
                               ),
-                        label: Text(context.tr('导入照片')),
+                        label: Text(context.l10n.importPhotos),
                       ),
                       if (Platform.isAndroid)
                         IconButton.outlined(
-                          tooltip: context.tr('拍照录题'),
+                          tooltip: context.l10n.photographAQuestion,
                           onPressed: _importing || _bulkBusy
                               ? null
                               : () =>
@@ -581,7 +608,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             ? null
                             : () => act(context, _create),
                         icon: const Icon(Icons.edit_note, size: 18),
-                        label: Text(context.tr('文字录入')),
+                        label: Text(context.l10n.textEntry),
                       ),
                     ],
                   ),
@@ -589,8 +616,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               const SizedBox(height: 8),
               Text(
                 widget.isMistake
-                    ? context.tr("保留原题，记录思路，让每次错误都有收获。")
-                    : context.tr("概念、公式和自己的理解，都值得留下。"),
+                    ? context.l10n.keepTheOriginalQuestionAnd
+                    : context.l10n.keepConceptsFormulasAndYour,
                 style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
               ),
               const SizedBox(height: 18),
@@ -610,12 +637,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   });
                 },
                 decoration: InputDecoration(
-                  hintText: context.tr("搜索标题、正文、章节或标签"),
+                  hintText: context.l10n.searchTitlesContentChaptersOr,
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchController.text.isEmpty
                       ? null
                       : IconButton(
-                          tooltip: context.tr("清除搜索"),
+                          tooltip: context.l10n.clearSearch,
                           onPressed: _clearSearch,
                           icon: const Icon(Icons.clear),
                         ),
@@ -656,11 +683,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       const SizedBox(height: 6),
                       Text(
                         _importTotal > 0
-                            ? context.tr("正在导入第 {0} / {1} 张…", [
-                                _importDone,
-                                _importTotal,
-                              ])
-                            : context.tr("正在导入…"),
+                            ? context.l10n.importingImageProgress(
+                                l10nArgument((_importDone)),
+                                l10nArgument((_importTotal)),
+                              )
+                            : context.l10n.importInProgress,
                         style: TextStyle(
                           fontSize: 12,
                           color: colors.onSurfaceVariant,
@@ -680,7 +707,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               runSpacing: 6,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(context.tr("已选 {0} 条", [_selected.length])),
+                Text(context.l10n.selected(l10nArgument((_selected.length)))),
                 TextButton(
                   onPressed: _bulkBusy
                       ? null
@@ -689,14 +716,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             _selected[e.id] = e.revision;
                           }
                         }),
-                  child: Text(context.tr("全选已加载")),
+                  child: Text(context.l10n.selectLoadedItems),
                 ),
                 FilledButton.tonal(
                   onPressed: _bulkBusy || _selected.isEmpty
                       ? null
                       : () => act(context, _batch),
                   child: Text(
-                    _trash ? context.tr("恢复所选") : context.tr("移入回收区"),
+                    _trash
+                        ? context.l10n.restoreSelected
+                        : context.l10n.moveToTrash,
                   ),
                 ),
                 if (!_trash && !widget.isMistake)
@@ -712,14 +741,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 );
                             if (context.mounted) context.go('/chat');
                           }),
-                    child: Text(context.tr("知识检测（最多5条）")),
+                    child: Text(context.l10n.knowledgeQuizUpTo5),
                   ),
                 if (_trash)
                   TextButton(
                     onPressed: _bulkBusy || _selected.isEmpty
                         ? null
                         : () => act(context, () => _batch(permanent: true)),
-                    child: Text(context.tr("永久删除")),
+                    child: Text(context.l10n.deletePermanently),
                   ),
               ],
             ),
@@ -734,7 +763,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   child: TextButton.icon(
                     onPressed: _refresh,
                     icon: const Icon(Icons.refresh),
-                    label: Text(context.tr("加载失败，点击重试")),
+                    label: Text(context.l10n.couldNotLoadTapTo),
                   ),
                 );
               }
@@ -766,29 +795,27 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           const SizedBox(height: 16),
                           Text(
                             _trash && !hasFilters
-                                ? context.tr("回收区为空")
+                                ? context.l10n.trashIsEmpty
                                 : hasFilters
-                                ? context.tr("没有找到相关资料")
-                                : context.tr("从{0}开始", [
-                                    widget.isMistake
-                                        ? context.tr("一道错题")
-                                        : context.tr("一个知识点"),
-                                  ]),
+                                ? context.l10n.noMatchingMaterial
+                                : context.l10n.startWith(
+                                    l10nArgument(
+                                      (widget.isMistake
+                                          ? context.l10n.aMistake
+                                          : context.l10n.aKnowledgePoint),
+                                    ),
+                                  ),
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 10),
                           Text(
                             hasFilters
-                                ? context.tr('换个关键词或清除筛选，资料仍保存在本机。')
+                                ? context.l10n.tryAnotherKeywordOrClear
                                 : _trash
-                                ? context.tr("删除的资料可在这里恢复。")
+                                ? context.l10n.deletedMaterialCanBeRestored
                                 : widget.isMistake
-                                ? context.tr(
-                                    "导入题目照片，裁剪后即可请 AI 分析。\n题目文字和自己的作答可以稍后补充。",
-                                  )
-                                : context.tr(
-                                    "自由记录自己的理解，支持 Markdown 与数学公式。\n也可以从对话中保存内容，再补充自己的思考。",
-                                  ),
+                                ? context.l10n.importAndCropAQuestion
+                                : context.l10n.writeDownYourUnderstandingWith,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: colors.onSurfaceVariant,
@@ -816,7 +843,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 });
                               }),
                               icon: const Icon(Icons.filter_alt_off_outlined),
-                              label: Text(context.tr('清除筛选')),
+                              label: Text(context.l10n.clearFilters),
                             ),
                           if (!_trash)
                             Padding(
@@ -832,8 +859,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                       ),
                                 child: Text(
                                   widget.isMistake
-                                      ? context.tr('导入照片')
-                                      : context.tr('新建知识'),
+                                      ? context.l10n.importPhotos
+                                      : context.l10n.newKnowledge,
                                 ),
                               ),
                             ),
@@ -860,8 +887,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             : () => act(context, _more),
                         child: Text(
                           _loadingMore
-                              ? context.tr("正在读取…")
-                              : context.tr("加载更多"),
+                              ? context.l10n.loading
+                              : context.l10n.loadMore,
                         ),
                       ),
                     );
@@ -925,7 +952,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 expectedRevision: e.revision,
                               ),
                             ),
-                            child: Text(context.tr("恢复")),
+                            child: Text(context.l10n.restore),
                           )
                         : const Icon(Icons.chevron_right),
                     onTap: _selecting

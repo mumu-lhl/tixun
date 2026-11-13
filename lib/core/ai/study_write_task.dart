@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
@@ -40,7 +42,10 @@ class StudyWriteTask {
             (knowledgeId == null || knowledgeId!.isEmpty)) ||
         (knowledgeId?.length ?? 0) > 100 ||
         (sourceSessionId?.length ?? 0) > 100) {
-      throw const FormatException('资料整理任务无效，请重新发起。');
+      throw const AppFormatException(
+        AppErrorCode.thisWritingTaskIsInvalid,
+        '资料整理任务无效，请重新发起。',
+      );
     }
   }
 
@@ -89,7 +94,10 @@ class StudyWriteTask {
       );
       return task.promptHash == _hash(prompt) ? task : null;
     } catch (_) {
-      throw const AiFailure('资料整理任务无效，请重新发起。');
+      throw const AiFailure.localized(
+        AppErrorCode.thisWritingTaskIsInvalid,
+        '资料整理任务无效，请重新发起。',
+      );
     }
   }
 

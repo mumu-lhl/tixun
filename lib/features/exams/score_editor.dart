@@ -101,7 +101,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
       if (mounted) {
         setState(() {
           loading = false;
-          error = context.tr('小分表读取失败，请重新打开。');
+          error = context.l10n.couldNotLoadQuestionMarks;
         });
       }
     }
@@ -143,16 +143,16 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: Text(ctx.tr('放弃未保存的小分表？')),
-            content: Text(ctx.tr('已保存的数据不会改变。')),
+            title: Text(ctx.l10n.discardUnsavedQuestionMarks),
+            content: Text(ctx.l10n.yourPreviouslySavedDataWill),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: Text(ctx.tr('继续编辑')),
+                child: Text(ctx.l10n.keepEditing),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: Text(ctx.tr('放弃')),
+                child: Text(ctx.l10n.discard),
               ),
             ],
           ),
@@ -182,7 +182,9 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
     child: Scaffold(
       appBar: AppBar(
         title: Text(
-          context.tr(widget.proposal == null ? '编辑小分表' : '核对 AI 小分表'),
+          (widget.proposal == null
+              ? context.l10n.editQuestionMarks
+              : context.l10n.reviewAIQuestionMarks),
         ),
         actions: [
           TextButton(
@@ -213,12 +215,12 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                       if (context.mounted) {
                         setState(() {
                           saving = false;
-                          error = context.tr('保存失败，请检查题号、分数，或重新打开以获取最新记录。');
+                          error = context.l10n.couldNotSaveCheckQuestion;
                         });
                       }
                     }
                   },
-            child: Text(context.tr('保存')),
+            child: Text(context.l10n.save),
           ),
         ],
       ),
@@ -230,13 +232,9 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                 if (widget.proposal != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      context.tr(
-                        'AI 建议尚未验证。请逐项核对照片、得分和满分；保存后才会替换原小分表，不会自动修改裸分。',
-                      ),
-                    ),
+                    child: Text(context.l10n.aiSuggestionsAreUnverifiedCheck),
                   ),
-                Text(context.tr('空白代表未知，0 代表零分。有小题时仅统计小题，不重复计算大题分数。')),
+                Text(context.l10n.blankMeansUnknown0Means),
                 if (error != null)
                   Text(
                     error!,
@@ -258,7 +256,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                   key: const Key('score-next-question'),
                   onPressed: saving ? null : () => add(null),
                   icon: const Icon(Icons.add),
-                  label: Text(context.tr('下一题')),
+                  label: Text(context.l10n.nextQuestion),
                 ),
               ],
             ),
@@ -294,9 +292,9 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                     controller: row.label,
                     onChanged: (_) => setState(() => dirty = true),
                     decoration: InputDecoration(
-                      labelText: context.tr(
-                        row.parentId == null ? '题号' : '小题号',
-                      ),
+                      labelText: (row.parentId == null
+                          ? context.l10n.questionNumber
+                          : context.l10n.subquestion),
                     ),
                   ),
                 ),
@@ -305,7 +303,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                   child: parent
                       ? InputDecorator(
                           decoration: InputDecoration(
-                            labelText: context.tr('按小题汇总'),
+                            labelText: context.l10n.subquestionTotal,
                           ),
                           child: Text(subtotal(false)),
                         )
@@ -319,7 +317,9 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                           textInputAction: TextInputAction.next,
                           onChanged: (_) => setState(() => dirty = true),
                           decoration: InputDecoration(
-                            labelText: context.tr(parent ? '按小题汇总' : '得分'),
+                            labelText: (parent
+                                ? context.l10n.subquestionTotal
+                                : context.l10n.marks),
                           ),
                         ),
                 ),
@@ -328,7 +328,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                   child: parent
                       ? InputDecorator(
                           decoration: InputDecoration(
-                            labelText: context.tr('满分'),
+                            labelText: context.l10n.maximumScore,
                           ),
                           child: Text(subtotal(true)),
                         )
@@ -346,28 +346,28 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                                   child: true,
                                 ),
                           decoration: InputDecoration(
-                            labelText: context.tr('满分'),
+                            labelText: context.l10n.maximumScore,
                           ),
                         ),
                 ),
                 IconButton(
-                  tooltip: context.tr('删除此题'),
+                  tooltip: context.l10n.deleteQuestion,
                   onPressed: saving
                       ? null
                       : () async {
                           final yes = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              title: Text(ctx.tr('删除此题')),
-                              content: Text(ctx.tr('也将删除此题下面的小题，保存后生效。')),
+                              title: Text(ctx.l10n.deleteQuestion),
+                              content: Text(ctx.l10n.itsSubquestionsWillAlsoBe),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(ctx),
-                                  child: Text(ctx.tr('取消')),
+                                  child: Text(ctx.l10n.cancel),
                                 ),
                                 FilledButton(
                                   onPressed: () => Navigator.pop(ctx, true),
-                                  child: Text(ctx.tr('删除')),
+                                  child: Text(ctx.l10n.delete),
                                 ),
                               ],
                             ),
@@ -400,7 +400,9 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                 onChanged: (_) => setState(() => dirty = true),
                 minLines: 1,
                 maxLines: 3,
-                decoration: InputDecoration(labelText: context.tr('核对备注')),
+                decoration: InputDecoration(
+                  labelText: context.l10n.reviewNotes,
+                ),
               )
             else
               Align(
@@ -410,7 +412,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                       ? null
                       : () => setState(() => row.showNote = true),
                   icon: const Icon(Icons.note_add_outlined, size: 18),
-                  label: Text(context.tr('添加备注')),
+                  label: Text(context.l10n.addNote),
                 ),
               ),
             Align(
@@ -421,7 +423,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                   TextButton.icon(
                     onPressed: saving ? null : () => add(row),
                     icon: const Icon(Icons.playlist_add, size: 18),
-                    label: Text(context.tr('下一题')),
+                    label: Text(context.l10n.nextQuestion),
                   ),
                   TextButton.icon(
                     onPressed: saving
@@ -433,7 +435,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                             child: true,
                           ),
                     icon: const Icon(Icons.subdirectory_arrow_right, size: 18),
-                    label: Text(context.tr('下一小题')),
+                    label: Text(context.l10n.nextSubquestion),
                   ),
                 ],
               ),

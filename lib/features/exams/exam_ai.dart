@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -10,8 +12,18 @@ import 'exam_store.dart';
 /// A parse failure that keeps the model's raw reply: without it, one small
 /// formatting slip discards a whole long generation and the user can only
 /// regenerate or re-enter everything by hand.
-class ExamScoresParseFailure extends FormatException {
-  const ExamScoresParseFailure(super.message, this.rawText);
+class ExamScoresParseFailure extends FormatException
+    implements LocalizedAppFailure {
+  const ExamScoresParseFailure(
+    super.message,
+    this.rawText, {
+    this.code,
+    this.arguments = const [],
+  });
+  @override
+  final AppErrorCode? code;
+  @override
+  final List<String> arguments;
   final String rawText;
 }
 
@@ -20,7 +32,14 @@ List<ScoreDraft> parseExamScores(String text) {
     return _parseExamScores(text);
   } on FormatException catch (e) {
     if (e is ExamScoresParseFailure) rethrow;
-    throw ExamScoresParseFailure(e.message, text);
+    throw ExamScoresParseFailure(
+      e.message,
+      text,
+      code: e is LocalizedAppFailure ? (e as LocalizedAppFailure).code : null,
+      arguments: e is LocalizedAppFailure
+          ? (e as LocalizedAppFailure).arguments
+          : const [],
+    );
   }
 }
 
@@ -69,24 +88,38 @@ String _extractExamJson(String source) {
 
 List<ScoreDraft> _parseExamScores(String text) {
   final source = _extractExamJson(text.trim());
-  if (source.length > 150000) throw const FormatException('AI 小分表过大。');
+  if (source.length > 150000)
+    throw const AppFormatException(
+      AppErrorCode.errorTheAIScoreBreakdownIsToo,
+      'AI 小分表过大。',
+    );
   final dynamic json = jsonDecode(source);
   if (json is! Map ||
       json['questions'] is! List ||
       (json['questions'] as List).isEmpty) {
-    throw const FormatException('AI 未返回有效小分表，请重试或手动录入。');
+    throw const AppFormatException(
+      AppErrorCode.errorTheAIDidNotReturnA,
+      'AI 未返回有效小分表，请重试或手动录入。',
+    );
   }
   final rows = <ScoreDraft>[];
   ScoreDraft read(dynamic data, String? parent) {
     if (data is! Map ||
         data['label'] is! String ||
         (data['note'] != null && data['note'] is! String)) {
-      throw const FormatException('AI 返回的题号或备注无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheQuestionNumbersOrNotesReturned,
+        'AI 返回的题号或备注无效。',
+      );
     }
     double? number(String key) {
       final n = data[key];
       if (n == null) return null;
-      if (n is! num) throw const FormatException('AI 分数格式无效，请核对。');
+      if (n is! num)
+        throw const AppFormatException(
+          AppErrorCode.errorTheAIScoreFormatIsInvalid,
+          'AI 分数格式无效，请核对。',
+        );
       return n.toDouble();
     }
 
@@ -104,15 +137,25 @@ List<ScoreDraft> _parseExamScores(String text) {
     rows.add(parent);
     final dynamic children = q['children'];
     if (children != null && children is! List) {
-      throw const FormatException('AI 小题格式无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheAISubquestionFormatIsInvalid,
+        'AI 小题格式无效。',
+      );
     }
     for (final dynamic child in children as List? ?? []) {
       if (child is Map && child['children'] != null) {
-        throw const FormatException('小分表只支持两级题目。');
+        throw const AppFormatException(
+          AppErrorCode.errorTheScoreBreakdownSupportsOnlyTwo,
+          '小分表只支持两级题目。',
+        );
       }
       rows.add(read(child, parent.id));
     }
-    if (rows.length > 500) throw const FormatException('小分表最多 500 行。');
+    if (rows.length > 500)
+      throw const AppFormatException(
+        AppErrorCode.errorAScoreBreakdownCanHaveAt,
+        '小分表最多 500 行。',
+      );
   }
   validateScores(rows);
   return rows;
@@ -129,10 +172,16 @@ Future<List<ScoreDraft>> generateExamScores({
   required void Function(String reasoning) onReasoning,
 }) async {
   if (!AiOptions(config).vision) {
-    throw const FormatException('当前模型不支持图片，请选择支持视觉的模型。');
+    throw const AppFormatException(
+      AppErrorCode.modelDoesNotSupportImages,
+      '当前模型不支持图片，请选择支持视觉的模型。',
+    );
   }
   if (images.isEmpty) {
-    throw const FormatException('请选择图片供 AI 整理。');
+    throw const AppFormatException(
+      AppErrorCode.errorSelectImagesForTheAITo,
+      '请选择图片供 AI 整理。',
+    );
   }
   final attachments = <AiImage>[];
   var size = 0;
@@ -142,7 +191,10 @@ Future<List<ScoreDraft>> generateExamScores({
     final file = files.resolve(image.relativePath);
     size += await file.length();
     if (size > 20 * 1024 * 1024) {
-      throw const FormatException('本次图片总大小超过 20 MB，请分批处理。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheImagesExceed20MBIn,
+        '本次图片总大小超过 20 MB，请分批处理。',
+      );
     }
     attachments.add(
       AiImage(
@@ -176,17 +228,31 @@ Future<List<ScoreDraft>> generateExamScores({
           )) {
     cancel.checkCancelled();
     if (completed && (chunk.text.isNotEmpty || chunk.reasoning.isNotEmpty)) {
-      throw const AiFailure('AI 完成后仍返回数据。');
+      throw const AiFailure.localized(
+        AppErrorCode.errorTheAIReturnedDataAfterCompletion,
+        'AI 完成后仍返回数据。',
+      );
     }
     text += chunk.text;
     reasoning += chunk.reasoning;
     if (text.length + reasoning.length > 200000) {
-      throw const AiFailure('AI 回复过长。');
+      throw const AiFailure.localized(
+        AppErrorCode.errorTheAIResponseIsTooLong,
+        'AI 回复过长。',
+      );
     }
     onReasoning(reasoning);
-    if (chunk.calls.isNotEmpty) throw const AiFailure('本次小分表整理不允许工具调用。');
+    if (chunk.calls.isNotEmpty)
+      throw const AiFailure.localized(
+        AppErrorCode.errorToolCallsAreNotAllowedWhile,
+        '本次小分表整理不允许工具调用。',
+      );
     completed |= chunk.completed;
   }
-  if (!completed) throw const AiFailure('连接提前断开，未应用小分表。');
+  if (!completed)
+    throw const AiFailure.localized(
+      AppErrorCode.errorTheConnectionClosedEarlyTheScore,
+      '连接提前断开，未应用小分表。',
+    );
   return parseExamScores(text);
 }

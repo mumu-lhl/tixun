@@ -1,3 +1,4 @@
+import 'package:tixun/core/l10n/app_error.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -25,7 +26,11 @@ class ScoreDraft {
 }
 
 void validateScores(List<ScoreDraft> rows) {
-  if (rows.length > 500) throw const FormatException('小分表最多 500 行。');
+  if (rows.length > 500)
+    throw const AppFormatException(
+      AppErrorCode.errorAScoreBreakdownCanHaveAt,
+      '小分表最多 500 行。',
+    );
   final ids = <String, ScoreDraft>{};
   for (final row in rows) {
     if (row.id.isEmpty ||
@@ -33,7 +38,10 @@ void validateScores(List<ScoreDraft> rows) {
         row.label.trim().isEmpty ||
         row.label.length > 60 ||
         row.note.length > 2000) {
-      throw const FormatException('题号不能为空或重复，题号最长 60 字。');
+      throw const AppFormatException(
+        AppErrorCode.errorQuestionNumbersMustBeUniqueAnd,
+        '题号不能为空或重复，题号最长 60 字。',
+      );
     }
     ids[row.id] = row;
     validateScore(row.earned, row.maximum);
@@ -43,13 +51,19 @@ void validateScores(List<ScoreDraft> rows) {
         (ids[row.parentId] == null ||
             ids[row.parentId]!.parentId != null ||
             row.parentId == row.id)) {
-      throw const FormatException('小题必须关联本表中的一道大题。');
+      throw const AppFormatException(
+        AppErrorCode.errorEachSubquestionMustBelongToA,
+        '小题必须关联本表中的一道大题。',
+      );
     }
   }
   final labels = <String>{};
   for (final row in rows) {
     if (!labels.add('${row.parentId ?? "root"}:${row.label.trim()}')) {
-      throw const FormatException('同一级的题号不能重复。');
+      throw const AppFormatException(
+        AppErrorCode.errorQuestionNumbersAtTheSameLevel,
+        '同一级的题号不能重复。',
+      );
     }
   }
 }
@@ -57,11 +71,17 @@ void validateScores(List<ScoreDraft> rows) {
 void validateScore(double? score, double? maximum) {
   for (final value in [score, maximum]) {
     if (value != null && (!value.isFinite || value < 0 || value > 10000)) {
-      throw const FormatException('分数需为 0–10000 的有效数字。');
+      throw const AppFormatException(
+        AppErrorCode.errorScoresMustBeValidNumbersFrom,
+        '分数需为 0–10000 的有效数字。',
+      );
     }
   }
   if (score != null && maximum != null && score > maximum) {
-    throw const FormatException('得分不能超过满分。');
+    throw const AppFormatException(
+      AppErrorCode.errorTheScoreCannotExceedTheMaximum,
+      '得分不能超过满分。',
+    );
   }
 }
 
@@ -106,7 +126,10 @@ class ExamStore extends DatabaseNotifier {
     required DateTime date,
   }) => runOperation(() async {
     if (title.trim().isEmpty || title.length > 120) {
-      throw const FormatException('考试名称需为 1–120 字。');
+      throw const AppFormatException(
+        AppErrorCode.examNameMustBe1,
+        '考试名称需为 1–120 字。',
+      );
     }
     final key = id ?? const Uuid().v4();
     await db
@@ -134,7 +157,10 @@ class ExamStore extends DatabaseNotifier {
     String notes = '',
   }) => runOperation(() async {
     if (subject.trim().isEmpty || subject.length > 40 || notes.length > 10000) {
-      throw const FormatException('请检查科目名称和备注长度。');
+      throw const AppFormatException(
+        AppErrorCode.errorCheckTheLengthsOfTheSubject,
+        '请检查科目名称和备注长度。',
+      );
     }
     validateScore(raw, maximum);
     validateScore(scaled, null);
@@ -172,7 +198,10 @@ class ExamStore extends DatabaseNotifier {
         db.examSubjects,
       )..where((t) => t.id.equals(subjectId))).getSingle();
       if (expected != null && subject.scoreRevision != expected) {
-        throw const FormatException('记录已更新，请重新打开小分表后编辑。');
+        throw const AppFormatException(
+          AppErrorCode.errorThisRecordHasChangedReopenThe,
+          '记录已更新，请重新打开小分表后编辑。',
+        );
       }
       await (db.delete(
         db.examScoreRows,
@@ -214,7 +243,10 @@ class ExamStore extends DatabaseNotifier {
     String source,
   ) => runOperation(() async {
     if (!examImageRoles.containsKey(role)) {
-      throw const FormatException('图片类别无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidImageCategory,
+        '图片类别无效。',
+      );
     }
     final image = await files.importFile(source);
     final id = const Uuid().v4();
@@ -281,7 +313,10 @@ class ExamStore extends DatabaseNotifier {
   Future<String> replaceImage(ExamAttachment image, Uint8List bytes) =>
       runOperation(() async {
         if (bytes.length > 8 * 1024 * 1024) {
-          throw const FormatException('编辑副本超过 8 MB。');
+          throw const AppFormatException(
+            AppErrorCode.theEditedImageExceeds8,
+            '编辑副本超过 8 MB。',
+          );
         }
         final (mime, extension) = AttachmentStore.identify(bytes);
         final path = 'attachments/${const Uuid().v4()}.$extension';
@@ -292,7 +327,10 @@ class ExamStore extends DatabaseNotifier {
               db.examAttachments,
             )..where((t) => t.id.equals(image.id))).getSingleOrNull();
             if (row == null || row.relativePath != image.relativePath) {
-              throw const FormatException('照片已更改或删除，请重新打开。');
+              throw const AppFormatException(
+                AppErrorCode.thePhotoChangedOrWas,
+                '照片已更改或删除，请重新打开。',
+              );
             }
             final file = files.resolve(path);
             await file.parent.create(recursive: true);

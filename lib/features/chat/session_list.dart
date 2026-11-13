@@ -55,12 +55,12 @@ class _SessionListState extends ConsumerState<SessionList> {
             children: [
               Expanded(
                 child: Text(
-                  context.tr("学习对话"),
+                  context.l10n.learningConversations,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ),
               IconButton(
-                tooltip: context.tr("新建会话"),
+                tooltip: context.l10n.newConversation,
                 key: const Key('new-session'),
                 onPressed: () => act(context, () async {
                   await c.newSession();
@@ -78,9 +78,9 @@ class _SessionListState extends ConsumerState<SessionList> {
               children: [
                 Expanded(
                   child: Text(
-                    context.tr('当前科目：{0}', [
-                      context.subjectName(c.subjectFilter),
-                    ]),
+                    context.l10n.currentSubject(
+                      l10nArgument((context.subjectName(c.subjectFilter))),
+                    ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -90,7 +90,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                     await c.searchSessions('');
                     await c.setSubjectFilter('');
                   }),
-                  child: Text(context.tr('查看全部会话')),
+                  child: Text(context.l10n.showAllConversations),
                 ),
               ],
             ),
@@ -101,12 +101,12 @@ class _SessionListState extends ConsumerState<SessionList> {
             controller: _search,
             onChanged: c.searchSessions,
             decoration: InputDecoration(
-              hintText: context.tr("搜索标题或消息"),
+              hintText: context.l10n.searchTitlesOrMessages,
               prefixIcon: const Icon(Icons.search, size: 20),
               suffixIcon: c.search.isEmpty
                   ? null
                   : IconButton(
-                      tooltip: context.tr("清除搜索"),
+                      tooltip: context.l10n.clearSearch,
                       icon: const Icon(Icons.clear, size: 20),
                       onPressed: () {
                         _search.clear();
@@ -125,10 +125,10 @@ class _SessionListState extends ConsumerState<SessionList> {
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       c.search.isNotEmpty
-                          ? context.tr("没有找到相关对话")
+                          ? context.l10n.noMatchingConversations
                           : c.subjectFilter.isNotEmpty
-                          ? context.tr('当前科目下没有会话')
-                          : context.tr("还没有对话\n从一个问题开始吧"),
+                          ? context.l10n.noConversationsInThisSubject
+                          : context.l10n.noConversationsYetStartWith,
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -164,15 +164,17 @@ class _SessionListState extends ConsumerState<SessionList> {
                             style: const TextStyle(fontSize: 14),
                           ),
                           subtitle: Text(
-                            context.tr("{0}月{1}日 · {2}", [
-                              s.updatedAt.month,
-                              s.updatedAt.day,
-                              s.mode == 'guided'
-                                  ? context.tr("引导教学")
-                                  : s.mode == 'direct'
-                                  ? context.tr("直接解答")
-                                  : context.tr("考试对话"),
-                            ]),
+                            context.l10n.monthDayWithLabel(
+                              l10nArgument((s.updatedAt.month)),
+                              l10nArgument((s.updatedAt.day)),
+                              l10nArgument(
+                                (s.mode == 'guided'
+                                    ? context.l10n.guidedLearning
+                                    : s.mode == 'direct'
+                                    ? context.l10n.directAnswer
+                                    : context.l10n.examMode),
+                              ),
+                            ),
                             style: TextStyle(
                               fontSize: 11,
                               color: colors.onSurfaceVariant,
@@ -184,17 +186,17 @@ class _SessionListState extends ConsumerState<SessionList> {
                           }),
                           trailing: PopupMenuButton<String>(
                             popUpAnimationStyle: menuAnimation(context),
-                            tooltip: context.tr("会话操作"),
+                            tooltip: context.l10n.conversationActions,
                             onSelected: (action) =>
                                 _action(context, c, s, action),
                             itemBuilder: (_) => [
                               PopupMenuItem(
                                 value: 'rename',
-                                child: Text(context.tr("重命名")),
+                                child: Text(context.l10n.rename),
                               ),
                               PopupMenuItem(
                                 value: 'delete',
-                                child: Text(context.tr("删除会话")),
+                                child: Text(context.l10n.deleteConversation),
                               ),
                             ],
                           ),
@@ -212,10 +214,10 @@ class _SessionListState extends ConsumerState<SessionList> {
               TextButton.icon(
                 onPressed: () => act(context, () => _trash(context, c)),
                 icon: const Icon(Icons.restore_from_trash_outlined, size: 17),
-                label: Text(context.tr("回收区"), style: TextStyle(fontSize: 12)),
+                label: Text(context.l10n.trash, style: TextStyle(fontSize: 12)),
               ),
               Text(
-                context.tr("保存在此设备 · 不自动清空回收区"),
+                context.l10n.storedOnThisDeviceTrash,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant),
               ),
@@ -235,7 +237,7 @@ class _SessionListState extends ConsumerState<SessionList> {
     if (action == 'rename') {
       final title = await editText(
         context,
-        title: context.tr("重命名会话"),
+        title: context.l10n.renameConversation,
         initial: s.title,
       );
       if (title != null && context.mounted) {
@@ -247,9 +249,9 @@ class _SessionListState extends ConsumerState<SessionList> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(context.tr("会话已移入回收区")),
+              content: Text(context.l10n.conversationMovedToTrash),
               action: SnackBarAction(
-                label: context.tr("撤销"),
+                label: context.l10n.undo,
                 onPressed: () => act(context, () => c.restoreSession(s)),
               ),
             ),
@@ -266,12 +268,12 @@ class _SessionListState extends ConsumerState<SessionList> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, update) => AlertDialog(
-          title: Text(context.tr("回收区")),
+          title: Text(context.l10n.trash),
           content: SizedBox(
             width: 480,
             height: 320,
             child: items.isEmpty
-                ? Center(child: Text(context.tr("回收区为空")))
+                ? Center(child: Text(context.l10n.trashIsEmpty))
                 : ListView.builder(
                     itemCount: items.length,
                     itemBuilder: (context, index) {
@@ -284,15 +286,17 @@ class _SessionListState extends ConsumerState<SessionList> {
                         ),
                         trailing: PopupMenuButton<String>(
                           popUpAnimationStyle: menuAnimation(context),
-                          tooltip: context.tr("回收会话操作"),
+                          tooltip: context.l10n.deletedConversationActions,
                           itemBuilder: (_) => [
                             PopupMenuItem(
                               value: 'restore',
-                              child: Text(context.tr("恢复会话")),
+                              child: Text(context.l10n.restoreConversation),
                             ),
                             PopupMenuItem(
                               value: 'purge',
-                              child: Text(context.tr("永久删除会话")),
+                              child: Text(
+                                context.l10n.deleteConversationPermanently,
+                              ),
                             ),
                           ],
                           onSelected: (action) => act(context, () async {
@@ -302,22 +306,26 @@ class _SessionListState extends ConsumerState<SessionList> {
                               final ok = await showDialog<bool>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: Text(context.tr("永久删除会话？")),
+                                  title: Text(
+                                    context.l10n.permanentlyDeleteConversation,
+                                  ),
                                   content: Text(
-                                    context.tr(
-                                      "将永久删除“{0}”的消息、图片引用和工具执行记录。独立保存的知识、错题及训练记录仍保留，其他记录使用的图片也会保留。已导出的备份和恢复安全副本需另行管理。",
-                                      [item.title],
-                                    ),
+                                    context.l10n
+                                        .permanentlyDeleteMessagesImageReferences(
+                                          l10nArgument((item.title)),
+                                        ),
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(ctx, false),
-                                      child: Text(context.tr("取消")),
+                                      child: Text(context.l10n.cancel),
                                     ),
                                     FilledButton(
                                       onPressed: () => Navigator.pop(ctx, true),
-                                      child: Text(context.tr("永久删除")),
+                                      child: Text(
+                                        context.l10n.deletePermanently,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -328,10 +336,10 @@ class _SessionListState extends ConsumerState<SessionList> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      context.tr(
-                                        "记录已删除，{0} 个未引用图片未能清理，请检查目录权限。",
-                                        [failed],
-                                      ),
+                                      context.l10n
+                                          .recordsDeletedUnusedImagesNotRemoved(
+                                            l10nArgument((failed)),
+                                          ),
                                     ),
                                   ),
                                 );
@@ -351,7 +359,7 @@ class _SessionListState extends ConsumerState<SessionList> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(context.tr("关闭")),
+              child: Text(context.l10n.close),
             ),
           ],
         ),

@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -46,10 +48,13 @@ class ChatGptResponses implements ChatProvider {
     try {
       validateConfig(config);
     } on FormatException catch (e) {
-      throw AiFailure(e.message);
+      throw AiFailure.fromFormatException(e);
     }
     if (apiKeyOverride != null) {
-      throw const FormatException('ChatGPT 使用浏览器登录，无需 API Key。');
+      throw const AppFormatException(
+        AppErrorCode.chatGPTUsesBrowserSignIn,
+        'ChatGPT 使用浏览器登录，无需 API Key。',
+      );
     }
     final context = <String, List<dynamic>>{};
     return AiConversation(
@@ -177,21 +182,42 @@ class ChatGptResponses implements ChatProvider {
     } on FormatException catch (e) {
       // Configuration errors (e.g. thinking level vs model mismatch) must
       // keep their own message instead of becoming '回复格式无效'.
-      throw AiFailure(e.message);
+      throw AiFailure.fromFormatException(e);
     } on DioException catch (error) {
       if (CancelToken.isCancel(error)) rethrow;
-      throw AiFailure(switch (error.response?.statusCode) {
-        401 => 'ChatGPT 登录已失效，请重新登录。',
-        402 || 403 || 429 => 'ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。',
-        400 || 404 || 422 => 'ChatGPT 不支持当前模型或参数，请刷新模型列表或改用模型默认思考设置。',
-        _ => 'ChatGPT 请求失败，请检查网络后重试。',
-      });
+      throw switch (error.response?.statusCode) {
+        401 => const AiFailure.localized(
+          AppErrorCode.yourChatGPTSignInHas,
+          'ChatGPT 登录已失效，请重新登录。',
+        ),
+        402 || 403 || 429 => const AiFailure.localized(
+          AppErrorCode.chatGPTPlanAllowanceOrPermissions,
+          'ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。',
+        ),
+        400 || 404 || 422 => const AiFailure.localized(
+          AppErrorCode.chatGptUnsupportedModelOrParameter,
+          'ChatGPT 不支持当前模型或参数，请刷新模型列表或改用模型默认思考设置。',
+        ),
+        _ => const AiFailure.localized(
+          AppErrorCode.theChatGPTRequestFailedCheck,
+          'ChatGPT 请求失败，请检查网络后重试。',
+        ),
+      };
     } on TimeoutException {
-      throw const AiFailure('等待回复超时，已保留收到的内容。');
+      throw const AiFailure.localized(
+        AppErrorCode.theResponseTimedOutReceived,
+        '等待回复超时，已保留收到的内容。',
+      );
     } on TypeError {
-      throw const AiFailure('ChatGPT 回复字段类型不兼容，请重试并反馈此提示。');
+      throw const AiFailure.localized(
+        AppErrorCode.chatGPTReturnedIncompatibleResponseFields,
+        'ChatGPT 回复字段类型不兼容，请重试并反馈此提示。',
+      );
     } catch (_) {
-      throw const AiFailure('ChatGPT 回复格式无效，请重试。');
+      throw const AiFailure.localized(
+        AppErrorCode.invalidChatGPTResponseFormatTry,
+        'ChatGPT 回复格式无效，请重试。',
+      );
     }
   }
 }
@@ -213,7 +239,10 @@ Stream<List<int>> _compatibleResponseEvents(
       continue;
     }
     if (body.length + bytes.length > 2 * 1024 * 1024) {
-      throw const AiFailure('ChatGPT 非流式回复过大，请新建会话或重试。');
+      throw const AiFailure.localized(
+        AppErrorCode.theNonStreamingChatGPTResponse,
+        'ChatGPT 非流式回复过大，请新建会话或重试。',
+      );
     }
     body.addAll(bytes);
     // Sniff only the ASCII framing, retaining original bytes so a split UTF-8
@@ -246,41 +275,67 @@ Stream<List<int>> _compatibleResponseEvents(
   try {
     text = utf8.decode(body).replaceFirst('\ufeff', '').trimLeft();
   } on FormatException {
-    throw const AiFailure('ChatGPT 回复格式无效，请重试。');
+    throw const AiFailure.localized(
+      AppErrorCode.invalidChatGPTResponseFormatTry,
+      'ChatGPT 回复格式无效，请重试。',
+    );
   }
   if (mediaType.contains('text/html') || text.startsWith('<')) {
-    throw const AiFailure('ChatGPT 返回了网页而不是 AI 回复，请检查网络或代理后重试。');
+    throw const AiFailure.localized(
+      AppErrorCode.chatGPTReturnedAWebPage,
+      'ChatGPT 返回了网页而不是 AI 回复，请检查网络或代理后重试。',
+    );
   }
   dynamic decoded;
   try {
     decoded = jsonDecode(text);
   } catch (_) {
-    throw const AiFailure('ChatGPT 返回了无法识别的回复格式，请检查服务后重试。');
+    throw const AiFailure.localized(
+      AppErrorCode.chatGPTReturnedAnUnrecognizedFormat,
+      'ChatGPT 返回了无法识别的回复格式，请检查服务后重试。',
+    );
   }
   if (decoded is! Map<String, dynamic>) {
-    throw const AiFailure('ChatGPT 回复格式无效，请重试。');
+    throw const AiFailure.localized(
+      AppErrorCode.invalidChatGPTResponseFormatTry,
+      'ChatGPT 回复格式无效，请重试。',
+    );
   }
   if (decoded['error'] != null) {
     final error = decoded['error'];
     final code = error is Map ? error['code'] : null;
     // Never display raw server messages: they may echo user input or tokens.
-    throw AiFailure(switch (code) {
+    throw switch (code) {
       'subscription_sharing_usage_limit_exceeded' ||
       'subscription_sharing_usage_unavailable' ||
       'insufficient_quota' ||
-      'rate_limit_exceeded' =>
+      'rate_limit_exceeded' => const AiFailure.localized(
+        AppErrorCode.chatGPTPlanAllowanceOrPermissions,
         'ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。',
+      ),
       'invalid_api_key' ||
       'invalid_token' ||
-      'token_expired' => 'ChatGPT 登录已失效，请重新登录。',
+      'token_expired' => const AiFailure.localized(
+        AppErrorCode.yourChatGPTSignInHas,
+        'ChatGPT 登录已失效，请重新登录。',
+      ),
       'model_not_found' ||
       'invalid_request_error' ||
-      'unsupported_value' => 'ChatGPT 不支持当前模型或参数，请刷新模型列表或改用模型默认思考设置。',
-      _ => 'ChatGPT 服务返回了错误，请刷新模型列表或重新登录后重试。',
-    });
+      'unsupported_value' => const AiFailure.localized(
+        AppErrorCode.chatGptUnsupportedModelOrParameter,
+        'ChatGPT 不支持当前模型或参数，请刷新模型列表或改用模型默认思考设置。',
+      ),
+      _ => const AiFailure.localized(
+        AppErrorCode.chatGPTReturnedAnErrorRefresh,
+        'ChatGPT 服务返回了错误，请刷新模型列表或重新登录后重试。',
+      ),
+    };
   }
   if (decoded['status'] != 'completed' || decoded['output'] is! List) {
-    throw const AiFailure('ChatGPT 未完成回复，已保留收到的内容。请重试。');
+    throw const AiFailure.localized(
+      AppErrorCode.chatGPTDidNotCompleteThe,
+      'ChatGPT 未完成回复，已保留收到的内容。请重试。',
+    );
   }
   yield utf8.encode(
     'data: ${jsonEncode({'type': 'response.completed', 'response': decoded})}\n\n',
@@ -300,7 +355,10 @@ Stream<AiChunk> decodeResponses(
     try {
       event = jsonDecode(data) as Map<String, dynamic>;
     } catch (_) {
-      throw const AiFailure('ChatGPT 流式事件无法解析，请重试并检查网络或代理。');
+      throw const AiFailure.localized(
+        AppErrorCode.couldNotParseAChatGPT,
+        'ChatGPT 流式事件无法解析，请重试并检查网络或代理。',
+      );
     }
     final type = event['type'];
     if ([
@@ -323,20 +381,27 @@ Stream<AiChunk> decodeResponses(
           ? event
           : (event['response'] as Map?)?['error'];
       final code = error is Map ? error['code'] : null;
-      throw AiFailure(
-        [
-              'subscription_sharing_usage_limit_exceeded',
-              'subscription_sharing_usage_unavailable',
-            ].contains(code)
-            ? 'ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。'
-            : 'ChatGPT 未完成回复，已保留收到的内容。请重试。',
-      );
+      throw [
+            'subscription_sharing_usage_limit_exceeded',
+            'subscription_sharing_usage_unavailable',
+          ].contains(code)
+          ? const AiFailure.localized(
+              AppErrorCode.chatGPTPlanAllowanceOrPermissions,
+              'ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。',
+            )
+          : const AiFailure.localized(
+              AppErrorCode.chatGPTDidNotCompleteThe,
+              'ChatGPT 未完成回复，已保留收到的内容。请重试。',
+            );
     } else if (type == 'response.completed') {
       final response = event['response'] as Map?;
       if (response == null ||
           response['status'] != 'completed' ||
           response['output'] is! List) {
-        throw const AiFailure('ChatGPT 回复结束事件不完整，请重试并反馈此提示。');
+        throw const AiFailure.localized(
+          AppErrorCode.theChatGPTCompletionEventWas,
+          'ChatGPT 回复结束事件不完整，请重试并反馈此提示。',
+        );
       }
       final output = response['output'] as List;
       // Usage is optional accounting metadata. A different numeric encoding
@@ -377,7 +442,11 @@ Stream<AiChunk> decodeResponses(
       final calls = output
           .where((o) => o is Map && o['type'] == 'function_call')
           .toList();
-      if (calls.length > 8) throw const AiFailure('已达到本次最多 8 个工具调用的限制。');
+      if (calls.length > 8)
+        throw const AiFailure.localized(
+          AppErrorCode.thisRequestReachedTheLimit,
+          '已达到本次最多 8 个工具调用的限制。',
+        );
       if (calls.isNotEmpty) {
         final context = output
             .where(
@@ -387,7 +456,10 @@ Stream<AiChunk> decodeResponses(
             )
             .toList();
         if (jsonEncode(context).length > 2 * 1024 * 1024) {
-          throw const AiFailure('ChatGPT 工具上下文过大，请新建会话。');
+          throw const AiFailure.localized(
+            AppErrorCode.chatGPTToolContextIsToo,
+            'ChatGPT 工具上下文过大，请新建会话。',
+          );
         }
         final parts = <ToolCall>[];
 
@@ -397,7 +469,10 @@ Stream<AiChunk> decodeResponses(
               call['name'] is! String ||
               call['arguments'] is! String ||
               (call['namespace'] != null && call['namespace'] != 'tixun')) {
-            throw const AiFailure('工具调用格式无效。');
+            throw const AiFailure.localized(
+              AppErrorCode.invalidToolCallFormat,
+              '工具调用格式无效。',
+            );
           }
           final name = (call['name'] as String).replaceFirst(
             RegExp(r'^tixun\.'),
@@ -422,5 +497,9 @@ Stream<AiChunk> decodeResponses(
       break;
     }
   }
-  if (!completed) throw const AiFailure('连接提前断开，已保留收到的内容。请重新生成。');
+  if (!completed)
+    throw const AiFailure.localized(
+      AppErrorCode.theConnectionEndedEarlyReceived,
+      '连接提前断开，已保留收到的内容。请重新生成。',
+    );
 }

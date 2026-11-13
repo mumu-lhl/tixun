@@ -79,7 +79,7 @@ class _AppSelectFieldState<T> extends State<AppSelectField<T>> {
     final label =
         choice?.child ??
         Text(
-          widget.decoration.hintText ?? context.tr('请选择'),
+          widget.decoration.hintText ?? context.l10n.choose,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         );

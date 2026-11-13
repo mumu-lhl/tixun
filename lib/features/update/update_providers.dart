@@ -101,14 +101,13 @@ enum UpdateStatus { idle, checking, upToDate, available, noneAvailable, failed }
 
 /// One snapshot of the update state shown in Settings.
 ///
-/// [message] is a Chinese l10n key (with [messageArgs] for `{0}` style
-/// placeholders); the UI translates it with `context.tr` at display time.
+/// [message] is a structured code, localized only when displayed.
 class UpdateState {
   const UpdateState({
     this.status = UpdateStatus.idle,
     this.release,
     this.message,
-    this.messageArgs = const [],
+    this.messageTag,
     this.downloadProgress,
     this.staged = false,
     this.readyToInstall = false,
@@ -122,8 +121,8 @@ class UpdateState {
   final ReleaseInfo? release;
 
   /// Short status text (l10n key), or null when nothing should be shown.
-  final String? message;
-  final List<Object?> messageArgs;
+  final UpdateMessage? message;
+  final String? messageTag;
 
   /// Download progress 0..1 while downloading, null otherwise.
   final double? downloadProgress;
@@ -147,8 +146,8 @@ class UpdateState {
   UpdateState copyWith({
     UpdateStatus? status,
     ReleaseInfo? release,
-    String? message,
-    List<Object?>? messageArgs,
+    UpdateMessage? message,
+    String? messageTag,
     double? downloadProgress,
     bool? staged,
     bool? readyToInstall,
@@ -164,7 +163,7 @@ class UpdateState {
       status: status ?? this.status,
       release: release ?? this.release,
       message: clearMessage ? null : (message ?? this.message),
-      messageArgs: messageArgs ?? this.messageArgs,
+      messageTag: clearMessage ? null : (messageTag ?? this.messageTag),
       downloadProgress: clearDownloadProgress
           ? null
           : (downloadProgress ?? this.downloadProgress),
@@ -192,8 +191,8 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
         if (pending != null) {
           return UpdateState(
             status: UpdateStatus.available,
-            message: '发现新版本 {0}',
-            messageArgs: [pending.tag],
+            message: UpdateMessage.newVersion,
+            messageTag: pending.tag,
             staged: true,
           );
         }
@@ -221,7 +220,7 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
     state = state.copyWith(
       status: UpdateStatus.checking,
       clearMessage: true,
-      messageArgs: const [],
+
       clearDownloadProgress: true,
       installBlocked: false,
       readyToInstall: false,
@@ -242,16 +241,14 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
           state = state.copyWith(
             status: UpdateStatus.upToDate,
             release: outcome.release,
-            message: '已是最新版本',
-            messageArgs: const [],
+            message: UpdateMessage.upToDate,
           );
         case UpdateCheckKind.available:
           final release = outcome.release;
           if (release == null) {
             state = state.copyWith(
               status: UpdateStatus.failed,
-              message: '检查失败，请稍后重试',
-              messageArgs: const [],
+              message: UpdateMessage.checkFailed,
             );
             break;
           }
@@ -264,8 +261,7 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
           if (assetName == null) {
             state = state.copyWith(
               status: UpdateStatus.failed,
-              message: '当前平台暂不支持应用内更新',
-              messageArgs: const [],
+              message: UpdateMessage.unsupportedPlatform,
             );
             break;
           }
@@ -273,29 +269,26 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
           state = state.copyWith(
             status: UpdateStatus.available,
             release: release,
-            message: '发现新版本 {0}',
-            messageArgs: [release.tag],
+            message: UpdateMessage.newVersion,
+            messageTag: release.tag,
           );
         case UpdateCheckKind.noneAvailable:
           state = state.copyWith(
             status: UpdateStatus.noneAvailable,
             release: outcome.release,
-            message: outcome.message ?? '暂无新版本',
-            messageArgs: const [],
+            message: outcome.message ?? UpdateMessage.noNewVersion,
           );
         case UpdateCheckKind.failed:
           state = state.copyWith(
             status: UpdateStatus.failed,
             release: outcome.release,
-            message: outcome.message ?? '检查失败，请稍后重试',
-            messageArgs: const [],
+            message: outcome.message ?? UpdateMessage.checkFailed,
           );
       }
     } catch (_) {
       state = state.copyWith(
         status: UpdateStatus.failed,
-        message: '检查失败，请稍后重试',
-        messageArgs: const [],
+        message: UpdateMessage.checkFailed,
       );
     } finally {
       // The check found the same release the APK was downloaded for:
@@ -374,8 +367,8 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
         // without SHA256SUMS or the fetch is offline.
         state = state.copyWith(
           status: UpdateStatus.failed,
-          message: '无法获取校验信息，请重试',
-          messageArgs: const [],
+          message: UpdateMessage.checksumUnavailable,
+
           clearDownloadProgress: true,
         );
         return;
@@ -387,8 +380,8 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
         } catch (_) {}
         state = state.copyWith(
           status: UpdateStatus.failed,
-          message: '下载校验失败，请重试',
-          messageArgs: const [],
+          message: UpdateMessage.checksumFailed,
+
           clearDownloadProgress: true,
         );
         return;
@@ -414,16 +407,16 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
       } else {
         state = state.copyWith(
           status: UpdateStatus.failed,
-          message: '当前平台暂不支持应用内更新',
-          messageArgs: const [],
+          message: UpdateMessage.unsupportedPlatform,
+
           clearDownloadProgress: true,
         );
       }
     } catch (_) {
       state = state.copyWith(
         status: UpdateStatus.failed,
-        message: '下载失败，请稍后重试',
-        messageArgs: const [],
+        message: UpdateMessage.downloadFailed,
+
         clearDownloadProgress: true,
       );
     }
@@ -441,15 +434,14 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
         await installApk(apkPath);
       } on InstallNotAllowedException {
         state = state.copyWith(
-          message: '需要允许安装未知应用，请在系统设置中开启后重试。',
-          messageArgs: const [],
+          message: UpdateMessage.installPermission,
+
           installBlocked: true,
         );
       } catch (_) {
         state = state.copyWith(
           status: UpdateStatus.failed,
-          message: '安装失败，请稍后重试',
-          messageArgs: const [],
+          message: UpdateMessage.installFailed,
         );
       }
       return;
@@ -463,8 +455,7 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
       } else if (result == ApplyResult.failed) {
         state = state.copyWith(
           status: UpdateStatus.failed,
-          message: '更新应用失败，请稍后重试',
-          messageArgs: const [],
+          message: UpdateMessage.applyFailed,
         );
       }
       return;
@@ -488,9 +479,9 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
       clearDownloadProgress: true,
       installBlocked: false,
       status: release == null ? UpdateStatus.idle : UpdateStatus.available,
-      message: release == null ? null : '发现新版本 {0}',
+      message: release == null ? null : UpdateMessage.newVersion,
       clearMessage: release == null,
-      messageArgs: release == null ? const [] : [release.tag],
+      messageTag: release?.tag,
     );
   }
 

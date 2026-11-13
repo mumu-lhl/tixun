@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -17,7 +19,11 @@ class AttachmentStore {
   final Directory root;
   File resolve(String relative) {
     final target = p.normalize(p.join(root.path, relative));
-    if (!p.isWithin(root.path, target)) throw const FormatException('附件路径无效');
+    if (!p.isWithin(root.path, target))
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidAttachmentPath,
+        '附件路径无效',
+      );
     return File(target);
   }
 
@@ -25,7 +31,10 @@ class AttachmentStore {
     final file = File(source);
     final size = await file.length();
     if (size > 8 * 1024 * 1024) {
-      throw const FormatException('单张图片上限为 8 MB，请先缩小图片。');
+      throw const AppFormatException(
+        AppErrorCode.errorEachImageMustBeAtMost,
+        '单张图片上限为 8 MB，请先缩小图片。',
+      );
     }
     final data = await file.readAsBytes();
     final (mime, ext) = identify(data);
@@ -55,6 +64,9 @@ class AttachmentStore {
         String.fromCharCodes(b.skip(8).take(4)) == 'WEBP') {
       return ('image/webp', 'webp');
     }
-    throw const FormatException('仅支持 JPG、PNG、GIF 和 WebP 图片。');
+    throw const AppFormatException(
+      AppErrorCode.errorOnlyJPGPNGGIFAndWebP,
+      '仅支持 JPG、PNG、GIF 和 WebP 图片。',
+    );
   }
 }

@@ -13,7 +13,7 @@ import 'review_store.dart';
 
 String reviewDate(DateTime value, {BuildContext? context}) {
   final d = value.toLocal();
-  if (context != null && AppStrings.of(context).locale.languageCode == 'en') {
+  if (context != null && context.l10n.localeName == 'en') {
     final local = MaterialLocalizations.of(context);
     return '${local.formatShortDate(d)} ${local.formatTimeOfDay(TimeOfDay.fromDateTime(d))}';
   }
@@ -30,8 +30,8 @@ String dueLabel(BuildContext context, DateTime dueAt) {
   if (dueAt.isBefore(now)) {
     final days = now.difference(dueAt).inDays;
     text += days > 0
-        ? ' · ${context.tr("已逾期 {0} 天", [days])}'
-        : ' · ${context.tr("已逾期")}';
+        ? ' · ${context.l10n.overdueByDays(l10nArgument((days)))}'
+        : ' · ${context.l10n.overdue}';
   }
   return text;
 }
@@ -39,9 +39,19 @@ String dueLabel(BuildContext context, DateTime dueAt) {
 /// Older records retain the explanation captured at grading time.
 String reviewReason(BuildContext context, String reason) {
   final match = RegExp(r'^独立做对，(\d+) 天后再次检测。$').firstMatch(reason);
-  return match == null
-      ? context.tr(reason)
-      : context.tr('独立做对，{0} 天后再次检测。', [match[1]]);
+  if (match != null) {
+    return context.l10n.answeredIndependentlyReviewAgainIn(match[1]!);
+  }
+  // Historic records store Chinese text. Translate only known app-generated
+  // reasons; preserve unknown or user-supplied data verbatim.
+  return switch (reason) {
+    '本次需要订正，10 分钟后再尝试。' => context.l10n.reviewThisAnswerAndTry,
+    '使用了提示，明天再独立检测。' => context.l10n.aHintWasUsedTry,
+    '参考答案尚未核对，明天再检测；不增加独立掌握次数。' => context.l10n.theReferenceAnswerIsUnchecked,
+    '用户重置复习进度；历史作答仍保留。' => context.l10n.reviewResetReason,
+    '用户手动调整复习日期。' => context.l10n.reviewDateAdjustedReason,
+    _ => reason,
+  };
 }
 
 class ReviewScreen extends ConsumerStatefulWidget {
@@ -69,32 +79,32 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               Row(
                 children: [
                   IconButton(
-                    tooltip: context.tr("返回学习"),
+                    tooltip: context.l10n.backToStudy,
                     onPressed: () => context.go('/study'),
                     icon: const Icon(Icons.arrow_back),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      context.tr("间隔复习"),
+                      context.l10n.spacedReview,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              Text(context.tr("先回忆，再核对。到期任务在应用内提醒，离线也能继续。")),
+              Text(context.l10n.recallFirstThenCheckDue),
               const SizedBox(height: 14),
               Wrap(
                 spacing: 8,
                 children: [
                   for (final e in {
-                    'due': '到期',
-                    'all': '全部',
-                    'paused': '已暂停',
+                    'due': context.l10n.reviewFilterDue,
+                    'all': context.l10n.all,
+                    'paused': context.l10n.reviewFilterPaused,
                   }.entries)
                     ChoiceChip(
-                      label: Text(context.tr(e.value)),
+                      label: Text(e.value),
                       selected: filter == e.key,
                       onSelected: (_) => setState(() {
                         filter = e.key;
@@ -112,7 +122,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             error: (_, _) => Center(
               child: TextButton(
                 onPressed: () => ref.invalidate(reviewListProvider(key)),
-                child: Text(context.tr("复习安排读取失败，点击重试")),
+                child: Text(context.l10n.couldNotReadReviewsTap),
               ),
             ),
             data: (items) => items.isEmpty
@@ -124,13 +134,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         children: [
                           Text(
                             filter == 'due'
-                                ? context.tr("当前没有到期任务。完成一次训练后，系统会根据实际作答安排复习。")
-                                : context.tr("还没有此类复习安排。"),
+                                ? context.l10n.nothingIsDueAfterPractice
+                                : context.l10n.noReviewsInThisCategory,
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton(
                             onPressed: () => context.go('/practice'),
-                            child: Text(context.tr("去训练")),
+                            child: Text(context.l10n.practiceNow),
                           ),
                         ],
                       ),
@@ -154,7 +164,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                           child: Center(
                             child: TextButton(
                               onPressed: () => setState(() => limit += 200),
-                              child: Text(context.tr("加载更多")),
+                              child: Text(context.l10n.loadMore),
                             ),
                           ),
                         );
@@ -185,11 +195,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                context.tr("{0} · {1} · 独立通过 {2} 次", [
-                                  item.question.subject,
-                                  dueLabel(context, s.dueAt),
-                                  s.repetitions,
-                                ]),
+                                context.l10n.independentPasses(
+                                  l10nArgument((item.question.subject)),
+                                  l10nArgument((dueLabel(context, s.dueAt))),
+                                  l10nArgument((s.repetitions)),
+                                ),
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                               const SizedBox(height: 12),
@@ -209,7 +219,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                         context.go('/practice/${s.questionId}');
                                       }
                                     }),
-                                    child: Text(context.tr("开始复习")),
+                                    child: Text(context.l10n.startReview),
                                   ),
                                   TextButton(
                                     onPressed: () => act(
@@ -217,11 +227,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                       () =>
                                           showReviewHistory(context, ref, item),
                                     ),
-                                    child: Text(context.tr("调度依据与历史")),
+                                    child: Text(
+                                      context.l10n.schedulingBasisAndHistory,
+                                    ),
                                   ),
                                   PopupMenuButton<String>(
                                     popUpAnimationStyle: menuAnimation(context),
-                                    tooltip: context.tr("调整复习"),
+                                    tooltip: context.l10n.adjustReview,
                                     onSelected: (v) => act(context, () async {
                                       final store = ref.read(
                                         reviewStoreProvider,
@@ -234,22 +246,24 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                         final ok = await showDialog<bool>(
                                           context: context,
                                           builder: (ctx) => AlertDialog(
-                                            title: Text(context.tr("重置复习进度？")),
+                                            title: Text(
+                                              context.l10n.resetReviewProgress,
+                                            ),
                                             content: Text(
-                                              context.tr(
-                                                "下一次复习安排在今天。历史作答和调度记录会保留。",
-                                              ),
+                                              context.l10n.theNextReviewWillBe,
                                             ),
                                             actions: [
                                               TextButton(
                                                 onPressed: () =>
                                                     Navigator.pop(ctx, false),
-                                                child: Text(context.tr("取消")),
+                                                child: Text(
+                                                  context.l10n.cancel,
+                                                ),
                                               ),
                                               FilledButton(
                                                 onPressed: () =>
                                                     Navigator.pop(ctx, true),
-                                                child: Text(context.tr("重置")),
+                                                child: Text(context.l10n.reset),
                                               ),
                                             ],
                                           ),
@@ -290,18 +304,18 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                     itemBuilder: (_) => [
                                       PopupMenuItem(
                                         value: 'date',
-                                        child: Text(context.tr("调整日期")),
+                                        child: Text(context.l10n.adjustDate),
                                       ),
                                       PopupMenuItem(
                                         value: 'reset',
-                                        child: Text(context.tr("重置进度")),
+                                        child: Text(context.l10n.resetProgress),
                                       ),
                                       PopupMenuItem(
                                         value: 'pause',
                                         child: Text(
                                           s.enabled
-                                              ? context.tr("暂停复习")
-                                              : context.tr("恢复复习"),
+                                              ? context.l10n.pauseReviews
+                                              : context.l10n.resumeReviews,
                                         ),
                                       ),
                                     ],
@@ -341,15 +355,14 @@ Future<void> showReviewHistory(
         controller: scroll,
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         children: [
-          Text(context.tr("调度依据"), style: Theme.of(ctx).textTheme.titleLarge),
-          const SizedBox(height: 10),
           Text(
-            context.tr(
-              "独立做对：1 天、6 天，再按当前间隔 × 2.5；错误：10 分钟后重做；用过提示或 AI 答案未核对：次日检测且不增加独立通过次数。提前重复做对保留原日期。自主判分会单独标记，阅读不计入作答。",
-            ),
+            context.l10n.schedulingBasis,
+            style: Theme.of(ctx).textTheme.titleLarge,
           ),
+          const SizedBox(height: 10),
+          Text(context.l10n.independentCorrectAnswers1Day),
           const Divider(height: 28),
-          if (records.isEmpty) Text(context.tr("尚未完成复习；当前日期来自手动加入。")),
+          if (records.isEmpty) Text(context.l10n.noCompletedReviewYetThe),
           for (final r in records)
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -384,7 +397,8 @@ class QuestionReviewStatus extends ConsumerWidget {
       .watch(questionReviewProvider(id))
       .when(
         loading: () => const SizedBox.shrink(),
-        error: (_, _) => Text(context.tr("复习安排暂时无法读取。")),
+        error: (_, _) =>
+            Text(context.l10n.reviewScheduleIsTemporarilyUnavailable),
         data: (item) => Padding(
           padding: const EdgeInsets.only(top: 12),
           child: Wrap(
@@ -393,12 +407,12 @@ class QuestionReviewStatus extends ConsumerWidget {
             children: [
               Text(
                 item == null
-                    ? context.tr("需要时可加入复习。")
+                    ? context.l10n.addToReviewsWhenNeeded
                     : item.schedule.enabled
-                    ? context.tr("下次复习：{0}", [
-                        dueLabel(context, item.schedule.dueAt),
-                      ])
-                    : context.tr("复习已暂停"),
+                    ? context.l10n.nextReview(
+                        l10nArgument((dueLabel(context, item.schedule.dueAt))),
+                      )
+                    : context.l10n.reviewsPaused,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               TextButton(
@@ -410,7 +424,9 @@ class QuestionReviewStatus extends ConsumerWidget {
                   }
                 }),
                 child: Text(
-                  item == null ? context.tr("加入复习") : context.tr("查看安排"),
+                  item == null
+                      ? context.l10n.addToReviews
+                      : context.l10n.viewSchedule,
                 ),
               ),
             ],

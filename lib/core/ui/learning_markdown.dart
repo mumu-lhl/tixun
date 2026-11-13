@@ -73,7 +73,7 @@ class MathBuilder extends MarkdownElementBuilder {
   ) {
     final source = element.textContent;
     final formula = Tooltip(
-      message: context.tr('长按复制 LaTeX'),
+      message: context.l10n.longPressToCopyLaTeX,
       child: GestureDetector(
         onLongPress: () => Clipboard.setData(ClipboardData(text: source)),
         child: SingleChildScrollView(
@@ -184,13 +184,13 @@ class LearningMarkdown extends StatelessWidget {
           'mathblock': MathBuilder(block: true),
           'code': _InlineCodeBuilder(),
         },
-        imageBuilder: (_, _, _) => Text(context.tr("[外部图片未自动加载]")),
+        imageBuilder: (_, _, _) => Text(context.l10n.externalImageWasNotLoaded),
         onTapLink: (_, href, _) async {
           if (href == null) return;
           await Clipboard.setData(ClipboardData(text: href));
           if (context.mounted) {
             ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(context.tr("链接已复制"))));
+                .showSnackBar(SnackBar(content: Text(context.l10n.linkCopied)));
           }
         },
         styleSheet: MarkdownStyleSheet.fromTheme(legacy.Theme.of(context))

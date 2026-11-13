@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import '../../core/ui/app_menu.dart';
 
 import 'package:material_ui/material_ui.dart';
@@ -9,12 +11,23 @@ import '../../core/ai/chat_provider.dart';
 import '../../core/ai/context_compactor.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/l10n/app_error_localization.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/reasoning_labels.dart';
 
 class AiSettingsScreen extends ConsumerStatefulWidget {
   const AiSettingsScreen({super.key});
   @override
   ConsumerState<AiSettingsScreen> createState() => _AiSettingsScreenState();
+}
+
+enum _AiSettingsStatus {
+  mockTest,
+  connected,
+  keyRemoved,
+  demoSaved,
+  saved,
+  secureStorageError,
 }
 
 class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
@@ -24,7 +37,18 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   late bool _vision, _thinking, _supportsThinking, _supportsTools;
   bool _working = false;
   bool _keyVisible = false;
-  String? _status;
+  Object? _status;
+
+  String _statusText(Object status) => switch (status) {
+    _AiSettingsStatus.mockTest => context.l10n.mockTestCompletedNoReal,
+    _AiSettingsStatus.connected => context.l10n.connectedAndReceivedAModel,
+    _AiSettingsStatus.keyRemoved => context.l10n.theKeyForThisAddress,
+    _AiSettingsStatus.demoSaved => context.l10n.demoSettingsLastOnlyFor,
+    _AiSettingsStatus.saved => context.l10n.settingsSavedKeysAreStored,
+    _AiSettingsStatus.secureStorageError =>
+      context.l10n.secureStorageAccessFailedLinux,
+    _ => failureText(context.l10n, status),
+  };
   bool _failure = false;
 
   static const _kinds = ['deepseek', 'compatible', 'chatgpt'];
@@ -100,7 +124,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       } else {
         final parsed = int.tryParse(_maxContext.text.trim());
         if (parsed == null || !isValidMaxContextTokens(parsed)) {
-          throw const FormatException('最大上下文 Token 数应为 4096–1048576 的整数。');
+          throw const AppFormatException(
+            AppErrorCode.maxContextTokensMustBe,
+            '最大上下文 Token 数应为 4096–1048576 的整数。',
+          );
         }
         await c.setMaxContextTokens(parsed);
         await c.saveSettings(
@@ -116,21 +143,21 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       setState(() {
         _failure = false;
         _status = test
-            ? (c.demo ? 'Mock 测试已完成，没有请求真实服务。' : '连接成功，已收到模型回复。')
+            ? (c.demo
+                  ? _AiSettingsStatus.mockTest
+                  : _AiSettingsStatus.connected)
             : remove
-            ? '已删除此地址对应的密钥。'
-            : (c.demo ? '演示配置仅在本次运行中保留。' : '配置已保存。密钥仅存于系统安全存储。');
+            ? _AiSettingsStatus.keyRemoved
+            : (c.demo ? _AiSettingsStatus.demoSaved : _AiSettingsStatus.saved);
         if (!test) _key.clear();
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _failure = true;
-        _status = e is FormatException
-            ? e.message
-            : e is AiFailure
-            ? e.message
-            : '无法访问系统安全存储。Linux 请启用并解锁 Secret Service 密钥环；应用不会改为明文保存密钥。';
+        _status = e is FormatException || e is AiFailure
+            ? e
+            : _AiSettingsStatus.secureStorageError;
       });
     } finally {
       if (mounted) setState(() => _working = false);
@@ -165,7 +192,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     BackButton(onPressed: () => context.go('/settings')),
                     Expanded(
                       child: Text(
-                        context.tr('AI 服务'),
+                        context.l10n.aiService,
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                     ),
@@ -174,8 +201,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                 const SizedBox(height: 8),
                 Text(
                   c.demo
-                      ? context.tr("当前为独立 Mock 构建，不访问真实 API，不保存真实密钥。")
-                      : context.tr("仅发送当前请求需要的对话和图片。API Key 不写入数据库与日志。"),
+                      ? context.l10n.isolatedMockBuildNoReal
+                      : context.l10n.onlyTheConversationAndImages,
                   style: TextStyle(
                     color: colors.onSurfaceVariant,
                     fontSize: 12,
@@ -187,8 +214,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     horizontal: 16,
                     vertical: 6,
                   ),
-                  title: Text(context.tr('ChatGPT 订阅')),
-                  subtitle: Text(context.tr('使用 Plus/Pro 等账号获准共享的额度，通过浏览器登录')),
+                  title: Text(context.l10n.chatGPTPlan),
+                  subtitle: Text(context.l10n.signInThroughYourBrowser),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.go('/settings/chatgpt'),
                 ),
@@ -204,7 +231,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     initialValue: _kind == 'compatible'
                         ? 'compatible'
                         : 'deepseek',
-                    decoration: InputDecoration(labelText: context.tr("服务商")),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.provider,
+                    ),
                     items: const [
                       DropdownMenuItem(
                         value: 'deepseek',
@@ -237,7 +266,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(context.tr('已使用 ChatGPT 订阅，请在订阅管理页更换账号或模型。')),
+                      Text(context.l10n.usingChatGPTPlanManageYour),
                       const SizedBox(height: 8),
                       OutlinedButton(
                         onPressed: _working
@@ -247,7 +276,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                                 if (!mounted) return;
                                 setState(() => _applyConfig(c.config));
                               }),
-                        child: Text(context.tr('恢复上次 API 配置')),
+                        child: Text(context.l10n.restorePreviousAPISettings),
                       ),
                     ],
                   )
@@ -259,7 +288,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     autocorrect: false,
                     decoration: InputDecoration(
                       labelText: 'API Base URL',
-                      helperText: context.tr("填写接口前缀；应用会追加 /chat/completions"),
+                      helperText: context.l10n.enterTheAPIPrefixChat,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -269,12 +298,14 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       initialValue: _deepseekModels.contains(_model.text)
                           ? _model.text
                           : 'deepseek-flash',
-                      decoration: InputDecoration(labelText: context.tr("模型")),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.model,
+                      ),
                       items: [
                         DropdownMenuItem(
                           value: 'deepseek-flash',
                           child: Text(
-                            context.tr("DeepSeek Flash · 支持图片"),
+                            context.l10n.deepSeekFlashSupportsImages,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -282,7 +313,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                         DropdownMenuItem(
                           value: 'deepseek-v4-pro',
                           child: Text(
-                            context.tr("DeepSeek V4 Pro · 仅文本"),
+                            context.l10n.deepSeekV4ProTextOnly,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -305,8 +336,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       enabled: !_working,
                       autocorrect: false,
                       decoration: InputDecoration(
-                        labelText: context.tr("模型 ID"),
-                        hintText: context.tr("填写服务商提供的完整模型 ID"),
+                        labelText: context.l10n.modelID,
+                        hintText: context.l10n.enterTheFullModelID,
                       ),
                     ),
                   const SizedBox(height: 16),
@@ -319,15 +350,15 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     enabled: !_working && !c.demo,
                     decoration: InputDecoration(
                       labelText: 'API Key',
-                      hintText: context.tr("留空则保留此地址已有的密钥"),
+                      hintText: context.l10n.leaveBlankToKeepThe,
                       helperText: c.demo
-                          ? context.tr("Mock 模式无需密钥")
-                          : context.tr(
-                              "Android：系统加密存储；Linux：Secret Service 密钥环",
-                            ),
+                          ? context.l10n.noKeyNeededInMock
+                          : context.l10n.androidSystemEncryptedStorageLinux,
                       helperMaxLines: 2,
                       suffixIcon: IconButton(
-                        tooltip: context.tr(_keyVisible ? "隐藏密钥" : "显示密钥"),
+                        tooltip: (_keyVisible
+                            ? context.l10n.hideKey
+                            : context.l10n.showKey),
                         onPressed: () =>
                             setState(() => _keyVisible = !_keyVisible),
                         icon: Icon(
@@ -342,9 +373,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   if (_kind == 'compatible')
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(context.tr("支持工具调用")),
+                      title: Text(context.l10n.supportsToolCalls),
                       subtitle: Text(
-                        context.tr("根据服务商文档确认后开启"),
+                        context.l10n.enableAfterCheckingTheProvider,
                         style: TextStyle(fontSize: 12),
                       ),
                       value: _supportsTools,
@@ -354,13 +385,13 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(context.tr("支持图片输入")),
+                    title: Text(context.l10n.supportsImageInput),
                     subtitle: Text(
                       // DeepSeek derives vision from the model (Flash yes,
                       // V4 Pro no), so the switch is fixed here.
                       _kind == 'deepseek'
-                          ? context.tr("由模型决定：Flash 支持图片，V4 Pro 仅文本")
-                          : context.tr("仅在服务商明确支持视觉时启用"),
+                          ? context.l10n.decidedByTheModelFlash
+                          : context.l10n.enableOnlyIfTheProvider,
                       style: TextStyle(fontSize: 12),
                     ),
                     value: _vision,
@@ -371,9 +402,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   if (_kind == 'compatible')
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(context.tr("支持 reasoning_effort 参数")),
+                      title: Text(context.l10n.supportsReasoningEffort),
                       subtitle: Text(
-                        context.tr("由服务商文档确认后开启"),
+                        context.l10n.enableAfterConsultingYourProvider,
                         style: TextStyle(fontSize: 12),
                       ),
                       value: _supportsThinking,
@@ -389,11 +420,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       contentPadding: EdgeInsets.zero,
                       title: Text(
                         _kind == 'deepseek'
-                            ? context.tr("深度思考")
-                            : context.tr("发送推理强度参数"),
+                            ? context.l10n.deepThinking
+                            : context.l10n.sendReasoningEffortParameter,
                       ),
                       subtitle: Text(
-                        context.tr("用于未单独设置的会话；聊天标题栏可覆盖。可能增加响应时间与用量。"),
+                        context.l10n.defaultForConversationsWithoutAn,
                         style: TextStyle(fontSize: 12),
                       ),
                       value: _thinking,
@@ -410,15 +441,17 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                               ? _effort
                               : _efforts.firstOrNull,
                           decoration: InputDecoration(
-                            labelText: context.tr("默认思考强度"),
+                            labelText: context.l10n.defaultReasoningEffort,
                           ),
                           items: [
                             for (final level in _efforts)
                               DropdownMenuItem(
                                 value: level,
                                 child: Text(
-                                  context.tr(
-                                    AiOptions(_candidate()).label(level),
+                                  reasoningEffortLabel(
+                                    context,
+                                    AiOptions(_candidate()),
+                                    level,
                                   ),
                                 ),
                               ),
@@ -436,19 +469,15 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     autocorrect: false,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: context.tr('最大上下文 Token 数'),
-                      helperText: context.tr(
-                        '超过上限时，旧对话先由模型摘要压缩，再与最近对话一起发送。默认 128000；实际按模型窗口与该值中较小者执行。',
-                      ),
+                      labelText: context.l10n.maxContextTokens,
+                      helperText: context.l10n.whenTheLimitIsExceeded,
                       helperMaxLines: 3,
                     ),
                   ),
                   Padding(
                     padding: EdgeInsets.only(bottom: 16),
                     child: Text(
-                      context.tr(
-                        "资料工具需在对话中单独开启。DeepSeek 和 ChatGPT 可同时使用思考与工具；其他兼容接口按所配置能力处理。每次资料写入都需要确认。",
-                      ),
+                      context.l10n.enableMaterialToolsPerConversation,
                       style: TextStyle(fontSize: 12),
                     ),
                   ),
@@ -456,7 +485,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(
-                        context.tr(_status!),
+                        _statusText(_status!),
                         style: TextStyle(
                           color: _failure ? colors.error : colors.primary,
                         ),
@@ -469,12 +498,14 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       FilledButton(
                         onPressed: _working || c.busy ? null : () => _perform(),
                         child: Text(
-                          _working ? context.tr("处理中…") : context.tr("保存配置"),
+                          _working
+                              ? context.l10n.working
+                              : context.l10n.saveConfiguration,
                         ),
                       ),
                       OutlinedButton(
                         onPressed: _working ? null : () => _perform(test: true),
-                        child: Text(context.tr("测试连接")),
+                        child: Text(context.l10n.testConnection),
                       ),
                       TextButton(
                         onPressed: _working || c.demo
@@ -483,35 +514,33 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                                 final ok = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
-                                    title: Text(context.tr("删除已存密钥？")),
+                                    title: Text(context.l10n.deleteTheSavedKey),
                                     content: Text(
-                                      context.tr(
-                                        "将删除此服务地址已保存的密钥，删除后需要重新输入。当前配置的其他设置不受影响。",
-                                      ),
+                                      context.l10n.thisDeletesTheKeySaved,
                                     ),
                                     actions: [
                                       TextButton(
                                         onPressed: () =>
                                             Navigator.pop(ctx, false),
-                                        child: Text(context.tr("取消")),
+                                        child: Text(context.l10n.cancel),
                                       ),
                                       FilledButton(
                                         onPressed: () =>
                                             Navigator.pop(ctx, true),
-                                        child: Text(context.tr("删除密钥")),
+                                        child: Text(context.l10n.deleteKey),
                                       ),
                                     ],
                                   ),
                                 );
                                 if (ok == true) await _perform(remove: true);
                               },
-                        child: Text(context.tr("删除已存密钥")),
+                        child: Text(context.l10n.deleteSavedKey),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    context.tr("测试连接会发送一条简短消息，可能产生少量 API 费用。"),
+                    context.l10n.testingSendsAShortMessage,
                     style: TextStyle(
                       fontSize: 11,
                       color: colors.onSurfaceVariant,
@@ -520,7 +549,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                 ],
                 const SizedBox(height: 24),
                 Text(
-                  context.tr('密钥由系统安全存储保管；资料仅按请求发送。'),
+                  context.l10n.keysAreKeptInSystem,
                   style: TextStyle(color: colors.onSurfaceVariant),
                 ),
                 const SizedBox(height: 24),

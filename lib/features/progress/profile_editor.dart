@@ -1,3 +1,6 @@
+import 'package:tixun/core/l10n/app_error.dart';
+import 'package:tixun/core/l10n/app_error_localization.dart';
+
 import '../../core/ui/app_menu.dart';
 
 import 'package:material_ui/material_ui.dart';
@@ -24,7 +27,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
   late DateTime? date = widget.profile.examDate;
   late String teaching = widget.profile.teaching;
   bool saving = false;
-  String? failure;
+  Object? failure;
   @override
   void dispose() {
     for (final c in [stage, region, exam, minutes, scope]) {
@@ -35,7 +38,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(context.tr("学习设置")),
+    title: Text(context.l10n.learningSettings),
     scrollable: true,
     content: SizedBox(
       width: 520,
@@ -46,16 +49,21 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                context.tr('部分设置无法读取，已用默认值。'),
+                context.l10n.someSettingsCouldNotBe,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
           for (final (ctrl, label, lines, keyboard) in [
-            (stage, '学习阶段', 1, null),
-            (region, '地区（可选，如浙江）', 1, null),
-            (exam, '目标考试（可选）', 1, null),
-            (minutes, '每日可用分钟数（5–480）', 1, TextInputType.number),
-            (scope, '学科与学习范围（自由填写）', 3, null),
+            (stage, context.l10n.learningStage, 1, null),
+            (region, context.l10n.regionOptionalEGZhejiang, 1, null),
+            (exam, context.l10n.targetExamOptional, 1, null),
+            (
+              minutes,
+              context.l10n.dailyTimeInMinutes5,
+              1,
+              TextInputType.number,
+            ),
+            (scope, context.l10n.subjectsAndLearningScope, 3, null),
           ])
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -65,22 +73,27 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                 keyboardType: keyboard,
                 minLines: lines,
                 maxLines: lines + 2,
-                decoration: InputDecoration(labelText: context.tr(label)),
+                decoration: InputDecoration(labelText: label),
               ),
             ),
           AppSelectField<String>(
             initialValue: teaching,
-            decoration: InputDecoration(labelText: context.tr("新对话的教学方式")),
+            decoration: InputDecoration(
+              labelText: context.l10n.teachingModeForNewConversations,
+            ),
             items: [
               DropdownMenuItem(
                 value: 'guided',
-                child: Text(context.tr("引导教学")),
+                child: Text(context.l10n.guidedLearning),
               ),
               DropdownMenuItem(
                 value: 'direct',
-                child: Text(context.tr("直接解答")),
+                child: Text(context.l10n.directAnswer),
               ),
-              DropdownMenuItem(value: 'exam', child: Text(context.tr("考试训练"))),
+              DropdownMenuItem(
+                value: 'exam',
+                child: Text(context.l10n.examPractice),
+              ),
             ],
             onChanged: saving ? null : (v) => setState(() => teaching = v!),
           ),
@@ -112,20 +125,20 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                 icon: const Icon(Icons.calendar_today, size: 18),
                 label: Text(
                   date == null
-                      ? context.tr("设置考试日期")
+                      ? context.l10n.setExamDate
                       : '${date!.year}-${date!.month}-${date!.day}',
                 ),
               ),
               if (date != null)
                 TextButton(
                   onPressed: saving ? null : () => setState(() => date = null),
-                  child: Text(context.tr("清除日期")),
+                  child: Text(context.l10n.clearDate),
                 ),
             ],
           ),
           if (failure != null)
             Text(
-              failure!,
+              failureText(context.l10n, failure!),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
         ],
@@ -134,7 +147,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
     actions: [
       TextButton(
         onPressed: saving ? null : () => Navigator.pop(context),
-        child: Text(context.tr("取消")),
+        child: Text(context.l10n.cancel),
       ),
       FilledButton(
         onPressed: saving
@@ -143,7 +156,11 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                 setState(() => saving = true);
                 try {
                   final n = int.tryParse(minutes.text.trim());
-                  if (n == null) throw const FormatException('每日时间请输入整数分钟。');
+                  if (n == null)
+                    throw const AppFormatException(
+                      AppErrorCode.errorEnterTheDailyTimeAsA,
+                      '每日时间请输入整数分钟。',
+                    );
                   await LearningProfile(
                     stage: stage.text,
                     region: region.text,
@@ -159,14 +176,17 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                   if (mounted) {
                     setState(
                       () => failure = e is FormatException
-                          ? e.message
-                          : '保存失败，请重试。',
+                          ? e
+                          : const AppFormatException(
+                              AppErrorCode.errorSaveTryAgain,
+                              '保存失败，请重试。',
+                            ),
                     );
                   }
                 }
                 if (mounted) setState(() => saving = false);
               },
-        child: Text(saving ? context.tr("保存中…") : context.tr("保存")),
+        child: Text(saving ? context.l10n.savingEllipsis : context.l10n.save),
       ),
     ],
   );

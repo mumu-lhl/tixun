@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:convert';
 
 import '../../core/database/database.dart';
@@ -100,7 +102,10 @@ class LearningProfile {
         dailyMinutes < 5 ||
         dailyMinutes > 480 ||
         !['guided', 'direct', 'exam'].contains(teaching)) {
-      throw const FormatException('学习设置内容无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidLearningSettings,
+        '学习设置内容无效。',
+      );
     }
     await db.setPreference(
       'learning_profile',

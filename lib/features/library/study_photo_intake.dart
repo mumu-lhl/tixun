@@ -1,3 +1,7 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
+import '../../app/app_notice.dart';
+
 import 'dart:convert';
 
 import 'package:image_picker/image_picker.dart';
@@ -58,7 +62,10 @@ class StudyPhotoIntake {
           (decoded['files'] != null &&
               (decoded['files'] is! List ||
                   (decoded['files'] as List).any((p) => p is! String)))) {
-        throw const FormatException('照片恢复目标无效。');
+        throw const AppFormatException(
+          AppErrorCode.errorInvalidPhotoRecoveryDestination,
+          '照片恢复目标无效。',
+        );
       }
       target = decoded;
     } on FormatException {
@@ -128,8 +135,12 @@ class StudyPhotoIntake {
     }
     await c.db.setPreference(preference, '');
     c.notice = missingOwner
-        ? '原资料已删除，照片已保留到新对话草稿。请检查后重新关联，未自动上传。'
-        : '已将 ${pending.length} 张照片恢复到${target['mistake'] == true ? '错题本' : '知识库'}。请检查内容并补充解析。';
+        ? const AppNotice(AppNoticeKind.studyOwnerDeleted)
+        : AppNotice(
+            AppNoticeKind.studyPhotosRecovered,
+            photoCount: pending.length,
+            mistake: target['mistake'] == true,
+          );
     return true;
   }
 

@@ -106,9 +106,9 @@ class UpdateService {
         return UpdateCheckOutcome(
           kind: UpdateCheckKind.noneAvailable,
           message: switch (channel) {
-            UpdateChannel.stable => '暂无正式版',
-            UpdateChannel.prerelease => '暂无预发布',
-            UpdateChannel.nightly => '暂无 nightly 构建',
+            UpdateChannel.stable => UpdateMessage.noStableRelease,
+            UpdateChannel.prerelease => UpdateMessage.noPrerelease,
+            UpdateChannel.nightly => UpdateMessage.noNightly,
           },
         );
       }
@@ -135,7 +135,7 @@ class UpdateService {
     } catch (_) {
       return const UpdateCheckOutcome(
         kind: UpdateCheckKind.failed,
-        message: '检查更新失败',
+        message: UpdateMessage.updateCheckFailed,
       );
     }
   }

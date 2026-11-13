@@ -1,3 +1,7 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
+import '../../app/app_notice.dart';
+
 import 'dart:convert';
 
 import 'package:image_picker/image_picker.dart';
@@ -62,7 +66,10 @@ class ExamPhotoIntake {
           (decoded['files'] != null &&
               (decoded['files'] is! List ||
                   (decoded['files'] as List).any((p) => p is! String)))) {
-        throw const FormatException('照片恢复目标无效。');
+        throw const AppFormatException(
+          AppErrorCode.errorInvalidPhotoRecoveryDestination,
+          '照片恢复目标无效。',
+        );
       }
       target = decoded;
     } on FormatException {
@@ -123,7 +130,9 @@ class ExamPhotoIntake {
       }
       rethrow;
     }
-    c.notice = owner == null ? '原考试科目已删除，照片已恢复到对话草稿，未自动上传。' : '考试照片已恢复，未自动上传。';
+    c.notice = owner == null
+        ? const AppNotice(AppNoticeKind.examSubjectDeleted)
+        : const AppNotice(AppNoticeKind.examPhotosRecovered);
     // Any failure above rethrows before this line, so the preference — the
     // only pointer to this batch — survives for the next launch.
     await c.db.setPreference(preference, '');

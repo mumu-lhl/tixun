@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -59,7 +61,11 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
           detail +=
               '：${error.length > 200 ? '${error.substring(0, 200)}…' : error}';
         }
-        throw AiFailure('服务返回错误$detail，请检查模型配置后重试。');
+        throw AiFailure.localized(
+          AppErrorCode.errorServiceReturnedDetails,
+          '服务返回错误$detail，请检查模型配置后重试。',
+          [detail],
+        );
       }
       final usage = json['usage'] as Map<String, dynamic>?;
       if (usage?['total_tokens'] is int) {
@@ -70,7 +76,11 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
       final choice = choices.first as Map<String, dynamic>;
       final delta = choice['delta'] as Map<String, dynamic>? ?? {};
       if (delta['tool_calls'] != null) {
-        if (delta['tool_calls'] is! List) throw const AiFailure('工具调用格式无效。');
+        if (delta['tool_calls'] is! List)
+          throw const AiFailure.localized(
+            AppErrorCode.invalidToolCallFormat,
+            '工具调用格式无效。',
+          );
         collector.add(delta['tool_calls'] as List);
       }
       if (delta['content'] is String) {
@@ -84,26 +94,46 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
       if (finish != null) {
         ended = true;
         if (finish != 'stop' && finish != 'tool_calls') {
-          throw AiFailure(
-            finish == 'length' ? '回复达到长度上限，可继续提问。' : '模型未正常完成回复（$finish），请重试。',
-          );
+          throw finish == 'length'
+              ? const AiFailure.localized(
+                  AppErrorCode.theResponseReachedItsLength,
+                  '回复达到长度上限，可继续提问。',
+                )
+              : AiFailure.localized(
+                  AppErrorCode.errorModelDidNotFinish,
+                  '模型未正常完成回复（$finish），请重试。',
+                  [finish],
+                );
         }
         final calls = collector.finish();
         if (finish == 'tool_calls' && calls.isEmpty) {
-          throw const AiFailure('模型声明调用工具，但没有提供完整调用。');
+          throw const AiFailure.localized(
+            AppErrorCode.theModelRequestedATool,
+            '模型声明调用工具，但没有提供完整调用。',
+          );
         }
         if (finish == 'stop' && calls.isNotEmpty) {
-          throw const AiFailure('工具响应未正常结束，未执行本轮资料修改。');
+          throw const AiFailure.localized(
+            AppErrorCode.theToolResponseDidNot,
+            '工具响应未正常结束，未执行本轮资料修改。',
+          );
         }
         yield AiChunk(completed: true, calls: calls);
       }
     } on AiFailure {
       rethrow;
     } catch (_) {
-      throw const AiFailure('模型返回了无法解析的流式数据，请重试。');
+      throw const AiFailure.localized(
+        AppErrorCode.theModelReturnedUnreadableStream,
+        '模型返回了无法解析的流式数据，请重试。',
+      );
     }
   }
-  if (!ended) throw const AiFailure('连接提前断开，已保留收到的内容。请重新生成。');
+  if (!ended)
+    throw const AiFailure.localized(
+      AppErrorCode.theConnectionEndedEarlyReceived,
+      '连接提前断开，已保留收到的内容。请重新生成。',
+    );
 }
 
 String providerKeyId(ProviderConfig config) =>
@@ -151,7 +181,7 @@ Future<AiRequest> prepareAiRequest(
   try {
     validateConfig(config);
   } on FormatException catch (e) {
-    throw AiFailure(e.message);
+    throw AiFailure.fromFormatException(e);
   }
   // The caller owns context selection (see `compactContext`): it decides
   // which turns go verbatim and which are covered by a summary. Without
@@ -163,7 +193,10 @@ Future<AiRequest> prepareAiRequest(
       .where((a) => a.messageId != null && ids.contains(a.messageId))
       .toList();
   if (includedImages.isNotEmpty && !AiOptions(config).vision) {
-    throw const AiFailure('当前对话包含图片，所选模型不支持视觉。请切换到 Flash 或启用支持图片的模型。');
+    throw const AiFailure.localized(
+      AppErrorCode.thisConversationContainsImagesBut,
+      '当前对话包含图片，所选模型不支持视觉。请切换到 Flash 或启用支持图片的模型。',
+    );
   }
   final messages = <AiMessage>[];
   var totalImageBytes = 0;
@@ -301,7 +334,8 @@ class OpenAiChatProvider implements ChatProvider {
       try {
         return apiKeyOverride ?? await _keys.read(providerKeyId(config)) ?? '';
       } catch (_) {
-        throw const AiFailure(
+        throw const AiFailure.localized(
+          AppErrorCode.secureStorageUnavailableLinux,
           '系统安全存储不可用。Linux 请启用并解锁 Secret Service 密钥环；应用不会明文保存密钥。',
         );
       }
@@ -322,12 +356,15 @@ class OpenAiChatProvider implements ChatProvider {
     CancelToken cancel,
   ) async* {
     if (key.trim().isEmpty) {
-      throw const AiFailure('请先在设置中保存 API Key，或开启离线 Mock。');
+      throw const AiFailure.localized(
+        AppErrorCode.saveAnAPIKeyIn,
+        '请先在设置中保存 API Key，或开启离线 Mock。',
+      );
     }
     try {
       validateConfig(config);
     } on FormatException catch (e) {
-      throw AiFailure(e.message);
+      throw AiFailure.fromFormatException(e);
     }
     var received = false;
     for (var attempt = 0; attempt < 2; attempt++) {
@@ -350,7 +387,10 @@ class OpenAiChatProvider implements ChatProvider {
         if (!(response.headers.value('content-type') ?? '').contains(
           'text/event-stream',
         )) {
-          throw const AiFailure('服务未返回 SSE 流，请检查 API 地址和模型。');
+          throw const AiFailure.localized(
+            AppErrorCode.theServiceDidNotReturn,
+            '服务未返回 SSE 流，请检查 API 地址和模型。',
+          );
         }
         await for (final chunk in decodeCompletion(
           response.data!.stream.timeout(const Duration(seconds: 60)),
@@ -374,15 +414,33 @@ class OpenAiChatProvider implements ChatProvider {
           ]);
           continue;
         }
-        throw AiFailure(switch (status) {
-          401 || 403 => 'API Key 无效或没有访问权限，请检查设置。',
-          402 => 'API 余额不足，请在服务商平台检查。',
-          429 => '请求过于频繁，请稍后重试。',
-          400 || 404 || 422 => '模型或请求参数不被服务支持，请检查地址、模型与能力设置。',
-          _ => '网络连接失败或服务暂时不可用，请检查网络后重试。',
-        });
+        throw switch (status) {
+          401 || 403 => const AiFailure.localized(
+            AppErrorCode.theAPIKeyIsInvalid,
+            'API Key 无效或没有访问权限，请检查设置。',
+          ),
+          402 => const AiFailure.localized(
+            AppErrorCode.insufficientAPIBalanceCheckYour,
+            'API 余额不足，请在服务商平台检查。',
+          ),
+          429 => const AiFailure.localized(
+            AppErrorCode.tooManyRequestsTryAgain,
+            '请求过于频繁，请稍后重试。',
+          ),
+          400 || 404 || 422 => const AiFailure.localized(
+            AppErrorCode.theServiceDoesNotSupport,
+            '模型或请求参数不被服务支持，请检查地址、模型与能力设置。',
+          ),
+          _ => const AiFailure.localized(
+            AppErrorCode.theConnectionFailedOrThe,
+            '网络连接失败或服务暂时不可用，请检查网络后重试。',
+          ),
+        };
       } on TimeoutException {
-        throw const AiFailure('等待回复超时，已保留收到的内容。');
+        throw const AiFailure.localized(
+          AppErrorCode.theResponseTimedOutReceived,
+          '等待回复超时，已保留收到的内容。',
+        );
       }
     }
   }
@@ -630,7 +688,11 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
     final text = request.messages.any((m) => m.text.contains('模拟失败'))
         ? null
         : explanation;
-    if (text == null) throw const AiFailure('模拟网络失败：可点击重新生成验证重试流程。');
+    if (text == null)
+      throw const AiFailure.localized(
+        AppErrorCode.errorSimulatedNetworkFailureSelectRegenerateTo,
+        '模拟网络失败：可点击重新生成验证重试流程。',
+      );
     for (var i = 0; i < text.length; i += 12) {
       await Future<void>.delayed(const Duration(milliseconds: 24));
       cancel.checkCancelled();

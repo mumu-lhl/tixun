@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -79,7 +81,10 @@ Future<int> cleanupPurgedAttachments(
   for (final path in candidates.toSet()) {
     try {
       if (p.dirname(path) != 'attachments') {
-        throw const FormatException('附件目录无效。');
+        throw const AppFormatException(
+          AppErrorCode.errorInvalidAttachmentDirectory,
+          '附件目录无效。',
+        );
       }
       // A missing parent directory means the file is necessarily gone too;
       // that is a successful cleanup, not a failure.

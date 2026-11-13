@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -276,7 +278,11 @@ class StudyToolRunner {
     cancel.checkCancelled();
     Map<String, dynamic> args;
     try {
-      if (call.arguments.length > 64000) throw const FormatException('参数过长。');
+      if (call.arguments.length > 64000)
+        throw const AppFormatException(
+          AppErrorCode.errorTheArgumentIsTooLong,
+          '参数过长。',
+        );
       args = (jsonDecode(call.arguments) as Map).cast<String, dynamic>();
       if (!allowsStudyTool(
         call.name,
@@ -288,39 +294,69 @@ class StudyToolRunner {
       final schema = studyToolSchemas
           .where((t) => t.name == call.name)
           .firstOrNull;
-      if (schema == null) throw const FormatException('未知工具。');
+      if (schema == null)
+        throw const AppFormatException(AppErrorCode.errorUnknownTool, '未知工具。');
       final p = schema.parameters;
       for (final key in args.keys) {
         if (!(p['properties'] as Map).containsKey(key)) {
-          throw FormatException('未知参数：$key');
+          throw AppFormatException(
+            AppErrorCode.errorUnknownParameter,
+            '未知参数：$key',
+            [key],
+          );
         }
       }
       for (final key in p['required'] as List) {
-        if (!args.containsKey(key)) throw FormatException('缺少参数：$key');
+        if (!args.containsKey(key))
+          throw AppFormatException(
+            AppErrorCode.errorMissingParameter,
+            '缺少参数：$key',
+            [key],
+          );
       }
       for (final entry in args.entries) {
         final prop = p['properties'][entry.key] as Map;
         final type = prop['type'];
         final v = entry.value;
         if (type == 'string' && v is! String) {
-          throw FormatException('参数 ${entry.key} 类型无效。');
+          throw AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            '参数 ${entry.key} 类型无效。',
+            [entry.key],
+          );
         }
         if (type == 'integer' && (v is! int || v < 1)) {
-          throw FormatException('参数 ${entry.key} 类型无效。');
+          throw AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            '参数 ${entry.key} 类型无效。',
+            [entry.key],
+          );
         }
         if (type == 'array') {
           if (v is! List) {
-            throw FormatException('参数 ${entry.key} 类型无效。');
+            throw AppFormatException(
+              AppErrorCode.errorInvalidParameterType,
+              '参数 ${entry.key} 类型无效。',
+              [entry.key],
+            );
           }
           // Integer arrays (image_indices) validate elements as ints;
           // every other array parameter is a list of strings.
           final itemType = (prop['items'] as Map?)?['type'];
           if (itemType == 'integer') {
             if (v.any((e) => e is! int)) {
-              throw FormatException('参数 ${entry.key} 类型无效。');
+              throw AppFormatException(
+                AppErrorCode.errorInvalidParameterType,
+                '参数 ${entry.key} 类型无效。',
+                [entry.key],
+              );
             }
           } else if (v.any((e) => e is! String)) {
-            throw FormatException('参数 ${entry.key} 类型无效。');
+            throw AppFormatException(
+              AppErrorCode.errorInvalidParameterType,
+              '参数 ${entry.key} 类型无效。',
+              [entry.key],
+            );
           }
         }
       }
@@ -512,7 +548,10 @@ class StudyToolRunner {
         return {'id': id, 'subject': text('subject'), 'name': text('name')};
       case 'link_study_module':
         if (!['knowledge', 'mistake'].contains(text('kind'))) {
-          throw const FormatException('资料类型无效。');
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidMaterialType,
+            '资料类型无效。',
+          );
         }
         await store.modules.link(
           text('id'),
@@ -565,7 +604,10 @@ class StudyToolRunner {
             : null;
         if (old != null &&
             a.keys.every((k) => ['id', 'expected_revision'].contains(k))) {
-          throw const FormatException('没有提供需要修改的字段。');
+          throw const AppFormatException(
+            AppErrorCode.errorNoFieldsToUpdateWereProvided,
+            '没有提供需要修改的字段。',
+          );
         }
         final row = await store.saveKnowledge(
           KnowledgeDraft(
@@ -646,7 +688,10 @@ class StudyToolRunner {
             : null;
         if (old != null &&
             a.keys.every((k) => ['id', 'expected_revision'].contains(k))) {
-          throw const FormatException('没有提供需要修改的字段。');
+          throw const AppFormatException(
+            AppErrorCode.errorNoFieldsToUpdateWereProvided,
+            '没有提供需要修改的字段。',
+          );
         }
         final row = await store.saveMistake(
           MistakeDraft(
@@ -688,7 +733,10 @@ class StudyToolRunner {
                       i >= sourceImages.length ||
                       sourceImages[i].sessionId != sessionId,
                 )) {
-              throw const FormatException('题目图片引用无效。');
+              throw const AppFormatException(
+                AppErrorCode.errorInvalidQuestionImageReference,
+                '题目图片引用无效。',
+              );
             }
             for (final i in indices.cast<int>()) {
               await store.copyChatImage(
@@ -739,7 +787,7 @@ class StudyToolRunner {
           ...(await LearningProgress.load(db)).toJson(),
         };
       default:
-        throw const FormatException('未知工具。');
+        throw const AppFormatException(AppErrorCode.errorUnknownTool, '未知工具。');
     }
   }
 }

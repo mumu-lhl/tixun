@@ -1,53 +1,29 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import 'messages_en.g.dart';
+import 'generated/app_localizations.dart';
+
+const supportedAppLocales = AppLocalizations.supportedLocales;
+
+/// Preserves the legacy null-to-empty behavior when passing dynamic data to
+/// generated String parameters.
+String l10nArgument(Object? value) => value?.toString() ?? '';
 
 Locale resolveAppLocale(Iterable<Locale> requested) {
   for (final locale in requested) {
-    if (['zh', 'en'].contains(locale.languageCode)) {
+    if (supportedAppLocales.any(
+      (supported) => supported.languageCode == locale.languageCode,
+    )) {
       return Locale(locale.languageCode);
     }
   }
   return const Locale('en');
 }
 
-/// Source-language keys keep the original Chinese wording readable in widgets.
-/// Arguments are inserted after lookup; user material is never translated.
-class AppStrings {
-  const AppStrings(this.locale);
-  final Locale locale;
-  static const delegate = _AppStringsDelegate();
-  static AppStrings of(BuildContext context) =>
-      Localizations.of<AppStrings>(context, AppStrings) ??
-      const AppStrings(Locale('zh'));
-  String text(String key, [List<Object?> arguments = const []]) {
-    final text = locale.languageCode == 'en'
-        ? englishMessages[key] ?? key
-        : key;
-    return text.replaceAllMapped(RegExp(r'\{(\d+)\}'), (match) {
-      final index = int.parse(match[1]!);
-      return index < arguments.length
-          ? arguments[index]?.toString() ?? ''
-          : match[0]!;
-    });
-  }
-}
-
-class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
-  const _AppStringsDelegate();
-  @override
-  bool isSupported(Locale locale) => ['en', 'zh'].contains(locale.languageCode);
-  @override
-  Future<AppStrings> load(Locale locale) =>
-      SynchronousFuture(AppStrings(locale));
-  @override
-  bool shouldReload(_AppStringsDelegate old) => false;
-}
-
 extension LocalizedContext on BuildContext {
-  String subjectName(String value) =>
-      AppStrings.of(this).locale.languageCode == 'en'
+  AppLocalizations get l10n =>
+      Localizations.of<AppLocalizations>(this, AppLocalizations) ??
+      lookupAppLocalizations(const Locale('zh'));
+  String subjectName(String value) => l10n.localeName == 'en'
       ? const {
               '数学': 'Mathematics',
               '物理': 'Physics',
@@ -61,6 +37,4 @@ extension LocalizedContext on BuildContext {
             }[value] ??
             value
       : value;
-  String tr(String key, [List<Object?> arguments = const []]) =>
-      AppStrings.of(this).text(key, arguments);
 }

@@ -1,3 +1,4 @@
+import 'package:tixun/core/l10n/app_error.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -45,14 +46,20 @@ class ModuleStore extends DatabaseNotifier {
         title.length > 80 ||
         discipline.isEmpty ||
         discipline.length > 40) {
-      throw const FormatException('目录名称需为 1–80 字，科目需为 1–40 字。');
+      throw const AppFormatException(
+        AppErrorCode.errorFolderNamesMustContain180,
+        '目录名称需为 1–80 字，科目需为 1–40 字。',
+      );
     }
     final id = await db.transaction(() async {
       final all = await list(discipline);
       if (parentId != null) {
         final parent = all.where((m) => m.id == parentId).firstOrNull;
         if (parent == null || parent.parentId != null) {
-          throw const FormatException('子模块必须位于同科目的一级模块下。');
+          throw const AppFormatException(
+            AppErrorCode.errorASubmoduleMustBeUnderA,
+            '子模块必须位于同科目的一级模块下。',
+          );
         }
       }
       final existing = all
@@ -66,10 +73,18 @@ class ModuleStore extends DatabaseNotifier {
         // The AI create_subject_module tool documents reuse of an
         // existing directory; the UI create path opts out (see
         // ModuleManager.create) so a duplicate name is reported.
-        if (!reuseExisting) throw const FormatException('已存在该目录。');
+        if (!reuseExisting)
+          throw const AppFormatException(
+            AppErrorCode.aDirectoryWithThisName,
+            '已存在该目录。',
+          );
         return existing.id;
       }
-      if (all.length >= 500) throw const FormatException('每个科目最多 500 个目录。');
+      if (all.length >= 500)
+        throw const AppFormatException(
+          AppErrorCode.errorEachSubjectCanHaveAtMost,
+          '每个科目最多 500 个目录。',
+        );
       final key = const Uuid().v4();
       final position = all.fold(
         0,
@@ -94,7 +109,10 @@ class ModuleStore extends DatabaseNotifier {
   Future<void> rename(String id, String name) => runOperation(() async {
     final title = name.trim();
     if (title.isEmpty || title.length > 80) {
-      throw const FormatException('目录名称需为 1–80 字。');
+      throw const AppFormatException(
+        AppErrorCode.errorFolderNamesMustContain1802,
+        '目录名称需为 1–80 字。',
+      );
     }
     await (db.update(db.subjectModules)..where((t) => t.id.equals(id))).write(
       SubjectModulesCompanion(name: Value(title)),
@@ -110,7 +128,10 @@ class ModuleStore extends DatabaseNotifier {
   /// end (and notifies nobody) instead of silently doing nothing.
   Future<bool> move(String id, int direction) => runOperation(() async {
     if (direction != -1 && direction != 1) {
-      throw const FormatException('排序方向无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidSortDirection,
+        '排序方向无效。',
+      );
     }
     final moved = await db.transaction(() async {
       final row = await (db.select(
@@ -186,7 +207,10 @@ class ModuleStore extends DatabaseNotifier {
   }) => runOperation(() async {
     final values = moduleIds.toSet().toList()..sort();
     if (values.length > 20 || values.any((s) => s.isEmpty || s.length > 80)) {
-      throw const FormatException('每条资料最多关联 20 个模块。');
+      throw const AppFormatException(
+        AppErrorCode.errorEachMaterialCanBeLinkedTo,
+        '每条资料最多关联 20 个模块。',
+      );
     }
     await db.transaction(() async {
       final table = mistake ? 'mistakes' : 'knowledge_items';
@@ -196,12 +220,19 @@ class ModuleStore extends DatabaseNotifier {
             variables: [Variable(id)],
           )
           .getSingleOrNull();
-      if (item == null) throw const FormatException('资料不存在或已在回收区。');
+      if (item == null)
+        throw const AppFormatException(
+          AppErrorCode.errorTheMaterialDoesNotExistOr,
+          '资料不存在或已在回收区。',
+        );
       final current = await ids(id, mistake);
       if (expected != null) {
         final previous = expected.toSet().toList()..sort();
         if (previous.join(',') != current.join(',')) {
-          throw const FormatException('分类已被其他操作更新，请重新打开后选择。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheCategoryWasChangedElsewhereReopen,
+            '分类已被其他操作更新，请重新打开后选择。',
+          );
         }
       }
       for (final moduleId in values) {
@@ -209,7 +240,10 @@ class ModuleStore extends DatabaseNotifier {
           db.subjectModules,
         )..where((t) => t.id.equals(moduleId))).getSingleOrNull();
         if (module == null || module.subject != item.read<String>('subject')) {
-          throw const FormatException('只能关联同科目的模块或子模块。');
+          throw const AppFormatException(
+            AppErrorCode.errorOnlyModulesOrSubmodulesInThe,
+            '只能关联同科目的模块或子模块。',
+          );
         }
       }
       if (mistake) {

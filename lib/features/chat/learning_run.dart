@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -230,11 +232,15 @@ class LearningRun {
         await db.preference(studyToolCategoriesKey(sessionId)),
       );
       if (toolsEnabled && !AiOptions(requestConfig).toolsAvailable) {
-        throw AiFailure(
-          requestConfig.supportsTools
-              ? '此会话启用了资料工具，请选择支持工具调用的模型并关闭深度思考，或关闭本会话资料工具。'
-              : '此会话启用了资料工具，请选择支持工具调用的模型，或关闭本会话资料工具。',
-        );
+        throw requestConfig.supportsTools
+            ? const AiFailure.localized(
+                AppErrorCode.conversationDataToolsRequireModelWithoutThinking,
+                '此会话启用了资料工具，请选择支持工具调用的模型并关闭深度思考，或关闭本会话资料工具。',
+              )
+            : const AiFailure.localized(
+                AppErrorCode.conversationDataToolsRequireToolCapableModel,
+                '此会话启用了资料工具，请选择支持工具调用的模型，或关闭本会话资料工具。',
+              );
       }
       final quizEnabled = AiOptions(requestConfig).toolsAvailable;
       final sourceImages = <Attachment>[
@@ -245,7 +251,10 @@ class LearningRun {
         db.chatSessions,
       )..where((s) => s.id.equals(sessionId))).getSingleOrNull();
       if (currentLesson == null) {
-        throw AiFailure('会话不存在，请重新选择会话。');
+        throw AiFailure.localized(
+          AppErrorCode.errorTheConversationNoLongerExistsSelect,
+          '会话不存在，请重新选择会话。',
+        );
       }
       final learningProfile = await LearningProfile.load(db);
       final english = requestPrompts.language == 'en';
@@ -375,10 +384,16 @@ class LearningRun {
                   chunk.calls.isNotEmpty ||
                   chunk.text.isNotEmpty ||
                   chunk.reasoning.isNotEmpty)) {
-            throw const AiFailure('服务返回错误，请检查模型配置后重试。');
+            throw const AiFailure.localized(
+              AppErrorCode.theServiceReturnedAnError,
+              '服务返回错误，请检查模型配置后重试。',
+            );
           }
           if (chunk.calls.isNotEmpty && !chunk.completed) {
-            throw const AiFailure('工具响应未正常结束，未执行本轮资料修改。');
+            throw const AiFailure.localized(
+              AppErrorCode.theToolResponseDidNot,
+              '工具响应未正常结束，未执行本轮资料修改。',
+            );
           }
           calls.addAll(chunk.calls);
           completed = completed || chunk.completed;
@@ -387,7 +402,11 @@ class LearningRun {
         // Keep the reasoning of the round that just streamed, even if the
         // text is later replaced by the quiz placeholder below.
         lastRoundReasoning = roundReasoning.isEmpty ? null : roundReasoning;
-        if (!completed) throw const AiFailure('连接提前断开，已保留收到的内容。请重新生成。');
+        if (!completed)
+          throw const AiFailure.localized(
+            AppErrorCode.theConnectionEndedEarlyReceived,
+            '连接提前断开，已保留收到的内容。请重新生成。',
+          );
         validateToolCalls(calls);
         if (calls.isEmpty) {
           finished = true;
@@ -397,16 +416,26 @@ class LearningRun {
             calls.any(
               (call) => !request.tools.any((tool) => tool.name == call.name),
             )) {
-          throw const AiFailure('模型尝试调用未开放的工具，已阻止。');
+          throw const AiFailure.localized(
+            AppErrorCode.anUnavailableToolCallWas,
+            '模型尝试调用未开放的工具，已阻止。',
+          );
         }
         if (studyTask != null &&
             calls.any(
               (call) => call.name != 'run_python' && !studyTask.allows(call),
             )) {
-          throw const AiFailure('已阻止修改未选中的资料，请重新发起整理。');
+          throw const AiFailure.localized(
+            AppErrorCode.editingAnUnselectedItemWas,
+            '已阻止修改未选中的资料，请重新发起整理。',
+          );
         }
         callsUsed += calls.length;
-        if (callsUsed > 8) throw const AiFailure('已达到本次最多 8 个工具调用的限制。');
+        if (callsUsed > 8)
+          throw const AiFailure.localized(
+            AppErrorCode.thisRequestReachedTheLimit,
+            '已达到本次最多 8 个工具调用的限制。',
+          );
         request = request.copyWith(
           messages: [
             ...request.messages,
@@ -422,7 +451,10 @@ class LearningRun {
           if (studyTask?.operation == 'update_knowledge' &&
               call.name == 'update_knowledge' &&
               !selectedKnowledgeRead) {
-            throw const AiFailure('修改前必须完整读取所选知识；正文过长时请先手动拆分，避免覆盖未读取的内容。');
+            throw const AiFailure.localized(
+              AppErrorCode.theSelectedKnowledgeMustBe,
+              '修改前必须完整读取所选知识；正文过长时请先手动拆分，避免覆盖未读取的内容。',
+            );
           }
           final result = call.name == 'run_python'
               ? await python.run(
@@ -501,7 +533,11 @@ class LearningRun {
         }
         if (text.isNotEmpty) text += '\n\n';
       }
-      if (!finished) throw const AiFailure('已达到 4 轮工具调用限制。已完成的资料修改仍然保留，可继续提问。');
+      if (!finished)
+        throw const AiFailure.localized(
+          AppErrorCode.theLimitOf4Tool,
+          '已达到 4 轮工具调用限制。已完成的资料修改仍然保留，可继续提问。',
+        );
       if (exam && !quizCreated) {
         text = '考试模式需要结构化题目，当前模型未成功创建。请重试，或切换教学模式查看文字讲解。';
       }
@@ -513,7 +549,10 @@ class LearningRun {
         } else if (pythonExecuted) {
           text = 'Python 执行完成，可展开查看代码和结果。';
         } else {
-          throw const AiFailure('模型没有返回可显示的正文，请重试。');
+          throw const AiFailure.localized(
+            AppErrorCode.theModelReturnedNoDisplayable,
+            '模型没有返回可显示的正文，请重试。',
+          );
         }
       }
       await publish();

@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:math' as math;
 
 class ReviewState {
@@ -40,7 +42,10 @@ ReviewDecision nextReview(
       previous.ease < 1.3 ||
       previous.ease > 3.5 ||
       previous.lapses < 0) {
-    throw const FormatException('复习状态无效。');
+    throw const AppFormatException(
+      AppErrorCode.errorInvalidReviewStatus,
+      '复习状态无效。',
+    );
   }
   if (!correct) {
     return ReviewDecision(

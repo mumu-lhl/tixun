@@ -22,6 +22,7 @@ import '../library/image_editor.dart';
 import '../practice/question_card.dart';
 import 'reasoning_menu.dart';
 import 'message_reasoning.dart';
+import 'chat_failure.dart';
 import 'session_list.dart';
 
 class ChatScreen extends ConsumerWidget {
@@ -55,7 +56,7 @@ class ChatScreen extends ConsumerWidget {
                     if (MediaQuery.sizeOf(context).width < 800)
                       IconButton(
                         key: const Key('chat-back'),
-                        tooltip: context.tr('返回'),
+                        tooltip: context.l10n.back,
                         icon: const Icon(Icons.arrow_back),
                         onPressed: () {
                           if (context.canPop()) {
@@ -67,7 +68,7 @@ class ChatScreen extends ConsumerWidget {
                       ),
                     if (!wide)
                       IconButton(
-                        tooltip: context.tr("会话列表"),
+                        tooltip: context.l10n.conversations,
                         icon: const Icon(Icons.menu_book_outlined),
                         onPressed: () => showModalBottomSheet<void>(
                           context: context,
@@ -86,25 +87,23 @@ class ChatScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            c.selected?.title ?? context.tr("AI 学习助手"),
+                            c.selected?.title ??
+                                context.l10n.aiLearningAssistant,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           Text(
                             c.demo
-                                ? context.tr("Mock · 隔离数据 · 不连接 API")
-                                : context.tr(
-                                    c.config.kind == 'chatgpt'
-                                        ? "使用 ChatGPT 订阅 · {0} · {1}"
-                                        : "{0} · {1}",
-                                    [
-                                      c.config.model,
-                                      c.busy
-                                          ? context.tr("正在回复")
-                                          : context.tr("本地保存"),
-                                    ],
-                                  ),
+                                ? context.l10n.mockIsolatedDataNoAPI
+                                : c.config.kind == 'chatgpt'
+                                ? context.l10n.usingChatGPTPlan(
+                                    c.config.model,
+                                    c.busy
+                                        ? context.l10n.responding
+                                        : context.l10n.savedLocally,
+                                  )
+                                : '${c.config.model} · ${c.busy ? context.l10n.responding : context.l10n.savedLocally}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -119,11 +118,9 @@ class ChatScreen extends ConsumerWidget {
                     ),
                     if (!compact)
                       IconButton(
-                        tooltip: context.tr(
-                          c.selected?.toolsEnabled == true
-                              ? '管理本会话资料工具'
-                              : '开启本会话资料工具',
-                        ),
+                        tooltip: (c.selected?.toolsEnabled == true
+                            ? context.l10n.manageMaterialTools
+                            : context.l10n.enableMaterialTools),
                         onPressed: c.busy || c.selected == null
                             ? null
                             : () => act(
@@ -139,7 +136,7 @@ class ChatScreen extends ConsumerWidget {
                       ),
                     if (!compact)
                       IconButton(
-                        tooltip: context.tr('关联学习资料'),
+                        tooltip: context.l10n.linkedLearningMaterial,
                         onPressed: () => act(
                           context,
                           () => openChatStudyLinks(context, ref),
@@ -151,7 +148,7 @@ class ChatScreen extends ConsumerWidget {
                       ScratchpadButton('chat:${c.selected!.id}'),
                     if (!compact)
                       IconButton(
-                        tooltip: context.tr('模型设置'),
+                        tooltip: context.l10n.modelSettings,
                         onPressed: () => context.push('/settings/ai'),
                         icon: const Icon(Icons.tune, size: 21),
                       ),
@@ -159,7 +156,7 @@ class ChatScreen extends ConsumerWidget {
                       PopupMenuButton<String>(
                         popUpAnimationStyle: menuAnimation(context),
                         key: const Key('chat-more'),
-                        tooltip: context.tr('更多对话操作'),
+                        tooltip: context.l10n.moreChatActions,
                         icon: Badge(
                           isLabelVisible: c.selected?.toolsEnabled == true,
                           smallSize: 6,
@@ -185,21 +182,19 @@ class ChatScreen extends ConsumerWidget {
                             checked: c.selected?.toolsEnabled == true,
                             enabled: !c.busy && c.selected != null,
                             child: Text(
-                              ctx.tr(
-                                c.selected?.toolsEnabled == true
-                                    ? '管理本会话资料工具'
-                                    : '开启本会话资料工具',
-                              ),
+                              (c.selected?.toolsEnabled == true
+                                  ? ctx.l10n.manageMaterialTools
+                                  : ctx.l10n.enableMaterialTools),
                             ),
                           ),
                           PopupMenuItem(
                             value: 'links',
                             enabled: c.selected != null,
-                            child: Text(ctx.tr('关联学习资料')),
+                            child: Text(ctx.l10n.linkedLearningMaterial),
                           ),
                           PopupMenuItem(
                             value: 'settings',
-                            child: Text(ctx.tr('模型设置')),
+                            child: Text(ctx.l10n.modelSettings),
                           ),
                         ],
                       ),
@@ -208,14 +203,14 @@ class ChatScreen extends ConsumerWidget {
               ),
               if (c.error != null)
                 MaterialBanner(
-                  content: Text(context.tr(c.error!)),
+                  content: Text(c.error!.text(context.l10n)),
                   actions: [
                     TextButton(
                       onPressed: () {
                         c.error = null;
                         c.changed();
                       },
-                      child: Text(context.tr("关闭")),
+                      child: Text(context.l10n.close),
                     ),
                   ],
                 ),
@@ -243,24 +238,24 @@ Future<void> _toggleStudyTools(BuildContext context, AppController c) async {
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, update) => AlertDialog(
         scrollable: true,
-        title: Text(ctx.tr('资料工具')),
+        title: Text(ctx.l10n.materialTools),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(ctx.tr('只向 AI 开放选中的类别。新增、修改、删除和关联仍须逐项确认；检索不会自动上传图片。')),
+            Text(ctx.l10n.onlySelectedCategoriesAreAvailable),
             const SizedBox(height: 12),
-            for (final (category, label) in const [
-              (StudyToolCategory.knowledge, '知识'),
-              (StudyToolCategory.mistakes, '错题'),
-              (StudyToolCategory.modules, '科目目录'),
-              (StudyToolCategory.progress, '学习进度'),
-              (StudyToolCategory.review, '复习安排'),
+            for (final (category, label) in [
+              (StudyToolCategory.knowledge, ctx.l10n.knowledge),
+              (StudyToolCategory.mistakes, ctx.l10n.mistakeQuestions),
+              (StudyToolCategory.modules, ctx.l10n.subjectModules),
+              (StudyToolCategory.progress, ctx.l10n.learningProgress),
+              (StudyToolCategory.review, ctx.l10n.reviewSchedule),
             ])
               CheckboxListTile(
                 key: Key('study-tools-${category.name}'),
                 value: selection.contains(category),
-                title: Text(ctx.tr(label)),
+                title: Text(label),
                 controlAffinity: ListTileControlAffinity.leading,
                 contentPadding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
@@ -277,15 +272,15 @@ Future<void> _toggleStudyTools(BuildContext context, AppController c) async {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, <StudyToolCategory>{}),
-            child: Text(ctx.tr('关闭全部')),
+            child: Text(ctx.l10n.disableAll),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, allStudyToolCategories),
-            child: Text(ctx.tr('全部启用')),
+            child: Text(ctx.l10n.enableAll),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, selection),
-            child: Text(ctx.tr('保存')),
+            child: Text(ctx.l10n.save),
           ),
         ],
       ),
@@ -313,16 +308,16 @@ class _NoSession extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            context.tr("每个问题，都值得弄懂"),
+            context.l10n.everyQuestionIsWorthUnderstanding,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),
-          Text(
-            context.tr("输入文字或上传题目图片，和 AI 一起理清思路。"),
-            textAlign: TextAlign.center,
-          ),
+          Text(context.l10n.typeAQuestionOrAdd, textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          FilledButton(onPressed: onStart, child: Text(context.tr("开始新的学习对话"))),
+          FilledButton(
+            onPressed: onStart,
+            child: Text(context.l10n.startANewConversation),
+          ),
         ],
       ),
     ),
@@ -544,16 +539,16 @@ class _ConversationState extends ConsumerState<Conversation> {
                                       children: [
                                         const SizedBox(height: 24),
                                         Text(
-                                          context.tr("今天，想弄懂什么？"),
+                                          context
+                                              .l10n
+                                              .whatWouldYouLikeToUnderstand,
                                           style: Theme.of(context)
                                               .textTheme
                                               .headlineMedium,
                                         ),
                                         const SizedBox(height: 12),
                                         Text(
-                                          context.tr(
-                                            "不必先把问题整理得很完美。\n告诉我卡在哪里，或者直接发一张题目图片。",
-                                          ),
+                                          context.l10n.yourQuestionDoesNotNeed,
                                           style: TextStyle(
                                             color: colors.onSurfaceVariant,
                                             height: 1.8,
@@ -636,7 +631,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                               foregroundColor: colors.onSurface,
                               shape: const CircleBorder(),
                             ),
-                            tooltip: context.tr("回到最新消息"),
+                            tooltip: context.l10n.backToLatestMessage,
                             onPressed: () {
                               setState(() => _stick = true);
                               if (_scroll.hasClients) {
@@ -663,22 +658,22 @@ class _ConversationState extends ConsumerState<Conversation> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
                       for (final text in [
-                        '给我提示',
-                        '换种方式解释',
-                        '讲简单一点',
-                        '直接给答案',
-                        '再出一道题',
+                        context.l10n.giveMeAHint,
+                        context.l10n.explainDifferently,
+                        context.l10n.makeItSimpler,
+                        context.l10n.showTheAnswer,
+                        context.l10n.giveMeAnotherQuestion,
                       ])
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ActionChip(
                             label: Text(
-                              context.tr(text),
+                              text,
                               style: const TextStyle(fontSize: 12),
                             ),
                             onPressed: () {
-                              _input.text = context.tr(text);
-                              c.draft(context.tr(text));
+                              _input.text = text;
+                              c.draft(text);
                               _focus.requestFocus();
                             },
                           ),
@@ -722,15 +717,21 @@ class _ConversationState extends ConsumerState<Conversation> {
                                           items: [
                                             DropdownMenuItem(
                                               value: 'guided',
-                                              child: Text(context.tr("引导教学")),
+                                              child: Text(
+                                                context.l10n.guidedLearning,
+                                              ),
                                             ),
                                             DropdownMenuItem(
                                               value: 'direct',
-                                              child: Text(context.tr("直接解答")),
+                                              child: Text(
+                                                context.l10n.directAnswer,
+                                              ),
                                             ),
                                             DropdownMenuItem(
                                               value: 'exam',
-                                              child: Text(context.tr("考试训练")),
+                                              child: Text(
+                                                context.l10n.examPractice,
+                                              ),
                                             ),
                                           ],
                                           onChanged: c.busy
@@ -788,14 +789,14 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                       // hit without covering
                                                       // the thumbnail.
                                                       child: Tooltip(
-                                                        message: context.tr(
-                                                          "移除图片",
-                                                        ),
+                                                        message: context
+                                                            .l10n
+                                                            .removeImage,
                                                         child: Semantics(
                                                           button: true,
-                                                          label: context.tr(
-                                                            "移除图片",
-                                                          ),
+                                                          label: context
+                                                              .l10n
+                                                              .removeImage,
                                                           child: GestureDetector(
                                                             behavior:
                                                                 HitTestBehavior
@@ -879,9 +880,8 @@ class _ConversationState extends ConsumerState<Conversation> {
                                           maxLines: 4,
                                           maxLength: 32000,
                                           decoration: InputDecoration(
-                                            hintText: context.tr(
-                                              "写下你的问题，或添加题目图片…",
-                                            ),
+                                            hintText:
+                                                context.l10n.askAQuestionOrAdd,
                                             counterText: '',
                                             filled: false,
                                             border: InputBorder.none,
@@ -899,7 +899,8 @@ class _ConversationState extends ConsumerState<Conversation> {
                                       c.busy
                                           ? IconButton.filled(
                                               key: const Key('stop-generation'),
-                                              tooltip: context.tr("停止生成"),
+                                              tooltip:
+                                                  context.l10n.stopGenerating,
                                               onPressed: c.stop,
                                               icon: const Icon(
                                                 Icons.stop_rounded,
@@ -934,7 +935,8 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                   >(
                                                     popUpAnimationStyle:
                                                         menuAnimation(context),
-                                                    tooltip: context.tr("添加图片"),
+                                                    tooltip:
+                                                        context.l10n.addPhotos,
                                                     enabled: !c.busy,
                                                     icon: const Icon(
                                                       Icons
@@ -948,20 +950,26 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                         PopupMenuItem(
                                                           value: 'camera',
                                                           child: Text(
-                                                            context.tr("拍照"),
+                                                            context
+                                                                .l10n
+                                                                .takePhoto,
                                                           ),
                                                         ),
                                                         PopupMenuItem(
                                                           value: 'gallery',
                                                           child: Text(
-                                                            context.tr("从相册选择"),
+                                                            context
+                                                                .l10n
+                                                                .chooseFromPhotos,
                                                           ),
                                                         ),
                                                       ],
                                                       PopupMenuItem(
                                                         value: 'file',
                                                         child: Text(
-                                                          context.tr("选择图片文件"),
+                                                          context
+                                                              .l10n
+                                                              .chooseImageFile,
                                                         ),
                                                       ),
                                                     ],
@@ -983,9 +991,9 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                   key: const Key(
                                                     'send-message',
                                                   ),
-                                                  tooltip: context.tr(
-                                                    "发送（Ctrl+Enter）",
-                                                  ),
+                                                  tooltip: context
+                                                      .l10n
+                                                      .sendCtrlEnter,
                                                   onPressed: () =>
                                                       act(context, _send),
                                                   icon: const Icon(
@@ -1106,8 +1114,8 @@ class MessageView extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Text(
                     c.pendingTool == null
-                        ? context.tr("正在思考与组织回答…")
-                        : context.tr("等待确认资料操作…"),
+                        ? context.l10n.thinkingThroughYourQuestion
+                        : context.l10n.waitingForYourConfirmation,
                     style: TextStyle(
                       fontSize: 12,
                       color: colors.onSurfaceVariant,
@@ -1120,7 +1128,7 @@ class MessageView extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Text(
-                context.tr(message.error!),
+                chatFailureText(context.l10n, message.error!),
                 style: TextStyle(
                   fontSize: 12,
                   color: message.status == 'error'
@@ -1133,7 +1141,7 @@ class MessageView extends ConsumerWidget {
             Row(
               children: [
                 IconButton(
-                  tooltip: context.tr("复制消息"),
+                  tooltip: context.l10n.copyMessage,
                   icon: const Icon(Icons.copy_outlined, size: 17),
                   onPressed: () async {
                     await Clipboard.setData(
@@ -1141,7 +1149,7 @@ class MessageView extends ConsumerWidget {
                     );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(context.tr("消息已复制"))),
+                        SnackBar(content: Text(context.l10n.messageCopied)),
                       );
                     }
                   },
@@ -1149,14 +1157,14 @@ class MessageView extends ConsumerWidget {
                 ChatStudyMenu(message: message),
                 if (user)
                   IconButton(
-                    tooltip: context.tr("编辑并在新分支重问"),
+                    tooltip: context.l10n.editAndAskInA,
                     icon: const Icon(Icons.edit_outlined, size: 17),
                     onPressed: c.busy
                         ? null
                         : () async {
                             final text = await editText(
                               context,
-                              title: context.tr("编辑并重问（保留原会话）"),
+                              title: context.l10n.editAndAskAgainKeep,
                               initial: message.content,
                               multiline: true,
                             );
@@ -1173,7 +1181,7 @@ class MessageView extends ConsumerWidget {
                     onPressed: c.busy ? null : () => act(context, c.regenerate),
                     icon: const Icon(Icons.refresh, size: 17),
                     label: Text(
-                      context.tr("重新生成"),
+                      context.l10n.regenerate,
                       style: TextStyle(fontSize: 12),
                     ),
                   ),
@@ -1219,12 +1227,15 @@ class AttachmentImage extends ConsumerWidget {
         width: width,
         height: height,
         child: Center(
-          child: Text(context.tr("图片无法读取"), textAlign: TextAlign.center),
+          child: Text(
+            context.l10n.couldNotReadImage,
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );
     return Semantics(
-      label: context.tr("题目图片，点击预览"),
+      label: context.l10n.questionImageTapToPreview,
       button: true,
       child: InkWell(
         onTap: () {
@@ -1244,8 +1255,8 @@ class AttachmentImage extends ConsumerWidget {
             ],
             initialIndex: index < 0 ? 0 : index,
             title: attachment.originalPath == null
-                ? context.tr("原图预览")
-                : context.tr("发送图片预览"),
+                ? context.l10n.originalImagePreview
+                : context.l10n.outgoingImagePreview,
             actions: (closeViewer) => [
               if (attachment.originalPath != null)
                 TextButton(
@@ -1255,12 +1266,12 @@ class AttachmentImage extends ConsumerWidget {
                       ImageViewerItem(
                         file: c.files.resolve(attachment.originalPath!),
                         cacheWidth: 1600,
-                        errorText: context.tr("原图无法读取。"),
+                        errorText: context.l10n.couldNotReadOriginalImage,
                       ),
                     ],
-                    title: context.tr("保留的原图"),
+                    title: context.l10n.preservedOriginal,
                   ),
-                  child: Text(context.tr("查看保留的原图")),
+                  child: Text(context.l10n.viewPreservedOriginal),
                 ),
               if (attachment.messageId == null)
                 TextButton.icon(
@@ -1272,10 +1283,10 @@ class AttachmentImage extends ConsumerWidget {
                           await editChatPhoto(context, c, attachment);
                         }),
                   icon: const Icon(Icons.crop, size: 18),
-                  label: Text(context.tr("裁剪 / 旋转 / 缩小")),
+                  label: Text(context.l10n.cropRotateResize),
                 ),
             ],
-            footnote: context.tr("原图单独保留在此设备，发送时使用当前预览的图片。"),
+            footnote: context.l10n.theOriginalIsKeptSeparately,
           );
         },
         child: Hero(
@@ -1311,8 +1322,8 @@ Future<void> editChatPhoto(
         deleted: false,
       ),
       isMistake: true,
-      title: '编辑题目图片',
-      createLabel: '保存图片编辑',
+      title: context.l10n.editPhoto,
+      createLabel: context.l10n.useEditedPhoto,
       allowSplit: false,
       onCreate: (bytes, _, _) => c.replaceDraftImage(image, bytes),
     ),

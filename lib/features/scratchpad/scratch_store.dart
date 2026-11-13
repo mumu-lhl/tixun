@@ -5,6 +5,7 @@ import 'dart:async';
 import '../../core/database/database.dart';
 import '../../core/database/database_notifier.dart';
 import 'scratch_document.dart';
+import 'scratchpad_exception.dart';
 
 /// Coalesced snapshots have a bounded save interval and a shutdown/backup barrier.
 class ScratchStore extends DatabaseNotifier {
@@ -13,7 +14,7 @@ class ScratchStore extends DatabaseNotifier {
   final _pending = <String, String>{};
   Timer? _timer;
   Future<void>? _writes;
-  String? failure;
+  ScratchpadError? failure;
   Future<ScratchDocument> load(String key) async {
     await flush();
     final row = await (db.select(
@@ -27,7 +28,10 @@ class ScratchStore extends DatabaseNotifier {
   void stage(String key, ScratchDocument document) {
     if (isDisposed) throw StateError('草稿已关闭。');
     if (!RegExp(r'^(chat|mistake|practice):[^\s]{1,200}$').hasMatch(key)) {
-      throw const FormatException('草稿关联无效。');
+      throw const ScratchpadException(
+        ScratchpadError.invalidContext,
+        '草稿关联无效。',
+      );
     }
     final encoded = document.encode();
     // Apply the same bounds on writes and reads to avoid saving an unreadable draft.
@@ -84,7 +88,7 @@ class ScratchStore extends DatabaseNotifier {
         for (final e in batch.entries) {
           _pending.putIfAbsent(e.key, () => e.value);
         }
-        failure = '草稿保存失败，请重试后再退出。';
+        failure = ScratchpadError.saveFailed;
         changed();
         rethrow;
       }

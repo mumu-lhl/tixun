@@ -13,12 +13,14 @@ import '../../core/ai/ai_options.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/reasoning_labels.dart';
 import '../../core/ui/image_viewer.dart';
 import '../../core/ui/reasoning_panel.dart';
 import 'exam_photo_intake.dart';
 import 'exam_ai.dart';
 import 'exam_calendar.dart';
 import 'exam_detail.dart';
+import 'exam_localization.dart';
 import 'exam_store.dart';
 import 'score_editor.dart';
 import 'exam_image_editor.dart';
@@ -36,16 +38,14 @@ class ExamSubjectScreen extends ConsumerWidget {
       )..where((t) => t.id.equals(id))).watchSingleOrNull(),
       builder: (context, snap) {
         if (snap.hasError) {
-          return Center(child: Text(context.tr('考试记录读取失败，请重新打开。')));
+          return Center(child: Text(context.l10n.couldNotLoadExamRecords));
         }
         if (!snap.hasData) {
           return Center(
             child: Text(
-              context.tr(
-                snap.connectionState == ConnectionState.waiting
-                    ? '正在加载…'
-                    : '记录不存在',
-              ),
+              snap.connectionState == ConnectionState.waiting
+                  ? context.l10n.loadingEllipsis
+                  : context.l10n.recordNotFound,
             ),
           );
         }
@@ -64,7 +64,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                         BackButton(),
                         Expanded(
                           child: Text(
-                            context.tr(subject.subject),
+                            context.subjectName(subject.subject),
                             style: Theme.of(context).textTheme.headlineMedium,
                           ),
                         ),
@@ -72,27 +72,25 @@ class ExamSubjectScreen extends ConsumerWidget {
                           onPressed: () =>
                               editSubject(context, c, subject.eventId, subject),
                           icon: const Icon(Icons.edit_outlined),
-                          label: Text(context.tr('编辑成绩')),
+                          label: Text(context.l10n.editScores),
                         ),
                         IconButton(
-                          tooltip: context.tr('删除科目'),
+                          tooltip: context.l10n.deleteSubject,
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () async {
                             final yes = await showDialog<bool>(
                               context: context,
                               builder: (d) => AlertDialog(
-                                title: Text(d.tr('删除科目')),
-                                content: Text(
-                                  d.tr('将删除这个科目的成绩、小分表和照片，其他科目保留。此操作无法撤销。'),
-                                ),
+                                title: Text(d.l10n.deleteSubject),
+                                content: Text(d.l10n.thisDeletesThisSubjectS),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(d),
-                                    child: Text(d.tr('取消')),
+                                    child: Text(d.l10n.cancel),
                                   ),
                                   FilledButton(
                                     onPressed: () => Navigator.pop(d, true),
-                                    child: Text(d.tr('删除')),
+                                    child: Text(d.l10n.delete),
                                   ),
                                 ],
                               ),
@@ -111,7 +109,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '${context.tr('裸分')} ${points(subject.rawScore)}${subject.maximum == null ? '' : ' / ${points(subject.maximum)}'}${subject.usesScaling ? ' · ${context.tr('赋分')} ${points(subject.scaledScore)}' : ''}',
+                      '${context.l10n.rawScore} ${points(subject.rawScore)}${subject.maximum == null ? '' : ' / ${points(subject.maximum)}'}${subject.usesScaling ? ' · ${context.l10n.scaledScore} ${points(subject.scaledScore)}' : ''}',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     if (subject.notes.isNotEmpty)
@@ -121,12 +119,10 @@ class ExamSubjectScreen extends ConsumerWidget {
                       ),
                     const Divider(height: 32),
                     Text(
-                      context.tr('考试资料'),
+                      context.l10n.examDocuments,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    Text(
-                      context.tr('原图保存在本机，备份包含这些照片；只有点击 AI 整理并确认后才会上传所选照片。'),
-                    ),
+                    Text(context.l10n.originalPhotosAreStoredLocally),
                     StreamBuilder<List<ExamAttachment>>(
                       stream:
                           (c.db.select(c.db.examAttachments)
@@ -138,7 +134,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                               .watch(),
                       builder: (ctx, images) {
                         if (images.hasError) {
-                          return Text(ctx.tr('图片读取失败，请重新打开。'));
+                          return Text(ctx.l10n.couldNotLoadPhotosPlease);
                         }
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -151,7 +147,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          ctx.tr(role.value),
+                                          examImageRoleLabel(ctx, role.key),
                                           style: Theme.of(ctx)
                                               .textTheme
                                               .titleMedium,
@@ -159,7 +155,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                                       ),
                                       if (Platform.isAndroid)
                                         IconButton(
-                                          tooltip: ctx.tr('拍照'),
+                                          tooltip: ctx.l10n.takePhoto,
                                           icon: const Icon(
                                             Icons.photo_camera_outlined,
                                           ),
@@ -177,7 +173,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                                         icon: const Icon(
                                           Icons.add_photo_alternate_outlined,
                                         ),
-                                        label: Text(ctx.tr('添加图片')),
+                                        label: Text(ctx.l10n.addPhotos),
                                         onPressed: () => act(
                                           ctx,
                                           () => _pick(ctx, c, role.key),
@@ -230,9 +226,9 @@ class ExamSubjectScreen extends ConsumerWidget {
                                                             heroTag:
                                                                 'exam-image-${item.id}',
                                                             cacheWidth: 2000,
-                                                            errorText: ctx.tr(
-                                                              '图片无法读取，原记录仍保留',
-                                                            ),
+                                                            errorText: ctx
+                                                                .l10n
+                                                                .couldNotReadImageThe,
                                                           ),
                                                       ],
                                                       initialIndex: roleImages
@@ -241,7 +237,10 @@ class ExamSubjectScreen extends ConsumerWidget {
                                                                 i.id ==
                                                                 image.id,
                                                           ),
-                                                      title: ctx.tr(role.value),
+                                                      title: examImageRoleLabel(
+                                                        ctx,
+                                                        role.key,
+                                                      ),
                                                     );
                                                   },
                                                   child: Hero(
@@ -260,9 +259,9 @@ class ExamSubjectScreen extends ConsumerWidget {
                                                             height: 110,
                                                             child: Center(
                                                               child: Text(
-                                                                ctx.tr(
-                                                                  '图片无法读取，原记录仍保留',
-                                                                ),
+                                                                ctx
+                                                                    .l10n
+                                                                    .couldNotReadImageThe,
                                                               ),
                                                             ),
                                                           ),
@@ -282,7 +281,8 @@ class ExamSubjectScreen extends ConsumerWidget {
                                                       key: Key(
                                                         'exam-image-menu-${image.id}',
                                                       ),
-                                                      tooltip: ctx.tr('图片操作'),
+                                                      tooltip:
+                                                          ctx.l10n.imageActions,
                                                       popUpAnimationStyle:
                                                           menuAnimation(ctx),
                                                       position:
@@ -303,9 +303,9 @@ class ExamSubjectScreen extends ConsumerWidget {
                                                         PopupMenuItem(
                                                           value: 'edit',
                                                           child: Text(
-                                                            ctx.tr(
-                                                              '裁剪 / 旋转 / 缩小',
-                                                            ),
+                                                            ctx
+                                                                .l10n
+                                                                .cropRotateResize,
                                                           ),
                                                         ),
                                                         if (image
@@ -314,14 +314,18 @@ class ExamSubjectScreen extends ConsumerWidget {
                                                           PopupMenuItem(
                                                             value: 'original',
                                                             child: Text(
-                                                              ctx.tr('查看保留的原图'),
+                                                              ctx
+                                                                  .l10n
+                                                                  .viewPreservedOriginal,
                                                             ),
                                                           ),
                                                         const PopupMenuDivider(),
                                                         PopupMenuItem(
                                                           value: 'delete',
                                                           child: Text(
-                                                            ctx.tr('删除图片'),
+                                                            ctx
+                                                                .l10n
+                                                                .deleteImage,
                                                             style: TextStyle(
                                                               color: Theme.of(ctx)
                                                                   .colorScheme
@@ -359,7 +363,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                                         ),
                                       ),
                                   icon: const Icon(Icons.table_rows_outlined),
-                                  label: Text(ctx.tr('编辑小分表')),
+                                  label: Text(ctx.l10n.editQuestionMarks),
                                 ),
                                 OutlinedButton.icon(
                                   onPressed: (images.data ?? []).isEmpty
@@ -377,7 +381,9 @@ class ExamSubjectScreen extends ConsumerWidget {
                                               ),
                                             ),
                                   icon: const Icon(Icons.auto_awesome_outlined),
-                                  label: Text(ctx.tr('AI 整理小分表')),
+                                  label: Text(
+                                    ctx.l10n.extractQuestionMarksWithAI,
+                                  ),
                                 ),
                               ],
                             ),
@@ -398,7 +404,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                               .watch(),
                       builder: (ctx, snap) {
                         if (snap.hasError) {
-                          return Text(ctx.tr('小分表读取失败，请重新打开。'));
+                          return Text(ctx.l10n.couldNotLoadQuestionMarks);
                         }
                         final rows = snap.data ?? [];
                         final drafts = rows
@@ -421,17 +427,17 @@ class ExamSubjectScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             if (rows.isEmpty)
-                              Text(ctx.tr('还没有小分表，可手动连续录入，或让 AI 从照片整理。')),
+                              Text(ctx.l10n.noQuestionMarksYetEnter),
                             if (rows.isNotEmpty)
                               Text(
-                                '${ctx.tr('明细合计')} ${points(earned)} / ${rows.any((r) => !parents.contains(r.id) && r.maximum == null) ? '—' : points(maximum)} · ${ctx.tr(complete ? '已填写得分' : '含未知得分，合计不完整')}',
+                                '${ctx.l10n.breakdownTotal} ${points(earned)} / ${rows.any((r) => !parents.contains(r.id) && r.maximum == null) ? '—' : points(maximum)} · ${(complete ? ctx.l10n.allMarksEntered : ctx.l10n.unknownMarksTotalIsIncomplete)}',
                                 style: Theme.of(ctx).textTheme.titleMedium,
                               ),
                             if (subject.rawScore != null &&
                                 complete &&
                                 (earned - subject.rawScore!).abs() > .001)
                               Text(
-                                ctx.tr('明细合计与裸分不同，请核对；不会自动覆盖成绩。'),
+                                ctx.l10n.theBreakdownDiffersFromThe,
                                 style: TextStyle(
                                   color: Theme.of(ctx).colorScheme.error,
                                 ),
@@ -447,7 +453,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                                     : Text(row.note),
                                 trailing: Text(
                                   parents.contains(row.id)
-                                      ? ctx.tr('按小题汇总')
+                                      ? ctx.l10n.subquestionTotal
                                       : '${points(row.earned)} / ${points(row.maximum)}',
                                 ),
                               ),
@@ -483,25 +489,25 @@ class ExamSubjectScreen extends ConsumerWidget {
             ImageViewerItem(
               file: c.files.resolve(image.originalPath!),
               cacheWidth: 1600,
-              errorText: context.tr('原图无法读取。'),
+              errorText: context.l10n.couldNotReadOriginalImage,
             ),
           ],
-          title: context.tr('保留的原图'),
+          title: context.l10n.preservedOriginal,
         );
       case 'delete':
         final yes = await showDialog<bool>(
           context: context,
           builder: (d) => AlertDialog(
-            title: Text(d.tr('删除图片')),
-            content: Text(d.tr('删除本机保存的这张照片？')),
+            title: Text(d.l10n.deleteImage),
+            content: Text(d.l10n.deleteThisLocallyStoredPhoto),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(d, false),
-                child: Text(d.tr('取消')),
+                child: Text(d.l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(d, true),
-                child: Text(d.tr('删除')),
+                child: Text(d.l10n.delete),
               ),
             ],
           ),
@@ -568,23 +574,33 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
     final c = ref.watch(appControllerProvider);
     final config = AiOptions.forSession(c.config, effort);
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('AI 整理小分表'))),
+      appBar: AppBar(title: Text(context.l10n.extractQuestionMarksWithAI)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(context.tr('仅上传勾选的照片。建议同时选择答题卡和参考答案；主观题没有评分依据时留空。AI 建议必须人工核对。')),
-          if (c.demo) Text(context.tr('Mock 模式不读取照片评分，请使用手动录入验证小分表。')),
+          Text(context.l10n.onlyTheSelectedPhotosWill),
+          if (c.demo) Text(context.l10n.mockModeDoesNotGrade),
           if (!AiOptions(config).vision)
-            Text(context.tr('当前模型不支持图片，请选择支持视觉的模型。')),
+            Text(context.l10n.modelDoesNotSupportImages),
           AppSelectField<String>(
             initialValue: effort,
-            decoration: InputDecoration(labelText: context.tr('思考强度')),
+            decoration: InputDecoration(
+              labelText: context.l10n.reasoningEffort,
+            ),
             items: [
               for (final e in {
-                '': '跟随全局默认',
-                'off': AiOptions(c.config).offChoiceLabel,
+                '': context.l10n.useGlobalDefault,
+                'off': reasoningOffLabel(
+                  context,
+                  AiOptions(c.config),
+                  choice: true,
+                ),
                 for (final level in AiOptions(c.config).reasoningEfforts)
-                  level: AiOptions(c.config).label(level),
+                  level: reasoningEffortLabel(
+                    context,
+                    AiOptions(c.config),
+                    level,
+                  ),
               }.entries)
                 DropdownMenuItem(
                   value: e.key,
@@ -592,7 +608,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
                       e.key.isEmpty ||
                       e.key == 'off' ||
                       c.config.supportsThinking,
-                  child: Text(context.tr(e.value)),
+                  child: Text(e.value),
                 ),
             ],
             onChanged: busy ? null : (v) => setState(() => effort = v ?? ''),
@@ -600,7 +616,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
           for (final image in widget.images)
             CheckboxListTile(
               value: selected.contains(image.id),
-              title: Text(context.tr(examImageRoles[image.role]!)),
+              title: Text(examImageRoleLabel(context, image.role)),
               secondary: Image.file(
                 c.files.resolve(image.relativePath),
                 width: 55,
@@ -669,15 +685,14 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
                       if (mounted) {
                         setState(() {
                           busy = false;
-                          error = context.tr(
-                            'AI 整理失败，未修改小分表。请检查网络、图片及模型配置后重试。',
-                          );
+                          error =
+                              context.l10n.aiExtractionFailedWithoutChanging;
                         });
                       }
                     }
                   },
             icon: const Icon(Icons.auto_awesome_outlined),
-            label: Text(context.tr('上传所选照片并整理')),
+            label: Text(context.l10n.uploadSelectedPhotosAndExtract),
           ),
           if (busy)
             const Padding(
@@ -687,7 +702,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
           if (busy)
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(context.tr('停止并返回')),
+              child: Text(context.l10n.stopAndReturn),
             ),
           if (reasoning.isNotEmpty)
             ReasoningPanel(text: reasoning, generating: busy),
@@ -698,7 +713,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
             ),
           if (proposal != null) ...[
             const SizedBox(height: 16),
-            Text(context.tr('整理完成，尚未修改小分表。打开核对后，可编辑每项分数再保存。')),
+            Text(context.l10n.extractionFinishedYourSavedMarks),
             for (final row in proposal!)
               ListTile(
                 contentPadding: EdgeInsets.only(
@@ -717,7 +732,7 @@ class _ExamAiState extends ConsumerState<ExamAiScreen> {
                       ScoreEditor(subject: widget.subject, proposal: proposal),
                 ),
               ),
-              child: Text(context.tr('核对并编辑小分表')),
+              child: Text(context.l10n.reviewAndEditMarks),
             ),
           ],
         ],

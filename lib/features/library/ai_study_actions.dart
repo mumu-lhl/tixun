@@ -1,3 +1,4 @@
+import 'package:tixun/core/l10n/app_error.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,14 +16,18 @@ Future<void> startAiStudyWriting(
   bool mistake = false,
 }) async {
   final c = ref.read(appControllerProvider);
-  if (c.busy) throw const FormatException('请先停止生成，再整理资料。');
+  if (c.busy)
+    throw const AppFormatException(
+      AppErrorCode.stopGenerationBeforeOrganizingMaterial,
+      '请先停止生成，再整理资料。',
+    );
   final title = knowledge != null
       ? source == null
-            ? 'AI 编辑知识'
-            : 'AI 整合到已有知识'
+            ? context.l10n.editKnowledgeWithAI
+            : context.l10n.mergeIntoExistingKnowledgeWith
       : mistake
-      ? 'AI 整理成错题'
-      : 'AI 生成知识';
+      ? context.l10n.organizeAsAMistakeWith
+      : context.l10n.createKnowledgeWithAI;
   final instruction = await showDialog<String>(
     context: context,
     builder: (_) => _WritingRequest(
@@ -30,7 +35,7 @@ Future<void> startAiStudyWriting(
       target: knowledge?.title,
       requiredInput: source == null,
       initial: knowledge != null && source == null
-          ? context.tr('整理结构，保留原意并补充必要的适用条件。')
+          ? context.l10n.improveTheStructurePreserveThe
           : '',
     ),
   );
@@ -71,7 +76,7 @@ class _WritingRequestState extends State<_WritingRequest> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(context.tr(widget.title)),
+    title: Text(widget.title),
     scrollable: true,
     content: SizedBox(
       width: 480,
@@ -90,15 +95,15 @@ class _WritingRequestState extends State<_WritingRequest> {
             minLines: 2,
             maxLines: 5,
             decoration: InputDecoration(
-              labelText: context.tr(
-                widget.requiredInput ? '希望生成或修改什么？' : '整理要求（可选）',
-              ),
+              labelText: (widget.requiredInput
+                  ? context.l10n.whatWouldYouLikeToCreateOrChange
+                  : context.l10n.instructionsOptional),
               errorText: error,
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            context.tr('使用当前模型，在对话中整理并按需检索相关资料。每项保存或修改仍需你确认。'),
+            context.l10n.useTheCurrentModelIn,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -107,18 +112,18 @@ class _WritingRequestState extends State<_WritingRequest> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: Text(context.tr('取消')),
+        child: Text(context.l10n.cancel),
       ),
       FilledButton(
         key: const Key('start-ai-study-writing'),
         onPressed: () {
           if (widget.requiredInput && input.text.trim().isEmpty) {
-            setState(() => error = context.tr('请填写希望生成或修改的内容。'));
+            setState(() => error = context.l10n.describeWhatYouWantTo);
             return;
           }
           Navigator.pop(context, input.text.trim());
         },
-        child: Text(context.tr('开始整理')),
+        child: Text(context.l10n.startOrganizing),
       ),
     ],
   );
@@ -156,7 +161,7 @@ class _KnowledgePickerState extends State<_KnowledgePicker> {
               children: [
                 Expanded(
                   child: Text(
-                    context.tr('选择要整合的知识'),
+                    context.l10n.selectKnowledgeToMergeInto,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
@@ -168,7 +173,7 @@ class _KnowledgePickerState extends State<_KnowledgePicker> {
               key: const Key('ai-knowledge-target-search'),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
-                hintText: context.tr('搜索知识，或从最近记录中选择'),
+                hintText: context.l10n.searchKnowledgeOrSelectA,
               ),
               onChanged: (q) => setState(
                 () => items = widget.store.searchKnowledge(
@@ -186,10 +191,14 @@ class _KnowledgePickerState extends State<_KnowledgePicker> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snap.hasError) {
-                    return Center(child: Text(context.tr('知识读取失败，请重新打开。')));
+                    return Center(
+                      child: Text(context.l10n.couldNotLoadKnowledgeReopen),
+                    );
                   }
                   if (snap.data!.isEmpty) {
-                    return Center(child: Text(context.tr('没有匹配的知识')));
+                    return Center(
+                      child: Text(context.l10n.noMatchingKnowledge),
+                    );
                   }
                   return ListView.builder(
                     itemCount: snap.data!.length,

@@ -1,3 +1,6 @@
+import 'package:tixun/core/l10n/app_error_localization.dart';
+
+import 'study_localization.dart';
 import '../../core/ui/app_menu.dart';
 
 import 'package:material_ui/material_ui.dart';
@@ -89,16 +92,16 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text(context.tr("放弃未保存的修改？")),
-            content: Text(context.tr("当前修改尚未保存。")),
+            title: Text(context.l10n.discardUnsavedChanges),
+            content: Text(context.l10n.youHaveUnsavedChanges),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text(context.tr("继续编辑")),
+                child: Text(context.l10n.keepEditing),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: Text(context.tr("放弃修改")),
+                child: Text(context.l10n.discardChanges),
               ),
             ],
           ),
@@ -122,16 +125,16 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
           final yes = await showDialog<bool>(
             context: context,
             builder: (d) => AlertDialog(
-              title: Text(d.tr('更换科目')),
-              content: Text(d.tr('更换科目会清除原科目的目录关联。资料正文和图片会保留。')),
+              title: Text(d.l10n.changeSubject),
+              content: Text(d.l10n.changingTheSubjectRemovesIts),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(d),
-                  child: Text(d.tr('取消')),
+                  child: Text(d.l10n.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(d, true),
-                  child: Text(d.tr('继续保存')),
+                  child: Text(d.l10n.continueSaving),
                 ),
               ],
             ),
@@ -188,7 +191,9 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              e is FormatException ? e.message : context.tr("保存失败，请检查可用存储空间。"),
+              e is FormatException
+                  ? failureText(context.l10n, e)
+                  : context.l10n.couldNotSaveCheckAvailable,
             ),
           ),
         );
@@ -211,7 +216,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            tooltip: context.tr("关闭编辑"),
+            tooltip: context.l10n.closeEditor,
             onPressed: _saving
                 ? null
                 : () async {
@@ -224,10 +229,10 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
           ),
           title: Text(
             widget.analysisOnly
-                ? context.tr('保存错题解析')
+                ? context.l10n.saveMistakeExplanation
                 : widget.isMistake
-                ? context.tr("整理错题")
-                : context.tr("编辑知识"),
+                ? context.l10n.organizeMistakes
+                : context.l10n.editKnowledge,
           ),
           actions: [
             Padding(
@@ -235,7 +240,9 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
               child: FilledButton(
                 key: const Key('save-study'),
                 onPressed: _saving ? null : () => act(context, _save),
-                child: Text(_saving ? context.tr("保存中…") : context.tr("保存")),
+                child: Text(
+                  _saving ? context.l10n.savingEllipsis : context.l10n.save,
+                ),
               ),
             ),
           ],
@@ -259,31 +266,37 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                         const SizedBox(height: 16),
                         _input(
                           'aiAnalysis',
-                          'AI 解析（请核对结论）',
+                          context.l10n.aiExplanationCheckConclusion,
                           key: const Key('study-ai-analysis'),
                           lines: 12,
                         ),
                       ] else ...[
                         _input(
                           'title',
-                          '标题',
+                          context.l10n.titleLabel,
                           key: const Key('study-title'),
                           maxLength: 160,
                         ),
-                        _input('subject', '科目（可以自定义）', maxLength: 40),
+                        _input(
+                          'subject',
+                          context.l10n.subjectCustomizable,
+                          maxLength: 40,
+                        ),
                         if (!widget.isMistake)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: AppSelectField<String>(
                               initialValue: _kind,
                               decoration: InputDecoration(
-                                labelText: context.tr("知识类型"),
+                                labelText: context.l10n.knowledgeType,
                               ),
                               items: knowledgeKinds
                                   .map(
                                     (v) => DropdownMenuItem(
                                       value: v,
-                                      child: Text(context.tr(v)),
+                                      child: Text(
+                                        knowledgeKindLabel(context, v),
+                                      ),
                                     ),
                                   )
                                   .toList(),
@@ -293,29 +306,53 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                               }),
                             ),
                           ),
-                        _input('chapter', '章节 / 学习范围', maxLength: 160),
-                        _input('tags', '标签（逗号分隔）', maxLength: 800),
+                        _input(
+                          'chapter',
+                          context.l10n.chapterLearningScope,
+                          maxLength: 160,
+                        ),
+                        _input(
+                          'tags',
+                          context.l10n.tagsCommaSeparated,
+                          maxLength: 800,
+                        ),
                         if (!widget.isMistake)
                           _input(
                             'content',
-                            '正文 · 支持 Markdown 和 LaTeX',
+                            context.l10n.contentMarkdownLatex,
                             key: const Key('study-content'),
                             lines: 12,
                           )
                         else ...[
                           _input(
                             'question',
-                            '题目文本（图片题可以留空）',
+                            context.l10n.questionTextOptionalForImages,
                             key: const Key('study-content'),
                             lines: 5,
                           ),
-                          _input('correctAnswer', '正确答案', lines: 3),
-                          _input('originalAnswer', '我的原答案', lines: 3),
-                          _input('ownAnalysis', '我的分析与想法', lines: 4),
-                          _input('aiAnalysis', 'AI 解析（请核对结论）', lines: 6),
+                          _input(
+                            'correctAnswer',
+                            context.l10n.correctAnswer,
+                            lines: 3,
+                          ),
+                          _input(
+                            'originalAnswer',
+                            context.l10n.myOriginalAnswer,
+                            lines: 3,
+                          ),
+                          _input(
+                            'ownAnalysis',
+                            context.l10n.myAnalysisAndThoughts,
+                            lines: 4,
+                          ),
+                          _input(
+                            'aiAnalysis',
+                            context.l10n.aiExplanationCheckConclusion,
+                            lines: 6,
+                          ),
                           _input(
                             'errorReason',
-                            '我确认的错误原因 · 支持自定义',
+                            context.l10n.confirmedErrorReasonCustomizable,
                             maxLength: 100,
                           ),
                           ValueListenableBuilder<TextEditingValue>(
@@ -327,7 +364,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                                 final colors = Theme.of(context).colorScheme;
                                 return ActionChip(
                                   label: Text(
-                                    context.tr(r),
+                                    mistakeReasonLabel(context, r),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: selected
@@ -347,13 +384,13 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                           const SizedBox(height: 16),
                           _input(
                             'suggestedReason',
-                            'AI 建议的原因（未经确认）',
+                            context.l10n.aiSuggestedCauseUnverified,
                             lines: 2,
                             maxLength: 500,
                           ),
                         ],
                         Text(
-                          context.tr("图片可在保存后的详情页添加。知识的文本版本会自动保留，修改不会覆盖历史。"),
+                          context.l10n.addImagesFromTheSaved,
                           style: TextStyle(fontSize: 12),
                         ),
                       ],
@@ -384,7 +421,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       maxLines: lines == 1 ? 1 : lines + 4,
       maxLength: maxLength,
       decoration: InputDecoration(
-        labelText: context.tr(label),
+        labelText: label,
         alignLabelWithHint: lines > 1,
         // Fields with a visible limit keep the counter; body fields pass no
         // maxLength at all, so over-long input reaches the store's 60000

@@ -26,22 +26,22 @@ Future<String?> moduleNameDialog(
   final route = DialogRoute<String>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(ctx.tr(title)),
+      title: Text(title),
       content: TextField(
         controller: text,
         autofocus: true,
         maxLength: 80,
-        decoration: InputDecoration(labelText: ctx.tr('目录名称')),
+        decoration: InputDecoration(labelText: ctx.l10n.directoryName),
         onSubmitted: (v) => Navigator.pop(ctx, v),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: Text(ctx.tr('取消')),
+          child: Text(ctx.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, text.text),
-          child: Text(ctx.tr('保存')),
+          child: Text(ctx.l10n.save),
         ),
       ],
     ),
@@ -74,7 +74,7 @@ class _ManagerState extends ConsumerState<ModuleManager> {
   Future<void> create([String? parent]) async {
     final name = await moduleNameDialog(
       context,
-      parent == null ? '新增模块' : '新增子模块',
+      parent == null ? context.l10n.addModule : context.l10n.addSubmodule,
     );
     if (name != null && mounted) {
       await act(
@@ -99,23 +99,21 @@ class _ManagerState extends ConsumerState<ModuleManager> {
   Widget build(BuildContext context) {
     final store = ref.read(appControllerProvider).study.modules;
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('科目目录'))),
+      appBar: AppBar(title: Text(context.l10n.subjectModules)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 850),
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Text(
-                context.tr(
-                  '按教辅目录整理模块和子模块，知识与错题共用。目录名称由你决定，也可以在授权资料工具后请 AI 创建。',
-                ),
-              ),
+              Text(context.l10n.organizeModulesAndSubmodulesLike),
               const SizedBox(height: 16),
               TextField(
                 controller: subject,
                 maxLength: 40,
-                decoration: InputDecoration(labelText: context.tr('科目（可以自定义）')),
+                decoration: InputDecoration(
+                  labelText: context.l10n.subjectCustomizable,
+                ),
                 onChanged: (v) => setState(() => discipline = v.trim()),
               ),
               Wrap(
@@ -137,19 +135,20 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                 key: const Key('module-add-root'),
                 onPressed: discipline.isEmpty ? null : () => create(),
                 icon: const Icon(Icons.create_new_folder_outlined),
-                label: Text(context.tr('新增模块')),
+                label: Text(context.l10n.addModule),
               ),
               const SizedBox(height: 16),
               StreamBuilder<List<SubjectModule>>(
                 stream: store.watch(discipline),
                 builder: (ctx, snapshot) {
-                  if (snapshot.hasError) return Text(ctx.tr('目录读取失败，请重新打开。'));
+                  if (snapshot.hasError)
+                    return Text(ctx.l10n.couldNotLoadTheDirectory);
                   if (!snapshot.hasData) return const LinearProgressIndicator();
                   final all = snapshot.data!;
                   if (all.isEmpty) {
                     return Padding(
                       padding: const EdgeInsets.all(20),
-                      child: Text(ctx.tr('还没有目录。例如：函数 → 单调性与最值。')),
+                      child: Text(ctx.l10n.noModulesYetForExample),
                     );
                   }
                   Widget tile(SubjectModule module) => ListTile(
@@ -167,7 +166,7 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                     trailing: PopupMenuButton<String>(
                       popUpAnimationStyle: menuAnimation(context),
                       key: ValueKey('module-menu-${module.id}'),
-                      tooltip: ctx.tr('目录操作'),
+                      tooltip: ctx.l10n.directoryActions,
                       onSelected: (action) async {
                         if (action == 'child') {
                           await create(module.id);
@@ -176,7 +175,7 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                         if (action == 'rename') {
                           final name = await moduleNameDialog(
                             ctx,
-                            '重命名目录',
+                            ctx.l10n.renameDirectoryEntry,
                             module.name,
                           );
                           if (name != null && ctx.mounted) {
@@ -196,20 +195,16 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                           final yes = await showDialog<bool>(
                             context: ctx,
                             builder: (d) => AlertDialog(
-                              title: Text(d.tr('删除目录')),
-                              content: Text(
-                                d.tr(
-                                  '将删除此目录及子目录，并解除资料关联。知识、错题和练习不会删除。此操作无法撤销。',
-                                ),
-                              ),
+                              title: Text(d.l10n.deleteDirectoryEntry),
+                              content: Text(d.l10n.thisRemovesTheEntryIts),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(d),
-                                  child: Text(d.tr('取消')),
+                                  child: Text(d.l10n.cancel),
                                 ),
                                 FilledButton(
                                   onPressed: () => Navigator.pop(d, true),
-                                  child: Text(d.tr('删除')),
+                                  child: Text(d.l10n.delete),
                                 ),
                               ],
                             ),
@@ -230,25 +225,25 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                           if (module.parentId == null)
                             PopupMenuItem(
                               value: 'child',
-                              child: Text(ctx.tr('新增子模块')),
+                              child: Text(ctx.l10n.addSubmodule),
                             ),
                           PopupMenuItem(
                             value: 'rename',
-                            child: Text(ctx.tr('重命名目录')),
+                            child: Text(ctx.l10n.renameDirectoryEntry),
                           ),
                           PopupMenuItem(
                             value: 'up',
                             enabled: index > 0,
-                            child: Text(ctx.tr('上移')),
+                            child: Text(ctx.l10n.moveUp),
                           ),
                           PopupMenuItem(
                             value: 'down',
                             enabled: index >= 0 && index < siblings.length - 1,
-                            child: Text(ctx.tr('下移')),
+                            child: Text(ctx.l10n.moveDown),
                           ),
                           PopupMenuItem(
                             value: 'delete',
-                            child: Text(ctx.tr('删除目录')),
+                            child: Text(ctx.l10n.deleteDirectoryEntry),
                           ),
                         ];
                       },
@@ -323,11 +318,11 @@ class ModuleAssignment extends ConsumerWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
-                      ctx.tr('目录分类'),
+                      ctx.l10n.modules,
                       style: Theme.of(ctx).textTheme.titleSmall,
                     ),
                     if (modules.hasError || links.hasError)
-                      Text(ctx.tr('目录读取失败，请重新打开。')),
+                      Text(ctx.l10n.couldNotLoadTheDirectory),
                     for (final module in all.where((m) => ids.contains(m.id)))
                       ActionChip(
                         label: Text(modulePath(module, all)),
@@ -346,7 +341,8 @@ class ModuleAssignment extends ConsumerWidget {
                           }
                         }),
                       ),
-                    if (ids.isEmpty && links.hasData) Text(ctx.tr('未归类')),
+                    if (ids.isEmpty && links.hasData)
+                      Text(ctx.l10n.unclassified),
                     if (editable)
                       TextButton.icon(
                         key: const Key('assign-modules'),
@@ -354,7 +350,7 @@ class ModuleAssignment extends ConsumerWidget {
                             ? () => _pick(ctx, ref, all, ids.toList())
                             : null,
                         icon: const Icon(Icons.folder_copy_outlined, size: 18),
-                        label: Text(ctx.tr('选择模块')),
+                        label: Text(ctx.l10n.chooseModules),
                       ),
                   ],
                 ),
@@ -377,15 +373,19 @@ class ModuleAssignment extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, set) => AlertDialog(
-          title: Text(ctx.tr('选择模块')),
+          title: Text(ctx.l10n.chooseModules),
           content: SizedBox(
             width: 500,
             height: 400,
             child: ListView(
               children: [
-                Text(ctx.tr('可选择多个模块；选择子模块后，按上级模块筛选时也能找到。')),
-                Text(ctx.tr('已选 {0} / 20 个目录', [selected.length])),
-                if (all.isEmpty) Text(ctx.tr('此科目还没有目录，请先新增模块。')),
+                Text(ctx.l10n.selectMultipleEntriesIfNeeded),
+                Text(
+                  ctx.l10n.selectedEntriesOutOf20(
+                    l10nArgument((selected.length)),
+                  ),
+                ),
+                if (all.isEmpty) Text(ctx.l10n.thisSubjectHasNoModules),
                 for (final root in all.where((m) => m.parentId == null)) ...[
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
@@ -418,17 +418,17 @@ class ModuleAssignment extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(ctx.tr('取消')),
+              child: Text(ctx.l10n.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(ctx.tr('管理目录')),
+              child: Text(ctx.l10n.manageDirectory),
             ),
             FilledButton(
               onPressed: selected.length > 20
                   ? null
                   : () => Navigator.pop(ctx, true),
-              child: Text(ctx.tr('保存')),
+              child: Text(ctx.l10n.save),
             ),
           ],
         ),
@@ -503,9 +503,9 @@ class ModuleFilter extends ConsumerWidget {
               icon: const Icon(Icons.folder_outlined),
               label: Text(
                 value == 'unclassified'
-                    ? ctx.tr('未归类')
+                    ? ctx.l10n.unclassified
                     : selected == null
-                    ? ctx.tr('全部模块')
+                    ? ctx.l10n.allModules
                     : '${subject.isEmpty ? '${context.subjectName(selected.subject)} · ' : ''}${modulePath(selected, all)}',
               ),
               onPressed: snap.hasData
@@ -513,15 +513,15 @@ class ModuleFilter extends ConsumerWidget {
                       final result = await showDialog<String>(
                         context: ctx,
                         builder: (d) => SimpleDialog(
-                          title: Text(d.tr('按目录筛选')),
+                          title: Text(d.l10n.filterByDirectory),
                           children: [
                             SimpleDialogOption(
                               onPressed: () => Navigator.pop(d, ''),
-                              child: Text(d.tr('全部模块')),
+                              child: Text(d.l10n.allModules),
                             ),
                             SimpleDialogOption(
                               onPressed: () => Navigator.pop(d, 'unclassified'),
-                              child: Text(d.tr('未归类')),
+                              child: Text(d.l10n.unclassified),
                             ),
                             for (final root in all.where(
                               (m) => m.parentId == null,
@@ -568,7 +568,7 @@ class ModuleFilter extends ConsumerWidget {
                 // selected directory was deleted, the build-time check above
                 // already resets it via onChanged('').
               },
-              child: Text(ctx.tr('管理目录')),
+              child: Text(ctx.l10n.manageDirectory),
             ),
             if (selected != null)
               TextButton.icon(
@@ -579,7 +579,7 @@ class ModuleFilter extends ConsumerWidget {
                         if (ctx.mounted) ctx.go('/chat');
                       }),
                 icon: const Icon(Icons.quiz_outlined, size: 18),
-                label: Text(ctx.tr('本模块专项训练')),
+                label: Text(ctx.l10n.practiceThisModule),
               ),
           ],
         );

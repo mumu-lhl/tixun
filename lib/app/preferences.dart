@@ -1,3 +1,7 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
+import 'app_notice.dart';
+
 import 'dart:convert';
 import 'dart:ui' show PlatformDispatcher;
 
@@ -9,6 +13,7 @@ import '../core/ai/prompt_settings.dart';
 import '../core/database/database.dart';
 import '../core/database/database_notifier.dart';
 import '../core/l10n/app_strings.dart';
+import '../core/l10n/generated/app_localizations.dart';
 import '../core/platform/key_store.dart';
 
 /// Owns preference persistence and its shutdown barrier independently of study data.
@@ -17,7 +22,7 @@ class AppPreferences extends DatabaseNotifier {
   final AppDatabase db;
   final KeyStore keys;
   final bool demo;
-  String? loadNotice;
+  AppNotice? loadNotice;
   List<String> learningSubjects = const ['语文', '数学', '英语'];
   static const subjectsPreference = 'learning_subjects_v1';
   late ProviderConfig config;
@@ -38,8 +43,7 @@ class AppPreferences extends DatabaseNotifier {
   String get promptLanguage => languageChoice == 'system'
       ? resolveAppLocale(PlatformDispatcher.instance.locales).languageCode
       : languageChoice;
-  String uiText(String key, [List<Object?> arguments = const []]) =>
-      AppStrings(Locale(promptLanguage)).text(key, arguments);
+  AppLocalizations get l10n => lookupAppLocalizations(Locale(promptLanguage));
   ThemeMode themeMode = ThemeMode.system;
   Future<void> load() async {
     config = await db.config();
@@ -58,7 +62,7 @@ class AppPreferences extends DatabaseNotifier {
       ).withLanguage(promptLanguage);
     } catch (_) {
       prompts = PromptSettings().withLanguage(promptLanguage);
-      loadNotice = '提示词配置无法读取，暂用默认值；可在提示词管理中重新保存。';
+      loadNotice = const AppNotice(AppNoticeKind.promptSettingsUnreadable);
     }
     themeMode = switch (await db.preference('theme')) {
       'dark' => ThemeMode.dark,
@@ -72,7 +76,10 @@ class AppPreferences extends DatabaseNotifier {
     if (values.isEmpty ||
         values.length > 20 ||
         values.any((s) => s.isEmpty || s.length > 40 || s.contains('\n'))) {
-      throw const FormatException('请选择 1–20 个科目，每个名称最多 40 字。');
+      throw const AppFormatException(
+        AppErrorCode.select120SubjectsWith,
+        '请选择 1–20 个科目，每个名称最多 40 字。',
+      );
     }
     return List.unmodifiable(values);
   }
@@ -88,7 +95,7 @@ class AppPreferences extends DatabaseNotifier {
         learningSubjects = checkedSubjects(value.cast<String>());
         return;
       } catch (_) {
-        loadNotice = '学习科目配置无法读取，暂按已有资料显示；可在设置中重新选择。';
+        loadNotice = const AppNotice(AppNoticeKind.subjectSettingsUnreadable);
       }
     }
     // Existing users keep access to recorded subjects; fresh installs start
@@ -143,7 +150,10 @@ class AppPreferences extends DatabaseNotifier {
 
   Future<void> setMaxContextTokens(int value) => runOperation(() async {
     if (!isValidMaxContextTokens(value)) {
-      throw const FormatException('最大上下文 Token 数应为 4096–1048576 的整数。');
+      throw const AppFormatException(
+        AppErrorCode.maxContextTokensMustBe,
+        '最大上下文 Token 数应为 4096–1048576 的整数。',
+      );
     }
     await db.setPreference('max_context_tokens', value.toString());
     maxContextTokens = value;
@@ -172,7 +182,10 @@ class AppPreferences extends DatabaseNotifier {
       runOperation(() async {
         validateConfig(next);
         if (next.kind == 'chatgpt' && key != null) {
-          throw const FormatException('ChatGPT 使用浏览器登录，无需 API Key。');
+          throw const AppFormatException(
+            AppErrorCode.chatGPTUsesBrowserSignIn,
+            'ChatGPT 使用浏览器登录，无需 API Key。',
+          );
         }
         // Read the current key first so a failed write can be undone.
         final previousKey = key == null
@@ -219,12 +232,19 @@ class AppPreferences extends DatabaseNotifier {
   Future<void> restoreApiProvider() => runOperation(() async {
     final raw = await db.preference('previous_api_provider');
     if (raw == null || raw.isEmpty) {
-      throw const FormatException('没有已保存的 API 配置，请在设置中选择服务商。');
+      throw const AppFormatException(
+        AppErrorCode.noPreviousAPISettingsWere,
+        '没有已保存的 API 配置，请在设置中选择服务商。',
+      );
     }
     final previous = ProviderConfig.fromJson(
       jsonDecode(raw) as Map<String, dynamic>,
     );
-    if (previous.kind == 'chatgpt') throw const FormatException('原 API 配置无效。');
+    if (previous.kind == 'chatgpt')
+      throw const AppFormatException(
+        AppErrorCode.previousAPISettingsAreInvalid,
+        '原 API 配置无效。',
+      );
     await saveSettings(previous, null);
     // A successful restore consumes the saved provider; leaving the
     // stale value would let a second restore silently re-apply it.

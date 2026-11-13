@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
+import '../../core/l10n/app_strings.dart';
 import '../library/image_editor.dart';
 
 Future<void> editExamPhoto(
@@ -24,8 +25,8 @@ Future<void> editExamPhoto(
         deleted: false,
       ),
       isMistake: true,
-      title: '编辑题目图片',
-      createLabel: '保存图片编辑',
+      title: context.l10n.editPhoto,
+      createLabel: context.l10n.useEditedPhoto,
       allowSplit: false,
       onCreate: (bytes, _, _) => c.exams.replaceImage(image, bytes),
     ),

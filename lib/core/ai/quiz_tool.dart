@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
@@ -70,7 +72,11 @@ Future<Map<String, dynamic>> executeQuizTool(
 }) async {
   try {
     cancel.checkCancelled();
-    if (call.arguments.length > 64000) throw const FormatException('题目数据过长。');
+    if (call.arguments.length > 64000)
+      throw const AppFormatException(
+        AppErrorCode.errorQuestionDataIsTooLong,
+        '题目数据过长。',
+      );
     final args = (jsonDecode(call.arguments) as Map).cast<String, dynamic>();
     final indices = args.containsKey('image_indices')
         ? args['image_indices']
@@ -85,11 +91,17 @@ Future<Map<String, dynamic>> executeQuizTool(
               i >= sourceImages.length ||
               sourceImages[i].sessionId != sessionId,
         )) {
-      throw const FormatException('题目图片引用无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidQuestionImageReference,
+        '题目图片引用无效。',
+      );
     }
     final spec = QuestionSpec.fromJson({...args}..remove('image_indices'));
     if (spec.kind == 'short_answer') {
-      throw const FormatException('模型当前不能创建自主判分题。');
+      throw const AppFormatException(
+        AppErrorCode.errorThisModelCannotCurrentlyCreateSelf,
+        '模型当前不能创建自主判分题。',
+      );
     }
     final encoded = canonicalJson(args);
     final operation = '$runId:quiz:${sha256.convert(utf8.encode(encoded))}';
@@ -99,7 +111,10 @@ Future<Map<String, dynamic>> executeQuizTool(
         store.db.aiToolOperations,
       )..where((t) => t.id.equals('$runId:${call.id}'))).getSingleOrNull();
       if (old != null && (old.arguments != encoded || old.name != call.name)) {
-        throw const FormatException('工具调用 ID 已被其他参数使用。');
+        throw const AppFormatException(
+          AppErrorCode.errorThisToolCallIDHasAlready,
+          '工具调用 ID 已被其他参数使用。',
+        );
       }
       // Same call replayed: return the cached result like region_tool does
       // instead of creating the question a second time.

@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
 import 'scratch_document.dart';
+import 'scratchpad_exception.dart';
 import 'scratch_store.dart';
 
 class ScratchpadButton extends StatelessWidget {
@@ -19,7 +20,7 @@ class ScratchpadButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => IconButton(
     key: ValueKey('scratchpad-$contextKey'),
-    tooltip: context.tr('草稿画板'),
+    tooltip: context.l10n.scratchpad,
     icon: const Icon(Icons.draw_outlined),
     onPressed: () {
       FocusManager.instance.primaryFocus?.unfocus();
@@ -46,7 +47,16 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
   late final ScratchStore store;
   late final AppLifecycleListener lifecycle;
   ScratchDocument? document;
-  String? error;
+  Object? error;
+
+  String _errorText(Object issue) => switch (issue) {
+    ScratchpadError.unreadable => context.l10n.cannotReadThisScratchpadThe,
+    ScratchpadError.saveFailed => context.l10n.couldNotSaveTheScratchpad,
+    ScratchpadError.tooManyPages => context.l10n.aScratchpadSupportsUpTo,
+    ScratchpadError.tooLarge => context.l10n.thisScratchpadIsTooLarge,
+    ScratchpadError.invalidContext => context.l10n.invalidScratchpadContext,
+    _ => issue.toString(),
+  };
   _Tool tool = _Tool.pen;
   int color = 0xff1f2937;
   double width = 3, eraserSize = 24;
@@ -83,7 +93,7 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => error = '草稿无法读取，原内容仍保留。');
+      if (mounted) setState(() => error = ScratchpadError.unreadable);
     }
   }
 
@@ -181,7 +191,11 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
     } catch (e) {
       if (mounted) {
         setState(
-          () => error = e is FormatException ? e.message : '草稿保存失败，请重试后再退出。',
+          () => error = e is ScratchpadException
+              ? e.code
+              : e is FormatException
+              ? e.message
+              : ScratchpadError.saveFailed,
         );
       }
     }
@@ -226,23 +240,23 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
       if (!mounted) return;
       setState(() {
         closing = false;
-        error = '草稿保存失败，请重试后再退出。';
+        error = ScratchpadError.saveFailed;
       });
       // A persistently failing save must not trap the user in the board:
       // offer an explicit discard-and-exit path instead of blocking forever.
       final discard = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(ctx.tr('保存失败，放弃未保存内容退出？')),
-          content: Text(ctx.tr('未保存的笔画将丢失。')),
+          title: Text(ctx.l10n.saveFailedDiscardUnsavedContent),
+          content: Text(ctx.l10n.unsavedStrokesWillBeLost),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(ctx.tr('继续重试')),
+              child: Text(ctx.l10n.keepRetrying),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(ctx.tr('放弃并退出')),
+              child: Text(ctx.l10n.discardAndExit),
             ),
           ],
         ),
@@ -267,16 +281,20 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
     final yes = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(context.tr(deletePage ? '删除当前页？' : '清空当前页？')),
-        content: Text(context.tr('此操作可在本次画板会话中撤销。')),
+        title: Text(
+          (deletePage
+              ? context.l10n.deleteThisPage
+              : context.l10n.clearThisPage),
+        ),
+        content: Text(context.l10n.youCanUndoThisDuring),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(context.tr('取消')),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(context.tr('确认')),
+            child: Text(context.l10n.confirm),
           ),
         ],
       ),
@@ -300,7 +318,7 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
       String? key,
     }) => IconButton(
       key: key == null ? null : Key(key),
-      tooltip: context.tr(tip),
+      tooltip: tip,
       onPressed: closing || onPressed == null
           ? null
           : () {
@@ -317,15 +335,15 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          leading: action('关闭画板', Icons.close, _close),
-          title: Text(context.tr('草稿画板')),
+          leading: action(context.l10n.closeScratchpad, Icons.close, _close),
+          title: Text(context.l10n.scratchpad),
           bottom: ref.read(appControllerProvider).demo
               ? PreferredSize(
                   preferredSize: const Size.fromHeight(24),
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Text(
-                      context.tr('Mock · 隔离数据 · 不连接 API'),
+                      context.l10n.mockIsolatedDataNoAPI,
                       style: const TextStyle(fontSize: 11),
                     ),
                   ),
@@ -333,7 +351,7 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
               : null,
           actions: [
             action(
-              '撤销',
+              context.l10n.undo,
               Icons.undo,
               undo.isEmpty
                   ? null
@@ -346,7 +364,7 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
               key: 'scratch-undo',
             ),
             action(
-              '重做',
+              context.l10n.redo,
               Icons.redo,
               redo.isEmpty
                   ? null
@@ -356,7 +374,7 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                     },
             ),
             action(
-              '回到原点',
+              context.l10n.resetView,
               Icons.center_focus_strong,
               doc == null
                   ? null
@@ -377,10 +395,10 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                     : Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(context.tr(error!)),
+                          Text(_errorText(error!)),
                           TextButton(
                             onPressed: _load,
-                            child: Text(context.tr('重试')),
+                            child: Text(context.l10n.retry),
                           ),
                         ],
                       ),
@@ -401,11 +419,11 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                                 IconButton.filledTonal(
                                   key: Key('scratch-tool-${value.name}'),
                                   isSelected: tool == value,
-                                  tooltip: context.tr(switch (value) {
-                                    _Tool.pen => '画笔',
-                                    _Tool.eraser => '橡皮擦',
-                                    _Tool.move => '移动和缩放',
-                                  }),
+                                  tooltip: switch (value) {
+                                    _Tool.pen => context.l10n.pen,
+                                    _Tool.eraser => context.l10n.eraser,
+                                    _Tool.move => context.l10n.panAndZoom,
+                                  },
                                   onPressed: () {
                                     _finish();
                                     setState(
@@ -437,17 +455,17 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                                           0xff8b5cf6,
                                         ])
                                           Semantics(
-                                            label: context.tr('画笔颜色 {0}', [
-                                              context.tr(
-                                                {
-                                                  0xff1f2937: '黑色',
-                                                  0xff2563eb: '蓝色',
-                                                  0xffdc3d43: '红色',
-                                                  0xff177d56: '绿色',
-                                                  0xff8b5cf6: '紫色',
-                                                }[value]!,
-                                              ),
-                                            ]),
+                                            label: context.l10n.penColor(
+                                              l10nArgument((switch (value) {
+                                                0xff1f2937 =>
+                                                  context.l10n.black,
+                                                0xff2563eb => context.l10n.blue,
+                                                0xffdc3d43 => context.l10n.red,
+                                                0xff177d56 =>
+                                                  context.l10n.green,
+                                                _ => context.l10n.purple,
+                                              })),
+                                            ),
                                             selected: color == value,
                                             child: IconButton(
                                               key: ValueKey(
@@ -478,7 +496,9 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                             child: Row(
                               children: [
                                 Text(
-                                  context.tr(tool == _Tool.pen ? '粗细' : '橡皮范围'),
+                                  (tool == _Tool.pen
+                                      ? context.l10n.width
+                                      : context.l10n.eraserSize),
                                 ),
                                 Expanded(
                                   child: Slider(
@@ -508,7 +528,7 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                             ),
                           ),
                         action(
-                          '清空当前页',
+                          context.l10n.clearPage,
                           Icons.layers_clear_outlined,
                           () => _confirm(false),
                         ),
@@ -616,7 +636,7 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                       child: Row(
                         children: [
                           action(
-                            '上一页',
+                            context.l10n.previousPage,
                             Icons.chevron_left,
                             doc.index == 0
                                 ? null
@@ -633,10 +653,10 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                                 DropdownMenuItem(
                                   value: i,
                                   child: Text(
-                                    context.tr('第 {0} / {1} 页', [
-                                      i + 1,
-                                      doc.pages.length,
-                                    ]),
+                                    context.l10n.pageOfTotal(
+                                      l10nArgument((i + 1)),
+                                      l10nArgument((doc.pages.length)),
+                                    ),
                                   ),
                                 ),
                             ],
@@ -647,7 +667,7 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                             },
                           ),
                           action(
-                            '下一页',
+                            context.l10n.nextPage,
                             Icons.chevron_right,
                             doc.index == doc.pages.length - 1
                                 ? null
@@ -656,15 +676,22 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                                     remember: false,
                                   ),
                           ),
-                          action('新建一页', Icons.note_add_outlined, () {
-                            try {
-                              _change(document!.addPage());
-                            } catch (_) {
-                              setState(() => error = '一个草稿最多支持 100 页。');
-                            }
-                          }, key: 'scratch-add-page'),
                           action(
-                            '删除当前页',
+                            context.l10n.newPage,
+                            Icons.note_add_outlined,
+                            () {
+                              try {
+                                _change(document!.addPage());
+                              } catch (_) {
+                                setState(
+                                  () => error = ScratchpadError.tooManyPages,
+                                );
+                              }
+                            },
+                            key: 'scratch-add-page',
+                          ),
+                          action(
+                            context.l10n.deletePage,
                             Icons.delete_outline,
                             () => _confirm(true),
                             key: 'scratch-delete-page',
@@ -673,11 +700,9 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                             child: ListenableBuilder(
                               listenable: store,
                               builder: (_, _) => Text(
-                                context.tr(
-                                  error ??
-                                      store.failure ??
-                                      '自动保存到本机；异常退出可能丢失最后一笔',
-                                ),
+                                error != null || store.failure != null
+                                    ? _errorText(error ?? store.failure!)
+                                    : context.l10n.autoSaveMayLoseLastStroke,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -700,7 +725,7 @@ class _ScratchpadScreenState extends ConsumerState<ScratchpadScreen> {
                         _stage();
                         await _flushQuietly();
                       },
-                      child: Text(context.tr('重试保存')),
+                      child: Text(context.l10n.retrySaving),
                     ),
                 ],
               ),

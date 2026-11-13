@@ -32,12 +32,12 @@ class DashboardScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            context.tr("学习"),
+                            context.l10n.study,
                             style: Theme.of(context).textTheme.headlineMedium,
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            context.tr("每一次独立思考，都在向前一步。"),
+                            context.l10n.everyIndependentAttemptIsA,
                             style: TextStyle(color: colors.onSurfaceVariant),
                           ),
                         ],
@@ -62,7 +62,7 @@ class DashboardScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              context.tr("本地优先"),
+                              context.l10n.localFirst,
                               style: TextStyle(fontSize: 12),
                             ),
                           ],
@@ -75,7 +75,7 @@ class DashboardScreen extends ConsumerWidget {
                   key: const Key('open-exams'),
                   onPressed: () => context.push('/exams'),
                   icon: const Icon(Icons.calendar_month_outlined),
-                  label: Text(context.tr('考试记录')),
+                  label: Text(context.l10n.examRecords),
                 ),
                 const SizedBox(height: 12),
                 const DailyLearning(),
@@ -92,7 +92,7 @@ class DashboardScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          context.tr("理解 · 尝试 · 掌握"),
+                          context.l10n.understandTryMaster,
                           style: TextStyle(
                             color: colors.primary,
                             fontWeight: FontWeight.w600,
@@ -102,7 +102,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          context.tr("把不懂，\n变成真正会。"),
+                          context.l10n.turnConfusionIntoUnderstanding,
                           style: TextStyle(
                             fontSize: compact ? 30 : 38,
                             fontWeight: FontWeight.w700,
@@ -112,7 +112,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          context.tr("从一道题、一个概念开始。\n让 AI 帮你理清思路，把关键一步留给自己。"),
+                          context.l10n.startWithOneQuestionOr,
                           style: TextStyle(
                             color: colors.onSurfaceVariant,
                             height: 1.8,
@@ -130,13 +130,15 @@ class DashboardScreen extends ConsumerWidget {
                                 if (context.mounted) context.go('/chat');
                               }),
                               icon: const Icon(Icons.add, size: 18),
-                              label: Text(context.tr("开始学习对话")),
+                              label: Text(
+                                context.l10n.startLearningConversation,
+                              ),
                             ),
                             FilledButton.tonalIcon(
                               key: const Key('start-practice'),
                               onPressed: () => context.go('/practice'),
                               icon: const Icon(Icons.edit_note),
-                              label: Text(context.tr("主动训练")),
+                              label: Text(context.l10n.practice),
                             ),
                             OutlinedButton.icon(
                               onPressed: () => context.go('/mistakes'),
@@ -144,7 +146,7 @@ class DashboardScreen extends ConsumerWidget {
                                 Icons.add_photo_alternate_outlined,
                                 size: 18,
                               ),
-                              label: Text(context.tr("录入错题")),
+                              label: Text(context.l10n.addAMistake),
                             ),
                           ],
                         ),
@@ -163,7 +165,7 @@ class DashboardScreen extends ConsumerWidget {
                           if (context.mounted) context.go('/chat');
                         }),
                         icon: const Icon(Icons.add, size: 18),
-                        label: Text(context.tr("开始学习对话")),
+                        label: Text(context.l10n.startLearningConversation),
                       ),
                       OutlinedButton.icon(
                         onPressed: () => context.go('/mistakes'),
@@ -171,7 +173,7 @@ class DashboardScreen extends ConsumerWidget {
                           Icons.add_photo_alternate_outlined,
                           size: 18,
                         ),
-                        label: Text(context.tr("录入错题")),
+                        label: Text(context.l10n.addAMistake),
                       ),
                     ],
                   ),
@@ -192,9 +194,12 @@ class DashboardScreen extends ConsumerWidget {
                     child: Row(
                       children: [
                         for (final (label, value) in [
-                          ('学习对话', '${c.allSessions.length}'),
                           (
-                            '知识积累',
+                            context.l10n.learningConversations,
+                            '${c.allSessions.length}',
+                          ),
+                          (
+                            context.l10n.knowledgeNotes,
                             counts.when(
                               data: (v) => '${v.knowledge}',
                               loading: () => '…',
@@ -202,7 +207,7 @@ class DashboardScreen extends ConsumerWidget {
                             ),
                           ),
                           (
-                            '错题记录',
+                            context.l10n.mistakeRecords,
                             counts.when(
                               data: (v) => '${v.mistakes}',
                               loading: () => '…',
@@ -224,7 +229,7 @@ class DashboardScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  context.tr(label),
+                                  label,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: colors.onSurfaceVariant,
@@ -248,9 +253,11 @@ class DashboardScreen extends ConsumerWidget {
                           width: compact
                               ? constraints.maxWidth
                               : (constraints.maxWidth - 32) / 3,
-                          label: context.tr("学习对话"),
+                          label: context.l10n.learningConversations,
                           value: '${c.allSessions.length}',
-                          detail: c.demo ? '独立演示记录' : '此设备上保存的会话',
+                          detail: c.demo
+                              ? context.l10n.demoRecordsDetail
+                              : context.l10n.deviceSessionsDetail,
                           icon: Icons.forum_outlined,
                         ),
                         _info(
@@ -258,13 +265,13 @@ class DashboardScreen extends ConsumerWidget {
                           width: compact
                               ? constraints.maxWidth
                               : (constraints.maxWidth - 32) / 3,
-                          label: context.tr("知识积累"),
+                          label: context.l10n.knowledgeNotes,
                           value: counts.when(
                             data: (v) => '${v.knowledge}',
                             loading: () => '…',
                             error: (_, _) => '—',
                           ),
-                          detail: '保存自己的理解与方法',
+                          detail: context.l10n.knowledgeNotesDetail,
                           icon: Icons.bookmarks_outlined,
                         ),
                         _info(
@@ -272,13 +279,13 @@ class DashboardScreen extends ConsumerWidget {
                           width: compact
                               ? constraints.maxWidth
                               : (constraints.maxWidth - 32) / 3,
-                          label: context.tr("错题记录"),
+                          label: context.l10n.mistakeRecords,
                           value: counts.when(
                             data: (v) => '${v.mistakes}',
                             loading: () => '…',
                             error: (_, _) => '—',
                           ),
-                          detail: '保留原题与反思',
+                          detail: context.l10n.mistakeRecordsDetail,
                           icon: Icons.menu_book_outlined,
                         ),
                       ],
@@ -289,7 +296,7 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        context.tr("继续探索"),
+                        context.l10n.keepExploring,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ),
@@ -298,7 +305,7 @@ class DashboardScreen extends ConsumerWidget {
                         minimumSize: const Size(0, 48),
                       ),
                       onPressed: () => context.go('/chat'),
-                      child: Text(context.tr("全部对话")),
+                      child: Text(context.l10n.allConversations),
                     ),
                   ],
                 ),
@@ -312,7 +319,7 @@ class DashboardScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
-                      context.tr("还没有学习记录。开始第一段对话，内容会自动保存在这里。"),
+                      context.l10n.noLearningRecordsYetStart,
                       style: TextStyle(color: colors.onSurfaceVariant),
                     ),
                   )
@@ -357,10 +364,10 @@ class DashboardScreen extends ConsumerWidget {
                                 ),
                               ),
                               subtitle: Text(
-                                context.tr("{0}月{1}日 · 点击继续学习", [
-                                  s.updatedAt.month,
-                                  s.updatedAt.day,
-                                ]),
+                                context.l10n.continueLearning(
+                                  l10nArgument((s.updatedAt.month)),
+                                  l10nArgument((s.updatedAt.day)),
+                                ),
                                 style: const TextStyle(fontSize: 12),
                               ),
                               trailing: Icon(
@@ -388,7 +395,7 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        context.tr("学习小提示：看懂解析之后，合上答案再做一次。能独立完成，才是更可靠的掌握证据。"),
+                        context.l10n.studyTipAfterUnderstandingAn,
                         style: TextStyle(
                           fontSize: 12,
                           color: colors.onSurfaceVariant,
@@ -445,7 +452,7 @@ class DashboardScreen extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    context.tr(label),
+                    label,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -469,7 +476,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              context.tr(detail),
+              detail,
               style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
             ),
           ],

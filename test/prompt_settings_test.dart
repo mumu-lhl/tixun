@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
+import 'package:tixun/app/app_notice.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/ai/prompt_settings.dart';
 import 'package:tixun/core/platform/key_store.dart';
@@ -21,6 +22,18 @@ class PromptCaptureProvider implements ChatProvider {
 }
 
 void main() {
+  test('invalid prompt lengths expose a typed error code', () {
+    expect(
+      () => PromptSettings().update('guided', ''),
+      throwsA(
+        isA<PromptSettingsException>().having(
+          (error) => error.code,
+          'code',
+          PromptError.invalidEntry,
+        ),
+      ),
+    );
+  });
   test(
     'Prompt overrides validate, restore defaults and retain application rules',
     () {
@@ -135,7 +148,7 @@ void main() {
         demo: false,
         keyStore: MemoryKeyStore(),
       );
-      expect(c.notice, contains('提示词配置无法读取'));
+      expect(c.notice?.kind, AppNoticeKind.promptSettingsUnreadable);
       expect(c.prompts.overrides, isEmpty);
       await c.savePrompt('global', '修复后的教学风格');
       expect(

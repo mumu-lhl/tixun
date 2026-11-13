@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -48,22 +50,36 @@ Future<Map<String, dynamic>> executeRegionTool(
 }) async {
   try {
     cancel.checkCancelled();
-    if (call.arguments.length > 64000) throw const FormatException('分题建议过长。');
+    if (call.arguments.length > 64000)
+      throw const AppFormatException(
+        AppErrorCode.errorTheSuggestedQuestionRegionsAreToo,
+        '分题建议过长。',
+      );
     final args = (jsonDecode(call.arguments) as Map).cast<String, dynamic>();
     if (args.keys.any((k) => !['image_index', 'regions'].contains(k)) ||
         args['image_index'] is! int ||
         args['regions'] is! List) {
-      throw const FormatException('分题建议格式无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidSuggestedQuestionRegions,
+        '分题建议格式无效。',
+      );
     }
     final index = args['image_index'] as int, raw = args['regions'] as List;
     if (index < 0 ||
         index >= sourceImages.length ||
         raw.isEmpty ||
         raw.length > 12) {
-      throw const FormatException('没有对应原图，或分题数量无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheSourceImageIsMissingOr,
+        '没有对应原图，或分题数量无效。',
+      );
     }
     final image = sourceImages[index];
-    if (image.sessionId != sessionId) throw const FormatException('图片不属于本次请求。');
+    if (image.sessionId != sessionId)
+      throw const AppFormatException(
+        AppErrorCode.errorTheImageDoesNotBelongTo,
+        '图片不属于本次请求。',
+      );
     final regions = raw
         .map((r) => QuestionRegion.fromJson((r as Map).cast<String, dynamic>()))
         .toList();
@@ -75,7 +91,10 @@ Future<Map<String, dynamic>> executeRegionTool(
       )..where((o) => o.id.equals(id))).getSingleOrNull();
       if (existing != null) {
         if (existing.name != call.name || existing.arguments != encoded) {
-          throw const FormatException('工具调用 ID 已被其他参数使用。');
+          throw const AppFormatException(
+            AppErrorCode.errorThisToolCallIDHasAlready,
+            '工具调用 ID 已被其他参数使用。',
+          );
         }
         return (jsonDecode(existing.result!) as Map).cast<String, dynamic>();
       }

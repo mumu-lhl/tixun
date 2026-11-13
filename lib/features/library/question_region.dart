@@ -1,3 +1,5 @@
+import 'package:tixun/core/l10n/app_error.dart';
+
 class QuestionRegion {
   const QuestionRegion(
     this.label,
@@ -22,7 +24,10 @@ class QuestionRegion {
         'question',
       }.contains(k),
     )) {
-      throw const FormatException('分题区域包含未知字段。');
+      throw const AppFormatException(
+        AppErrorCode.errorTheQuestionRegionContainsUnknownFields,
+        '分题区域包含未知字段。',
+      );
     }
     final label = a['label'],
         subject = a['subject'],
@@ -35,12 +40,18 @@ class QuestionRegion {
         subject.length > 80 ||
         question is! String ||
         question.length > 12000) {
-      throw const FormatException('分题文字无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidQuestionRegionText,
+        '分题文字无效。',
+      );
     }
     double coordinate(String name) {
       final v = a[name];
       if (v is! num || !v.isFinite || v < 0 || v > 1) {
-        throw const FormatException('分题坐标应在图片范围内。');
+        throw const AppFormatException(
+          AppErrorCode.errorQuestionRegionCoordinatesMustBeWithin,
+          '分题坐标应在图片范围内。',
+        );
       }
       return v.toDouble();
     }
@@ -49,7 +60,11 @@ class QuestionRegion {
         t = coordinate('top'),
         r = coordinate('right'),
         b = coordinate('bottom');
-    if (r - l < .02 || b - t < .02) throw const FormatException('分题范围太小或方向错误。');
+    if (r - l < .02 || b - t < .02)
+      throw const AppFormatException(
+        AppErrorCode.errorTheQuestionRegionIsTooSmall,
+        '分题范围太小或方向错误。',
+      );
     return QuestionRegion(label.trim(), subject.trim(), l, t, r, b, question);
   }
   Map<String, dynamic> toJson() => {

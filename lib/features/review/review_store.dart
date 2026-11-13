@@ -1,3 +1,4 @@
+import 'package:tixun/core/l10n/app_error.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/database/database_notifier.dart';
@@ -69,7 +70,10 @@ class ReviewStore extends DatabaseNotifier {
             db.practiceAttempts,
           )..where((a) => a.id.equals(attempt.id))).getSingle();
           if (a.status != 'graded' || a.correct == null) {
-            throw const FormatException('尚未完成评分，不能安排复习。');
+            throw const AppFormatException(
+              AppErrorCode.errorCompleteGradingBeforeSchedulingAReview,
+              '尚未完成评分，不能安排复习。',
+            );
           }
           final time = now ?? a.submittedAt ?? DateTime.now();
           final existing = await forQuestion(a.questionId);
@@ -218,7 +222,10 @@ class ReviewStore extends DatabaseNotifier {
         final now = DateTime.now(), due = dueAt ?? DateTime.now();
         if (due.isBefore(now.subtract(const Duration(days: 1))) ||
             due.isAfter(now.add(const Duration(days: 366)))) {
-          throw const FormatException('日期需在今天至一年内。');
+          throw const AppFormatException(
+            AppErrorCode.errorTheDateMustBeBetweenToday,
+            '日期需在今天至一年内。',
+          );
         }
         await db.transaction(() async {
           final s = await _schedule(id);

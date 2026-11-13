@@ -13,6 +13,8 @@ import '../../core/ai/chat_provider.dart';
 import '../../core/ai/chatgpt/auth.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/l10n/app_error_localization.dart';
+import '../../core/ui/reasoning_labels.dart';
 
 class ChatGptScreen extends ConsumerStatefulWidget {
   const ChatGptScreen({super.key});
@@ -20,10 +22,33 @@ class ChatGptScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatGptScreen> createState() => _ChatGptScreenState();
 }
 
+enum _ChatGptStatus {
+  loadFailed,
+  operationFailed,
+  signedOut,
+  revocationUnconfirmed,
+  enabled,
+  connected,
+  browserFailed,
+}
+
 class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
   List<ChatGptAccount> accounts = [];
   List<ChatGptModel> models = [];
-  String? active, model, message;
+  String? active, model;
+  Object? message;
+
+  String _messageText(Object value) => switch (value) {
+    _ChatGptStatus.loadFailed => context.l10n.couldNotReadChatGPTSign,
+    _ChatGptStatus.operationFailed => context.l10n.couldNotCompleteTheAction,
+    _ChatGptStatus.signedOut => context.l10n.signedOutOfChatGPT,
+    _ChatGptStatus.revocationUnconfirmed =>
+      context.l10n.localTokensWereClearedBut,
+    _ChatGptStatus.enabled => context.l10n.chatGPTPlanEnabled,
+    _ChatGptStatus.connected => context.l10n.connectedAndReceivedAModel,
+    _ChatGptStatus.browserFailed => context.l10n.couldNotOpenSystemBrowser,
+    _ => failureText(context.l10n, value),
+  };
   bool working = true, vision = false;
   String effort = 'default';
   late final ChatGptAuth auth;
@@ -71,9 +96,7 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
     } catch (e) {
       if (mounted) {
         setState(
-          () => message = e is AiFailure
-              ? e.message
-              : 'ChatGPT 登录记录无法读取，请检查系统安全存储。',
+          () => message = e is AiFailure ? e : _ChatGptStatus.loadFailed,
         );
       }
     } finally {
@@ -92,11 +115,9 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
     } catch (e) {
       if (mounted) {
         setState(
-          () => message = e is AiFailure
-              ? e.message
-              : e is FormatException
-              ? e.message
-              : '操作失败，请检查存储空间或系统密钥环后重试。',
+          () => message = e is AiFailure || e is FormatException
+              ? e
+              : _ChatGptStatus.operationFailed,
         );
       }
     } finally {
@@ -151,31 +172,27 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: context.tr('返回设置'),
+                      tooltip: context.l10n.backToSettings,
                       onPressed: () => context.go('/settings'),
                       icon: const Icon(Icons.arrow_back),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        context.tr('ChatGPT 订阅'),
+                        context.l10n.chatGPTPlan,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  context.tr(
-                    '使用 ChatGPT 账号授权的订阅额度，无需填写 API Key。模型及可用额度取决于账号与工作区，额度不足时不会转用 API 计费。',
-                  ),
-                ),
+                Text(context.l10n.useTheChatGPTPlanAllowance),
                 const SizedBox(height: 12),
-                Text(context.tr('登录通过系统浏览器完成。登录令牌仅保存在系统安全存储中，不进入学习数据备份。')),
+                Text(context.l10n.signInUsesYourSystem),
                 if (c.demo)
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
-                    child: Text(context.tr('Mock 模式不进行真实 ChatGPT 登录。')),
+                    child: Text(context.l10n.mockModeDoesNotSign),
                   ),
                 const SizedBox(height: 20),
                 if (accounts.isNotEmpty)
@@ -184,7 +201,7 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
 
                     initialValue: active,
                     decoration: InputDecoration(
-                      labelText: context.tr('ChatGPT 账号 / 工作区'),
+                      labelText: context.l10n.chatGPTAccountWorkspace,
                     ),
                     items: [
                       for (final a in accounts)
@@ -233,7 +250,9 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: Text(
-                      context.tr(connected ? '账号已登录' : '已退出，可重新登录此账号'),
+                      (connected
+                          ? context.l10n.accountConnected
+                          : context.l10n.signedOutSignInAgain),
                     ),
                   ),
                 const SizedBox(height: 16),
@@ -274,7 +293,7 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                                 setState(() {});
                                 await login;
                               }),
-                        child: Text(context.tr('重新授权此账号')),
+                        child: Text(context.l10n.authorizeThisAccountAgain),
                       ),
                     if (connected)
                       TextButton(
@@ -287,22 +306,22 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                                   setState(() {
                                     models = [];
                                     message = revoked
-                                        ? '已退出 ChatGPT 登录。'
-                                        : '本机登录已清除，但远程撤销未确认。请到 ChatGPT 设置检查授权。';
+                                        ? _ChatGptStatus.signedOut
+                                        : _ChatGptStatus.revocationUnconfirmed;
                                   });
                                 }
                               }),
-                        child: Text(context.tr('退出登录')),
+                        child: Text(context.l10n.signOut),
                       ),
                     if (connectionCancel != null)
                       TextButton(
                         onPressed: () => connectionCancel?.cancel('user'),
-                        child: Text(context.tr('取消连接测试')),
+                        child: Text(context.l10n.cancelConnectionTest),
                       ),
                     if (auth.signingIn)
                       TextButton(
                         onPressed: auth.cancelLogin,
-                        child: Text(context.tr('取消登录')),
+                        child: Text(context.l10n.cancelSignIn),
                       ),
                   ],
                 ),
@@ -317,18 +336,18 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          context.tr('可用模型'),
+                          context.l10n.availableModels,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
                       TextButton(
                         onPressed: working ? null : () => perform(() async {}),
-                        child: Text(context.tr('刷新列表')),
+                        child: Text(context.l10n.refreshList),
                       ),
                     ],
                   ),
                   if (models.isEmpty)
-                    Text(context.tr('暂时没有可用模型，请刷新列表或检查账号授权。')),
+                    Text(context.l10n.noAvailableModelsRefreshThe),
                   if (models.isNotEmpty)
                     AppSelectField<String>(
                       key: const Key('chatgpt-model-selector'),
@@ -336,7 +355,9 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                       initialValue: models.any((m) => m.id == model)
                           ? model
                           : null,
-                      decoration: InputDecoration(labelText: context.tr('模型')),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.model,
+                      ),
                       items: [
                         for (final m in models)
                           DropdownMenuItem(
@@ -360,8 +381,8 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                   const SizedBox(height: 12),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(context.tr('支持图片输入')),
-                    subtitle: Text(context.tr('仅在模型文档明确支持图片时开启；模型列表未声明时默认关闭。')),
+                    title: Text(context.l10n.supportsImageInput),
+                    subtitle: Text(context.l10n.enableOnlyIfTheModel),
                     value: vision,
                     onChanged: working
                         ? null
@@ -373,18 +394,19 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                     initialValue: selectedEffort,
 
                     decoration: InputDecoration(
-                      labelText: context.tr('默认思考强度'),
+                      labelText: context.l10n.defaultReasoningEffort,
                     ),
                     items: [
                       for (final e in {
-                        'default': '模型默认',
+                        'default': context.l10n.modelDefault,
                         for (final level in availableEfforts)
-                          level: AiOptions(modelConfiguration()).label(level),
+                          level: reasoningEffortLabel(
+                            context,
+                            AiOptions(modelConfiguration()),
+                            level,
+                          ),
                       }.entries)
-                        DropdownMenuItem(
-                          value: e.key,
-                          child: Text(context.tr(e.value)),
-                        ),
+                        DropdownMenuItem(value: e.key, child: Text(e.value)),
                     ],
                     onChanged: working
                         ? null
@@ -392,9 +414,7 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    context.tr(
-                      '档位按模型能力显示；xhigh 与 max 独立。模型默认不发送强度参数，none 明确请求不推理，两者不同。所有资料写入仍需确认。',
-                    ),
+                    context.l10n.levelsFollowTheModelS,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 16),
@@ -410,10 +430,12 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                                 await c.stop();
                                 await c.saveSettings(candidate(), null);
                                 if (mounted) {
-                                  setState(() => message = '已启用 ChatGPT 订阅。');
+                                  setState(
+                                    () => message = _ChatGptStatus.enabled,
+                                  );
                                 }
                               }),
-                        child: Text(context.tr('使用此账号和模型')),
+                        child: Text(context.l10n.useThisAccountAndModel),
                       ),
                       OutlinedButton(
                         onPressed: working || !models.any((m) => m.id == model)
@@ -431,16 +453,18 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                                   connectionCancel = null;
                                 }
                                 if (mounted) {
-                                  setState(() => message = '连接成功，已收到模型回复。');
+                                  setState(
+                                    () => message = _ChatGptStatus.connected,
+                                  );
                                 }
                               }),
-                        child: Text(context.tr('测试连接')),
+                        child: Text(context.l10n.testConnection),
                       ),
                     ],
                   ),
                 ],
                 const SizedBox(height: 16),
-                if (message != null) SelectableText(context.tr(message!)),
+                if (message != null) SelectableText(_messageText(message!)),
                 TextButton(
                   onPressed: () async {
                     if (!await launchUrl(
@@ -448,13 +472,13 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                           mode: LaunchMode.externalApplication,
                         ) &&
                         mounted) {
-                      setState(() => message = '无法打开系统浏览器，请检查浏览器设置。');
+                      setState(() => message = _ChatGptStatus.browserFailed);
                     }
                   },
-                  child: Text(context.tr('在 ChatGPT 中管理用量和授权')),
+                  child: Text(context.l10n.manageUsageAndPermissionsIn),
                 ),
                 Text(
-                  context.tr('测试连接和学习请求会使用订阅额度。切换账号会停止当前回复，已有本地聊天记录保留。'),
+                  context.l10n.connectionTestsAndLearningRequests,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

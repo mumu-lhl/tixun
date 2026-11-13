@@ -1,5 +1,12 @@
 import 'dart:convert';
 
+enum PromptError { invalidEntry, totalTooLong, invalidFormat, invalidValues }
+
+class PromptSettingsException extends FormatException {
+  const PromptSettingsException(this.code, super.message);
+  final PromptError code;
+}
+
 class PromptDefinition {
   const PromptDefinition(this.id, this.title, this.description, this.content);
   final String id, title, description, content;
@@ -111,11 +118,17 @@ class PromptSettings {
       if (!promptDefinitions.any((p) => p.id == entry.key) ||
           entry.value.trim().isEmpty ||
           entry.value.length > 6000) {
-        throw const FormatException('每条提示词需为 1–6000 字符，且类型必须有效。');
+        throw const PromptSettingsException(
+          PromptError.invalidEntry,
+          '每条提示词需为 1–6000 字符，且类型必须有效。',
+        );
       }
     }
     if (overrides.values.fold<int>(0, (n, text) => n + text.length) > 24000) {
-      throw const FormatException('自定义提示词总长度不能超过 24000 字符。');
+      throw const PromptSettingsException(
+        PromptError.totalTooLong,
+        '自定义提示词总长度不能超过 24000 字符。',
+      );
     }
   }
   static const preference = 'ai_prompts_v1';
@@ -143,11 +156,17 @@ class PromptSettings {
     if (value == null || value.isEmpty) return PromptSettings();
     final data = jsonDecode(value);
     if (data is! Map || data['version'] != 1 || data['overrides'] is! Map) {
-      throw const FormatException('提示词配置格式无效。');
+      throw const PromptSettingsException(
+        PromptError.invalidFormat,
+        '提示词配置格式无效。',
+      );
     }
     final values = data['overrides'] as Map;
     if (values.entries.any((e) => e.key is! String || e.value is! String)) {
-      throw const FormatException('提示词配置的名称和内容必须是文字。');
+      throw const PromptSettingsException(
+        PromptError.invalidValues,
+        '提示词配置的名称和内容必须是文字。',
+      );
     }
     return PromptSettings(Map<String, String>.from(values));
   }

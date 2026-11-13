@@ -19,7 +19,7 @@ import 'study_photo_intake.dart';
 Future<List<XFile>> pickStudyImages(BuildContext context) => openFiles(
   acceptedTypeGroups: [
     XTypeGroup(
-      label: context.tr("题目图片"),
+      label: context.l10n.questionImage,
       extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
       mimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
     ),
@@ -67,7 +67,9 @@ class StudyImages extends ConsumerWidget {
                   errorBuilder: (_, _, _) => SizedBox(
                     width: tileWidth,
                     height: tileWidth * .7,
-                    child: Center(child: Text(context.tr("图片无法读取，原记录仍保留"))),
+                    child: Center(
+                      child: Text(context.l10n.couldNotReadImageThe),
+                    ),
                   ),
                 );
                 return SizedBox(
@@ -78,13 +80,13 @@ class StudyImages extends ConsumerWidget {
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Text(
                           image.role == 'original'
-                              ? context.tr("原图 · 点击查看大图")
-                              : context.tr("编辑副本 · 点击查看大图"),
+                              ? context.l10n.originalTapToEnlarge
+                              : context.l10n.editedCopyTapToEnlarge,
                           style: const TextStyle(fontSize: 11),
                         ),
                       ),
                       Semantics(
-                        label: context.tr("题目图片，点击查看"),
+                        label: context.l10n.questionImageTapToView,
                         button: true,
                         child: InkWell(
                           onTap: () => showImageViewer(
@@ -95,15 +97,15 @@ class StudyImages extends ConsumerWidget {
                                   file: files.resolve(item.relativePath),
                                   heroTag: 'study-image-${item.id}',
                                   cacheWidth: 1600,
-                                  errorText: context.tr("图片无法读取，原记录仍保留"),
+                                  errorText: context.l10n.couldNotReadImageThe,
                                 ),
                             ],
                             initialIndex: images.indexWhere(
                               (item) => item.id == image.id,
                             ),
                             title: image.role == 'original'
-                                ? context.tr("原图 · 点击查看大图")
-                                : context.tr("编辑副本 · 点击查看大图"),
+                                ? context.l10n.originalTapToEnlarge
+                                : context.l10n.editedCopyTapToEnlarge,
                           ),
                           child: Hero(
                             tag: 'study-image-${image.id}',
@@ -131,22 +133,22 @@ class StudyImages extends ConsumerWidget {
                               final confirmed = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
-                                  title: Text(context.tr("切换到分题对话？")),
+                                  title: Text(
+                                    context.l10n.switchToTheSplittingChat,
+                                  ),
                                   content: Text(
-                                    context.tr(
-                                      "当前会话有未发送的草稿或图片，开始分题会新建会话，草稿会保留在原会话中。",
-                                    ),
+                                    context.l10n.thisSessionHasAnUnsent,
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(context, false),
-                                      child: Text(context.tr("取消")),
+                                      child: Text(context.l10n.cancel),
                                     ),
                                     FilledButton(
                                       onPressed: () =>
                                           Navigator.pop(context, true),
-                                      child: Text(context.tr("开始分题")),
+                                      child: Text(context.l10n.startSplitting),
                                     ),
                                   ],
                                 ),
@@ -167,7 +169,7 @@ class StudyImages extends ConsumerWidget {
                             size: 16,
                           ),
                           label: Text(
-                            context.tr("AI 辅助分题"),
+                            context.l10n.aiQuestionSplitting,
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
@@ -192,7 +194,7 @@ class StudyImages extends ConsumerWidget {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    context.tr("已单独创建分题记录，可在错题本查看。"),
+                                    context.l10n.aSeparateSplitQuestionHas,
                                   ),
                                 ),
                               );
@@ -200,7 +202,7 @@ class StudyImages extends ConsumerWidget {
                           }),
                           icon: const Icon(Icons.crop, size: 16),
                           label: Text(
-                            context.tr("裁剪 / 旋转 / 分题"),
+                            context.l10n.cropRotateSplit,
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
@@ -214,9 +216,11 @@ class StudyImages extends ConsumerWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(context.tr("图片已移除，原文件仍保留")),
+                                  content: Text(
+                                    context.l10n.imageRemovedTheOriginalFile,
+                                  ),
                                   action: SnackBarAction(
-                                    label: context.tr("撤销"),
+                                    label: context.l10n.undo,
                                     onPressed: () => act(
                                       context,
                                       () => store.restoreImage(image),
@@ -231,7 +235,7 @@ class StudyImages extends ConsumerWidget {
                             size: 16,
                           ),
                           label: Text(
-                            context.tr("移除图片"),
+                            context.l10n.removeImage,
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
@@ -254,12 +258,14 @@ class StudyImages extends ConsumerWidget {
                     context: context,
                     builder: (dialogContext) => StatefulBuilder(
                       builder: (context, update) => AlertDialog(
-                        title: Text(context.tr("已移除的图片")),
+                        title: Text(context.l10n.removedImages),
                         content: SizedBox(
                           width: 480,
                           height: 300,
                           child: removed.isEmpty
-                              ? Center(child: Text(context.tr("没有已移除的图片")))
+                              ? Center(
+                                  child: Text(context.l10n.noRemovedImages),
+                                )
                               : ListView(
                                   children: removed
                                       .map(
@@ -277,8 +283,8 @@ class StudyImages extends ConsumerWidget {
                                           ),
                                           title: Text(
                                             image.role == 'original'
-                                                ? context.tr("原图")
-                                                : context.tr("编辑副本"),
+                                                ? context.l10n.original
+                                                : context.l10n.editedCopy,
                                           ),
                                           trailing: TextButton(
                                             onPressed: () => act(
@@ -294,7 +300,7 @@ class StudyImages extends ConsumerWidget {
                                                 }
                                               },
                                             ),
-                                            child: Text(context.tr("恢复")),
+                                            child: Text(context.l10n.restore),
                                           ),
                                         ),
                                       )
@@ -304,7 +310,7 @@ class StudyImages extends ConsumerWidget {
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(dialogContext),
-                            child: Text(context.tr("关闭")),
+                            child: Text(context.l10n.close),
                           ),
                         ],
                       ),
@@ -312,7 +318,7 @@ class StudyImages extends ConsumerWidget {
                   );
                 }),
                 child: Text(
-                  context.tr("已移除的图片"),
+                  context.l10n.removedImages,
                   style: TextStyle(fontSize: 12),
                 ),
               ),
@@ -322,7 +328,7 @@ class StudyImages extends ConsumerWidget {
                 child: Platform.isAndroid
                     ? PopupMenuButton<String>(
                         popUpAnimationStyle: menuAnimation(context),
-                        tooltip: context.tr("添加题目图片"),
+                        tooltip: context.l10n.addQuestionImage,
                         onSelected: (kind) => act(context, () async {
                           if (kind == 'file') {
                             if (!context.mounted) return;
@@ -355,15 +361,15 @@ class StudyImages extends ConsumerWidget {
                         itemBuilder: (_) => [
                           PopupMenuItem(
                             value: 'camera',
-                            child: Text(context.tr("拍照")),
+                            child: Text(context.l10n.takePhoto),
                           ),
                           PopupMenuItem(
                             value: 'gallery',
-                            child: Text(context.tr("系统相册")),
+                            child: Text(context.l10n.photoLibrary),
                           ),
                           PopupMenuItem(
                             value: 'file',
-                            child: Text(context.tr("图片文件")),
+                            child: Text(context.l10n.imageFiles),
                           ),
                         ],
                         child: Padding(
@@ -379,7 +385,7 @@ class StudyImages extends ConsumerWidget {
                                 size: 18,
                               ),
                               SizedBox(width: 8),
-                              Text(context.tr("添加图片")),
+                              Text(context.l10n.addPhotos),
                             ],
                           ),
                         ),
@@ -408,7 +414,7 @@ class StudyImages extends ConsumerWidget {
                           Icons.add_photo_alternate_outlined,
                           size: 18,
                         ),
-                        label: Text(context.tr("添加图片")),
+                        label: Text(context.l10n.addPhotos),
                       ),
               ),
           ],

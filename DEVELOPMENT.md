@@ -86,12 +86,16 @@ python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
 ## 界面语言与配色
 
-界面使用同步 Flutter Localizations delegate，支持 `zh` 和 `en`。`context.tr` 只处理应用文案；不要把笔记正文、消息、用户标题或自定义提示词交给翻译。内置科目用稳定的中文标识保存，界面可显示英文名称，自定义科目原样保留。
+界面使用 Flutter `gen-l10n` 和同步 Localizations delegate，支持 `zh` 和 `en`。不要翻译笔记正文、消息、用户标题或自定义提示词。内置科目用稳定的中文标识保存，界面可显示英文名称，自定义科目原样保留。
 
-新增文案时编辑 [assets/l10n/en.json](assets/l10n/en.json)，再生成 Dart 字典：
+中英文文案分别保存在 [assets/l10n/app_zh.arb](assets/l10n/app_zh.arb) 和 [assets/l10n/app_en.arb](assets/l10n/app_en.arb)，配置见 `l10n.yaml`。新增文案时在两个文件中使用相同的、具有描述性的 Dart 标识符作为 ID；在 `@消息ID` 的 `placeholders` 中声明命名参数及类型。界面通过 `context.l10n.消息ID` 调用生成的类型安全 API。不要修改已有 ID。
+
+应用生成的错误使用 `AppErrorCode`、`AppFormatException` 或 `AiFailure.localized`，界面通过 `failureText` 在展示时翻译；未知异常、服务端文本和用户内容原样保留。带参数的错误将参数与代码一起保存，参数本身不作为翻译键；内置资料字段使用 `StudyErrorField` 稳定标识。包装错误时应保留 `LocalizedAppFailure` 的代码和参数，例如使用 `AiFailure.fromFormatException`。新增错误时，同时维护 `app_error.dart` 的枚举及 `app_error_localization.dart` 中的穷举映射。持久化的聊天错误使用稳定代码和参数，原始外部消息单独标记；`chat_failure.dart` 仅为已存储的旧版应用错误提供有限的历史数据读取，不是通用文案查找表。
+
+ARB 可使用 Flutter `gen-l10n` 支持的 ICU plural/select。生成文件 `lib/core/l10n/generated/` 已忽略，不需提交。编辑 ARB 后执行：
 
 ```bash
-python3 scripts/generate_l10n.py
+flutter gen-l10n
 flutter test test/localization_test.dart
 ```
 

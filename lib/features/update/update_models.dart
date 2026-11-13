@@ -33,6 +33,25 @@ class ReleaseInfo {
   });
 }
 
+/// A structured, localizable update message. No translated text is persisted.
+enum UpdateMessage {
+  newVersion,
+  upToDate,
+  checkFailed,
+  unsupportedPlatform,
+  noNewVersion,
+  checksumUnavailable,
+  checksumFailed,
+  downloadFailed,
+  installPermission,
+  installFailed,
+  applyFailed,
+  noStableRelease,
+  noPrerelease,
+  noNightly,
+  updateCheckFailed,
+}
+
 /// The result of an update check.
 enum UpdateCheckKind { upToDate, available, noneAvailable, failed }
 
@@ -41,13 +60,12 @@ enum UpdateCheckKind { upToDate, available, noneAvailable, failed }
 /// [release] is the candidate release when one was found (for both
 /// [UpdateCheckKind.available] and [UpdateCheckKind.upToDate]); [assetName]
 /// is left null here — the caller picks the asset for the current platform.
-/// [message] carries a short user-facing note for [UpdateCheckKind.failed]
-/// and [UpdateCheckKind.noneAvailable].
+/// [message] identifies a localizable note for failed or empty outcomes.
 class UpdateCheckOutcome {
   final UpdateCheckKind kind;
   final ReleaseInfo? release;
   final String? assetName;
-  final String? message;
+  final UpdateMessage? message;
 
   const UpdateCheckOutcome({
     required this.kind,

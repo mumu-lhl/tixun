@@ -44,7 +44,7 @@ class _FakeUpdateService extends UpdateService {
       checkOutcome ??
       const UpdateCheckOutcome(
         kind: UpdateCheckKind.failed,
-        message: 'no stubbed outcome',
+        message: UpdateMessage.checkFailed,
       );
 
   @override
@@ -167,7 +167,7 @@ void main() {
 
       final state = container.read(updateStatusProvider);
       expect(state.status, UpdateStatus.failed);
-      expect(state.message, '无法获取校验信息，请重试');
+      expect(state.message, UpdateMessage.checksumUnavailable);
       expect(service.verifyCalled, isFalse);
       expect(service.downloadedPath, isNotNull);
       expect(await File(service.downloadedPath!).exists(), isTrue);
@@ -185,7 +185,7 @@ void main() {
 
     final state = container.read(updateStatusProvider);
     expect(state.status, UpdateStatus.failed);
-    expect(state.message, '下载校验失败，请重试');
+    expect(state.message, UpdateMessage.checksumFailed);
     expect(service.verifyCalled, isTrue);
     expect(service.downloadedPath, isNotNull);
     expect(await File(service.downloadedPath!).exists(), isFalse);

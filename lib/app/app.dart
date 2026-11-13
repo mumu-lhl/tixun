@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/l10n/app_strings.dart';
+import '../core/l10n/generated/app_localizations.dart';
 import '../core/ui/actions.dart';
 import '../features/chat/chat_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
@@ -55,7 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     // ShellRoute: no bottom navigation and no in-app way back, so the
     // system back button would exit the app instead.
     errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(title: Text(context.tr('题训'))),
+      appBar: AppBar(title: Text(context.l10n.tiXun)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -63,7 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                context.tr('页面不存在'),
+                context.l10n.pageNotFound,
                 style: Theme.of(context).textTheme.titleLarge,
                 textAlign: TextAlign.center,
               ),
@@ -72,7 +73,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: () => context.go('/study'),
-                child: Text(context.tr('回学习页')),
+                child: Text(context.l10n.returnToStudyPage),
               ),
             ],
           ),
@@ -236,9 +237,9 @@ class TixunApp extends ConsumerWidget {
       ),
       themeMode: ref.watch(appControllerProvider.select((c) => c.themeMode)),
       locale: ref.watch(appControllerProvider.select((c) => c.appLocale)),
-      supportedLocales: const [Locale('zh'), Locale('en')],
+      supportedLocales: supportedAppLocales,
       localizationsDelegates: const [
-        AppStrings.delegate,
+        AppLocalizations.delegate,
         ...GlobalMaterialLocalizations.delegates,
       ],
       localeListResolutionCallback: (requested, supported) =>
@@ -259,7 +260,6 @@ class AppShell extends ConsumerWidget {
     '/knowledge',
     '/settings',
   ];
-  static const labels = ['学习', 'AI 对话', '错题', '知识', '设置'];
   static const icons = [
     Icons.space_dashboard_outlined,
     Icons.forum_outlined,
@@ -294,6 +294,13 @@ class AppShell extends ConsumerWidget {
       ),
     );
     final colors = Theme.of(context).colorScheme;
+    final labels = [
+      context.l10n.study,
+      context.l10n.aiChat,
+      context.l10n.mistakeQuestions,
+      context.l10n.knowledge,
+      context.l10n.settings,
+    ];
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
@@ -328,7 +335,7 @@ class AppShell extends ConsumerWidget {
                     vertical: 5,
                   ),
                   child: Text(
-                    context.tr("MOCK 体验 · 固定测试回复 · 与真实数据隔离"),
+                    context.l10n.mockFixedTestResponsesIsolated,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,
@@ -338,7 +345,7 @@ class AppShell extends ConsumerWidget {
                 ),
               if (shell.notice != null)
                 MaterialBanner(
-                  content: Text(context.tr(shell.notice!)),
+                  content: Text(shell.notice!.text(context.l10n)),
                   actions: [
                     TextButton(
                       style: TextButton.styleFrom(
@@ -348,7 +355,7 @@ class AppShell extends ConsumerWidget {
                         c.notice = null;
                         c.changed();
                       },
-                      child: Text(context.tr("知道了")),
+                      child: Text(context.l10n.gotIt),
                     ),
                   ],
                 ),
@@ -367,7 +374,7 @@ class AppShell extends ConsumerWidget {
                             constraints: const BoxConstraints(maxWidth: 320),
                             child: Semantics(
                               key: const Key('subject-switch'),
-                              label: context.tr('切换科目'),
+                              label: context.l10n.switchSubject,
                               child: AppSelectField<String>(
                                 initialValue: shell.subjectFilter,
                                 decoration: const InputDecoration(
@@ -384,7 +391,7 @@ class AppShell extends ConsumerWidget {
                                 items: [
                                   DropdownMenuItem(
                                     value: '',
-                                    child: Text(context.tr('全部科目')),
+                                    child: Text(context.l10n.allSubjects),
                                   ),
                                   for (final subject in {
                                     ...shell.subjects,
@@ -454,7 +461,7 @@ class AppShell extends ConsumerWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        context.tr("题训"),
+                                        context.l10n.tiXun,
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleLarge,
@@ -492,7 +499,7 @@ class AppShell extends ConsumerWidget {
                                   selectedTileColor: colors.primaryContainer
                                       .withValues(alpha: .65),
                                   leading: Icon(icons[i], size: 22),
-                                  title: Text(context.tr(labels[i])),
+                                  title: Text(labels[i]),
                                   onTap: () => context.go(paths[i]),
                                 ),
                               ),
@@ -500,7 +507,9 @@ class AppShell extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.all(24),
                               child: Text(
-                                context.tr("理解知识\n独立练习\n真正掌握"),
+                                context
+                                    .l10n
+                                    .understandKnowledgePracticeIndependentlyBuild,
                                 style: TextStyle(
                                   fontSize: 12,
                                   height: 2,
@@ -555,7 +564,7 @@ class AppShell extends ConsumerWidget {
                     NavigationDestination(
                       key: Key('nav-$i'),
                       icon: Icon(icons[i]),
-                      label: context.tr(labels[i]),
+                      label: labels[i],
                     ),
                 ],
               ),

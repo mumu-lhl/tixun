@@ -1,3 +1,4 @@
+import 'package:tixun/core/l10n/app_error_localization.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,13 +34,17 @@ class PracticeRunScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(e is FormatException ? e.message : context.tr("小测读取失败。")),
+                Text(
+                  e is FormatException
+                      ? failureText(context.l10n, e)
+                      : context.l10n.couldNotLoadTheQuiz,
+                ),
                 TextButton(
                   onPressed: () => act(context, () async {
                     await ref.read(practiceStoreProvider).clearRun();
                     if (context.mounted) context.go('/practice');
                   }),
-                  child: Text(context.tr("结束本轮，保留记录")),
+                  child: Text(context.l10n.endThisQuizKeepRecords),
                 ),
               ],
             ),
@@ -54,13 +59,13 @@ class PracticeRunScreen extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      context.tr("还没有进行中的小测。先在题库开始一轮随机小测，完成后可在此查看汇总。"),
+                      context.l10n.noQuizInProgressYet,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: () => context.go('/practice'),
-                      child: Text(context.tr("返回题库开始小测")),
+                      child: Text(context.l10n.returnToTheBankTo),
                     ),
                   ],
                 ),
@@ -86,15 +91,15 @@ class PracticeRunScreen extends ConsumerWidget {
                   TextButton.icon(
                     onPressed: () => context.go('/practice'),
                     icon: const Icon(Icons.arrow_back),
-                    label: Text(context.tr("返回题库")),
+                    label: Text(context.l10n.backToQuestionBank),
                   ),
                   Text(
                     run.completed
-                        ? context.tr("本轮小测已完成")
-                        : context.tr("随机小测 · 第 {0} / {1} 题", [
-                            run.index + 1,
-                            run.ids.length,
-                          ]),
+                        ? context.l10n.quizCompleted
+                        : context.l10n.randomQuizQuestion(
+                            l10nArgument((run.index + 1)),
+                            l10nArgument((run.ids.length)),
+                          ),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   TextButton(
@@ -102,7 +107,7 @@ class PracticeRunScreen extends ConsumerWidget {
                       await store.clearRun();
                       if (context.mounted) context.go('/practice');
                     }),
-                    child: Text(context.tr("结束本轮")),
+                    child: Text(context.l10n.endQuiz),
                   ),
                 ],
               ),
@@ -136,15 +141,15 @@ class PracticeRunScreen extends ConsumerWidget {
                               }),
                         child: Text(
                           run.index + 1 == run.ids.length
-                              ? context.tr("完成本轮")
-                              : context.tr("下一题"),
+                              ? context.l10n.finishQuiz
+                              : context.l10n.nextQuestion,
                         ),
                       ),
                       if (!graded)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            context.tr("提交答案或自主判分后可继续下一题"),
+                            context.l10n.youCanContinueToThe,
                             style: TextStyle(
                               fontSize: 12,
                               color: Theme.of(context)
@@ -165,7 +170,8 @@ class PracticeRunScreen extends ConsumerWidget {
                     )
                     .when(
                       loading: () => const LinearProgressIndicator(),
-                      error: (_, _) => Text(context.tr("汇总读取失败，单题记录仍保存在题库。")),
+                      error: (_, _) =>
+                          Text(context.l10n.couldNotLoadTheSummary),
                       data: (attempts) {
                         final colors = Theme.of(context).colorScheme;
                         final byId = {for (final a in attempts) a.id: a};
@@ -173,29 +179,38 @@ class PracticeRunScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              context.tr("已保存 {0} 次作答", [attempts.length]),
+                              context.l10n.attemptsSaved(
+                                l10nArgument((attempts.length)),
+                              ),
                               style: Theme.of(context).textTheme.headlineSmall,
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              context.tr("与参考答案一致 {0} 次 · 使用提示 {1} 次", [
-                                attempts.where((a) => a.correct == true).length,
-                                attempts.where((a) => a.hintUsed).length,
-                              ]),
+                              context.l10n.matchedReferenceHintsUsed(
+                                l10nArgument(
+                                  (attempts
+                                      .where((a) => a.correct == true)
+                                      .length),
+                                ),
+                                l10nArgument(
+                                  (attempts.where((a) => a.hintUsed).length),
+                                ),
+                              ),
                             ),
                             Text(
-                              context.tr(
-                                "其中 {0} 次依据待核对 AI 答案，{1} 次为自主判分。结果不等同于掌握程度。",
-                                [
-                                  attempts
+                              context.l10n.attemptsUsedUncheckedAIReferences(
+                                l10nArgument(
+                                  (attempts
                                       .where(
                                         (a) => a.gradingBasis == 'ai_reference',
                                       )
-                                      .length,
-                                  attempts
+                                      .length),
+                                ),
+                                l10nArgument(
+                                  (attempts
                                       .where((a) => a.gradingBasis == 'self')
-                                      .length,
-                                ],
+                                      .length),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -226,16 +241,18 @@ class PracticeRunScreen extends ConsumerWidget {
                                       : colors.onSurfaceVariant,
                                 ),
                                 title: Text(
-                                  context.tr("查看第 {0} 题的本次作答", [i + 1]),
+                                  context.l10n.viewQuestionFromThisQuiz(
+                                    l10nArgument((i + 1)),
+                                  ),
                                 ),
                                 subtitle: outcome == null
                                     ? null
                                     : Text(
                                         outcome == 'correct'
-                                            ? context.tr("作答正确")
+                                            ? context.l10n.answerCorrect
                                             : outcome == 'wrong'
-                                            ? context.tr("需要订正")
-                                            : context.tr("尚未判分"),
+                                            ? context.l10n.needsCorrection
+                                            : context.l10n.notGradedYet,
                                       ),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () => context.go(

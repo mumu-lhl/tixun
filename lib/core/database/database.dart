@@ -4,6 +4,8 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_error.dart';
+
 part 'database.g.dart';
 part 'study_tables.dart';
 part 'practice_tables.dart';
@@ -321,7 +323,7 @@ class AppDatabase extends _$AppDatabase {
       )..where((t) => t.status.equals('generating'))).write(
         const ChatMessagesCompanion(
           status: Value('interrupted'),
-          error: Value('上次生成被中断，可重新生成。'),
+          error: Value(interruptedChatFailure),
         ),
       );
     },
@@ -460,7 +462,10 @@ class AppDatabase extends _$AppDatabase {
     String? subject,
   }) async {
     if (!['guided', 'direct', 'exam'].contains(mode)) {
-      throw const FormatException('教学模式无效。');
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidTeachingMode,
+        '教学模式无效。',
+      );
     }
     final id = const Uuid().v4();
     final now = DateTime.now();
@@ -492,7 +497,11 @@ class AppDatabase extends _$AppDatabase {
         ChatSessionsCompanion(draft: Value(draft)),
       );
   Future<void> rename(String id, String title) async {
-    if (title.trim().isEmpty) throw const FormatException('会话名称不能为空');
+    if (title.trim().isEmpty)
+      throw const AppFormatException(
+        AppErrorCode.errorTheConversationNameCannotBeEmpty,
+        '会话名称不能为空',
+      );
     await (update(chatSessions)..where((s) => s.id.equals(id))).write(
       ChatSessionsCompanion(
         title: Value(title.trim()),

@@ -30,7 +30,11 @@ class _ReasoningPanelState extends State<ReasoningPanel> {
           leading: Icon(
             widget.locked ? Icons.lock_outline : Icons.psychology_outlined,
           ),
-          title: Text(context.tr(widget.generating ? '思考中' : '模型思考')),
+          title: Text(
+            (widget.generating
+                ? context.l10n.thinking
+                : context.l10n.modelReasoning),
+          ),
           trailing: widget.locked
               ? null
               : Icon(expanded ? Icons.expand_less : Icons.expand_more),
@@ -49,7 +53,7 @@ class _ReasoningPanelState extends State<ReasoningPanel> {
             ),
             child: SingleChildScrollView(
               child: widget.text.isEmpty
-                  ? Text(context.tr('等待模型返回思考内容…'))
+                  ? Text(context.l10n.waitingForReasoningFromThe)
                   : LearningMarkdown(widget.text),
             ),
           ),

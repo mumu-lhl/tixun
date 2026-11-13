@@ -20,12 +20,15 @@ class LanguageColorSettings extends ConsumerWidget {
           initialValue: c.languageChoice,
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.language),
-            labelText: context.tr('界面语言'),
+            labelText: context.l10n.interfaceLanguage,
           ),
           items: [
-            DropdownMenuItem(value: 'zh', child: Text(context.tr("中文"))),
+            DropdownMenuItem(value: 'zh', child: Text(context.l10n.chinese)),
             const DropdownMenuItem(value: 'en', child: Text('English')),
-            DropdownMenuItem(value: 'system', child: Text(context.tr('跟随系统'))),
+            DropdownMenuItem(
+              value: 'system',
+              child: Text(context.l10n.followSystem),
+            ),
           ],
           onChanged: (v) => act(context, () => c.setLanguage(v!)),
         ),
@@ -33,8 +36,8 @@ class LanguageColorSettings extends ConsumerWidget {
         SwitchListTile(
           key: const Key('dynamic-colors'),
           contentPadding: EdgeInsets.zero,
-          title: Text(context.tr('动态配色')),
-          subtitle: Text(context.tr('使用系统壁纸或桌面强调色；系统未提供颜色时使用默认配色。')),
+          title: Text(context.l10n.dynamicColors),
+          subtitle: Text(context.l10n.useTheWallpaperOrDesktop),
           value: c.dynamicColors,
           onChanged: (value) => act(context, () => c.setDynamicColors(value)),
         ),
