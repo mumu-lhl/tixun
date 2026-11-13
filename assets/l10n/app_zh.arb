@@ -2040,9 +2040,9 @@
   "imageInputs": "图片输入数",
   "toolCalls": "工具调用数",
   "officialPricingPage": "官方价格说明",
-  "ratePeakNote": "DeepSeek 官方价格预填为峰时价；离峰时段按折扣估算（默认 50%），价格可能调整。",
+  "ratePeakNote": "DeepSeek 官方价格预填为峰时价；离峰时段按折扣估算（默认 50%）。峰时为 UTC 01:00–04:00、06:00–10:00（周一至周五），价格可能调整。",
   "offPeakDiscount": "离峰折扣（%）",
-  "offPeakDiscountHint": "DeepSeek 离峰时段（北京时间 00:30–08:30，UTC 16:30–00:30）按此折扣估算；0 表示不区分。",
+  "offPeakDiscountHint": "仅在 DeepSeek 峰时（UTC 01:00–04:00、06:00–10:00，周一至周五）之外按此折扣估算；中国法定节假日未单独建模。0 表示不区分。",
   "usageOffPeakDiscount": "离峰 -{arg0}%",
   "@usageOffPeakDiscount": {
     "placeholders": {

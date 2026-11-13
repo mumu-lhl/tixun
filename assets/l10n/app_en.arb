@@ -2040,9 +2040,9 @@
   "imageInputs": "Image inputs",
   "toolCalls": "Tool calls",
   "officialPricingPage": "Official pricing details",
-  "ratePeakNote": "DeepSeek prices use official peak rates; off-peak requests apply the configured discount (50% by default). Prices may change.",
+  "ratePeakNote": "DeepSeek prices use official peak rates; off-peak requests apply the configured discount (50% by default). Peak is 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday. Prices may change.",
   "offPeakDiscount": "Off-peak discount (%)",
-  "offPeakDiscountHint": "Applied during DeepSeek's off-peak window (16:30–00:30 UTC); 0 disables the discount.",
+  "offPeakDiscountHint": "Applied outside DeepSeek's peak hours (01:00–04:00 and 06:00–10:00 UTC, Monday–Friday); Chinese public holidays are not modeled. 0 disables the discount.",
   "usageOffPeakDiscount": "Off-peak -{arg0}%",
   "@usageOffPeakDiscount": {
     "placeholders": {

@@ -162,6 +162,9 @@ class AiUsageStore {
 
   Future<void> ensureBuiltinPrices() async {
     if (await db.preference('ai_usage_default_prices_v1') == '1') return;
+    // Official peak rates in nano-USD per million tokens, checked against
+    // https://api-docs.deepseek.com/quick_start/pricing/ on 2026-11-14.
+    // Off-peak is half price; isDeepSeekOffPeak() defines the window.
     const defaults = [
       (
         model: 'deepseek-flash',
@@ -330,12 +333,21 @@ class AiUsageStore {
   }
 }
 
-/// DeepSeek discounts requests in the 16:30–00:30 UTC window
-/// (00:30–08:30 Beijing time).
+/// DeepSeek peak hours are 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday.
+///
+/// Chinese public holidays are not modeled: weekday holidays are treated as
+/// normal peak days, so their estimates can be slightly high. Off-peak rates
+/// are half of the peak rates.
 bool isDeepSeekOffPeak(DateTime time) {
   final utc = time.toUtc();
+  if (utc.weekday == DateTime.saturday || utc.weekday == DateTime.sunday) {
+    return true;
+  }
   final minutes = utc.hour * 60 + utc.minute;
-  return minutes >= 16 * 60 + 30 || minutes < 30;
+  final peak =
+      (minutes >= 1 * 60 && minutes < 4 * 60) ||
+      (minutes >= 6 * 60 && minutes < 10 * 60);
+  return !peak;
 }
 
 int _discountedRate(int rate, int discountPercent) =>

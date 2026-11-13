@@ -85,7 +85,7 @@ void main() {
     await tester.tap(find.byKey(const Key('add-ai-model-price')));
     await tester.pumpAndSettle();
     expect(find.text('离峰折扣（%）'), findsOneWidget);
-    expect(find.textContaining('00:30–08:30'), findsOneWidget);
+    expect(find.textContaining('01:00–04:00'), findsWidgets);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
 
