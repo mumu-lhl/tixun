@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -185,6 +186,10 @@ class HistoryTests(unittest.TestCase):
                  '--tag', current, '--repo', 'owner/repo'],
                 cwd=self.repo, env=env, text=True)
             values = dict(line.split('=', 1) for line in result.splitlines())
+            commit = self.git('rev-parse', f'{current}^{{commit}}').strip()
+            self.assertEqual(values['current_commit'], commit)
+            self.assertIsNotNone(re.fullmatch(values['tag_pattern'], commit))
+            self.assertIsNone(re.fullmatch(values['tag_pattern'], current))
             if not published:
                 # git-cliff accepts a single OID, but not a single tag name.
                 self.assertRegex(values['commit_range'], r'^[0-9a-f]{40,64}$')

@@ -86,12 +86,16 @@ def main():
                             check=True, capture_output=True, text=True)
     releases = decode_pages(result.stdout)
     base = choose_base(releases, args.tag, nightly=args.nightly)
-    commit_range = f'{base}..{args.tag}' if base else subprocess.run(
+    current_commit = subprocess.run(
         ['git', 'rev-parse', '--verify', f'refs/tags/{args.tag}^{{commit}}'],
         check=True, capture_output=True, text=True).stdout.strip()
+    commit_range = f'{base}..{current_commit}' if base else current_commit
     print(f'base_tag={base or ""}')
+    print(f'current_commit={current_commit}')
     print(f'commit_range={commit_range}')
-    print(f'tag_pattern={tag_pattern(args.tag, base)}')
+    # The new nightly tag is still local. GitHub metadata must use the already
+    # public commit ID; including that local tag makes git-cliff query a 404.
+    print(f'tag_pattern={tag_pattern(current_commit if args.nightly else args.tag, base)}')
     print(f'has_changes={str(has_changes(base, args.tag)).lower()}')
 
 
