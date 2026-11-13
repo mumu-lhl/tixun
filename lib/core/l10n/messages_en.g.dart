@@ -1191,4 +1191,5 @@ const englishMessages = <String, String>{
   "使用提供的资料工具保存结果，等待应用确认后再视为已保存。": "Save the result using the supplied material tools. Treat it as saved only after application approval.",
   "请从所选对话中整理一道真实错题，区分原题、答案和解析。不要编造我的原答案或错误原因。": "Organize one real mistake from the selected conversation, distinguishing the question, answer and explanation. Do not invent my original answer or error cause.",
   "\n\n【任务提示词】\n{0}": "\n\n[Task prompt]\n{0}",
+  "图片操作": "Image actions",
 };

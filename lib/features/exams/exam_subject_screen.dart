@@ -194,178 +194,147 @@ class ExamSubjectScreen extends ConsumerWidget {
                                               .where((i) => i.role == role.key))
                                         SizedBox(
                                           width: 140,
-                                          child: Column(
-                                            children: [
-                                              InkWell(
-                                                onTap: () {
-                                                  final roleImages =
-                                                      (images.data ??
-                                                              <
-                                                                ExamAttachment
-                                                              >[])
-                                                          .where(
+                                          height: 110,
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            child: Stack(
+                                              fit: StackFit.expand,
+                                              children: [
+                                                InkWell(
+                                                  key: Key(
+                                                    'exam-image-preview-${image.id}',
+                                                  ),
+                                                  onTap: () {
+                                                    final roleImages =
+                                                        (images.data ??
+                                                                <
+                                                                  ExamAttachment
+                                                                >[])
+                                                            .where(
+                                                              (i) =>
+                                                                  i.role ==
+                                                                  role.key,
+                                                            )
+                                                            .toList();
+                                                    showImageViewer(
+                                                      ctx,
+                                                      images: [
+                                                        for (final item
+                                                            in roleImages)
+                                                          ImageViewerItem(
+                                                            file: c.files.resolve(
+                                                              item.relativePath,
+                                                            ),
+                                                            heroTag:
+                                                                'exam-image-${item.id}',
+                                                            cacheWidth: 2000,
+                                                            errorText: ctx.tr(
+                                                              '图片无法读取，原记录仍保留',
+                                                            ),
+                                                          ),
+                                                      ],
+                                                      initialIndex: roleImages
+                                                          .indexWhere(
                                                             (i) =>
-                                                                i.role ==
-                                                                role.key,
-                                                          )
-                                                          .toList();
-                                                  showImageViewer(
-                                                    ctx,
-                                                    images: [
-                                                      for (final item
-                                                          in roleImages)
-                                                        ImageViewerItem(
-                                                          file: c.files.resolve(
-                                                            item.relativePath,
+                                                                i.id ==
+                                                                image.id,
                                                           ),
-                                                          heroTag:
-                                                              'exam-image-${item.id}',
-                                                          cacheWidth: 2000,
-                                                          errorText: ctx.tr(
-                                                            '图片无法读取，原记录仍保留',
-                                                          ),
-                                                        ),
-                                                    ],
-                                                    initialIndex: roleImages
-                                                        .indexWhere(
-                                                          (i) =>
-                                                              i.id == image.id,
-                                                        ),
-                                                    title: ctx.tr(role.value),
-                                                  );
-                                                },
-                                                child: Hero(
-                                                  tag: 'exam-image-${image.id}',
-                                                  child: Image.file(
-                                                    c.files.resolve(
-                                                      image.relativePath,
-                                                    ),
-                                                    width: 140,
-                                                    height: 110,
-                                                    fit: BoxFit.cover,
-                                                    cacheWidth: 400,
-                                                    errorBuilder: (_, _, _) =>
-                                                        SizedBox(
-                                                          height: 110,
-                                                          child: Center(
-                                                            child: Text(
-                                                              ctx.tr(
-                                                                '图片无法读取，原记录仍保留',
+                                                      title: ctx.tr(role.value),
+                                                    );
+                                                  },
+                                                  child: Hero(
+                                                    tag:
+                                                        'exam-image-${image.id}',
+                                                    child: Image.file(
+                                                      c.files.resolve(
+                                                        image.relativePath,
+                                                      ),
+                                                      width: 140,
+                                                      height: 110,
+                                                      fit: BoxFit.cover,
+                                                      cacheWidth: 400,
+                                                      errorBuilder: (_, _, _) =>
+                                                          SizedBox(
+                                                            height: 110,
+                                                            child: Center(
+                                                              child: Text(
+                                                                ctx.tr(
+                                                                  '图片无法读取，原记录仍保留',
+                                                                ),
                                                               ),
                                                             ),
                                                           ),
-                                                        ),
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              Wrap(
-                                                children: [
-                                                  IconButton(
-                                                    tooltip: ctx.tr(
-                                                      '裁剪 / 旋转 / 缩小',
-                                                    ),
-                                                    icon: const Icon(
-                                                      Icons.crop,
-                                                      size: 18,
-                                                    ),
-                                                    onPressed: () => act(
-                                                      ctx,
-                                                      () => editExamPhoto(
-                                                        ctx,
-                                                        c,
-                                                        image,
+                                                Positioned(
+                                                  top: 4,
+                                                  right: 4,
+                                                  child: Material(
+                                                    color: Theme.of(ctx)
+                                                        .colorScheme
+                                                        .surface
+                                                        .withValues(alpha: .92),
+                                                    shape: const CircleBorder(),
+                                                    child: PopupMenuButton<String>(
+                                                      key: Key(
+                                                        'exam-image-menu-${image.id}',
                                                       ),
-                                                    ),
-                                                  ),
-                                                  if (image.originalPath !=
-                                                      null)
-                                                    IconButton(
-                                                      tooltip: ctx.tr(
-                                                        '查看保留的原图',
-                                                      ),
+                                                      tooltip: ctx.tr('图片操作'),
+                                                      popUpAnimationStyle:
+                                                          menuAnimation(ctx),
+                                                      position:
+                                                          PopupMenuPosition
+                                                              .under,
                                                       icon: const Icon(
-                                                        Icons.image_outlined,
-                                                        size: 18,
+                                                        Icons.more_vert,
+                                                        size: 20,
                                                       ),
-                                                      onPressed: () =>
-                                                          showImageViewer(
+                                                      onSelected: (action) =>
+                                                          _imageAction(
                                                             ctx,
-                                                            images: [
-                                                              ImageViewerItem(
-                                                                file: c.files
-                                                                    .resolve(
-                                                                      image
-                                                                          .originalPath!,
-                                                                    ),
-                                                                cacheWidth:
-                                                                    1600,
-                                                                errorText: ctx
-                                                                    .tr(
-                                                                      '原图无法读取。',
-                                                                    ),
-                                                              ),
-                                                            ],
-                                                            title: ctx.tr(
-                                                              '保留的原图',
+                                                            c,
+                                                            image,
+                                                            action,
+                                                          ),
+                                                      itemBuilder: (_) => [
+                                                        PopupMenuItem(
+                                                          value: 'edit',
+                                                          child: Text(
+                                                            ctx.tr(
+                                                              '裁剪 / 旋转 / 缩小',
                                                             ),
                                                           ),
-                                                    ),
-                                                  IconButton(
-                                                    tooltip: ctx.tr('删除图片'),
-                                                    icon: const Icon(
-                                                      Icons.delete_outline,
-                                                      size: 18,
-                                                    ),
-                                                    onPressed: () async {
-                                                      final yes = await showDialog<bool>(
-                                                        context: ctx,
-                                                        builder: (d) => AlertDialog(
-                                                          title: Text(
-                                                            d.tr('删除图片'),
-                                                          ),
-                                                          content: Text(
-                                                            d.tr(
-                                                              '删除本机保存的这张照片？',
-                                                            ),
-                                                          ),
-                                                          actions: [
-                                                            TextButton(
-                                                              onPressed: () =>
-                                                                  Navigator.pop(
-                                                                    d,
-                                                                  ),
-                                                              child: Text(
-                                                                d.tr('取消'),
-                                                              ),
-                                                            ),
-                                                            FilledButton(
-                                                              onPressed: () =>
-                                                                  Navigator.pop(
-                                                                    d,
-                                                                    true,
-                                                                  ),
-                                                              child: Text(
-                                                                d.tr('删除'),
-                                                              ),
-                                                            ),
-                                                          ],
                                                         ),
-                                                      );
-                                                      if (yes == true &&
-                                                          ctx.mounted) {
-                                                        await act(
-                                                          ctx,
-                                                          () => c.exams
-                                                              .deleteImage(
-                                                                image,
-                                                              ),
-                                                        );
-                                                      }
-                                                    },
+                                                        if (image
+                                                                .originalPath !=
+                                                            null)
+                                                          PopupMenuItem(
+                                                            value: 'original',
+                                                            child: Text(
+                                                              ctx.tr('查看保留的原图'),
+                                                            ),
+                                                          ),
+                                                        const PopupMenuDivider(),
+                                                        PopupMenuItem(
+                                                          value: 'delete',
+                                                          child: Text(
+                                                            ctx.tr('删除图片'),
+                                                            style: TextStyle(
+                                                              color: Theme.of(ctx)
+                                                                  .colorScheme
+                                                                  .error,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                ],
-                                              ),
-                                            ],
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                     ],
@@ -494,6 +463,53 @@ class ExamSubjectScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _imageAction(
+    BuildContext context,
+    AppController c,
+    ExamAttachment image,
+    String action,
+  ) async {
+    if (!context.mounted) return;
+    switch (action) {
+      case 'edit':
+        await act(context, () => editExamPhoto(context, c, image));
+      case 'original':
+        if (image.originalPath == null) return;
+        await showImageViewer(
+          context,
+          images: [
+            ImageViewerItem(
+              file: c.files.resolve(image.originalPath!),
+              cacheWidth: 1600,
+              errorText: context.tr('原图无法读取。'),
+            ),
+          ],
+          title: context.tr('保留的原图'),
+        );
+      case 'delete':
+        final yes = await showDialog<bool>(
+          context: context,
+          builder: (d) => AlertDialog(
+            title: Text(d.tr('删除图片')),
+            content: Text(d.tr('删除本机保存的这张照片？')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(d, false),
+                child: Text(d.tr('取消')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(d, true),
+                child: Text(d.tr('删除')),
+              ),
+            ],
+          ),
+        );
+        if (yes == true && context.mounted) {
+          await act(context, () => c.exams.deleteImage(image));
+        }
+    }
   }
 
   Future<void> _pick(

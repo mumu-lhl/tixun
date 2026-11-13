@@ -7,6 +7,8 @@ import 'package:tixun/app/controller.dart';
 
 import 'support/gui_capture.dart';
 
+import 'dart:io';
+
 Future<void> click(WidgetTester t, Finder f) async {
   await t.ensureVisible(f);
   await t.pumpAndSettle();
@@ -54,6 +56,54 @@ void main() {
       final subject = (await c.db.select(c.db.examSubjects).get()).single;
       expect(subject.rawScore, 121.5);
       expect(subject.scaledScore, isNull);
+      final photo = await c.exams.addImage(
+        subject.id,
+        'paper',
+        File('assets/demo/two_problems.png').absolute.path,
+      );
+      final photoMenu = find.byKey(Key('exam-image-menu-${photo.id}'));
+      await ready(t, () => photoMenu.evaluate().isNotEmpty);
+      await click(t, find.byKey(Key('exam-image-preview-${photo.id}')));
+      await click(t, find.byTooltip('关闭预览'));
+      await click(t, photoMenu);
+      expect(find.text('查看保留的原图'), findsNothing);
+      await click(t, find.text('裁剪 / 旋转 / 缩小'));
+      await ready(
+        t,
+        () => find.byKey(const Key('crop-canvas')).evaluate().isNotEmpty,
+      );
+      final canvas = t.getRect(find.byKey(const Key('crop-canvas')));
+      final crop = await t.startGesture(
+        canvas.topLeft + Offset(canvas.width * .05, canvas.height * .1),
+      );
+      await crop.moveTo(
+        canvas.topLeft + Offset(canvas.width * .95, canvas.height * .8),
+      );
+      await crop.up();
+      await t.pumpAndSettle();
+      await click(t, find.text('保存图片编辑'));
+      await ready(
+        t,
+        () => find.byKey(const Key('crop-canvas')).evaluate().isEmpty,
+      );
+      final edited = (await c.db.select(c.db.examAttachments).get()).single;
+      expect(edited.originalPath, photo.relativePath);
+      await click(t, photoMenu);
+      expect(find.text('查看保留的原图'), findsOneWidget);
+      await guiCapture('exams', 'photo-menu-phone');
+      await click(t, find.text('查看保留的原图'));
+      expect(find.text('保留的原图'), findsOneWidget);
+      await click(t, find.byTooltip('关闭预览'));
+      await click(t, photoMenu);
+      await click(t, find.text('删除图片'));
+      await click(t, find.text('取消'));
+      expect(await c.db.select(c.db.examAttachments).get(), hasLength(1));
+      await guiCapture('exams', 'photo-thumbnail-phone');
+      await click(t, photoMenu);
+      await click(t, find.text('删除图片'));
+      await click(t, find.widgetWithText(FilledButton, '删除'));
+      await ready(t, () => photoMenu.evaluate().isEmpty);
+      expect(await c.db.select(c.db.examAttachments).get(), isEmpty);
       await click(t, find.byKey(const Key('exam-edit-scores')));
       await ready(
         t,
