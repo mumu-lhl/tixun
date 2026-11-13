@@ -38,20 +38,26 @@ class PhotoPickerBuilder
     if (current.isEmpty) return;
     final result = await Navigator.of(context).push<List<AssetEntity>>(
       AssetPickerViewerPageRoute(
-        builder: (_) => AssetPickerViewer(
-          builder: PhotoViewerBuilder(
-            currentIndex: index ?? current.indexOf(currentAsset),
-            previewAssets: current,
-            selectedAssets: provider.selectedAssets,
-            selectorProvider: provider,
-            provider: AssetPickerViewerProvider<AssetEntity>(
-              provider.selectedAssets,
-              maxAssets: provider.maxAssets,
+        builder: (_) =>
+            AssetPickerViewer<
+              AssetEntity,
+              AssetPathEntity,
+              AssetPickerViewerProvider<AssetEntity>,
+              PhotoViewerBuilder
+            >(
+              builder: PhotoViewerBuilder(
+                currentIndex: index ?? current.indexOf(currentAsset),
+                previewAssets: current,
+                selectedAssets: provider.selectedAssets,
+                selectorProvider: provider,
+                provider: AssetPickerViewerProvider<AssetEntity>(
+                  provider.selectedAssets,
+                  maxAssets: provider.maxAssets,
+                ),
+                maxAssets: provider.maxAssets,
+                themeData: theme,
+              ),
             ),
-            maxAssets: provider.maxAssets,
-            themeData: theme,
-          ),
-        ),
       ),
     );
     if (result != null && context.mounted) Navigator.of(context).pop(result);

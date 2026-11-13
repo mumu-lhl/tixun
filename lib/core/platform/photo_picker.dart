@@ -49,21 +49,29 @@ Future<List<XFile>> pickPhotos(
     requestOption: permissions,
   );
   if (!context.mounted) return [];
-  final picked = await assets.AssetPicker.pickAssetsWithDelegate(
-    context,
-    permissionRequestOption: permissions,
-    delegate: PhotoPickerBuilder(
-      provider: assets.DefaultAssetPickerProvider(
-        requestType: assets.RequestType.image,
-        maxAssets: 0x7fffffff,
-      ),
-      initialPermission: permission,
-      pickerTheme: Theme.of(context),
-      textDelegate: english
-          ? const assets.EnglishAssetPickerTextDelegate()
-          : const assets.AssetPickerTextDelegate(),
-    ),
-  );
+  // Inference through a custom delegate leaves Asset/Path dynamic, which the
+  // default builder rejects when it receives the newly mounted picker state.
+  final picked =
+      await assets.AssetPicker.pickAssetsWithDelegate<
+        assets.AssetEntity,
+        assets.AssetPathEntity,
+        assets.DefaultAssetPickerProvider,
+        PhotoPickerBuilder
+      >(
+        context,
+        permissionRequestOption: permissions,
+        delegate: PhotoPickerBuilder(
+          provider: assets.DefaultAssetPickerProvider(
+            requestType: assets.RequestType.image,
+            maxAssets: 0x7fffffff,
+          ),
+          initialPermission: permission,
+          pickerTheme: Theme.of(context),
+          textDelegate: english
+              ? const assets.EnglishAssetPickerTextDelegate()
+              : const assets.AssetPickerTextDelegate(),
+        ),
+      );
   final result = <XFile>[];
   for (final entity in picked ?? <assets.AssetEntity>[]) {
     final file = await entity.file;

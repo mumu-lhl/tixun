@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart' as assets;
 import 'package:tixun/core/platform/photo_picker_delegate.dart';
@@ -10,6 +12,119 @@ import 'package:wechat_camera_picker/wechat_camera_picker.dart' as camera;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  for (final empty in [true, false]) {
+    testWidgets(
+      'Android gallery opens ${empty ? 'an empty album and cancels' : 'photos, selects, previews and returns'}',
+      (t) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          final original = File('assets/demo/two_problems.png').absolute;
+          final bytes = original.readAsBytesSync();
+          const photos = MethodChannel('com.fluttercandies/photo_manager');
+          final messenger =
+              TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+          messenger.setMockMethodCallHandler(photos, (call) async {
+            switch (call.method) {
+              case 'requestPermissionExtend':
+                return assets.PermissionState.authorized.index;
+              case 'getAssetPathList':
+                return {
+                  'data': empty
+                      ? []
+                      : [
+                          {
+                            'id': 'all',
+                            'name': '相册',
+                            'assetCount': 1,
+                            'isAll': true,
+                          },
+                        ],
+                };
+              case 'getAssetListPaged':
+                return {
+                  'data': [
+                    {
+                      'id': 'photo',
+                      'type': 1,
+                      'width': 100,
+                      'height': 100,
+                      'title': 'photo.png',
+                    },
+                  ],
+                };
+              case 'getAssetCountFromPath':
+              case 'getAssetCount':
+                return empty ? 0 : 1;
+              case 'getThumb':
+              case 'getOriginBytes':
+                return bytes;
+              case 'isLocallyAvailable':
+                return true;
+              default:
+                return null;
+            }
+          });
+          addTearDown(() => messenger.setMockMethodCallHandler(photos, null));
+          final navigator = GlobalKey<NavigatorState>();
+          var returned = false;
+          await t.pumpWidget(
+            MaterialApp(
+              navigatorKey: navigator,
+              home: Builder(
+                builder: (context) => Scaffold(
+                  body: FilledButton(
+                    onPressed: () async {
+                      final picked = await pickPhotos(context);
+                      expect(picked, isEmpty);
+                      returned = true;
+                    },
+                    child: const Text('Import'),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await t.tap(find.text('Import'));
+          for (var i = 0; i < 8; i++) {
+            await t.pump(const Duration(milliseconds: 100));
+          }
+          expect(t.takeException(), isNull);
+          if (empty) {
+            expect(find.text('列表为空', findRichText: true), findsOneWidget);
+            navigator.currentState!.pop();
+          } else {
+            expect(find.text('确认'), findsOneWidget);
+            final tile = t.getRect(
+              find.byType(assets.AssetEntityGridItemBuilder),
+            );
+            await t.tapAt(tile.topRight + const Offset(-18, 18));
+            await t.pump();
+            expect(find.text('确认 (1)'), findsOneWidget);
+            await t.tap(find.text('预览 (1)', findRichText: true));
+            for (var i = 0; i < 8; i++) {
+              await t.pump(const Duration(milliseconds: 100));
+            }
+            expect(t.takeException(), isNull);
+            expect(
+              find.byWidgetPredicate((w) => w is assets.AssetPickerViewer),
+              findsOneWidget,
+            );
+            expect(find.text('确认 (1)'), findsOneWidget);
+            navigator.currentState!.pop();
+            await t.pumpAndSettle();
+            expect(find.text('确认 (1)'), findsOneWidget);
+            navigator.currentState!.pop();
+          }
+          await t.pumpAndSettle();
+          expect(returned, isTrue);
+          await t.pumpWidget(const SizedBox.shrink());
+          await t.pumpAndSettle();
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
+  }
   for (final english in [false, true]) {
     testWidgets(
       'Photo counts hide unlimited sentinel in both views ($english)',
