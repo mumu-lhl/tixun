@@ -2,7 +2,7 @@ import '../../core/ai/ai_options.dart';
 import '../../core/l10n/app_strings.dart';
 
 import 'package:drift/drift.dart' hide Column;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/controller.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
   final dark = brightness == Brightness.dark;

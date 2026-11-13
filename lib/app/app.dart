@@ -7,9 +7,8 @@ import '../features/exams/exam_detail.dart';
 import '../features/exams/exam_subject_screen.dart';
 
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -217,6 +216,10 @@ class TixunApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => DynamicColorBuilder(
     builder: (lightDynamic, darkDynamic) => MaterialApp.router(
+      // Keep legacy package widgets themed and localized during their migration.
+      builder: (context, child) =>
+          // ignore: deprecated_member_use
+          MaterialUiCompatibilityBridge(child: child!),
       title: '题训 TiXun',
       debugShowCheckedModeBanner: false,
       theme: appTheme(

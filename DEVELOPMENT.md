@@ -4,7 +4,11 @@
 
 ## 开发环境与运行
 
-使用 Flutter **3.47.9**（Dart 3.13.7），依赖锁定于 `pubspec.lock`。
+使用 Flutter **3.50.0**（Dart 3.14.0），依赖锁定于 `pubspec.lock`。 CI 与本地使用相同 SDK 版本。
+
+UI 使用 Flutter 官方独立的 `material_ui` 包。微信图片选择器、Markdown 等依赖仍使用旧 Material 类型，应用通过官方 `MaterialUiCompatibilityBridge` 保留主题和中英文翻译；待这些依赖迁移后移除兼容代码。
+
+直接 Dart 依赖已更新至当前最新稳定版；间接依赖遵循 Flutter SDK 和上游约束，不使用 `dependency_overrides` 强行越过兼容范围。可用 `flutter pub outdated` 检查后续更新。
 
 ```bash
 flutter pub get --enforce-lockfile
@@ -190,6 +194,8 @@ AI 资料整理按操作筛选工具，本地 `estimateTokens` 对同一套序�
 ## 嵌入 Python 的构建与验证
 
 运行时固定 `serious_python` 6.1.3 / CPython 3.13（具体补丁版本由锁定插件决定）。依赖固定在 `python/requirements.txt`，包含 SymPy、mpmath 和 NumPy 2.4.6。安装脚本明确指定 CPython 3.13 ABI；Android NumPy 来自 [Flet wheel 索引](https://pypi.flet.dev/numpy/)，三个架构分别安装，Linux 使用 PyPI wheel。不能跨架构复制原生扩展。
+
+Python 包保留最新兼容版本：Flet 目前为 CPython 3.13 提供的三个 Android ABI 的 NumPy wheel 均为 2.4.6，因此 Android 和 Linux 统一使用此版本；SymPy 1.14.0 要求 `mpmath < 1.4`，保留 mpmath 1.3.0。升级时须同时检查 Android wheel 可用性和包之间的版本约束。
 
 ```bash
 bash scripts/prepare_python.sh Linux

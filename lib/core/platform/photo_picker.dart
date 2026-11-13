@@ -1,5 +1,8 @@
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+// The picker still exposes legacy ThemeData in its public API.
+// ignore: deprecated_member_use
+import 'package:flutter/material.dart' as legacy;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart' as assets;
@@ -66,7 +69,7 @@ Future<List<XFile>> pickPhotos(
             maxAssets: 0x7fffffff,
           ),
           initialPermission: permission,
-          pickerTheme: Theme.of(context),
+          pickerTheme: legacy.Theme.of(context),
           textDelegate: english
               ? const assets.EnglishAssetPickerTextDelegate()
               : const assets.AssetPickerTextDelegate(),

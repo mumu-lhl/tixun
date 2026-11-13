@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show BooleanExpressionOperators;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/platform/photo_picker.dart';
 import 'image_editor.dart';

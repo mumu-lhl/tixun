@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+// Markdown's theme API has not migrated to material_ui yet.
+// ignore: deprecated_member_use
+import 'package:flutter/material.dart' as legacy;
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
@@ -162,7 +165,12 @@ class LearningMarkdown extends StatelessWidget {
   const LearningMarkdown(this.data, {super.key});
   final String data;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      // Keep standalone Markdown widgets themed as well as the main app.
+      // ignore: deprecated_member_use
+      MaterialUiCompatibilityBridge(child: Builder(builder: _buildContent));
+
+  Widget _buildContent(BuildContext context) {
     final theme = Theme.of(context);
     return SelectionArea(
       child: MarkdownBody(
@@ -185,38 +193,41 @@ class LearningMarkdown extends StatelessWidget {
                 .showSnackBar(SnackBar(content: Text(context.tr("链接已复制"))));
           }
         },
-        styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-          p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
-          blockSpacing: 14,
-          tableColumnWidth: const _ReadableTableColumnWidth(),
-          tableScrollbarThumbVisibility: true,
-          tableVerticalAlignment: TableCellVerticalAlignment.top,
-          tableCellsPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
-          ),
-          tableBody: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-          tableHead: theme.textTheme.bodyLarge?.copyWith(
-            height: 1.6,
-            fontWeight: FontWeight.w600,
-          ),
-          tableBorder: TableBorder.all(color: theme.colorScheme.outlineVariant),
-          code: TextStyle(
-            fontFamily: 'TixunMono',
-            fontSize: 14,
-            color: theme.colorScheme.onSurface,
-          ),
-          codeblockDecoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          blockquoteDecoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLow,
-            border: Border(
-              left: BorderSide(color: theme.colorScheme.primary, width: 3),
+        styleSheet: MarkdownStyleSheet.fromTheme(legacy.Theme.of(context))
+            .copyWith(
+              p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
+              blockSpacing: 14,
+              tableColumnWidth: const _ReadableTableColumnWidth(),
+              tableScrollbarThumbVisibility: true,
+              tableVerticalAlignment: TableCellVerticalAlignment.top,
+              tableCellsPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              tableBody: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+              tableHead: theme.textTheme.bodyLarge?.copyWith(
+                height: 1.6,
+                fontWeight: FontWeight.w600,
+              ),
+              tableBorder: TableBorder.all(
+                color: theme.colorScheme.outlineVariant,
+              ),
+              code: TextStyle(
+                fontFamily: 'TixunMono',
+                fontSize: 14,
+                color: theme.colorScheme.onSurface,
+              ),
+              codeblockDecoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              blockquoteDecoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                border: Border(
+                  left: BorderSide(color: theme.colorScheme.primary, width: 3),
+                ),
+              ),
             ),
-          ),
-        ),
       ),
     );
   }

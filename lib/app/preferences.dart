@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' show PlatformDispatcher;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../core/ai/chat_provider.dart';
 import '../core/ai/context_compactor.dart';

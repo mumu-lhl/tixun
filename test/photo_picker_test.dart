@@ -1,6 +1,9 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+// WeChat picker delegates still use the legacy Material types.
+// ignore: deprecated_member_use
+import 'package:flutter/material.dart' as legacy;
 import 'package:wechat_assets_picker/wechat_assets_picker.dart' as assets;
 import 'package:tixun/core/platform/photo_picker_delegate.dart';
 import 'package:flutter/foundation.dart';
@@ -69,6 +72,9 @@ void main() {
           var returned = false;
           await t.pumpWidget(
             MaterialApp(
+              builder: (_, child) =>
+                  // ignore: deprecated_member_use
+                  MaterialUiCompatibilityBridge(child: child!),
               navigatorKey: navigator,
               home: Builder(
                 builder: (context) => Scaffold(
@@ -148,7 +154,7 @@ void main() {
         final picker = PhotoPickerBuilder(
           provider: selected,
           initialPermission: assets.PermissionState.authorized,
-          pickerTheme: ThemeData(),
+          pickerTheme: legacy.ThemeData(),
           textDelegate: english
               ? const assets.EnglishAssetPickerTextDelegate()
               : const assets.AssetPickerTextDelegate(),
@@ -165,17 +171,21 @@ void main() {
           selectorProvider: selected,
           provider: viewerProvider,
           maxAssets: selected.maxAssets,
-          themeData: ThemeData(),
+          themeData: legacy.ThemeData(),
         );
         final label = english ? 'Confirm' : '确认';
         await t.pumpWidget(
           MaterialApp(
+            // ignore: deprecated_member_use
+            builder: (_, child) => MaterialUiCompatibilityBridge(child: child!),
             home: Scaffold(
-              body: Column(
-                children: [
-                  Builder(builder: picker.confirmButton),
-                  Builder(builder: viewer.confirmButton),
-                ],
+              body: legacy.Material(
+                child: Column(
+                  children: [
+                    Builder(builder: picker.confirmButton),
+                    Builder(builder: viewer.confirmButton),
+                  ],
+                ),
               ),
             ),
           ),
@@ -276,7 +286,12 @@ void main() {
       }
       final nav = GlobalKey<NavigatorState>();
       await t.pumpWidget(
-        MaterialApp(navigatorKey: nav, home: const Scaffold()),
+        MaterialApp(
+          // ignore: deprecated_member_use
+          builder: (_, child) => MaterialUiCompatibilityBridge(child: child!),
+          navigatorKey: nav,
+          home: const Scaffold(),
+        ),
       );
       final result = nav.currentState!.push<CameraCaptureResult>(
         MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
