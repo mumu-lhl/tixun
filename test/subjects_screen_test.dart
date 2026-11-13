@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
@@ -10,15 +11,33 @@ import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
 
+class _DelayedSubjectsController extends AppController {
+  _DelayedSubjectsController(
+    super.db,
+    super.files,
+    super.keys,
+    super.provider, {
+    super.demo,
+  });
+
+  Completer<void>? saveGate;
+
+  @override
+  Future<void> setLearningSubjects(List<String> values) async {
+    await saveGate?.future;
+    await super.setLearningSubjects(values);
+  }
+}
+
 void main() {
   testWidgets('subject order can be changed and is used by study switcher', (
     tester,
   ) async {
     late Directory root;
-    late AppController controller;
+    late _DelayedSubjectsController controller;
     await tester.runAsync(() async {
       root = await Directory.systemTemp.createTemp('tixun-subject-order');
-      controller = AppController(
+      controller = _DelayedSubjectsController(
         AppDatabase.memory(),
         AttachmentStore(root),
         MemoryKeyStore(),
@@ -83,6 +102,41 @@ void main() {
         .map((subject) => tester.getTopLeft(find.text(subject)).dy)
         .toList();
     expect(menuPositions, orderedEquals([...menuPositions]..sort()));
+
+    scope.read(routerProvider).go('/settings/subjects');
+    await tester.pumpAndSettle();
+    controller.saveGate = Completer<void>();
+    await tester.tap(find.byType(FilterChip).first);
+    await tester.pump();
+    expect(
+      tester
+              .widget<TextField>(find.byKey(const Key('custom-subject')))
+              .enabled ??
+          true,
+      isTrue,
+    );
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNotNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(ValueKey('remove-study-subject-${savedOrder.first}')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    expect(
+      tester.widget<FilterChip>(find.byType(FilterChip).first).onSelected,
+      isNotNull,
+    );
+    controller.saveGate!.complete();
+    controller.saveGate = null;
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pumpAndSettle();
 
     scope.read(routerProvider).go('/settings/python');
     tester.view.physicalSize = const Size(1280, 844);

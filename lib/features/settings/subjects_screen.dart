@@ -134,7 +134,7 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                         trailing: IconButton(
                           key: ValueKey('remove-study-subject-$subject'),
                           tooltip: context.l10n.removeSubject,
-                          onPressed: saving || selected.length <= 1
+                          onPressed: selected.length <= 1
                               ? null
                               : () {
                                   setState(() => selected.removeAt(index));
@@ -163,22 +163,19 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                       key: ValueKey('study-subject-$subject'),
                       label: Text(context.subjectName(subject)),
                       selected: false,
-                      onSelected: saving
-                          ? null
-                          : (_) {
-                              if (selected.length >= 20) {
-                                setState(
-                                  () =>
-                                      error = context.l10n.selectUpTo20Subjects,
-                                );
-                                return;
-                              }
-                              setState(() {
-                                selected.add(subject);
-                                error = null;
-                              });
-                              _saveSelection();
-                            },
+                      onSelected: (_) {
+                        if (selected.length >= 20) {
+                          setState(
+                            () => error = context.l10n.selectUpTo20Subjects,
+                          );
+                          return;
+                        }
+                        setState(() {
+                          selected.add(subject);
+                          error = null;
+                        });
+                        _saveSelection();
+                      },
                     ),
                 ],
               ),
@@ -187,7 +184,6 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                 key: const Key('custom-subject'),
                 controller: custom,
                 maxLength: 40,
-                enabled: !saving,
                 decoration: InputDecoration(
                   labelText: context.l10n.customSubject,
                   hintText: context.l10n.forExampleComputerScienceJapanese,
@@ -196,7 +192,7 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
-                onPressed: saving ? null : add,
+                onPressed: add,
                 icon: const Icon(Icons.add),
                 label: Text(context.l10n.addSubject),
               ),
