@@ -87,6 +87,7 @@ def main():
     releases = decode_pages(result.stdout)
     base = choose_base(releases, args.tag, nightly=args.nightly)
     print(f'base_tag={base or ""}')
+    print(f'commit_range={base + ".." if base else ""}{args.tag}')
     print(f'tag_pattern={tag_pattern(args.tag, base)}')
     print(f'has_changes={str(has_changes(base, args.tag)).lower()}')
 

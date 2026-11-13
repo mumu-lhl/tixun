@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -165,6 +166,29 @@ class HistoryTests(unittest.TestCase):
         self.assertFalse(has_changes('v0.3.0', current, self.repo))
         self.assertTrue(has_changes('v0.1.0', current, self.repo))
         self.assertTrue(has_changes(None, current, self.repo))
+
+    def test_cli_emits_an_explicit_range_even_with_stable_tag_on_same_commit(self):
+        old, current = 'nightly-20261107-203000', 'nightly-20261108-203000'
+        self.git('tag', old, 'v0.1.0')
+        self.git('tag', '-a', 'v0.3.1', '-m', 'Stable release on current commit')
+        self.git('tag', current)
+        gh = self.repo / 'gh'
+        gh.write_text('#!/bin/sh\ncat "$RELEASE_FIXTURE"\n')
+        gh.chmod(0o755)
+        fixture = self.repo / 'releases.json'
+        env = {**os.environ, 'PATH': str(self.repo) + os.pathsep + os.environ['PATH'],
+               'RELEASE_FIXTURE': str(fixture)}
+        for published in ([self.public(old), self.public('v0.3.1')], []):
+            fixture.write_text(json.dumps(published))
+            result = subprocess.check_output(
+                [sys.executable, str(SCRIPTS / 'release_notes.py'), '--nightly',
+                 '--tag', current, '--repo', 'owner/repo'],
+                cwd=self.repo, env=env, text=True)
+            values = dict(line.split('=', 1) for line in result.splitlines())
+            commits = self.git('log', '--format=%s', values['commit_range']).splitlines()
+            self.assertIn('Current release', commits)
+            self.assertIn('Failed build must remain in history', commits)
+            self.assertEqual('Initial public release' in commits, not published)
 
 
 class GuiRunnerTests(unittest.TestCase):
