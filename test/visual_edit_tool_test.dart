@@ -59,13 +59,14 @@ void main() {
   test('updateVisualToolSchema and getVisualToolSchema are strict', () {
     expect(updateVisualToolSchema.name, 'update_visual');
     expect(updateVisualToolSchema.parameters['additionalProperties'], isFalse);
-    expect(
-      (updateVisualToolSchema.parameters['required'] as List),
-      containsAll(['visual_id', 'scene']),
-    );
+    // scene OR ops: the executor enforces exactly one, so the schema
+    // only requires the id.
+    expect((updateVisualToolSchema.parameters['required'] as List), [
+      'visual_id',
+    ]);
     expect(
       (updateVisualToolSchema.parameters['properties'] as Map).keys,
-      containsAll(['visual_id', 'scene', 'title']),
+      containsAll(['visual_id', 'scene', 'ops', 'title']),
     );
     expect(getVisualToolSchema.name, 'get_visual');
     expect(getVisualToolSchema.parameters['additionalProperties'], isFalse);
@@ -191,6 +192,179 @@ void main() {
         final stored = jsonDecode(row.sceneJson) as Map;
         expect((stored['model'] as Map)['expression'], 'x^2-4');
         expect(await db.select(db.visualSceneRevisions).get(), hasLength(1));
+      },
+    );
+
+    Map<String, dynamic> geometryScene() => {
+      'v': 1,
+      'kind': 'geometry',
+      'title': '三角形',
+      'elements': [
+        {
+          'id': 'p1',
+          'type': 'point',
+          'at': [0, 0],
+          'label': 'A',
+        },
+        {
+          'id': 'p2',
+          'type': 'point',
+          'at': [3, 0],
+          'label': 'B',
+        },
+      ],
+      'meta': {'alt': '两个点'},
+    };
+
+    Future<String> createGeometryScene() async {
+      await _seedMessage(db, 'session-1', 'run-1');
+      final created = await runCreate('call-create', {
+        'scene': geometryScene(),
+      });
+      expect(created['ok'], isTrue);
+      return created['visual_id'] as String;
+    }
+
+    test('update with ops patches elements by id', () async {
+      final id = await createGeometryScene();
+      final updated = await runUpdate('call-patch', {
+        'visual_id': id,
+        'ops': [
+          {
+            'op': 'replace_element',
+            'id': 'p1',
+            'element': {
+              'id': 'p1',
+              'type': 'point',
+              'at': [1, 1],
+              'label': 'P',
+            },
+          },
+          {
+            'op': 'add_element',
+            'element': {
+              'id': 'p3',
+              'type': 'point',
+              'at': [2, 2],
+            },
+          },
+          {'op': 'remove_element', 'id': 'p2'},
+          {'op': 'set_title', 'title': '改过的标题'},
+        ],
+      });
+      expect(updated['ok'], isTrue);
+      expect(updated['visual_id'], id);
+      expect(updated['revision'], 2);
+      final scene = jsonDecode((await store.get(id))!.sceneJson) as Map;
+      expect(scene['title'], '改过的标题');
+      final elements = scene['elements'] as List;
+      expect(elements.map((e) => (e as Map)['id']), ['p1', 'p3']);
+      expect((elements[0] as Map)['at'], [1, 1]);
+      // Revision 1 still holds the original two points.
+      final original =
+          jsonDecode((await store.getRevisionSceneJson(id, 1))!) as Map;
+      expect((original['elements'] as List).map((e) => (e as Map)['id']), [
+        'p1',
+        'p2',
+      ]);
+      expect(original['title'], '三角形');
+    });
+
+    test('update with bad ops returns ok:false and keeps revision 1', () async {
+      final id = await createGeometryScene();
+      final badCalls = [
+        {
+          'visual_id': id,
+          'ops': [
+            {'op': 'explode'},
+          ],
+        },
+        {
+          'visual_id': id,
+          'ops': [
+            {
+              'op': 'replace_element',
+              'id': 'no-such',
+              'element': {
+                'id': 'no-such',
+                'type': 'point',
+                'at': [0, 0],
+              },
+            },
+          ],
+        },
+        {
+          'visual_id': id,
+          'ops': [
+            {
+              'op': 'replace_element',
+              'id': 'p1',
+              'element': {
+                'id': 'other',
+                'type': 'point',
+                'at': [0, 0],
+              },
+            },
+          ],
+        },
+        {
+          'visual_id': id,
+          'ops': [
+            {
+              'op': 'add_element',
+              'element': {
+                'id': 'p1',
+                'type': 'point',
+                'at': [0, 0],
+              },
+            },
+          ],
+        },
+        {
+          'visual_id': id,
+          'ops': [
+            {'op': 'remove_element', 'id': 'no-such'},
+          ],
+        },
+        {'visual_id': id, 'ops': []},
+        {
+          'visual_id': id,
+          'scene': _plotScene(),
+          'ops': [
+            {'op': 'set_title', 'title': 'x'},
+          ],
+        },
+        {'visual_id': id},
+      ];
+      for (var i = 0; i < badCalls.length; i++) {
+        final result = await runUpdate('call-bad-$i', badCalls[i]);
+        expect(result['ok'], isFalse, reason: 'call $i: $result');
+        expect(result['error'], isA<String>());
+      }
+      final row = (await db.select(db.visualScenes).get()).single;
+      expect(row.revision, 1);
+      expect(await db.select(db.visualSceneRevisions).get(), hasLength(1));
+    });
+
+    test(
+      'patch replay returns the cached result, no second revision',
+      () async {
+        final id = await createGeometryScene();
+        final args = {
+          'visual_id': id,
+          'ops': [
+            {'op': 'set_title', 'title': '补丁标题'},
+          ],
+        };
+        final first = await runUpdate('call-patch', args);
+        expect(first['ok'], isTrue);
+        expect(first['revision'], 2);
+        final replay = await runUpdate('call-patch', args);
+        expect(replay['ok'], isTrue);
+        expect(replay['revision'], 2);
+        final row = (await db.select(db.visualScenes).get()).single;
+        expect(row.revision, 2);
+        expect(await db.select(db.visualSceneRevisions).get(), hasLength(2));
       },
     );
 

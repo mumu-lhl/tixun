@@ -246,6 +246,109 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('playback speed changes the rate', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: VisualCard(scene: _playerScene())),
+      ),
+    );
+    await tester.pump();
+    await _openFullscreen(tester);
+
+    // Default speed is 1×.
+    expect(find.byKey(const Key('visual-speed-label')), findsOneWidget);
+    expect(find.text('1×'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('visual-speed')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('2×').last);
+    await tester.pumpAndSettle();
+    expect(find.text('2×'), findsOneWidget);
+
+    // At 2×, one second of wall time advances the animation two seconds.
+    await tester.tap(find.byKey(const Key('visual-play-pause')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('2.0s / 5.0s'), findsOneWidget);
+    // The track drives `a` from 1 to 3 over 5 s: at 2 s it is 1.8.
+    expect(_fullscreenPainter(tester).parameters['a'], closeTo(1.8, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pinch zooms the canvas and the reset button restores it', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: VisualCard(scene: _playerScene())),
+      ),
+    );
+    await tester.pump();
+    await _openFullscreen(tester);
+
+    expect(_fullscreenPainter(tester).zoom, 1.0);
+    expect(_fullscreenPainter(tester).pan, Offset.zero);
+    // Two fingers 100 px apart on the canvas, spread to 200 px.
+    final center = tester.getCenter(
+      find.byKey(const Key('visual-canvas-paint')),
+    );
+    final first = await tester.startGesture(center + const Offset(-50, 0));
+    final second = await tester.startGesture(center + const Offset(50, 0));
+    await first.moveBy(const Offset(-50, 0));
+    await second.moveBy(const Offset(50, 0));
+    await tester.pump();
+    expect(_fullscreenPainter(tester).zoom, closeTo(2.0, 0.01));
+    // A symmetric spread keeps the midpoint (and the pan) still.
+    expect(_fullscreenPainter(tester).pan.dx, closeTo(0, 0.5));
+    await first.up();
+    await second.up();
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('visual-reset-view')));
+    await tester.pump();
+    expect(_fullscreenPainter(tester).zoom, 1.0);
+    expect(_fullscreenPainter(tester).pan, Offset.zero);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('two-finger drag pans the view', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: VisualCard(scene: _playerScene())),
+      ),
+    );
+    await tester.pump();
+    await _openFullscreen(tester);
+
+    final center = tester.getCenter(
+      find.byKey(const Key('visual-canvas-paint')),
+    );
+    final first = await tester.startGesture(center + const Offset(-50, 0));
+    final second = await tester.startGesture(center + const Offset(50, 0));
+    // Both fingers move right together: distance (and zoom) unchanged.
+    await first.moveBy(const Offset(40, 0));
+    await second.moveBy(const Offset(40, 0));
+    await tester.pump();
+    expect(_fullscreenPainter(tester).zoom, closeTo(1.0, 0.01));
+    expect(_fullscreenPainter(tester).pan.dx, closeTo(40, 0.5));
+    await first.up();
+    await second.up();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('parameter slider tracks the animation to its end value', (
     tester,
   ) async {

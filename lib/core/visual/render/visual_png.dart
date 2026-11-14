@@ -16,6 +16,13 @@ import 'visual_theme.dart';
 /// `math_label` elements are drawn as plain text (there is no TeX layout
 /// in an offscreen picture — on screen they are `Math.tex` overlays), and
 /// the canvas is always the fit view (no pan/zoom state).
+///
+/// [timeMs] renders the frame at that moment: tracks are evaluated at
+/// [timeMs] and the teaching steps active then hide their elements. An
+/// explicit [stepIndex] (>= 0) pins the frame to that step instead
+/// (tracks evaluated at the step's `atMs`, as the animator defines).
+/// [parameters]/[toggles] override the resolved frame (manual slider and
+/// toggle state win over the animation), exactly like the fullscreen page.
 Future<Uint8List> renderVisualPng(
   VisualScene scene,
   VisualPalette palette, {
@@ -24,35 +31,37 @@ Future<Uint8List> renderVisualPng(
   Map<String, double> parameters = const {},
   Map<String, bool> toggles = const {},
   Map<String, ui.Offset> pointOverrides = const {},
-  int stepIndex = 0,
+  double timeMs = 0,
+  int stepIndex = -1,
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
   canvas.scale(pixelRatio, pixelRatio);
   // Step visibility is resolved by the animator (the painter no longer
-  // interprets the timeline): render at the requested step, as before.
-  final timeline = scene.timeline;
-  final hiddenElementIds =
-      timeline != null && stepIndex >= 0 && stepIndex < timeline.steps.length
-      ? resolveVisualFrame(scene, 0, stepIndex).hiddenElementIds
-      : const <String>{};
+  // interprets the timeline): render the requested frame.
+  final frame = stepIndex >= 0
+      ? resolveVisualFrame(scene, timeMs, stepIndex)
+      : resolveVisualFrame(scene, timeMs);
+  final effectiveParameters = {...frame.parameters, ...parameters};
+  final effectiveToggles = {...frame.toggles, ...toggles};
   VisualPainter(
     scene: scene,
     palette: palette,
-    parameters: parameters,
-    toggles: toggles,
-    hiddenElementIds: hiddenElementIds,
+    parameters: effectiveParameters,
+    toggles: effectiveToggles,
+    hiddenElementIds: frame.hiddenElementIds,
     pointOverrides: pointOverrides,
-    stepIndex: stepIndex,
+    timeMs: frame.timeMs,
+    stepIndex: frame.stepIndex,
     tickLabelStyle: TextStyle(fontSize: 20, color: palette.textMuted),
   ).paint(canvas, size);
   // Math labels as plain text: the only text the painter skips.
   final mapper = VisualCoordinateMapper.fromScene(scene, size);
   final labels = mapper.mathLabelPositions(
     scene,
-    parameters,
-    toggles: toggles,
-    hiddenElementIds: hiddenElementIds,
+    effectiveParameters,
+    toggles: effectiveToggles,
+    hiddenElementIds: frame.hiddenElementIds,
   );
   for (final label in labels) {
     final painter = TextPainter(

@@ -13,5 +13,7 @@ String questionKindLabel(BuildContext context, String kind) => switch (kind) {
   'short_answer' => context.l10n.selfAssessed,
   'point_select' => context.l10n.pointSelect,
   'region_select' => context.l10n.regionSelect,
+  'drag_to_target' => context.l10n.dragToTarget,
+  'read_value' => context.l10n.readValue,
   _ => questionKinds[kind] ?? kind,
 };

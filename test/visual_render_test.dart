@@ -135,6 +135,36 @@ void main() {
     expect(mapper.canvasToModel(const Offset(0, 200)).dx, lessThan(-3));
   });
 
+  test('canvasToModel inverts modelToCanvas under zoom and pan', () {
+    final scene = _plotScene();
+    final mapper = VisualCoordinateMapper.fromScene(
+      scene,
+      const Size(800, 600),
+      zoom: 2.0,
+      pan: const Offset(30, -20),
+    );
+    for (final model in [
+      const Offset(0, 0),
+      const Offset(2, -3),
+      const Offset(-1.5, 4),
+    ]) {
+      final back = mapper.canvasToModel(mapper.modelToCanvas(model));
+      expect(back.dx, closeTo(model.dx, 1e-9));
+      expect(back.dy, closeTo(model.dy, 1e-9));
+    }
+    // Zooming about the view centre keeps the centre fixed: the view
+    // centre (0, 0.5) maps to the same canvas point at zoom 1 and 2.
+    final fit = VisualCoordinateMapper.fromScene(scene, const Size(800, 600));
+    expect(
+      mapper.modelToCanvas(const Offset(0, 0.5)).dx,
+      closeTo(fit.modelToCanvas(const Offset(0, 0.5)).dx + 30, 1e-9),
+    );
+    expect(
+      mapper.modelToCanvas(const Offset(0, 0.5)).dy,
+      closeTo(fit.modelToCanvas(const Offset(0, 0.5)).dy - 20, 1e-9),
+    );
+  });
+
   test('renderVisualPng returns PNG bytes', () async {
     const palette = VisualPalette(
       primary: Color(0xff226450),
@@ -151,6 +181,105 @@ void main() {
     final bytes = await renderVisualPng(_plotScene(), palette);
     expect(bytes.length, greaterThan(100));
     expect(bytes.sublist(0, 4), [0x89, 0x50, 0x4e, 0x47]);
+  });
+
+  test('renderVisualPng renders the frame at the requested time', () async {
+    const palette = VisualPalette(
+      primary: Color(0xff226450),
+      highlight: Color(0xff7d5700),
+      muted: Color(0xff767680),
+      success: Color(0xff226450),
+      danger: Color(0xffb3261e),
+      axis: Color(0x991c1b1f),
+      grid: Color(0xffd0d0d0),
+      background: Color(0xfffafbf8),
+      onBackground: Color(0xff1c1b1f),
+      textMuted: Color(0xff767680),
+    );
+    // A line whose slope the track drives from 1 to 3 over 5 seconds,
+    // with a step at 2500 ms that swaps which point is shown.
+    final scene = VisualScene.fromJson({
+      'v': 1,
+      'kind': 'plot2d',
+      'title': '动画',
+      'model': {
+        'expression': 'a*x',
+        'parameters': {'a': 1.0},
+      },
+      'view': {
+        'x': [-3, 3],
+        'y': [-3, 3],
+      },
+      'elements': [
+        {
+          'id': 'e1',
+          'type': 'point',
+          'at': [1, 1],
+        },
+        {
+          'id': 'e2',
+          'type': 'point',
+          'at': [2, 2],
+        },
+      ],
+      'controls': [
+        {
+          'id': 'a',
+          'kind': 'slider',
+          'label': 'a',
+          'min': -3,
+          'max': 3,
+          'step': 0.1,
+          'value': 1,
+        },
+      ],
+      'timeline': {
+        'durationMs': 5000,
+        'tracks': [
+          {
+            'id': 't1',
+            'target': 'a',
+            'from': 1,
+            'to': 3,
+            'startMs': 0,
+            'endMs': 5000,
+          },
+        ],
+        'steps': [
+          {
+            'atMs': 0,
+            'show': [],
+            'hide': ['e1'],
+            'note': '第一步',
+          },
+          {
+            'atMs': 2500,
+            'show': ['e1'],
+            'hide': ['e2'],
+            'note': '第二步',
+          },
+        ],
+      },
+      'meta': {'alt': '动画'},
+    });
+    final atStart = await renderVisualPng(scene, palette, timeMs: 0);
+    final atStartAgain = await renderVisualPng(scene, palette, timeMs: 0);
+    final atMiddle = await renderVisualPng(scene, palette, timeMs: 2500);
+    final atEnd = await renderVisualPng(scene, palette, timeMs: 5000);
+    // Same moment renders identically; different moments differ (the
+    // slope moved and the step swapped the visible point).
+    expect(atStart, atStartAgain);
+    expect(atMiddle, isNot(atStart));
+    expect(atEnd, isNot(atMiddle));
+    // A manual parameter override wins over the animation at that time.
+    final overridden = await renderVisualPng(
+      scene,
+      palette,
+      timeMs: 2500,
+      parameters: const {'a': 3.0},
+    );
+    expect(overridden, isNot(atMiddle));
+    expect(overridden, atEnd);
   });
 
   testWidgets('plot2d card renders a canvas', (tester) async {

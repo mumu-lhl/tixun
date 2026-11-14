@@ -572,6 +572,85 @@ sealed class VisualElement {
           domain: domain,
           samples: samples,
         );
+      case 'circuit':
+        checkNoUnknownFields(json, {
+          ..._commonFields,
+          'component',
+          'from',
+          'to',
+          'at',
+          'closed',
+          'meter',
+          'label',
+        }, 'circuit 图元');
+        final c = _parseCommonFields(json);
+        final componentRaw = json['component'];
+        if (componentRaw == null) {
+          throw const AppFormatException(
+            AppErrorCode.errorMissingParameter,
+            'circuit 图元缺少字段：component。',
+          );
+        }
+        final component = CircuitComponent.values.where(
+          (v) => v.dslName == componentRaw,
+        );
+        if (component.isEmpty) {
+          throw AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'circuit 图元的 component 未知：$componentRaw。',
+            [componentRaw.toString()],
+          );
+        }
+        final comp = component.first;
+        VisualPoint? from;
+        VisualPoint? to;
+        VisualPoint? at;
+        CircuitMeterKind? meter;
+        if (comp == CircuitComponent.meter) {
+          at = VisualPoint.fromJson(json['at']);
+          final meterRaw = json['meter'];
+          if (meterRaw == null) {
+            throw const AppFormatException(
+              AppErrorCode.errorMissingParameter,
+              'meter 图元缺少字段：meter。',
+            );
+          }
+          final kinds = CircuitMeterKind.values.where(
+            (v) => v.name == meterRaw,
+          );
+          if (kinds.isEmpty) {
+            throw AppFormatException(
+              AppErrorCode.errorInvalidParameterType,
+              'meter 图元的 meter 未知：$meterRaw。',
+              [meterRaw.toString()],
+            );
+          }
+          meter = kinds.first;
+        } else {
+          from = VisualPoint.fromJson(json['from']);
+          to = VisualPoint.fromJson(json['to']);
+        }
+        return CircuitElement(
+          id: c.id,
+          style: c.style,
+          layer: c.layer,
+          visible: c.visible,
+          visibleWhen: c.visibleWhen,
+          component: comp,
+          from: from,
+          to: to,
+          at: at,
+          closed: _optBool(json, 'closed', 'circuit 图元'),
+          meter: meter,
+          label: switch (json['label']) {
+            null => null,
+            final String s => s,
+            _ => throw const AppFormatException(
+              AppErrorCode.errorParameterMustBeText,
+              'circuit 图元的 label 必须是文字。',
+            ),
+          },
+        );
       default:
         throw AppFormatException(
           AppErrorCode.errorInvalidParameterType,
@@ -896,5 +975,66 @@ class PlotElement extends VisualElement {
     'expression': expression,
     if (domain != null) 'domain': [domain!.$1, domain!.$2],
     if (samples != null) 'samples': samples,
+  };
+}
+
+/// One component of a circuit diagram (`kind: circuit`).
+///
+/// `battery`, `resistor`, `switch` and `wire` are two-point components
+/// spanning `from` → `to`; `meter` sits at a single point `at` with a
+/// `meter` kind. `closed` only applies to `switch` (default open, the
+/// more visible state); `label` is a short annotation such as `R1`.
+enum CircuitComponent {
+  battery,
+  resistor,
+  powerSwitch,
+  wire,
+  meter;
+
+  /// The DSL name: `powerSwitch` is written as `switch` in JSON
+  /// (`switch` is a Dart keyword and cannot be an enum value).
+  String get dslName => this == CircuitComponent.powerSwitch ? 'switch' : name;
+}
+
+/// What a `meter` component measures.
+enum CircuitMeterKind { ammeter, voltmeter }
+
+class CircuitElement extends VisualElement {
+  const CircuitElement({
+    required super.id,
+    required super.style,
+    required super.layer,
+    required super.visible,
+    super.visibleWhen,
+    required this.component,
+    this.from,
+    this.to,
+    this.at,
+    this.closed = false,
+    this.meter,
+    this.label,
+  });
+
+  final CircuitComponent component;
+  final VisualPoint? from;
+  final VisualPoint? to;
+  final VisualPoint? at;
+  final bool closed;
+  final CircuitMeterKind? meter;
+  final String? label;
+
+  @override
+  String get type => 'circuit';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    ..._commonToJson(this),
+    'component': component.dslName,
+    if (from != null) 'from': from!.toJson(),
+    if (to != null) 'to': to!.toJson(),
+    if (at != null) 'at': at!.toJson(),
+    if (closed) 'closed': true,
+    if (meter != null) 'meter': meter!.name,
+    if (label != null) 'label': label,
   };
 }

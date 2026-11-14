@@ -2,6 +2,7 @@ import '../scratchpad/scratchpad_screen.dart';
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -103,8 +104,12 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
       controllers.clear();
       d = value;
       answers = List.of(value.responses[value.latest!.id] ?? []);
-      if (['point_select', 'region_select'].contains(value.spec.kind)) {
-        // Tap-to-answer: one slot, no text controllers — the visual
+      if ([
+        'point_select',
+        'region_select',
+        'drag_to_target',
+      ].contains(value.spec.kind)) {
+        // Tap/drag-to-answer: one slot, no text controllers — the visual
         // itself is the control.
         answers = [answers.isNotEmpty ? answers.first : ''];
       } else if (![
@@ -149,6 +154,15 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
       answers = [response];
     });
     _save();
+  }
+
+  /// A drag on the question's visual moves the answer without saving
+  /// on every pointer move; the caller saves the draft when the drag
+  /// ends (see the `onDragEnd` passed to [_QuestionVisual]).
+  void _updateVisualAnswer(String response) {
+    setState(() {
+      answers = [response];
+    });
   }
 
   Future<void> _action(Future<void> Function() fn) async {
@@ -262,6 +276,8 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 options: q.options,
                 selected: answers.isNotEmpty ? answers.first : '',
                 onSelect: editable ? _selectVisualAnswer : null,
+                onDragPosition: editable ? _updateVisualAnswer : null,
+                onDragEnd: editable ? _save : null,
               ),
             ),
           LearningMarkdown(q.stem),
@@ -675,14 +691,19 @@ class _RemainingTimeState extends State<_RemainingTime> {
 /// `region_select`) the card itself is the answer control while the
 /// question is editable: tapping it selects the answer ([onSelect]),
 /// instead of opening fullscreen. A tap outside every region selects
-/// nothing. The fullscreen page stays view-only.
-class _QuestionVisual extends ConsumerWidget {
+/// nothing. For `drag_to_target` the card is draggable instead: the
+/// dragged point's position is the answer, reported live through
+/// [onDragPosition] and saved when the drag ends ([onDragEnd]). The
+/// fullscreen page stays view-only.
+class _QuestionVisual extends ConsumerStatefulWidget {
   const _QuestionVisual({
     required this.link,
     required this.kind,
     required this.options,
     required this.selected,
     this.onSelect,
+    this.onDragPosition,
+    this.onDragEnd,
   });
   final ({String visualId, int revision}) link;
   final String kind;
@@ -694,15 +715,50 @@ class _QuestionVisual extends ConsumerWidget {
   /// Set while the question is editable; null renders the plain card.
   final ValueChanged<String>? onSelect;
 
+  /// Live drag positions (drag-to-target only); the caller saves on
+  /// [onDragEnd] instead of on every move.
+  final ValueChanged<String>? onDragPosition;
+
+  /// Called when a drag finishes (drag-to-target only).
+  final VoidCallback? onDragEnd;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) => ref
-      .watch(_questionVisualProvider(link))
+  ConsumerState<_QuestionVisual> createState() => _QuestionVisualState();
+}
+
+class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
+  /// Drag positions from this session (element id → model coordinates).
+  final _pointOverrides = <String, ui.Offset>{};
+
+  /// Overrides for the card: this session's drags, or — on first render
+  /// with a saved answer — the stored position, so a reloaded question
+  /// shows the point where the student left it.
+  Map<String, ui.Offset> _dragOverrides(VisualScene scene) {
+    if (_pointOverrides.isNotEmpty) return _pointOverrides;
+    final saved = parseVisualPoint(widget.selected);
+    if (saved == null) return _pointOverrides;
+    for (final element in scene.elements) {
+      if (element is PointElement &&
+          element.draggable &&
+          element.at.isLiteral) {
+        return {element.id: ui.Offset(saved.$1, saved.$2)};
+      }
+    }
+    return _pointOverrides;
+  }
+
+  @override
+  Widget build(BuildContext context) => ref
+      .watch(_questionVisualProvider(widget.link))
       .when(
         data: (scene) {
           if (scene == null) return const SizedBox.shrink();
           final answerable =
-              (kind == 'point_select' || kind == 'region_select') &&
-              onSelect != null;
+              (widget.kind == 'point_select' ||
+                  widget.kind == 'region_select') &&
+              widget.onSelect != null;
+          final draggable =
+              widget.kind == 'drag_to_target' && widget.onSelect != null;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -711,29 +767,43 @@ class _QuestionVisual extends ConsumerWidget {
                 scene: scene,
                 onTapModelPoint: answerable
                     ? (point) {
-                        if (kind == 'point_select') {
-                          onSelect!('${point.dx},${point.dy}');
+                        if (widget.kind == 'point_select') {
+                          widget.onSelect!('${point.dx},${point.dy}');
                         } else {
                           final region = visualRegionAtPoint(
                             scene,
                             point,
                             visualInitialParameters(scene),
                           );
-                          if (region != null) onSelect!(region);
+                          if (region != null) widget.onSelect!(region);
                         }
                       }
                     : null,
+                dragEnabled: draggable,
+                pointOverrides: draggable ? _dragOverrides(scene) : const {},
+                onDragUpdate: draggable
+                    ? (id, position) {
+                        setState(() => _pointOverrides[id] = position);
+                        widget.onDragPosition?.call(
+                          '${position.dx},${position.dy}',
+                        );
+                      }
+                    : null,
+                onDragEnd: draggable ? (_) => widget.onDragEnd?.call() : null,
               ),
-              if (answerable && selected.isNotEmpty)
+              if ((answerable || draggable) && widget.selected.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    kind == 'point_select'
-                        ? context.l10n.visualAnswerSelectedPoint(
-                            l10nArgument(_formatPoint(selected)),
+                    widget.kind == 'region_select'
+                        ? context.l10n.visualAnswerSelectedRegion(
+                            l10nArgument(
+                              widget.options[widget.selected] ??
+                                  widget.selected,
+                            ),
                           )
-                        : context.l10n.visualAnswerSelectedRegion(
-                            l10nArgument(options[selected] ?? selected),
+                        : context.l10n.visualAnswerSelectedPoint(
+                            l10nArgument(_formatPoint(widget.selected)),
                           ),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),

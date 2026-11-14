@@ -11,6 +11,8 @@ const questionKinds = {
   'short_answer': '自主判分',
   'point_select': '点选',
   'region_select': '区域选择',
+  'drag_to_target': '拖到目标',
+  'read_value': '读图填数',
 };
 
 class QuestionSpec {
@@ -125,12 +127,15 @@ class QuestionSpec {
       explanation: str('explanation'),
       hint: str('hint'),
       topics: rawTopics.cast<String>(),
-      // A point answer is a tap, not a typed number: without an explicit
-      // tolerance the numeric default (1e-6 model units) would make every
-      // tap wrong, so point questions default to half a model unit.
+      // A point answer is a tap or a drag, not a typed number: without
+      // an explicit tolerance the numeric default (1e-6 model units)
+      // would make every tap wrong, so point questions default to half
+      // a model unit.
       absoluteTolerance: numValue(
         'absolute_tolerance',
-        kindValue == 'point_select' ? 0.5 : 0.000001,
+        kindValue == 'point_select' || kindValue == 'drag_to_target'
+            ? 0.5
+            : 0.000001,
       ),
       relativeTolerance: numValue('relative_tolerance', 0),
       caseSensitive: a['case_sensitive'] as bool? ?? true,
@@ -196,11 +201,14 @@ class QuestionSpec {
         '题目图形修订无效。',
       );
     }
-    if ((kind == 'point_select' || kind == 'region_select') &&
+    if ((kind == 'point_select' ||
+            kind == 'region_select' ||
+            kind == 'drag_to_target' ||
+            kind == 'read_value') &&
         (visualId == null || visualId!.trim().isEmpty)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
-        '点选或区域选择题必须附带图形。',
+        '点选、区域选择、拖点或读图题必须附带图形。',
       );
     }
     if (answers.length > 12 ||
@@ -248,7 +256,7 @@ class QuestionSpec {
     } else {
       if (options.isNotEmpty ||
           (kind != 'short_answer' && answers.isEmpty) ||
-          (kind == 'numeric' &&
+          ((kind == 'numeric' || kind == 'read_value') &&
               (answers.length != 1 ||
                   answers.single.length != 1 ||
                   parseNumber(answers.single.single) == null))) {
@@ -257,13 +265,13 @@ class QuestionSpec {
           '填空或数值答案无效。',
         );
       }
-      if (kind == 'point_select' &&
+      if ((kind == 'point_select' || kind == 'drag_to_target') &&
           (answers.length != 1 ||
               answers.single.length != 1 ||
               parseVisualPoint(answers.single.single) == null)) {
         throw const AppFormatException(
           AppErrorCode.errorInvalidFillInOrNumericAnswer,
-          '点选答案无效，应为 "x,y" 形式的坐标。',
+          '点选或拖点答案无效，应为 "x,y" 形式的坐标。',
         );
       }
     }
@@ -306,7 +314,7 @@ class QuestionSpec {
           responses.length == correct.length &&
           correct.containsAll(responses);
     }
-    if (kind == 'point_select') {
+    if (kind == 'point_select' || kind == 'drag_to_target') {
       if (responses.length != 1) return false;
       final expected = parseVisualPoint(answers.single.single)!;
       final actual = parseVisualPoint(responses.single);
@@ -314,7 +322,7 @@ class QuestionSpec {
       final dx = actual.$1 - expected.$1, dy = actual.$2 - expected.$2;
       return math.sqrt(dx * dx + dy * dy) <= absoluteTolerance;
     }
-    if (kind == 'numeric') {
+    if (kind == 'numeric' || kind == 'read_value') {
       if (responses.length != 1) return false;
       final value = parseNumber(responses.single),
           expected = parseNumber(answers.single.single)!;

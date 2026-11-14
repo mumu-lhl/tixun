@@ -15,7 +15,7 @@ import 'study_tools.dart';
 
 final quizToolSchema = AiTool(
   name: 'create_quiz',
-  description: '仅用户请求出题、测验或训练时创建交互题，不代替资料整理或讲解；本条出题回复不得透露答案与解析。answers 为按位置排列的二维数组：填空每项包含等价答案，多选每个正确选项单独一项。仅校验结构，答案仍待核对。依赖图片时用 image_indices 引用本次请求前4张图片（0起）；纯文字题不填。需要配图时用 visual_id 引用本次对话中已创建的图形：图形只展示题干所需的图，不含答案与解法；不填 visual_revision 时冻结图形当前状态作为题目快照，填了则引用该修订。考试模式下出题不能附加图形。点选题（point_select）必须带 visual_id，答案是 "x,y" 形式的坐标；区域选择题（region_select）必须带 visual_id，options 是区域图元 id 到名称的映射，答案是选中的区域 id。',
+  description: '仅用户请求出题、测验或训练时创建交互题，不代替资料整理或讲解；本条出题回复不得透露答案与解析。answers 为按位置排列的二维数组：填空每项包含等价答案，多选每个正确选项单独一项。仅校验结构，答案仍待核对。依赖图片时用 image_indices 引用本次请求前4张图片（0起）；纯文字题不填。需要配图时用 visual_id 引用本次对话中已创建的图形：图形只展示题干所需的图，不含答案与解法；不填 visual_revision 时冻结图形当前状态作为题目快照，填了则引用该修订。考试模式下出题不能附加图形。点选题（point_select）必须带 visual_id，答案是 "x,y" 形式的坐标；区域选择题（region_select）必须带 visual_id，options 是区域图元 id 到名称的映射，答案是选中的区域 id。拖点题（drag_to_target）必须带 visual_id 且图形中有点 draggable 为 true，答案是目标点的 "x,y" 坐标，学生把点拖到目标位置附近即算对；读图题（read_value）必须带 visual_id，答案是学生从图中读出的数值。',
   parameters: {
     'type': 'object',
     'additionalProperties': false,
@@ -30,6 +30,8 @@ final quizToolSchema = AiTool(
           'numeric',
           'point_select',
           'region_select',
+          'drag_to_target',
+          'read_value',
         ],
       },
       'stem': {'type': 'string'},

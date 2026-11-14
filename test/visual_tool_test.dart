@@ -154,6 +154,42 @@ void main() {
       expect(ops.single.status, 'succeeded');
     });
 
+    test('create reports quality issues without failing the scene', () async {
+      await _seedMessage(db, 'session-1', 'run-1');
+      final result = await runTool(
+        'call-1',
+        _plotArgs(
+          scene: {
+            'v': 1,
+            'kind': 'geometry',
+            'title': '点',
+            'view': {
+              'x': [-3, 3],
+              'y': [-3, 3],
+            },
+            'elements': [
+              {
+                'id': 'p1',
+                'type': 'point',
+                'at': [5, 5],
+                'label': 'P',
+              },
+            ],
+            'meta': {'alt': '点'},
+          },
+        ),
+      );
+      expect(result['ok'], isTrue);
+      expect(result['verification'], 'verified');
+      final issues = result['quality_issues'] as List;
+      expect(issues.map((i) => (i as Map)['code']), ['point_outside_view']);
+      expect((issues.single as Map)['path'], 'p1');
+      // A clean scene reports no quality_issues key at all.
+      final clean = await runTool('call-2', _plotArgs());
+      expect(clean['ok'], isTrue);
+      expect(clean.containsKey('quality_issues'), isFalse);
+    });
+
     test(
       'a visual created in a study-linked session links to the study item',
       () async {

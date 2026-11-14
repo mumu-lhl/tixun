@@ -9,6 +9,7 @@
 library;
 
 import 'package:tixun/core/l10n/app_error.dart';
+import 'package:tixun/core/visual/model/visual_constraints.dart';
 import 'package:tixun/core/visual/model/visual_elements.dart';
 import 'package:tixun/core/visual/validation/visual_validator.dart';
 
@@ -16,8 +17,19 @@ export 'package:tixun/core/visual/model/visual_elements.dart';
 
 /// Scene categories. Phase 1 renders `plot2d`/`geometry`/`physics`/`vector`
 /// with the same element engine; `chart` is only expressed via elements +
-/// `plot` (no dedicated chart model yet).
-enum VisualSceneKind { plot2d, geometry, physics, vector, chart }
+/// `plot` (no dedicated chart model yet). Phase 4 adds `circuit` (with the
+/// `circuit` element), `chemistry` and `geography` — the latter two are
+/// rendered by the generic engine, like `geometry`.
+enum VisualSceneKind {
+  plot2d,
+  geometry,
+  physics,
+  vector,
+  chart,
+  circuit,
+  chemistry,
+  geography,
+}
 
 /// `[min, max]` range (view axes, plot domains).
 class VisualRange {
@@ -673,6 +685,7 @@ const _topLevelFields = {
   'timeline',
   'annotations',
   'meta',
+  'constraints',
 };
 
 /// A Visual DSL v1 scene.
@@ -688,6 +701,7 @@ class VisualScene {
     this.timeline,
     this.annotations = const [],
     this.meta,
+    this.constraints = const [],
   });
 
   final int v;
@@ -700,6 +714,7 @@ class VisualScene {
   final VisualTimeline? timeline;
   final List<VisualAnnotation> annotations;
   final VisualMeta? meta;
+  final List<VisualConstraint> constraints;
 
   /// Every element id in the scene, including group children.
   List<String> get allElementIds => [
@@ -765,6 +780,12 @@ class VisualScene {
     if (json['meta'] != null) {
       meta = VisualMeta.fromJson(json['meta'] as Map<String, dynamic>);
     }
+    List<VisualConstraint> constraints = const [];
+    if (json['constraints'] != null) {
+      constraints = (json['constraints'] as List)
+          .map((c) => VisualConstraint.fromJson(c as Map<String, dynamic>))
+          .toList();
+    }
     final title = json['title'];
     return VisualScene(
       v: (json['v'] as num).toInt(),
@@ -777,6 +798,7 @@ class VisualScene {
       timeline: timeline,
       annotations: annotations,
       meta: meta,
+      constraints: constraints,
     );
   }
 
@@ -794,5 +816,7 @@ class VisualScene {
     if (annotations.isNotEmpty)
       'annotations': annotations.map((a) => a.toJson()).toList(),
     if (meta != null) 'meta': meta!.toJson(),
+    if (constraints.isNotEmpty)
+      'constraints': constraints.map((c) => c.toJson()).toList(),
   };
 }

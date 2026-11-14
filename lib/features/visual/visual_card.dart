@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path_provider/path_provider.dart';
@@ -54,11 +55,20 @@ Map<String, bool> visualInitialToggles(VisualScene scene) => {
 /// reports the tapped position in model coordinates instead of opening
 /// fullscreen; the fullscreen button in the title row still works, and
 /// the fullscreen page itself stays view-only.
+///
+/// When [dragEnabled] is set (drag-to-target questions), dragging a
+/// draggable point moves it and reports positions through
+/// [onDragUpdate]; [onDragEnd] fires when the drag finishes. Dragging
+/// also suppresses tap-to-open-fullscreen on the canvas itself.
 class VisualCard extends StatelessWidget {
   const VisualCard({
     required this.scene,
     this.title,
     this.onTapModelPoint,
+    this.dragEnabled = false,
+    this.pointOverrides = const {},
+    this.onDragUpdate,
+    this.onDragEnd,
     super.key,
   });
 
@@ -69,6 +79,18 @@ class VisualCard extends StatelessWidget {
 
   /// Tap-to-answer handler; null means "tap opens fullscreen".
   final ValueChanged<ui.Offset>? onTapModelPoint;
+
+  /// Drag-to-answer mode (drag-to-target questions only).
+  final bool dragEnabled;
+
+  /// Local drag positions (element id → model coordinates).
+  final Map<String, ui.Offset> pointOverrides;
+
+  /// Called with the dragged element id and its new model position.
+  final void Function(String id, ui.Offset modelPosition)? onDragUpdate;
+
+  /// Called with the dragged element id when a drag finishes.
+  final void Function(String id)? onDragEnd;
 
   String get _title => title ?? scene.title ?? scene.meta?.alt ?? '';
 
@@ -126,8 +148,17 @@ class VisualCard extends StatelessWidget {
               ),
             ],
           ),
+          if (scene.meta?.schematic == true)
+            Padding(
+              padding: const EdgeInsets.only(left: 12, bottom: 4),
+              child: Text(
+                context.l10n.visualSchematicNote,
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ),
           GestureDetector(
-            onTap: onTapModelPoint == null
+            onTap: onTapModelPoint == null && !dragEnabled
                 ? () => showVisualFullscreen(context, scene, title: _title)
                 : null,
             child: AspectRatio(
@@ -138,6 +169,10 @@ class VisualCard extends StatelessWidget {
                 parameters: visualInitialParameters(scene),
                 toggles: visualInitialToggles(scene),
                 onTapModelPoint: onTapModelPoint,
+                dragEnabled: dragEnabled,
+                pointOverrides: pointOverrides,
+                onDragUpdate: onDragUpdate,
+                onDragEnd: onDragEnd,
               ),
             ),
           ),
@@ -150,12 +185,18 @@ class VisualCard extends StatelessWidget {
 /// The paint surface + `Math.tex` overlays, shared by the card and the
 /// fullscreen page. Phase 1 shows the fit view only (no pan/zoom).
 ///
-/// When [dragEnabled] is true (fullscreen only), dragging a draggable
-/// point moves it: the gesture is hit-tested here (this widget owns the
-/// coordinate mapper), positions are reported through [onDragUpdate] as
-/// model coordinates, and the current positions come back in
-/// [pointOverrides]. The scene itself is never mutated — overrides live
-/// in the fullscreen page's state until reset.
+/// When [dragEnabled] is true (fullscreen page, or a drag-to-target
+/// question card), dragging a draggable point moves it: the gesture is
+/// hit-tested here (this widget owns the coordinate mapper), positions
+/// are reported through [onDragUpdate] as model coordinates, and the
+/// current positions come back in [pointOverrides]. The scene itself is
+/// never mutated — overrides live in the caller's state until reset.
+/// [onDragEnd] fires when a drag finishes, so the caller can persist
+/// the final position.
+///
+/// [zoom]/[pan] are the fullscreen pinch view transform (fit view in
+/// the chat card): the same mapper paints and hit-tests, so a zoomed
+/// view still drags the point under the finger.
 class _VisualCanvas extends StatefulWidget {
   const _VisualCanvas({
     required this.scene,
@@ -166,9 +207,12 @@ class _VisualCanvas extends StatefulWidget {
     this.pointOverrides = const {},
     this.timeMs = 0,
     this.stepIndex = 0,
+    this.zoom = 1.0,
+    this.pan = ui.Offset.zero,
     this.dragEnabled = false,
     this.onDragStart,
     this.onDragUpdate,
+    this.onDragEnd,
     this.onTapModelPoint,
   });
 
@@ -187,7 +231,12 @@ class _VisualCanvas extends StatefulWidget {
   final double timeMs;
   final int stepIndex;
 
-  /// True only in the fullscreen page; the chat card never drags.
+  /// Fullscreen pinch zoom (1.0 = fit view) and pan in canvas pixels.
+  final double zoom;
+  final ui.Offset pan;
+
+  /// True in the fullscreen page and in drag-to-target question cards;
+  /// the plain chat card never drags.
   final bool dragEnabled;
 
   /// Called with the dragged element id when a drag starts.
@@ -195,6 +244,9 @@ class _VisualCanvas extends StatefulWidget {
 
   /// Called with the dragged element id and its new model position.
   final void Function(String id, ui.Offset modelPosition)? onDragUpdate;
+
+  /// Called with the dragged element id when a drag finishes.
+  final void Function(String id)? onDragEnd;
 
   /// Tap-to-answer handler (question cards only): reports the tapped
   /// position in model coordinates. Mutually exclusive with [dragEnabled].
@@ -246,7 +298,12 @@ class _VisualCanvasState extends State<_VisualCanvas> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
-        final mapper = VisualCoordinateMapper.fromScene(widget.scene, size);
+        final mapper = VisualCoordinateMapper.fromScene(
+          widget.scene,
+          size,
+          zoom: widget.zoom,
+          pan: widget.pan,
+        );
         final labels = mapper.mathLabelPositions(
           widget.scene,
           widget.parameters,
@@ -258,6 +315,7 @@ class _VisualCanvasState extends State<_VisualCanvas> {
           children: [
             RepaintBoundary(
               child: CustomPaint(
+                key: const Key('visual-canvas-paint'),
                 painter: VisualPainter(
                   scene: widget.scene,
                   palette: widget.palette,
@@ -267,6 +325,8 @@ class _VisualCanvasState extends State<_VisualCanvas> {
                   pointOverrides: widget.pointOverrides,
                   timeMs: widget.timeMs,
                   stepIndex: widget.stepIndex,
+                  zoom: widget.zoom,
+                  pan: widget.pan,
                   tickLabelStyle: tickStyle ?? const TextStyle(fontSize: 11),
                 ),
               ),
@@ -309,6 +369,15 @@ class _VisualCanvasState extends State<_VisualCanvas> {
         if (!widget.dragEnabled) return canvas;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
+          // Report the pointer-down position in onPanStart, not the
+          // position where the drag was accepted: with the default
+          // DragStartBehavior.start the recognizer advances its initial
+          // position by the pre-acceptance travel (dead zone + arena
+          // delay, ~41 px measured on real Linux), which is larger than
+          // the 24 px hit radius — a press exactly on a point would
+          // miss it. With `down` the hit test sees where the finger
+          // actually went down.
+          dragStartBehavior: DragStartBehavior.down,
           onPanStart: (details) {
             ({String id, ui.Offset canvasPos})? nearest;
             var nearestDistance = _VisualCanvas.dragHitRadius;
@@ -342,7 +411,9 @@ class _VisualCanvasState extends State<_VisualCanvas> {
   }
 
   void _endDrag() {
+    final id = _draggingId;
     _draggingId = null;
+    if (id != null) widget.onDragEnd?.call(id);
   }
 }
 
@@ -380,11 +451,35 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
   /// The reset button clears them.
   final Map<String, ui.Offset> _pointOverrides = {};
 
+  /// Fullscreen pinch view transform: zoom about the view centre (1.0 =
+  /// fit) and pan in canvas pixels. The chat card always shows the fit
+  /// view; PNG export too.
+  double _zoom = 1.0;
+  ui.Offset _pan = ui.Offset.zero;
+
+  /// True while two pointers are down: point dragging is locked so the
+  /// pinch does not also drag a point under the first finger.
+  bool _pinching = false;
+
+  /// Active pointers on the canvas (pointer id → position in the
+  /// pinch Listener's coordinates; only distances and midpoint deltas
+  /// are used, so the frame does not matter).
+  final Map<int, ui.Offset> _activePointers = {};
+  double _pinchStartDistance = 0;
+  ui.Offset _pinchStartMidpoint = ui.Offset.zero;
+  double _pinchStartZoom = 1.0;
+  ui.Offset _pinchStartPan = ui.Offset.zero;
+
   /// Current playback time in milliseconds.
   double _timeMs = 0;
   bool _playing = false;
   AnimationController? _controller;
   bool _autoplayHandled = false;
+
+  /// Playback speed multiplier (0.5×, 1×, 2×). The animation clock runs
+  /// at this rate; the authored duration stays the source of truth.
+  double _speed = 1.0;
+  static const _speeds = [0.5, 1.0, 2.0];
 
   double get _durationMs => visualDurationMs(widget.scene);
 
@@ -453,7 +548,7 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
     final controller = _controller ??=
         AnimationController(
             vsync: this,
-            duration: Duration(milliseconds: _durationMs.round()),
+            duration: Duration(milliseconds: (_durationMs / _speed).round()),
           )
           ..addListener(_onTick)
           ..addStatusListener((status) {
@@ -480,6 +575,19 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
     setState(() => _playing = false);
   }
 
+  /// Switches playback speed, keeping the current position: the
+  /// controller's value is a fraction of the authored duration, so
+  /// changing its duration leaves `_timeMs` (value × duration) alone.
+  void _setSpeed(double speed) {
+    setState(() => _speed = speed);
+    final controller = _controller;
+    if (controller != null) {
+      controller.duration = Duration(
+        milliseconds: (_durationMs / _speed).round(),
+      );
+    }
+  }
+
   void _seekTo(double timeMs) {
     final clamped = timeMs.clamp(0, _durationMs).toDouble();
     _controller?.value = _durationMs > 0 ? clamped / _durationMs : 0;
@@ -492,18 +600,60 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
     _seekTo(steps[index].atMs.toDouble());
   }
 
+  /// Two-finger pinch/pan on the canvas (a `Listener`, not a gesture
+  /// recogniser, so it never competes with the point-drag recogniser
+  /// below: one-finger drags keep dragging points, and the pinch only
+  /// starts when the second finger lands).
+  void _onPointerDown(PointerDownEvent event) {
+    _activePointers[event.pointer] = event.localPosition;
+    if (_activePointers.length == 2) {
+      final points = _activePointers.values.toList();
+      _pinchStartDistance = (points[0] - points[1]).distance;
+      _pinchStartMidpoint = (points[0] + points[1]) / 2;
+      _pinchStartZoom = _zoom;
+      _pinchStartPan = _pan;
+      setState(() => _pinching = true);
+    }
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (!_activePointers.containsKey(event.pointer)) return;
+    _activePointers[event.pointer] = event.localPosition;
+    if (_activePointers.length != 2 || _pinchStartDistance <= 0) return;
+    final points = _activePointers.values.toList();
+    final distance = (points[0] - points[1]).distance;
+    final midpoint = (points[0] + points[1]) / 2;
+    setState(() {
+      _zoom = (_pinchStartZoom * distance / _pinchStartDistance).clamp(
+        0.5,
+        4.0,
+      );
+      _pan = _pinchStartPan + (midpoint - _pinchStartMidpoint);
+    });
+  }
+
+  void _onPointerUp(PointerEvent event) {
+    _activePointers.remove(event.pointer);
+    if (_activePointers.length < 2 && _pinching) {
+      setState(() => _pinching = false);
+    }
+  }
+
   Future<void> _exportPng(
     VisualPalette palette,
     Map<String, double> parameters,
     Map<String, bool> toggles,
   ) async {
     try {
+      // Export the frame on screen right now: the current time, with
+      // the manual slider/toggle state layered over it.
       final bytes = await renderVisualPng(
         widget.scene,
         palette,
         parameters: parameters,
         toggles: toggles,
         pointOverrides: _pointOverrides,
+        timeMs: _timeMs,
       );
       final dir = await getTemporaryDirectory();
       final file = File(
@@ -529,6 +679,9 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
   }
 
   String _formatTime(double timeMs) => '${(timeMs / 1000).toStringAsFixed(1)}s';
+
+  String _formatSpeed(double speed) =>
+      '${speed == speed.roundToDouble() ? speed.toInt() : speed}×';
 
   @override
   Widget build(BuildContext context) {
@@ -564,6 +717,17 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
             icon: const Icon(Icons.restart_alt),
           ),
           IconButton(
+            key: const Key('visual-reset-view'),
+            tooltip: context.l10n.visualResetView,
+            onPressed: _zoom == 1.0 && _pan == ui.Offset.zero
+                ? null
+                : () => setState(() {
+                    _zoom = 1.0;
+                    _pan = ui.Offset.zero;
+                  }),
+            icon: const Icon(Icons.fit_screen),
+          ),
+          IconButton(
             tooltip: context.l10n.visualExportPng,
             onPressed: () => _exportPng(palette, parameters, effectiveToggles),
             icon: const Icon(Icons.download),
@@ -579,25 +743,33 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: _VisualCanvas(
-                scene: widget.scene,
-                palette: palette,
-                parameters: parameters,
-                toggles: effectiveToggles,
-                hiddenElementIds: frame.hiddenElementIds,
-                pointOverrides: _pointOverrides,
-                timeMs: frame.timeMs,
-                stepIndex: frame.stepIndex,
-                dragEnabled: true,
-                onDragStart: (_) {
-                  // A drag takes the scene over: stop the animation so
-                  // the tracks do not fight the finger.
-                  if (_playing) _pause();
-                },
-                onDragUpdate: (id, position) =>
-                    setState(() => _pointOverrides[id] = position),
+            child: Listener(
+              onPointerDown: _onPointerDown,
+              onPointerMove: _onPointerMove,
+              onPointerUp: _onPointerUp,
+              onPointerCancel: _onPointerUp,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: _VisualCanvas(
+                  scene: widget.scene,
+                  palette: palette,
+                  parameters: parameters,
+                  toggles: effectiveToggles,
+                  hiddenElementIds: frame.hiddenElementIds,
+                  pointOverrides: _pointOverrides,
+                  timeMs: frame.timeMs,
+                  stepIndex: frame.stepIndex,
+                  zoom: _zoom,
+                  pan: _pan,
+                  dragEnabled: !_pinching,
+                  onDragStart: (_) {
+                    // A drag takes the scene over: stop the animation so
+                    // the tracks do not fight the finger.
+                    if (_playing) _pause();
+                  },
+                  onDragUpdate: (id, position) =>
+                      setState(() => _pointOverrides[id] = position),
+                ),
               ),
             ),
           ),
@@ -641,6 +813,27 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
                         Text(
                           '${_formatTime(_timeMs)} / ${_formatTime(_durationMs)}',
                           key: const Key('visual-time-label'),
+                        ),
+                      if (_durationMs > 0)
+                        PopupMenuButton<double>(
+                          key: const Key('visual-speed'),
+                          tooltip: context.l10n.visualPlaybackSpeed,
+                          initialValue: _speed,
+                          onSelected: _setSpeed,
+                          itemBuilder: (context) => [
+                            for (final speed in _speeds)
+                              PopupMenuItem(
+                                value: speed,
+                                child: Text(_formatSpeed(speed)),
+                              ),
+                          ],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              _formatSpeed(_speed),
+                              key: const Key('visual-speed-label'),
+                            ),
+                          ),
                         ),
                       if (steps.isNotEmpty) ...[
                         IconButton(

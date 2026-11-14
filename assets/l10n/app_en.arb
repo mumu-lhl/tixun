@@ -992,6 +992,8 @@
   "trueFalse": "True / false",
   "pointSelect": "Point select",
   "regionSelect": "Region select",
+  "dragToTarget": "Drag to target",
+  "readValue": "Read value",
   "fillInTheBlanks": "Fill in the blanks",
   "numericalAnswer": "Numerical answer",
   "subject": "Subject",
@@ -1954,7 +1956,9 @@
   "visualPreviousStep": "Previous step",
   "visualNextStep": "Next step",
   "visualSeek": "Playback position",
+  "visualPlaybackSpeed": "Playback speed",
   "visualResetDrag": "Reset dragged positions",
+  "visualResetView": "Reset view",
   "errorMissingParameter": "Missing parameter: {arg0}.",
   "@errorMissingParameter": {
     "placeholders": {
@@ -2078,6 +2082,7 @@
   "usageFeatureVisualEdit": "Visual edit",
   "usageFeatureQuizWithVisual": "Quiz with visual",
   "visualSection": "Visuals",
+  "visualSchematicNote": "Schematic — not to scale",
   "visualAnswerSelectedPoint": "Selected point: {arg0}",
   "visualAnswerSelectedRegion": "Selected region: {arg0}",
   "usageStatusComplete": "Complete",

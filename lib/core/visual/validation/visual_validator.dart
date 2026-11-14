@@ -26,8 +26,10 @@
 library;
 
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:tixun/core/visual/math/expression.dart';
+import 'package:tixun/core/visual/model/visual_constraints.dart';
 import 'package:tixun/core/visual/model/visual_elements.dart';
 
 /// Maximum serialized scene JSON size (bytes of `jsonEncode` output).
@@ -50,7 +52,6 @@ const visualMaxSteps = 30;
 
 /// Maximum view / plot-domain span.
 const visualMaxRangeSpan = 1e9;
-
 const _topLevelFields = {
   'v',
   'kind',
@@ -62,9 +63,19 @@ const _topLevelFields = {
   'timeline',
   'annotations',
   'meta',
+  'constraints',
 };
 
-const _kinds = {'plot2d', 'geometry', 'physics', 'vector', 'chart'};
+const _kinds = {
+  'plot2d',
+  'geometry',
+  'physics',
+  'vector',
+  'chart',
+  'circuit',
+  'chemistry',
+  'geography',
+};
 
 const _elementTypes = {
   'point',
@@ -78,6 +89,7 @@ const _elementTypes = {
   'math_label',
   'group',
   'plot',
+  'circuit',
 };
 
 final _styles = VisualStyle.values.map((s) => s.name).toSet();
@@ -159,6 +171,30 @@ class _Validator {
   /// `visibleWhen` references to check after controls are known.
   final _visibleWhenRefs = <({String control, String path})>[];
 
+  /// Whether any `circuit` element was seen (any depth).
+  var _hasCircuitElement = false;
+
+  /// Element id -> element type, for constraint reference checks.
+  final _elementTypesById = <String, String>{};
+
+  /// Literal positions of `point` elements (absent when `$param`-bound).
+  final _pointPositions = <String, (double, double)>{};
+
+  /// Literal endpoints of `line`/`arrow` elements.
+  final _lineSegments = <String, ((double, double), (double, double))>{};
+
+  /// Literal centers and radii of `circle` elements.
+  final _circles = <String, ((double, double), double)>{};
+
+  /// Ids whose geometry is `$param`-bound (present but unchecked).
+  final _boundPointIds = <String>{};
+  final _boundSegmentIds = <String>{};
+  final _boundCircleIds = <String>{};
+
+  /// Whether `meta.schematic` is true (set in `run` before element and
+  /// constraint checks, so violations can downgrade to warnings).
+  var _schematic = false;
+
   void _error(String code, String message, [String? path]) {
     errors.add(
       VisualIssue(code: code, message: message, path: path, isError: true),
@@ -207,9 +243,14 @@ class _Validator {
       _error('invalid_type', 'title 必须是文字。', 'title');
     }
 
+    _schematic =
+        json['meta'] is Map<String, dynamic> &&
+        (json['meta'] as Map<String, dynamic>)['schematic'] == true;
+
     _checkModel(json['model']);
     _checkView(json['view']);
     _checkElements(json['elements']);
+    _checkConstraints(json['constraints']);
     _checkControls(json['controls']);
     _checkTimeline(json['timeline']);
     _checkAnnotations(json['annotations']);
@@ -235,12 +276,20 @@ class _Validator {
 
     _checkWarnings(json);
 
-    final schematic =
-        json['meta'] is Map<String, dynamic> &&
-        (json['meta'] as Map<String, dynamic>)['schematic'] == true;
+    // A circuit scene with no circuit element is almost certainly a
+    // wrong kind (or a missing element): warn rather than fail, since
+    // the scene may legitimately be only wires-as-lines plus labels.
+    if (kind == 'circuit' && !_hasCircuitElement) {
+      _warning(
+        'no_circuit_element',
+        'circuit 场景里没有 circuit 图元，请确认 kind 是否写错。',
+        'elements',
+      );
+    }
+
     final status = errors.isNotEmpty
         ? 'unverified'
-        : (schematic || warnings.any((w) => w.code == 'schematic_content'))
+        : (_schematic || warnings.any((w) => w.code == 'schematic_content'))
         ? 'schematic'
         : 'verified';
     return VisualValidation(
@@ -490,6 +539,7 @@ class _Validator {
       'math_label': {'at', 'tex'},
       'group': {'children'},
       'plot': {'expression', 'domain', 'samples'},
+      'circuit': {'component', 'from', 'to', 'at', 'closed', 'meter', 'label'},
     };
     if (type is! String) {
       _error('missing_field', '图元缺少字段：type。', '$path.type');
@@ -501,6 +551,7 @@ class _Validator {
       _checkUnknownFields(element, common, '图元', path);
       return;
     }
+    if (type == 'circuit') _hasCircuitElement = true;
     _checkUnknownFields(
       element,
       {...common, ...perType[type]!},
@@ -517,6 +568,7 @@ class _Validator {
     } else if (!_elementIds.add(id)) {
       _error('duplicate_id', '图元 id 重复：$id。', '$path.id');
     }
+    if (id is String && id.isNotEmpty) _elementTypesById[id] = type;
 
     // style / layer / visible / visibleWhen
     if (element['style'] != null) {
@@ -578,6 +630,9 @@ class _Validator {
         final at = _checkPoint(element['at'], '$path.at');
         if (at != null) {
           _literalBounds.add((at.$1, at.$2, at.$1, at.$2));
+          if (id is String) _pointPositions[id] = at;
+        } else if (id is String && _isBoundPoint(element['at'])) {
+          _boundPointIds.add(id);
         } else if (element['at'] == null) {
           _error('missing_field', 'point 图元缺少字段：at。', '$path.at');
         }
@@ -608,7 +663,13 @@ class _Validator {
           }
         }
       case 'line':
-        _checkLinePoints(element, path);
+        final linePoints = _checkLinePoints(element, path);
+        if (linePoints.length == 2 && id is String) {
+          _lineSegments[id] = (linePoints[0], linePoints[1]);
+        } else if (id is String &&
+            (_isBoundPoint(element['p1']) || _isBoundPoint(element['p2']))) {
+          _boundSegmentIds.add(id);
+        }
         if (element['dashed'] != null && element['dashed'] is! bool) {
           _error('invalid_type', 'line 图元的 dashed 必须是布尔值。', '$path.dashed');
         }
@@ -649,6 +710,9 @@ class _Validator {
             center.$1 + r,
             center.$2 + r,
           ));
+          if (id is String) _circles[id] = (center, r);
+        } else if (id is String && _isBoundPoint(element['center'])) {
+          _boundCircleIds.add(id);
         }
       case 'arc':
         final center = _checkPoint(element['center'], '$path.center');
@@ -685,7 +749,13 @@ class _Validator {
           ));
         }
       case 'arrow':
-        _checkLinePoints(element, path);
+        final arrowPoints = _checkLinePoints(element, path);
+        if (arrowPoints.length == 2 && id is String) {
+          _lineSegments[id] = (arrowPoints[0], arrowPoints[1]);
+        } else if (id is String &&
+            (_isBoundPoint(element['from']) || _isBoundPoint(element['to']))) {
+          _boundSegmentIds.add(id);
+        }
       case 'text':
         _checkLabeledPoint(element, path, 'text', 'text');
       case 'math_label':
@@ -753,12 +823,71 @@ class _Validator {
             );
           }
         }
+      case 'circuit':
+        const components = {'battery', 'resistor', 'switch', 'wire', 'meter'};
+        final component = element['component'];
+        if (component == null) {
+          _error(
+            'missing_field',
+            'circuit 图元缺少字段：component。',
+            '$path.component',
+          );
+        } else if (component is! String || !components.contains(component)) {
+          _error(
+            'invalid_value',
+            'circuit 图元的 component 必须是 battery/resistor/switch/wire/meter 之一。',
+            '$path.component',
+          );
+        } else if (component == 'meter') {
+          final at = _checkPoint(element['at'], '$path.at');
+          if (at != null) {
+            _literalBounds.add((at.$1, at.$2, at.$1, at.$2));
+          } else if (element['at'] == null) {
+            _error('missing_field', 'meter 图元缺少字段：at。', '$path.at');
+          }
+          final meter = element['meter'];
+          if (meter == null) {
+            _error('missing_field', 'meter 图元缺少字段：meter。', '$path.meter');
+          } else if (meter is! String ||
+              (meter != 'ammeter' && meter != 'voltmeter')) {
+            _error(
+              'invalid_value',
+              'meter 图元的 meter 必须是 ammeter 或 voltmeter。',
+              '$path.meter',
+            );
+          }
+          if (element['from'] != null || element['to'] != null) {
+            _error('invalid_value', 'meter 图元不需要 from/to 字段。', '$path.from');
+          }
+        } else {
+          // Two-point components (battery/resistor/switch/wire) use the
+          // same from/to shape as `arrow`, so the shared checker applies.
+          _checkLinePoints(element, path);
+          if (element['at'] != null) {
+            _error('invalid_value', 'circuit 图元不需要 at 字段。', '$path.at');
+          }
+          if (element['meter'] != null) {
+            _error('invalid_value', '只有 meter 图元能带 meter 字段。', '$path.meter');
+          }
+        }
+        if (element['closed'] != null && element['closed'] is! bool) {
+          _error('invalid_type', 'circuit 图元的 closed 必须是布尔值。', '$path.closed');
+        } else if (element['closed'] == true && component != 'switch') {
+          _error('invalid_value', '只有 switch 图元能带 closed 字段。', '$path.closed');
+        }
+        if (element['label'] != null && element['label'] is! String) {
+          _error('invalid_type', 'circuit 图元的 label 必须是文字。', '$path.label');
+        }
     }
   }
 
   /// Validates a pair of points (`line`: p1/p2, `arrow`: from/to) and
-  /// records their bounds.
-  void _checkLinePoints(Map<String, dynamic> element, String path) {
+  /// records their bounds. Returns the literal endpoints found (empty
+  /// when either is missing or `$param`-bound).
+  List<(double, double)> _checkLinePoints(
+    Map<String, dynamic> element,
+    String path,
+  ) {
     final type = element['type'] as String;
     final firstKey = type == 'line' ? 'p1' : 'from';
     final secondKey = type == 'line' ? 'p2' : 'to';
@@ -772,7 +901,277 @@ class _Validator {
       if (point != null) points.add(point);
     }
     _addBounds(points);
+    return points;
   }
+
+  /// True when [raw] is a well-formed `[x, y]` point with at least one
+  /// `$param`-bound component (as opposed to malformed, which already
+  /// errors elsewhere).
+  bool _isBoundPoint(dynamic raw) =>
+      raw is List && raw.length == 2 && (raw[0] is Map || raw[1] is Map);
+
+  /// Validates `constraints` (Phase 4): shape, references, then the
+  /// geometric fact against literal coordinates.
+  void _checkConstraints(dynamic raw) {
+    if (raw == null) return;
+    if (raw is! List) {
+      _error('invalid_type', 'constraints 必须是数组。', 'constraints');
+      return;
+    }
+    if (raw.length > visualMaxConstraints) {
+      _error(
+        'limit_exceeded',
+        '约束数量超过 $visualMaxConstraints 个（共 ${raw.length} 个）。',
+        'constraints',
+      );
+    }
+    for (var i = 0; i < raw.length; i++) {
+      _checkConstraint(raw[i], 'constraints[$i]');
+    }
+  }
+
+  void _checkConstraint(dynamic raw, String path) {
+    if (!_isMap(raw)) {
+      _error('invalid_type', '约束必须是对象。', path);
+      return;
+    }
+    final constraint = raw as Map<String, dynamic>;
+    _checkUnknownFields(
+      constraint,
+      const {'type', 'a', 'b', 'point', 'circle', 'value'},
+      '约束',
+      path,
+    );
+    final typeRaw = constraint['type'];
+    if (typeRaw == null) {
+      _error('missing_field', '约束缺少字段：type。', '$path.type');
+      return;
+    }
+    final type = typeRaw is String
+        ? VisualConstraintType.fromDslName(typeRaw)
+        : null;
+    if (type == null) {
+      _error('invalid_value', '未知的约束类型：$typeRaw。', '$path.type');
+      return;
+    }
+    String? idField(String key) {
+      final value = constraint[key];
+      if (value == null) return null;
+      if (value is! String || value.isEmpty) {
+        _error('invalid_type', '约束的 $key 必须是非空文字。', '$path.$key');
+        return null;
+      }
+      return value;
+    }
+
+    double? value;
+    final rawValue = constraint['value'];
+    if (rawValue != null) {
+      if (rawValue is! num || !rawValue.toDouble().isFinite) {
+        _error('invalid_type', '约束的 value 必须是有限数字。', '$path.value');
+      } else {
+        value = rawValue.toDouble();
+      }
+    }
+    final a = idField('a');
+    final b = idField('b');
+    final point = idField('point');
+    final circle = idField('circle');
+    var shapeOk = true;
+    void need(String key, bool present) {
+      if (!present) {
+        _error('missing_field', '约束缺少字段：$key。', '$path.$key');
+        shapeOk = false;
+      }
+    }
+
+    switch (type) {
+      case VisualConstraintType.distance:
+        need('a', constraint['a'] != null);
+        need('b', constraint['b'] != null);
+        need('value', constraint['value'] != null);
+        if (value != null && value < 0) {
+          _error('invalid_range', 'distance 约束的 value 不能小于 0。', '$path.value');
+          shapeOk = false;
+        }
+      case VisualConstraintType.parallel:
+      case VisualConstraintType.perpendicular:
+      case VisualConstraintType.intersect:
+        need('a', constraint['a'] != null);
+        need('b', constraint['b'] != null);
+      case VisualConstraintType.onCircle:
+        need('point', constraint['point'] != null);
+        need('circle', constraint['circle'] != null);
+      case VisualConstraintType.angle:
+        need('a', constraint['a'] != null);
+        need('b', constraint['b'] != null);
+        need('value', constraint['value'] != null);
+        if (value != null && (value < 0 || value > 180)) {
+          _error(
+            'invalid_range',
+            'angle 约束的 value 必须在 0~180 度之间。',
+            '$path.value',
+          );
+          shapeOk = false;
+        }
+      case VisualConstraintType.midpoint:
+        need('point', constraint['point'] != null);
+        need('a', constraint['a'] != null);
+        need('b', constraint['b'] != null);
+    }
+    if (!shapeOk) return;
+
+    // Resolve references and evaluate against literal coordinates.
+    switch (type) {
+      case VisualConstraintType.distance:
+        final pa = _pointOf(a!, path);
+        final pb = _pointOf(b!, path);
+        if (pa == null || pb == null) return;
+        final actual = _dist(pa, pb);
+        if ((actual - value!).abs() > 1e-6 * math.max(1, value.abs())) {
+          _violation('点 $a 与 $b 的距离是 ${_fmt(actual)}，不是 ${_fmt(value)}。', path);
+        }
+      case VisualConstraintType.parallel:
+      case VisualConstraintType.perpendicular:
+      case VisualConstraintType.angle:
+      case VisualConstraintType.intersect:
+        final sa = _segmentOf(a!, path);
+        final sb = _segmentOf(b!, path);
+        if (sa == null || sb == null) return;
+        final d1 = (sa.$2.$1 - sa.$1.$1, sa.$2.$2 - sa.$1.$2);
+        final d2 = (sb.$2.$1 - sb.$1.$1, sb.$2.$2 - sb.$1.$2);
+        final len1 = math.sqrt(d1.$1 * d1.$1 + d1.$2 * d1.$2);
+        final len2 = math.sqrt(d2.$1 * d2.$1 + d2.$2 * d2.$2);
+        if (len1 == 0 || len2 == 0) {
+          _error('invalid_value', '约束引用的线段退化为点，无法比较方向。', path);
+          return;
+        }
+        final cross = d1.$1 * d2.$2 - d1.$2 * d2.$1;
+        final dot = d1.$1 * d2.$1 + d1.$2 * d2.$2;
+        final parallel = cross.abs() <= 1e-9 * len1 * len2;
+        switch (type) {
+          case VisualConstraintType.parallel:
+            if (!parallel) {
+              _violation('线段 $a 与 $b 不平行。', path);
+            }
+          case VisualConstraintType.perpendicular:
+            if (dot.abs() > 1e-9 * len1 * len2) {
+              _violation('线段 $a 与 $b 不垂直。', path);
+            }
+          case VisualConstraintType.angle:
+            final cosA = (dot / (len1 * len2)).clamp(-1.0, 1.0);
+            final degrees = math.acos(cosA) * 180 / math.pi;
+            if ((degrees - value!).abs() > 1e-4) {
+              _violation(
+                '线段 $a 与 $b 的夹角是 ${_fmt(degrees)}°，不是 ${_fmt(value)}°。',
+                path,
+              );
+            }
+          case VisualConstraintType.intersect:
+            if (parallel) {
+              _violation('线段 $a 与 $b 平行，不相交。', path);
+            }
+          case VisualConstraintType.distance:
+          case VisualConstraintType.onCircle:
+          case VisualConstraintType.midpoint:
+            break; // Unreachable: handled by the outer switch.
+        }
+      case VisualConstraintType.onCircle:
+        final p = _pointOf(point!, path);
+        final c = _circleOf(circle!, path);
+        if (p == null || c == null) return;
+        final actual = _dist(p, c.$1);
+        if ((actual - c.$2).abs() > 1e-6 * math.max(1, c.$2)) {
+          _violation(
+            '点 $point 不在圆 $circle 上（到圆心距离 ${_fmt(actual)}，半径 ${_fmt(c.$2)}）。',
+            path,
+          );
+        }
+      case VisualConstraintType.midpoint:
+        final p = _pointOf(point!, path);
+        final pa = _pointOf(a!, path);
+        final pb = _pointOf(b!, path);
+        if (p == null || pa == null || pb == null) return;
+        final mid = ((pa.$1 + pb.$1) / 2, (pa.$2 + pb.$2) / 2);
+        if ((p.$1 - mid.$1).abs() > 1e-6 || (p.$2 - mid.$2).abs() > 1e-6) {
+          _violation('点 $point 不是 $a 与 $b 的中点。', path);
+        }
+    }
+  }
+
+  /// A violated constraint is an error for an exact construction, and a
+  /// warning when the scene declares itself a schematic.
+  void _violation(String message, String path) {
+    if (_schematic) {
+      _warning('schematic_constraint', '示意图未按比例：$message', path);
+    } else {
+      _error('constraint_violated', message, path);
+    }
+  }
+
+  /// Literal position of a `point` element, or null (with an issue
+  /// recorded) when the id is unknown, not a point, or `$param`-bound.
+  (double, double)? _pointOf(String id, String path) {
+    final type = _elementTypesById[id];
+    if (type == null) {
+      _error('unknown_element', '约束引用了不存在的图元：$id。', path);
+      return null;
+    }
+    if (type != 'point') {
+      _error('invalid_value', '约束引用了非 point 图元：$id 是 $type。', path);
+      return null;
+    }
+    if (_boundPointIds.contains(id)) {
+      _warning('constraint_unverifiable', '约束引用的点 $id 绑定了参数，无法静态检查。', path);
+      return null;
+    }
+    return _pointPositions[id];
+  }
+
+  /// Literal endpoints of a `line`/`arrow` element, or null (with an
+  /// issue recorded) when the id is unknown, not a segment, or bound.
+  ((double, double), (double, double))? _segmentOf(String id, String path) {
+    final type = _elementTypesById[id];
+    if (type == null) {
+      _error('unknown_element', '约束引用了不存在的图元：$id。', path);
+      return null;
+    }
+    if (type != 'line' && type != 'arrow') {
+      _error('invalid_value', '约束引用了非线段图元：$id 是 $type。', path);
+      return null;
+    }
+    if (_boundSegmentIds.contains(id)) {
+      _warning('constraint_unverifiable', '约束引用的线段 $id 绑定了参数，无法静态检查。', path);
+      return null;
+    }
+    return _lineSegments[id];
+  }
+
+  /// Literal center and radius of a `circle` element, or null (with an
+  /// issue recorded) when the id is unknown, not a circle, or bound.
+  ((double, double), double)? _circleOf(String id, String path) {
+    final type = _elementTypesById[id];
+    if (type == null) {
+      _error('unknown_element', '约束引用了不存在的图元：$id。', path);
+      return null;
+    }
+    if (type != 'circle') {
+      _error('invalid_value', '约束引用了非 circle 图元：$id 是 $type。', path);
+      return null;
+    }
+    if (_boundCircleIds.contains(id)) {
+      _warning('constraint_unverifiable', '约束引用的圆 $id 绑定了参数，无法静态检查。', path);
+      return null;
+    }
+    return _circles[id];
+  }
+
+  static double _dist((double, double) a, (double, double) b) =>
+      math.sqrt((a.$1 - b.$1) * (a.$1 - b.$1) + (a.$2 - b.$2) * (a.$2 - b.$2));
+
+  static String _fmt(double value) => value == value.truncateToDouble()
+      ? value.toInt().toString()
+      : value.toStringAsFixed(4);
 
   /// Validates a `text`/`math_label` element: anchor point + non-empty
   /// text of at most 500 characters.

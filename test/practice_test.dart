@@ -190,6 +190,67 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('Visual answers: drag to a target, read a value off the graph', () {
+    // drag_to_target grades exactly like point_select (distance within
+    // the tap-sized tolerance), including the 0.5 fromJson default.
+    final drag = QuestionSpec.fromJson({
+      'kind': 'drag_to_target',
+      'stem': '把点 P 拖到 (2, 0)',
+      'answers': [
+        ['2,0'],
+      ],
+      'visual_id': 'v',
+    });
+    expect(drag.absoluteTolerance, 0.5);
+    expect(drag.grade(['2.1,0.2']), true);
+    expect(drag.grade(['2.6,0']), false);
+    expect(drag.grade(['not-a-point']), false);
+    // read_value grades like numeric, but requires a visual.
+    final read = QuestionSpec.fromJson({
+      'kind': 'read_value',
+      'stem': '读出抛物线顶点的纵坐标',
+      'answers': [
+        ['4'],
+      ],
+      'visual_id': 'v',
+      'absolute_tolerance': 0.1,
+    });
+    expect(read.grade(['4.05']), true);
+    expect(read.grade(['4.2']), false);
+    expect(read.grade(['abc']), false);
+    expect(
+      () => QuestionSpec.fromJson({
+        'kind': 'drag_to_target',
+        'stem': '把点拖到目标',
+        'answers': [
+          ['2,0'],
+        ],
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => QuestionSpec.fromJson({
+        'kind': 'read_value',
+        'stem': '读出数值',
+        'answers': [
+          ['4'],
+        ],
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => QuestionSpec.fromJson({
+        'kind': 'read_value',
+        'stem': '读出数值',
+        'answers': [
+          ['four'],
+        ],
+        'visual_id': 'v',
+      }),
+      throwsFormatException,
+    );
+  });
   test('Attempt drafts survive reopen, duplicate submissions are atomic, self assessment is separate', () async {
     final root = await Directory.systemTemp.createTemp('tixun-practice');
     var db = AppDatabase.file(File('${root.path}/test.sqlite'));

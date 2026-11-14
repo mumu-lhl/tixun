@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart'
 import 'package:tixun/core/visual/math/sampling.dart';
 import 'package:tixun/core/visual/model/visual_scene.dart';
 
+import 'circuit_geometry.dart';
 import 'visual_theme.dart';
 
 /// Maps model coordinates to canvas coordinates, preserving aspect ratio
@@ -18,6 +19,8 @@ class VisualCoordinateMapper {
     required this.modelRect,
     required this.canvasRect,
     required this.scale,
+    this.zoom = 1.0,
+    this.pan = ui.Offset.zero,
   });
 
   /// The model-space rect being shown (view range or auto-fit).
@@ -29,19 +32,29 @@ class VisualCoordinateMapper {
   /// Canvas pixels per model unit (uniform on both axes).
   final double scale;
 
+  /// Fullscreen pinch zoom about the view centre (1.0 = fit view).
+  final double zoom;
+
+  /// Fullscreen pan in canvas pixels (added after the zoom).
+  final ui.Offset pan;
+
   /// Model size of the shown view.
   ui.Size get viewSize => modelRect.size;
 
   factory VisualCoordinateMapper.fromScene(
     VisualScene scene,
-    ui.Size canvasSize,
-  ) {
+    ui.Size canvasSize, {
+    double zoom = 1.0,
+    ui.Offset pan = ui.Offset.zero,
+  }) {
     final modelRect = _resolveViewRect(scene);
     if (canvasSize.isEmpty) {
       return VisualCoordinateMapper._(
         modelRect: modelRect,
         canvasRect: ui.Rect.zero,
         scale: 1,
+        zoom: zoom,
+        pan: pan,
       );
     }
     final scale = math.min(
@@ -60,21 +73,35 @@ class VisualCoordinateMapper {
       modelRect: modelRect,
       canvasRect: canvasRect,
       scale: scale,
+      zoom: zoom,
+      pan: pan,
     );
   }
 
-  ui.Offset modelToCanvas(ui.Offset model) => ui.Offset(
-    canvasRect.left + (model.dx - modelRect.left) * scale,
-    canvasRect.bottom - (model.dy - modelRect.top) * scale,
-  );
+  ui.Offset modelToCanvas(ui.Offset model) {
+    final base = ui.Offset(
+      canvasRect.left + (model.dx - modelRect.left) * scale,
+      canvasRect.bottom - (model.dy - modelRect.top) * scale,
+    );
+    if (zoom == 1.0 && pan == ui.Offset.zero) return base;
+    final center = canvasRect.center;
+    return center + (base - center) * zoom + pan;
+  }
 
   /// Inverse of [modelToCanvas]: a canvas position back to model
   /// coordinates (used for drag hit-testing). The y axis points up, so
   /// the canvas y is measured from the bottom of the letterboxed rect.
-  ui.Offset canvasToModel(ui.Offset canvas) => ui.Offset(
-    modelRect.left + (canvas.dx - canvasRect.left) / scale,
-    modelRect.top + (canvasRect.bottom - canvas.dy) / scale,
-  );
+  ui.Offset canvasToModel(ui.Offset canvas) {
+    var point = canvas;
+    if (zoom != 1.0 || pan != ui.Offset.zero) {
+      final center = canvasRect.center;
+      point = center + (canvas - pan - center) / zoom;
+    }
+    return ui.Offset(
+      modelRect.left + (point.dx - canvasRect.left) / scale,
+      modelRect.top + (canvasRect.bottom - point.dy) / scale,
+    );
+  }
 
   /// Screen positions of the scene's `math_label` elements (for the
   /// widget's `Math.tex` overlays). Labels hidden by visibility rules are
@@ -230,6 +257,10 @@ void _collectPoints(
           ui.Offset(c.dx + r, c.dy + r),
         ]);
       }
+    case CircuitElement(from: final from, to: final to, at: final at):
+      add(from);
+      add(to);
+      add(at);
     case PlotElement(expression: final expression, domain: final domain):
       final range = domain ?? (-10.0, 10.0);
       _collectCurvePoints(
@@ -383,12 +414,19 @@ bool _pointInPolygon(ui.Offset p, List<ui.Offset> poly) {
 }
 
 /// Whether this scene gets axes + grid: always for `plot2d`/`chart`;
-/// for other kinds only when a view is present and `model.showAxes` is
-/// not false.
-bool _drawAxes(VisualScene scene) {
+/// for `geometry`/`physics`/`vector` when a view is present and
+/// `model.showAxes` is not false; for `circuit`/`chemistry`/`geography`
+/// (diagrams, not coordinate plots) only when `model.showAxes` is
+/// explicitly true.
+bool visualSceneDrawsAxes(VisualScene scene) {
   if (scene.kind == VisualSceneKind.plot2d ||
       scene.kind == VisualSceneKind.chart) {
     return true;
+  }
+  if (scene.kind == VisualSceneKind.circuit ||
+      scene.kind == VisualSceneKind.chemistry ||
+      scene.kind == VisualSceneKind.geography) {
+    return scene.model?.showAxes == true;
   }
   return scene.view != null && scene.model?.showAxes != false;
 }
@@ -430,6 +468,8 @@ class VisualPainter extends CustomPainter {
     this.pointOverrides = const {},
     this.timeMs = 0,
     this.stepIndex = 0,
+    this.zoom = 1.0,
+    this.pan = ui.Offset.zero,
     this.tickLabelStyle = const TextStyle(fontSize: 11),
   });
 
@@ -451,6 +491,11 @@ class VisualPainter extends CustomPainter {
   final double timeMs;
   final int stepIndex;
 
+  /// Fullscreen pinch zoom (1.0 = fit view) and pan in canvas pixels.
+  /// The chat card and PNG export always render the fit view.
+  final double zoom;
+  final ui.Offset pan;
+
   /// Style for axis tick labels (resolved in `build()` from the theme's
   /// `textTheme.bodySmall`; the painter never calls `Theme.of`).
   final TextStyle tickLabelStyle;
@@ -458,12 +503,17 @@ class VisualPainter extends CustomPainter {
   @override
   void paint(ui.Canvas canvas, ui.Size size) {
     if (size.isEmpty) return;
-    final mapper = VisualCoordinateMapper.fromScene(scene, size);
+    final mapper = VisualCoordinateMapper.fromScene(
+      scene,
+      size,
+      zoom: zoom,
+      pan: pan,
+    );
     canvas.drawRect(
       ui.Offset.zero & size,
       ui.Paint()..color = palette.background,
     );
-    if (_drawAxes(scene)) {
+    if (visualSceneDrawsAxes(scene)) {
       _paintAxes(canvas, mapper);
     }
     final modelExpression = scene.model?.expression;
@@ -840,6 +890,126 @@ class VisualPainter extends CustomPainter {
           maxSamples: samples ?? 1024,
           domain: domain,
         );
+      case CircuitElement(
+        component: final component,
+        from: final from,
+        to: final to,
+        at: final at,
+        closed: final closed,
+        meter: final meter,
+        label: final label,
+      ):
+        // A const-constructed element may lack the fields its component
+        // requires; fromJson guarantees them, so treat a missing one as
+        // unresolvable (skip the element) rather than throwing.
+        ui.Offset? pointOf(VisualPoint? p) =>
+            p == null ? null : resolvePoint(p, parameters);
+        ui.Offset? mid;
+        switch (component) {
+          case CircuitComponent.wire:
+            final a = pointOf(from);
+            final b = pointOf(to);
+            if (a == null || b == null) return;
+            mid = (a + b) / 2;
+            final pa = mapper.modelToCanvas(a);
+            final pb = mapper.modelToCanvas(b);
+            if (dashed) {
+              _drawDashedPath(canvas, [pa, pb], stroke());
+            } else {
+              canvas.drawLine(pa, pb, stroke());
+            }
+            final dot = ui.Paint()..color = color;
+            canvas.drawCircle(pa, 2.5, dot);
+            canvas.drawCircle(pb, 2.5, dot);
+          case CircuitComponent.resistor:
+            final a = pointOf(from);
+            final b = pointOf(to);
+            if (a == null || b == null) return;
+            mid = (a + b) / 2;
+            final canvasPoints = [
+              for (final p in circuitZigzagPoints(a, b))
+                mapper.modelToCanvas(p),
+            ];
+            final path = ui.Path()
+              ..moveTo(canvasPoints.first.dx, canvasPoints.first.dy);
+            for (final p in canvasPoints.skip(1)) {
+              path.lineTo(p.dx, p.dy);
+            }
+            canvas.drawPath(path, stroke());
+          case CircuitComponent.battery:
+            final a = pointOf(from);
+            final b = pointOf(to);
+            if (a == null || b == null) return;
+            mid = (a + b) / 2;
+            final plates = circuitBatteryPlates(a, b);
+            final longCenter = (plates.longA + plates.longB) / 2;
+            final shortCenter = (plates.shortA + plates.shortB) / 2;
+            canvas.drawLine(
+              mapper.modelToCanvas(a),
+              mapper.modelToCanvas(longCenter),
+              stroke(),
+            );
+            canvas.drawLine(
+              mapper.modelToCanvas(shortCenter),
+              mapper.modelToCanvas(b),
+              stroke(),
+            );
+            canvas.drawLine(
+              mapper.modelToCanvas(plates.longA),
+              mapper.modelToCanvas(plates.longB),
+              stroke(width: 2.5),
+            );
+            canvas.drawLine(
+              mapper.modelToCanvas(plates.shortA),
+              mapper.modelToCanvas(plates.shortB),
+              stroke(width: 2.5),
+            );
+          case CircuitComponent.powerSwitch:
+            final a = pointOf(from);
+            final b = pointOf(to);
+            if (a == null || b == null) return;
+            mid = (a + b) / 2;
+            for (final (s, e) in circuitSwitchSegments(a, b, closed)) {
+              final ps = mapper.modelToCanvas(s);
+              final pe = mapper.modelToCanvas(e);
+              if (dashed && closed) {
+                _drawDashedPath(canvas, [ps, pe], stroke());
+              } else {
+                canvas.drawLine(ps, pe, stroke());
+              }
+            }
+            if (!closed) {
+              // Contact dot at the open end (65% along).
+              final contact = a + (b - a) * 0.65;
+              canvas.drawCircle(
+                mapper.modelToCanvas(contact),
+                2.5,
+                ui.Paint()..color = color,
+              );
+            }
+          case CircuitComponent.meter:
+            final point = pointOf(at);
+            if (point == null) return;
+            mid = point;
+            final center = mapper.modelToCanvas(point);
+            canvas.drawCircle(center, 14, stroke());
+            _paintText(
+              canvas,
+              center + const ui.Offset(-4, -8),
+              meter == CircuitMeterKind.ammeter ? 'A' : 'V',
+              const TextStyle(fontSize: 14),
+              color,
+            );
+        }
+        if (label != null) {
+          _paintText(
+            canvas,
+            mapper.modelToCanvas(mid) + const ui.Offset(7, -7),
+            label,
+            const TextStyle(fontSize: 12),
+            palette.textMuted,
+          );
+        }
     }
   }
 
@@ -870,6 +1040,8 @@ class VisualPainter extends CustomPainter {
         !mapEquals(oldDelegate.pointOverrides, pointOverrides) ||
         oldDelegate.timeMs != timeMs ||
         oldDelegate.stepIndex != stepIndex ||
+        oldDelegate.zoom != zoom ||
+        oldDelegate.pan != pan ||
         oldDelegate.tickLabelStyle != tickLabelStyle;
   }
 }

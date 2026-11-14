@@ -261,4 +261,47 @@ void main() {
       expect(await db.select(db.practiceQuestions).get(), hasLength(2));
     },
   );
+
+  test(
+    'create_quiz accepts drag_to_target and read_value with a visual',
+    () async {
+      await _seedSession(db, 's', 'r1');
+      final id = await visual.create(sceneJson: _sceneJson, messageId: 'r1');
+      final drag = await runQuiz({
+        'kind': 'drag_to_target',
+        'stem': '把点 P 拖到 (2, 0)',
+        'subject': '数学',
+        'answers': [
+          ['2,0'],
+        ],
+        'explanation': '目标在 (2, 0)。',
+        'visual_id': id,
+      }, callId: 'c1');
+      expect(drag['ok'], true);
+      final dragId = drag['question_id'] as String;
+      expect((await practice.detail(dragId)).spec.kind, 'drag_to_target');
+      final read = await runQuiz({
+        'kind': 'read_value',
+        'stem': '读出抛物线顶点的纵坐标',
+        'subject': '数学',
+        'answers': [
+          ['-4'],
+        ],
+        'explanation': '顶点在 (0, -4)。',
+        'visual_id': id,
+      }, callId: 'c2');
+      expect(read['ok'], true);
+      final noVisual = await runQuiz({
+        'kind': 'read_value',
+        'stem': '读出数值',
+        'subject': '数学',
+        'answers': [
+          ['4'],
+        ],
+        'explanation': '无图。',
+      }, callId: 'c3');
+      expect(noVisual['ok'], false);
+      expect(await db.select(db.practiceQuestions).get(), hasLength(2));
+    },
+  );
 }

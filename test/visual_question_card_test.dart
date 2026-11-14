@@ -374,4 +374,48 @@ void main() {
     });
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Drag-to-target: dragging the point answers and grades', (
+    tester,
+  ) async {
+    const scene =
+        '{"v":1,"kind":"geometry","title":"拖点图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"P","draggable":true}],"meta":{"alt":"拖点"}}';
+    final questionId = await createVisualQuestion(
+      tester,
+      'drag_to_target',
+      scene,
+      [
+        ['2,0'],
+      ],
+    );
+    await pumpScaffold(tester, QuestionCard(questionId));
+    // No text field and no option rows: the visual is the control.
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byKey(const Key('option-A')), findsNothing);
+    // The canvas is 358 wide for a 6-unit view, letterboxed to a
+    // 44.75 px/unit scale: dragging 90 px right moves the point from
+    // model (0,0) to about (2.01, 0), inside the 0.5 tolerance.
+    final canvas = find.byKey(const Key('visual-canvas-paint'));
+    await tester.dragFrom(tester.getCenter(canvas), const Offset(90, 0));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('已选点：'), findsOneWidget);
+    await submitAndCheck(tester, questionId, true);
+  });
+
+  testWidgets('Read-value: typing the value read off the graph grades', (
+    tester,
+  ) async {
+    const scene =
+        '{"v":1,"kind":"plot2d","title":"抛物线","model":{"expression":"x^2-4"},"view":{"x":[-3,3],"y":[-5,6]},"meta":{"alt":"抛物线"}}';
+    final questionId = await createVisualQuestion(tester, 'read_value', scene, [
+      ['-4'],
+    ]);
+    await pumpScaffold(tester, QuestionCard(questionId));
+    // Read-value keeps the typed input: the visual is shown, and the
+    // answer is typed like a numeric question.
+    expect(find.byType(TextField), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '-4');
+    await tester.pumpAndSettle();
+    await submitAndCheck(tester, questionId, true);
+  });
 }
