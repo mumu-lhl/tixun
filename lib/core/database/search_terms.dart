@@ -3,7 +3,7 @@
 List<String> searchTerms(String query) {
   final term = query.trim();
   if (term.isEmpty) return const [];
-  if (term.startsWith('"') && term.endsWith('"') && term.length > 1) {
+  if (term.startsWith('"') && term.endsWith('"') && term.length > 2) {
     return [term.substring(1, term.length - 1)];
   }
   if (RegExp(r'[=+*/^<>\\(){}\[\],.:;!?-]').hasMatch(term)) return [term];
