@@ -143,13 +143,24 @@ class _SessionListState extends ConsumerState<SessionList> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(
-                      c.search.isNotEmpty
-                          ? context.l10n.noMatchingConversations
-                          : c.subjectFilter.isNotEmpty
-                          ? context.l10n.noConversationsInThisSubject
-                          : context.l10n.noConversationsYetStartWith,
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          c.search.isNotEmpty
+                              ? context.l10n.noMatchingConversations
+                              : c.subjectFilter.isNotEmpty
+                              ? context.l10n.noConversationsInThisSubject
+                              : context.l10n.noConversationsYetStartWith,
+                          textAlign: TextAlign.center,
+                        ),
+                        if (c.search.isNotEmpty && c.subjectFilter.isNotEmpty)
+                          TextButton(
+                            onPressed: () =>
+                                act(context, () => c.setSubjectFilter('')),
+                            child: Text(context.l10n.clearSubjectFilter),
+                          ),
+                      ],
                     ),
                   ),
                 )

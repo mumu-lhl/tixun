@@ -564,7 +564,7 @@
   "promptManager": "提示词管理",
   "unsavedPromptChanges": "提示词尚未保存",
   "savePromptBeforeLeaving": "要保存对提示词的更改再退出吗？",
-  "discardChanges": "丢弃更改",
+  "clearSubjectFilter": "搜索所有科目",
   "promptPreview": "提示词预览",
   "searchPrompts": "搜索提示词",
   "searchTitlesContentChaptersOr": "搜索标题、正文、章节或标签",

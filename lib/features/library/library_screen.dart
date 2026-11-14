@@ -884,6 +884,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                               height: 1.8,
                             ),
                           ),
+                          if (subjectFilter.isNotEmpty) ...[
+                            Text(
+                              context.l10n.currentSubject(
+                                l10nArgument(
+                                  context.subjectName(subjectFilter),
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => act(context, () async {
+                                await ref
+                                    .read(appControllerProvider)
+                                    .setSubjectFilter('');
+                              }),
+                              child: Text(context.l10n.clearSubjectFilter),
+                            ),
+                          ],
                           if (hasFilters)
                             TextButton.icon(
                               key: const Key('clear-empty-library-filters'),

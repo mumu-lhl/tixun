@@ -564,7 +564,7 @@
   "promptManager": "Prompt manager",
   "unsavedPromptChanges": "Unsaved prompt changes",
   "savePromptBeforeLeaving": "Would you like to save your prompt changes before leaving?",
-  "discardChanges": "Discard changes",
+  "clearSubjectFilter": "Search all subjects",
   "promptPreview": "Prompt preview",
   "searchPrompts": "Search prompts",
   "searchTitlesContentChaptersOr": "Search titles, content, chapters or tags",
