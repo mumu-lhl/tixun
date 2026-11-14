@@ -20,11 +20,15 @@
 /// statically). A structurally valid scene whose math can be checked
 /// locally is `verified`.
 ///
-/// `computed` is intentionally an empty map for now: derived values
-/// (zeros, intersections, extrema) are filled by the math slice via a
-/// separate function. Sampling-based warnings (e.g. a curve with fewer
-/// than 2 finite samples in view) are likewise deferred to the math slice
-/// — this validator must not implement sampling.
+/// `computed` is intentionally an empty map: derived values (zeros,
+/// intersections, extrema) are computed by the tool layer with
+/// `computeDerivedValues` and attached to the tool result (documented
+/// layering, not a gap). The one sampling-flavoured check this validator
+/// does own is the finite-sample probe for plot curves (see
+/// [_checkCurveSamples]): it evaluates the expression at the render
+/// resolution to count finite samples in view, using only the expression
+/// evaluator — full curve sampling (segments, pole breaks) stays in the
+/// math slice.
 library;
 
 import 'dart:convert';
@@ -34,7 +38,9 @@ import 'package:tixun/core/visual/math/expression.dart';
 import 'package:tixun/core/visual/model/visual_constraints.dart';
 import 'package:tixun/core/visual/model/visual_elements.dart';
 
-/// Maximum serialized scene JSON size (bytes of `jsonEncode` output).
+/// Maximum serialized scene JSON size, in UTF-8 bytes of the
+/// `jsonEncode` output (not UTF-16 code units: a 40000-character CJK
+/// title is ~120 KiB and must count as over the limit).
 const visualMaxSceneJsonBytes = 64 * 1024;
 
 /// Maximum element count, counting group children.
@@ -42,6 +48,10 @@ const visualMaxElements = 256;
 
 /// Maximum curve samples per `plot` element.
 const visualMaxPlotSamples = 4096;
+
+/// Default curve samples when a `plot` element omits `samples`
+/// (mirrors the renderer default).
+const visualDefaultPlotSamples = 1024;
 
 /// Maximum controls per scene.
 const visualMaxControls = 12;
@@ -134,9 +144,8 @@ class VisualValidation {
   final List<VisualIssue> errors;
   final List<VisualIssue> warnings;
 
-  /// Derived values (zeros, intersections, extrema). Empty in v1; the
-  /// math slice fills this via a separate function.
-  // TODO(visual-math): populate computed values (zeros/intersections/extrema).
+  /// Derived values (zeros, intersections, extrema). Always empty from
+  /// this validator; the tool layer fills it via `computeDerivedValues`.
   final Map<String, dynamic> computed;
 
   /// `'verified' | 'schematic' | 'unverified'`.
@@ -197,6 +206,12 @@ class _Validator {
   /// Parameter names declared by `model.parameters`.
   final _parameters = <String>{};
 
+  /// Parameter values declared by `model.parameters`, for folding
+  /// `if()`/`&&`/`||` conditions when checking unknown variables: a
+  /// branch whose condition folds to a constant under these values can
+  /// never run, so its variables are not reported.
+  final _parameterValues = <String, double>{};
+
   /// All element ids (including group children).
   final _elementIds = <String>{};
 
@@ -230,6 +245,34 @@ class _Validator {
   final _boundSegmentIds = <String>{};
   final _boundCircleIds = <String>{};
 
+  /// Ids whose element type is known but whose literal geometry is
+  /// missing or malformed (not bound): the element error already covers
+  /// the shape, but a constraint referencing such an id must still
+  /// record that it cannot be checked, instead of silently skipping.
+  final _unresolvedPointIds = <String>{};
+  final _unresolvedSegmentIds = <String>{};
+  final _unresolvedCircleIds = <String>{};
+
+  /// Whether the `elements` section itself was malformed (present but
+  /// not an array): the geometry maps are then empty by construction,
+  /// so constraint evaluation would only produce cascade noise and is
+  /// skipped entirely.
+  var _elementsMalformed = false;
+
+  /// Plot curves to probe for finite samples once the view is known
+  /// (expression, domain, effective sample count, JSON path). The model
+  /// expression is recorded separately (domain-less).
+  final _plotCurves =
+      <
+        ({
+          String expression,
+          (double, double)? domain,
+          int samples,
+          String path,
+        })
+      >[];
+  String? _modelExpression;
+
   /// Whether `meta.schematic` is true (set in `run` before element and
   /// constraint checks, so violations can downgrade to warnings).
   var _schematic = false;
@@ -248,7 +291,9 @@ class _Validator {
 
   VisualValidation run(Map<String, dynamic> json) {
     try {
-      if (jsonEncode(json).length > visualMaxSceneJsonBytes) {
+      // UTF-8 bytes, not String.length (UTF-16 units): the limit is a
+      // wire-size bound, and a CJK-heavy scene is ~3x its .length.
+      if (utf8.encode(jsonEncode(json)).length > visualMaxSceneJsonBytes) {
         _error(
           'scene_too_large',
           '场景数据超过 ${visualMaxSceneJsonBytes ~/ 1024} KiB。',
@@ -289,7 +334,10 @@ class _Validator {
     _checkModel(json['model']);
     _checkView(json['view']);
     _checkElements(json['elements']);
-    _checkConstraints(json['constraints']);
+    // When the elements section itself is malformed the geometry maps
+    // are empty by construction; evaluating constraints against them
+    // would only add cascade noise on top of the elements error.
+    if (!_elementsMalformed) _checkConstraints(json['constraints']);
     _checkControls(json['controls']);
     _checkTimeline(json['timeline']);
     _checkAnnotations(json['annotations']);
@@ -306,7 +354,7 @@ class _Validator {
         );
       } else if (kind != 'toggle') {
         _error(
-          'unknown_control',
+          'invalid_control_kind',
           'visibleWhen 只能引用 toggle 控件：${ref.control} 是 $kind。',
           ref.path,
         );
@@ -387,20 +435,28 @@ class _Validator {
 
   /// Validates an expression string; reports parse failures and references
   /// to variables outside [allowedVars] (plus the built-ins x/t/pi/e).
-  void _checkExpression(String source, String path) {
+  /// The unknown-variable check respects `if()`/`&&`/`||` laziness: a
+  /// variable that only appears in a branch whose condition folds to a
+  /// constant under the model parameters can never be read, so it is not
+  /// reported (see [Expression.variablesReachable]). Returns true when
+  /// no issue was recorded for this expression.
+  bool _checkExpression(String source, String path) {
     Expression expr;
     try {
       expr = Expression.parse(source);
     } on FormatException catch (e) {
       _error('expression_error', '表达式无效：${e.message}', path);
-      return;
+      return false;
     }
     const allowed = {'x', 't', 'pi', 'e'};
-    for (final name in expr.variables) {
+    var ok = true;
+    for (final name in expr.variablesReachable(_parameterValues)) {
       if (!allowed.contains(name) && !_parameters.contains(name)) {
         _error('unknown_variable', '表达式引用了未知变量：$name。', path);
+        ok = false;
       }
     }
+    return ok;
   }
 
   /// Validates a coordinate component; returns its literal value, or null
@@ -430,8 +486,12 @@ class _Validator {
   }
 
   /// Validates a `[x, y]` point; returns the literal pair, or null when
-  /// any component is a binding or invalid.
+  /// any component is a binding or invalid. A null input returns null
+  /// silently: callers report it as a missing field, so a missing value
+  /// is never reported twice (once here as `invalid_type`, once there
+  /// as `missing_field`).
   (double, double)? _checkPoint(dynamic raw, String path) {
+    if (raw == null) return null;
     if (raw is! List || raw.length != 2) {
       _error('invalid_type', '坐标点必须是 [x, y] 形式的数组。', path);
       return null;
@@ -499,6 +559,7 @@ class _Validator {
             continue;
           }
           _parameters.add(entry.key);
+          _parameterValues[entry.key] = value.toDouble();
         }
       }
     }
@@ -512,7 +573,9 @@ class _Validator {
       } else if (expression.trim().isEmpty) {
         _error('invalid_value', 'model 的 expression 不能为空。', 'model.expression');
       } else {
-        _checkExpression(expression, 'model.expression');
+        _modelExpression = _checkExpression(expression, 'model.expression')
+            ? expression
+            : null;
       }
     }
   }
@@ -533,6 +596,7 @@ class _Validator {
     if (raw == null) return;
     if (raw is! List) {
       _error('invalid_type', 'elements 必须是数组。', 'elements');
+      _elementsMalformed = true;
       return;
     }
     var count = 0;
@@ -612,7 +676,12 @@ class _Validator {
     } else if (!_elementIds.add(id)) {
       _error('duplicate_id', '图元 id 重复：$id。', '$path.id');
     }
-    if (id is String && id.isNotEmpty) _elementTypesById[id] = type;
+    // First duplicate wins for constraint resolution: a duplicated id
+    // already errors, but resolving to the first element keeps the
+    // reported geometry stable instead of silently switching to the last.
+    if (id is String && id.isNotEmpty) {
+      _elementTypesById.putIfAbsent(id, () => type);
+    }
 
     // style / layer / visible / visibleWhen
     if (element['style'] != null) {
@@ -658,7 +727,13 @@ class _Validator {
             path: '$path.visibleWhen.control',
           ));
         }
-        if (gateMap['equals'] != null && gateMap['equals'] is! bool) {
+        if (gateMap['equals'] == null) {
+          _error(
+            'missing_field',
+            'visibleWhen 缺少字段：equals。',
+            '$path.visibleWhen.equals',
+          );
+        } else if (gateMap['equals'] is! bool) {
           _error(
             'invalid_type',
             'visibleWhen 的 equals 必须是布尔值。',
@@ -674,11 +749,18 @@ class _Validator {
         final at = _checkPoint(element['at'], '$path.at');
         if (at != null) {
           _literalBounds.add((at.$1, at.$2, at.$1, at.$2));
-          if (id is String) _pointPositions[id] = at;
+          if (id is String) _pointPositions.putIfAbsent(id, () => at);
         } else if (id is String && _isBoundPoint(element['at'])) {
           _boundPointIds.add(id);
         } else if (element['at'] == null) {
           _error('missing_field', 'point 图元缺少字段：at。', '$path.at');
+        }
+        if (at == null && id is String && !_boundPointIds.contains(id)) {
+          // Literal geometry missing or malformed (and not bound): the
+          // element error above covers the shape; record the id so a
+          // constraint referencing it can say it is unresolvable
+          // instead of silently skipping.
+          _unresolvedPointIds.add(id);
         }
         if (element['label'] != null && element['label'] is! String) {
           _error('invalid_type', 'point 图元的 label 必须是文字。', '$path.label');
@@ -693,12 +775,7 @@ class _Validator {
           // A dragged point is positioned by the user's finger, so its
           // coordinates must be literals; a `$param`-bound point has no
           // fixed position to drag from.
-          final rawAt = element['at'];
-          final bound =
-              rawAt is List &&
-              rawAt.length == 2 &&
-              (rawAt[0] is Map || rawAt[1] is Map);
-          if (bound) {
+          if (_isBoundPoint(element['at'])) {
             _error(
               'invalid_value',
               'draggable 的 point 图元的 at 必须是字面坐标，不能绑定参数。',
@@ -709,10 +786,12 @@ class _Validator {
       case 'line':
         final linePoints = _checkLinePoints(element, path);
         if (linePoints.length == 2 && id is String) {
-          _lineSegments[id] = (linePoints[0], linePoints[1]);
+          _lineSegments.putIfAbsent(id, () => (linePoints[0], linePoints[1]));
         } else if (id is String &&
             (_isBoundPoint(element['p1']) || _isBoundPoint(element['p2']))) {
           _boundSegmentIds.add(id);
+        } else if (id is String) {
+          _unresolvedSegmentIds.add(id);
         }
         if (element['dashed'] != null && element['dashed'] is! bool) {
           _error('invalid_type', 'line 图元的 dashed 必须是布尔值。', '$path.dashed');
@@ -754,9 +833,11 @@ class _Validator {
             center.$1 + r,
             center.$2 + r,
           ));
-          if (id is String) _circles[id] = (center, r);
+          if (id is String) _circles.putIfAbsent(id, () => (center, r));
         } else if (id is String && _isBoundPoint(element['center'])) {
           _boundCircleIds.add(id);
+        } else if (id is String) {
+          _unresolvedCircleIds.add(id);
         }
       case 'arc':
         final center = _checkPoint(element['center'], '$path.center');
@@ -795,10 +876,12 @@ class _Validator {
       case 'arrow':
         final arrowPoints = _checkLinePoints(element, path);
         if (arrowPoints.length == 2 && id is String) {
-          _lineSegments[id] = (arrowPoints[0], arrowPoints[1]);
+          _lineSegments.putIfAbsent(id, () => (arrowPoints[0], arrowPoints[1]));
         } else if (id is String &&
             (_isBoundPoint(element['from']) || _isBoundPoint(element['to']))) {
           _boundSegmentIds.add(id);
+        } else if (id is String) {
+          _unresolvedSegmentIds.add(id);
         }
       case 'text':
         _checkLabeledPoint(element, path, 'text', 'text');
@@ -828,6 +911,7 @@ class _Validator {
         }
       case 'plot':
         final expression = element['expression'];
+        var expressionOk = false;
         if (expression == null) {
           _error(
             'missing_field',
@@ -847,7 +931,7 @@ class _Validator {
             '$path.expression',
           );
         } else {
-          _checkExpression(expression, '$path.expression');
+          expressionOk = _checkExpression(expression, '$path.expression');
         }
         if (element['domain'] != null) {
           // Domain validity is checked; its x-range is not used for the
@@ -855,17 +939,32 @@ class _Validator {
           // which this validator deliberately does not do).
           _checkRange(element['domain'], '$path.domain', 'plot 的 domain');
         }
-        if (element['samples'] != null) {
-          final samples = element['samples'];
-          if (samples is! int) {
+        // The samples cap applies to the effective count, not just an
+        // explicit value: a missing `samples` still renders at the
+        // default, so the check runs on the resolved value either way.
+        var effectiveSamples = visualDefaultPlotSamples;
+        final rawSamples = element['samples'];
+        if (rawSamples != null) {
+          if (rawSamples is! int) {
             _error('invalid_type', 'plot 图元的 samples 必须是整数。', '$path.samples');
-          } else if (samples <= 0 || samples > visualMaxPlotSamples) {
-            _error(
-              'invalid_range',
-              'plot 图元的 samples 必须在 1~$visualMaxPlotSamples 之间。',
-              '$path.samples',
-            );
+          } else {
+            effectiveSamples = rawSamples;
           }
+        }
+        if (effectiveSamples <= 0 || effectiveSamples > visualMaxPlotSamples) {
+          _error(
+            'invalid_range',
+            'plot 图元的 samples 必须在 1~$visualMaxPlotSamples 之间。',
+            '$path.samples',
+          );
+        }
+        if (expressionOk) {
+          _plotCurves.add((
+            expression: expression as String,
+            domain: _readRange(element['domain']),
+            samples: effectiveSamples,
+            path: path,
+          ));
         }
       case 'circuit':
         const components = {'battery', 'resistor', 'switch', 'wire', 'meter'};
@@ -949,10 +1048,19 @@ class _Validator {
   }
 
   /// True when [raw] is a well-formed `[x, y]` point with at least one
-  /// `$param`-bound component (as opposed to malformed, which already
-  /// errors elsewhere).
-  bool _isBoundPoint(dynamic raw) =>
-      raw is List && raw.length == 2 && (raw[0] is Map || raw[1] is Map);
+  /// `$param`-bound component: a component counts as bound only when it
+  /// is exactly `{"$param": "<name>"}` — any other map (a typo, a stray
+  /// field) is malformed, not a binding, and already errors elsewhere.
+  bool _isBoundPoint(dynamic raw) {
+    if (raw is! List || raw.length != 2) return false;
+    return _isParamBinding(raw[0]) || _isParamBinding(raw[1]);
+  }
+
+  static bool _isParamBinding(dynamic component) =>
+      component is Map<String, dynamic> &&
+      component.length == 1 &&
+      component[r'$param'] is String &&
+      (component[r'$param'] as String).isNotEmpty;
 
   /// Validates `constraints` (Phase 4): shape, references, then the
   /// geometric fact against literal coordinates.
@@ -980,12 +1088,6 @@ class _Validator {
       return;
     }
     final constraint = raw as Map<String, dynamic>;
-    _checkUnknownFields(
-      constraint,
-      const {'type', 'a', 'b', 'point', 'circle', 'value'},
-      '约束',
-      path,
-    );
     final typeRaw = constraint['type'];
     if (typeRaw == null) {
       _error('missing_field', '约束缺少字段：type。', '$path.type');
@@ -998,6 +1100,19 @@ class _Validator {
       _error('invalid_value', '未知的约束类型：$typeRaw。', '$path.type');
       return;
     }
+    // Fields are per-type: a `value` on a `parallel` constraint (or an
+    // `a` on an `on_circle`) is silently stored today, so it must be
+    // rejected here, not just ignored.
+    const perTypeFields = {
+      VisualConstraintType.distance: {'type', 'a', 'b', 'value'},
+      VisualConstraintType.parallel: {'type', 'a', 'b'},
+      VisualConstraintType.perpendicular: {'type', 'a', 'b'},
+      VisualConstraintType.intersect: {'type', 'a', 'b'},
+      VisualConstraintType.onCircle: {'type', 'point', 'circle'},
+      VisualConstraintType.angle: {'type', 'a', 'b', 'value'},
+      VisualConstraintType.midpoint: {'type', 'point', 'a', 'b'},
+    };
+    _checkUnknownFields(constraint, perTypeFields[type]!, '约束', path);
     var shapeOk = true;
     String? idField(String key) {
       final value = constraint[key];
@@ -1077,7 +1192,17 @@ class _Validator {
         final pb = _pointOf(b!, path);
         if (pa == null || pb == null) return;
         final actual = _dist(pa, pb);
-        if ((actual - value!).abs() > 1e-6 * math.max(1, value.abs())) {
+        // Relative tolerance: an absolute 1e-6 floor leaves small-scale
+        // geometry effectively unchecked (a 1e-9 triangle passes any
+        // value within 1e-6). The scale is the distance itself; when
+        // the required distance is 0, fall back to the coordinate
+        // magnitude so coincident points are still checkable.
+        final distanceTol =
+            1e-6 *
+            (value! == 0
+                ? math.max(_coordMagnitude(pa), _coordMagnitude(pb))
+                : value.abs());
+        if ((actual - value).abs() > distanceTol) {
           _violation('点 $a 与 $b 的距离是 ${_fmt(actual)}，不是 ${_fmt(value)}。', path);
         }
       case VisualConstraintType.parallel:
@@ -1089,8 +1214,8 @@ class _Validator {
         if (sa == null || sb == null) return;
         final d1 = (sa.$2.$1 - sa.$1.$1, sa.$2.$2 - sa.$1.$2);
         final d2 = (sb.$2.$1 - sb.$1.$1, sb.$2.$2 - sb.$1.$2);
-        final len1 = math.sqrt(d1.$1 * d1.$1 + d1.$2 * d1.$2);
-        final len2 = math.sqrt(d2.$1 * d2.$1 + d2.$2 * d2.$2);
+        final len1 = _dist(sa.$1, sa.$2);
+        final len2 = _dist(sb.$1, sb.$2);
         if (len1 == 0 || len2 == 0) {
           _error('invalid_value', '约束引用的线段退化为点，无法比较方向。', path);
           return;
@@ -1147,7 +1272,9 @@ class _Validator {
         final c = _circleOf(circle!, path);
         if (p == null || c == null) return;
         final actual = _dist(p, c.$1);
-        if ((actual - c.$2).abs() > 1e-6 * math.max(1, c.$2)) {
+        // Relative to the radius: a 1e-9 circle with a point 5e-7 off
+        // must fail, where the old absolute 1e-6 floor passed it.
+        if ((actual - c.$2).abs() > 1e-6 * c.$2) {
           _violation(
             '点 $point 不在圆 $circle 上（到圆心距离 ${_fmt(actual)}，半径 ${_fmt(c.$2)}）。',
             path,
@@ -1159,7 +1286,17 @@ class _Validator {
         final pb = _pointOf(b!, path);
         if (p == null || pa == null || pb == null) return;
         final mid = ((pa.$1 + pb.$1) / 2, (pa.$2 + pb.$2) / 2);
-        if ((p.$1 - mid.$1).abs() > 1e-6 || (p.$2 - mid.$2).abs() > 1e-6) {
+        // Relative to the coordinate scale of the three points, so a
+        // 1e-9-scale midpoint is checked at 1e-15, not at an absolute
+        // 1e-6 that would swallow the whole figure.
+        final midpointTol =
+            1e-6 *
+            math.max(
+              _coordMagnitude(p),
+              math.max(_coordMagnitude(pa), _coordMagnitude(pb)),
+            );
+        if ((p.$1 - mid.$1).abs() > midpointTol ||
+            (p.$2 - mid.$2).abs() > midpointTol) {
           _violation('点 $point 不是 $a 与 $b 的中点。', path);
         }
     }
@@ -1176,7 +1313,8 @@ class _Validator {
   }
 
   /// Literal position of a `point` element, or null (with an issue
-  /// recorded) when the id is unknown, not a point, or `$param`-bound.
+  /// recorded) when the id is unknown, not a point, `$param`-bound, or
+  /// its geometry is missing/malformed.
   (double, double)? _pointOf(String id, String path) {
     final type = _elementTypesById[id];
     if (type == null) {
@@ -1191,11 +1329,17 @@ class _Validator {
       _warning('constraint_unverifiable', '约束引用的点 $id 绑定了参数，无法静态检查。', path);
       return null;
     }
-    return _pointPositions[id];
+    final position = _pointPositions[id];
+    if (position == null && _unresolvedPointIds.contains(id)) {
+      _error('unresolved_geometry', '约束引用的点 $id 坐标无效，无法检查该约束。', path);
+      return null;
+    }
+    return position;
   }
 
   /// Literal endpoints of a `line`/`arrow` element, or null (with an
-  /// issue recorded) when the id is unknown, not a segment, or bound.
+  /// issue recorded) when the id is unknown, not a segment, bound, or
+  /// its geometry is missing/malformed.
   ((double, double), (double, double))? _segmentOf(String id, String path) {
     final type = _elementTypesById[id];
     if (type == null) {
@@ -1210,11 +1354,17 @@ class _Validator {
       _warning('constraint_unverifiable', '约束引用的线段 $id 绑定了参数，无法静态检查。', path);
       return null;
     }
-    return _lineSegments[id];
+    final segment = _lineSegments[id];
+    if (segment == null && _unresolvedSegmentIds.contains(id)) {
+      _error('unresolved_geometry', '约束引用的线段 $id 端点无效，无法检查该约束。', path);
+      return null;
+    }
+    return segment;
   }
 
   /// Literal center and radius of a `circle` element, or null (with an
-  /// issue recorded) when the id is unknown, not a circle, or bound.
+  /// issue recorded) when the id is unknown, not a circle, bound, or
+  /// its geometry is missing/malformed.
   ((double, double), double)? _circleOf(String id, String path) {
     final type = _elementTypesById[id];
     if (type == null) {
@@ -1229,11 +1379,34 @@ class _Validator {
       _warning('constraint_unverifiable', '约束引用的圆 $id 绑定了参数，无法静态检查。', path);
       return null;
     }
-    return _circles[id];
+    final circle = _circles[id];
+    if (circle == null && _unresolvedCircleIds.contains(id)) {
+      _error('unresolved_geometry', '约束引用的圆 $id 圆心或半径无效，无法检查该约束。', path);
+      return null;
+    }
+    return circle;
   }
 
-  static double _dist((double, double) a, (double, double) b) =>
-      math.sqrt((a.$1 - b.$1) * (a.$1 - b.$1) + (a.$2 - b.$2) * (a.$2 - b.$2));
+  /// Distance between two points, computed hypot-style: scaling by the
+  /// larger component first avoids `dx * dx` overflowing at |dx| ~ 1e200
+  /// (and underflowing to 0 at |dx| ~ 1e-200). A component difference
+  /// that itself overflows (coordinates near ±1.7e308) yields infinity,
+  /// which is the honest double answer for such a separation.
+  static double _dist((double, double) a, (double, double) b) {
+    final dx = (a.$1 - b.$1).abs();
+    final dy = (a.$2 - b.$2).abs();
+    if (!dx.isFinite || !dy.isFinite) return double.infinity;
+    final m = math.max(dx, dy);
+    if (m == 0) return 0;
+    final x = dx / m;
+    final y = dy / m;
+    return m * math.sqrt(x * x + y * y);
+  }
+
+  /// Coordinate magnitude of a point (largest |component|), the scale
+  /// relative tolerances fall back to when the compared value is 0.
+  static double _coordMagnitude((double, double) p) =>
+      math.max(p.$1.abs(), p.$2.abs());
 
   static String _fmt(double value) => value == value.truncateToDouble()
       ? value.toInt().toString()
@@ -1400,7 +1573,7 @@ class _Validator {
           _error('missing_field', 'slider 控件缺少字段：value。', '$path.value');
         }
         if (min != null && max != null && min >= max) {
-          _error('invalid_range', 'slider 的 min 必须小于 max。', path);
+          _error('invalid_range', 'slider 的 min 必须小于 max。', '$path.min');
         }
         if (step != null && step <= 0) {
           _error('invalid_range', 'slider 的 step 必须大于 0。', '$path.step');
@@ -1433,14 +1606,18 @@ class _Validator {
         final options = control['options'];
         if (options == null) {
           _error('missing_field', 'choice 控件缺少字段：options。', '$path.options');
-        } else if (options is! List ||
-            options.isEmpty ||
-            options.any((o) => o is! String)) {
+        } else if (options is! List || options.any((o) => o is! String)) {
           _error(
             'invalid_type',
-            'choice 控件的 options 必须是非空文字数组。',
+            'choice 控件的 options 必须是文字数组。',
             '$path.options',
           );
+        } else if (options.isEmpty) {
+          // An empty option list can never hold a valid value (the
+          // value-membership check below would fail for any value), so
+          // it is a value error, not a type error. The contract's
+          // choice example always lists options.
+          _error('invalid_value', 'choice 控件的 options 不能为空。', '$path.options');
         }
         final value = control['value'];
         if (value == null) {
@@ -1481,7 +1658,15 @@ class _Validator {
       );
       return;
     }
-    if (durationMs is! int || durationMs <= 0) {
+    if (durationMs is! int) {
+      _error(
+        'invalid_type',
+        'timeline 的 durationMs 必须是整数。',
+        'timeline.durationMs',
+      );
+      return;
+    }
+    if (durationMs <= 0) {
       _error(
         'invalid_range',
         'timeline 的 durationMs 必须是正整数。',
@@ -1567,6 +1752,12 @@ class _Validator {
       _error('missing_field', 'track 缺少字段：target。', '$path.target');
     } else if (target is! String || target.isEmpty) {
       _error('invalid_type', 'track 的 target 必须是非空文字。', '$path.target');
+    } else if (!_controlKinds.containsKey(target)) {
+      _error(
+        'unknown_control',
+        'track 的 target 引用了不存在的控件：$target。',
+        '$path.target',
+      );
     } else if (_controlKinds[target] != 'slider') {
       _error(
         'invalid_track_target',
@@ -1586,7 +1777,9 @@ class _Validator {
     final endMs = track['endMs'];
     if (startMs == null) {
       _error('missing_field', 'track 缺少字段：startMs。', '$path.startMs');
-    } else if (startMs is! int || startMs < 0 || startMs > durationMs) {
+    } else if (startMs is! int) {
+      _error('invalid_type', 'track 的 startMs 必须是整数。', '$path.startMs');
+    } else if (startMs < 0 || startMs > durationMs) {
       _error(
         'invalid_range',
         'track 的 startMs 必须在 [0, durationMs] 之间。',
@@ -1595,7 +1788,9 @@ class _Validator {
     }
     if (endMs == null) {
       _error('missing_field', 'track 缺少字段：endMs。', '$path.endMs');
-    } else if (endMs is! int || endMs < 0 || endMs > durationMs) {
+    } else if (endMs is! int) {
+      _error('invalid_type', 'track 的 endMs 必须是整数。', '$path.endMs');
+    } else if (endMs < 0 || endMs > durationMs) {
       _error(
         'invalid_range',
         'track 的 endMs 必须在 [0, durationMs] 之间。',
@@ -1603,7 +1798,7 @@ class _Validator {
       );
     }
     if (startMs is int && endMs is int && startMs >= endMs) {
-      _error('invalid_range', 'track 的 startMs 必须小于 endMs。', path);
+      _error('invalid_range', 'track 的 startMs 必须小于 endMs。', '$path.startMs');
     }
   }
 
@@ -1624,7 +1819,9 @@ class _Validator {
     int? atMs;
     if (atMsRaw == null) {
       _error('missing_field', 'step 缺少字段：atMs。', '$path.atMs');
-    } else if (atMsRaw is! int || atMsRaw < 0 || atMsRaw > durationMs) {
+    } else if (atMsRaw is! int) {
+      _error('invalid_type', 'step 的 atMs 必须是整数。', '$path.atMs');
+    } else if (atMsRaw < 0 || atMsRaw > durationMs) {
       _error(
         'invalid_range',
         'step 的 atMs 必须在 [0, durationMs] 之间。',
@@ -1674,13 +1871,16 @@ class _Validator {
       if (annotation['at'] == null) {
         _error('missing_field', '标注缺少字段：at。', '$path.at');
       } else {
-        _checkPoint(annotation['at'], '$path.at');
+        final at = _checkPoint(annotation['at'], '$path.at');
+        if (at != null) _literalBounds.add((at.$1, at.$2, at.$1, at.$2));
       }
       final text = annotation['text'];
       if (text == null) {
         _error('missing_field', '标注缺少字段：text。', '$path.text');
-      } else if (text is! String || text.isEmpty) {
-        _error('invalid_type', '标注的 text 必须是非空文字。', '$path.text');
+      } else if (text is! String) {
+        _error('invalid_type', '标注的 text 必须是文字。', '$path.text');
+      } else if (text.isEmpty) {
+        _error('invalid_value', '标注的 text 不能为空。', '$path.text');
       }
     }
   }
@@ -1727,56 +1927,193 @@ class _Validator {
 
     // View vs content bounds.
     final view = json['view'];
-    if (_isMap(view) && _literalBounds.isNotEmpty) {
+    if (_isMap(view) && (_literalBounds.isNotEmpty || _plotCurves.isNotEmpty)) {
       final viewMap = view as Map<String, dynamic>;
-      var minX = _literalBounds.first.$1;
-      var minY = _literalBounds.first.$2;
-      var maxX = _literalBounds.first.$3;
-      var maxY = _literalBounds.first.$4;
+      final viewX = _readRange(viewMap['x']);
+      final viewY = _readRange(viewMap['y']);
+      // Content spans: literal bounds cover both axes; plot domains
+      // contribute their x-range (a curve's y-range needs sampling,
+      // which the finite-sample probe below handles separately).
+      double? contentMinX;
+      double? contentMaxX;
+      double? contentMinY;
+      double? contentMaxY;
       for (final b in _literalBounds) {
-        if (b.$1 < minX) minX = b.$1;
-        if (b.$2 < minY) minY = b.$2;
-        if (b.$3 > maxX) maxX = b.$3;
-        if (b.$4 > maxY) maxY = b.$4;
+        contentMinX = contentMinX == null ? b.$1 : math.min(contentMinX, b.$1);
+        contentMaxX = contentMaxX == null ? b.$3 : math.max(contentMaxX, b.$3);
+        contentMinY = contentMinY == null ? b.$2 : math.min(contentMinY, b.$2);
+        contentMaxY = contentMaxY == null ? b.$4 : math.max(contentMaxY, b.$4);
+      }
+      for (final curve in _plotCurves) {
+        final domain = curve.domain;
+        if (domain == null) continue;
+        contentMinX = contentMinX == null
+            ? domain.$1
+            : math.min(contentMinX, domain.$1);
+        contentMaxX = contentMaxX == null
+            ? domain.$2
+            : math.max(contentMaxX, domain.$2);
       }
       // A view range more than 5x the content span on either axis usually
       // means the author picked a range far larger than the drawing.
+      // A zero-span axis (a single point) still warns: its effective
+      // span is 1e-6 of its coordinate magnitude, so any macroscopic
+      // view around it counts as much larger.
       const factor = 5.0;
-      final viewX = _readRange(viewMap['x']);
-      final viewY = _readRange(viewMap['y']);
-      final contentSpanX = maxX - minX;
-      final contentSpanY = maxY - minY;
-      if (viewX != null &&
-          contentSpanX > 0 &&
-          viewX.$2 - viewX.$1 > contentSpanX * factor) {
-        _warning(
-          'view_much_larger_than_content',
-          'view.x 的范围远大于图形内容。',
-          'view.x',
-        );
+      if (viewX != null && contentMinX != null && contentMaxX != null) {
+        final span = _effectiveSpan(contentMinX, contentMaxX);
+        if (viewX.$2 - viewX.$1 > span * factor) {
+          _warning(
+            'view_much_larger_than_content',
+            'view.x 的范围远大于图形内容。',
+            'view.x',
+          );
+        }
       }
-      if (viewY != null &&
-          contentSpanY > 0 &&
-          viewY.$2 - viewY.$1 > contentSpanY * factor) {
-        _warning(
-          'view_much_larger_than_content',
-          'view.y 的范围远大于图形内容。',
-          'view.y',
-        );
+      if (viewY != null && contentMinY != null && contentMaxY != null) {
+        final span = _effectiveSpan(contentMinY, contentMaxY);
+        if (viewY.$2 - viewY.$1 > span * factor) {
+          _warning(
+            'view_much_larger_than_content',
+            'view.y 的范围远大于图形内容。',
+            'view.y',
+          );
+        }
       }
-      // Elements entirely outside the view.
-      if (viewX != null && viewY != null) {
+      // Elements outside the view: each axis is checked independently
+      // (a view may declare only x or only y), and a bound counts when
+      // it is entirely outside OR straddles an edge — judging only
+      // whole-bounding-box disjointness misses content the view clips.
+      if (viewX != null || viewY != null) {
+        bool outsideX((double, double) span) =>
+            viewX != null && (span.$2 < viewX.$1 || span.$1 > viewX.$2);
+        bool straddlesX((double, double) span) =>
+            viewX != null &&
+            ((span.$1 < viewX.$1 && span.$2 >= viewX.$1) ||
+                (span.$1 <= viewX.$2 && span.$2 > viewX.$2));
+        bool outsideY((double, double) span) =>
+            viewY != null && (span.$2 < viewY.$1 || span.$1 > viewY.$2);
+        bool straddlesY((double, double) span) =>
+            viewY != null &&
+            ((span.$1 < viewY.$1 && span.$2 >= viewY.$1) ||
+                (span.$1 <= viewY.$2 && span.$2 > viewY.$2));
+        var outside = false;
         for (final b in _literalBounds) {
-          if (b.$3 < viewX.$1 ||
-              b.$1 > viewX.$2 ||
-              b.$4 < viewY.$1 ||
-              b.$2 > viewY.$2) {
-            _warning('element_outside_view', '有图元完全位于 view 范围之外。');
+          if (outsideX((b.$1, b.$3)) ||
+              straddlesX((b.$1, b.$3)) ||
+              outsideY((b.$2, b.$4)) ||
+              straddlesY((b.$2, b.$4))) {
+            outside = true;
             break;
           }
         }
+        if (!outside) {
+          for (final curve in _plotCurves) {
+            final domain = curve.domain;
+            if (domain == null) continue;
+            if (outsideX(domain) || straddlesX(domain)) {
+              outside = true;
+              break;
+            }
+          }
+        }
+        if (outside) {
+          _warning('element_outside_view', '有图元全部或部分位于 view 范围之外。');
+        }
       }
     }
+
+    // Curves with fewer than 2 finite samples in view (contract
+    // warnings list): the curve parses and validates, but draws nothing
+    // (or a single dot) inside the view. With no view at all the whole
+    // domain counts as in view (auto-fit shows everything).
+    final viewMap = _isMap(view) ? view as Map<String, dynamic> : null;
+    final viewX = viewMap == null ? null : _readRange(viewMap['x']);
+    final viewY = viewMap == null ? null : _readRange(viewMap['y']);
+    for (final curve in _plotCurves) {
+      if (_countFiniteInViewSamples(
+            curve.expression,
+            curve.domain,
+            curve.samples,
+            viewX,
+            viewY,
+          ) <
+          2) {
+        _warning(
+          'curve_few_finite_samples',
+          '曲线在视图内的有限采样少于 2 个，图像可能不可见。',
+          curve.path,
+        );
+      }
+    }
+    final modelExpression = _modelExpression;
+    if (modelExpression != null &&
+        _countFiniteInViewSamples(
+              modelExpression,
+              null,
+              visualDefaultPlotSamples,
+              viewX,
+              viewY,
+            ) <
+            2) {
+      _warning(
+        'curve_few_finite_samples',
+        '曲线在视图内的有限采样少于 2 个，图像可能不可见。',
+        'model.expression',
+      );
+    }
+  }
+
+  /// Effective span of a content axis for the much-larger check: the
+  /// real span when positive, else a floor of 1e-6 of the coordinate
+  /// magnitude, so single-point content still warns on a macroscopic
+  /// view instead of dividing by zero.
+  static double _effectiveSpan(double min, double max) {
+    final span = max - min;
+    if (span > 0) return span;
+    return 1e-6 * math.max(1, math.max(min.abs(), max.abs()));
+  }
+
+  /// Counts finite samples of [expression] that fall inside the view:
+  /// sampled over the plot [domain] (the renderer samples the domain,
+  /// defaulting to (-10, 10)), keeping only samples whose x lies in
+  /// [viewX] (when present) and whose y lies in [viewY] (when present).
+  /// Returns early once 2 are found. Only the expression evaluator is
+  /// used — no segment math, so this stays a bounded probe, not full
+  /// curve sampling.
+  int _countFiniteInViewSamples(
+    String expression,
+    (double, double)? domain,
+    int samples,
+    (double, double)? viewX,
+    (double, double)? viewY,
+  ) {
+    final min = domain?.$1 ?? -10.0;
+    final max = domain?.$2 ?? 10.0;
+    if (min >= max) return 0;
+    Expression expr;
+    try {
+      expr = Expression.parse(expression);
+    } on FormatException {
+      return 0;
+    }
+    final count = math.min(math.max(samples, 2), visualMaxPlotSamples);
+    var finite = 0;
+    for (var i = 0; i < count; i++) {
+      final x = min + (max - min) * i / (count - 1);
+      if (viewX != null && (x < viewX.$1 || x > viewX.$2)) continue;
+      double y;
+      try {
+        y = expr.evaluate({..._parameterValues, 'x': x});
+      } on FormatException {
+        continue; // Non-finite (or unevaluatable) at this x.
+      }
+      if (!y.isFinite) continue;
+      if (viewY != null && (y < viewY.$1 || y > viewY.$2)) continue;
+      finite++;
+      if (finite >= 2) return finite;
+    }
+    return finite;
   }
 
   /// Reads a validated `[min, max]` range without reporting issues

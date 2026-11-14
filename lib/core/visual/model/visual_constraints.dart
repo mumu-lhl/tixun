@@ -171,6 +171,29 @@ class VisualConstraint {
           );
         }
     }
+    // Fields are per-type: a `value` on a `parallel` constraint (or an
+    // `a` on an `on_circle`) is not just ignored — it is rejected, so
+    // it cannot be stored and silently misread later. Mirrors the
+    // validator's per-type field check.
+    const perTypeFields = {
+      VisualConstraintType.distance: {'a', 'b', 'value'},
+      VisualConstraintType.parallel: {'a', 'b'},
+      VisualConstraintType.perpendicular: {'a', 'b'},
+      VisualConstraintType.intersect: {'a', 'b'},
+      VisualConstraintType.onCircle: {'point', 'circle'},
+      VisualConstraintType.angle: {'a', 'b', 'value'},
+      VisualConstraintType.midpoint: {'point', 'a', 'b'},
+    };
+    final allowedFields = perTypeFields[type]!;
+    for (final key in ['a', 'b', 'point', 'circle', 'value']) {
+      if (!allowedFields.contains(key) && json[key] != null) {
+        throw AppFormatException(
+          AppErrorCode.errorInvalidParameterType,
+          '${type.dslName} 约束不需要 $key 字段。',
+          [key],
+        );
+      }
+    }
     return VisualConstraint(
       type: type,
       a: a,

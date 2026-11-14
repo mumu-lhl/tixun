@@ -16,18 +16,28 @@ import 'package:tixun/core/visual/render/visual_theme.dart';
 /// Opens [scene] fullscreen (a [PageRouteBuilder], not a go_router route —
 /// same pattern as `showImageViewer`). When [autoplay] is true, playback
 /// starts at time 0 once the page opens (unless animations are disabled).
+///
+/// [allowDrag] gates dragging points in the fullscreen page: the
+/// standalone player allows exploratory dragging (local only, never
+/// persisted); a question card passes false so its fullscreen stays
+/// view-only and a fullscreen drag can never move the answer.
 Future<void> showVisualFullscreen(
   BuildContext context,
   VisualScene scene, {
   String? title,
   bool autoplay = false,
+  bool allowDrag = true,
 }) {
   return Navigator.of(context).push<void>(
     PageRouteBuilder<void>(
       transitionsBuilder: (context, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
-      pageBuilder: (context, _, _) =>
-          _VisualFullscreenPage(scene: scene, title: title, autoplay: autoplay),
+      pageBuilder: (context, _, _) => _VisualFullscreenPage(
+        scene: scene,
+        title: title,
+        autoplay: autoplay,
+        allowDrag: allowDrag,
+      ),
     ),
   );
 }
@@ -54,7 +64,10 @@ Map<String, bool> visualInitialToggles(VisualScene scene) => {
 /// When [onTapModelPoint] is set (question answering), tapping the canvas
 /// reports the tapped position in model coordinates instead of opening
 /// fullscreen; the fullscreen button in the title row still works, and
-/// the fullscreen page itself stays view-only.
+/// the fullscreen page opened from a question card stays view-only
+/// ([fullscreenAllowDrag] is false there). The standalone fullscreen
+/// page allows exploratory dragging of points (local only, never
+/// persisted) — see [showVisualFullscreen].
 ///
 /// When [dragEnabled] is set (drag-to-target questions), dragging a
 /// draggable point moves it and reports positions through
@@ -76,6 +89,7 @@ class VisualCard extends StatelessWidget {
     this.title,
     this.onTapModelPoint,
     this.dragEnabled = false,
+    this.fullscreenAllowDrag = true,
     this.pointOverrides = const {},
     this.onDragUpdate,
     this.onDragEnd,
@@ -94,6 +108,11 @@ class VisualCard extends StatelessWidget {
 
   /// Drag-to-answer mode (drag-to-target questions only).
   final bool dragEnabled;
+
+  /// Whether the fullscreen page opened from this card lets the user
+  /// drag points. Question cards pass false (view-only fullscreen);
+  /// standalone cards keep the exploratory drag.
+  final bool fullscreenAllowDrag;
 
   /// Local drag positions (element id → model coordinates).
   final Map<String, ui.Offset> pointOverrides;
@@ -159,13 +178,18 @@ class VisualCard extends StatelessWidget {
                     scene,
                     title: _title,
                     autoplay: true,
+                    allowDrag: fullscreenAllowDrag,
                   ),
                   icon: const Icon(Icons.play_arrow),
                 ),
               IconButton(
                 tooltip: context.l10n.visualViewFullscreen,
-                onPressed: () =>
-                    showVisualFullscreen(context, scene, title: _title),
+                onPressed: () => showVisualFullscreen(
+                  context,
+                  scene,
+                  title: _title,
+                  allowDrag: fullscreenAllowDrag,
+                ),
                 icon: const Icon(Icons.open_in_full),
               ),
             ],
@@ -181,7 +205,12 @@ class VisualCard extends StatelessWidget {
             ),
           GestureDetector(
             onTap: onTapModelPoint == null && !dragEnabled
-                ? () => showVisualFullscreen(context, scene, title: _title)
+                ? () => showVisualFullscreen(
+                    context,
+                    scene,
+                    title: _title,
+                    allowDrag: fullscreenAllowDrag,
+                  )
                 : null,
             child: AspectRatio(
               aspectRatio: 4 / 3,
@@ -240,7 +269,7 @@ class _VisualCanvas extends StatefulWidget {
     this.hiddenElementIds = const {},
     this.pointOverrides = const {},
     this.timeMs = 0,
-    this.stepIndex = 0,
+    this.stepIndex = visualNoStepIndex,
     this.zoom = 1.0,
     this.pan = ui.Offset.zero,
     this.dragEnabled = false,
@@ -265,14 +294,16 @@ class _VisualCanvas extends StatefulWidget {
 
   /// Current playback time (only identifies the frame for repaint).
   final double timeMs;
+
+  /// Current teaching step, or [visualNoStepIndex] when none applies.
   final int stepIndex;
 
   /// Fullscreen pinch zoom (1.0 = fit view) and pan in canvas pixels.
   final double zoom;
   final ui.Offset pan;
 
-  /// True in the fullscreen page and in drag-to-target question cards;
-  /// the plain chat card never drags.
+  /// True in the fullscreen page (when dragging is allowed there) and
+  /// in drag-to-target question cards; the plain chat card never drags.
   final bool dragEnabled;
 
   /// Called with the dragged element id when a drag starts.
@@ -312,6 +343,17 @@ class _VisualCanvasState extends State<_VisualCanvas> {
   /// center, captured on drag start so the point does not jump to the
   /// finger.
   ui.Offset _grabOffset = ui.Offset.zero;
+
+  @override
+  void dispose() {
+    // A drag in progress when this canvas leaves the tree never gets
+    // onPanEnd or onPanCancel (Flutter does not deliver onPanCancel on
+    // dispose — verified by probe), so without this the caller would
+    // never persist the half-finished drag and the position would be
+    // lost. Ending the drag here saves the last reported position.
+    _endDrag();
+    super.dispose();
+  }
 
   /// Draggable, visible, literal points with their current canvas
   /// positions (overrides applied, scene order).
@@ -366,6 +408,39 @@ class _VisualCanvasState extends State<_VisualCanvas> {
     return null;
   }
 
+  /// Where a label at canvas position [labelAt] should move when it
+  /// sits on a dragged point: the override position of that point, or
+  /// null when the label is not anchored on any dragged point.
+  ui.Offset? _draggedLabelPosition(
+    ui.Offset labelAt,
+    VisualCoordinateMapper mapper,
+  ) {
+    for (final entry in widget.pointOverrides.entries) {
+      final original = _draggedPointCanvasPos(entry.key, mapper);
+      if (original != null && (labelAt - original).distance < 0.5) {
+        return mapper.modelToCanvas(entry.value);
+      }
+    }
+    return null;
+  }
+
+  /// Canvas position of the draggable point [id] before any override,
+  /// or null when it is not a visible literal draggable point.
+  ui.Offset? _draggedPointCanvasPos(String id, VisualCoordinateMapper mapper) {
+    for (final element in visualVisibleElements(
+      widget.scene,
+      widget.toggles,
+      widget.hiddenElementIds,
+    )) {
+      if (element is! PointElement || element.id != id) continue;
+      if (!element.draggable || !element.at.isLiteral) continue;
+      final at = resolvePoint(element.at, widget.parameters);
+      if (at == null) continue;
+      return mapper.modelToCanvas(at);
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final tickStyle = Theme.of(context).textTheme.bodySmall;
@@ -384,9 +459,26 @@ class _VisualCanvasState extends State<_VisualCanvas> {
           toggles: widget.toggles,
           hiddenElementIds: widget.hiddenElementIds,
         );
+        // A label anchored on a dragged point follows it: the label
+        // sits at the point's canvas position, so re-anchor labels
+        // sitting on a dragged point's original position to the
+        // override. (A math_label has no link to a point element, so
+        // coincidence of position is the only anchor there is.)
+        final adjustedLabels = [
+          for (final label in labels)
+            (
+              at: _draggedLabelPosition(label.at, mapper) ?? label.at,
+              tex: label.tex,
+            ),
+        ];
         final selectedRegionPath = _selectedRegionPath(mapper);
         final canvas = Stack(
           fit: StackFit.expand,
+          // Labels are centered on their anchor: with the default
+          // hard-edge clip a label on the canvas edge is cut in half.
+          // The card clips at its own bounds, so unclipped labels
+          // stay inside the card.
+          clipBehavior: Clip.none,
           children: [
             RepaintBoundary(
               child: CustomPaint(
@@ -406,7 +498,7 @@ class _VisualCanvasState extends State<_VisualCanvas> {
                 ),
               ),
             ),
-            for (final label in labels)
+            for (final label in adjustedLabels)
               Positioned(
                 left: label.at.dx,
                 top: label.at.dy,
@@ -586,6 +678,7 @@ class _VisualFullscreenPage extends StatefulWidget {
     required this.scene,
     this.title,
     this.autoplay = false,
+    this.allowDrag = true,
   });
 
   final VisualScene scene;
@@ -594,6 +687,11 @@ class _VisualFullscreenPage extends StatefulWidget {
   /// Start playback at time 0 once the page opens (unless animations
   /// are disabled).
   final bool autoplay;
+
+  /// Whether points can be dragged in this page. Question cards open
+  /// view-only (false); the standalone player allows exploratory
+  /// dragging (local only, never persisted).
+  final bool allowDrag;
 
   @override
   State<_VisualFullscreenPage> createState() => _VisualFullscreenPageState();
@@ -742,6 +840,10 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
   /// Switches playback speed, keeping the current position: the
   /// controller's value is a fraction of the authored duration, so
   /// changing its duration leaves `_timeMs` (value × duration) alone.
+  /// Setting `duration` alone does not change a running controller's
+  /// rate — the running simulation captured the old duration when
+  /// `forward()` was called — so a playing controller is restarted
+  /// from its current value for the new speed to take effect at once.
   void _setSpeed(double speed) {
     setState(() => _speed = speed);
     final controller = _controller;
@@ -749,6 +851,9 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
       controller.duration = Duration(
         milliseconds: (_durationMs / _speed).round(),
       );
+      if (_playing) {
+        controller.forward(from: controller.value);
+      }
     }
   }
 
@@ -872,14 +977,15 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
       appBar: AppBar(
         title: Text(title, overflow: TextOverflow.ellipsis),
         actions: [
-          IconButton(
-            key: const Key('visual-reset-drag'),
-            tooltip: context.l10n.visualResetDrag,
-            onPressed: _pointOverrides.isEmpty
-                ? null
-                : () => setState(_pointOverrides.clear),
-            icon: const Icon(Icons.restart_alt),
-          ),
+          if (widget.allowDrag)
+            IconButton(
+              key: const Key('visual-reset-drag'),
+              tooltip: context.l10n.visualResetDrag,
+              onPressed: _pointOverrides.isEmpty
+                  ? null
+                  : () => setState(_pointOverrides.clear),
+              icon: const Icon(Icons.restart_alt),
+            ),
           IconButton(
             key: const Key('visual-reset-view'),
             tooltip: context.l10n.visualResetView,
@@ -906,6 +1012,15 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.scene.meta?.schematic == true)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: Text(
+                context.l10n.visualSchematicNote,
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ),
           Expanded(
             child: Listener(
               onPointerDown: _onPointerDown,
@@ -925,7 +1040,7 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
                   stepIndex: frame.stepIndex,
                   zoom: _zoom,
                   pan: _pan,
-                  dragEnabled: !_pinching,
+                  dragEnabled: widget.allowDrag && !_pinching,
                   onDragStart: (_) {
                     // A drag takes the scene over: stop the animation so
                     // the tracks do not fight the finger.
@@ -943,7 +1058,11 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
                 color: scheme.surfaceContainerLow,
                 border: Border(top: BorderSide(color: scheme.outlineVariant)),
               ),
-              padding: const EdgeInsets.fromLTRB(8, 4, 16, 4),
+              // The row is tight on a 390 px screen with every control
+              // shown: at 0.5× (the widest speed label) it overflowed
+              // by ~8 px, so the paddings here are trimmed to the
+              // minimum that still reads as a control bar.
+              padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -955,7 +1074,14 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
                           tooltip: _playing
                               ? context.l10n.visualPauseAnimation
                               : context.l10n.visualPlayAnimation,
-                          onPressed: _playing ? _pause : _startPlaying,
+                          // With animations disabled playback never
+                          // starts: grey the button out instead of
+                          // leaving a tap that silently does nothing.
+                          onPressed: MediaQuery.of(context).disableAnimations
+                              ? null
+                              : _playing
+                              ? _pause
+                              : _startPlaying,
                           icon: Icon(_playing ? Icons.pause : Icons.play_arrow),
                         ),
                       if (_durationMs > 0)
@@ -992,7 +1118,7 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
                               ),
                           ],
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: Text(
                               _formatSpeed(_speed),
                               key: const Key('visual-speed-label'),

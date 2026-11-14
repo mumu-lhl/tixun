@@ -179,6 +179,38 @@ void main() {
       isEmpty,
     );
   });
+
+  test('A quiz call with a null visual_id is not quiz_with_visual', () async {
+    final quizController = await openWithQuizCall(
+      jsonEncode(_quizArgs(nullVisualId: true)),
+    );
+    addTearDown(() async {
+      await quizController.shutdown();
+      await quizController.files.root.delete(recursive: true);
+    });
+    await quizController.send('请出题');
+    final features =
+        (await quizController.db.select(quizController.db.aiUsageEvents).get())
+            .map((r) => r.feature);
+    expect(features, isNotEmpty);
+    // The old substring check matched '"visual_id": null' too.
+    expect(features, everyElement(isNot('quiz_with_visual')));
+  });
+
+  test('A quiz call with a visual_id is counted as quiz_with_visual', () async {
+    final quizController = await openWithQuizCall(
+      jsonEncode(_quizArgs(visualId: 'no-such-visual')),
+    );
+    addTearDown(() async {
+      await quizController.shutdown();
+      await quizController.files.root.delete(recursive: true);
+    });
+    await quizController.send('请出题');
+    final features =
+        (await quizController.db.select(quizController.db.aiUsageEvents).get())
+            .map((r) => r.feature);
+    expect(features, contains('quiz_with_visual'));
+  });
 }
 
 class ScriptedToolProvider implements ChatProvider {
@@ -267,4 +299,65 @@ Future<AppController> openExamWithVisualCall(String args) async {
   await controller.setTools(true);
   await controller.mode('exam');
   return controller;
+}
+
+/// Yields a forged `create_quiz` call on the first turn.
+class ForgedQuizCallProvider implements ChatProvider {
+  ForgedQuizCallProvider(this.args);
+  final String args;
+  var turns = 0;
+  @override
+  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
+      AiConversation((request, cancel) async* {
+        turns++;
+        if (turns == 1) {
+          yield AiChunk(
+            completed: true,
+            calls: [ToolCall('quiz-1', 'create_quiz', args)],
+          );
+        } else {
+          yield const AiChunk(text: '收到', completed: true);
+        }
+      });
+}
+
+Future<AppController> openWithQuizCall(String args) async {
+  final controller = AppController(
+    AppDatabase.memory(),
+    AttachmentStore(
+      await Directory.systemTemp.createTemp('tixun-quiz-visual-tools'),
+    ),
+    MemoryKeyStore(),
+    ForgedQuizCallProvider(args),
+  );
+  await controller.initialize();
+  await controller.newSession();
+  await controller.setTools(true);
+  return controller;
+}
+
+Map<String, dynamic> _quizArgs({bool nullVisualId = false, String? visualId}) {
+  final args = <String, dynamic>{
+    'kind': 'single_choice',
+    'stem': r'函数 $y=x^2-4x+3$ 的顶点坐标是？',
+    'subject': '数学',
+    'options': {
+      'A': r'$(2,-1)$',
+      'B': r'$(-2,-1)$',
+      'C': r'$(2,3)$',
+      'D': r'$(-2,3)$',
+    },
+    'answers': [
+      ['A'],
+    ],
+    'explanation': r'配方得 $y=(x-2)^2-1$，顶点为 $(2,-1)$。',
+    'hint': '试着把二次式写成完全平方加常数。',
+    'topics': ['二次函数', '配方'],
+  };
+  if (nullVisualId) {
+    args['visual_id'] = null;
+  } else if (visualId != null) {
+    args['visual_id'] = visualId;
+  }
+  return args;
 }

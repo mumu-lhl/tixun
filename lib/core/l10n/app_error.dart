@@ -202,6 +202,7 @@ enum AppErrorCode {
   errorTheDateMustBeBetweenToday,
   errorVisualSceneJsonEmpty,
   errorVisualSceneDoesNotExist,
+  errorVisualSceneRevisionDoesNotExist,
   errorVisualStudyLinkNeedsOneOwner,
 
   generationTimedOutPartialContent,

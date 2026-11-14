@@ -36,7 +36,7 @@ scripts/gui_tests.sh
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。启动冒烟截图保存在 `artifacts/gui/`，集成场景截图在 `artifacts/gui-*/`，各入口日志由 `TIXUN_GUI_LOG_DIR` 指定（默认当前目录）；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
-不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。当前数据库为 schema v13，迁移测试使用 `test/fixtures/` 中的历史快照验证保留旧数据；新增字段和表时必须继续提供显式迁移。
+不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。当前数据库为 schema v17，迁移测试使用 `test/fixtures/` 中的历史快照验证保留旧数据；新增字段和表时必须继续提供显式迁移。
 
 ```bash
 dart run build_runner build
@@ -46,7 +46,13 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布或手动勾选 `full_gui` 时运行；Nightly 跳过单元测试与完整 GUI 回归。十二个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
+普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布或手动勾选 `full_gui` 时运行；Nightly 跳过单元测试与完整 GUI 回归。二十个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。其中 8 个是 Visual 集成测试（`visual_flow`、`visual_player_flow`、`visual_drag_flow`、`visual_quiz_flow`、`visual_circuit_flow`、`visual_chem_geo_flow`、`visual_constraints_flow`、`visual_drag_answer_flow`）。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
+
+### AI 教学图形（Visual）
+
+图形用声明式 DSL v1 描述：场景 JSON、元素、表达式、控件、时间线与几何约束都在 `lib/core/visual/`（模型、验证器、采样、渲染）与 `lib/features/visual/`（存储、卡片）里实现；三个 AI 工具（`create_visual` / `update_visual` / `get_visual`）在 `lib/core/ai/visual_tool.dart`。图形表在 schema v16 引入，题目图形的修订钉住在 v17。
+
+新增图形功能时，先补 `test/visual_*_test.dart` 的行为测试。Widget 测试里数据库操作必须放在 `tester.runAsync` 内；`PracticeStore.detail()` 不能在提交事务进行中调用（参考 `test/visual_question_card_test.dart` 的 `submitAndCheck` 模式：先点提交，再循环 `runAsync` + `pumpAndSettle` 等判分视图出现，之后才读 Store）。
 
 ## 按版本标签发布
 

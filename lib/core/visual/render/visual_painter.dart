@@ -209,13 +209,95 @@ void _collectCurvePoints(
       max: max,
       maxSamples: 256,
     );
-    for (final segment in segments) {
-      out.addAll(segment.points);
+    // Magnitude scale for the whole curve: the median |y| over all
+    // its samples. It must be global, not per segment: the slope rule
+    // splits the pole approach into its own small segments, whose
+    // per-segment median is itself huge, so a per-segment threshold
+    // would trim nothing exactly where trimming matters.
+    final magnitudes = <double>[
+      for (final segment in segments)
+        for (final point in segment.points) point.dy.abs(),
+    ]..sort();
+    final median = magnitudes.isEmpty
+        ? 0.0
+        : magnitudes[magnitudes.length ~/ 2];
+    for (var i = 0; i < segments.length; i++) {
+      final points = segments[i].points;
+      if (points.length == 1 &&
+          median > 0 &&
+          _isPoleSingleton(segments, i, min, max, 10 * median)) {
+        // A lone sample wedged between two breaks next to a pole is
+        // pole approach, not content: leave it out of auto-fit.
+        continue;
+      }
+      out.addAll(_trimPoleTails(points, min, max, median));
     }
   } catch (_) {
     // A bad expression must not break auto-fit; the validator rejects it
     // before it reaches the renderer in normal flows.
   }
+}
+
+/// Whether the single sample of segment [index] is a pole neighbour
+/// rather than an isolated peak. A lone sample strictly inside the
+/// sampled range with |y| far above the curve's scale is pole
+/// approach when the sample just outside it — the nearest endpoint
+/// of an adjacent segment — is itself above the threshold: the
+/// region on both sides is climbing the pole. A narrow peak instead
+/// stands on a flat baseline, so its neighbours are small and the
+/// sample is kept: it is the content, and dropping it from auto-fit
+/// would clip the peak out of view.
+bool _isPoleSingleton(
+  List<SampledSegment> segments,
+  int index,
+  double min,
+  double max,
+  double threshold,
+) {
+  final point = segments[index].points.first;
+  if (point.dx <= min || point.dx >= max) return false;
+  if (point.dy.abs() <= threshold) return false;
+  if (index > 0) {
+    final prev = segments[index - 1].points.last;
+    if (prev.dy.abs() > threshold) return true;
+  }
+  if (index + 1 < segments.length) {
+    final next = segments[index + 1].points.first;
+    if (next.dy.abs() > threshold) return true;
+  }
+  return false;
+}
+
+/// Drops the samples at the ends of a sampled segment that climb far
+/// above the curve's own scale — the approach to a pole (tan, 1/x).
+/// Only ends that stop strictly inside the sampled range are trimmed:
+/// an end at the range edge is the curve's real extent, not a pole
+/// approach (so a steep-but-continuous curve like exp is untouched).
+/// A segment that is entirely pole approach is dropped altogether:
+/// it is a sliver between two breaks, not the main body. Single
+/// samples are kept as-is: a lone sample is as likely a narrow peak
+/// (real content) as a pole neighbour.
+List<ui.Offset> _trimPoleTails(
+  List<ui.Offset> points,
+  double min,
+  double max,
+  double median,
+) {
+  if (points.length < 2 || median <= 0) return points;
+  final threshold = 10 * median;
+  var start = 0;
+  var end = points.length;
+  while (start < end &&
+      points[start].dx > min &&
+      points[start].dy.abs() > threshold) {
+    start++;
+  }
+  while (end > start &&
+      points[end - 1].dx < max &&
+      points[end - 1].dy.abs() > threshold) {
+    end--;
+  }
+  return points.sublist(start, end);
 }
 
 void _collectPoints(
@@ -694,7 +776,19 @@ class VisualPainter extends CustomPainter {
       ..style = ui.PaintingStyle.stroke
       ..strokeCap = ui.StrokeCap.round;
     for (final segment in segments) {
-      if (segment.points.length < 2) continue;
+      if (segment.points.isEmpty) continue;
+      if (segment.points.length == 1) {
+        // An isolated sample (e.g. a peak narrower than the sampling
+        // step, or the only defined sample in the range) has no line
+        // to draw — paint it as a dot instead of dropping it
+        // silently, or the peak simply vanishes from the figure.
+        canvas.drawCircle(
+          mapper.modelToCanvas(segment.points.single),
+          width,
+          ui.Paint()..color = color,
+        );
+        continue;
+      }
       final points = [for (final p in segment.points) mapper.modelToCanvas(p)];
       if (dashed) {
         _drawDashedPath(canvas, points, paint);
@@ -972,7 +1066,7 @@ class VisualPainter extends CustomPainter {
             for (final (s, e) in circuitSwitchSegments(a, b, closed)) {
               final ps = mapper.modelToCanvas(s);
               final pe = mapper.modelToCanvas(e);
-              if (dashed && closed) {
+              if (dashed) {
                 _drawDashedPath(canvas, [ps, pe], stroke());
               } else {
                 canvas.drawLine(ps, pe, stroke());

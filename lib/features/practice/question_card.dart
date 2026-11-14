@@ -411,7 +411,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 controller: controllers[i],
                 enabled: !busy,
                 readOnly: !editable,
-                keyboardType: q.kind == 'numeric'
+                keyboardType: q.kind == 'numeric' || q.kind == 'read_value'
                     ? const TextInputType.numberWithOptions(decimal: true)
                     : null,
                 minLines: q.kind == 'short_answer' ? 3 : 1,
@@ -731,6 +731,11 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
   /// Drag positions from this session (element id → model coordinates).
   final _pointOverrides = <String, ui.Offset>{};
 
+  /// A tap outside every region shows an in-card "please choose" hint.
+  /// A SnackBar would queue behind the submit-error SnackBar and hide
+  /// the "answer incomplete" feedback on submit.
+  var _showRegionHint = false;
+
   @override
   void didUpdateWidget(covariant _QuestionVisual oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -748,18 +753,57 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
   /// Overrides for the card: this session's drags, or — on first render
   /// with a saved answer — the stored position, so a reloaded question
   /// shows the point where the student left it.
+  ///
+  /// A drag answer carries the dragged element's id (`"id:x,y"`); older
+  /// answers are plain `"x,y"` and restore to the first draggable point.
+  /// Group children count: a draggable point inside a group restores
+  /// exactly like a top-level one.
   Map<String, ui.Offset> _dragOverrides(VisualScene scene) {
     if (_pointOverrides.isNotEmpty) return _pointOverrides;
     final saved = parseVisualPoint(widget.selected);
     if (saved == null) return _pointOverrides;
-    for (final element in scene.elements) {
-      if (element is PointElement &&
-          element.draggable &&
-          element.at.isLiteral) {
-        return {element.id: ui.Offset(saved.$1, saved.$2)};
+    final position = ui.Offset(saved.$1, saved.$2);
+    final points = _draggablePoints(scene);
+    final id = _dragAnswerId(widget.selected);
+    if (id != null) {
+      for (final point in points) {
+        if (point.id == id) return {id: position};
       }
     }
+    if (points.isNotEmpty) return {points.first.id: position};
     return _pointOverrides;
+  }
+
+  /// Draggable, literal points anywhere in the scene (group children
+  /// included), in scene order.
+  List<PointElement> _draggablePoints(VisualScene scene) {
+    final out = <PointElement>[];
+    void visit(List<VisualElement> elements) {
+      for (final element in elements) {
+        if (element is GroupElement) {
+          visit(element.children);
+        } else if (element is PointElement &&
+            element.draggable &&
+            element.at.isLiteral) {
+          out.add(element);
+        }
+      }
+    }
+
+    visit(scene.elements);
+    return out;
+  }
+
+  /// The element id of a drag answer (`"id:x,y"`), or null for a plain
+  /// `"x,y"` answer. An id containing a comma cannot be told apart from
+  /// a coordinate pair, so it is treated as no id (the restore falls
+  /// back to the first draggable point).
+  String? _dragAnswerId(String value) {
+    final colon = value.indexOf(':');
+    if (colon <= 0) return null;
+    final id = value.substring(0, colon);
+    if (id.contains(',')) return null;
+    return id;
   }
 
   /// The selected point for point-select questions, in model
@@ -788,6 +832,10 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
             children: [
               VisualCard(
                 scene: scene,
+                // A question card's fullscreen is view-only: dragging
+                // there must not move the point (and never counts as
+                // an answer), so the fullscreen page gets no drag.
+                fullscreenAllowDrag: false,
                 onTapModelPoint: answerable
                     ? (point) {
                         if (widget.kind == 'point_select') {
@@ -805,7 +853,14 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                               0,
                             ).hiddenElementIds,
                           );
-                          if (region != null) widget.onSelect!(region);
+                          if (region != null) {
+                            setState(() => _showRegionHint = false);
+                            widget.onSelect!(region);
+                          } else {
+                            // A tap outside every region selects nothing:
+                            // say so in the card, or the tap looks dead.
+                            setState(() => _showRegionHint = true);
+                          }
                         }
                       }
                     : null,
@@ -820,8 +875,11 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                 onDragUpdate: draggable
                     ? (id, position) {
                         setState(() => _pointOverrides[id] = position);
+                        // The answer carries the dragged element's id,
+                        // so a later reload restores the same point
+                        // instead of the first draggable one.
                         widget.onDragPosition?.call(
-                          '${position.dx},${position.dy}',
+                          '$id:${position.dx},${position.dy}',
                         );
                       }
                     : null,
@@ -837,6 +895,11 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                     ? widget.selected
                     : null,
               ),
+              if (widget.kind == 'region_select' && _showRegionHint)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(context.l10n.choose),
+                ),
               // Show the selection whenever one exists, including in
               // the graded view (where `onSelect` is null). The kind
               // gate matters: other kinds (e.g. `read_value`, whose

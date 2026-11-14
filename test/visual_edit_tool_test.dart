@@ -554,6 +554,56 @@ void main() {
       expect(scene['title'], '二次函数');
     });
 
+    test(
+      'get of an old revision reports that revision\'s title and verification',
+      () async {
+        final id = await createScene();
+        // The update turns the scene schematic, so the live row's
+        // verification no longer matches revision 1: a snapshot read
+        // must re-derive both values from the snapshot JSON, not the row.
+        final updated = await runUpdate('call-update', {
+          'visual_id': id,
+          'scene': {
+            ..._plotScene(expression: 'x^2', title: '更新后的图'),
+            'meta': {'schematic': true, 'alt': '抛物线的图像'},
+          },
+        });
+        expect(updated['ok'], isTrue);
+        expect(updated['verification'], 'schematic');
+        final old = await runGet('call-get-old', {
+          'visual_id': id,
+          'revision': 1,
+        });
+        expect(old['ok'], isTrue);
+        expect(old['title'], '二次函数');
+        expect(old['verification_status'], 'verified');
+        final current = await runGet('call-get-now', {'visual_id': id});
+        expect(current['title'], '更新后的图');
+        expect(current['verification_status'], 'schematic');
+      },
+    );
+
+    test('replaying an ops update after the scene was deleted returns the cached result', () async {
+      final id = await createScene();
+      final args = {
+        'visual_id': id,
+        'ops': [
+          {'op': 'set_title', 'title': '改名后的图'},
+        ],
+      };
+      final first = await runUpdate('call-ops', args);
+      expect(first['ok'], isTrue);
+      expect(first['revision'], 2);
+      // The scene row is gone (deleted out of band); the replay must
+      // still answer from the idempotency cache instead of failing on
+      // the read that used to happen before the transaction.
+      await (db.delete(db.visualScenes)..where((s) => s.id.equals(id))).go();
+      final replay = await runUpdate('call-ops', args);
+      expect(replay['ok'], isTrue);
+      expect(replay['visual_id'], id);
+      expect(replay['revision'], 2);
+    });
+
     test('get of an unknown id returns ok:false', () async {
       await _seedMessage(db, 'session-1', 'run-1');
       final result = await runGet('call-1', {'visual_id': 'no-such-id'});
@@ -565,7 +615,7 @@ void main() {
       final id = await createScene();
       final result = await runGet('call-1', {'visual_id': id, 'revision': 99});
       expect(result['ok'], isFalse);
-      expect(result['error'], contains('不存在'));
+      expect(result['error'], contains('修订不存在'));
     });
 
     test('get writes no aiToolOperations row', () async {

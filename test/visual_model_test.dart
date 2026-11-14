@@ -666,4 +666,399 @@ void main() {
       );
     });
   });
+
+  group('model fromJson semantic guards (direct calls, no validator)', () {
+    test('circle and arc radii, sweep, point counts', () {
+      for (final element in <Map<String, dynamic>>[
+        {
+          'id': 'c',
+          'type': 'circle',
+          'center': [0, 0],
+          'r': 0,
+        },
+        {
+          'id': 'c',
+          'type': 'circle',
+          'center': [0, 0],
+          'r': -1,
+        },
+        {
+          'id': 'a',
+          'type': 'arc',
+          'center': [0, 0],
+          'r': 1,
+          'startDeg': 0,
+          'sweepDeg': 0,
+        },
+        {
+          'id': 'a',
+          'type': 'arc',
+          'center': [0, 0],
+          'r': 0,
+          'startDeg': 0,
+          'sweepDeg': 90,
+        },
+        {
+          'id': 'l',
+          'type': 'polyline',
+          'points': [
+            [0, 0],
+          ],
+        },
+        {
+          'id': 'p',
+          'type': 'polygon',
+          'points': [
+            [0, 0],
+            [1, 1],
+          ],
+        },
+        {'id': 'g', 'type': 'group', 'children': []},
+        {
+          'id': 't',
+          'type': 'text',
+          'at': [0, 0],
+          'text': '',
+        },
+        {
+          'id': 't',
+          'type': 'text',
+          'at': [0, 0],
+          'text': 'x' * 501,
+        },
+        {
+          'id': 'm',
+          'type': 'math_label',
+          'at': [0, 0],
+          'tex': '',
+        },
+      ]) {
+        expect(
+          () => VisualElement.fromJson(element),
+          throwsA(isA<AppFormatException>()),
+          reason: 'expected $element to fail',
+        );
+      }
+    });
+
+    test('plot domain and samples', () {
+      for (final element in <Map<String, dynamic>>[
+        {
+          'id': 'p',
+          'type': 'plot',
+          'expression': 'x',
+          'domain': [5, 5],
+        },
+        {
+          'id': 'p',
+          'type': 'plot',
+          'expression': 'x',
+          'domain': [5, 1],
+        },
+        {'id': 'p', 'type': 'plot', 'expression': 'x', 'samples': 0},
+        {'id': 'p', 'type': 'plot', 'expression': 'x', 'samples': 4097},
+      ]) {
+        expect(
+          () => VisualElement.fromJson(element),
+          throwsA(isA<AppFormatException>()),
+          reason: 'expected $element to fail',
+        );
+      }
+      // In-range values parse.
+      expect(
+        VisualElement.fromJson({
+          'id': 'p',
+          'type': 'plot',
+          'expression': 'x',
+          'domain': [-1, 1],
+          'samples': 4096,
+        }),
+        isA<PlotElement>(),
+      );
+    });
+
+    test('circuit field mutual-exclusion', () {
+      for (final element in <Map<String, dynamic>>[
+        {
+          'id': 'm',
+          'type': 'circuit',
+          'component': 'meter',
+          'at': [0, 0],
+          'meter': 'ammeter',
+          'from': [0, 0],
+        },
+        {
+          'id': 'b',
+          'type': 'circuit',
+          'component': 'battery',
+          'from': [0, 0],
+          'to': [1, 0],
+          'at': [0, 0],
+        },
+        {
+          'id': 'b',
+          'type': 'circuit',
+          'component': 'battery',
+          'from': [0, 0],
+          'to': [1, 0],
+          'meter': 'ammeter',
+        },
+        {
+          'id': 'b',
+          'type': 'circuit',
+          'component': 'battery',
+          'from': [0, 0],
+          'to': [1, 0],
+          'closed': true,
+        },
+        {
+          'id': 'm',
+          'type': 'circuit',
+          'component': 'meter',
+          'at': [0, 0],
+          'meter': 'ammeter',
+          'closed': true,
+        },
+      ]) {
+        expect(
+          () => VisualElement.fromJson(element),
+          throwsA(isA<AppFormatException>()),
+          reason: 'expected $element to fail',
+        );
+      }
+      // A switch may carry closed; a meter may not carry from/to.
+      expect(
+        VisualElement.fromJson({
+          'id': 's',
+          'type': 'circuit',
+          'component': 'switch',
+          'from': [0, 0],
+          'to': [1, 0],
+          'closed': true,
+        }),
+        isA<CircuitElement>(),
+      );
+    });
+
+    test('ranges, sliders, tracks, steps and timelines', () {
+      expect(
+        () => VisualRange.fromJson([5, 5]),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualRange.fromJson([5, 1]),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualRange.fromJson([0, 2e9]),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualControl.fromJson({
+          'id': 's',
+          'kind': 'slider',
+          'label': 'S',
+          'min': 2,
+          'max': 1,
+          'step': 0.1,
+          'value': 1.5,
+        }),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualControl.fromJson({
+          'id': 's',
+          'kind': 'slider',
+          'label': 'S',
+          'min': 0,
+          'max': 1,
+          'step': 0,
+          'value': 0.5,
+        }),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualControl.fromJson({
+          'id': 's',
+          'kind': 'slider',
+          'label': 'S',
+          'min': 0,
+          'max': 1,
+          'step': 0.1,
+          'value': 2,
+        }),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualControl.fromJson({
+          'id': 'c',
+          'kind': 'choice',
+          'label': 'C',
+          'options': [],
+          'value': 'A',
+        }),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualControl.fromJson({
+          'id': 'c',
+          'kind': 'choice',
+          'label': 'C',
+          'options': ['A'],
+          'value': 'B',
+        }),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualTrack.fromJson({
+          'id': 't',
+          'target': 's',
+          'from': 0,
+          'to': 1,
+          'startMs': 500,
+          'endMs': 500,
+        }),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualTrack.fromJson({
+          'id': 't',
+          'target': 's',
+          'from': 0,
+          'to': 1,
+          'startMs': -1,
+          'endMs': 500,
+        }),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualStep.fromJson({'atMs': -1}),
+        throwsA(isA<AppFormatException>()),
+      );
+      expect(
+        () => VisualTimeline.fromJson({'durationMs': 0}),
+        throwsA(isA<AppFormatException>()),
+      );
+    });
+  });
+
+  group('VisualScene.fromJson maps the first error to a specific code', () {
+    AppErrorCode codeOf(Map<String, dynamic> json) {
+      try {
+        VisualScene.fromJson(json);
+      } on AppFormatException catch (e) {
+        return e.code;
+      }
+      fail('expected AppFormatException for $json');
+    }
+
+    List<String> argumentsOf(Map<String, dynamic> json) {
+      try {
+        VisualScene.fromJson(json);
+      } on AppFormatException catch (e) {
+        return e.arguments;
+      }
+      fail('expected AppFormatException for $json');
+    }
+
+    test('text-expected and number-expected types split', () {
+      expect(
+        codeOf({'v': 1, 'kind': 'geometry', 'title': 123}),
+        AppErrorCode.errorParameterMustBeText,
+      );
+      expect(argumentsOf({'v': 1, 'kind': 'geometry', 'title': 123}), [
+        'title',
+      ]);
+      expect(
+        codeOf({
+          'v': 1,
+          'kind': 'plot2d',
+          'timeline': {'durationMs': 4000.0},
+        }),
+        AppErrorCode.errorParameterMustBeNumber,
+      );
+    });
+
+    test('unknown and missing fields keep their codes', () {
+      expect(
+        codeOf({'v': 1, 'kind': 'plot2d', 'surprise': true}),
+        AppErrorCode.errorUnknownParameter,
+      );
+      expect(codeOf({'v': 1}), AppErrorCode.errorMissingParameter);
+    });
+
+    test('range, expression and kind failures stay generic', () {
+      expect(
+        codeOf({
+          'v': 1,
+          'kind': 'plot2d',
+          'model': {'expression': '2+'},
+        }),
+        AppErrorCode.errorInvalidParameterType,
+      );
+      expect(
+        codeOf({'v': 1, 'kind': 'hologram'}),
+        AppErrorCode.errorInvalidParameterType,
+      );
+    });
+  });
+
+  group('VisualScene.fromJson / toJson minimal normalization', () {
+    test('integer literals normalize to doubles in toJson', () {
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'model': {
+          'expression': 'x^2',
+          'parameters': {'a': 1},
+        },
+        'view': {
+          'x': [-3, 6],
+        },
+      });
+      final json = scene.toJson();
+      expect((json['model'] as Map)['parameters'], {'a': 1.0});
+      expect((json['view'] as Map)['x'], [-3.0, 6.0]);
+      // A second round-trip is then stable.
+      expect(VisualScene.fromJson(json).toJson(), json);
+    });
+
+    test('absent showAxes stays null and is omitted from toJson', () {
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'model': {'expression': 'x'},
+      });
+      expect(scene.model?.showAxes, isNull);
+      expect((scene.toJson()['model'] as Map).containsKey('showAxes'), isFalse);
+      expect(VisualScene.fromJson(scene.toJson()).model?.showAxes, isNull);
+
+      final withAxes = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'model': {'expression': 'x', 'showAxes': true},
+      });
+      expect(withAxes.model?.showAxes, isTrue);
+      expect((withAxes.toJson()['model'] as Map)['showAxes'], isTrue);
+    });
+
+    test('a step without show/hide normalizes to empty lists', () {
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'timeline': {
+          'durationMs': 1000,
+          'steps': [
+            {'atMs': 100},
+          ],
+        },
+      });
+      final stepJson =
+          ((scene.toJson()['timeline'] as Map)['steps'] as List).single
+              as Map<String, dynamic>;
+      expect(stepJson['show'], isEmpty);
+      expect(stepJson['hide'], isEmpty);
+      expect(VisualScene.fromJson(scene.toJson()).toJson(), scene.toJson());
+    });
+  });
 }

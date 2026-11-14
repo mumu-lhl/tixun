@@ -283,6 +283,42 @@ void main() {
     expect(frame.timeMs, 1234);
   });
 
+  test('no-step frames use the shared visualNoStepIndex sentinel', () {
+    final scene = VisualScene.fromJson({
+      'v': 1,
+      'kind': 'geometry',
+      'title': '步骤',
+      'view': {
+        'x': [-3, 3],
+        'y': [-3, 3],
+      },
+      'elements': [
+        {
+          'id': 'e1',
+          'type': 'point',
+          'at': [1, 1],
+        },
+      ],
+      'timeline': {
+        'durationMs': 1000,
+        'steps': [
+          {
+            'atMs': 500,
+            'show': [],
+            'hide': ['e1'],
+            'note': '后',
+          },
+        ],
+      },
+      'meta': {'alt': '步骤'},
+    });
+    // Before the first step the frame reports the shared sentinel, never
+    // 0 — 0 is a real first step.
+    expect(resolveVisualFrame(scene, 0).stepIndex, visualNoStepIndex);
+    expect(resolveVisualFrame(scene, 500).stepIndex, 0);
+    expect(visualNoStepIndex, -1);
+  });
+
   test('visualDurationMs returns the timeline length', () {
     expect(visualDurationMs(_animatedScene()), 1000);
   });

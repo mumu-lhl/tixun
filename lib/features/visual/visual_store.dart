@@ -213,7 +213,7 @@ class VisualStore extends DatabaseNotifier {
     final scene = await _scene(visualId);
     if (revision > scene.revision) {
       throw const AppFormatException(
-        AppErrorCode.errorVisualSceneDoesNotExist,
+        AppErrorCode.errorVisualSceneRevisionDoesNotExist,
         '图形修订不存在。',
       );
     }
@@ -240,7 +240,10 @@ class VisualStore extends DatabaseNotifier {
         db.visualQuestionLinks.visualId.equalsExp(db.visualScenes.id),
       ),
     ]);
-    joined.where(db.visualQuestionLinks.questionId.equals(questionId));
+    joined.where(
+      db.visualQuestionLinks.questionId.equals(questionId) &
+          db.visualScenes.deleted.equals(false),
+    );
     joined.orderBy([OrderingTerm.asc(db.visualScenes.createdAt)]);
     return (await joined.get())
         .map(
@@ -268,16 +271,38 @@ class VisualStore extends DatabaseNotifier {
       );
     }
     await _scene(visualId);
-    await db
-        .into(db.visualStudyLinks)
-        .insertOnConflictUpdate(
-          VisualStudyLinksCompanion.insert(
-            visualId: visualId,
-            knowledgeId: Value(knowledgeId),
-            mistakeId: Value(mistakeId),
-          ),
-        );
-    changed();
+    // VisualStudyLinks has a nullable composite primary key, and SQLite
+    // treats NULLs as distinct, so insertOnConflictUpdate cannot see a
+    // duplicate row: linking the same owner twice would show the scene
+    // twice in the study detail. Check first, in the same transaction
+    // as the insert (this joins the caller's transaction when nested),
+    // and silently keep the single row.
+    final inserted = await db.transaction(() async {
+      final existing =
+          await (db.select(db.visualStudyLinks)..where(
+                (l) =>
+                    l.visualId.equals(visualId) &
+                    (knowledgeId == null
+                        ? l.knowledgeId.isNull()
+                        : l.knowledgeId.equals(knowledgeId)) &
+                    (mistakeId == null
+                        ? l.mistakeId.isNull()
+                        : l.mistakeId.equals(mistakeId)),
+              ))
+              .getSingleOrNull();
+      if (existing != null) return false;
+      await db
+          .into(db.visualStudyLinks)
+          .insert(
+            VisualStudyLinksCompanion.insert(
+              visualId: visualId,
+              knowledgeId: Value(knowledgeId),
+              mistakeId: Value(mistakeId),
+            ),
+          );
+      return true;
+    });
+    if (inserted) changed();
   });
 
   /// Freezes the scene's current JSON for immutable quiz reference: bumps

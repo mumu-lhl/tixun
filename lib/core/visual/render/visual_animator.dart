@@ -1,5 +1,11 @@
 import 'package:tixun/core/visual/model/visual_scene.dart';
 
+/// Sentinel for "no teaching step applies": [VisualFrame.stepIndex] is
+/// this when the frame is before the first step, or the scene has no
+/// timeline. Widget defaults use this value too, so a missing step is
+/// -1 everywhere — never 0, which is a real first step.
+const int visualNoStepIndex = -1;
+
 /// One resolved frame of a scene's timeline: the complete input the
 /// renderer needs for a given moment. Deterministic and seekable —
 /// [resolveVisualFrame] is a pure function of (scene, timeMs[, stepIndex]).
@@ -26,9 +32,10 @@ class VisualFrame {
   /// The resolved moment in milliseconds.
   final double timeMs;
 
-  /// Index of the current step (last step with `atMs <= timeMs`), or -1
-  /// when no step applies yet. When [resolveVisualFrame] is called with
-  /// an explicit `stepIndex`, this is that step's index.
+  /// Index of the current step (last step with `atMs <= timeMs`), or
+  /// [visualNoStepIndex] when no step applies yet. When
+  /// [resolveVisualFrame] is called with an explicit `stepIndex`, this
+  /// is that step's index.
   final int stepIndex;
 }
 
@@ -79,7 +86,7 @@ VisualFrame resolveVisualFrame(
       toggles: toggles,
       hiddenElementIds: const {},
       timeMs: timeMs,
-      stepIndex: -1,
+      stepIndex: visualNoStepIndex,
     );
   }
 
@@ -87,7 +94,7 @@ VisualFrame resolveVisualFrame(
     ..sort((a, b) => a.atMs.compareTo(b.atMs));
 
   double resolvedTimeMs = timeMs;
-  int resolvedStepIndex = -1;
+  int resolvedStepIndex = visualNoStepIndex;
   final hidden = <String>{};
 
   if (stepIndex != null &&
@@ -126,13 +133,14 @@ VisualFrame resolveVisualFrame(
   );
 }
 
-/// Index of [step] in the original (unsorted) step list; -1 if absent
-/// (cannot happen for steps taken from the timeline itself).
+/// Index of [step] in the original (unsorted) step list, or
+/// [visualNoStepIndex] if absent (cannot happen for steps taken from the
+/// timeline itself).
 int _indexOf(List<VisualStep> steps, VisualStep step) {
   for (var i = 0; i < steps.length; i++) {
     if (identical(steps[i], step)) return i;
   }
-  return -1;
+  return visualNoStepIndex;
 }
 
 void _applyTracks(

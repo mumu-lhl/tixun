@@ -2,7 +2,7 @@
 ///
 /// A parsed expression is a small AST over doubles. The language supports
 /// literals, variables (`x`, `t`, parameter names), `+ - * / ^` (`^` is
-/// right-associative), unary minus, parentheses, the functions
+/// right-associative), unary minus and plus, parentheses, the functions
 /// `sin cos tan asin acos atan sinh cosh tanh exp ln log sqrt abs floor ceil
 /// sign`, `if(cond, a, b)` with `< <= > >= == != && || !`, and the constants
 /// `pi` and `e`.
@@ -12,12 +12,13 @@
 /// untaken branch is never evaluated, so `x != 0 && 1 / x > 2` is safe.
 ///
 /// Nothing here executes generated code: parsing builds an AST and
-/// [evaluate] walks it. AST depth is limited to 32 (see [maxDepth]); a
-/// deeper expression throws [FormatException] at parse time, which also
-/// bounds evaluation recursion. Parser recursion itself is separately
-/// capped (see [expressionMaxRecursionDepth]) so pathological chains
-/// fail with [FormatException] instead of overflowing the stack before
-/// the AST check runs.
+/// [evaluate] walks it. AST depth is limited to 32 (see
+/// [expressionMaxDepth]); a deeper expression throws [FormatException]
+/// at parse time, which also bounds evaluation recursion. Parser
+/// recursion itself is separately capped (see
+/// [expressionMaxRecursionDepth]) so pathological chains fail with
+/// [FormatException] instead of overflowing the stack before the AST
+/// check runs.
 library;
 
 import 'dart:math' as math;
@@ -25,7 +26,9 @@ import 'dart:math' as math;
 /// Maximum AST depth (root = 1). A flat `a + b + c + ...` chain builds a
 /// left-deep tree, so very long flat sums count against this limit too;
 /// model-generated expressions are short, and the validator reports the
-/// failure so the model can retry with a shorter form.
+/// failure so the model can retry with a shorter form. Depth is stored in
+/// each node at construction, so the check is O(1) and long inputs fail
+/// fast instead of re-walking the tree on every parser step.
 const expressionMaxDepth = 32;
 
 /// Maximum parser recursion depth (entries into `_parseExpr` /
@@ -68,6 +71,16 @@ class Expression {
   /// Includes `pi`/`e` when referenced; the validator treats those as
   /// always allowed.
   Set<String> get variables => _root.variables;
+
+  /// Variable names that may actually be read when evaluating, given that
+  /// the variables in [knownVars] have those values. `if`/`&&`/`||`
+  /// branches whose condition folds to a constant under [knownVars]
+  /// contribute only the branch that would run; a condition mentioning an
+  /// unknown variable (e.g. `x`, `t`) is not foldable, so both branches
+  /// count. This mirrors the lazy evaluation semantics: a dead branch
+  /// never reads its variables, so the validator must not flag them.
+  Set<String> variablesReachable(Map<String, double> knownVars) =>
+      _root.variablesReachable(knownVars);
 
   @override
   String toString() => _root.toString();
@@ -121,11 +134,17 @@ List<_Token> _tokenize(String source) {
         if (j < source.length && (source[j] == '+' || source[j] == '-')) {
           j++;
         }
-        if (j < source.length && isDigit(source[j])) {
-          i = j;
-          while (i < source.length && isDigit(source[i])) {
-            i++;
-          }
+        if (j >= source.length || !isDigit(source[j])) {
+          // `1e` / `1e+` / `1e+x`: the exponent has no digits, so this
+          // is a malformed number, not the number 1 followed by the
+          // identifier `e`.
+          throw FormatException(
+            'Invalid number "${source.substring(start, j)}" at offset $start.',
+          );
+        }
+        i = j;
+        while (i < source.length && isDigit(source[i])) {
+          i++;
         }
       }
       final text = source.substring(start, i);
@@ -193,15 +212,39 @@ List<_Token> _tokenize(String source) {
 // ---------------------------------------------------------------------------
 
 sealed class _Expr {
-  const _Expr();
+  const _Expr({required this.depth, required this.offset});
+
+  /// Depth of this subtree (root = 1), stored at construction so the
+  /// depth check is O(1): computing it on demand would re-walk the whole
+  /// subtree on every parser step (quadratic on long inputs).
+  final int depth;
+
+  /// Source offset of the token that produced this node, so eval-time
+  /// errors can say where the offending value came from.
+  final int offset;
 
   double eval(Map<String, double> vars);
   Set<String> get variables;
-  int get depth;
+
+  /// Variable names that may be read when evaluating, given [knownVars].
+  /// `if`/`&&`/`||` branches whose condition folds to a constant under
+  /// [knownVars] contribute only the branch that would actually run.
+  Set<String> variablesReachable(Map<String, double> knownVars);
+}
+
+/// Tries to evaluate [expr] with [knownVars]; returns null when the value
+/// depends on an unknown variable (or is non-finite), i.e. the expression
+/// cannot be folded to a constant here.
+double? _tryFold(_Expr expr, Map<String, double> knownVars) {
+  try {
+    return expr.eval(knownVars);
+  } on FormatException {
+    return null;
+  }
 }
 
 class _Literal extends _Expr {
-  const _Literal(this.value);
+  const _Literal(this.value, {required super.offset}) : super(depth: 1);
 
   final double value;
 
@@ -212,38 +255,39 @@ class _Literal extends _Expr {
   Set<String> get variables => const {};
 
   @override
-  int get depth => 1;
+  Set<String> variablesReachable(Map<String, double> knownVars) => const {};
 
   @override
   String toString() => value.toString();
 }
 
 class _Variable extends _Expr {
-  const _Variable(this.name);
+  const _Variable(this.name, {required super.offset}) : super(depth: 1);
 
   final String name;
 
   @override
   double eval(Map<String, double> vars) {
     final v = vars[name];
-    if (v != null) return _finite(v, name);
+    if (v != null) return _finite(v, name, offset);
     if (name == 'pi') return math.pi;
     if (name == 'e') return math.e;
-    throw FormatException('Unknown variable "$name".');
+    throw FormatException('Unknown variable "$name" at offset $offset.');
   }
 
   @override
   Set<String> get variables => {name};
 
   @override
-  int get depth => 1;
+  Set<String> variablesReachable(Map<String, double> knownVars) => {name};
 
   @override
   String toString() => name;
 }
 
 class _Unary extends _Expr {
-  const _Unary(this.op, this.operand);
+  _Unary(this.op, this.operand, {required super.offset})
+    : super(depth: 1 + operand.depth);
 
   final String op;
   final _Expr operand;
@@ -251,22 +295,28 @@ class _Unary extends _Expr {
   @override
   double eval(Map<String, double> vars) {
     final v = operand.eval(vars);
-    final result = op == '-' ? -v : (v == 0 ? 1.0 : 0.0);
-    return _finite(result, op);
+    final result = switch (op) {
+      '-' => -v,
+      '+' => v,
+      _ => v == 0 ? 1.0 : 0.0,
+    };
+    return _finite(result, op, offset);
   }
 
   @override
   Set<String> get variables => operand.variables;
 
   @override
-  int get depth => 1 + operand.depth;
+  Set<String> variablesReachable(Map<String, double> knownVars) =>
+      operand.variablesReachable(knownVars);
 
   @override
   String toString() => '($op$operand)';
 }
 
 class _Binary extends _Expr {
-  const _Binary(this.op, this.left, this.right);
+  _Binary(this.op, this.left, this.right, {required super.offset})
+    : super(depth: 1 + math.max(left.depth, right.depth));
 
   final String op;
   final _Expr left;
@@ -299,21 +349,40 @@ class _Binary extends _Expr {
       '!=' => l != r ? 1.0 : 0.0,
       _ => throw FormatException('Unknown operator "$op".'),
     };
-    return _finite(result, op);
+    return _finite(result, op, offset);
   }
 
   @override
   Set<String> get variables => {...left.variables, ...right.variables};
 
   @override
-  int get depth => 1 + math.max(left.depth, right.depth);
+  Set<String> variablesReachable(Map<String, double> knownVars) {
+    if (op == '&&') {
+      // A false left never reads the right.
+      final folded = _tryFold(left, knownVars);
+      if (folded != null && folded == 0) {
+        return left.variablesReachable(knownVars);
+      }
+    } else if (op == '||') {
+      // A true left never reads the right.
+      final folded = _tryFold(left, knownVars);
+      if (folded != null && folded != 0) {
+        return left.variablesReachable(knownVars);
+      }
+    }
+    return {
+      ...left.variablesReachable(knownVars),
+      ...right.variablesReachable(knownVars),
+    };
+  }
 
   @override
   String toString() => '($left $op $right)';
 }
 
 class _Call extends _Expr {
-  const _Call(this.name, this.arg);
+  _Call(this.name, this.arg, {required super.offset})
+    : super(depth: 1 + arg.depth);
 
   final String name;
   final _Expr arg;
@@ -341,21 +410,27 @@ class _Call extends _Expr {
       'sign' => v == 0 ? 0.0 : (v > 0 ? 1.0 : -1.0),
       _ => throw FormatException('Unknown function "$name".'),
     };
-    return _finite(result, name);
+    return _finite(result, name, offset);
   }
 
   @override
   Set<String> get variables => arg.variables;
 
   @override
-  int get depth => 1 + arg.depth;
+  Set<String> variablesReachable(Map<String, double> knownVars) =>
+      arg.variablesReachable(knownVars);
 
   @override
   String toString() => '$name($arg)';
 }
 
 class _If extends _Expr {
-  const _If(this.cond, this.thenBranch, this.elseBranch);
+  _If(this.cond, this.thenBranch, this.elseBranch, {required super.offset})
+    : super(
+        depth:
+            1 +
+            math.max(cond.depth, math.max(thenBranch.depth, elseBranch.depth)),
+      );
 
   final _Expr cond;
   final _Expr thenBranch;
@@ -373,16 +448,34 @@ class _If extends _Expr {
   };
 
   @override
-  int get depth =>
-      1 + math.max(cond.depth, math.max(thenBranch.depth, elseBranch.depth));
+  Set<String> variablesReachable(Map<String, double> knownVars) {
+    final condVars = cond.variablesReachable(knownVars);
+    final folded = _tryFold(cond, knownVars);
+    if (folded != null) {
+      // The condition is constant here: only the taken branch can run.
+      return {
+        ...condVars,
+        ...(folded != 0
+            ? thenBranch.variablesReachable(knownVars)
+            : elseBranch.variablesReachable(knownVars)),
+      };
+    }
+    return {
+      ...condVars,
+      ...thenBranch.variablesReachable(knownVars),
+      ...elseBranch.variablesReachable(knownVars),
+    };
+  }
 
   @override
   String toString() => 'if($cond, $thenBranch, $elseBranch)';
 }
 
-double _finite(double value, String where) {
+double _finite(double value, String where, int offset) {
   if (!value.isFinite) {
-    throw FormatException('Non-finite result while evaluating "$where".');
+    throw FormatException(
+      'Non-finite result while evaluating "$where" at offset $offset.',
+    );
   }
   return value;
 }
@@ -489,10 +582,17 @@ class _Parser {
 
   void _enterParen(int offset) {
     _parenDepth++;
-    if (_parenDepth > expressionMaxDepth) {
+    // The parenthesis cap follows the parser recursion budget, not the
+    // AST depth limit: `(` * 33 around a literal is only one AST level
+    // deep, so capping it at 32 would reject a shallow expression.
+    // Each paren level costs two recursion frames (`_parseExpr` +
+    // `_parsePrefix`), and the innermost literal costs two more, so
+    // (128 - 2) / 2 = 63 parens fit under the 128-frame budget.
+    const parenCap = (expressionMaxRecursionDepth - 2) ~/ 2;
+    if (_parenDepth > parenCap) {
       throw FormatException(
-        'Expression is too deeply nested (more than $expressionMaxDepth '
-        'levels of parentheses).',
+        'Expression is too deeply nested (more than $parenCap levels of '
+        'parentheses).',
       );
     }
   }
@@ -533,7 +633,7 @@ class _Parser {
         // `^` is right-associative; all other binary operators are left-assoc.
         final nextMin = tok.text == '^' ? prec : prec + 1;
         final right = _parseExpr(nextMin);
-        left = _Binary(tok.text, left, right);
+        left = _Binary(tok.text, left, right, offset: tok.offset);
         _checkDepth(left);
       }
       return left;
@@ -555,7 +655,7 @@ class _Parser {
     final tok = _advance();
     switch (tok.kind) {
       case _TokenKind.number:
-        return _Literal(tok.numberValue!);
+        return _Literal(tok.numberValue!, offset: tok.offset);
       case _TokenKind.ident:
         if (_peek.kind == _TokenKind.lparen) {
           _enterParen(tok.offset);
@@ -563,7 +663,16 @@ class _Parser {
           _parenDepth--;
           return call;
         }
-        return _Variable(tok.text);
+        if (tok.text == 'if' || _functions.contains(tok.text)) {
+          // A function name on its own is not a variable: `sin` with no
+          // call cannot be evaluated, and silently reading it as a
+          // variable would hide a typo.
+          throw FormatException(
+            'Function "${tok.text}" needs arguments: use '
+            '"${tok.text}(...)" at offset ${tok.offset}.',
+          );
+        }
+        return _Variable(tok.text, offset: tok.offset);
       case _TokenKind.lparen:
         _enterParen(tok.offset);
         final inner = _parseExpr(0);
@@ -574,11 +683,11 @@ class _Parser {
         _parenDepth--;
         return inner;
       case _TokenKind.op:
-        if (tok.text == '-' || tok.text == '!') {
-          // Unary minus / logical not bind tighter than + - * / but looser
-          // than ^, so -x^2 parses as -(x^2).
+        if (tok.text == '-' || tok.text == '+' || tok.text == '!') {
+          // Unary minus / plus / logical not bind tighter than + - * /
+          // but looser than ^, so -x^2 parses as -(x^2).
           final operand = _parseExpr(7);
-          final expr = _Unary(tok.text, operand);
+          final expr = _Unary(tok.text, operand, offset: tok.offset);
           _checkDepth(expr);
           return expr;
         }
@@ -587,10 +696,11 @@ class _Parser {
         );
       case _TokenKind.rparen:
       case _TokenKind.comma:
-      case _TokenKind.eof:
         throw FormatException(
           'Unexpected "${tok.text}" at offset ${tok.offset}.',
         );
+      case _TokenKind.eof:
+        throw FormatException('Expected an operand at offset ${tok.offset}.');
     }
   }
 
@@ -602,8 +712,14 @@ class _Parser {
       final thenBranch = _parseExpr(0);
       _expectComma();
       final elseBranch = _parseExpr(0);
+      if (_peek.kind == _TokenKind.comma) {
+        throw FormatException(
+          'Function "if" takes exactly 3 arguments, but more were given '
+          'at offset ${_peek.offset}.',
+        );
+      }
       _expectRparen();
-      final expr = _If(cond, thenBranch, elseBranch);
+      final expr = _If(cond, thenBranch, elseBranch, offset: offset);
       _checkDepth(expr);
       return expr;
     }
@@ -611,10 +727,23 @@ class _Parser {
       throw FormatException('Unknown function "$name" at offset $offset.');
     }
     final arg = _parseExpr(0);
-    _expectRparen();
-    final expr = _Call(name, arg);
+    _expectSingleArg(name, offset);
+    final expr = _Call(name, arg, offset: offset);
     _checkDepth(expr);
     return expr;
+  }
+
+  /// After a single-argument function's first argument, a comma means
+  /// the caller passed too many arguments; report that instead of the
+  /// confusing `Expected ")"` from [_expectRparen].
+  void _expectSingleArg(String name, int offset) {
+    if (_peek.kind == _TokenKind.comma) {
+      throw FormatException(
+        'Function "$name" takes exactly 1 argument, but more were given '
+        'at offset ${_peek.offset}.',
+      );
+    }
+    _expectRparen();
   }
 
   void _expectComma() {

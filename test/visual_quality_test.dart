@@ -173,13 +173,184 @@ void main() {
       expect(flagged.single.path, 'p1');
     });
 
-    test('a steep model zero is flagged as derived_mismatch', () {
+    test('a steep model zero is NOT flagged as derived_mismatch', () {
       // Bisection refines the zero to ~5e-10 in x; with slope 1e9 the
-      // re-evaluated |f| is ~0.5, far above the 1e-6 check tolerance,
-      // so the reported zero does not reproduce the curve.
+      // re-evaluated |f| is ~0.5. That is far above the old absolute
+      // 1e-6 tolerance, but nothing is wrong: the zero is right, the
+      // slope is just steep. The tolerance is now relative to the
+      // function's own scale, so steep slopes no longer false-positive.
       final scene = _scene(_plot('1e9*(x-0.5)', alt: '陡峭直线'));
       final issues = checkVisualQuality(scene);
-      expect(issues.map((i) => i.code), contains('derived_mismatch'));
+      expect(issues.map((i) => i.code), isNot(contains('derived_mismatch')));
+    });
+
+    test('the review probe input is NOT flagged as derived_mismatch', () {
+      // f = 1e6*(x-0.123456789): the zero re-evaluates to a residual
+      // of 2.85e-4, above the old absolute tolerance — a false
+      // positive the relative tolerance removes.
+      final scene = _scene(_plot('1e6*(x-0.123456789)', alt: '陡峭直线'));
+      final issues = checkVisualQuality(scene);
+      expect(issues.map((i) => i.code), isNot(contains('derived_mismatch')));
+    });
+
+    test('a narrow defined window is visible at canvas resolution', () {
+      // sqrt((x-0.506)*(0.516-x)) is defined only on [0.506, 0.516]:
+      // the 256-sample grid has no point in the window, the
+      // 1024-sample grid has two. The quality check samples at the
+      // canvas resolution, so it agrees with the renderer that the
+      // curve is visible.
+      final scene = _scene(_plot('sqrt((x-0.506)*(0.516-x))', alt: '窄窗'));
+      final issues = checkVisualQuality(scene);
+      expect(issues.map((i) => i.code), isNot(contains('curve_not_visible')));
+    });
+
+    test('a plot element is checked at its own sample count', () {
+      // The same narrow window as a plot element with samples: 256:
+      // the canvas draws it with 256 samples, which miss the window
+      // entirely, so the check must agree it is not visible.
+      final scene = _scene({
+        'v': 1,
+        'kind': 'plot2d',
+        'title': '窄窗',
+        'view': {
+          'x': [-3, 3],
+          'y': [-3, 3],
+        },
+        'elements': [
+          {
+            'id': 'p1',
+            'type': 'plot',
+            'expression': 'sqrt((x-0.506)*(0.516-x))',
+            'domain': [-3, 3],
+            'samples': 256,
+          },
+        ],
+        'meta': {'alt': '窄窗'},
+      });
+      final issues = checkVisualQuality(scene);
+      final flagged = issues
+          .where((i) => i.code == 'curve_not_visible')
+          .toList();
+      expect(flagged, hasLength(1));
+      expect(flagged.single.path, 'p1');
+    });
+
+    test('a scene with only annotations is not empty', () {
+      final scene = _scene({
+        'v': 1,
+        'kind': 'geometry',
+        'title': '注',
+        'annotations': [
+          {
+            'at': [0, 0],
+            'text': '说明',
+          },
+        ],
+        'meta': {'alt': '注'},
+      });
+      final issues = checkVisualQuality(scene);
+      expect(issues.map((i) => i.code), isNot(contains('empty_scene')));
+    });
+
+    test('a circle reaching into the view from outside is not flagged', () {
+      // Centre (5, 0) is outside [-3, 3]^2, but radius 3 reaches x = 2.
+      final scene = _scene({
+        'v': 1,
+        'kind': 'geometry',
+        'title': '圆',
+        'view': {
+          'x': [-3, 3],
+          'y': [-3, 3],
+        },
+        'elements': [
+          {
+            'id': 'c1',
+            'type': 'circle',
+            'center': [5, 0],
+            'r': 3,
+          },
+        ],
+        'meta': {'alt': '圆'},
+      });
+      expect(checkVisualQuality(scene), isEmpty);
+    });
+
+    test('a circle fully outside the view is flagged', () {
+      // Centre (5, 0), radius 1: extent x in [4, 6], entirely outside.
+      final scene = _scene({
+        'v': 1,
+        'kind': 'geometry',
+        'title': '圆',
+        'view': {
+          'x': [-3, 3],
+          'y': [-3, 3],
+        },
+        'elements': [
+          {
+            'id': 'c1',
+            'type': 'circle',
+            'center': [5, 0],
+            'r': 1,
+          },
+        ],
+        'meta': {'alt': '圆'},
+      });
+      final issues = checkVisualQuality(scene);
+      expect(issues.map((i) => i.code), ['point_outside_view']);
+      expect(issues.single.path, 'c1');
+    });
+
+    test('an arc reaching into the view from outside is not flagged', () {
+      // Centre (5, 0), radius 3, sweep 180°→270°: the arc runs from
+      // (2, 0) to (5, -3), reaching into the view.
+      final scene = _scene({
+        'v': 1,
+        'kind': 'geometry',
+        'title': '弧',
+        'view': {
+          'x': [-3, 3],
+          'y': [-3, 3],
+        },
+        'elements': [
+          {
+            'id': 'a1',
+            'type': 'arc',
+            'center': [5, 0],
+            'r': 3,
+            'startDeg': 180,
+            'sweepDeg': 90,
+          },
+        ],
+        'meta': {'alt': '弧'},
+      });
+      expect(checkVisualQuality(scene), isEmpty);
+    });
+
+    test('an arc fully outside the view is flagged', () {
+      // Centre (5, 0), radius 1, sweep 0°→90°: arc points x in [5, 6].
+      final scene = _scene({
+        'v': 1,
+        'kind': 'geometry',
+        'title': '弧',
+        'view': {
+          'x': [-3, 3],
+          'y': [-3, 3],
+        },
+        'elements': [
+          {
+            'id': 'a1',
+            'type': 'arc',
+            'center': [5, 0],
+            'r': 1,
+            'startDeg': 0,
+            'sweepDeg': 90,
+          },
+        ],
+        'meta': {'alt': '弧'},
+      });
+      final issues = checkVisualQuality(scene);
+      expect(issues.map((i) => i.code), ['point_outside_view']);
+      expect(issues.single.path, 'a1');
     });
 
     test('tan(x) has no derived_mismatch: poles are not zeros', () {
