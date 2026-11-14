@@ -46,7 +46,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布或手动勾选 `full_gui` 时运行；Nightly 跳过单元测试与完整 GUI 回归。十二个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
+普通 push / PR 执行静态分析、完整 Flutter 测试、Android Debug APK、Linux 正式构建、GUI 启动冒烟和完整 Native GUI 回归，并上传程序、截图与日志。手动及复用工作流默认开启 `full_gui`；手动取消该选项可只跑冒烟，`run_tests=false` 则显式跳过单元测试及完整 GUI 回归（Nightly 继续采用此设置）。依赖的静态分析/测试 job 失败时，构建与 GUI job 会被跳过，需先查看前置失败日志。十二个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
 
 ## 按版本标签发布
 
@@ -82,7 +82,7 @@ git push origin v0.6.1
 python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 ```
 
-在 Actions 手动运行 Build and verify 时，可以勾选 `android_release` 验证四份签名 Release APK，勾选 `full_gui` 运行完整 GUI 回归；不勾选时只执行 GUI 启动冒烟。这不会创建新发布。已有 Release 和版本标签不会被修改。
+在 Actions 手动运行 Build and verify 时，可以勾选 `android_release` 验证四份签名 Release APK；`full_gui` 默认勾选以运行完整 GUI 回归，手动取消时只执行 GUI 启动冒烟。这不会创建新发布。已有 Release 和版本标签不会被修改。
 
 ## 界面语言与配色
 
@@ -131,7 +131,7 @@ Golden 像素比对及基线图片已移除；Widget 行为、窄屏/键盘布�
 
 Flutter SDK、Android/Linux 引擎和 Pub 依赖使用版本化缓存；SDK 缓存未命中时先在检查任务预下载双平台引擎，供后续构建复用。Pub 缓存按锁文件区分。Gradle 使用官方 `setup-gradle` 管理依赖与任务缓存，并开启 `org.gradle.caching`。PR 与非默认分支只读 Gradle 缓存，默认分支成功构建后写入；版本标签可复用默认分支缓存。签名密钥只在 Runner 临时目录中保存，打包/签名校验任务禁用输出缓存，不缓存最终签名 APK。不缓存测试通过结果或开启 Gradle configuration cache。
 
-首次缓存是冷启动，后续收益以 Actions 的命中记录和 Gradle 任务统计为准，不能承诺固定提速比例。缓存丢失时仍能完整构建。普通 CI 不运行完整的原生 GUI 回归，这与缓存是两项独立优化。
+首次缓存是冷启动，后续收益以 Actions 的命中记录和 Gradle 任务统计为准，不能承诺固定提速比例。缓存丢失时仍能完整构建。普通 CI 始终运行完整的原生 GUI 回归，不以缓存命中代替测试结果。
 
 job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的 `Android Debug APK` / `Android Release APK and signature`、`Linux Release and GUI tests`。两个发布入口分别显示标签准备、构建验证和对应发布阶段；若分支保护绑定了旧的检查显示名，需要同步规则。
 
@@ -139,7 +139,7 @@ job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的
 
 `test/reasoning_display_test.dart` 覆盖流式思考、跨轮显示与协议隔离、错误后保留、Responses 公开摘要及作答前隐藏。`test/scratchpad_test.dart` 覆盖多页、局部擦除、串行保存、关联删除和完整备份；旧 schema v7 的思考可迁移到 v8。画板不含任何外部 AI 请求。
 
-`integration_test/scratchpad_reasoning_test.dart` 覆盖流式展示、彩色短笔画起点、橡皮/撤销、多页保存、平移缩放/复位与重开，并生成手机、桌面英文截图。普通 CI 仍只做启动冒烟，完整 GUI 在版本发布或手动勾选 `full_gui` 时执行。
+`integration_test/scratchpad_reasoning_test.dart` 覆盖流式展示、彩色短笔画起点、橡皮/撤销、多页保存、平移缩放/复位与重开，并生成手机、桌面英文截图。普通 push / PR 默认执行启动冒烟及完整 GUI；手动及复用工作流可显式关闭完整 GUI。
 
 CI 的签名测试与 Android 构建统一使用 Temurin **Java 25 LTS**；Flutter 显式选择 CI 的 JAVA_HOME。Gradle 9.3.1 支持运行在 Java 25（[兼容性表](https://docs.gradle.org/9.3.1/userguide/compatibility.html)）。Android Java/Kotlin 字节码目标仍为 17，不因此提高 Android 最低版本。
 

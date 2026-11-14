@@ -121,7 +121,9 @@ void main() {
         t,
         () => find.byKey(const Key('study-to-chat')).evaluate().isNotEmpty,
       );
-      await c.setSubjectFilter('物理');
+      // Study actions honor the current subject scope. Keep it aligned with
+      // the imported material instead of attempting a cross-subject link.
+      await c.setSubjectFilter(imported.subject);
       await t.tap(find.byKey(const Key('study-to-chat')));
       await until(
         t,
