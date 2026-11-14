@@ -105,6 +105,7 @@ class AiRequest {
     required List<AiMessage> messages,
     List<AiTool> tools = const [],
     this.maxOutputTokens,
+    this.enableConversationTitle = false,
   }) : messages = List.unmodifiable(messages),
        tools = List.unmodifiable(tools);
   final String instructions;
@@ -113,16 +114,23 @@ class AiRequest {
 
   /// Null means no app-side cap: the provider's own model limit decides.
   final int? maxOutputTokens;
+
+  /// Ask DeepSeek to generate a title alongside this response.
+  final bool enableConversationTitle;
+
   AiRequest copyWith({
     String? instructions,
     List<AiMessage>? messages,
     List<AiTool>? tools,
     int? maxOutputTokens,
+    bool? enableConversationTitle,
   }) => AiRequest(
     instructions: instructions ?? this.instructions,
     messages: messages ?? this.messages,
     tools: tools ?? this.tools,
     maxOutputTokens: maxOutputTokens ?? this.maxOutputTokens,
+    enableConversationTitle:
+        enableConversationTitle ?? this.enableConversationTitle,
   );
 }
 
@@ -132,6 +140,7 @@ class AiChunk {
   const AiChunk({
     this.text = '',
     this.reasoning = '',
+    this.title,
     this.tokens,
     this.usage,
     this.completed = false,
@@ -141,6 +150,9 @@ class AiChunk {
 
   /// Reasoning delta for this event, if the provider streams one.
   final String reasoning;
+
+  /// Optional provider-generated conversation title.
+  final String? title;
 
   /// Legacy total-token count; providers should prefer [usage].
   final int? tokens;

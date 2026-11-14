@@ -10,9 +10,16 @@ import 'package:tixun/features/library/study_store.dart';
 import 'package:tixun/features/practice/question_spec.dart';
 
 class FastProvider implements ChatProvider {
+  final requests = <AiRequest>[];
+  bool emitTitle = false;
+
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
+        requests.add(request);
+        if (request.enableConversationTitle && emitTitle) {
+          yield const AiChunk(title: 'DeepSeek 生成标题');
+        }
         for (var i = 0; i < 4; i++) {
           await Future<void>.delayed(const Duration(milliseconds: 10));
           cancel.checkCancelled();
@@ -24,13 +31,15 @@ class FastProvider implements ChatProvider {
 
 void main() {
   late AppController c;
+  late FastProvider provider;
   setUp(() async {
     final root = await Directory.systemTemp.createTemp('tixun-controller-test');
+    provider = FastProvider();
     c = AppController(
       AppDatabase.memory(),
       AttachmentStore(root),
       MemoryKeyStore(),
-      FastProvider(),
+      provider,
     );
     await c.initialize();
     await c.newSession();
@@ -47,6 +56,28 @@ void main() {
     await c.send('指数函数的定义');
     expect(c.selected!.title, '指数函数的定义');
   });
+  test('DeepSeek titles only the first new untitled conversation', () async {
+    c.config = c.config.copyWith(
+      kind: 'deepseek',
+      baseUrl: 'https://api.deepseek.com',
+      model: 'deepseek-flash',
+    );
+    provider.emitTitle = true;
+    await c.renameSession(c.selected!, '我自定义的名称');
+    await c.send('自定义标题不应覆盖');
+    expect(provider.requests.last.enableConversationTitle, false);
+    expect(c.selected!.title, '我自定义的名称');
+
+    await c.newSession();
+    await c.send('请解释勾股定理');
+    expect(provider.requests.last.enableConversationTitle, true);
+    expect(c.selected!.title, 'DeepSeek 生成标题');
+
+    await c.send('再举个例子');
+    expect(provider.requests.last.enableConversationTitle, false);
+    expect(c.selected!.title, 'DeepSeek 生成标题');
+  });
+
   test(
     'Concurrent send submits once; messages and token usage persist',
     () async {

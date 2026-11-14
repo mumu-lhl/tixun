@@ -82,6 +82,10 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
       if (choices.isEmpty) continue;
       final choice = choices.first as Map<String, dynamic>;
       final delta = choice['delta'] as Map<String, dynamic>? ?? {};
+      final title = delta['title'];
+      if (title is String && title.trim().isNotEmpty) {
+        yield AiChunk(title: title.trim());
+      }
       if (delta['tool_calls'] != null) {
         if (delta['tool_calls'] is! List) {
           throw const AiFailure.localized(
@@ -269,6 +273,8 @@ Map<String, dynamic> encodeCompletion(
 ) => {
   'model': config.model,
   'stream': true,
+  if (config.kind == 'deepseek' && request.enableConversationTitle)
+    'title': {'enabled': true},
   'stream_options': {'include_usage': true},
   if (request.maxOutputTokens != null) 'max_tokens': request.maxOutputTokens,
   if (config.kind == 'deepseek')

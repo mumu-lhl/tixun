@@ -29,12 +29,14 @@ class LearningRunResult {
     required this.text,
     this.tokens,
     required this.quizCreated,
+    this.title,
     this.reasoning,
     this.reasoningTrace,
   });
   final String text;
   final int? tokens;
   final bool quizCreated;
+  final String? title;
 
   /// Reasoning streamed in the final round, if the provider returned any.
   /// Persisted with the assistant message so later tool requests can pass
@@ -75,6 +77,7 @@ class LearningRun {
     required List<Attachment> images,
     required String mode,
     required bool authorized,
+    bool enableConversationTitle = false,
     required CancelToken cancel,
     required Future<bool> Function(
       String name,
@@ -108,6 +111,9 @@ class LearningRun {
         studyChanged = false,
         pythonExecuted = false;
     String? lastRoundReasoning;
+    String? generatedTitle;
+    var titleRequestPending =
+        enableConversationTitle && requestConfig.kind == 'deepseek';
     var activeReasoning = '', trace = '';
     final latestUser =
         history.where((m) => m.role == 'user').lastOrNull?.content ?? '';
@@ -121,6 +127,7 @@ class LearningRun {
         quizCreated: quizCreated,
         reasoning: activeReasoning.isEmpty ? null : activeReasoning,
         reasoningTrace: trace.isEmpty ? null : trace,
+        title: generatedTitle,
       ),
     );
     try {
@@ -371,13 +378,22 @@ class LearningRun {
         var completed = false;
         AiTokenUsage? roundUsage;
         final requestStartedAt = DateTime.now();
+        final roundRequest = request.copyWith(
+          enableConversationTitle: titleRequestPending,
+        );
+        titleRequestPending = false;
         final requestImageCount = request.messages.fold<int>(
           0,
           (count, message) => count + message.images.length,
         );
         try {
-          await for (final chunk in conversation.complete(request, cancel)) {
+          await for (final chunk in conversation.complete(
+            roundRequest,
+            cancel,
+          )) {
             cancel.checkCancelled();
+            final title = chunk.title?.trim();
+            if (title != null && title.isNotEmpty) generatedTitle = title;
             if (chunk.usage != null) roundUsage = chunk.usage;
             text += chunk.text;
             roundText += chunk.text;
@@ -614,6 +630,7 @@ class LearningRun {
         quizCreated: quizCreated,
         reasoning: lastRoundReasoning,
         reasoningTrace: trace.isEmpty ? null : trace,
+        title: generatedTitle,
       );
     } finally {
       timer.cancel();

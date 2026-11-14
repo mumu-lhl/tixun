@@ -24,6 +24,14 @@ void main() {
     expect(chunks.map((c) => c.text).join(), '你好');
     expect(chunks.any((c) => c.tokens == 42), true);
   });
+  test('Chat Completions stream exposes the final generated title', () async {
+    final chunks = await decodeCompletion(
+      bytes(
+        'data: {"choices":[{"delta":{"title":"北京明天天气"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
+      ),
+    ).toList();
+    expect(chunks.singleWhere((chunk) => chunk.title != null).title, '北京明天天气');
+  });
   test('Chat Completions usage chunks retain token breakdowns', () async {
     final chunks = await decodeCompletion(
       bytes('''data: {"choices":[],"usage":{"prompt_tokens":120,"completion_tokens":30,"total_tokens":150,"prompt_tokens_details":{"cached_tokens":60}}}
@@ -232,6 +240,17 @@ data: [DONE]
             )['messages']
             as List;
     expect(compatible[0].containsKey('reasoning_content'), false);
+    final titleRequest = request.copyWith(enableConversationTitle: true);
+    final titleBody = encodeCompletion(
+      config.copyWith(kind: 'deepseek', baseUrl: 'https://api.deepseek.com'),
+      titleRequest,
+    );
+    expect(titleBody['title'], {'enabled': true});
+    final nonDeepSeekTitle = encodeCompletion(
+      config.copyWith(kind: 'chatgpt', baseUrl: 'https://api.openai.com/v1'),
+      titleRequest,
+    );
+    expect(nonDeepSeekTitle.containsKey('title'), false);
   });
   test(
     'encodeCompletion omits max_tokens without a limit, sends it when set',

@@ -40,6 +40,11 @@ import '../features/chat/chat_failure.dart';
 import '../features/progress/learning_profile.dart';
 import '../features/review/review_store.dart';
 
+typedef _PreparedGeneration = ({
+  String sessionId,
+  bool enableConversationTitle,
+});
+
 final appControllerProvider = ChangeNotifierProvider<AppController>(
   (ref) => throw StateError('AppController must be initialized'),
 );
@@ -382,6 +387,45 @@ class AppController extends ChangeNotifier {
       selected = selected!.copyWith(title: title.trim());
       changed();
     }
+  }
+
+  Future<void> _applyDeepSeekTitle(
+    String sessionId,
+    String? expectedTitle,
+    String generatedTitle,
+  ) async {
+    if (expectedTitle == null) return;
+    final title = generatedTitle
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim()
+        .characters
+        .take(30)
+        .toString();
+    if (title.isEmpty || title == expectedTitle) return;
+    final updated =
+        await (db.update(db.chatSessions)..where(
+              (session) =>
+                  session.id.equals(sessionId) &
+                  session.title.equals(expectedTitle),
+            ))
+            .write(ChatSessionsCompanion(title: Value(title)));
+    if (updated == 0) return;
+    if (selected?.id == sessionId) selected = selected!.copyWith(title: title);
+    sessions = [
+      for (final session in sessions)
+        if (session.id == sessionId)
+          session.copyWith(title: title)
+        else
+          session,
+    ];
+    allSessions = [
+      for (final session in allSessions)
+        if (session.id == sessionId)
+          session.copyWith(title: title)
+        else
+          session,
+    ];
+    changed();
   }
 
   Future<void> deleteSession(ChatSession s) async {
@@ -796,15 +840,20 @@ class AppController extends ChangeNotifier {
     changed();
   });
 
-  Future<void> _startRequest(Future<String> Function() prepare) async {
+  Future<void> _startRequest(
+    Future<_PreparedGeneration> Function() prepare,
+  ) async {
     busy = true;
     error = null;
     final ready = Completer<void>();
     _preparation = ready;
     changed();
     try {
-      final sessionId = await prepare();
-      _generation = _generate(sessionId);
+      final prepared = await prepare();
+      _generation = _generate(
+        prepared.sessionId,
+        enableConversationTitle: prepared.enableConversationTitle,
+      );
       ready.complete();
       _preparation = null;
       await _generation;
@@ -835,6 +884,7 @@ class AppController extends ChangeNotifier {
       final s = selected!;
       final userId = const Uuid().v4();
       final now = DateTime.now();
+      var requestConversationTitle = false;
       await db.transaction(() async {
         await db
             .into(db.chatMessages)
@@ -857,6 +907,11 @@ class AppController extends ChangeNotifier {
         final stored = await (db.select(
           db.chatSessions,
         )..where((t) => t.id.equals(s.id))).getSingle();
+        final untitledFirstSend =
+            messages.isEmpty &&
+            const ['新的学习对话', 'New study conversation'].contains(stored.title);
+        requestConversationTitle =
+            untitledFirstSend && sessionConfig.kind == 'deepseek';
         final clearDraft = stored.draft.isEmpty || stored.draft == input;
         await (db.update(
           db.chatSessions,
@@ -864,12 +919,7 @@ class AppController extends ChangeNotifier {
           ChatSessionsCompanion(
             draft: clearDraft ? const Value('') : const Value.absent(),
             updatedAt: Value(now),
-            title:
-                messages.isEmpty &&
-                    const [
-                      '新的学习对话',
-                      'New study conversation',
-                    ].contains(stored.title)
+            title: untitledFirstSend
                 ? Value(
                     input.trim().isEmpty
                         ? '图片题目'
@@ -885,7 +935,10 @@ class AppController extends ChangeNotifier {
       await db.setPreference('selected_session', s.id);
       await _refreshSelected();
       await reload();
-      return s.id;
+      return (
+        sessionId: s.id,
+        enableConversationTitle: requestConversationTitle,
+      );
     });
   }
 
@@ -933,12 +986,16 @@ class AppController extends ChangeNotifier {
     changed();
   }
 
-  Future<void> _generate(String sessionId) async {
+  Future<void> _generate(
+    String sessionId, {
+    bool enableConversationTitle = false,
+  }) async {
     busy = true;
     if (demo) debugPrint('TIXUN_GENERATION_STARTED');
     final cancel = CancelToken();
     _cancel = cancel;
     final id = const Uuid().v4();
+    final titleBeforeGeneration = selected?.title;
     final requestConfig = sessionConfig;
     final requestPrompts = prompts;
     var text = '';
@@ -974,6 +1031,7 @@ class AppController extends ChangeNotifier {
         images: attachments,
         mode: selected!.mode,
         authorized: selected!.toolsEnabled,
+        enableConversationTitle: enableConversationTitle,
         cancel: cancel,
         confirm: (name, args, count) =>
             _confirmTool(name, args, cancel, imageCount: count),
@@ -1002,6 +1060,13 @@ class AppController extends ChangeNotifier {
           }
         },
       );
+      if (enableConversationTitle && result.title != null) {
+        await _applyDeepSeekTitle(
+          sessionId,
+          titleBeforeGeneration,
+          result.title!,
+        );
+      }
       text = result.text;
       tokens = result.tokens;
       quizCreated = result.quizCreated;
@@ -1443,7 +1508,7 @@ class AppController extends ChangeNotifier {
       });
       await _loadSession(branch);
       await reload();
-      return branch.id;
+      return (sessionId: branch.id, enableConversationTitle: false);
     });
   }
 
