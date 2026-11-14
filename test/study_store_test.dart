@@ -54,11 +54,15 @@ void main() {
       ),
       throwsA(isA<StudyConflict>()),
     );
+    expect(await store.searchKnowledge(query: '求顶点'), isEmpty);
+    expect((await store.searchKnowledge(query: '新版解释')).single.id, first.id);
     expect((await store.knowledge(first.id)).content, '新版解释');
     expect((await store.revisions(first.id)).length, 2);
     final restored = await store.restoreRevision(first.id, 1, second.revision);
     expect(restored.revision, 3);
     expect(restored.content, first.content);
+    expect((await store.searchKnowledge(query: '求顶点')).single.id, first.id);
+    expect(await store.searchKnowledge(query: '新版解释'), isEmpty);
     await store.setDeleted(
       first.id,
       isMistake: false,
@@ -66,6 +70,11 @@ void main() {
       expectedRevision: 3,
     );
     expect(await store.searchKnowledge(), isEmpty);
+    expect(await store.searchKnowledge(query: '求顶点'), isEmpty);
+    expect(
+      (await store.searchKnowledge(query: '求顶点', trash: true)).single.id,
+      first.id,
+    );
     final trashed = (await store.searchKnowledge(trash: true)).single;
     await store.setDeleted(
       first.id,
@@ -74,6 +83,7 @@ void main() {
       expectedRevision: trashed.revision,
     );
     expect((await store.knowledge(first.id)).content, first.content);
+    expect((await store.searchKnowledge(query: '求顶点')).single.id, first.id);
     expect((await store.revisions(first.id)).length, 5);
   });
   test(

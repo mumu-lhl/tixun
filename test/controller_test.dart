@@ -285,6 +285,34 @@ void main() {
     expect((await c.db.sessions('"数学"', '数学')).map((s) => s.id), [math.id]);
     expect(await c.db.sessions('数学', '英语'), isEmpty);
   });
+  test('Message search index follows edits and deletions', () async {
+    final session = await c.db.createSession(title: '检索', subject: '数学');
+    await c.db.customStatement(
+      'INSERT INTO chat_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)',
+      ['search-message', session.id, 'user', 'Quadratic 顶点 x = 1', 1],
+    );
+    expect((await c.db.sessions('quadratic 顶点', '数学')).map((s) => s.id), [
+      session.id,
+    ]);
+    expect(
+      (await c.db.matchingMessage(session.id, 'quadratic 顶点'))?.id,
+      'search-message',
+    );
+    expect((await c.db.sessions('x = 1', '数学')).map((s) => s.id), [session.id]);
+    expect(await c.db.sessions('quadratic 不存在', '数学'), isEmpty);
+    await c.db.customStatement(
+      'UPDATE chat_messages SET content = ? WHERE id = ?',
+      ['Updated 公式', 'search-message'],
+    );
+    expect(await c.db.sessions('quadratic', '数学'), isEmpty);
+    expect((await c.db.sessions('updated', '数学')).map((s) => s.id), [
+      session.id,
+    ]);
+    await c.db.customStatement('DELETE FROM chat_messages WHERE id = ?', [
+      'search-message',
+    ]);
+    expect(await c.db.sessions('updated', '数学'), isEmpty);
+  });
   test('Rapidly switching sessions keeps the last selected one', () async {
     final first = c.selected!;
     final second = await c.db.createSession(title: '第二个会话');
