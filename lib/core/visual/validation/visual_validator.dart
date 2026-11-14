@@ -479,7 +479,7 @@ class _Validator {
     final type = element['type'];
     const common = {'id', 'type', 'style', 'layer', 'visible', 'visibleWhen'};
     const perType = {
-      'point': {'at', 'label'},
+      'point': {'at', 'label', 'draggable'},
       'line': {'p1', 'p2', 'dashed'},
       'polyline': {'points'},
       'polygon': {'points', 'fill'},
@@ -583,6 +583,29 @@ class _Validator {
         }
         if (element['label'] != null && element['label'] is! String) {
           _error('invalid_type', 'point 图元的 label 必须是文字。', '$path.label');
+        }
+        if (element['draggable'] != null && element['draggable'] is! bool) {
+          _error(
+            'invalid_type',
+            'point 图元的 draggable 必须是布尔值。',
+            '$path.draggable',
+          );
+        } else if (element['draggable'] == true) {
+          // A dragged point is positioned by the user's finger, so its
+          // coordinates must be literals; a `$param`-bound point has no
+          // fixed position to drag from.
+          final rawAt = element['at'];
+          final bound =
+              rawAt is List &&
+              rawAt.length == 2 &&
+              (rawAt[0] is Map || rawAt[1] is Map);
+          if (bound) {
+            _error(
+              'invalid_value',
+              'draggable 的 point 图元的 at 必须是字面坐标，不能绑定参数。',
+              '$path.draggable',
+            );
+          }
         }
       case 'line':
         _checkLinePoints(element, path);

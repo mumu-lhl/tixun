@@ -68,6 +68,14 @@ class VisualCoordinateMapper {
     canvasRect.bottom - (model.dy - modelRect.top) * scale,
   );
 
+  /// Inverse of [modelToCanvas]: a canvas position back to model
+  /// coordinates (used for drag hit-testing). The y axis points up, so
+  /// the canvas y is measured from the bottom of the letterboxed rect.
+  ui.Offset canvasToModel(ui.Offset canvas) => ui.Offset(
+    modelRect.left + (canvas.dx - canvasRect.left) / scale,
+    modelRect.top + (canvasRect.bottom - canvas.dy) / scale,
+  );
+
   /// Screen positions of the scene's `math_label` elements (for the
   /// widget's `Math.tex` overlays). Labels hidden by visibility rules are
   /// omitted.
@@ -322,6 +330,14 @@ List<VisualElement> _visibleElements(
   return [for (final (_, element) in visible) element];
 }
 
+/// Public view of [_visibleElements] for the widget layer (drag
+/// hit-testing needs the same visibility rules as the painter).
+List<VisualElement> visualVisibleElements(
+  VisualScene scene,
+  Map<String, bool> toggles,
+  Set<String> hiddenElementIds,
+) => _visibleElements(scene, toggles, hiddenElementIds);
+
 /// Whether this scene gets axes + grid: always for `plot2d`/`chart`;
 /// for other kinds only when a view is present and `model.showAxes` is
 /// not false.
@@ -367,6 +383,7 @@ class VisualPainter extends CustomPainter {
     required this.parameters,
     this.toggles = const {},
     this.hiddenElementIds = const {},
+    this.pointOverrides = const {},
     this.timeMs = 0,
     this.stepIndex = 0,
     this.tickLabelStyle = const TextStyle(fontSize: 11),
@@ -379,6 +396,14 @@ class VisualPainter extends CustomPainter {
 
   /// Element ids hidden by the current teaching step (animator output).
   final Set<String> hiddenElementIds;
+
+  /// Local drag positions (element id → model coordinates), set by the
+  /// fullscreen page while the user drags a point. They override the
+  /// scene's coordinates for painting only — never persisted, and the
+  /// fit view is still computed from the scene's own coordinates, so a
+  /// drag never moves the axes under the finger.
+  final Map<String, ui.Offset> pointOverrides;
+
   final double timeMs;
   final int stepIndex;
 
@@ -636,7 +661,8 @@ class VisualPainter extends CustomPainter {
 
     switch (element) {
       case PointElement(at: final at, label: final label):
-        final point = resolvePoint(at, parameters);
+        final point =
+            pointOverrides[element.id] ?? resolvePoint(at, parameters);
         if (point == null) return;
         final center = mapper.modelToCanvas(point);
         canvas.drawCircle(center, 4, ui.Paint()..color = color);
@@ -797,6 +823,7 @@ class VisualPainter extends CustomPainter {
         !mapEquals(oldDelegate.parameters, parameters) ||
         !mapEquals(oldDelegate.toggles, toggles) ||
         !setEquals(oldDelegate.hiddenElementIds, hiddenElementIds) ||
+        !mapEquals(oldDelegate.pointOverrides, pointOverrides) ||
         oldDelegate.timeMs != timeMs ||
         oldDelegate.stepIndex != stepIndex ||
         oldDelegate.tickLabelStyle != tickLabelStyle;

@@ -1952,6 +1952,7 @@
   "visualPreviousStep": "Previous step",
   "visualNextStep": "Next step",
   "visualSeek": "Playback position",
+  "visualResetDrag": "Reset dragged positions",
   "errorMissingParameter": "Missing parameter: {arg0}.",
   "@errorMissingParameter": {
     "placeholders": {

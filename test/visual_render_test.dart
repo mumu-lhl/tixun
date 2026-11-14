@@ -115,6 +115,26 @@ void main() {
     expect(topLeft.dy, closeTo(0, 1e-9));
   });
 
+  test('canvasToModel inverts modelToCanvas, including the letterbox', () {
+    final scene = _plotScene();
+    final mapper = VisualCoordinateMapper.fromScene(
+      scene,
+      const Size(600, 400),
+    );
+    for (final model in [
+      Offset.zero,
+      const Offset(-3, 6),
+      const Offset(3, -5),
+      const Offset(1.25, -2.5),
+    ]) {
+      final back = mapper.canvasToModel(mapper.modelToCanvas(model));
+      expect(back.dx, closeTo(model.dx, 1e-9));
+      expect(back.dy, closeTo(model.dy, 1e-9));
+    }
+    // The letterboxed left margin maps outside the view's x range.
+    expect(mapper.canvasToModel(const Offset(0, 200)).dx, lessThan(-3));
+  });
+
   test('renderVisualPng returns PNG bytes', () async {
     const palette = VisualPalette(
       primary: Color(0xff226450),

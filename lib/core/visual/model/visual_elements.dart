@@ -337,6 +337,7 @@ sealed class VisualElement {
           ..._commonFields,
           'at',
           'label',
+          'draggable',
         }, 'point 图元');
         final c = _parseCommonFields(json);
         final at = json['at'];
@@ -353,6 +354,7 @@ sealed class VisualElement {
           visible: c.visible,
           visibleWhen: c.visibleWhen,
           at: VisualPoint.fromJson(at),
+          draggable: _optBool(json, 'draggable', 'point 图元'),
           label: switch (json['label']) {
             null => null,
             final String s => s,
@@ -610,10 +612,17 @@ class PointElement extends VisualElement {
     required super.visible,
     super.visibleWhen,
     required this.at,
+    this.draggable = false,
     this.label,
   });
 
   final VisualPoint at;
+
+  /// True when the user may drag this point in the fullscreen view.
+  /// Only literal-coordinate points are draggable; a `$param`-bound
+  /// point with `draggable: true` is rejected by the validator.
+  final bool draggable;
+
   final String? label;
 
   @override
@@ -623,6 +632,7 @@ class PointElement extends VisualElement {
   Map<String, dynamic> toJson() => {
     ..._commonToJson(this),
     'at': at.toJson(),
+    if (draggable) 'draggable': true,
     if (label != null) 'label': label,
   };
 }

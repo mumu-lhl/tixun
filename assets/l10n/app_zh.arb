@@ -1952,6 +1952,7 @@
   "visualPreviousStep": "上一步",
   "visualNextStep": "下一步",
   "visualSeek": "播放进度",
+  "visualResetDrag": "重置拖动位置",
   "errorMissingParameter": "缺少参数：{arg0}。",
   "@errorMissingParameter": {
     "placeholders": {

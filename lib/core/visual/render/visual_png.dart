@@ -23,6 +23,7 @@ Future<Uint8List> renderVisualPng(
   double pixelRatio = 2.0,
   Map<String, double> parameters = const {},
   Map<String, bool> toggles = const {},
+  Map<String, ui.Offset> pointOverrides = const {},
   int stepIndex = 0,
 }) async {
   final recorder = ui.PictureRecorder();
@@ -41,6 +42,7 @@ Future<Uint8List> renderVisualPng(
     parameters: parameters,
     toggles: toggles,
     hiddenElementIds: hiddenElementIds,
+    pointOverrides: pointOverrides,
     stepIndex: stepIndex,
     tickLabelStyle: TextStyle(fontSize: 20, color: palette.textMuted),
   ).paint(canvas, size);

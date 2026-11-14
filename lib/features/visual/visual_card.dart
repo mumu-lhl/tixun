@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:material_ui/material_ui.dart';
@@ -132,15 +133,26 @@ class VisualCard extends StatelessWidget {
 
 /// The paint surface + `Math.tex` overlays, shared by the card and the
 /// fullscreen page. Phase 1 shows the fit view only (no pan/zoom).
-class _VisualCanvas extends StatelessWidget {
+///
+/// When [dragEnabled] is true (fullscreen only), dragging a draggable
+/// point moves it: the gesture is hit-tested here (this widget owns the
+/// coordinate mapper), positions are reported through [onDragUpdate] as
+/// model coordinates, and the current positions come back in
+/// [pointOverrides]. The scene itself is never mutated — overrides live
+/// in the fullscreen page's state until reset.
+class _VisualCanvas extends StatefulWidget {
   const _VisualCanvas({
     required this.scene,
     required this.palette,
     required this.parameters,
     required this.toggles,
     this.hiddenElementIds = const {},
+    this.pointOverrides = const {},
     this.timeMs = 0,
     this.stepIndex = 0,
+    this.dragEnabled = false,
+    this.onDragStart,
+    this.onDragUpdate,
   });
 
   final VisualScene scene;
@@ -151,9 +163,61 @@ class _VisualCanvas extends StatelessWidget {
   /// Element ids hidden by the current teaching step (animator output).
   final Set<String> hiddenElementIds;
 
+  /// Local drag positions (element id → model coordinates).
+  final Map<String, ui.Offset> pointOverrides;
+
   /// Current playback time (only identifies the frame for repaint).
   final double timeMs;
   final int stepIndex;
+
+  /// True only in the fullscreen page; the chat card never drags.
+  final bool dragEnabled;
+
+  /// Called with the dragged element id when a drag starts.
+  final void Function(String id)? onDragStart;
+
+  /// Called with the dragged element id and its new model position.
+  final void Function(String id, ui.Offset modelPosition)? onDragUpdate;
+
+  /// Touch hit radius around a draggable point, in logical pixels.
+  static const double dragHitRadius = 24;
+
+  @override
+  State<_VisualCanvas> createState() => _VisualCanvasState();
+}
+
+class _VisualCanvasState extends State<_VisualCanvas> {
+  /// Element id being dragged, or null between drags.
+  String? _draggingId;
+
+  /// Canvas-space vector from the touch point to the dragged point's
+  /// center, captured on drag start so the point does not jump to the
+  /// finger.
+  ui.Offset _grabOffset = ui.Offset.zero;
+
+  /// Draggable, visible, literal points with their current canvas
+  /// positions (overrides applied, scene order).
+  List<({String id, ui.Offset canvasPos})> _dragCandidates(
+    VisualCoordinateMapper mapper,
+  ) {
+    final out = <({String id, ui.Offset canvasPos})>[];
+    for (final element in visualVisibleElements(
+      widget.scene,
+      widget.toggles,
+      widget.hiddenElementIds,
+    )) {
+      if (element is! PointElement || !element.draggable) continue;
+      // `$param`-bound points are never draggable: the validator
+      // rejects them, but a scene built in code could still carry one.
+      if (!element.at.isLiteral) continue;
+      final at =
+          widget.pointOverrides[element.id] ??
+          resolvePoint(element.at, widget.parameters);
+      if (at == null) continue;
+      out.add((id: element.id, canvasPos: mapper.modelToCanvas(at)));
+    }
+    return out;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,26 +225,27 @@ class _VisualCanvas extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
-        final mapper = VisualCoordinateMapper.fromScene(scene, size);
+        final mapper = VisualCoordinateMapper.fromScene(widget.scene, size);
         final labels = mapper.mathLabelPositions(
-          scene,
-          parameters,
-          toggles: toggles,
-          hiddenElementIds: hiddenElementIds,
+          widget.scene,
+          widget.parameters,
+          toggles: widget.toggles,
+          hiddenElementIds: widget.hiddenElementIds,
         );
-        return Stack(
+        final canvas = Stack(
           fit: StackFit.expand,
           children: [
             RepaintBoundary(
               child: CustomPaint(
                 painter: VisualPainter(
-                  scene: scene,
-                  palette: palette,
-                  parameters: parameters,
-                  toggles: toggles,
-                  hiddenElementIds: hiddenElementIds,
-                  timeMs: timeMs,
-                  stepIndex: stepIndex,
+                  scene: widget.scene,
+                  palette: widget.palette,
+                  parameters: widget.parameters,
+                  toggles: widget.toggles,
+                  hiddenElementIds: widget.hiddenElementIds,
+                  pointOverrides: widget.pointOverrides,
+                  timeMs: widget.timeMs,
+                  stepIndex: widget.stepIndex,
                   tickLabelStyle: tickStyle ?? const TextStyle(fontSize: 11),
                 ),
               ),
@@ -196,13 +261,13 @@ class _VisualCanvas extends StatelessWidget {
                     mathStyle: MathStyle.text,
                     textStyle: TextStyle(
                       fontSize: 15,
-                      color: palette.onBackground,
+                      color: widget.palette.onBackground,
                     ),
                     onErrorFallback: (_) => Text(
                       label.tex,
                       style: TextStyle(
                         fontSize: 13,
-                        color: palette.onBackground,
+                        color: widget.palette.onBackground,
                       ),
                     ),
                   ),
@@ -210,8 +275,43 @@ class _VisualCanvas extends StatelessWidget {
               ),
           ],
         );
+        if (!widget.dragEnabled) return canvas;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanStart: (details) {
+            ({String id, ui.Offset canvasPos})? nearest;
+            var nearestDistance = _VisualCanvas.dragHitRadius;
+            for (final candidate in _dragCandidates(mapper)) {
+              final distance =
+                  (candidate.canvasPos - details.localPosition).distance;
+              if (distance <= nearestDistance) {
+                nearest = candidate;
+                nearestDistance = distance;
+              }
+            }
+            if (nearest == null) return;
+            _draggingId = nearest.id;
+            _grabOffset = nearest.canvasPos - details.localPosition;
+            widget.onDragStart?.call(nearest.id);
+          },
+          onPanUpdate: (details) {
+            final id = _draggingId;
+            if (id == null) return;
+            widget.onDragUpdate?.call(
+              id,
+              mapper.canvasToModel(details.localPosition + _grabOffset),
+            );
+          },
+          onPanEnd: (_) => _endDrag(),
+          onPanCancel: _endDrag,
+          child: canvas,
+        );
       },
     );
+  }
+
+  void _endDrag() {
+    _draggingId = null;
   }
 }
 
@@ -243,6 +343,11 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
 
   /// Manual toggle state (toggles are never animated).
   late Map<String, bool> _manualToggles;
+
+  /// Local drag positions (element id → model coordinates). Set while
+  /// the user drags a point in the fullscreen view; never persisted.
+  /// The reset button clears them.
+  final Map<String, ui.Offset> _pointOverrides = {};
 
   /// Current playback time in milliseconds.
   double _timeMs = 0;
@@ -367,6 +472,7 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
         palette,
         parameters: parameters,
         toggles: toggles,
+        pointOverrides: _pointOverrides,
       );
       final dir = await getTemporaryDirectory();
       final file = File(
@@ -419,6 +525,14 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
         title: Text(title, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
+            key: const Key('visual-reset-drag'),
+            tooltip: context.l10n.visualResetDrag,
+            onPressed: _pointOverrides.isEmpty
+                ? null
+                : () => setState(_pointOverrides.clear),
+            icon: const Icon(Icons.restart_alt),
+          ),
+          IconButton(
             tooltip: context.l10n.visualExportPng,
             onPressed: () => _exportPng(palette, parameters, effectiveToggles),
             icon: const Icon(Icons.download),
@@ -442,8 +556,17 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
                 parameters: parameters,
                 toggles: effectiveToggles,
                 hiddenElementIds: frame.hiddenElementIds,
+                pointOverrides: _pointOverrides,
                 timeMs: frame.timeMs,
                 stepIndex: frame.stepIndex,
+                dragEnabled: true,
+                onDragStart: (_) {
+                  // A drag takes the scene over: stop the animation so
+                  // the tracks do not fight the finger.
+                  if (_playing) _pause();
+                },
+                onDragUpdate: (id, position) =>
+                    setState(() => _pointOverrides[id] = position),
               ),
             ),
           ),
