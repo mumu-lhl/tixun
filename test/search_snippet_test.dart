@@ -7,5 +7,7 @@ void main() {
     expect(searchExcerpt('二次函数\n顶点', '函数'), '二次函数 顶点');
     expect(searchExcerpt('内容', '不存在'), isNull);
     expect(searchExcerpt('内容', ''), isNull);
+    expect(searchExcerpt('函数顶点', '函数 顶点'), '函数顶点');
+    expect(searchExcerpt('x = 1', 'x = 1'), 'x = 1');
   });
 }

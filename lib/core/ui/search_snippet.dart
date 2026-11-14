@@ -1,9 +1,18 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../database/search_terms.dart';
+
+String? _matchingTerm(String text, String query) {
+  for (final term in searchTerms(query)) {
+    if (text.toLowerCase().contains(term.toLowerCase())) return term;
+  }
+  return null;
+}
+
 /// Returns a short excerpt around the first literal occurrence of [query].
 String? searchExcerpt(String text, String query, {int context = 45}) {
-  final term = query.trim().toLowerCase();
-  if (term.isEmpty) return null;
+  final term = _matchingTerm(text, query)?.toLowerCase();
+  if (term == null || term.isEmpty) return null;
   final index = text.toLowerCase().indexOf(term);
   if (index < 0) return null;
   final start = (index - context).clamp(0, text.length);
@@ -18,8 +27,9 @@ class SearchSnippet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final index = text.toLowerCase().indexOf(query.trim().toLowerCase());
-    final length = query.trim().length;
+    final term = _matchingTerm(text, query) ?? '';
+    final index = text.toLowerCase().indexOf(term.toLowerCase());
+    final length = term.length;
     return Text.rich(
       TextSpan(
         children: [

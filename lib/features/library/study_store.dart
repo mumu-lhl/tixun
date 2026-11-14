@@ -6,6 +6,8 @@ import 'subject_scope.dart';
 import 'dart:async';
 import 'dart:convert';
 
+import '../../core/database/search_terms.dart';
+
 import 'question_region.dart';
 
 import 'package:drift/drift.dart';
@@ -856,23 +858,31 @@ class StudyStore extends DatabaseNotifier {
       final bodyExpression = table == 'mistakes'
           ? 't.question || char(10) || t.correct_answer || char(10) || t.original_answer || char(10) || t.own_analysis || char(10) || t.ai_analysis || char(10) || t.error_reason || char(10) || t.suggested_reason'
           : 't.$body';
-      final condition = term.runes.length >= 3
-          ? 't.rowid IN (SELECT rowid FROM $fts WHERE $fts MATCH ?)'
-          : 'instr(lower(t.title || char(10) || $bodyExpression || char(10) || t.chapter), lower(?)) > 0';
-      where +=
-          ' AND ($condition OR EXISTS (SELECT 1 FROM $tagTable tags WHERE tags.$idColumn = t.id AND instr(lower(tags.tag), lower(?)) > 0))';
-      vars.add(
-        Variable(
-          term.runes.length >= 3 ? '"${term.replaceAll('"', '""')}"' : term,
-        ),
-      );
-      vars.add(Variable(term));
+      for (final keyword in searchTerms(term)) {
+        final condition = keyword.runes.length >= 3
+            ? 't.rowid IN (SELECT rowid FROM $fts WHERE $fts MATCH ?)'
+            : 'instr(lower(t.title || char(10) || $bodyExpression || char(10) || t.chapter), lower(?)) > 0';
+        where +=
+            ' AND ($condition OR EXISTS (SELECT 1 FROM $tagTable tags WHERE tags.$idColumn = t.id AND instr(lower(tags.tag), lower(?)) > 0))';
+        vars.add(
+          Variable(
+            keyword.runes.length >= 3
+                ? '"${keyword.replaceAll('"', '""')}"'
+                : keyword,
+          ),
+        );
+        vars.add(Variable(keyword));
+      }
     }
+    final order = term.isEmpty
+        ? 't.updated_at DESC, t.id'
+        : 'CASE WHEN instr(lower(t.title), lower(?)) > 0 THEN 0 ELSE 1 END, t.updated_at DESC, t.id';
+    if (term.isNotEmpty) vars.add(Variable(searchTerms(term).join(' ')));
     vars.add(Variable(limit.clamp(1, 200)));
     vars.add(Variable(offset.clamp(0, 10000000)));
     return db
         .customSelect(
-          'SELECT t.* FROM $table t WHERE $where ORDER BY t.updated_at DESC, t.id LIMIT ? OFFSET ?',
+          'SELECT t.* FROM $table t WHERE $where ORDER BY $order LIMIT ? OFFSET ?',
           variables: vars,
           readsFrom: {db.knowledgeItems, db.mistakes},
         )

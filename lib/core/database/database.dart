@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:uuid/uuid.dart';
 
 import '../l10n/app_error.dart';
+import 'search_terms.dart';
 
 part 'database.g.dart';
 part 'study_tables.dart';
@@ -512,21 +513,27 @@ class AppDatabase extends _$AppDatabase {
       where += ' AND s.subject = ?';
       variables.add(Variable(subject));
     }
-    if (term.isNotEmpty) {
-      final messageMatch = term.runes.length >= 3
+    for (final keyword in searchTerms(term)) {
+      final messageMatch = keyword.runes.length >= 3
           ? 'SELECT session_id FROM message_search WHERE message_search MATCH ?'
           : 'SELECT session_id FROM chat_messages WHERE instr(lower(content), lower(?)) > 0';
       where +=
           ' AND (instr(lower(s.title), lower(?)) > 0 OR s.id IN ($messageMatch))';
-      variables.add(Variable(term));
+      variables.add(Variable(keyword));
       variables.add(
         Variable(
-          term.runes.length >= 3 ? '"${term.replaceAll('"', '""')}"' : term,
+          keyword.runes.length >= 3
+              ? '"${keyword.replaceAll('"', '""')}"'
+              : keyword,
         ),
       );
     }
+    final order = term.isEmpty
+        ? 's.updated_at DESC, s.id'
+        : 'CASE WHEN instr(lower(s.title), lower(?)) > 0 THEN 0 ELSE 1 END, s.updated_at DESC, s.id';
+    if (term.isNotEmpty) variables.add(Variable(searchTerms(term).join(' ')));
     final rows = await customSelect(
-      'SELECT s.* FROM chat_sessions s WHERE $where ORDER BY s.updated_at DESC, s.id',
+      'SELECT s.* FROM chat_sessions s WHERE $where ORDER BY $order',
       variables: variables,
       readsFrom: {chatSessions, chatMessages},
     ).get();
@@ -534,11 +541,11 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<ChatMessage?> matchingMessage(String sessionId, String query) async {
-    final term = query.trim();
-    if (term.isEmpty) return null;
+    final terms = searchTerms(query);
+    if (terms.isEmpty) return null;
     final rows = await customSelect(
-      'SELECT * FROM chat_messages WHERE session_id = ? AND instr(lower(content), lower(?)) > 0 ORDER BY created_at DESC LIMIT 1',
-      variables: [Variable(sessionId), Variable(term)],
+      'SELECT * FROM chat_messages WHERE session_id = ? AND (${List.filled(terms.length, 'instr(lower(content), lower(?)) > 0').join(' OR ')}) ORDER BY created_at DESC LIMIT 1',
+      variables: [Variable(sessionId), ...terms.map(Variable.new)],
       readsFrom: {chatMessages},
     ).get();
     return rows.isEmpty ? null : chatMessages.mapFromRow(rows.first);

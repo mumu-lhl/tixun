@@ -33,6 +33,8 @@ void main() {
     expect(await store.tags(first.id, isMistake: false), ['代数', '顶点']);
     expect((await store.searchKnowledge(query: '求顶点')).single.id, first.id);
     expect((await store.searchKnowledge(query: '代数')).single.id, first.id);
+    expect((await store.searchKnowledge(query: '函数 顶点')).single.id, first.id);
+    expect(await store.searchKnowledge(query: '函数 不存在'), isEmpty);
     expect(await store.searchKnowledge(query: '" OR *'), isEmpty);
     final second = await store.saveKnowledge(
       const KnowledgeDraft(
