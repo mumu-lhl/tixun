@@ -544,8 +544,12 @@ class AppDatabase extends _$AppDatabase {
     final terms = searchTerms(query);
     if (terms.isEmpty) return null;
     final rows = await customSelect(
-      'SELECT * FROM chat_messages WHERE session_id = ? AND (${List.filled(terms.length, 'instr(lower(content), lower(?)) > 0').join(' OR ')}) ORDER BY created_at DESC LIMIT 1',
-      variables: [Variable(sessionId), ...terms.map(Variable.new)],
+      'SELECT * FROM chat_messages WHERE session_id = ? AND (${List.filled(terms.length, 'instr(lower(content), lower(?)) > 0').join(' OR ')}) ORDER BY ${List.filled(terms.length, '(instr(lower(content), lower(?)) > 0)').join(' + ')} DESC, created_at DESC LIMIT 1',
+      variables: [
+        Variable(sessionId),
+        ...terms.map(Variable.new),
+        ...terms.map(Variable.new),
+      ],
       readsFrom: {chatMessages},
     ).get();
     return rows.isEmpty ? null : chatMessages.mapFromRow(rows.first);

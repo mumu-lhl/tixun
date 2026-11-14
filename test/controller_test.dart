@@ -294,10 +294,17 @@ void main() {
     expect((await c.db.sessions('quadratic 顶点', '数学')).map((s) => s.id), [
       session.id,
     ]);
+    await c.db.customStatement(
+      'INSERT INTO chat_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)',
+      ['partial-message', session.id, 'user', 'Quadratic only', 2],
+    );
     expect(
       (await c.db.matchingMessage(session.id, 'quadratic 顶点'))?.id,
       'search-message',
     );
+    await c.db.customStatement('DELETE FROM chat_messages WHERE id = ?', [
+      'partial-message',
+    ]);
     expect((await c.db.sessions('x = 1', '数学')).map((s) => s.id), [session.id]);
     expect(await c.db.sessions('quadratic 不存在', '数学'), isEmpty);
     await c.db.customStatement(
