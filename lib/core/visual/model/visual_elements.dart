@@ -161,6 +161,7 @@ class VisualPoint {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '坐标点必须是 [x, y] 形式的数组。',
+        ['point'],
       );
     }
     return VisualPoint(
@@ -196,6 +197,7 @@ class VisualVisibilityGate {
           : throw const AppFormatException(
               AppErrorCode.errorInvalidParameterType,
               'visibleWhen 的 equals 必须是布尔值。',
+              ['equals'],
             ),
     );
   }
@@ -235,6 +237,7 @@ _parseCommonFields(Map<String, dynamic> json) {
     throw const AppFormatException(
       AppErrorCode.errorInvalidParameterType,
       '图元 id 不能为空。',
+      ['id'],
     );
   }
   var style = VisualStyle.primary;
@@ -266,6 +269,7 @@ _parseCommonFields(Map<String, dynamic> json) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '图元的 visible 必须是布尔值。',
+        ['visible'],
       );
     }
     visible = raw;
@@ -277,6 +281,7 @@ _parseCommonFields(Map<String, dynamic> json) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '图元的 visibleWhen 必须是对象。',
+        ['visibleWhen'],
       );
     }
     visibleWhen = VisualVisibilityGate.fromJson(raw);
@@ -495,6 +500,7 @@ sealed class VisualElement {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
             'group 嵌套过深（最多 $visualMaxGroupDepth 层）。',
+            ['children'],
           );
         }
         final c = _parseCommonFields(json);
@@ -503,6 +509,7 @@ sealed class VisualElement {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
             'group 图元的 children 必须是数组。',
+            ['children'],
           );
         }
         return GroupElement(
@@ -516,6 +523,7 @@ sealed class VisualElement {
               throw const AppFormatException(
                 AppErrorCode.errorInvalidParameterType,
                 'group 的子图元必须是对象。',
+                ['children'],
               );
             }
             return VisualElement.fromJson(child, groupDepth: groupDepth + 1);
@@ -536,6 +544,7 @@ sealed class VisualElement {
             throw const AppFormatException(
               AppErrorCode.errorInvalidParameterType,
               'plot 图元的 domain 必须是 [min, max] 形式的数组。',
+              ['domain'],
             );
           }
           final min = raw[0];
@@ -666,6 +675,7 @@ List<VisualPoint> _parsePoints(dynamic raw, String what) {
     throw AppFormatException(
       AppErrorCode.errorInvalidParameterType,
       '$what 图元的 points 必须是数组。',
+      ['points'],
     );
   }
   return raw.map((p) => VisualPoint.fromJson(p)).toList();
@@ -678,6 +688,7 @@ bool _optBool(Map<String, dynamic> json, String key, String what) {
     throw AppFormatException(
       AppErrorCode.errorInvalidParameterType,
       '$what 的 $key 必须是布尔值。',
+      [key],
     );
   }
   return value;

@@ -127,6 +127,83 @@ void main() {
     );
   });
 
+  test('create rejects an invalid scene and writes nothing', () async {
+    await _seedMessage(db, 's', 'm');
+    const invalid = '{"v":1,"kind":"plot2d","model":{"expression":"z^2"}}';
+    await expectLater(
+      store.create(sceneJson: invalid, messageId: 'm'),
+      throwsA(
+        isA<AppFormatException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.errorInvalidParameterType,
+        ),
+      ),
+    );
+    expect(await db.select(db.visualScenes).get(), isEmpty);
+    expect(await db.select(db.visualSceneRevisions).get(), isEmpty);
+    expect(await db.select(db.visualMessageLinks).get(), isEmpty);
+  });
+
+  test('create rejects malformed JSON', () async {
+    await _seedMessage(db, 's', 'm');
+    await expectLater(
+      store.create(sceneJson: '{not json', messageId: 'm'),
+      throwsA(
+        isA<AppFormatException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.errorInvalidParameterType,
+        ),
+      ),
+    );
+    await expectLater(
+      store.create(sceneJson: '[1, 2]', messageId: 'm'),
+      throwsA(
+        isA<AppFormatException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.errorInvalidParameterType,
+        ),
+      ),
+    );
+    expect(await db.select(db.visualScenes).get(), isEmpty);
+  });
+
+  test('revise rejects an invalid scene and keeps revision 1', () async {
+    await _seedMessage(db, 's', 'm');
+    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+    const invalid = '{"v":1,"kind":"plot2d","model":{"expression":"z^2"}}';
+    await expectLater(
+      store.revise(id, invalid),
+      throwsA(
+        isA<AppFormatException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.errorInvalidParameterType,
+        ),
+      ),
+    );
+    final row = (await store.get(id))!;
+    expect(row.revision, 1);
+    expect(row.sceneJson, _sceneV1);
+    expect(await db.select(db.visualSceneRevisions).get(), hasLength(1));
+  });
+
+  test(
+    'revise syncs title and verification status from the new scene',
+    () async {
+      await _seedMessage(db, 's', 'm');
+      final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+      final updated = await store.revise(id, _sceneV2);
+      expect(updated.title, '二次函数');
+      expect(updated.verificationStatus, 'verified');
+      final row = (await store.get(id))!;
+      expect(row.title, '二次函数');
+      expect(row.verificationStatus, 'verified');
+    },
+  );
+
   test('get returns null for an unknown id', () async {
     expect(await store.get('nope'), isNull);
   });

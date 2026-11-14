@@ -144,6 +144,53 @@ void main() {
       expect(issues.map((i) => i.code), contains('curve_not_visible'));
     });
 
+    test('a plot element with no visible samples is flagged with its id', () {
+      // Same invisible curve, but as a plot element: the issue must
+      // carry the element id as its path, not the model path.
+      final scene = _scene({
+        'v': 1,
+        'kind': 'plot2d',
+        'title': '根号',
+        'view': {
+          'x': [-3, -1],
+          'y': [-3, 3],
+        },
+        'elements': [
+          {
+            'id': 'p1',
+            'type': 'plot',
+            'expression': 'sqrt(x)',
+            'domain': [-3, -1],
+          },
+        ],
+        'meta': {'alt': '根号'},
+      });
+      final issues = checkVisualQuality(scene);
+      final flagged = issues
+          .where((i) => i.code == 'curve_not_visible')
+          .toList();
+      expect(flagged, hasLength(1));
+      expect(flagged.single.path, 'p1');
+    });
+
+    test('a steep model zero is flagged as derived_mismatch', () {
+      // Bisection refines the zero to ~5e-10 in x; with slope 1e9 the
+      // re-evaluated |f| is ~0.5, far above the 1e-6 check tolerance,
+      // so the reported zero does not reproduce the curve.
+      final scene = _scene(_plot('1e9*(x-0.5)', alt: '陡峭直线'));
+      final issues = checkVisualQuality(scene);
+      expect(issues.map((i) => i.code), contains('derived_mismatch'));
+    });
+
+    test('tan(x) has no derived_mismatch: poles are not zeros', () {
+      // The only zero on [-3, 3] is x = 0, where tan is exactly 0.
+      // Before the pole guard in findZeros, the poles at ±pi/2 were
+      // reported as zeros and re-evaluated to huge values, which
+      // falsely flagged derived_mismatch here.
+      final scene = _scene(_plot('tan(x)', alt: '正切'));
+      expect(checkVisualQuality(scene), isEmpty);
+    });
+
     test('a scene with nothing in it is flagged', () {
       final scene = _scene({
         'v': 1,

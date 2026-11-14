@@ -7,11 +7,14 @@
 ///
 /// Discontinuity handling in [sampleFunction]: a segment breaks when a
 /// sample is non-finite (evaluation throws), when |Δy| exceeds half the
-/// sampled y-span, or when the local slope jumps by more than 50x the
-/// median slope of the recent edges in the current segment. The goal is
-/// never to draw a line across an asymptote (e.g. tan). Extra splits are
-/// harmless for rendering: they only omit one sample-step of line between
-/// two adjacent segments.
+/// sampled y-span, when the local slope jumps by more than 50x the
+/// median slope of the recent edges in the current segment, or when
+/// adjacent samples change sign while both stay far above the local
+/// magnitude scale (the pole rule below: across an asymptote the two
+/// samples straddling the pole are both large, while the recent median
+/// |y| is small). The goal is never to draw a line across an asymptote
+/// (e.g. tan). Extra splits are harmless for rendering: they only omit
+/// one sample-step of line between two adjacent segments.
 ///
 /// The slope rule compares against the *current* segment's recent median
 /// slope (windowed, see [_slopeWindow]), not the previous completed
@@ -126,6 +129,14 @@ List<SampledSegment> sampleFunction(
   final segments = <SampledSegment>[];
   var current = <Offset>[];
   final recentSlopes = <double>[];
+  // Magnitudes of the recent samples, windowed like the slopes: the
+  // pole rule below compares an edge against the local scale instead of
+  // the global y-span. Deliberately NOT cleared by flush(): the slope
+  // rule can split a branch mid-approach (slopes legitimately grow
+  // 50x+ on the way into a pole), and if the window were reset there,
+  // the few post-split approach samples would inflate the median and
+  // blind the pole rule exactly at the pole it must catch.
+  final recentAbsY = <double>[];
   void flush() {
     if (current.isNotEmpty) {
       segments.add(SampledSegment(current));
@@ -152,6 +163,21 @@ List<SampledSegment> sampleFunction(
           breaks = true;
         }
       }
+      // Pole rule: across an asymptote the samples change sign while
+      // both stay far above the local magnitude scale. The global ySpan
+      // rule above cannot see this once a near-pole sample has inflated
+      // the span, and the slope rule cannot either: the slope of the
+      // crossing edge is smaller than the near-pole slopes around it.
+      // A steep continuous zero crossing (e.g. 1e6*(x-0.5)) does not
+      // trip this: its window median is itself large, so the edge
+      // minimum stays well below 10x the median.
+      if (!breaks && _oppositeSigns(prevY, y) && recentAbsY.isNotEmpty) {
+        final medianAbsY = _median(recentAbsY);
+        final edgeMin = math.min(prevY.abs(), y.abs());
+        if (medianAbsY > 0 && edgeMin > 10 * medianAbsY) {
+          breaks = true;
+        }
+      }
       if (breaks) {
         flush();
       } else {
@@ -162,6 +188,10 @@ List<SampledSegment> sampleFunction(
       }
     }
     current.add(Offset(x, y));
+    recentAbsY.add(y.abs());
+    if (recentAbsY.length > _slopeWindow) {
+      recentAbsY.removeAt(0);
+    }
   }
   flush();
   return segments;
@@ -170,11 +200,24 @@ List<SampledSegment> sampleFunction(
 bool _oppositeSigns(double a, double b) => (a < 0 && b > 0) || (a > 0 && b < 0);
 
 /// Bisects [f] on `[a, b]` where `f(a)` and `f(b)` have opposite signs
-/// (`fa` is `f(a)`).
+/// (`fa` is `f(a)`, `fb` is `f(b)`).
 ///
 /// Returns null when the bracket turns out to contain a discontinuity
-/// (a midpoint evaluation fails) instead of a root.
-double? _bisect(double? Function(double x) f, double a, double b, double fa) {
+/// (a midpoint evaluation fails) instead of a root, or when a midpoint
+/// value dwarfs both original bracket endpoints: across a pole the
+/// midpoint value grows without bound as the bracket closes in, while a
+/// genuine root keeps midpoint values within the endpoint scale. The
+/// guard compares against the *original* endpoints, not the shrinking
+/// bracket: near a pole the current endpoints grow just as fast as the
+/// midpoint, so they cannot serve as the reference.
+double? _bisect(
+  double? Function(double x) f,
+  double a,
+  double b,
+  double fa,
+  double fb,
+) {
+  final poleScale = 100 * math.max(math.max(fa.abs(), fb.abs()), 1);
   var lo = a;
   var hi = b;
   var flo = fa;
@@ -184,6 +227,7 @@ double? _bisect(double? Function(double x) f, double a, double b, double fa) {
     final fm = f(mid);
     if (fm == null) return null;
     if (fm == 0.0) return mid;
+    if (fm.abs() > poleScale) return null;
     if (_oppositeSigns(flo, fm)) {
       hi = mid;
     } else {
@@ -226,7 +270,7 @@ List<double> _findZerosOf(
     if (y == 0.0) {
       roots.add(x);
     } else if (prevY != null && y != null && _oppositeSigns(prevY, y)) {
-      final root = _bisect(f, prevX, x, prevY);
+      final root = _bisect(f, prevX, x, prevY, y);
       if (root != null) {
         roots.add(root);
       }
@@ -346,7 +390,7 @@ List<({double x, double y, String kind})> findExtrema(
     if (i == 0) continue;
     final prevD = ds[i - 1];
     if (prevD != null && d != null && _oppositeSigns(prevD, d)) {
-      final root = _bisect(derivative, x - step, x, prevD);
+      final root = _bisect(derivative, x - step, x, prevD, d);
       if (root != null) {
         addExtremum(root, prevD > 0 ? 'max' : 'min');
       }

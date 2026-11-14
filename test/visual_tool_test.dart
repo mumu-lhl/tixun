@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/ai/visual_tool.dart';
+import 'package:tixun/core/l10n/app_error.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
@@ -310,6 +311,151 @@ void main() {
       });
       expect(result['ok'], isFalse);
       expect(await db.select(db.visualScenes).get(), isEmpty);
+    });
+  });
+
+  group('applyVisualPatchOps', () {
+    Map<String, dynamic> groupScene() => {
+      'v': 1,
+      'kind': 'geometry',
+      'title': '分组',
+      'elements': [
+        {
+          'id': 'g1',
+          'type': 'group',
+          'children': [
+            {
+              'id': 'p1',
+              'type': 'point',
+              'at': [0, 0],
+            },
+            {
+              'id': 'g2',
+              'type': 'group',
+              'children': [
+                {
+                  'id': 'p4',
+                  'type': 'point',
+                  'at': [3, 3],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          'id': 'p3',
+          'type': 'point',
+          'at': [2, 2],
+        },
+      ],
+      'meta': {'alt': '分组场景'},
+    };
+
+    test('replace_element reaches a point inside a group', () {
+      final patched = applyVisualPatchOps(groupScene(), [
+        {
+          'op': 'replace_element',
+          'id': 'p1',
+          'element': {
+            'id': 'p1',
+            'type': 'point',
+            'at': [1, 1],
+          },
+        },
+      ]);
+      final elements = patched['elements'] as List;
+      final g1 = elements[0] as Map;
+      expect(((g1['children'] as List)[0] as Map)['at'], [1, 1]);
+      // The rest of the scene is untouched.
+      expect(((g1['children'] as List)[1] as Map)['id'], 'g2');
+      expect((elements[1] as Map)['id'], 'p3');
+      expect((elements[1] as Map)['at'], [2, 2]);
+    });
+
+    test('replace_element reaches a point in a nested group', () {
+      final patched = applyVisualPatchOps(groupScene(), [
+        {
+          'op': 'replace_element',
+          'id': 'p4',
+          'element': {
+            'id': 'p4',
+            'type': 'point',
+            'at': [4, 4],
+          },
+        },
+      ]);
+      final g1 = (patched['elements'] as List)[0] as Map;
+      final g2 = (g1['children'] as List)[1] as Map;
+      expect(((g2['children'] as List)[0] as Map)['at'], [4, 4]);
+      expect(((g1['children'] as List)[0] as Map)['at'], [0, 0]);
+    });
+
+    test('remove_element removes a point inside a group', () {
+      final patched = applyVisualPatchOps(groupScene(), [
+        {'op': 'remove_element', 'id': 'p1'},
+      ]);
+      final g1 = (patched['elements'] as List)[0] as Map;
+      expect((g1['children'] as List).map((e) => (e as Map)['id']).toList(), [
+        'g2',
+      ]);
+      expect((patched['elements'] as List).length, 2);
+    });
+
+    test('remove_element of a nested-group point keeps its siblings', () {
+      final patched = applyVisualPatchOps(groupScene(), [
+        {'op': 'remove_element', 'id': 'p4'},
+      ]);
+      final g1 = (patched['elements'] as List)[0] as Map;
+      final g2 = (g1['children'] as List)[1] as Map;
+      expect(g2['children'], isEmpty);
+      expect(((g1['children'] as List)[0] as Map)['id'], 'p1');
+    });
+
+    test('add_element rejects an id that exists inside a group', () {
+      expect(
+        () => applyVisualPatchOps(groupScene(), [
+          {
+            'op': 'add_element',
+            'element': {
+              'id': 'p1',
+              'type': 'point',
+              'at': [9, 9],
+            },
+          },
+        ]),
+        throwsA(
+          isA<AppFormatException>()
+              .having(
+                (e) => e.code,
+                'code',
+                AppErrorCode.errorInvalidParameterType,
+              )
+              .having((e) => e.message, 'message', contains('图元 id 已存在'))
+              .having((e) => e.arguments, 'arguments', ['id']),
+        ),
+      );
+    });
+
+    test('replace_element of a group id still replaces the group itself', () {
+      final patched = applyVisualPatchOps(groupScene(), [
+        {
+          'op': 'replace_element',
+          'id': 'g1',
+          'element': {
+            'id': 'g1',
+            'type': 'group',
+            'children': [
+              {
+                'id': 'p1',
+                'type': 'point',
+                'at': [7, 7],
+              },
+            ],
+          },
+        },
+      ]);
+      final g1 = (patched['elements'] as List)[0] as Map;
+      expect(((g1['children'] as List)[0] as Map)['at'], [7, 7]);
     });
   });
 

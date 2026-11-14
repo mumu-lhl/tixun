@@ -15,6 +15,7 @@ import '../../core/ui/actions.dart';
 import '../../core/ui/image_viewer.dart';
 import '../../core/ui/learning_markdown.dart';
 import '../../core/visual/model/visual_scene.dart';
+import '../../core/visual/render/visual_animator.dart';
 import '../../core/visual/render/visual_painter.dart';
 import '../review/review_screen.dart';
 import '../visual/visual_card.dart';
@@ -730,6 +731,20 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
   /// Drag positions from this session (element id → model coordinates).
   final _pointOverrides = <String, ui.Offset>{};
 
+  @override
+  void didUpdateWidget(covariant _QuestionVisual oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // "Try again" starts a new attempt on the same question id, so this
+    // state object is reused (QuestionCard's key is `quiz-<questionId>`).
+    // A fresh attempt has no answer yet: drop the previous attempt's
+    // drag positions, or the point would sit at the old answer while the
+    // answer slot is empty (and submitting would then report "no answer"
+    // under a figure that clearly shows one).
+    if (widget.selected.isEmpty && oldWidget.selected.isNotEmpty) {
+      _pointOverrides.clear();
+    }
+  }
+
   /// Overrides for the card: this session's drags, or — on first render
   /// with a saved answer — the stored position, so a reloaded question
   /// shows the point where the student left it.
@@ -745,6 +760,14 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
       }
     }
     return _pointOverrides;
+  }
+
+  /// The selected point for point-select questions, in model
+  /// coordinates, or null when nothing is selected (yet).
+  ui.Offset? _selectedPoint() {
+    final saved = parseVisualPoint(widget.selected);
+    if (saved == null) return null;
+    return ui.Offset(saved.$1, saved.$2);
   }
 
   @override
@@ -770,17 +793,30 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                         if (widget.kind == 'point_select') {
                           widget.onSelect!('${point.dx},${point.dy}');
                         } else {
+                          // Region picking uses the same t=0 frame the
+                          // card renders: a region hidden by the first
+                          // teaching step cannot be selected.
                           final region = visualRegionAtPoint(
                             scene,
                             point,
                             visualInitialParameters(scene),
+                            hiddenElementIds: resolveVisualFrame(
+                              scene,
+                              0,
+                            ).hiddenElementIds,
                           );
                           if (region != null) widget.onSelect!(region);
                         }
                       }
                     : null,
                 dragEnabled: draggable,
-                pointOverrides: draggable ? _dragOverrides(scene) : const {},
+                // The point renders at the student's answer even when
+                // the question is no longer editable (graded view):
+                // gating overrides on `draggable` would snap it back
+                // to the scene's original position.
+                pointOverrides: widget.kind == 'drag_to_target'
+                    ? _dragOverrides(scene)
+                    : const {},
                 onDragUpdate: draggable
                     ? (id, position) {
                         setState(() => _pointOverrides[id] = position);
@@ -790,8 +826,28 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                       }
                     : null,
                 onDragEnd: draggable ? (_) => widget.onDragEnd?.call() : null,
+                // The answer marker/highlight renders in the graded
+                // view too, so the student's own answer stays visible
+                // on the figure after submission.
+                selectedPoint: widget.kind == 'point_select'
+                    ? _selectedPoint()
+                    : null,
+                selectedRegionId:
+                    widget.kind == 'region_select' && widget.selected.isNotEmpty
+                    ? widget.selected
+                    : null,
               ),
-              if ((answerable || draggable) && widget.selected.isNotEmpty)
+              // Show the selection whenever one exists, including in
+              // the graded view (where `onSelect` is null). The kind
+              // gate matters: other kinds (e.g. `read_value`, whose
+              // answer is typed) share this widget and must not get a
+              // "selected point" line for their option key / value.
+              if (const {
+                    'point_select',
+                    'region_select',
+                    'drag_to_target',
+                  }.contains(widget.kind) &&
+                  widget.selected.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(

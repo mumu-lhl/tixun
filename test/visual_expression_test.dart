@@ -47,6 +47,27 @@ void main() {
       expect(Expression.parse('tanh(0)').evaluate({}), 0);
     });
 
+    test('tanh saturates to +-1 for large |v|', () {
+      expect(Expression.parse('tanh(355)').evaluate({}), 1);
+      expect(Expression.parse('tanh(400)').evaluate({}), 1);
+      expect(Expression.parse('tanh(-400)').evaluate({}), -1);
+      expect(Expression.parse('tanh(21)').evaluate({}), 1);
+      expect(Expression.parse('tanh(1000)').evaluate({}), 1);
+    });
+
+    test('sinh/cosh stay finite past exp overflow', () {
+      // exp(710) overflows a double, but sinh(710) = cosh(710) =
+      // e^710 / 2 ≈ 1.1169973830808555e308 is still finite. The factored
+      // form evaluates exp(710 - ln 2), whose argument rounding costs
+      // ~5e-14 relative, so the tolerance is 1e-12 relative.
+      final sinh710 = Expression.parse('sinh(710)').evaluate({});
+      expect(sinh710.isFinite, isTrue);
+      expect(sinh710, closeTo(1.1169973830808555e308, 1e296));
+      final cosh710 = Expression.parse('cosh(710)').evaluate({});
+      expect(cosh710.isFinite, isTrue);
+      expect(cosh710, closeTo(1.1169973830808555e308, 1e296));
+    });
+
     test('variables and parameters', () {
       expect(Expression.parse('x^2').evaluate({'x': 3}), 9);
       expect(Expression.parse('a*x+1').evaluate({'a': 2, 'x': 3}), 7);
@@ -114,6 +135,18 @@ void main() {
       );
     });
 
+    test('sinh/cosh past their own range still throw FormatException', () {
+      // sinh(1000) itself exceeds double.max, so it must still fail.
+      expect(
+        () => Expression.parse('sinh(1000)').evaluate({}),
+        throwsFormatException,
+      );
+      expect(
+        () => Expression.parse('cosh(1000)').evaluate({}),
+        throwsFormatException,
+      );
+    });
+
     test('syntax errors throw FormatException', () {
       for (final bad in [
         '',
@@ -146,6 +179,13 @@ void main() {
       expect(() => Expression.parse(deepUnary), throwsFormatException);
       // Just inside the limit parses fine.
       expect(Expression.parse('${'(' * 20}1+2${')' * 20}').evaluate({}), 3);
+    });
+
+    test('very long unary / ^ chains throw FormatException, not StackOverflowError', () {
+      // The AST depth check only runs after a subtree is built, so
+      // without a descent guard these overflow the parser stack.
+      expect(() => Expression.parse('${'-' * 5000}x'), throwsFormatException);
+      expect(() => Expression.parse('${'2^' * 20000}2'), throwsFormatException);
     });
   });
 

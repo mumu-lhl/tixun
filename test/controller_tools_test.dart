@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -132,6 +133,52 @@ void main() {
       expect(ops.single.result, contains('题目不存在'));
     },
   );
+
+  test('Exam mode never offers the visual tools', () async {
+    final examController = await openExamWithVisualCall(
+      jsonEncode({'scene': _examPlotScene()}),
+    );
+    addTearDown(() async {
+      await examController.shutdown();
+      await examController.files.root.delete(recursive: true);
+    });
+    await examController.send('画一个二次函数图像');
+    final sent = (examController.provider as ForgedVisualCallProvider)
+        .requests
+        .first
+        .tools
+        .map((t) => t.name)
+        .toSet();
+    expect(sent, contains('create_quiz'));
+    expect(
+      sent.intersection({'create_visual', 'update_visual', 'get_visual'}),
+      isEmpty,
+    );
+  });
+
+  test('A forged create_visual call in exam mode is rejected', () async {
+    final examController = await openExamWithVisualCall(
+      jsonEncode({'scene': _examPlotScene()}),
+    );
+    addTearDown(() async {
+      await examController.shutdown();
+      await examController.files.root.delete(recursive: true);
+    });
+    await examController.send('画一个二次函数图像');
+    final message = examController.messages.last;
+    expect(message.status, 'error');
+    // The stored failure is the encoded code, not the localized text.
+    expect(message.error, contains('anUnavailableToolCallWas'));
+    // Nothing was created and no tool operation was recorded.
+    expect(
+      await examController.db.select(examController.db.visualScenes).get(),
+      isEmpty,
+    );
+    expect(
+      await examController.db.select(examController.db.aiToolOperations).get(),
+      isEmpty,
+    );
+  });
 }
 
 class ScriptedToolProvider implements ChatProvider {
@@ -167,5 +214,57 @@ Future<AppController> openWithToolArgs(String args) async {
   await controller.initialize();
   await controller.newSession();
   await controller.setTools(true);
+  return controller;
+}
+
+Map<String, dynamic> _examPlotScene() => {
+  'v': 1,
+  'kind': 'plot2d',
+  'title': '二次函数',
+  'model': {'expression': 'x^2-4'},
+  'view': {
+    'x': [-3, 3],
+    'y': [-5, 6],
+  },
+  'meta': {'alt': '抛物线'},
+};
+
+/// Yields a forged `create_visual` call on the first turn: the model
+/// tries to use a tool the run never offered (exam mode withholds all
+/// three visual schemas).
+class ForgedVisualCallProvider implements ChatProvider {
+  ForgedVisualCallProvider(this.args);
+  final String args;
+  var turns = 0;
+  final requests = <AiRequest>[];
+  @override
+  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
+      AiConversation((request, cancel) async* {
+        requests.add(request);
+        turns++;
+        if (turns == 1) {
+          yield AiChunk(
+            completed: true,
+            calls: [ToolCall('visual-1', 'create_visual', args)],
+          );
+        } else {
+          yield const AiChunk(text: '收到', completed: true);
+        }
+      });
+}
+
+Future<AppController> openExamWithVisualCall(String args) async {
+  final controller = AppController(
+    AppDatabase.memory(),
+    AttachmentStore(
+      await Directory.systemTemp.createTemp('tixun-exam-visual-tools'),
+    ),
+    MemoryKeyStore(),
+    ForgedVisualCallProvider(args),
+  );
+  await controller.initialize();
+  await controller.newSession();
+  await controller.setTools(true);
+  await controller.mode('exam');
   return controller;
 }

@@ -14,9 +14,11 @@
 ///   content;
 /// - `verified` — no errors and no unverifiable-content warnings.
 ///
-/// In v1 the only "unverifiable content" warning is `schematic_content`
-/// (explicit `meta.schematic`). A structurally valid scene whose math can
-/// be checked locally is `verified`.
+/// In v1 the "unverifiable content" warnings are `schematic_content`
+/// (explicit `meta.schematic`) and `constraint_unverifiable` (a
+/// constraint references `$param`-bound geometry that cannot be checked
+/// statically). A structurally valid scene whose math can be checked
+/// locally is `verified`.
 ///
 /// `computed` is intentionally an empty map for now: derived values
 /// (zeros, intersections, extrema) are filled by the math slice via a
@@ -149,6 +151,43 @@ class VisualValidation {
 VisualValidation validateVisualScene(Map<String, dynamic> json) {
   final v = _Validator();
   return v.run(json);
+}
+
+/// Whether the segments [a] and [b] (each a pair of endpoints) intersect.
+///
+/// Standard orientation test: the segments cross when the endpoints of
+/// each lie on opposite sides of the other segment's line; collinear
+/// cases count as intersecting when the projections overlap, endpoints
+/// included (so touching at an endpoint, or a segment lying on top of
+/// another, both intersect). Parallelism alone says nothing — two
+/// non-parallel segments can still miss each other.
+bool _segmentsIntersect(
+  ((double, double), (double, double)) a,
+  ((double, double), (double, double)) b,
+) {
+  double orient((double, double) p, (double, double) q, (double, double) r) =>
+      (q.$1 - p.$1) * (r.$2 - p.$2) - (q.$2 - p.$2) * (r.$1 - p.$1);
+  bool onSegment((double, double) p, (double, double) q, (double, double) r) =>
+      q.$1 >= math.min(p.$1, r.$1) &&
+      q.$1 <= math.max(p.$1, r.$1) &&
+      q.$2 >= math.min(p.$2, r.$2) &&
+      q.$2 <= math.max(p.$2, r.$2);
+
+  final (a1, a2) = a;
+  final (b1, b2) = b;
+  final o1 = orient(a1, a2, b1);
+  final o2 = orient(a1, a2, b2);
+  final o3 = orient(b1, b2, a1);
+  final o4 = orient(b1, b2, a2);
+  if (((o1 > 0 && o2 < 0) || (o1 < 0 && o2 > 0)) &&
+      ((o3 > 0 && o4 < 0) || (o3 < 0 && o4 > 0))) {
+    return true;
+  }
+  if (o1 == 0 && onSegment(a1, b1, a2)) return true;
+  if (o2 == 0 && onSegment(a1, b2, a2)) return true;
+  if (o3 == 0 && onSegment(b1, a1, b2)) return true;
+  if (o4 == 0 && onSegment(b1, a2, b2)) return true;
+  return false;
 }
 
 class _Validator {
@@ -289,7 +328,12 @@ class _Validator {
 
     final status = errors.isNotEmpty
         ? 'unverified'
-        : (_schematic || warnings.any((w) => w.code == 'schematic_content'))
+        : (_schematic ||
+              warnings.any(
+                (w) =>
+                    w.code == 'schematic_content' ||
+                    w.code == 'constraint_unverifiable',
+              ))
         ? 'schematic'
         : 'verified';
     return VisualValidation(
@@ -954,11 +998,16 @@ class _Validator {
       _error('invalid_value', '未知的约束类型：$typeRaw。', '$path.type');
       return;
     }
+    var shapeOk = true;
     String? idField(String key) {
       final value = constraint[key];
       if (value == null) return null;
       if (value is! String || value.isEmpty) {
         _error('invalid_type', '约束的 $key 必须是非空文字。', '$path.$key');
+        // A present-but-malformed id must not reach the `a!` / `value!`
+        // dereferences below: mark the shape invalid so the early return
+        // after the `need(...)` checks skips evaluation.
+        shapeOk = false;
         return null;
       }
       return value;
@@ -969,6 +1018,7 @@ class _Validator {
     if (rawValue != null) {
       if (rawValue is! num || !rawValue.toDouble().isFinite) {
         _error('invalid_type', '约束的 value 必须是有限数字。', '$path.value');
+        shapeOk = false;
       } else {
         value = rawValue.toDouble();
       }
@@ -977,7 +1027,6 @@ class _Validator {
     final b = idField('b');
     final point = idField('point');
     final circle = idField('circle');
-    var shapeOk = true;
     void need(String key, bool present) {
       if (!present) {
         _error('missing_field', '约束缺少字段：$key。', '$path.$key');
@@ -1048,28 +1097,45 @@ class _Validator {
         }
         final cross = d1.$1 * d2.$2 - d1.$2 * d2.$1;
         final dot = d1.$1 * d2.$1 + d1.$2 * d2.$2;
-        final parallel = cross.abs() <= 1e-9 * len1 * len2;
+        // One shared angle tolerance for the parallel, perpendicular
+        // and angle checks below, so the same geometric fact cannot get
+        // two different verdicts. A direction derived from coordinates
+        // rounded to ~1e-6 can be off by up to ~1e-6 / length radians,
+        // so short segments get a proportionally wider tolerance; for
+        // ordinary lengths the 1e-4-degree floor applies.
+        //
+        // The parallel/perpendicular tests compare sin/cos against
+        // sin(tolerance): for the small deviations involved, |sin θ| ≤
+        // sin(tol) is equivalent to the angle being within tol of 0°
+        // (parallel, 180° included) and |cos θ| ≤ sin(tol) is equivalent
+        // to the angle being within tol of 90° (perpendicular).
+        final angleTolDeg = math.max(
+          1e-4,
+          1e-6 / math.min(len1, len2) * 180 / math.pi,
+        );
+        final angleTolSin = math.sin(angleTolDeg * math.pi / 180);
+        final parallel = cross.abs() <= angleTolSin * len1 * len2;
         switch (type) {
           case VisualConstraintType.parallel:
             if (!parallel) {
               _violation('线段 $a 与 $b 不平行。', path);
             }
           case VisualConstraintType.perpendicular:
-            if (dot.abs() > 1e-9 * len1 * len2) {
+            if (dot.abs() > angleTolSin * len1 * len2) {
               _violation('线段 $a 与 $b 不垂直。', path);
             }
           case VisualConstraintType.angle:
             final cosA = (dot / (len1 * len2)).clamp(-1.0, 1.0);
             final degrees = math.acos(cosA) * 180 / math.pi;
-            if ((degrees - value!).abs() > 1e-4) {
+            if ((degrees - value!).abs() > angleTolDeg) {
               _violation(
                 '线段 $a 与 $b 的夹角是 ${_fmt(degrees)}°，不是 ${_fmt(value)}°。',
                 path,
               );
             }
           case VisualConstraintType.intersect:
-            if (parallel) {
-              _violation('线段 $a 与 $b 平行，不相交。', path);
+            if (!_segmentsIntersect(sa, sb)) {
+              _violation('线段 $a 与 $b 不相交。', path);
             }
           case VisualConstraintType.distance:
           case VisualConstraintType.onCircle:

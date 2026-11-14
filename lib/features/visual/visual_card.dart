@@ -60,6 +60,16 @@ Map<String, bool> visualInitialToggles(VisualScene scene) => {
 /// draggable point moves it and reports positions through
 /// [onDragUpdate]; [onDragEnd] fires when the drag finishes. Dragging
 /// also suppresses tap-to-open-fullscreen on the canvas itself.
+///
+/// The card renders the frame at time 0 (the first teaching step): steps
+/// whose `atMs` is 0 hide their elements here, exactly as the fullscreen
+/// page shows them at time 0.
+///
+/// [selectedPoint] / [selectedRegionId] mark the student's answer on the
+/// canvas (point-select / region-select questions): a ring around the
+/// selected point, or a highlight over the selected region. They render
+/// whether or not the question is still editable, so a graded answer
+/// stays visible on the figure.
 class VisualCard extends StatelessWidget {
   const VisualCard({
     required this.scene,
@@ -69,6 +79,8 @@ class VisualCard extends StatelessWidget {
     this.pointOverrides = const {},
     this.onDragUpdate,
     this.onDragEnd,
+    this.selectedPoint,
+    this.selectedRegionId,
     super.key,
   });
 
@@ -92,6 +104,12 @@ class VisualCard extends StatelessWidget {
   /// Called with the dragged element id when a drag finishes.
   final void Function(String id)? onDragEnd;
 
+  /// Selected point (point-select answers), in model coordinates.
+  final ui.Offset? selectedPoint;
+
+  /// Selected region (region-select answers): the polygon element id.
+  final String? selectedRegionId;
+
   String get _title => title ?? scene.title ?? scene.meta?.alt ?? '';
 
   /// True when the scene has something to play: a duration or steps.
@@ -105,6 +123,10 @@ class VisualCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final palette = VisualPalette.fromColorScheme(scheme);
+    // The card renders the frame at time 0 (the first teaching step),
+    // so steps hiding elements at `atMs` 0 apply here, exactly as the
+    // fullscreen page shows them at time 0.
+    final frame = resolveVisualFrame(scene, 0);
     return Container(
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
@@ -122,7 +144,7 @@ class VisualCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.only(left: 12),
                   child: Text(
-                    _title,
+                    _title.isEmpty ? context.l10n.visualUntitled : _title,
                     style: Theme.of(context).textTheme.titleSmall,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -163,16 +185,28 @@ class VisualCard extends StatelessWidget {
                 : null,
             child: AspectRatio(
               aspectRatio: 4 / 3,
-              child: _VisualCanvas(
-                scene: scene,
-                palette: palette,
-                parameters: visualInitialParameters(scene),
-                toggles: visualInitialToggles(scene),
-                onTapModelPoint: onTapModelPoint,
-                dragEnabled: dragEnabled,
-                pointOverrides: pointOverrides,
-                onDragUpdate: onDragUpdate,
-                onDragEnd: onDragEnd,
+              // The figure itself is the accessible content: `meta.alt`
+              // is the accessibility text (the title is only a fallback
+              // when no alt text was authored).
+              child: Semantics(
+                label: scene.meta?.alt ?? scene.title ?? '',
+                image: true,
+                child: _VisualCanvas(
+                  scene: scene,
+                  palette: palette,
+                  parameters: visualInitialParameters(scene),
+                  toggles: visualInitialToggles(scene),
+                  hiddenElementIds: frame.hiddenElementIds,
+                  timeMs: frame.timeMs,
+                  stepIndex: frame.stepIndex,
+                  onTapModelPoint: onTapModelPoint,
+                  dragEnabled: dragEnabled,
+                  pointOverrides: pointOverrides,
+                  onDragUpdate: onDragUpdate,
+                  onDragEnd: onDragEnd,
+                  selectedPoint: selectedPoint,
+                  selectedRegionId: selectedRegionId,
+                ),
               ),
             ),
           ),
@@ -214,6 +248,8 @@ class _VisualCanvas extends StatefulWidget {
     this.onDragUpdate,
     this.onDragEnd,
     this.onTapModelPoint,
+    this.selectedPoint,
+    this.selectedRegionId,
   });
 
   final VisualScene scene;
@@ -251,6 +287,15 @@ class _VisualCanvas extends StatefulWidget {
   /// Tap-to-answer handler (question cards only): reports the tapped
   /// position in model coordinates. Mutually exclusive with [dragEnabled].
   final ValueChanged<ui.Offset>? onTapModelPoint;
+
+  /// Selected point (point-select answers), in model coordinates:
+  /// drawn as a ring on the canvas whether or not the question is
+  /// still editable.
+  final ui.Offset? selectedPoint;
+
+  /// Selected region (region-select answers): the polygon element id,
+  /// drawn highlighted on the canvas.
+  final String? selectedRegionId;
 
   /// Touch hit radius around a draggable point, in logical pixels.
   static const double dragHitRadius = 24;
@@ -292,6 +337,35 @@ class _VisualCanvasState extends State<_VisualCanvas> {
     return out;
   }
 
+  /// Canvas path of the selected region polygon, or null when there is
+  /// no selection, the polygon is hidden, or a corner cannot be
+  /// resolved with the current parameters.
+  ui.Path? _selectedRegionPath(VisualCoordinateMapper mapper) {
+    final id = widget.selectedRegionId;
+    if (id == null) return null;
+    for (final element in visualVisibleElements(
+      widget.scene,
+      widget.toggles,
+      widget.hiddenElementIds,
+    )) {
+      if (element is! PolygonElement || element.id != id) continue;
+      final points = <ui.Offset>[];
+      for (final p in element.points) {
+        final resolved = resolvePoint(p, widget.parameters);
+        if (resolved == null) return null;
+        points.add(mapper.modelToCanvas(resolved));
+      }
+      if (points.length < 3) return null;
+      final path = ui.Path()..moveTo(points.first.dx, points.first.dy);
+      for (final p in points.skip(1)) {
+        path.lineTo(p.dx, p.dy);
+      }
+      path.close();
+      return path;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final tickStyle = Theme.of(context).textTheme.bodySmall;
@@ -310,6 +384,7 @@ class _VisualCanvasState extends State<_VisualCanvas> {
           toggles: widget.toggles,
           hiddenElementIds: widget.hiddenElementIds,
         );
+        final selectedRegionPath = _selectedRegionPath(mapper);
         final canvas = Stack(
           fit: StackFit.expand,
           children: [
@@ -352,6 +427,26 @@ class _VisualCanvasState extends State<_VisualCanvas> {
                       ),
                     ),
                   ),
+                ),
+              ),
+            // The student's answer, drawn on top of the figure: a ring
+            // around the selected point, a highlight over the selected
+            // region. Both render whether or not the question is still
+            // editable, so a graded answer stays visible.
+            if (widget.selectedPoint != null)
+              CustomPaint(
+                key: const Key('visual-selection-point'),
+                painter: _SelectionPointPainter(
+                  mapper.modelToCanvas(widget.selectedPoint!),
+                  widget.palette.highlight,
+                ),
+              ),
+            if (selectedRegionPath != null)
+              CustomPaint(
+                key: const Key('visual-selection-region'),
+                painter: _SelectionRegionPainter(
+                  selectedRegionPath,
+                  widget.palette.highlight,
                 ),
               ),
           ],
@@ -415,6 +510,75 @@ class _VisualCanvasState extends State<_VisualCanvas> {
     _draggingId = null;
     if (id != null) widget.onDragEnd?.call(id);
   }
+}
+
+/// Ring marker for a selected point (point-select answers), drawn on
+/// top of the canvas at the tapped model position.
+class _SelectionPointPainter extends CustomPainter {
+  _SelectionPointPainter(this.center, this.color);
+
+  final ui.Offset center;
+  final ui.Color color;
+
+  @override
+  void paint(ui.Canvas canvas, ui.Size size) {
+    canvas.drawCircle(
+      center,
+      10,
+      ui.Paint()
+        ..color = color.withValues(alpha: 0.25)
+        ..style = ui.PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      center,
+      10,
+      ui.Paint()
+        ..color = color
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    canvas.drawCircle(
+      center,
+      3,
+      ui.Paint()
+        ..color = color
+        ..style = ui.PaintingStyle.fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SelectionPointPainter old) =>
+      old.center != center || old.color != color;
+}
+
+/// Highlight for a selected region (region-select answers): the polygon
+/// filled translucently with an outline, drawn on top of the canvas.
+class _SelectionRegionPainter extends CustomPainter {
+  _SelectionRegionPainter(this.path, this.color);
+
+  final ui.Path path;
+  final ui.Color color;
+
+  @override
+  void paint(ui.Canvas canvas, ui.Size size) {
+    canvas.drawPath(
+      path,
+      ui.Paint()
+        ..color = color.withValues(alpha: 0.25)
+        ..style = ui.PaintingStyle.fill,
+    );
+    canvas.drawPath(
+      path,
+      ui.Paint()
+        ..color = color
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SelectionRegionPainter old) =>
+      old.path != path || old.color != color;
 }
 
 class _VisualFullscreenPage extends StatefulWidget {

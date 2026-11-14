@@ -130,6 +130,7 @@ class VisualConstraint {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
             'distance 约束的 value 不能小于 0。',
+            ['value'],
           );
         }
       case VisualConstraintType.parallel:
@@ -159,6 +160,7 @@ class VisualConstraint {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
             'angle 约束的 value 必须在 0~180 度之间。',
+            ['value'],
           );
         }
       case VisualConstraintType.midpoint:
