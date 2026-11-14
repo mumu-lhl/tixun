@@ -683,19 +683,47 @@ void main() {
       expect(c.messages.last.content, contains('工具已确认保存成功'));
     });
 
-    test('asking to change the figure without an id answers in text', () async {
+    test('natural follow-up edits still work after closing and reopening the database', () async {
+      final root = await Directory.systemTemp.createTemp(
+        'tixun-visual-restart',
+      );
+      final file = File('${root.path}/study.sqlite');
+      AppController open() => AppController(
+        AppDatabase.file(file),
+        AttachmentStore(root),
+        MemoryKeyStore(),
+        MockChatProvider(),
+      );
+      var c = open();
+      addTearDown(() async {
+        await c.shutdown();
+        await root.delete(recursive: true);
+      });
+      await c.initialize();
+      await c.newSession();
+      await c.send('请画图，画出 y = x^2 的函数图');
+      final id = (await c.db.select(c.db.visualScenes).get()).single.id;
+      final sessionId = c.selected!.id;
+      await c.shutdown();
+      c = open();
+      await c.initialize();
+      await c.selectSession(c.sessions.singleWhere((s) => s.id == sessionId));
+      await c.send('请把这张图改一下');
+      expect(c.messages.last.status, 'complete');
+      expect((await c.visual.get(id))!.revision, 2);
+      expect((await c.db.select(c.db.visualScenes).get()), hasLength(1));
+    });
+
+    test('natural follow-up edits use the saved visual index without a user-supplied id', () async {
       final c = await openMock();
       await c.send('请把这张图改一下');
       expect(c.messages.last.status, 'complete');
-      // No id in the message: no update is attempted and no new figure
-      // is created by mistake.
       final scenes = await c.db.select(c.db.visualScenes).get();
       expect(scenes, hasLength(1));
-      expect(scenes.single.title, 'y = x²');
-      expect(scenes.single.revision, 1);
+      expect(scenes.single.title, 'y = x²（已修改）');
+      expect(scenes.single.revision, 2);
       final ops = await c.db.select(c.db.aiToolOperations).get();
-      expect(ops.map((o) => o.name), ['create_visual']);
-      expect(c.messages.last.content, contains('附上图形 id'));
+      expect(ops.map((o) => o.name), ['create_visual', 'update_visual']);
     });
   });
 }

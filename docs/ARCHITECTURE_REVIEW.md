@@ -16,7 +16,7 @@
 | `app/preferences.dart` | 语言、主题、配色、提示词与 Provider 配置。拥有独立写入跟踪；关闭、备份导出及恢复等待必要写入，不再借用 StudyStore 的空闲状态。现有控制器方法保留为 UI 的兼容入口。 |
 | `core/ai/chatgpt/auth.dart` | 只向 UI 返回只读账号摘要和一次取得的账号快照；令牌记录、HTTP 与安全存储细节留在实现内部。保留 PKCE/JWT 校验、合并刷新、取消等待、退出与原子保存语义。 |
 | `features/update/` | 发布通道、版本与 ABI 选择、下载校验、Android 系统安装和 Linux 重启切换，学习数据与程序目录隔离。 |
-| `StudyStore` / `PracticeStore` | 分题接收的文件写入、事务和幂等操作集中于 `acceptQuestionRegion`；题目修订及继承关联集中于 `revise`。UI 不再自行组合这些写入。 |
+| `StudyStore` / `PracticeStore` | 分题接收的文件写入、事务和幂等操作集中于 `acceptQuestionRegion`；题目修订及继承关联集中于 `revise`。题图验证、快照与 pin 关联集中在 `PracticeStore.create` 的同一事务，AI 工具和编辑器不另补关联；修订/幂等重放保留原 pin。UI 不再自行组合这些写入。 |
 | `core/visual/*`、`features/visual/*`、`core/ai/visual_tool.dart` | Visual DSL v1：场景验证、采样、渲染、存储与三个图形工具。`create_visual` / `update_visual` / `get_visual` 只在非考试模式提供；出题用 `visual_id` + `visual_revision` 钉住不可变快照。 |
 
 应用根部和导航通过 Riverpod select 订阅实际使用的偏好与提示，聊天流式通知不再因读取语言/配色而重建整个应用根部。尚未用 Android 实机数据量化帧耗时，不声称已有性能基准结果。

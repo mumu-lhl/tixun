@@ -428,13 +428,22 @@ List<VisualElement> _visibleElements(
   Map<String, bool> toggles,
   Set<String> hiddenElementIds,
 ) {
-  final flat = _flattenElements(scene.elements);
   final visible = <(int, VisualElement)>[];
-  for (var i = 0; i < flat.length; i++) {
-    final element = flat[i];
-    if (_elementVisible(element, scene, toggles, hiddenElementIds)) {
-      visible.add((i, element));
+  void visit(VisualElement element) {
+    // A hidden ancestor hides the whole subtree, including hit targets
+    // and math labels. Preserve source order before sorting by layer.
+    if (!_elementVisible(element, scene, toggles, hiddenElementIds)) return;
+    if (element is GroupElement) {
+      for (final child in element.children) {
+        visit(child);
+      }
+    } else {
+      visible.add((visible.length, element));
     }
+  }
+
+  for (final element in scene.elements) {
+    visit(element);
   }
   visible.sort((a, b) {
     final byLayer = a.$2.layer.compareTo(b.$2.layer);
@@ -515,9 +524,11 @@ bool visualSceneDrawsAxes(VisualScene scene) {
 
 double _niceStep(double span, int targetCount) {
   final raw = span / targetCount;
+  if (raw <= 0 || !raw.isFinite) return span;
   final magnitude = math
       .pow(10, (math.log(raw) / math.ln10).floor())
       .toDouble();
+  if (magnitude <= 0 || !magnitude.isFinite) return span;
   for (final mult in const [1.0, 2.0, 5.0, 10.0]) {
     final step = mult * magnitude;
     if (span / step <= targetCount + 2) return step;
@@ -525,7 +536,25 @@ double _niceStep(double span, int targetCount) {
   return 10 * magnitude;
 }
 
+/// Bounded integer indexing avoids non-progressing floating-point sums
+/// (e.g. 1e16 + 0.5 == 1e16), including for old stored scenes.
+List<double> _axisTicks(double min, double max) {
+  final step = _niceStep(max - min, 6);
+  if (!step.isFinite || step <= 0) return const [];
+  final first = (min / step).ceilToDouble() * step;
+  if (!first.isFinite) return const [];
+  final ticks = <double>[];
+  for (var i = 0; i < 16; i++) {
+    final value = first + i * step;
+    if (!value.isFinite || value > max) break;
+    if (value >= min && (ticks.isEmpty || value > ticks.last)) ticks.add(value);
+  }
+  return ticks;
+}
+
 String _formatTick(double value) {
+  // Keep distinguishable ticks at large offsets and avoid int saturation.
+  if (value.abs() >= 1e15) return value.toString();
   if (value == value.roundToDouble()) return value.toInt().toString();
   final fixed = value.toStringAsFixed(2);
   return fixed.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
@@ -630,31 +659,27 @@ class VisualPainter extends CustomPainter {
   void _paintAxes(ui.Canvas canvas, VisualCoordinateMapper mapper) {
     final rect = mapper.canvasRect;
     final model = mapper.modelRect;
-    final xStep = _niceStep(model.width, 6);
-    final yStep = _niceStep(model.height, 6);
+    final xTicks = _axisTicks(model.left, model.right);
+    final yTicks = _axisTicks(model.top, model.bottom);
     final gridPaint = ui.Paint()
       ..color = palette.grid
       ..strokeWidth = 1;
     // Gridlines.
-    var x = (model.left / xStep).ceil() * xStep;
-    while (x <= model.right) {
+    for (final x in xTicks) {
       final px = mapper.modelToCanvas(ui.Offset(x, 0)).dx;
       canvas.drawLine(
         ui.Offset(px, rect.top),
         ui.Offset(px, rect.bottom),
         gridPaint,
       );
-      x += xStep;
     }
-    var y = (model.top / yStep).ceil() * yStep;
-    while (y <= model.bottom) {
+    for (final y in yTicks) {
       final py = mapper.modelToCanvas(ui.Offset(0, y)).dy;
       canvas.drawLine(
         ui.Offset(rect.left, py),
         ui.Offset(rect.right, py),
         gridPaint,
       );
-      y += yStep;
     }
     // Axis lines (x = 0 / y = 0) when inside the view.
     final axisPaint = ui.Paint()
@@ -681,8 +706,7 @@ class VisualPainter extends CustomPainter {
     final xAxisY = model.top <= 0 && model.bottom >= 0
         ? mapper.modelToCanvas(ui.Offset.zero).dy
         : rect.bottom;
-    x = (model.left / xStep).ceil() * xStep;
-    while (x <= model.right) {
+    for (final x in xTicks) {
       final px = mapper.modelToCanvas(ui.Offset(x, 0)).dx;
       _paintText(
         canvas,
@@ -692,13 +716,11 @@ class VisualPainter extends CustomPainter {
         palette.textMuted,
         centerX: true,
       );
-      x += xStep;
     }
     final yAxisX = model.left <= 0 && model.right >= 0
         ? mapper.modelToCanvas(ui.Offset.zero).dx
         : rect.left;
-    y = (model.top / yStep).ceil() * yStep;
-    while (y <= model.bottom) {
+    for (final y in yTicks) {
       // The x-axis "0" already marks the origin; skip the y-axis "0"
       // when the origin is inside the view, or the two labels overlap.
       final isOrigin =
@@ -719,7 +741,6 @@ class VisualPainter extends CustomPainter {
           centerY: true,
         );
       }
-      y += yStep;
     }
   }
 

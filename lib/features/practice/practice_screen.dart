@@ -480,13 +480,29 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
         'single_choice',
         'multiple_choice',
         'true_false',
+        'region_select',
       ].contains(kind);
+      final regionIds =
+          widget.initial?.spec.options.keys.toList() ?? <String>[];
+      if (kind == 'region_select' && lines.length != regionIds.length) {
+        throw const AppFormatException(
+          AppErrorCode.errorInvalidQuestionOptionsAnswersOrArguments,
+          '区域名称数量必须与原图区域一致。',
+        );
+      }
       final spec = QuestionSpec(
         kind: kind,
         stem: stem.text,
         subject: subject.text.trim(),
+        visualId: widget.initial?.spec.visualId,
+        visualRevision: widget.initial?.spec.visualRevision,
         options: !choice
             ? {}
+            : kind == 'region_select'
+            ? {
+                for (var i = 0; i < lines.length; i++)
+                  regionIds[i]: lines[i].trim(),
+              }
             : kind == 'true_false'
             ? {'true': '正确', 'false': '错误'}
             : {
@@ -555,6 +571,20 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
             initialValue: kind,
             decoration: InputDecoration(labelText: context.l10n.questionType),
             items: questionKinds.entries
+                .where(
+                  (e) =>
+                      (widget.initial?.spec.visualId != null ||
+                          !const {
+                            'point_select',
+                            'region_select',
+                            'drag_to_target',
+                            'read_value',
+                          }.contains(e.key)) &&
+                      // The editor can rename existing regions, not add
+                      // geometry or invent region IDs for another kind.
+                      (e.key != 'region_select' ||
+                          widget.initial?.spec.kind == 'region_select'),
+                )
                 .map(
                   (e) => DropdownMenuItem(
                     value: e.key,
@@ -579,8 +609,18 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
           for (final (ctrl, label, lines) in [
             (subject, context.l10n.subject, 1),
             (stem, context.l10n.questionMarkdownAndMathSupported, 3),
-            if (['single_choice', 'multiple_choice'].contains(kind))
-              (options, context.l10n.optionsOnePerLineNumbered, 3),
+            if ([
+              'single_choice',
+              'multiple_choice',
+              'region_select',
+            ].contains(kind))
+              (
+                options,
+                kind == 'region_select'
+                    ? context.l10n.visualRegionOptions
+                    : context.l10n.optionsOnePerLineNumbered,
+                3,
+              ),
             (
               answers,
               kind == 'true_false'
@@ -589,6 +629,10 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
                   ? context.l10n.oneBlankPerLineSeparate
                   : kind == 'multiple_choice'
                   ? context.l10n.oneCorrectOptionLetterPer
+                  : kind == 'region_select'
+                  ? context.l10n.visualRegionAnswer
+                  : kind == 'point_select' || kind == 'drag_to_target'
+                  ? context.l10n.visualCoordinateAnswer
                   : kind == 'short_answer'
                   ? context.l10n.referenceAnswerOptionalSelfAssess
                   : context.l10n.correctAnswerOptionLetterOr,
@@ -636,14 +680,25 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
                       enabled: !saving,
                       minLines: lines,
                       maxLines: lines + 3,
-                      decoration: InputDecoration(labelText: label),
+                      decoration: InputDecoration(
+                        labelText: label,
+                        helperText: ctrl == options && kind == 'region_select'
+                            ? widget.initial?.spec.options.keys.join(' · ')
+                            : null,
+                        helperMaxLines: 6,
+                      ),
                     ),
             ),
           ExpansionTile(
             title: Text(context.l10n.gradingAndTimeSettings),
             tilePadding: EdgeInsets.zero,
             children: [
-              if (kind == 'numeric') ...[
+              if ([
+                'numeric',
+                'read_value',
+                'point_select',
+                'drag_to_target',
+              ].contains(kind)) ...[
                 TextField(
                   controller: absoluteTolerance,
                   keyboardType: const TextInputType.numberWithOptions(
@@ -653,16 +708,18 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
                     labelText: context.l10n.absoluteTolerance0100,
                   ),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: relativeTolerance,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                if (kind == 'numeric' || kind == 'read_value') ...[
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: relativeTolerance,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.relativeTolerance001,
+                    ),
                   ),
-                  decoration: InputDecoration(
-                    labelText: context.l10n.relativeTolerance001,
-                  ),
-                ),
+                ],
               ],
               if (kind == 'fill_blank')
                 SwitchListTile(

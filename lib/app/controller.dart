@@ -71,8 +71,11 @@ class AppController extends ChangeNotifier {
   late final ScratchStore scratch = ScratchStore(db);
   late final ReviewStore review = ReviewStore(db);
   late final VisualStore visual = VisualStore(db);
-  late final PracticeStore practice = PracticeStore(db, files: files)
-    ..onGraded = review.record;
+  late final PracticeStore practice = PracticeStore(
+    db,
+    files: files,
+    visual: visual,
+  )..onGraded = review.record;
   late final LearningRun learningRun = LearningRun(
     db,
     files,
@@ -1630,6 +1633,7 @@ class AppController extends ChangeNotifier {
     study.modules.dispose();
     study.dispose();
     practice.dispose();
+    visual.dispose();
     review.dispose();
     _cancel?.cancel();
     chatGpt.cancelLogin();
@@ -1645,6 +1649,7 @@ class AppController extends ChangeNotifier {
     await study.modules.whenIdle;
     await study.whenIdle;
     await practice.whenIdle;
+    await visual.whenIdle;
     await review.whenIdle;
     dispose();
     await db.close();

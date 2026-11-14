@@ -45,6 +45,14 @@ An AI reply’s save menu can organize it into knowledge or a mistake, or merge 
 
 On phones, the chat's more menu contains material tools, linked material and model settings. Choose knowledge, mistakes, subject modules, learning progress and review scheduling separately, or enable/disable all at once. Your choices are saved per conversation. Disabled categories are not offered to AI; writes still require application permissions and confirmation. DeepSeek and ChatGPT support reasoning with tools; compatible services follow their declared capabilities.
 
+## AI teaching figures
+
+In non-exam conversations, AI can create function plots and geometry, physics, vector, chart, circuit, chemistry and geography illustrations. Exploration figures offer fullscreen playback, parameter sliders and draggable points. Natural follow-ups such as “edit this figure” and “draw a figure, then make a question about it” do not require copying a figure ID.
+
+Figure questions support coordinate selection, clicking a predefined polygon region (not freehand lassoing), dragging a point to a target and reading a value. **Answer inside the question card.** A question’s fullscreen page is a fixed initial-frame preview without playback or parameter controls; choose **Return to answer** to continue. Questions and their text revisions retain the original figure snapshot, independent of later edits. Exam training currently does not offer new figure tools or AI figure questions.
+
+Saved figures and questions remain local and work offline. Passing structural or declared-geometry validation does not establish scientific correctness or verify an answer. Circuit, chemistry and geography figures are illustrations, not scientific simulations; check their content before relying on them.
+
 ## Photos and study material
 
 Linux Python execution is available under Settings → Python execution. By default you review the exact code before allowing it; you can disable execution or explicitly enable automatic permission. Chat, question generation, mistake explanations and AI knowledge writing share the tool. CPython, NumPy, SymPy and mpmath are bundled locally. Code runs in a separate bubblewrap process with only the current session workspace writable; timeout or stop terminates that process. Expand execution history to inspect code, output and errors; output is sent to the current model. Android execution is temporarily disabled until its isolated runner is implemented.

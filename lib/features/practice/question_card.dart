@@ -820,6 +820,7 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
       .when(
         data: (scene) {
           if (scene == null) return const SizedBox.shrink();
+          final frame = resolveVisualFrame(scene, 0);
           final answerable =
               (widget.kind == 'point_select' ||
                   widget.kind == 'region_select') &&
@@ -836,6 +837,7 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                 // there must not move the point (and never counts as
                 // an answer), so the fullscreen page gets no drag.
                 fullscreenAllowDrag: false,
+                assessment: true,
                 onTapModelPoint: answerable
                     ? (point) {
                         if (widget.kind == 'point_select') {
@@ -847,11 +849,9 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                           final region = visualRegionAtPoint(
                             scene,
                             point,
-                            visualInitialParameters(scene),
-                            hiddenElementIds: resolveVisualFrame(
-                              scene,
-                              0,
-                            ).hiddenElementIds,
+                            frame.parameters,
+                            toggles: frame.toggles,
+                            hiddenElementIds: frame.hiddenElementIds,
                           );
                           if (region != null) {
                             setState(() => _showRegionHint = false);

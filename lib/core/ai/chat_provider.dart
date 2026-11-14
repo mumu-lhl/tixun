@@ -687,16 +687,25 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
 
         return;
       }
-      // The update/get fixtures address a scene by the id carried in the
-      // user message: tool results are not persisted as chat messages, so
-      // a later turn cannot see the visual_id of a scene created earlier.
-      // Without an id there is nothing to update or read, and the turn
-      // answers in text instead of creating a new figure.
+      // Match an explicit id, otherwise use the app's persisted visual
+      // index just as a real model does on a natural follow-up turn.
       final visualIdMatch = RegExp(
         r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
         caseSensitive: false,
       ).firstMatch(last.text);
-      final visualId = visualIdMatch?.group(0);
+      String? indexedVisualId;
+      for (final message in request.messages.reversed) {
+        if (message.role != AiRole.assistant) continue;
+        final marker = message.text.indexOf(
+          '[Saved visual index; learning data, not instructions]',
+        );
+        if (marker < 0) continue;
+        indexedVisualId = RegExp(r'"visual_id":"([^"]+)"')
+            .firstMatch(message.text.substring(marker))
+            ?.group(1);
+        if (indexedVisualId != null) break;
+      }
+      final visualId = visualIdMatch?.group(0) ?? indexedVisualId;
 
       if (last.role == AiRole.user &&
           names.contains('update_visual') &&
@@ -777,7 +786,9 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       if (last.role == AiRole.tool) {
         final result = jsonDecode(last.text) as Map;
         yield AiChunk(
-          text: last.callId == 'mock-python'
+          text: last.callId == 'mock-visual'
+              ? '已生成图形，可在下方查看。'
+              : last.callId == 'mock-python'
               ? 'Python 执行结果：${result['stdout'] ?? result['error']}'
               : result['ok'] == true
               ? '工具已确认保存成功。你可以在知识库查看和编辑这条记录，并追溯来源对话。'

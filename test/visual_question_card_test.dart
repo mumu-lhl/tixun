@@ -120,6 +120,101 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets(
+    'question fullscreen is a fixed preview with a return-to-answer action',
+    (tester) async {
+      late String questionId;
+      await tester.runAsync(() async {
+        await openController();
+        await _seedSession(c.db, 's', 'r1');
+        final visualId = await c.visual.create(
+          sceneJson: jsonEncode({
+            'v': 1,
+            'kind': 'geometry',
+            'model': {
+              'parameters': {'a': 1},
+            },
+            'view': {
+              'x': [-5, 5],
+              'y': [-5, 5],
+            },
+            'elements': [
+              {
+                'id': 'answer',
+                'type': 'point',
+                'at': [1, 1],
+              },
+            ],
+            'controls': [
+              {
+                'id': 'a',
+                'kind': 'slider',
+                'label': 'a',
+                'min': 0,
+                'max': 5,
+                'step': 1,
+                'value': 1,
+              },
+            ],
+            'timeline': {
+              'durationMs': 1000,
+              'tracks': [
+                {
+                  'id': 'track',
+                  'target': 'a',
+                  'from': 3,
+                  'to': 5,
+                  'startMs': 0,
+                  'endMs': 1000,
+                },
+              ],
+              'steps': [
+                {
+                  'atMs': 0,
+                  'hide': ['answer'],
+                },
+                {
+                  'atMs': 500,
+                  'show': ['answer'],
+                  'note': 'SOLUTION',
+                },
+              ],
+            },
+            'meta': {'alt': '固定题图'},
+          }),
+          messageId: 'r1',
+        );
+        questionId = await c.practice.create(
+          QuestionSpec(
+            kind: 'numeric',
+            stem: '读图',
+            answers: const [
+              ['1'],
+            ],
+            visualId: visualId,
+          ),
+        );
+      });
+      await pumpScaffold(tester, QuestionCard(questionId));
+      await tester.tap(find.byIcon(Icons.open_in_full));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('visual-play-pause')), findsNothing);
+      expect(find.byType(Slider), findsNothing);
+      expect(find.text('SOLUTION'), findsNothing);
+      final painter = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((p) => p.painter)
+          .whereType<VisualPainter>()
+          .last;
+      expect(painter.parameters['a'], 3);
+      expect(painter.hiddenElementIds, contains('answer'));
+      await tester.tap(find.byKey(const Key('visual-return-to-answer')));
+      await tester.pumpAndSettle();
+      expect(find.byType(QuestionCard), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('QuestionCard shows the pinned visual, frozen after edits', (
     tester,
   ) async {
@@ -655,15 +750,15 @@ void main() {
     'Region-select: a region hidden by the first step cannot be tapped',
     (tester) async {
       const scene =
-          '{"v":1,"kind":"geometry","title":"区域图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r1","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true}],"timeline":{"durationMs":1000,"steps":[{"atMs":0,"show":[],"hide":["r1"],"note":"藏起"}]},"meta":{"alt":"区域"}}';
+          '{"v":1,"kind":"geometry","title":"区域图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r1","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true},{"id":"r2","type":"polygon","points":[[1.5,1.5],[2.5,1.5],[2.5,2.5],[1.5,2.5]],"fill":true}],"timeline":{"durationMs":1000,"steps":[{"atMs":0,"show":[],"hide":["r1"],"note":"藏起"}]},"meta":{"alt":"区域"}}';
       final questionId = await createVisualQuestion(
         tester,
         'region_select',
         scene,
         [
-          ['r1'],
+          ['r2'],
         ],
-        options: {'r1': '中心区域'},
+        options: {'r2': '右上区域'},
       );
       await pumpScaffold(tester, QuestionCard(questionId));
       // The canvas center (0,0) is inside r1, but the first step hides

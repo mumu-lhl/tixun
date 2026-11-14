@@ -27,6 +27,7 @@ Future<void> showVisualFullscreen(
   String? title,
   bool autoplay = false,
   bool allowDrag = true,
+  bool assessment = false,
 }) {
   return Navigator.of(context).push<void>(
     PageRouteBuilder<void>(
@@ -35,8 +36,9 @@ Future<void> showVisualFullscreen(
       pageBuilder: (context, _, _) => _VisualFullscreenPage(
         scene: scene,
         title: title,
-        autoplay: autoplay,
-        allowDrag: allowDrag,
+        autoplay: autoplay && !assessment,
+        allowDrag: allowDrag && !assessment,
+        assessment: assessment,
       ),
     ),
   );
@@ -90,6 +92,7 @@ class VisualCard extends StatelessWidget {
     this.onTapModelPoint,
     this.dragEnabled = false,
     this.fullscreenAllowDrag = true,
+    this.assessment = false,
     this.pointOverrides = const {},
     this.onDragUpdate,
     this.onDragEnd,
@@ -114,6 +117,10 @@ class VisualCard extends StatelessWidget {
   /// standalone cards keep the exploratory drag.
   final bool fullscreenAllowDrag;
 
+  /// Assessment snapshots expose only the initial frame in fullscreen;
+  /// exploratory controls and teaching steps are not answer controls.
+  final bool assessment;
+
   /// Local drag positions (element id → model coordinates).
   final Map<String, ui.Offset> pointOverrides;
 
@@ -134,7 +141,8 @@ class VisualCard extends StatelessWidget {
   /// True when the scene has something to play: a duration or steps.
   bool get _hasTimeline {
     final timeline = scene.timeline;
-    return timeline != null &&
+    return !assessment &&
+        timeline != null &&
         (timeline.durationMs > 0 || timeline.steps.isNotEmpty);
   }
 
@@ -179,6 +187,7 @@ class VisualCard extends StatelessWidget {
                     title: _title,
                     autoplay: true,
                     allowDrag: fullscreenAllowDrag,
+                    assessment: assessment,
                   ),
                   icon: const Icon(Icons.play_arrow),
                 ),
@@ -189,10 +198,19 @@ class VisualCard extends StatelessWidget {
                   scene,
                   title: _title,
                   allowDrag: fullscreenAllowDrag,
+                  assessment: assessment,
                 ),
                 icon: const Icon(Icons.open_in_full),
               ),
             ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Text(
+              context.l10n.visualValidationNote,
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: scheme.onSurfaceVariant),
+            ),
           ),
           if (scene.meta?.schematic == true)
             Padding(
@@ -210,6 +228,7 @@ class VisualCard extends StatelessWidget {
                     scene,
                     title: _title,
                     allowDrag: fullscreenAllowDrag,
+                    assessment: assessment,
                   )
                 : null,
             child: AspectRatio(
@@ -223,8 +242,8 @@ class VisualCard extends StatelessWidget {
                 child: _VisualCanvas(
                   scene: scene,
                   palette: palette,
-                  parameters: visualInitialParameters(scene),
-                  toggles: visualInitialToggles(scene),
+                  parameters: frame.parameters,
+                  toggles: frame.toggles,
                   hiddenElementIds: frame.hiddenElementIds,
                   timeMs: frame.timeMs,
                   stepIndex: frame.stepIndex,
@@ -679,6 +698,7 @@ class _VisualFullscreenPage extends StatefulWidget {
     this.title,
     this.autoplay = false,
     this.allowDrag = true,
+    this.assessment = false,
   });
 
   final VisualScene scene;
@@ -692,6 +712,7 @@ class _VisualFullscreenPage extends StatefulWidget {
   /// view-only (false); the standalone player allows exploratory
   /// dragging (local only, never persisted).
   final bool allowDrag;
+  final bool assessment;
 
   @override
   State<_VisualFullscreenPage> createState() => _VisualFullscreenPageState();
@@ -748,7 +769,8 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
   /// True when the scene has something to play: a duration or steps.
   bool get _hasPlayer {
     final timeline = widget.scene.timeline;
-    return timeline != null &&
+    return !widget.assessment &&
+        timeline != null &&
         (timeline.durationMs > 0 || timeline.steps.isNotEmpty);
   }
 
@@ -956,8 +978,12 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final palette = VisualPalette.fromColorScheme(scheme);
-    final sliders = widget.scene.controls.whereType<SliderControl>().toList();
-    final toggles = widget.scene.controls.whereType<ToggleControl>().toList();
+    final sliders = widget.assessment
+        ? <SliderControl>[]
+        : widget.scene.controls.whereType<SliderControl>().toList();
+    final toggles = widget.assessment
+        ? <ToggleControl>[]
+        : widget.scene.controls.whereType<ToggleControl>().toList();
     // Choice controls are parsed + validated but have no Phase 1
     // rendering effect, so they are not shown here.
     final title =
@@ -965,7 +991,10 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
     // The animator is the single source of truth for the frame:
     // parameters/toggles/hidden ids are re-resolved from _timeMs on
     // every build (including every animation tick).
-    final frame = resolveVisualFrame(widget.scene, _timeMs);
+    final frame = resolveVisualFrame(
+      widget.scene,
+      widget.assessment ? 0 : _timeMs,
+    );
     final parameters = {...frame.parameters, ..._manualParameters};
     final effectiveToggles = {...frame.toggles, ..._manualToggles};
     final steps = _sortedSteps;
@@ -1012,6 +1041,11 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.assessment)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: Text(context.l10n.visualAssessmentView),
+            ),
           if (widget.scene.meta?.schematic == true)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -1052,6 +1086,13 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
               ),
             ),
           ),
+          if (widget.assessment)
+            TextButton.icon(
+              key: const Key('visual-return-to-answer'),
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back),
+              label: Text(context.l10n.visualReturnToAnswer),
+            ),
           if (_hasPlayer)
             Container(
               decoration: BoxDecoration(

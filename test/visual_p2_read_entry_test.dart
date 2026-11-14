@@ -222,9 +222,8 @@ void main() {
       final id = await createVisual(_sceneV1, 'V1');
       await runQuiz('q1', quizArgs(visualId: id));
       await visual.revise(id, _sceneV2);
-      // A second quiz in the SAME run with identical arguments is
-      // rejected by the PracticeStore dedup guard (see the test below),
-      // so the later quiz runs in a fresh run.
+      // A new run creates a new question, freezing the later scene;
+      // a same-run replay instead reuses its original pin (below).
       final result = await runQuiz('q2', quizArgs(visualId: id), runId: 'r2');
       expect(result['ok'], isTrue);
       // q1 froze revision 2, revise moved the row to 3, and this quiz
@@ -234,19 +233,15 @@ void main() {
     });
 
     test(
-      'the same quiz repeated in the same run is rejected, not re-pinned',
+      'the same quiz repeated in the same run reuses its question and pin',
       () async {
         final id = await createVisual(_sceneV1, 'V1');
-        await runQuiz('q1', quizArgs(visualId: id));
-        // NOTE (observed behaviour, pinned as-is): the retry uses a
-        // fresh call id, so the tool-level idempotency cache does not
-        // apply; PracticeStore dedups on runId + args hash and its
-        // content comparison rebuilds the old spec WITHOUT the visual
-        // fields, so an identical visual quiz is reported as
-        // "content differs" even though nothing changed.
+        final first = await runQuiz('q1', quizArgs(visualId: id));
         final result = await runQuiz('q2', quizArgs(visualId: id));
-        expect(result['ok'], isFalse);
-        expect(result['error'], contains('已创建过题目'));
+        expect(result['ok'], isTrue);
+        expect(result['question_id'], first['question_id']);
+        expect(result['visual_revision'], first['visual_revision']);
+        expect((await visual.get(id))!.revision, first['visual_revision']);
       },
     );
 

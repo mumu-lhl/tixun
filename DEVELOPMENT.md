@@ -52,7 +52,9 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 图形用声明式 DSL v1 描述：场景 JSON、元素、表达式、控件、时间线与几何约束都在 `lib/core/visual/`（模型、验证器、采样、渲染）与 `lib/features/visual/`（存储、卡片）里实现；三个 AI 工具（`create_visual` / `update_visual` / `get_visual`）在 `lib/core/ai/visual_tool.dart`。图形表在 schema v16 引入，题目图形的修订钉住在 v17。
 
-新增图形功能时，先补 `test/visual_*_test.dart` 的行为测试。Widget 测试里数据库操作必须放在 `tester.runAsync` 内；`PracticeStore.detail()` 不能在提交事务进行中调用（参考 `test/visual_question_card_test.dart` 的 `submitAndCheck` 模式：先点提交，再循环 `runAsync` + `pumpAndSettle` 等判分视图出现，之后才读 Store）。
+新增图形功能时，先补 `test/visual_*_test.dart` 的行为测试。DSL 对模型公开的契约在 `lib/core/ai/visual_schema.dart`，示例须通过真实验证器。题图的可作答性规则在 `lib/features/practice/question_visual.dart`，由 `PracticeStore` 事务调用；不要在 AI 工具或 UI 另行补写 pin。首帧以 `resolveVisualFrame(scene, 0)` 为准，测评预览不开放教学播放或参数控制。
+
+审查回归覆盖在 `visual_review_regression_test.dart`、`visual_axis_safety_test.dart`、`visual_question_invariants_test.dart` 和 `visual_question_editor_test.dart`。修改刻度循环后，先用外部超时运行绘制安全测试：`timeout --kill-after=3s 30s flutter test test/visual_axis_safety_test.dart`，避免同步绘制回归阻塞整个测试进程。Widget 测试里数据库操作必须放在 `tester.runAsync` 内；`PracticeStore.detail()` 不能在提交事务进行中调用（参考 `test/visual_question_card_test.dart` 的 `submitAndCheck` 模式：先点提交，再循环 `runAsync` + `pumpAndSettle` 等判分视图出现，之后才读 Store）。
 
 ## 按版本标签发布
 

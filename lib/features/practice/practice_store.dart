@@ -14,6 +14,9 @@ import '../../core/platform/attachment_store.dart';
 import '../../core/platform/attachment_selection.dart';
 import 'question_spec.dart';
 import 'practice_run.dart';
+import 'question_visual.dart';
+import '../visual/visual_store.dart';
+import '../../core/visual/model/visual_scene.dart';
 
 class QuestionDetail {
   const QuestionDetail(
@@ -39,7 +42,18 @@ class QuestionDetail {
 }
 
 class PracticeStore extends DatabaseNotifier {
-  PracticeStore(this.db, {this.files});
+  PracticeStore(this.db, {this.files, VisualStore? visual})
+    : _visual = visual ?? VisualStore(db),
+      _ownsVisual = visual == null;
+  final VisualStore _visual;
+  final bool _ownsVisual;
+
+  @override
+  void dispose() {
+    if (_ownsVisual) _visual.dispose();
+    super.dispose();
+  }
+
   final AttachmentStore? files;
   final AppDatabase db;
   Future<void> Function(PracticeAttempt attempt)? onGraded;
@@ -50,8 +64,22 @@ class PracticeStore extends DatabaseNotifier {
       final links = await (db.select(
         db.practiceQuestionKnowledge,
       )..where((l) => l.questionId.equals(parentId))).get();
+      // Revisions inherit the original pin, never the current live
+      // figure. Older callers/editors may omit the visual fields.
+      final sameVisual =
+          spec.visualId == null || spec.visualId == previous.spec.visualId;
+      final inherited =
+          sameVisual &&
+              spec.visualRevision == null &&
+              previous.spec.visualId != null
+          ? QuestionSpec.fromJson({
+              ...spec.toJson(),
+              'visual_id': previous.spec.visualId,
+              'visual_revision': previous.spec.visualRevision,
+            })
+          : spec;
       return create(
-        spec,
+        inherited,
         parentId: parentId,
         mistakeId: previous.row.mistakeId,
         knowledgeIds: links.map((l) => l.knowledgeId).toList(),
@@ -169,6 +197,9 @@ class PracticeStore extends DatabaseNotifier {
                 variables: [Variable(old.id)],
               )
               .get();
+          final oldVisual = await (db.select(
+            db.visualQuestionLinks,
+          )..where((l) => l.questionId.equals(old.id))).getSingleOrNull();
           final oldSpec = QuestionSpec(
             kind: old.kind,
             stem: old.stem,
@@ -182,8 +213,16 @@ class PracticeStore extends DatabaseNotifier {
             relativeTolerance: old.relativeTolerance,
             caseSensitive: old.caseSensitive,
             timeLimitSeconds: old.timeLimitSeconds,
+            visualId: oldVisual?.visualId,
+            visualRevision: oldVisual?.revision,
           );
-          if (canonical(normalized(oldSpec)) != canonical(normalized(spec))) {
+          final incoming = normalized(spec);
+          // An unspecified revision means "freeze at creation", not
+          // "resnapshot on replay". Explicit pins must still match.
+          if (spec.visualId != null && spec.visualRevision == null) {
+            incoming['visual_revision'] = oldVisual?.revision;
+          }
+          if (canonical(normalized(oldSpec)) != canonical(incoming)) {
             throw const AppFormatException(
               AppErrorCode.errorThisOperationAlreadyCreatedAQuestion,
               '该操作已创建过题目，内容与之前不一致，未覆盖旧题。',
@@ -338,6 +377,38 @@ class PracticeStore extends DatabaseNotifier {
                 byteLength: a.bytes,
               ),
             );
+      }
+      if (spec.visualId != null) {
+        final visualId = spec.visualId!;
+        final current = await _visual.get(visualId);
+        if (current == null) {
+          throw const AppFormatException(
+            AppErrorCode.errorVisualSceneDoesNotExist,
+            '图形不存在。',
+          );
+        }
+        final json = spec.visualRevision == null
+            ? current.sceneJson
+            : await _visual.getRevisionSceneJson(
+                visualId,
+                spec.visualRevision!,
+              );
+        if (json == null) {
+          throw const AppFormatException(
+            AppErrorCode.errorVisualSceneRevisionDoesNotExist,
+            '图形修订不存在。',
+          );
+        }
+        validateQuestionVisual(
+          spec,
+          VisualScene.fromJson(
+            (jsonDecode(json) as Map).cast<String, dynamic>(),
+          ),
+        );
+        final revision =
+            spec.visualRevision ??
+            (await _visual.snapshotForQuestion(visualId)).revision;
+        await _visual.linkToQuestion(visualId, id, revision);
       }
       return id;
     });

@@ -177,35 +177,11 @@ Future<Map<String, dynamic>> executeQuizTool(
             .toList(),
         sourceImages: indices.map((i) => sourceImages[i as int]).toList(),
       );
-      // Attach the visual after the question exists: either pin the
-      // requested revision (it must already be snapshotted) or freeze
-      // the scene's current state as a new snapshot. The question
-      // shows exactly this revision; later edits never change it.
-      int? visualRevision;
-      if (spec.visualId != null) {
-        // Capture the non-null store in a final local: promotion of the
-        // nullable parameter does not survive the awaits below.
-        final visualStore = visual!;
-        final visualId = spec.visualId!;
-        final int pinned;
-        if (spec.visualRevision != null) {
-          final snapshot = await visualStore.getRevisionSceneJson(
-            visualId,
-            spec.visualRevision!,
-          );
-          if (snapshot == null) {
-            throw const AppFormatException(
-              AppErrorCode.errorVisualSceneDoesNotExist,
-              '引用的图形修订不存在。',
-            );
-          }
-          pinned = spec.visualRevision!;
-        } else {
-          pinned = (await visualStore.snapshotForQuestion(visualId)).revision;
-        }
-        visualRevision = pinned;
-        await visualStore.linkToQuestion(visualId, id, pinned);
-      }
+      // PracticeStore owns validation and pinning for AI and manual
+      // writes alike. Read the resulting pin for the tool response.
+      final visualRevision = spec.visualId == null
+          ? null
+          : (await store.detail(id)).spec.visualRevision;
       cancel.checkCancelled();
       final result = <String, dynamic>{
         'ok': true,

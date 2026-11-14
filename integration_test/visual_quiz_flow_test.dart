@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'support/gui_capture.dart';
+
 import 'package:dio/dio.dart';
 import 'package:tixun/core/ai/ai_types.dart';
 import 'package:tixun/core/ai/quiz_tool.dart';
@@ -92,5 +94,19 @@ void main() {
     expect(find.text('y = x²'), findsOneWidget);
     expect(find.text('改过的标题'), findsNothing);
     expect(find.textContaining('图中抛物线与 x 轴交点'), findsOneWidget);
+    await guiCapture('visual-review', 'pinned-question');
+    await tester.tap(find.byIcon(Icons.open_in_full));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('visual-play-pause')), findsNothing);
+    expect(find.byType(Slider), findsNothing);
+    expect(find.byKey(const Key('visual-return-to-answer')), findsOneWidget);
+    await guiCapture('visual-review', 'fixed-preview');
+    await tester.tap(find.byKey(const Key('visual-return-to-answer')));
+    await tester.pumpAndSettle();
+    expect(find.byType(QuestionCard), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    container.dispose();
+    await c.shutdown();
   });
 }

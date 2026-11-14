@@ -523,6 +523,13 @@ class _Validator {
       _error('invalid_range', '$what 的跨度超过 $visualMaxRangeSpan。', path);
       return null;
     }
+    // Preserve enough relative precision to subdivide the range safely.
+    // Bounded painter ticks additionally protect legacy/constructed scenes.
+    final subdivision = (max - min) / 16;
+    if (min + subdivision == min || max - subdivision == max) {
+      _error('invalid_range', '$what 的端点精度不足，无法安全绘制刻度。', path);
+      return null;
+    }
     return (min, max);
   }
 

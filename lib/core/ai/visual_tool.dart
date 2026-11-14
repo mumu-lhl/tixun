@@ -12,6 +12,7 @@ import '../../features/visual/visual_store.dart';
 import '../database/database.dart';
 import 'ai_types.dart';
 import 'study_tools.dart';
+import 'visual_schema.dart';
 
 final visualToolSchema = AiTool(
   name: 'create_visual',
@@ -20,7 +21,7 @@ final visualToolSchema = AiTool(
     'type': 'object',
     'additionalProperties': false,
     'properties': {
-      'scene': {'type': 'object', 'description': 'Visual DSL v1 场景 JSON。'},
+      'scene': visualSceneSchema,
       'title': {'type': 'string', 'maxLength': 100},
       'alt': {'type': 'string', 'maxLength': 500},
     },
@@ -36,10 +37,7 @@ final updateVisualToolSchema = AiTool(
     'additionalProperties': false,
     'properties': {
       'visual_id': {'type': 'string', 'description': '要更新的图形 id。'},
-      'scene': {
-        'type': 'object',
-        'description': 'Visual DSL v1 场景 JSON（完整场景，与 ops 二选一）。',
-      },
+      'scene': visualSceneSchema,
       'ops': {
         'type': 'array',
         'description': '按图元 id 的补丁操作列表（与 scene 二选一）。',
@@ -48,7 +46,7 @@ final updateVisualToolSchema = AiTool(
           'properties': {
             'op': {'type': 'string'},
             'id': {'type': 'string'},
-            'element': {'type': 'object'},
+            'element': visualElementSchema,
             'title': {'type': 'string'},
           },
         },

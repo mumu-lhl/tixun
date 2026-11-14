@@ -387,6 +387,8 @@ String appErrorText(
     l10n.errorVisualSceneRevisionDoesNotExist,
   AppErrorCode.errorVisualStudyLinkNeedsOneOwner =>
     l10n.errorVisualStudyLinkNeedsOneOwner,
+  AppErrorCode.errorVisualQuestionNotAnswerable =>
+    l10n.errorVisualQuestionNotAnswerable,
 
   AppErrorCode.generationTimedOutPartialContent =>
     l10n.generationTimedOutPartialContent,

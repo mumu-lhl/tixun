@@ -12,7 +12,7 @@ import 'package:tixun/features/practice/question_spec.dart';
 import 'package:tixun/features/visual/visual_store.dart';
 
 const _sceneJson =
-    '{"v":1,"kind":"plot2d","model":{"expression":"x^2-4"},"meta":{"alt":"抛物线"}}';
+    '{"v":1,"kind":"plot2d","model":{"expression":"x^2-4"},"view":{"x":[-5,5],"y":[-5,6]},"elements":[{"id":"r1","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]]},{"id":"p","type":"point","at":[0,0],"draggable":true}],"meta":{"alt":"抛物线"}}';
 
 Map<String, dynamic> _quizArgs({String? visualId, int? visualRevision}) => {
   'kind': 'numeric',
