@@ -10,7 +10,7 @@ No TiXun account is required. Learning data stays on your device, and saved mate
 
 ## Download
 
-Download the [latest stable release](https://github.com/mumu-lhl/tixun/releases/latest), currently **v0.6.0**. To try subsequent changes, use the [latest Nightly](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true). Nightly follows the main branch and may include changes that need further validation.
+Download the [latest stable release](https://github.com/mumu-lhl/tixun/releases/latest), currently **v0.6.1**. To try subsequent changes, use the [latest Nightly](https://github.com/mumu-lhl/tixun/releases?q=nightly&expanded=true). Nightly follows the main branch and may include changes that need further validation.
 
 Choose a file under **Assets**:
 
@@ -21,7 +21,7 @@ Choose a file under **Assets**:
 | Other Android architectures | `armeabi-v7a` or `x86_64` APK | For compatible 32-bit devices or x86_64 devices/emulators. |
 | Linux x86_64 | `linux-x64.tar.gz` | Extract and run `./tixun`. Keep the adjacent `lib` and `data` folders. |
 
-Published packages use **Release mode**. v0.6.0 and current Nightly APKs share the same release signing key; `SHA256SUMS` provides download checksums. v0.5.2 uses an older development key: export a full backup before uninstalling it, then install the new version and restore your data.
+Published packages use **Release mode**. v0.6.1 and current Nightly APKs share the same release signing key; `SHA256SUMS` provides download checksums. v0.5.2 uses an older development key: export a full backup before uninstalling it, then install the new version and restore your data.
 
 Linux needs GTK 3 and, for credentials, an unlocked Secret Service keyring such as GNOME Keyring. Missing secure storage is reported; keys are not silently saved as plain text. Run `chmod u+x tixun` if needed.
 
