@@ -13,6 +13,7 @@ part 'practice_tables.dart';
 part 'review_tables.dart';
 part 'exam_tables.dart';
 part 'module_tables.dart';
+part 'visual_tables.dart';
 
 class ChatSessions extends Table {
   TextColumn get id => text()();
@@ -187,6 +188,11 @@ class AiModelPrices extends Table {
     SubjectModules,
     KnowledgeModuleLinks,
     MistakeModuleLinks,
+    VisualScenes,
+    VisualSceneRevisions,
+    VisualMessageLinks,
+    VisualQuestionLinks,
+    VisualStudyLinks,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -194,7 +200,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 15;
+  static const latestSchemaVersion = 16;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -207,6 +213,7 @@ class AppDatabase extends _$AppDatabase {
       await _createPracticeLinkIndex();
       await _createModuleIndexes();
       await _createExamIndexes();
+      await _createVisualIndexes();
       await customStatement(
         'CREATE INDEX ai_usage_occurred ON ai_usage_events(occurred_at)',
       );
@@ -334,6 +341,18 @@ class AppDatabase extends _$AppDatabase {
           "UPDATE ai_model_prices SET off_peak_discount_percent = 50 WHERE source = 'deepseek_official_peak'",
         );
       }
+      if (from < 16) {
+        for (final table in <TableInfo>[
+          visualScenes,
+          visualSceneRevisions,
+          visualMessageLinks,
+          visualQuestionLinks,
+          visualStudyLinks,
+        ]) {
+          await m.createTable(table);
+        }
+        await _createVisualIndexes();
+      }
       if (from >= 9 && from < 12) {
         await m.addColumn(examAttachments, examAttachments.originalPath);
       }
@@ -404,6 +423,21 @@ class AppDatabase extends _$AppDatabase {
       );
     },
   );
+
+  Future<void> _createVisualIndexes() async {
+    await customStatement(
+      'CREATE INDEX visual_message_lookup ON visual_message_links(message_id)',
+    );
+    await customStatement(
+      'CREATE INDEX visual_question_lookup ON visual_question_links(question_id)',
+    );
+    await customStatement(
+      'CREATE INDEX visual_study_knowledge ON visual_study_links(knowledge_id)',
+    );
+    await customStatement(
+      'CREATE INDEX visual_study_mistake ON visual_study_links(mistake_id)',
+    );
+  }
 
   Future<void> _createModuleIndexes() async {
     await customStatement(

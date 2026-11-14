@@ -2,6 +2,7 @@ import 'package:tixun/core/l10n/app_error.dart';
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import '../../core/python/python_tool.dart';
 import '../../core/python/python_runtime.dart';
@@ -15,12 +16,15 @@ import '../../core/ai/context_compactor.dart';
 import '../../core/ai/study_tools.dart';
 import '../../core/ai/quiz_tool.dart';
 import '../../core/ai/region_tool.dart';
+import '../../core/ai/visual_tool.dart';
 import '../../core/database/database.dart';
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/platform/attachment_store.dart';
 import '../library/study_store.dart';
 import '../library/subject_scope.dart';
 import '../practice/practice_store.dart';
 import '../review/review_store.dart';
+import '../visual/visual_store.dart';
 import '../progress/learning_profile.dart';
 import '../../core/ai/prompt_settings.dart';
 import '../../core/ai/study_write_task.dart';
@@ -31,6 +35,7 @@ class LearningRunResult {
     this.tokens,
     required this.quizCreated,
     this.title,
+    this.visualCreated = false,
     this.reasoning,
     this.reasoningTrace,
   });
@@ -38,6 +43,10 @@ class LearningRunResult {
   final int? tokens;
   final bool quizCreated;
   final String? title;
+
+  /// A visual scene was created this run; the run ends with the
+  /// closing text and the card renders under the message.
+  final bool visualCreated;
 
   /// Reasoning streamed in the final round, if the provider returned any.
   /// Persisted with the assistant message so later tool requests can pass
@@ -60,6 +69,7 @@ class LearningRun {
     this.review,
     this.provider, {
     PythonTool? pythonTool,
+    this.visual,
   }) : python = pythonTool ?? PythonTool(db, files.root);
   final AppDatabase db;
   final AttachmentStore files;
@@ -68,6 +78,10 @@ class LearningRun {
   final ReviewStore review;
   final ChatProvider provider;
   final PythonTool python;
+
+  /// Null in tests that do not wire a visual store; `create_visual` is
+  /// then never offered, so the dispatch branch stays unreachable.
+  final VisualStore? visual;
 
   Future<LearningRunResult> run({
     required String sessionId,
@@ -108,6 +122,7 @@ class LearningRun {
     var text = '';
     int? tokens;
     var quizCreated = false,
+        visualCreated = false,
         regionsCreated = false,
         studyChanged = false,
         pythonExecuted = false;
@@ -126,6 +141,7 @@ class LearningRun {
         text: exam ? (quizCreated ? '先独立尝试下面的题目。提交后查看参考答案与解析。' : '') : text,
         tokens: tokens,
         quizCreated: quizCreated,
+        visualCreated: visualCreated,
         reasoning: activeReasoning.isEmpty ? null : activeReasoning,
         reasoningTrace: trace.isEmpty ? null : trace,
         title: generatedTitle,
@@ -337,6 +353,11 @@ class LearningRun {
                 ['ask', 'auto'].contains(pythonPolicy))
               pythonToolSchema,
             if (!materialRequest) quizToolSchema,
+            if (!materialRequest && !exam && visual != null) visualToolSchema,
+            if (!materialRequest && !exam && visual != null)
+              updateVisualToolSchema,
+            if (!materialRequest && !exam && visual != null)
+              getVisualToolSchema,
             if (!exam && sourceImages.isNotEmpty && studyTask == null)
               regionToolSchema,
             if (toolsEnabled)
@@ -373,6 +394,15 @@ class LearningRun {
       for (var round = 0; round < 4; round++) {
         cancel.checkCancelled();
         final calls = <ToolCall>[];
+        // Rounds that called create_visual are accounted under
+        // 'visual_create' and rounds that called update_visual under
+        // 'visual_edit' instead of the default 'chat' category.
+        // get_visual is read-only and stays under 'chat'.
+        String usageFeature() => calls.any((c) => c.name == 'update_visual')
+            ? 'visual_edit'
+            : calls.any((c) => c.name == 'create_visual')
+            ? 'visual_create'
+            : 'chat';
         var roundText = '';
         var roundReasoning = '';
         activeReasoning = '';
@@ -446,7 +476,7 @@ class LearningRun {
             sessionId: sessionId,
             messageId: runId,
             config: requestConfig,
-            feature: 'chat',
+            feature: usageFeature(),
             status: 'error',
             startedAt: requestStartedAt,
             imageCount: requestImageCount,
@@ -460,7 +490,7 @@ class LearningRun {
           sessionId: sessionId,
           messageId: runId,
           config: requestConfig,
-          feature: 'chat',
+          feature: usageFeature(),
           status: completed ? 'complete' : 'incomplete',
           startedAt: requestStartedAt,
           imageCount: requestImageCount,
@@ -557,6 +587,39 @@ class LearningRun {
                   cancel: cancel,
                   sourceImages: sourceImages,
                 )
+              : call.name == 'create_visual'
+              ? visual == null
+                    // Unreachable: the unknown-tool guard above rejects
+                    // calls for tools not in the request, and the schema
+                    // is only offered when a visual store is wired.
+                    ? <String, dynamic>{'ok': false, 'error': '当前会话未启用图形工具。'}
+                    : await executeVisualTool(
+                        visual!,
+                        call,
+                        sessionId: sessionId,
+                        runId: runId,
+                        cancel: cancel,
+                      )
+              : call.name == 'update_visual'
+              ? visual == null
+                    ? <String, dynamic>{'ok': false, 'error': '当前会话未启用图形工具。'}
+                    : await executeUpdateVisualTool(
+                        visual!,
+                        call,
+                        sessionId: sessionId,
+                        runId: runId,
+                        cancel: cancel,
+                      )
+              : call.name == 'get_visual'
+              ? visual == null
+                    ? <String, dynamic>{'ok': false, 'error': '当前会话未启用图形工具。'}
+                    : await executeGetVisualTool(
+                        visual!,
+                        call,
+                        sessionId: sessionId,
+                        runId: runId,
+                        cancel: cancel,
+                      )
               : await runner.execute(call, cancel);
           if (studyTask?.operation == 'update_knowledge' &&
               call.name == 'get_knowledge') {
@@ -573,6 +636,9 @@ class LearningRun {
           }
           if (call.name == 'create_quiz' && result['ok'] == true) {
             quizCreated = true;
+          }
+          if (call.name == 'create_visual' && result['ok'] == true) {
+            visualCreated = true;
           }
           // A successful study write already landed: remember it so an
           // empty final text does not report the round as failed (which
@@ -593,10 +659,19 @@ class LearningRun {
             ],
           );
         }
-        if (quizCreated || regionsCreated) {
+        if (quizCreated || regionsCreated || visualCreated) {
           text = quizCreated
               ? '先独立尝试下面的题目。提交后查看参考答案与解析。'
-              : '下面是图片分题建议。请检查每个范围，必要时调整后保存；原图会保留。';
+              : regionsCreated
+              ? '下面是图片分题建议。请检查每个范围，必要时调整后保存；原图会保留。'
+              // The closing text comes from l10n (same language as the
+              // request prompts); it states only that the figure is shown,
+              // never an explanation of its content.
+              : lookupAppLocalizations(
+                  requestPrompts.language == 'en'
+                      ? const Locale('en')
+                      : const Locale('zh'),
+                ).visualCreatedMessage;
           if (regionsCreated) study.changed();
           finished = true;
           break;
@@ -631,6 +706,7 @@ class LearningRun {
         text: text,
         tokens: tokens,
         quizCreated: quizCreated,
+        visualCreated: visualCreated,
         reasoning: lastRoundReasoning,
         reasoningTrace: trace.isEmpty ? null : trace,
         title: generatedTitle,

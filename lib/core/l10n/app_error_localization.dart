@@ -380,6 +380,11 @@ String appErrorText(
     l10n.errorCompleteGradingBeforeSchedulingAReview,
   AppErrorCode.errorTheDateMustBeBetweenToday =>
     l10n.errorTheDateMustBeBetweenToday,
+  AppErrorCode.errorVisualSceneJsonEmpty => l10n.errorVisualSceneJsonEmpty,
+  AppErrorCode.errorVisualSceneDoesNotExist =>
+    l10n.errorVisualSceneDoesNotExist,
+  AppErrorCode.errorVisualStudyLinkNeedsOneOwner =>
+    l10n.errorVisualStudyLinkNeedsOneOwner,
 
   AppErrorCode.generationTimedOutPartialContent =>
     l10n.generationTimedOutPartialContent,

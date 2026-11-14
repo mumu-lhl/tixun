@@ -1932,6 +1932,26 @@
   "errorInvalidReviewStatus": "复习状态无效。",
   "errorCompleteGradingBeforeSchedulingAReview": "尚未完成评分，不能安排复习。",
   "errorTheDateMustBeBetweenToday": "日期需在今天至一年内。",
+  "errorVisualSceneJsonEmpty": "图形场景内容不能为空。",
+  "errorVisualSceneDoesNotExist": "图形不存在。",
+  "errorVisualStudyLinkNeedsOneOwner": "请指定一条知识或一个错题。",
+  "visualExportPng": "导出 PNG",
+  "visualCreatedMessage": "已生成图形，可在下方查看。",
+  "visualSavedTo": "已保存到 {arg0}。",
+  "@visualSavedTo": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "visualExportFailed": "导出失败",
+  "visualViewFullscreen": "全屏查看",
+  "visualPlayAnimation": "播放动画",
+  "visualPauseAnimation": "暂停动画",
+  "visualPreviousStep": "上一步",
+  "visualNextStep": "下一步",
+  "visualSeek": "播放进度",
   "errorMissingParameter": "缺少参数：{arg0}。",
   "@errorMissingParameter": {
     "placeholders": {
@@ -2051,6 +2071,8 @@
   "usageFeatureContextCompaction": "上下文压缩",
   "usageFeatureExamScores": "考试分数整理",
   "usageFeatureConnectionTest": "连接测试",
+  "usageFeatureVisualCreate": "图形创建",
+  "usageFeatureVisualEdit": "图形修改",
   "usageStatusComplete": "完成",
   "usageStatusError": "失败",
   "usageStatusIncomplete": "未完成",

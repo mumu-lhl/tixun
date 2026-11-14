@@ -18,6 +18,8 @@ tests=(
   'exam_flow:integration-exams.log'
   'modules_flow:integration-modules.log'
   'subject_preferences_flow:integration-subjects.log'
+  'visual_flow:integration-visual.log'
+  'visual_player_flow:integration-visual-player.log'
 )
 for entry in "${tests[@]}"; do
   test_name="${entry%%:*}"

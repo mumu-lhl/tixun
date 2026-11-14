@@ -975,6 +975,8 @@ String _featureLabel(BuildContext context, String feature) => switch (feature) {
   'context_compaction' => context.l10n.usageFeatureContextCompaction,
   'exam_scores' => context.l10n.usageFeatureExamScores,
   'connection_test' => context.l10n.usageFeatureConnectionTest,
+  'visual_create' => context.l10n.usageFeatureVisualCreate,
+  'visual_edit' => context.l10n.usageFeatureVisualEdit,
   _ => feature,
 };
 
