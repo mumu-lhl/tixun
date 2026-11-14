@@ -17705,6 +17705,1729 @@ class MistakeModuleLinksCompanion extends UpdateCompanion<MistakeModuleLink> {
   }
 }
 
+class $VisualScenesTable extends VisualScenes
+    with TableInfo<$VisualScenesTable, StoredVisualScene> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VisualScenesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sceneJsonMeta = const VerificationMeta(
+    'sceneJson',
+  );
+  @override
+  late final GeneratedColumn<String> sceneJson = GeneratedColumn<String>(
+    'scene_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dslVersionMeta = const VerificationMeta(
+    'dslVersion',
+  );
+  @override
+  late final GeneratedColumn<int> dslVersion = GeneratedColumn<int>(
+    'dsl_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _verificationStatusMeta =
+      const VerificationMeta('verificationStatus');
+  @override
+  late final GeneratedColumn<String> verificationStatus =
+      GeneratedColumn<String>(
+        'verification_status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('unverified'),
+      );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('ai'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sceneJson,
+    title,
+    dslVersion,
+    verificationStatus,
+    revision,
+    source,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'visual_scenes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StoredVisualScene> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('scene_json')) {
+      context.handle(
+        _sceneJsonMeta,
+        sceneJson.isAcceptableOrUnknown(data['scene_json']!, _sceneJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sceneJsonMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('dsl_version')) {
+      context.handle(
+        _dslVersionMeta,
+        dslVersion.isAcceptableOrUnknown(data['dsl_version']!, _dslVersionMeta),
+      );
+    }
+    if (data.containsKey('verification_status')) {
+      context.handle(
+        _verificationStatusMeta,
+        verificationStatus.isAcceptableOrUnknown(
+          data['verification_status']!,
+          _verificationStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StoredVisualScene map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StoredVisualScene(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sceneJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scene_json'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      ),
+      dslVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}dsl_version'],
+      )!,
+      verificationStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}verification_status'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $VisualScenesTable createAlias(String alias) {
+    return $VisualScenesTable(attachedDatabase, alias);
+  }
+}
+
+class StoredVisualScene extends DataClass
+    implements Insertable<StoredVisualScene> {
+  final String id;
+  final String sceneJson;
+  final String? title;
+  final int dslVersion;
+  final String verificationStatus;
+  final int revision;
+  final String source;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const StoredVisualScene({
+    required this.id,
+    required this.sceneJson,
+    this.title,
+    required this.dslVersion,
+    required this.verificationStatus,
+    required this.revision,
+    required this.source,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['scene_json'] = Variable<String>(sceneJson);
+    if (!nullToAbsent || title != null) {
+      map['title'] = Variable<String>(title);
+    }
+    map['dsl_version'] = Variable<int>(dslVersion);
+    map['verification_status'] = Variable<String>(verificationStatus);
+    map['revision'] = Variable<int>(revision);
+    map['source'] = Variable<String>(source);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  VisualScenesCompanion toCompanion(bool nullToAbsent) {
+    return VisualScenesCompanion(
+      id: Value(id),
+      sceneJson: Value(sceneJson),
+      title: title == null && nullToAbsent
+          ? const Value.absent()
+          : Value(title),
+      dslVersion: Value(dslVersion),
+      verificationStatus: Value(verificationStatus),
+      revision: Value(revision),
+      source: Value(source),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory StoredVisualScene.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StoredVisualScene(
+      id: serializer.fromJson<String>(json['id']),
+      sceneJson: serializer.fromJson<String>(json['sceneJson']),
+      title: serializer.fromJson<String?>(json['title']),
+      dslVersion: serializer.fromJson<int>(json['dslVersion']),
+      verificationStatus: serializer.fromJson<String>(
+        json['verificationStatus'],
+      ),
+      revision: serializer.fromJson<int>(json['revision']),
+      source: serializer.fromJson<String>(json['source']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sceneJson': serializer.toJson<String>(sceneJson),
+      'title': serializer.toJson<String?>(title),
+      'dslVersion': serializer.toJson<int>(dslVersion),
+      'verificationStatus': serializer.toJson<String>(verificationStatus),
+      'revision': serializer.toJson<int>(revision),
+      'source': serializer.toJson<String>(source),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  StoredVisualScene copyWith({
+    String? id,
+    String? sceneJson,
+    Value<String?> title = const Value.absent(),
+    int? dslVersion,
+    String? verificationStatus,
+    int? revision,
+    String? source,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => StoredVisualScene(
+    id: id ?? this.id,
+    sceneJson: sceneJson ?? this.sceneJson,
+    title: title.present ? title.value : this.title,
+    dslVersion: dslVersion ?? this.dslVersion,
+    verificationStatus: verificationStatus ?? this.verificationStatus,
+    revision: revision ?? this.revision,
+    source: source ?? this.source,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  StoredVisualScene copyWithCompanion(VisualScenesCompanion data) {
+    return StoredVisualScene(
+      id: data.id.present ? data.id.value : this.id,
+      sceneJson: data.sceneJson.present ? data.sceneJson.value : this.sceneJson,
+      title: data.title.present ? data.title.value : this.title,
+      dslVersion: data.dslVersion.present
+          ? data.dslVersion.value
+          : this.dslVersion,
+      verificationStatus: data.verificationStatus.present
+          ? data.verificationStatus.value
+          : this.verificationStatus,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      source: data.source.present ? data.source.value : this.source,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StoredVisualScene(')
+          ..write('id: $id, ')
+          ..write('sceneJson: $sceneJson, ')
+          ..write('title: $title, ')
+          ..write('dslVersion: $dslVersion, ')
+          ..write('verificationStatus: $verificationStatus, ')
+          ..write('revision: $revision, ')
+          ..write('source: $source, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sceneJson,
+    title,
+    dslVersion,
+    verificationStatus,
+    revision,
+    source,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StoredVisualScene &&
+          other.id == this.id &&
+          other.sceneJson == this.sceneJson &&
+          other.title == this.title &&
+          other.dslVersion == this.dslVersion &&
+          other.verificationStatus == this.verificationStatus &&
+          other.revision == this.revision &&
+          other.source == this.source &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class VisualScenesCompanion extends UpdateCompanion<StoredVisualScene> {
+  final Value<String> id;
+  final Value<String> sceneJson;
+  final Value<String?> title;
+  final Value<int> dslVersion;
+  final Value<String> verificationStatus;
+  final Value<int> revision;
+  final Value<String> source;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const VisualScenesCompanion({
+    this.id = const Value.absent(),
+    this.sceneJson = const Value.absent(),
+    this.title = const Value.absent(),
+    this.dslVersion = const Value.absent(),
+    this.verificationStatus = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.source = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VisualScenesCompanion.insert({
+    required String id,
+    required String sceneJson,
+    this.title = const Value.absent(),
+    this.dslVersion = const Value.absent(),
+    this.verificationStatus = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.source = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       sceneJson = Value(sceneJson),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<StoredVisualScene> custom({
+    Expression<String>? id,
+    Expression<String>? sceneJson,
+    Expression<String>? title,
+    Expression<int>? dslVersion,
+    Expression<String>? verificationStatus,
+    Expression<int>? revision,
+    Expression<String>? source,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sceneJson != null) 'scene_json': sceneJson,
+      if (title != null) 'title': title,
+      if (dslVersion != null) 'dsl_version': dslVersion,
+      if (verificationStatus != null) 'verification_status': verificationStatus,
+      if (revision != null) 'revision': revision,
+      if (source != null) 'source': source,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VisualScenesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sceneJson,
+    Value<String?>? title,
+    Value<int>? dslVersion,
+    Value<String>? verificationStatus,
+    Value<int>? revision,
+    Value<String>? source,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return VisualScenesCompanion(
+      id: id ?? this.id,
+      sceneJson: sceneJson ?? this.sceneJson,
+      title: title ?? this.title,
+      dslVersion: dslVersion ?? this.dslVersion,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      revision: revision ?? this.revision,
+      source: source ?? this.source,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sceneJson.present) {
+      map['scene_json'] = Variable<String>(sceneJson.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (dslVersion.present) {
+      map['dsl_version'] = Variable<int>(dslVersion.value);
+    }
+    if (verificationStatus.present) {
+      map['verification_status'] = Variable<String>(verificationStatus.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisualScenesCompanion(')
+          ..write('id: $id, ')
+          ..write('sceneJson: $sceneJson, ')
+          ..write('title: $title, ')
+          ..write('dslVersion: $dslVersion, ')
+          ..write('verificationStatus: $verificationStatus, ')
+          ..write('revision: $revision, ')
+          ..write('source: $source, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VisualSceneRevisionsTable extends VisualSceneRevisions
+    with TableInfo<$VisualSceneRevisionsTable, VisualSceneRevision> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VisualSceneRevisionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _visualIdMeta = const VerificationMeta(
+    'visualId',
+  );
+  @override
+  late final GeneratedColumn<String> visualId = GeneratedColumn<String>(
+    'visual_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visual_scenes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sceneJsonMeta = const VerificationMeta(
+    'sceneJson',
+  );
+  @override
+  late final GeneratedColumn<String> sceneJson = GeneratedColumn<String>(
+    'scene_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    visualId,
+    revision,
+    sceneJson,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'visual_scene_revisions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VisualSceneRevision> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('visual_id')) {
+      context.handle(
+        _visualIdMeta,
+        visualId.isAcceptableOrUnknown(data['visual_id']!, _visualIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visualIdMeta);
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionMeta);
+    }
+    if (data.containsKey('scene_json')) {
+      context.handle(
+        _sceneJsonMeta,
+        sceneJson.isAcceptableOrUnknown(data['scene_json']!, _sceneJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sceneJsonMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {visualId, revision};
+  @override
+  VisualSceneRevision map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VisualSceneRevision(
+      visualId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visual_id'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+      sceneJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scene_json'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $VisualSceneRevisionsTable createAlias(String alias) {
+    return $VisualSceneRevisionsTable(attachedDatabase, alias);
+  }
+}
+
+class VisualSceneRevision extends DataClass
+    implements Insertable<VisualSceneRevision> {
+  final String visualId;
+  final int revision;
+  final String sceneJson;
+  final DateTime createdAt;
+  const VisualSceneRevision({
+    required this.visualId,
+    required this.revision,
+    required this.sceneJson,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['visual_id'] = Variable<String>(visualId);
+    map['revision'] = Variable<int>(revision);
+    map['scene_json'] = Variable<String>(sceneJson);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  VisualSceneRevisionsCompanion toCompanion(bool nullToAbsent) {
+    return VisualSceneRevisionsCompanion(
+      visualId: Value(visualId),
+      revision: Value(revision),
+      sceneJson: Value(sceneJson),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory VisualSceneRevision.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VisualSceneRevision(
+      visualId: serializer.fromJson<String>(json['visualId']),
+      revision: serializer.fromJson<int>(json['revision']),
+      sceneJson: serializer.fromJson<String>(json['sceneJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'visualId': serializer.toJson<String>(visualId),
+      'revision': serializer.toJson<int>(revision),
+      'sceneJson': serializer.toJson<String>(sceneJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  VisualSceneRevision copyWith({
+    String? visualId,
+    int? revision,
+    String? sceneJson,
+    DateTime? createdAt,
+  }) => VisualSceneRevision(
+    visualId: visualId ?? this.visualId,
+    revision: revision ?? this.revision,
+    sceneJson: sceneJson ?? this.sceneJson,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  VisualSceneRevision copyWithCompanion(VisualSceneRevisionsCompanion data) {
+    return VisualSceneRevision(
+      visualId: data.visualId.present ? data.visualId.value : this.visualId,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      sceneJson: data.sceneJson.present ? data.sceneJson.value : this.sceneJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisualSceneRevision(')
+          ..write('visualId: $visualId, ')
+          ..write('revision: $revision, ')
+          ..write('sceneJson: $sceneJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(visualId, revision, sceneJson, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VisualSceneRevision &&
+          other.visualId == this.visualId &&
+          other.revision == this.revision &&
+          other.sceneJson == this.sceneJson &&
+          other.createdAt == this.createdAt);
+}
+
+class VisualSceneRevisionsCompanion
+    extends UpdateCompanion<VisualSceneRevision> {
+  final Value<String> visualId;
+  final Value<int> revision;
+  final Value<String> sceneJson;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const VisualSceneRevisionsCompanion({
+    this.visualId = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.sceneJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VisualSceneRevisionsCompanion.insert({
+    required String visualId,
+    required int revision,
+    required String sceneJson,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : visualId = Value(visualId),
+       revision = Value(revision),
+       sceneJson = Value(sceneJson),
+       createdAt = Value(createdAt);
+  static Insertable<VisualSceneRevision> custom({
+    Expression<String>? visualId,
+    Expression<int>? revision,
+    Expression<String>? sceneJson,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (visualId != null) 'visual_id': visualId,
+      if (revision != null) 'revision': revision,
+      if (sceneJson != null) 'scene_json': sceneJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VisualSceneRevisionsCompanion copyWith({
+    Value<String>? visualId,
+    Value<int>? revision,
+    Value<String>? sceneJson,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return VisualSceneRevisionsCompanion(
+      visualId: visualId ?? this.visualId,
+      revision: revision ?? this.revision,
+      sceneJson: sceneJson ?? this.sceneJson,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (visualId.present) {
+      map['visual_id'] = Variable<String>(visualId.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (sceneJson.present) {
+      map['scene_json'] = Variable<String>(sceneJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisualSceneRevisionsCompanion(')
+          ..write('visualId: $visualId, ')
+          ..write('revision: $revision, ')
+          ..write('sceneJson: $sceneJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VisualMessageLinksTable extends VisualMessageLinks
+    with TableInfo<$VisualMessageLinksTable, VisualMessageLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VisualMessageLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _visualIdMeta = const VerificationMeta(
+    'visualId',
+  );
+  @override
+  late final GeneratedColumn<String> visualId = GeneratedColumn<String>(
+    'visual_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visual_scenes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _messageIdMeta = const VerificationMeta(
+    'messageId',
+  );
+  @override
+  late final GeneratedColumn<String> messageId = GeneratedColumn<String>(
+    'message_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_messages (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [visualId, messageId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'visual_message_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VisualMessageLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('visual_id')) {
+      context.handle(
+        _visualIdMeta,
+        visualId.isAcceptableOrUnknown(data['visual_id']!, _visualIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visualIdMeta);
+    }
+    if (data.containsKey('message_id')) {
+      context.handle(
+        _messageIdMeta,
+        messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_messageIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {visualId, messageId};
+  @override
+  VisualMessageLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VisualMessageLink(
+      visualId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visual_id'],
+      )!,
+      messageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_id'],
+      )!,
+    );
+  }
+
+  @override
+  $VisualMessageLinksTable createAlias(String alias) {
+    return $VisualMessageLinksTable(attachedDatabase, alias);
+  }
+}
+
+class VisualMessageLink extends DataClass
+    implements Insertable<VisualMessageLink> {
+  final String visualId;
+  final String messageId;
+  const VisualMessageLink({required this.visualId, required this.messageId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['visual_id'] = Variable<String>(visualId);
+    map['message_id'] = Variable<String>(messageId);
+    return map;
+  }
+
+  VisualMessageLinksCompanion toCompanion(bool nullToAbsent) {
+    return VisualMessageLinksCompanion(
+      visualId: Value(visualId),
+      messageId: Value(messageId),
+    );
+  }
+
+  factory VisualMessageLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VisualMessageLink(
+      visualId: serializer.fromJson<String>(json['visualId']),
+      messageId: serializer.fromJson<String>(json['messageId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'visualId': serializer.toJson<String>(visualId),
+      'messageId': serializer.toJson<String>(messageId),
+    };
+  }
+
+  VisualMessageLink copyWith({String? visualId, String? messageId}) =>
+      VisualMessageLink(
+        visualId: visualId ?? this.visualId,
+        messageId: messageId ?? this.messageId,
+      );
+  VisualMessageLink copyWithCompanion(VisualMessageLinksCompanion data) {
+    return VisualMessageLink(
+      visualId: data.visualId.present ? data.visualId.value : this.visualId,
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisualMessageLink(')
+          ..write('visualId: $visualId, ')
+          ..write('messageId: $messageId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(visualId, messageId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VisualMessageLink &&
+          other.visualId == this.visualId &&
+          other.messageId == this.messageId);
+}
+
+class VisualMessageLinksCompanion extends UpdateCompanion<VisualMessageLink> {
+  final Value<String> visualId;
+  final Value<String> messageId;
+  final Value<int> rowid;
+  const VisualMessageLinksCompanion({
+    this.visualId = const Value.absent(),
+    this.messageId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VisualMessageLinksCompanion.insert({
+    required String visualId,
+    required String messageId,
+    this.rowid = const Value.absent(),
+  }) : visualId = Value(visualId),
+       messageId = Value(messageId);
+  static Insertable<VisualMessageLink> custom({
+    Expression<String>? visualId,
+    Expression<String>? messageId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (visualId != null) 'visual_id': visualId,
+      if (messageId != null) 'message_id': messageId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VisualMessageLinksCompanion copyWith({
+    Value<String>? visualId,
+    Value<String>? messageId,
+    Value<int>? rowid,
+  }) {
+    return VisualMessageLinksCompanion(
+      visualId: visualId ?? this.visualId,
+      messageId: messageId ?? this.messageId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (visualId.present) {
+      map['visual_id'] = Variable<String>(visualId.value);
+    }
+    if (messageId.present) {
+      map['message_id'] = Variable<String>(messageId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisualMessageLinksCompanion(')
+          ..write('visualId: $visualId, ')
+          ..write('messageId: $messageId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VisualQuestionLinksTable extends VisualQuestionLinks
+    with TableInfo<$VisualQuestionLinksTable, VisualQuestionLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VisualQuestionLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _visualIdMeta = const VerificationMeta(
+    'visualId',
+  );
+  @override
+  late final GeneratedColumn<String> visualId = GeneratedColumn<String>(
+    'visual_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visual_scenes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _questionIdMeta = const VerificationMeta(
+    'questionId',
+  );
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+    'question_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES practice_questions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [visualId, questionId, revision];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'visual_question_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VisualQuestionLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('visual_id')) {
+      context.handle(
+        _visualIdMeta,
+        visualId.isAcceptableOrUnknown(data['visual_id']!, _visualIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visualIdMeta);
+    }
+    if (data.containsKey('question_id')) {
+      context.handle(
+        _questionIdMeta,
+        questionId.isAcceptableOrUnknown(data['question_id']!, _questionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {visualId, questionId};
+  @override
+  VisualQuestionLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VisualQuestionLink(
+      visualId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visual_id'],
+      )!,
+      questionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_id'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+    );
+  }
+
+  @override
+  $VisualQuestionLinksTable createAlias(String alias) {
+    return $VisualQuestionLinksTable(attachedDatabase, alias);
+  }
+}
+
+class VisualQuestionLink extends DataClass
+    implements Insertable<VisualQuestionLink> {
+  final String visualId;
+  final String questionId;
+
+  /// The pinned snapshot revision the question shows. A question never
+  /// follows later edits: its figure is frozen at the revision recorded
+  /// here (see `VisualStore.snapshotForQuestion`).
+  final int revision;
+  const VisualQuestionLink({
+    required this.visualId,
+    required this.questionId,
+    required this.revision,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['visual_id'] = Variable<String>(visualId);
+    map['question_id'] = Variable<String>(questionId);
+    map['revision'] = Variable<int>(revision);
+    return map;
+  }
+
+  VisualQuestionLinksCompanion toCompanion(bool nullToAbsent) {
+    return VisualQuestionLinksCompanion(
+      visualId: Value(visualId),
+      questionId: Value(questionId),
+      revision: Value(revision),
+    );
+  }
+
+  factory VisualQuestionLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VisualQuestionLink(
+      visualId: serializer.fromJson<String>(json['visualId']),
+      questionId: serializer.fromJson<String>(json['questionId']),
+      revision: serializer.fromJson<int>(json['revision']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'visualId': serializer.toJson<String>(visualId),
+      'questionId': serializer.toJson<String>(questionId),
+      'revision': serializer.toJson<int>(revision),
+    };
+  }
+
+  VisualQuestionLink copyWith({
+    String? visualId,
+    String? questionId,
+    int? revision,
+  }) => VisualQuestionLink(
+    visualId: visualId ?? this.visualId,
+    questionId: questionId ?? this.questionId,
+    revision: revision ?? this.revision,
+  );
+  VisualQuestionLink copyWithCompanion(VisualQuestionLinksCompanion data) {
+    return VisualQuestionLink(
+      visualId: data.visualId.present ? data.visualId.value : this.visualId,
+      questionId: data.questionId.present
+          ? data.questionId.value
+          : this.questionId,
+      revision: data.revision.present ? data.revision.value : this.revision,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisualQuestionLink(')
+          ..write('visualId: $visualId, ')
+          ..write('questionId: $questionId, ')
+          ..write('revision: $revision')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(visualId, questionId, revision);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VisualQuestionLink &&
+          other.visualId == this.visualId &&
+          other.questionId == this.questionId &&
+          other.revision == this.revision);
+}
+
+class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
+  final Value<String> visualId;
+  final Value<String> questionId;
+  final Value<int> revision;
+  final Value<int> rowid;
+  const VisualQuestionLinksCompanion({
+    this.visualId = const Value.absent(),
+    this.questionId = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VisualQuestionLinksCompanion.insert({
+    required String visualId,
+    required String questionId,
+    this.revision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : visualId = Value(visualId),
+       questionId = Value(questionId);
+  static Insertable<VisualQuestionLink> custom({
+    Expression<String>? visualId,
+    Expression<String>? questionId,
+    Expression<int>? revision,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (visualId != null) 'visual_id': visualId,
+      if (questionId != null) 'question_id': questionId,
+      if (revision != null) 'revision': revision,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VisualQuestionLinksCompanion copyWith({
+    Value<String>? visualId,
+    Value<String>? questionId,
+    Value<int>? revision,
+    Value<int>? rowid,
+  }) {
+    return VisualQuestionLinksCompanion(
+      visualId: visualId ?? this.visualId,
+      questionId: questionId ?? this.questionId,
+      revision: revision ?? this.revision,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (visualId.present) {
+      map['visual_id'] = Variable<String>(visualId.value);
+    }
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisualQuestionLinksCompanion(')
+          ..write('visualId: $visualId, ')
+          ..write('questionId: $questionId, ')
+          ..write('revision: $revision, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VisualStudyLinksTable extends VisualStudyLinks
+    with TableInfo<$VisualStudyLinksTable, VisualStudyLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VisualStudyLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _visualIdMeta = const VerificationMeta(
+    'visualId',
+  );
+  @override
+  late final GeneratedColumn<String> visualId = GeneratedColumn<String>(
+    'visual_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visual_scenes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _knowledgeIdMeta = const VerificationMeta(
+    'knowledgeId',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeId = GeneratedColumn<String>(
+    'knowledge_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES knowledge_items (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _mistakeIdMeta = const VerificationMeta(
+    'mistakeId',
+  );
+  @override
+  late final GeneratedColumn<String> mistakeId = GeneratedColumn<String>(
+    'mistake_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES mistakes (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [visualId, knowledgeId, mistakeId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'visual_study_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VisualStudyLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('visual_id')) {
+      context.handle(
+        _visualIdMeta,
+        visualId.isAcceptableOrUnknown(data['visual_id']!, _visualIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visualIdMeta);
+    }
+    if (data.containsKey('knowledge_id')) {
+      context.handle(
+        _knowledgeIdMeta,
+        knowledgeId.isAcceptableOrUnknown(
+          data['knowledge_id']!,
+          _knowledgeIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mistake_id')) {
+      context.handle(
+        _mistakeIdMeta,
+        mistakeId.isAcceptableOrUnknown(data['mistake_id']!, _mistakeIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {visualId, knowledgeId, mistakeId};
+  @override
+  VisualStudyLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VisualStudyLink(
+      visualId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visual_id'],
+      )!,
+      knowledgeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_id'],
+      ),
+      mistakeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mistake_id'],
+      ),
+    );
+  }
+
+  @override
+  $VisualStudyLinksTable createAlias(String alias) {
+    return $VisualStudyLinksTable(attachedDatabase, alias);
+  }
+}
+
+class VisualStudyLink extends DataClass implements Insertable<VisualStudyLink> {
+  final String visualId;
+  final String? knowledgeId;
+  final String? mistakeId;
+  const VisualStudyLink({
+    required this.visualId,
+    this.knowledgeId,
+    this.mistakeId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['visual_id'] = Variable<String>(visualId);
+    if (!nullToAbsent || knowledgeId != null) {
+      map['knowledge_id'] = Variable<String>(knowledgeId);
+    }
+    if (!nullToAbsent || mistakeId != null) {
+      map['mistake_id'] = Variable<String>(mistakeId);
+    }
+    return map;
+  }
+
+  VisualStudyLinksCompanion toCompanion(bool nullToAbsent) {
+    return VisualStudyLinksCompanion(
+      visualId: Value(visualId),
+      knowledgeId: knowledgeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(knowledgeId),
+      mistakeId: mistakeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mistakeId),
+    );
+  }
+
+  factory VisualStudyLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VisualStudyLink(
+      visualId: serializer.fromJson<String>(json['visualId']),
+      knowledgeId: serializer.fromJson<String?>(json['knowledgeId']),
+      mistakeId: serializer.fromJson<String?>(json['mistakeId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'visualId': serializer.toJson<String>(visualId),
+      'knowledgeId': serializer.toJson<String?>(knowledgeId),
+      'mistakeId': serializer.toJson<String?>(mistakeId),
+    };
+  }
+
+  VisualStudyLink copyWith({
+    String? visualId,
+    Value<String?> knowledgeId = const Value.absent(),
+    Value<String?> mistakeId = const Value.absent(),
+  }) => VisualStudyLink(
+    visualId: visualId ?? this.visualId,
+    knowledgeId: knowledgeId.present ? knowledgeId.value : this.knowledgeId,
+    mistakeId: mistakeId.present ? mistakeId.value : this.mistakeId,
+  );
+  VisualStudyLink copyWithCompanion(VisualStudyLinksCompanion data) {
+    return VisualStudyLink(
+      visualId: data.visualId.present ? data.visualId.value : this.visualId,
+      knowledgeId: data.knowledgeId.present
+          ? data.knowledgeId.value
+          : this.knowledgeId,
+      mistakeId: data.mistakeId.present ? data.mistakeId.value : this.mistakeId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisualStudyLink(')
+          ..write('visualId: $visualId, ')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('mistakeId: $mistakeId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(visualId, knowledgeId, mistakeId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VisualStudyLink &&
+          other.visualId == this.visualId &&
+          other.knowledgeId == this.knowledgeId &&
+          other.mistakeId == this.mistakeId);
+}
+
+class VisualStudyLinksCompanion extends UpdateCompanion<VisualStudyLink> {
+  final Value<String> visualId;
+  final Value<String?> knowledgeId;
+  final Value<String?> mistakeId;
+  final Value<int> rowid;
+  const VisualStudyLinksCompanion({
+    this.visualId = const Value.absent(),
+    this.knowledgeId = const Value.absent(),
+    this.mistakeId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VisualStudyLinksCompanion.insert({
+    required String visualId,
+    this.knowledgeId = const Value.absent(),
+    this.mistakeId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : visualId = Value(visualId);
+  static Insertable<VisualStudyLink> custom({
+    Expression<String>? visualId,
+    Expression<String>? knowledgeId,
+    Expression<String>? mistakeId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (visualId != null) 'visual_id': visualId,
+      if (knowledgeId != null) 'knowledge_id': knowledgeId,
+      if (mistakeId != null) 'mistake_id': mistakeId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VisualStudyLinksCompanion copyWith({
+    Value<String>? visualId,
+    Value<String?>? knowledgeId,
+    Value<String?>? mistakeId,
+    Value<int>? rowid,
+  }) {
+    return VisualStudyLinksCompanion(
+      visualId: visualId ?? this.visualId,
+      knowledgeId: knowledgeId ?? this.knowledgeId,
+      mistakeId: mistakeId ?? this.mistakeId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (visualId.present) {
+      map['visual_id'] = Variable<String>(visualId.value);
+    }
+    if (knowledgeId.present) {
+      map['knowledge_id'] = Variable<String>(knowledgeId.value);
+    }
+    if (mistakeId.present) {
+      map['mistake_id'] = Variable<String>(mistakeId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisualStudyLinksCompanion(')
+          ..write('visualId: $visualId, ')
+          ..write('knowledgeId: $knowledgeId, ')
+          ..write('mistakeId: $mistakeId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -17769,6 +19492,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $KnowledgeModuleLinksTable(this);
   late final $MistakeModuleLinksTable mistakeModuleLinks =
       $MistakeModuleLinksTable(this);
+  late final $VisualScenesTable visualScenes = $VisualScenesTable(this);
+  late final $VisualSceneRevisionsTable visualSceneRevisions =
+      $VisualSceneRevisionsTable(this);
+  late final $VisualMessageLinksTable visualMessageLinks =
+      $VisualMessageLinksTable(this);
+  late final $VisualQuestionLinksTable visualQuestionLinks =
+      $VisualQuestionLinksTable(this);
+  late final $VisualStudyLinksTable visualStudyLinks = $VisualStudyLinksTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -17811,6 +19544,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     subjectModules,
     knowledgeModuleLinks,
     mistakeModuleLinks,
+    visualScenes,
+    visualSceneRevisions,
+    visualMessageLinks,
+    visualQuestionLinks,
+    visualStudyLinks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -18143,6 +19881,62 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('mistake_module_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'visual_scenes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('visual_scene_revisions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'visual_scenes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('visual_message_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('visual_message_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'visual_scenes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('visual_question_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'practice_questions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('visual_question_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'visual_scenes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('visual_study_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'knowledge_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('visual_study_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'mistakes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('visual_study_links', kind: UpdateKind.delete)],
     ),
   ]);
 }

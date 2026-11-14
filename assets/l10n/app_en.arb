@@ -990,6 +990,10 @@
   "singleChoice": "Single choice",
   "multipleChoice": "Multiple choice",
   "trueFalse": "True / false",
+  "pointSelect": "Point select",
+  "regionSelect": "Region select",
+  "dragToTarget": "Drag to target",
+  "readValue": "Read value",
   "fillInTheBlanks": "Fill in the blanks",
   "numericalAnswer": "Numerical answer",
   "subject": "Subject",
@@ -1917,6 +1921,29 @@
   "errorInvalidReviewStatus": "Invalid review status.",
   "errorCompleteGradingBeforeSchedulingAReview": "Complete grading before scheduling a review.",
   "errorTheDateMustBeBetweenToday": "The date must be between today and one year from today.",
+  "errorVisualSceneJsonEmpty": "The visual scene content must not be empty.",
+  "errorVisualSceneDoesNotExist": "The visual does not exist.",
+  "errorVisualStudyLinkNeedsOneOwner": "Specify exactly one knowledge item or mistake.",
+  "visualExportPng": "Export PNG",
+  "visualCreatedMessage": "The figure is ready below.",
+  "visualSavedTo": "Saved to {arg0}.",
+  "@visualSavedTo": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "visualExportFailed": "Export failed",
+  "visualViewFullscreen": "View fullscreen",
+  "visualPlayAnimation": "Play animation",
+  "visualPauseAnimation": "Pause animation",
+  "visualPreviousStep": "Previous step",
+  "visualNextStep": "Next step",
+  "visualSeek": "Playback position",
+  "visualPlaybackSpeed": "Playback speed",
+  "visualResetDrag": "Reset dragged positions",
+  "visualResetView": "Reset view",
   "errorMissingParameter": "Missing parameter: {arg0}.",
   "@errorMissingParameter": {
     "placeholders": {
@@ -2036,6 +2063,13 @@
   "usageFeatureContextCompaction": "Context compaction",
   "usageFeatureExamScores": "Exam score extraction",
   "usageFeatureConnectionTest": "Connection test",
+  "usageFeatureVisualCreate": "Visual creation",
+  "usageFeatureVisualEdit": "Visual edit",
+  "usageFeatureQuizWithVisual": "Quiz with visual",
+  "visualSection": "Visuals",
+  "visualSchematicNote": "Schematic — not to scale",
+  "visualAnswerSelectedPoint": "Selected point: {arg0}",
+  "visualAnswerSelectedRegion": "Selected region: {arg0}",
   "usageStatusComplete": "Complete",
   "usageStatusError": "Failed",
   "usageStatusIncomplete": "Incomplete",

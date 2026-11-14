@@ -687,6 +687,35 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
 
         return;
       }
+      if (last.role == AiRole.user &&
+          names.contains('create_visual') &&
+          ['画图', '图像', '函数图'].any((v) => last.text.contains(v))) {
+        yield AiChunk(
+          completed: true,
+          calls: [
+            ToolCall(
+              'mock-visual',
+              'create_visual',
+              jsonEncode({
+                'scene': {
+                  'v': 1,
+                  'kind': 'plot2d',
+                  'title': 'y = x²',
+                  'model': {'expression': 'x^2'},
+                  'view': {
+                    'x': [-3, 3],
+                    'y': [-1, 9],
+                  },
+                  'meta': {'alt': '抛物线 y = x² 的图像'},
+                },
+                'title': 'y = x²',
+              }),
+            ),
+          ],
+        );
+
+        return;
+      }
       if (last.role == AiRole.tool) {
         final result = jsonDecode(last.text) as Map;
         yield AiChunk(

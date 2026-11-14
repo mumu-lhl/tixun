@@ -273,6 +273,29 @@ void main() {
       expect(progress.every((p) => p.text.isEmpty && !p.quizCreated), true);
     });
 
+    test('Exam quiz creation never attaches a visual', () async {
+      // A visual could carry the answer, and exam questions are
+      // generated live and unreviewed: the executor must refuse the
+      // attachment in exam mode, so no question is created at all.
+      const call = ToolCall(
+        'q1',
+        'create_quiz',
+        '{"kind":"numeric","stem":"2+2","subject":"数学","answers":[["4"]],"explanation":"","visual_id":"v1"}',
+      );
+      await expectLater(
+        run(
+          ScriptProvider(
+            (_) => [
+              const AiChunk(completed: true, calls: [call]),
+            ],
+          ),
+          mode: 'exam',
+        ),
+        throwsA(isA<AiFailure>()),
+      );
+      expect(await db.select(db.practiceQuestions).get(), isEmpty);
+    });
+
     test(
       'Runtime enforces four tool rounds independently of provider protocol',
       () async {

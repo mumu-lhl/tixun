@@ -16,6 +16,7 @@ import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/learning_markdown.dart';
+import '../visual/study_visuals.dart';
 import '../practice/question_spec.dart';
 import 'library_providers.dart';
 import 'study_editor.dart';
@@ -371,6 +372,12 @@ class StudyDetailScreen extends ConsumerWidget {
                               images: images,
                               editable: !deleted,
                             ),
+                            const SizedBox(height: 24),
+                            StudyVisuals(
+                              knowledgeId: id,
+                              mistakeId: null,
+                              panelTitle: context.l10n.visualSection,
+                            ),
                           ] else ...[
                             _panel(
                               context,
@@ -387,6 +394,11 @@ class StudyDetailScreen extends ConsumerWidget {
                                   : LearningMarkdown(m.item.question),
                             ),
                             const SizedBox(height: 8),
+                            StudyVisuals(
+                              knowledgeId: null,
+                              mistakeId: id,
+                              source: 'original',
+                            ),
                             StudyImages(
                               id: id,
                               isMistake: true,
@@ -406,6 +418,11 @@ class StudyDetailScreen extends ConsumerWidget {
                                 context.l10n.myAnalysisAndThoughts,
                                 m.item.ownAnalysis,
                               ),
+                            StudyVisuals(
+                              knowledgeId: null,
+                              mistakeId: id,
+                              source: 'student',
+                            ),
                             _panel(
                               context,
                               context.l10n.errorCauses,
@@ -451,6 +468,11 @@ class StudyDetailScreen extends ConsumerWidget {
                                     context.l10n.aiExplanationCheckConclusion,
                                     m.item.aiAnalysis,
                                   ),
+                                StudyVisuals(
+                                  knowledgeId: null,
+                                  mistakeId: id,
+                                  source: 'ai',
+                                ),
                                 if (m.item.correctAnswer.isEmpty &&
                                     m.item.aiAnalysis.isEmpty)
                                   Padding(

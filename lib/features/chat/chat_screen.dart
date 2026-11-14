@@ -21,6 +21,7 @@ import '../../core/ui/learning_markdown.dart';
 import '../library/chat_study_actions.dart';
 import '../library/image_editor.dart';
 import '../practice/question_card.dart';
+import 'message_visuals.dart';
 import 'reasoning_menu.dart';
 import 'message_reasoning.dart';
 import 'chat_failure.dart';
@@ -1091,6 +1092,7 @@ class MessageView extends ConsumerWidget {
                     ),
                   )
                 : LearningMarkdown(message.content),
+          if (!user) MessageVisuals(message.id),
           if (!user) MessageQuestions(message.id),
           if (!user) ToolHistory(message.id),
           if (message.status == 'generating')
@@ -1332,6 +1334,9 @@ String _usageFeature(BuildContext context, String feature) => switch (feature) {
   'context_compaction' => context.l10n.usageFeatureContextCompaction,
   'exam_scores' => context.l10n.usageFeatureExamScores,
   'connection_test' => context.l10n.usageFeatureConnectionTest,
+  'visual_create' => context.l10n.usageFeatureVisualCreate,
+  'visual_edit' => context.l10n.usageFeatureVisualEdit,
+  'quiz_with_visual' => context.l10n.usageFeatureQuizWithVisual,
   _ => feature,
 };
 

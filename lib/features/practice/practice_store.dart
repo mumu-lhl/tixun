@@ -22,12 +22,19 @@ class QuestionDetail {
     this.attempts,
     this.responses,
     this.images,
+    this.visualLinks,
   );
   final PracticeQuestion row;
   final QuestionSpec spec;
   final List<PracticeAttempt> attempts;
   final Map<String, List<String>> responses;
   final List<PracticeImage> images;
+
+  /// The pinned (`visualId`, `revision`) pairs for this question, oldest
+  /// scene first. Render with `VisualStore.getRevisionSceneJson`, never
+  /// the scene's current JSON: the figure is frozen at the pinned
+  /// revision.
+  final List<({String visualId, int revision})> visualLinks;
   PracticeAttempt? get latest => attempts.firstOrNull;
 }
 
@@ -365,6 +372,25 @@ class PracticeStore extends DatabaseNotifier {
           variables: [Variable(id)],
         )
         .get();
+    // The visual reference lives in the link table, not on the question
+    // row: load it before building the spec, so visual-answer kinds
+    // (which require a visual) validate on read-back.
+    final visualJoin = db.select(db.visualScenes).join([
+      innerJoin(
+        db.visualQuestionLinks,
+        db.visualQuestionLinks.visualId.equalsExp(db.visualScenes.id),
+      ),
+    ]);
+    visualJoin.where(db.visualQuestionLinks.questionId.equals(id));
+    visualJoin.orderBy([OrderingTerm.asc(db.visualScenes.createdAt)]);
+    final visualLinks = (await visualJoin.get())
+        .map(
+          (r) => (
+            visualId: r.readTable(db.visualQuestionLinks).visualId,
+            revision: r.readTable(db.visualQuestionLinks).revision,
+          ),
+        )
+        .toList();
     final spec = QuestionSpec(
       kind: q.kind,
       stem: q.stem,
@@ -378,6 +404,10 @@ class PracticeStore extends DatabaseNotifier {
       relativeTolerance: q.relativeTolerance,
       caseSensitive: q.caseSensitive,
       timeLimitSeconds: q.timeLimitSeconds,
+      visualId: visualLinks.isNotEmpty ? visualLinks.first.visualId : null,
+      visualRevision: visualLinks.isNotEmpty
+          ? visualLinks.first.revision
+          : null,
     );
     spec.validate();
     final storedAttempts =
@@ -416,6 +446,7 @@ class PracticeStore extends DatabaseNotifier {
       await (db.select(
         db.practiceImages,
       )..where((a) => a.questionId.equals(id))).get(),
+      visualLinks,
     );
   }
 

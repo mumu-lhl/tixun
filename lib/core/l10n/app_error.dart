@@ -200,6 +200,9 @@ enum AppErrorCode {
   errorInvalidReviewStatus,
   errorCompleteGradingBeforeSchedulingAReview,
   errorTheDateMustBeBetweenToday,
+  errorVisualSceneJsonEmpty,
+  errorVisualSceneDoesNotExist,
+  errorVisualStudyLinkNeedsOneOwner,
 
   generationTimedOutPartialContent,
   generationStopped,

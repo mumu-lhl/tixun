@@ -990,6 +990,10 @@
   "singleChoice": "单选题",
   "multipleChoice": "多选题",
   "trueFalse": "判断题",
+  "pointSelect": "点选",
+  "regionSelect": "区域选择",
+  "dragToTarget": "拖到目标",
+  "readValue": "读图填数",
   "fillInTheBlanks": "填空题",
   "numericalAnswer": "数值题",
   "subject": "科目",
@@ -1917,6 +1921,29 @@
   "errorInvalidReviewStatus": "复习状态无效。",
   "errorCompleteGradingBeforeSchedulingAReview": "尚未完成评分，不能安排复习。",
   "errorTheDateMustBeBetweenToday": "日期需在今天至一年内。",
+  "errorVisualSceneJsonEmpty": "图形场景内容不能为空。",
+  "errorVisualSceneDoesNotExist": "图形不存在。",
+  "errorVisualStudyLinkNeedsOneOwner": "请指定一条知识或一个错题。",
+  "visualExportPng": "导出 PNG",
+  "visualCreatedMessage": "已生成图形，可在下方查看。",
+  "visualSavedTo": "已保存到 {arg0}。",
+  "@visualSavedTo": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "visualExportFailed": "导出失败",
+  "visualViewFullscreen": "全屏查看",
+  "visualPlayAnimation": "播放动画",
+  "visualPauseAnimation": "暂停动画",
+  "visualPreviousStep": "上一步",
+  "visualNextStep": "下一步",
+  "visualSeek": "播放进度",
+  "visualPlaybackSpeed": "播放速度",
+  "visualResetDrag": "重置拖动位置",
+  "visualResetView": "还原视图",
   "errorMissingParameter": "缺少参数：{arg0}。",
   "@errorMissingParameter": {
     "placeholders": {
@@ -2036,6 +2063,13 @@
   "usageFeatureContextCompaction": "上下文压缩",
   "usageFeatureExamScores": "考试分数整理",
   "usageFeatureConnectionTest": "连接测试",
+  "usageFeatureVisualCreate": "图形创建",
+  "usageFeatureVisualEdit": "图形修改",
+  "usageFeatureQuizWithVisual": "带图出题",
+  "visualSection": "图形",
+  "visualSchematicNote": "示意图，不按比例",
+  "visualAnswerSelectedPoint": "已选点：{arg0}",
+  "visualAnswerSelectedRegion": "已选区域：{arg0}",
   "usageStatusComplete": "完成",
   "usageStatusError": "失败",
   "usageStatusIncomplete": "未完成",

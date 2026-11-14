@@ -11,6 +11,86 @@ import 'generated_migrations/schema.dart';
 
 void main() {
   test(
+    'Schema v16 adds visual scenes and links without touching old rows',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(15);
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_sessions(id,title,created_at,updated_at) VALUES('s','旧会话',1,1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_messages(id,session_id,role,content,created_at) VALUES('m','s','assistant','请看图',1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO practice_questions(id,kind,stem,subject,origin,created_at) VALUES('q','numeric','2+2','数学','ai',1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO knowledge_items(id,title,content,subject,chapter,created_at,updated_at) VALUES('k','旧知识','正文','数学','旧章节',1,1)",
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+      expect((await db.select(db.chatMessages).get()).single.content, '请看图');
+      expect((await db.select(db.practiceQuestions).get()).single.stem, '2+2');
+      expect((await db.select(db.knowledgeItems).get()).single.title, '旧知识');
+      expect(await db.select(db.visualScenes).get(), isEmpty);
+      expect(await db.select(db.visualSceneRevisions).get(), isEmpty);
+      expect(await db.select(db.visualMessageLinks).get(), isEmpty);
+      expect(await db.select(db.visualQuestionLinks).get(), isEmpty);
+      expect(await db.select(db.visualStudyLinks).get(), isEmpty);
+      expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+      expect(
+        (await db.customSelect('PRAGMA integrity_check').getSingle())
+            .data
+            .values
+            .single,
+        'ok',
+      );
+    },
+  );
+
+  test(
+    'Schema v17 adds the pinned revision to question visual links',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(16);
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_sessions(id,title,created_at,updated_at) VALUES('s','旧会话',1,1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_messages(id,session_id,role,content,created_at) VALUES('m','s','assistant','请看图',1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO practice_questions(id,kind,stem,subject,origin,created_at) VALUES('q','numeric','2+2','数学','ai',1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO visual_scenes(id,scene_json,revision,created_at,updated_at) VALUES('v','{}',1,1,1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO visual_scene_revisions(visual_id,revision,scene_json,created_at) VALUES('v',1,'{}',1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO visual_question_links(visual_id,question_id) VALUES('v','q')",
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+      // The pre-existing link keeps its row with the default revision.
+      final links = await db.select(db.visualQuestionLinks).get();
+      expect(links, hasLength(1));
+      expect(links.single.revision, 1);
+      expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+      expect(
+        (await db.customSelect('PRAGMA integrity_check').getSingle())
+            .data
+            .values
+            .single,
+        'ok',
+      );
+    },
+  );
+
+  test(
     'Schema v13 preserves legacy aggregate tokens without inventing a split',
     () async {
       final verifier = SchemaVerifier(GeneratedHelper());

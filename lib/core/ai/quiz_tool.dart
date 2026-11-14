@@ -8,13 +8,14 @@ import 'package:drift/drift.dart';
 
 import '../../features/practice/practice_store.dart';
 import '../../features/practice/question_spec.dart';
+import '../../features/visual/visual_store.dart';
 import '../database/database.dart';
 import 'chat_provider.dart';
 import 'study_tools.dart';
 
 final quizToolSchema = AiTool(
   name: 'create_quiz',
-  description: '仅用户请求出题、测验或训练时创建交互题，不代替资料整理或讲解；本条出题回复不得透露答案与解析。answers 为按位置排列的二维数组：填空每项包含等价答案，多选每个正确选项单独一项。仅校验结构，答案仍待核对。依赖图片时用 image_indices 引用本次请求前4张图片（0起）；纯文字题不填。',
+  description: '仅用户请求出题、测验或训练时创建交互题，不代替资料整理或讲解；本条出题回复不得透露答案与解析。answers 为按位置排列的二维数组：填空每项包含等价答案，多选每个正确选项单独一项。仅校验结构，答案仍待核对。依赖图片时用 image_indices 引用本次请求前4张图片（0起）；纯文字题不填。需要配图时用 visual_id 引用本次对话中已创建的图形：图形只展示题干所需的图，不含答案与解法；不填 visual_revision 时冻结图形当前状态作为题目快照，填了则引用该修订。考试模式下出题不能附加图形。点选题（point_select）必须带 visual_id，答案是 "x,y" 形式的坐标；区域选择题（region_select）必须带 visual_id，options 是区域图元 id 到名称的映射，答案是选中的区域 id。拖点题（drag_to_target）必须带 visual_id 且图形中有点 draggable 为 true，答案是目标点的 "x,y" 坐标，学生把点拖到目标位置附近即算对；读图题（read_value）必须带 visual_id，答案是学生从图中读出的数值。',
   parameters: {
     'type': 'object',
     'additionalProperties': false,
@@ -27,6 +28,10 @@ final quizToolSchema = AiTool(
           'true_false',
           'fill_blank',
           'numeric',
+          'point_select',
+          'region_select',
+          'drag_to_target',
+          'read_value',
         ],
       },
       'stem': {'type': 'string'},
@@ -57,6 +62,8 @@ final quizToolSchema = AiTool(
         'maxItems': 4,
       },
       'time_limit_seconds': {'type': 'integer', 'minimum': 10, 'maximum': 7200},
+      'visual_id': {'type': 'string'},
+      'visual_revision': {'type': 'integer', 'minimum': 1},
     },
     'required': ['kind', 'stem', 'subject', 'answers', 'explanation'],
   },
@@ -69,6 +76,8 @@ Future<Map<String, dynamic>> executeQuizTool(
   required String runId,
   required CancelToken cancel,
   List<Attachment> sourceImages = const [],
+  VisualStore? visual,
+  bool exam = false,
 }) async {
   try {
     cancel.checkCancelled();
@@ -102,6 +111,22 @@ Future<Map<String, dynamic>> executeQuizTool(
       throw const AppFormatException(
         AppErrorCode.errorThisModelCannotCurrentlyCreateSelf,
         '模型当前不能创建自主判分题。',
+      );
+    }
+    // Exam secrecy: a visual attached to a question could carry the
+    // answer, and exam questions are generated live and unreviewed, so
+    // create_quiz never attaches a visual in exam mode. Validation
+    // happens before any store write, like the other executors.
+    if (exam && spec.visualId != null) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        '考试模式下出题不能附加图形。',
+      );
+    }
+    if (spec.visualId != null && visual == null) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        '当前会话未启用图形工具。',
       );
     }
     final encoded = canonicalJson(args);
@@ -150,7 +175,43 @@ Future<Map<String, dynamic>> executeQuizTool(
             .toList(),
         sourceImages: indices.map((i) => sourceImages[i as int]).toList(),
       );
+      // Attach the visual after the question exists: either pin the
+      // requested revision (it must already be snapshotted) or freeze
+      // the scene's current state as a new snapshot. The question
+      // shows exactly this revision; later edits never change it.
+      int? visualRevision;
+      if (spec.visualId != null) {
+        // Capture the non-null store in a final local: promotion of the
+        // nullable parameter does not survive the awaits below.
+        final visualStore = visual!;
+        final visualId = spec.visualId!;
+        final int pinned;
+        if (spec.visualRevision != null) {
+          final snapshot = await visualStore.getRevisionSceneJson(
+            visualId,
+            spec.visualRevision!,
+          );
+          if (snapshot == null) {
+            throw const AppFormatException(
+              AppErrorCode.errorVisualSceneDoesNotExist,
+              '引用的图形修订不存在。',
+            );
+          }
+          pinned = spec.visualRevision!;
+        } else {
+          pinned = (await visualStore.snapshotForQuestion(visualId)).revision;
+        }
+        visualRevision = pinned;
+        await visualStore.linkToQuestion(visualId, id, pinned);
+      }
       cancel.checkCancelled();
+      final result = <String, dynamic>{
+        'ok': true,
+        'question_id': id,
+        'verification': 'unverified',
+        'visual_id': ?spec.visualId,
+        'visual_revision': ?visualRevision,
+      };
       await store.db
           .into(store.db.aiToolOperations)
           .insertOnConflictUpdate(
@@ -161,21 +222,11 @@ Future<Map<String, dynamic>> executeQuizTool(
               name: 'create_quiz',
               arguments: encoded,
               status: 'succeeded',
-              result: Value(
-                jsonEncode({
-                  'ok': true,
-                  'question_id': id,
-                  'verification': 'unverified',
-                }),
-              ),
+              result: Value(jsonEncode(result)),
               createdAt: DateTime.now(),
             ),
           );
-      return <String, dynamic>{
-        'ok': true,
-        'question_id': id,
-        'note': '题目已在应用显示，用户提交前不要透露答案。',
-      };
+      return {...result, 'note': '题目已在应用显示，用户提交前不要透露答案。'};
     });
     return result;
   } on DioException {

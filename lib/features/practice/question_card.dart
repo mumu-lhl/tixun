@@ -1,6 +1,8 @@
 import '../scratchpad/scratchpad_screen.dart';
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,10 +14,15 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/image_viewer.dart';
 import '../../core/ui/learning_markdown.dart';
+import '../../core/visual/model/visual_scene.dart';
+import '../../core/visual/render/visual_painter.dart';
 import '../review/review_screen.dart';
+import '../visual/visual_card.dart';
+import '../visual/visual_providers.dart';
 import 'practice_providers.dart';
 import 'practice_store.dart';
 import 'question_localization.dart';
+import 'question_spec.dart';
 import '../chat/message_reasoning.dart';
 
 class MessageQuestions extends ConsumerWidget {
@@ -97,7 +104,15 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
       controllers.clear();
       d = value;
       answers = List.of(value.responses[value.latest!.id] ?? []);
-      if (![
+      if ([
+        'point_select',
+        'region_select',
+        'drag_to_target',
+      ].contains(value.spec.kind)) {
+        // Tap/drag-to-answer: one slot, no text controllers — the visual
+        // itself is the control.
+        answers = [answers.isNotEmpty ? answers.first : ''];
+      } else if (![
         'single_choice',
         'multiple_choice',
         'true_false',
@@ -128,6 +143,25 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
     final store = ref.read(practiceStoreProvider);
     _writes = store.draft(id, snapshot).catchError((Object e) {
       if (mounted) setState(() => failure = _QuestionFailure.draft);
+    });
+  }
+
+  /// A tap on the question's visual selects the answer: a point's
+  /// coordinates for point-select, the tapped region's id for
+  /// region-select. The draft is saved so the selection survives reload.
+  void _selectVisualAnswer(String response) {
+    setState(() {
+      answers = [response];
+    });
+    _save();
+  }
+
+  /// A drag on the question's visual moves the answer without saving
+  /// on every pointer move; the caller saves the draft when the drag
+  /// ends (see the `onDragEnd` passed to [_QuestionVisual]).
+  void _updateVisualAnswer(String response) {
+    setState(() {
+      answers = [response];
     });
   }
 
@@ -233,6 +267,19 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
             alignment: Alignment.centerRight,
             child: ScratchpadButton('practice:${widget.id}'),
           ),
+          for (final link in detail.visualLinks)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _QuestionVisual(
+                link: link,
+                kind: q.kind,
+                options: q.options,
+                selected: answers.isNotEmpty ? answers.first : '',
+                onSelect: editable ? _selectVisualAnswer : null,
+                onDragPosition: editable ? _updateVisualAnswer : null,
+                onDragEnd: editable ? _save : null,
+              ),
+            ),
           LearningMarkdown(q.stem),
           if (widget.showReasoning && detail.row.sourceMessageId != null)
             SourceReasoning(detail.row.sourceMessageId!),
@@ -267,90 +314,94 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
               ),
             ),
           const SizedBox(height: 8),
-          for (final e in q.options.entries)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Material(
-                // After grading, mark the outcome on the options themselves:
-                // correct options get a primary tint with a check, a wrong
-                // pick gets an error tint with a cross. Before grading the
-                // row only shows the user's selection, as before.
-                color: graded
-                    ? (q.answers.expand((a) => a).contains(e.key)
-                          ? colors.primaryContainer
-                          : answers.contains(e.key)
-                          ? colors.errorContainer
-                          : colors.surfaceContainerLow)
-                    : answers.contains(e.key)
-                    ? colors.primaryContainer.withValues(alpha: .5)
-                    : colors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(10),
-                child: InkWell(
-                  key: Key('option-${e.key}'),
+          // Visual-answer kinds use the visual itself as the control:
+          // tapping the figure selects the answer, so the option rows
+          // never render for them.
+          if (!['point_select', 'region_select'].contains(q.kind))
+            for (final e in q.options.entries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  // After grading, mark the outcome on the options themselves:
+                  // correct options get a primary tint with a check, a wrong
+                  // pick gets an error tint with a cross. Before grading the
+                  // row only shows the user's selection, as before.
+                  color: graded
+                      ? (q.answers.expand((a) => a).contains(e.key)
+                            ? colors.primaryContainer
+                            : answers.contains(e.key)
+                            ? colors.errorContainer
+                            : colors.surfaceContainerLow)
+                      : answers.contains(e.key)
+                      ? colors.primaryContainer.withValues(alpha: .5)
+                      : colors.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(10),
-                  onTap: !editable || busy
-                      ? null
-                      : () {
-                          setState(() {
-                            if (q.kind == 'multiple_choice') {
-                              answers.contains(e.key)
-                                  ? answers.remove(e.key)
-                                  : answers.add(e.key);
-                            } else {
-                              answers = [e.key];
-                            }
-                          });
-                          _save();
-                        },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          graded
-                              ? (q.answers.expand((a) => a).contains(e.key)
-                                    ? Icons.check_circle
-                                    : answers.contains(e.key)
-                                    ? Icons.cancel
-                                    : q.kind == 'multiple_choice'
-                                    ? Icons.check_box_outline_blank
-                                    : Icons.radio_button_off)
-                              : q.kind == 'multiple_choice'
-                              ? (answers.contains(e.key)
-                                    ? Icons.check_box
-                                    : Icons.check_box_outline_blank)
-                              : (answers.contains(e.key)
-                                    ? Icons.radio_button_checked
-                                    : Icons.radio_button_off),
-                          color: graded
-                              ? (q.answers.expand((a) => a).contains(e.key)
-                                    ? colors.primary
-                                    : answers.contains(e.key)
-                                    ? colors.error
-                                    : colors.onSurfaceVariant)
-                              : colors.primary,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          e.key == 'true' || e.key == 'false'
-                              ? ''
-                              : '${e.key}. ',
-                        ),
-                        Expanded(
-                          child: IgnorePointer(
-                            child: LearningMarkdown(e.value),
+                  child: InkWell(
+                    key: Key('option-${e.key}'),
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: !editable || busy
+                        ? null
+                        : () {
+                            setState(() {
+                              if (q.kind == 'multiple_choice') {
+                                answers.contains(e.key)
+                                    ? answers.remove(e.key)
+                                    : answers.add(e.key);
+                              } else {
+                                answers = [e.key];
+                              }
+                            });
+                            _save();
+                          },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            graded
+                                ? (q.answers.expand((a) => a).contains(e.key)
+                                      ? Icons.check_circle
+                                      : answers.contains(e.key)
+                                      ? Icons.cancel
+                                      : q.kind == 'multiple_choice'
+                                      ? Icons.check_box_outline_blank
+                                      : Icons.radio_button_off)
+                                : q.kind == 'multiple_choice'
+                                ? (answers.contains(e.key)
+                                      ? Icons.check_box
+                                      : Icons.check_box_outline_blank)
+                                : (answers.contains(e.key)
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_off),
+                            color: graded
+                                ? (q.answers.expand((a) => a).contains(e.key)
+                                      ? colors.primary
+                                      : answers.contains(e.key)
+                                      ? colors.error
+                                      : colors.onSurfaceVariant)
+                                : colors.primary,
+                            size: 22,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 10),
+                          Text(
+                            e.key == 'true' || e.key == 'false'
+                                ? ''
+                                : '${e.key}. ',
+                          ),
+                          Expanded(
+                            child: IgnorePointer(
+                              child: LearningMarkdown(e.value),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           for (var i = 0; i < controllers.length; i++)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -631,3 +682,155 @@ class _RemainingTimeState extends State<_RemainingTime> {
     );
   }
 }
+
+/// One pinned visual of a question: the scene snapshotted at the linked
+/// revision, never the scene's current state. A missing or unparsable
+/// snapshot renders nothing — it must never break the question.
+///
+/// For visual-answer kinds ([QuestionSpec] `point_select` /
+/// `region_select`) the card itself is the answer control while the
+/// question is editable: tapping it selects the answer ([onSelect]),
+/// instead of opening fullscreen. A tap outside every region selects
+/// nothing. For `drag_to_target` the card is draggable instead: the
+/// dragged point's position is the answer, reported live through
+/// [onDragPosition] and saved when the drag ends ([onDragEnd]). The
+/// fullscreen page stays view-only.
+class _QuestionVisual extends ConsumerStatefulWidget {
+  const _QuestionVisual({
+    required this.link,
+    required this.kind,
+    required this.options,
+    required this.selected,
+    this.onSelect,
+    this.onDragPosition,
+    this.onDragEnd,
+  });
+  final ({String visualId, int revision}) link;
+  final String kind;
+  final Map<String, String> options;
+
+  /// The current single-slot answer, or '' when nothing is selected.
+  final String selected;
+
+  /// Set while the question is editable; null renders the plain card.
+  final ValueChanged<String>? onSelect;
+
+  /// Live drag positions (drag-to-target only); the caller saves on
+  /// [onDragEnd] instead of on every move.
+  final ValueChanged<String>? onDragPosition;
+
+  /// Called when a drag finishes (drag-to-target only).
+  final VoidCallback? onDragEnd;
+
+  @override
+  ConsumerState<_QuestionVisual> createState() => _QuestionVisualState();
+}
+
+class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
+  /// Drag positions from this session (element id → model coordinates).
+  final _pointOverrides = <String, ui.Offset>{};
+
+  /// Overrides for the card: this session's drags, or — on first render
+  /// with a saved answer — the stored position, so a reloaded question
+  /// shows the point where the student left it.
+  Map<String, ui.Offset> _dragOverrides(VisualScene scene) {
+    if (_pointOverrides.isNotEmpty) return _pointOverrides;
+    final saved = parseVisualPoint(widget.selected);
+    if (saved == null) return _pointOverrides;
+    for (final element in scene.elements) {
+      if (element is PointElement &&
+          element.draggable &&
+          element.at.isLiteral) {
+        return {element.id: ui.Offset(saved.$1, saved.$2)};
+      }
+    }
+    return _pointOverrides;
+  }
+
+  @override
+  Widget build(BuildContext context) => ref
+      .watch(_questionVisualProvider(widget.link))
+      .when(
+        data: (scene) {
+          if (scene == null) return const SizedBox.shrink();
+          final answerable =
+              (widget.kind == 'point_select' ||
+                  widget.kind == 'region_select') &&
+              widget.onSelect != null;
+          final draggable =
+              widget.kind == 'drag_to_target' && widget.onSelect != null;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              VisualCard(
+                scene: scene,
+                onTapModelPoint: answerable
+                    ? (point) {
+                        if (widget.kind == 'point_select') {
+                          widget.onSelect!('${point.dx},${point.dy}');
+                        } else {
+                          final region = visualRegionAtPoint(
+                            scene,
+                            point,
+                            visualInitialParameters(scene),
+                          );
+                          if (region != null) widget.onSelect!(region);
+                        }
+                      }
+                    : null,
+                dragEnabled: draggable,
+                pointOverrides: draggable ? _dragOverrides(scene) : const {},
+                onDragUpdate: draggable
+                    ? (id, position) {
+                        setState(() => _pointOverrides[id] = position);
+                        widget.onDragPosition?.call(
+                          '${position.dx},${position.dy}',
+                        );
+                      }
+                    : null,
+                onDragEnd: draggable ? (_) => widget.onDragEnd?.call() : null,
+              ),
+              if ((answerable || draggable) && widget.selected.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    widget.kind == 'region_select'
+                        ? context.l10n.visualAnswerSelectedRegion(
+                            l10nArgument(
+                              widget.options[widget.selected] ??
+                                  widget.selected,
+                            ),
+                          )
+                        : context.l10n.visualAnswerSelectedPoint(
+                            l10nArgument(_formatPoint(widget.selected)),
+                          ),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+            ],
+          );
+        },
+        loading: () => const SizedBox(
+          height: 120,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (_, _) => const SizedBox.shrink(),
+      );
+
+  /// A stored `"x,y"` answer, shown with two decimals.
+  String _formatPoint(String value) {
+    final point = parseVisualPoint(value);
+    if (point == null) return value;
+    return '(${point.$1.toStringAsFixed(2)}, ${point.$2.toStringAsFixed(2)})';
+  }
+}
+
+final _questionVisualProvider = FutureProvider.autoDispose
+    .family<VisualScene?, ({String visualId, int revision})>((ref, link) async {
+      final json = await ref
+          .watch(visualStoreProvider)
+          .getRevisionSceneJson(link.visualId, link.revision);
+      if (json == null) return null;
+      return VisualScene.fromJson(jsonDecode(json) as Map<String, dynamic>);
+    });

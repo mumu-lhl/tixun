@@ -39,6 +39,7 @@ import '../features/chat/learning_run.dart';
 import '../features/chat/chat_failure.dart';
 import '../features/progress/learning_profile.dart';
 import '../features/review/review_store.dart';
+import '../features/visual/visual_store.dart';
 
 typedef _PreparedGeneration = ({
   String sessionId,
@@ -69,6 +70,7 @@ class AppController extends ChangeNotifier {
   late final ExamStore exams = ExamStore(db, files);
   late final ScratchStore scratch = ScratchStore(db);
   late final ReviewStore review = ReviewStore(db);
+  late final VisualStore visual = VisualStore(db);
   late final PracticeStore practice = PracticeStore(db, files: files)
     ..onGraded = review.record;
   late final LearningRun learningRun = LearningRun(
@@ -78,6 +80,7 @@ class AppController extends ChangeNotifier {
     practice,
     review,
     provider,
+    visual: visual,
   );
   ToolApproval? pendingTool;
   Completer<bool>? _toolDecision;
