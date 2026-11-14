@@ -116,6 +116,7 @@ class _SessionListState extends ConsumerState<SessionList> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: TextField(
+            key: const Key('session-search'),
             controller: _search,
             onChanged: (value) {
               _searchDebounce?.cancel();

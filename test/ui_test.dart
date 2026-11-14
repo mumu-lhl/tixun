@@ -288,6 +288,17 @@ void main() {
         isTrue,
       );
       expect(tester.takeException(), isNull);
+      await tester.enterText(find.byKey(const Key('session-search')), 'first');
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.enterText(find.byKey(const Key('session-search')), 'last');
+      await tester.pump(const Duration(milliseconds: 249));
+      expect(c.search, isEmpty);
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(c.search, 'last');
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
