@@ -15,9 +15,13 @@ class MainActivity : FlutterActivity() {
     private var pendingSave: MethodChannel.Result? = null
     private var pendingSource: File? = null
     private val writer = Executors.newSingleThreadExecutor()
+    private var pythonSandbox: org.tixun.tixun.python.AndroidPythonSandboxClient? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        pythonSandbox = org.tixun.tixun.python.AndroidPythonSandboxClient(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "org.tixun/python_isolate")
+            .setMethodCallHandler { call, result -> pythonSandbox!!.handle(call, result) }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "org.tixun/backup_files")
             .setMethodCallHandler { call, result ->
                 val isBackup = call.method == "saveBackup"
@@ -146,6 +150,7 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         pendingSave?.error("INTERRUPTED", "文件保存已中断，请重新导出。", null)
         pendingSave = null
+        pythonSandbox?.close()
         writer.shutdown()
         super.onDestroy()
     }

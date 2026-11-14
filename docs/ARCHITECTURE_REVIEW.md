@@ -10,8 +10,8 @@
 | `core/ai/chat_provider.dart`、`chatgpt/responses.dart` | Chat Completions、Responses 与 Mock 三个 Adapter。各自编码 HTTP、解析流、处理完整工具调用。API Key 在实现内部读取；未保存的密钥只允许配置页连接测试显式覆盖。Responses 加密推理上下文属于当前 Conversation，不写入 AiRequest 或消息历史。 |
 | `core/ai/context_compactor.dart`、`token_estimator.dart` | 上下文预算估算、旧对话摘要及覆盖位置；失败可降级，原始消息保留。不是固定条数截断，也不冒充精确 tokenizer。 |
 | `core/ai/ai_options.dart` | 统一配置校验、会话思考覆盖、图片能力、思考与工具兼容性，以及实际发送的强度参数。DeepSeek 可显式关闭思考；其他兼容路线省略强度参数表示模型默认，界面按该语义显示。 |
-| `features/chat/learning_run.dart` | 学习上下文、教学提示、用量汇总、三分钟超时、四轮/八次工具上限、结束判定和受控工具执行。Linux 可用时才提供 Python 工具；通过进度与结果返回给调用方，考试过程中不会把原始模型答案当进度发布。 |
-| `core/python/python_runtime.dart` / `python_workspace_store.dart` | Linux 使用独立 CPython 进程和 bubblewrap：只读根文件系统、当前会话工作区可写、超时/停止终止隔离进程；隔离不限制读取和网络，缺少 bwrap/user namespace 时失败关闭。Android 执行暂时关闭，等待独立服务实现；工作区管理由本地 Store 提供。 |
+| `features/chat/learning_run.dart` | 学习上下文、教学提示、用量汇总、三分钟超时、四轮/八次工具上限、结束判定和受控工具执行。Android/Linux 隔离运行器可用时才提供 Python 工具；通过进度与结果返回给调用方，考试过程中不会把原始模型答案当进度发布。 |
+| `core/python/python_runtime.dart` / `python_workspace_store.dart` | Linux 使用独立 CPython 进程和 bubblewrap：只读根文件系统、当前会话工作区可写、超时/停止终止隔离进程；隔离不限制读取和网络，缺少 bwrap/user namespace 时失败关闭。Android 使用隔离 UID 服务、Zig/JNI launcher 和有界管道，不继承应用文件及网络权限；工作区以有界虚拟文件系统快照传输，不共享应用目录。V2230A / Android 13 已通过真实包执行、工作区同步、直接 libc 越界读写拒绝、网络拒绝、超时/停止、崩溃恢复及审批 UI 回归；工作区管理与传输验证由本地 Store 提供。 |
 | `app/controller.dart` | 保留页面状态、会话/草稿、附件入口与任务准备；负责创建回复记录、节流保存进度、保存最终状态。委托 LearningRun 执行推理，不了解 tool_calls、finish_reason 或 Responses 私有字段。 |
 | `app/preferences.dart` | 语言、主题、配色、提示词与 Provider 配置。拥有独立写入跟踪；关闭、备份导出及恢复等待必要写入，不再借用 StudyStore 的空闲状态。现有控制器方法保留为 UI 的兼容入口。 |
 | `core/ai/chatgpt/auth.dart` | 只向 UI 返回只读账号摘要和一次取得的账号快照；令牌记录、HTTP 与安全存储细节留在实现内部。保留 PKCE/JWT 校验、合并刷新、取消等待、退出与原子保存语义。 |
@@ -31,7 +31,7 @@ flowchart TD
   R --> A[AiConversation：Completions / Responses / Mock]
   A --> K[对应凭据实现]
   R --> T[受控工具与确认]
-  T --> PY[Linux bubblewrap CPython 子进程]
+  T --> PY[Linux bubblewrap / Android 隔离 UID CPython]
   PY --> W[仅当前会话 Python 工作区可写]
   T --> S[StudyStore / PracticeStore / ReviewStore]
   S --> DB[同一 SQLite 与托管附件目录]

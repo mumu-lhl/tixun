@@ -46,7 +46,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-普通 push / PR 执行静态分析、自动测试、Android Debug APK、Linux 正式构建与 GUI 启动冒烟，并上传程序、截图与日志。完整 GUI 回归仅在版本发布或手动勾选 `full_gui` 时运行；Nightly 跳过单元测试与完整 GUI 回归。二十一个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。其中 9 个是 Visual 集成测试（`visual_flow`、`visual_player_flow`、`visual_drag_flow`、`visual_quiz_flow`、`assessment_flow`、`visual_circuit_flow`、`visual_chem_geo_flow`、`visual_constraints_flow`、`visual_drag_answer_flow`）。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
+普通 push / PR 执行静态分析、完整 Flutter 测试、Android Debug APK、Linux 正式构建、GUI 启动冒烟和完整 Native GUI 回归，并上传程序、截图与日志。手动及复用工作流默认开启 `full_gui`；手动取消该选项可只跑冒烟，`run_tests=false` 则显式跳过单元测试及完整 GUI 回归（Nightly 继续采用此设置）。依赖的静态分析/测试 job 失败时，构建与 GUI job 会被跳过，需先查看前置失败日志。二十一个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 顺序执行，各有独立日志、240 秒超时，并在首个失败时停止。其中 9 个是 Visual 集成测试（`visual_flow`、`visual_player_flow`、`visual_drag_flow`、`visual_quiz_flow`、`assessment_flow`、`visual_circuit_flow`、`visual_chem_geo_flow`、`visual_constraints_flow`、`visual_drag_answer_flow`）。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
 
 ### AI 教学图形（Visual）
 
@@ -90,7 +90,7 @@ git push origin v0.6.1
 python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 ```
 
-在 Actions 手动运行 Build and verify 时，可以勾选 `android_release` 验证四份签名 Release APK，勾选 `full_gui` 运行完整 GUI 回归；不勾选时只执行 GUI 启动冒烟。这不会创建新发布。已有 Release 和版本标签不会被修改。
+在 Actions 手动运行 Build and verify 时，可以勾选 `android_release` 验证四份签名 Release APK；`full_gui` 默认勾选以运行完整 GUI 回归，手动取消时只执行 GUI 启动冒烟。这不会创建新发布。已有 Release 和版本标签不会被修改。
 
 ## 界面语言与配色
 
@@ -139,7 +139,7 @@ Golden 像素比对及基线图片已移除；Widget 行为、窄屏/键盘布�
 
 Flutter SDK、Android/Linux 引擎和 Pub 依赖使用版本化缓存；SDK 缓存未命中时先在检查任务预下载双平台引擎，供后续构建复用。Pub 缓存按锁文件区分。Gradle 使用官方 `setup-gradle` 管理依赖与任务缓存，并开启 `org.gradle.caching`。PR 与非默认分支只读 Gradle 缓存，默认分支成功构建后写入；版本标签可复用默认分支缓存。签名密钥只在 Runner 临时目录中保存，打包/签名校验任务禁用输出缓存，不缓存最终签名 APK。不缓存测试通过结果或开启 Gradle configuration cache。
 
-首次缓存是冷启动，后续收益以 Actions 的命中记录和 Gradle 任务统计为准，不能承诺固定提速比例。缓存丢失时仍能完整构建。普通 CI 不运行完整的原生 GUI 回归，这与缓存是两项独立优化。
+首次缓存是冷启动，后续收益以 Actions 的命中记录和 Gradle 任务统计为准，不能承诺固定提速比例。缓存丢失时仍能完整构建。普通 CI 始终运行完整的原生 GUI 回归，不以缓存命中代替测试结果。
 
 job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的 `Android Debug APK` / `Android Release APK and signature`、`Linux Release and GUI tests`。两个发布入口分别显示标签准备、构建验证和对应发布阶段；若分支保护绑定了旧的检查显示名，需要同步规则。
 
@@ -147,7 +147,7 @@ job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的
 
 `test/reasoning_display_test.dart` 覆盖流式思考、跨轮显示与协议隔离、错误后保留、Responses 公开摘要及作答前隐藏。`test/scratchpad_test.dart` 覆盖多页、局部擦除、串行保存、关联删除和完整备份；旧 schema v7 的思考可迁移到 v8。画板不含任何外部 AI 请求。
 
-`integration_test/scratchpad_reasoning_test.dart` 覆盖流式展示、彩色短笔画起点、橡皮/撤销、多页保存、平移缩放/复位与重开，并生成手机、桌面英文截图。普通 CI 仍只做启动冒烟，完整 GUI 在版本发布或手动勾选 `full_gui` 时执行。
+`integration_test/scratchpad_reasoning_test.dart` 覆盖流式展示、彩色短笔画起点、橡皮/撤销、多页保存、平移缩放/复位与重开，并生成手机、桌面英文截图。普通 push / PR 默认执行启动冒烟及完整 GUI；手动及复用工作流可显式关闭完整 GUI。
 
 CI 的签名测试与 Android 构建统一使用 Temurin **Java 25 LTS**；Flutter 显式选择 CI 的 JAVA_HOME。Gradle 9.3.1 支持运行在 Java 25（[兼容性表](https://docs.gradle.org/9.3.1/userguide/compatibility.html)）。Android Java/Kotlin 字节码目标仍为 17，不因此提高 Android 最低版本。
 
@@ -205,7 +205,7 @@ AI 资料整理按操作筛选工具，本地 `estimateTokens` 对同一套序�
 
 ## 嵌入 Python 的构建与验证
 
-运行时使用 CPython 3.13（具体补丁版本由锁定插件决定）；Linux 通过 Zig 构建独立 CPython launcher，并用 bubblewrap、用户/PID 命名空间和只读根文件系统隔离执行，仅把当前 Python 工作区重新挂载为可写。缺少 bubblewrap 或命名空间不可用时拒绝执行。Android 暂时关闭 Python，等待独立隔离服务实现。隔离限制文件写入，不限制读取其他应用文件或网络访问。依赖固定在 `python/requirements.txt`，包含 SymPy、mpmath 和 NumPy 2.4.6。安装脚本明确指定 CPython 3.13 ABI；Android NumPy 来自 [Flet wheel 索引](https://pypi.flet.dev/numpy/)，三个架构分别安装，Linux 使用 PyPI wheel。不能跨架构复制原生扩展。
+运行时使用 CPython 3.13（具体补丁版本由锁定插件决定）；Linux 通过 Zig 构建独立 CPython launcher，并用 bubblewrap、用户/PID 命名空间和只读根文件系统隔离执行，仅把当前 Python 工作区重新挂载为可写。缺少 bubblewrap 或命名空间不可用时拒绝执行。Linux 隔离限制文件写入，不限制读取其他应用文件或网络访问。Android 使用独立隔离 UID 服务和 Zig/JNI launcher，已完成 V2230A / Android 13 实机验收并开放工具入口；不继承应用文件及网络权限。依赖固定在 `python/requirements.txt`，包含 SymPy、mpmath 和 NumPy 2.4.6。安装脚本明确指定 CPython 3.13 ABI；Android NumPy 来自 [Flet wheel 索引](https://pypi.flet.dev/numpy/)，三个架构分别安装，Linux 使用 PyPI wheel。不能跨架构复制原生扩展。
 
 Python 包保留最新兼容版本：Flet 目前为 CPython 3.13 提供的三个 Android ABI 的 NumPy wheel 均为 2.4.6，因此 Android 和 Linux 统一使用此版本；SymPy 1.14.0 要求 `mpmath < 1.4`，保留 mpmath 1.3.0。升级时须同时检查 Android wheel 可用性和包之间的版本约束。
 
@@ -213,13 +213,23 @@ Python 包保留最新兼容版本：Flet 目前为 CPython 3.13 提供的三个
 bash scripts/prepare_python.sh Linux
 bash scripts/flutter_python.sh build linux --release
 # 构建依赖 Zig 0.17.1、bubblewrap 和允许 unprivileged user namespaces 的 Linux 内核。
-# Android 改为 prepare_python.sh Android，再用同一个 wrapper 构建 APK；执行功能暂时关闭。
+# Android 同样需要 Zig；改为 prepare_python.sh Android，再用 wrapper 构建 APK。
+# Debug application ID 为 org.tixun.tixun.debug，不覆盖 Release。
+python3 -m pip install -r python/requirements.txt
 python3 -m unittest discover -s python -p 'test_*.py'
 bash scripts/flutter_python.sh test integration_test/python_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true
 ```
 
-需要 Python 3 与 pip。CI 的构建任务自动准备包并缓存上游运行时下载；Android 保留 arm64-v8a、armeabi-v7a、x86_64 与 Universal 产物。宿主 Python 版本可以不同，pip 按目标解释器版本选择 wheel，不在应用运行时安装依赖。普通 `flutter build` 也必须设置 wrapper 中的环境变量；Android 需 `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES='numpy*'`，让 NumPy 的 Python 文件和元数据可从实际目录访问，原生模块仍由插件按 ABI 打包。
+需要 Python 3 与 pip。CI 的构建任务自动准备包并缓存上游运行时下载；Android 保留 arm64-v8a、armeabi-v7a、x86_64 与 Universal 产物。宿主 Python 版本可以不同，pip 按目标解释器版本选择 wheel，不在应用运行时安装依赖。普通 `flutter build` 也必须设置 wrapper 中的环境变量；Android 需 `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES='numpy*'`，将 NumPy 的 Python 文件和元数据放入 `extract.zip`；隔离服务直接从内存归档导入，原生模块仍由插件按 ABI 打包。
 
-复用原工具循环、审批卡与审计表。`test/python_tool_test.dart` 验证审批、参数和重复执行；Python 单测确保旧的进程内入口 fail-closed；Linux GUI 集成验证隔离进程真实运行打包 SymPy/NumPy、工作区写入成功、工作区外写入被拒绝、硬超时和停止。Android 隔离服务尚未实现，故不暴露 Python 工具。
+复用原工具循环、审批卡与审计表。`test/python_tool_test.dart` 验证审批、参数和重复执行；Python 单测确保旧的进程内入口 fail-closed；Linux GUI 集成验证隔离进程真实运行打包 SymPy/NumPy、工作区写入成功、工作区外写入被拒绝、硬超时和停止。Android 在 V2230A / Android 13 上已通过 CPython/SymPy/NumPy、工作区跨次同步、直接 libc 读取/写入应用私有文件被拒绝、网络被拒绝、硬超时、停止和进程异常退出后恢复测试。原生 UI 流程也已验证代码审批、真实执行结果、权限设置及自动允许。实机回归命令：
+
+```bash
+bash scripts/flutter_python.sh test integration_test/android/python_sandbox_test.dart -d <设备ID>
+```
+
+当前 Android Zig 构建脚本使用 Linux x86_64 NDK 主机工具链（与 CI 一致）。
+
+Android 不向隔离 UID 共享应用目录 FD（SELinux 会拒绝读取），而由服务从 APK 读取运行时并放入自身 memfd，CPython 通过 zipimport 使用这些只驻留内存的归档。宿主只传递有界输入/结果管道。CPython 的低层归档读取保持真实只读 IO，避免 ZIP 导入与 pyfakefs 回溯源代码读取互相递归；Python 单测包含完整 ZIP 运行时回归。工作区使用 pyfakefs 提供 Python 文件 API 兼容层；它**不是安全边界**，真正的边界是 Android 隔离 UID、无应用权限和 SELinux。返回文件必须经 `PythonWorkspaceStore` 的路径、类型、总大小及数量校验后才能写回当前会话目录；禁止符号链接、特殊文件及目录穿越。快照上限 8 MiB、1000 项；超时/取消/进程崩溃不写回未完成的快照。原生扩展需要使用 file-like 对象，直接使用虚拟路径的原生文件操作（如 mmap/SQLite 文件路径）不受支持，不宣称完整 POSIX 文件系统。虚拟工作区之外的虚拟临时文件不会被导出；不允许通过主进程代理任意真实路径或网络请求。隔离服务的网络权限也不继承主应用的 INTERNET 权限。
 
 发布检查还会逐个确认 APK 与 Linux 包内含实际 Python 运行时、工作脚本、NumPy、SymPy 和 mpmath，并校验 Android NumPy 核心原生模块的 ELF 架构，防止仅编译成功却漏打包依赖。

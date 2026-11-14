@@ -67,14 +67,14 @@ void main() {
       final outsideWrite = File('${c.files.root.path}/blocked.txt');
       final result = await PythonRuntime.instance.execute(
         code:
-            "from pathlib import Path\nprint(sum(i*i for i in range(10)))\nPath('generated.txt').write_text('Python file output')\ntry:\n Path(r'${outsideWrite.path}').write_text('escape')\nexcept OSError as exc:\n print(type(exc).__name__)",
+            "from pathlib import Path\nprint(sum(i*i for i in range(10)))\nPath('generated.txt').write_text('Python file output')\ntry:\n Path(r'${outsideWrite.path}').write_text('escape')\nexcept OSError as exc:\n print('outside write blocked', type(exc).__name__)",
         workspace: pythonWorkspace,
         timeoutSeconds: 10,
         cancel: CancelToken(),
       );
       expect(result['ok'], true, reason: result.toString());
       expect(result['stdout'], contains('285\n'));
-      expect(result['stdout'], contains('OSError'));
+      expect(result['stdout'], contains('outside write blocked'));
       expect(await outsideWrite.exists(), isFalse);
       final numeric = await PythonRuntime.instance.execute(
         code: 'import numpy as np\nprint(np.__version__)\nprint((np.array([1, 2, 3]) ** 2).tolist())\nprint(np.linalg.solve([[2, 0], [0, 4]], [6, 8]).tolist())',

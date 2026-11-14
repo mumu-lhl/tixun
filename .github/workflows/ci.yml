@@ -14,7 +14,7 @@ on:
       full_gui:
         description: Run the complete native GUI regression suite
         type: boolean
-        default: false
+        default: true
       run_tests:
         description: Run unit and GUI test suites
         type: boolean
@@ -41,7 +41,7 @@ on:
       full_gui:
         description: Run the complete native GUI regression suite
         type: boolean
-        default: false
+        default: true
       run_tests:
         description: Run unit and GUI test suites
         type: boolean
@@ -63,7 +63,7 @@ defaults:
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.android_release && 'release' || 'debug' }}-${{ inputs.full_gui && 'full-gui' || 'smoke' }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.android_release && 'release' || 'debug' }}-${{ (github.event_name == 'push' || github.event_name == 'pull_request' || inputs.full_gui) && format('{0}', inputs.run_tests) != 'false' && 'full-gui' || 'smoke' }}
   cancel-in-progress: true
 env:
   FLUTTER_VERSION: '3.50.0'
@@ -84,6 +84,7 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+      - run: python3 -m pip install -r python/requirements.txt
       - run: python3 -m unittest discover -s python -p 'test_*.py'
       - uses: subosito/flutter-action@v2
         id: flutter
@@ -122,6 +123,9 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.1
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
@@ -253,7 +257,7 @@ jobs:
       - run: flutter build linux --release --dart-define=TIXUN_DEMO=true
       - run: scripts/gui_smoke.sh
       - name: Run complete native GUI regressions
-        if: inputs.full_gui && format('{0}', inputs.run_tests) != 'false'
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || inputs.full_gui) && format('{0}', inputs.run_tests) != 'false'
         run: scripts/gui_tests.sh
       - uses: actions/upload-artifact@v4
         if: always()

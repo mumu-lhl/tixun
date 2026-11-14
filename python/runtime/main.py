@@ -1,7 +1,7 @@
 """The old in-process worker is intentionally disabled.
 
-Linux Python execution uses the separate bubblewrap launcher. Android execution
-remains disabled until an isolated Android service is implemented. Keeping this
+Linux execution uses the bubblewrap launcher; Android uses an isolated-UID
+service with its own launcher and bounded workspace snapshot transfer. Keeping this
 entry point fail-closed prevents accidental restoration of unrestricted exec().
 """
 import sys

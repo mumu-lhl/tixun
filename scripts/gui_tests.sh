@@ -3,6 +3,8 @@
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 export LIBGL_ALWAYS_SOFTWARE=1
+# Xvfb and xdotool require X11, even when invoked from a Wayland desktop.
+export GDK_BACKEND=x11
 log_dir="${TIXUN_GUI_LOG_DIR:-.}"
 mkdir -p "$log_dir"
 tests=(

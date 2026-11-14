@@ -13,7 +13,7 @@ import 'python_runtime.dart';
 const pythonPolicyKey = 'python_execution_policy';
 final pythonToolSchema = AiTool(
   name: 'run_python',
-  description: 'Execute Python code in a separate Linux process for calculations or checking answers. Standard library, NumPy, SymPy and mpmath are available. Use print() to return results. Files persist in WORKSPACE. Linux filesystem writes are restricted to WORKSPACE; reads and network access remain unrestricted. Execution fails closed if bubblewrap isolation is unavailable. This feature is temporarily unavailable on Android. A computed result verifies only the supplied mathematical model, not the whole question. Do not use code to bypass application approval for study-data edits.',
+  description: 'Execute Python in an isolated process for calculations or checking answers. Standard library, NumPy, SymPy and mpmath are available. Use print() to return results and relative paths for persistent workspace files. Linux permits writes only to the workspace; reads and networking remain unrestricted. Android has no direct app-private-file or network access and uses a virtual /workspace (8 MiB, 1000 entries); native extensions must use file-like objects rather than virtual filenames. Isolation failures never fall back to unrestricted execution. A computed result verifies only the supplied mathematical model, not the whole question. Do not use code to bypass application approval for study-data edits.',
   parameters: {
     'type': 'object',
     'additionalProperties': false,

@@ -209,6 +209,7 @@ class GuiRunnerTests(unittest.TestCase):
                 'flutter': '''echo "$2" >> "$GUI_CALLS"
 echo "captured $2"
 test "$LIBGL_ALWAYS_SOFTWARE" = 1 || exit 7
+test "$GDK_BACKEND" = x11 || exit 8
 case "$2" in *"$FAIL_GUI"*) if [ -n "$FAIL_GUI" ]; then exit 23; fi;; esac''',
             }.items():
                 file = root / name
@@ -216,7 +217,7 @@ case "$2" in *"$FAIL_GUI"*) if [ -n "$FAIL_GUI" ]; then exit 23; fi;; esac''',
                 file.chmod(0o755)
             env = {**os.environ, 'PATH': f'{root}:{os.environ["PATH"]}',
                    'GUI_CALLS': str(root / 'calls'), 'FAIL_GUI': fail,
-                   'TIXUN_GUI_LOG_DIR': str(root / 'logs')}
+                   'TIXUN_GUI_LOG_DIR': str(root / 'logs'), 'GDK_BACKEND': 'wayland'}
             result = subprocess.run(['bash', str(SCRIPTS / 'gui_tests.sh')], env=env, capture_output=True, text=True)
             calls = (root / 'calls').read_text().splitlines()
             logs = {p.name: p.read_text() for p in (root / 'logs').iterdir()}

@@ -140,7 +140,9 @@ void main() {
 
     scope.read(routerProvider).go('/settings/python');
     tester.view.physicalSize = const Size(1280, 844);
-    await tester.pumpAndSettle();
+    // Mount the route before giving real filesystem IO time outside fakeAsync.
+    // Settling first would wait forever on the workspace loading indicator.
+    await tester.pump();
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );

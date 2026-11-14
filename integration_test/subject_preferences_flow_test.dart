@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:tixun/app/app.dart';
 import 'package:tixun/app/controller.dart';
+import 'package:tixun/app/preferences.dart';
 import 'package:tixun/features/library/study_store.dart';
 
 import 'support/gui_capture.dart';
@@ -53,14 +54,27 @@ void main() {
         await click(t, find.byKey(ValueKey('study-subject-$name')));
       }
       await t.enterText(find.byKey(const Key('custom-subject')), '日语');
-      await click(t, find.widgetWithText(OutlinedButton, '添加科目'));
+      // With more selected subjects, the add button is built lazily below
+      // the phone viewport; ensureVisible alone cannot find an unbuilt child.
+      await t.scrollUntilVisible(
+        find.text('添加科目'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await click(t, find.text('添加科目'));
       await guiCapture('subjects', 'selection-phone');
-      await click(t, find.byKey(const Key('save-subjects')));
+      // Subject edits save automatically; Back waits for queued persistence.
+      expect(find.byKey(const Key('save-subjects')), findsNothing);
+      await click(t, find.byTooltip('返回'));
       await ready(
         t,
         () => find.byKey(const Key('settings-ai')).evaluate().isNotEmpty,
       );
       expect(c.learningSubjects, ['语文', '数学', '英语', '物理', '化学', '生物', '日语']);
+      expect(
+        await c.db.preference(AppPreferences.subjectsPreference),
+        isNotNull,
+      );
       await guiCapture('subjects', 'settings-phone');
       await c.newSession();
       await c.setSessionSubject(c.selected!, '数学');

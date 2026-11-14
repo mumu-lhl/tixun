@@ -23,6 +23,8 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    buildFeatures { aidl = true }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -55,6 +57,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
             signingConfig = if (hasReleaseSigning) signingConfigs.getByName("release") else null
         }
@@ -70,6 +75,23 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+val pythonJni = layout.buildDirectory.dir("generated/python-sandbox-jni")
+android.sourceSets.getByName("main").jniLibs.srcDir(pythonJni.get().asFile)
+val buildPythonSandbox by tasks.registering {
+    inputs.dir("src/main/zig")
+    inputs.file("../../scripts/build_android_python.sh")
+    outputs.dir(pythonJni)
+    doLast {
+        val sdk = android.sdkDirectory.absolutePath
+        val process = ProcessBuilder(
+            "bash", "scripts/build_android_python.sh", sdk, android.ndkVersion,
+            pythonJni.get().asFile.absolutePath,
+        ).directory(rootProject.projectDir.parentFile).inheritIO().start()
+        check(process.waitFor() == 0) { "Android Python launcher build failed" }
+    }
+}
+tasks.named("preBuild").configure { dependsOn(buildPythonSandbox) }
 
 // Keep signed packages and signing validation out of the Gradle task cache.
 tasks.configureEach {

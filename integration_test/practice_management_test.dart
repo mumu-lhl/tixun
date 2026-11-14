@@ -235,7 +235,8 @@ void main() {
       scope.read(routerProvider).go('/knowledge');
       await t.pumpAndSettle();
       await until(t, () => find.text('配方与顶点').evaluate().isNotEmpty);
-      await click(t, find.byTooltip('选择多条资料'));
+      await click(t, find.byTooltip('更多操作'));
+      await click(t, find.text('选择多条资料'));
       await click(t, find.text('全选已加载'));
       await guiCapture('management', 'phone-batch-notes');
       await click(t, find.text('移入回收区'));

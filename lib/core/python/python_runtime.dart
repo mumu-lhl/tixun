@@ -4,16 +4,16 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../ai/ai_types.dart';
+import 'android_python_runtime.dart';
 
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
-/// Executes Python only in a separate Linux process under bubblewrap.
-/// Android remains disabled until its isolated-service adapter is implemented.
+/// Executes only in Linux bubblewrap or an Android isolated-UID service.
 class PythonRuntime {
   static final instance = PythonRuntime();
-  static bool get isSupportedPlatform => Platform.isLinux;
+  static bool get isSupportedPlatform => Platform.isLinux || Platform.isAndroid;
 
   static const _outputLimit = 32000;
   bool _busy = false;
@@ -29,6 +29,18 @@ class PythonRuntime {
     }
     if (_busy) return {'ok': false, 'error': 'Python 仍在运行，结束后才能执行下一段代码。'};
     _busy = true;
+    if (Platform.isAndroid) {
+      try {
+        return await AndroidPythonRuntime.execute(
+          code: code,
+          workspace: workspace,
+          timeoutSeconds: timeoutSeconds,
+          cancel: cancel,
+        );
+      } finally {
+        _busy = false;
+      }
+    }
     final started = DateTime.now();
     File? script;
     Process? process;
