@@ -165,6 +165,90 @@ class VisualStore extends DatabaseNotifier {
         .toList();
   }
 
+  /// Pins a scene revision to a question: the question shows exactly
+  /// this snapshot, never later edits. Re-linking the same pair moves
+  /// the pin to the new revision.
+  Future<void> linkToQuestion(
+    String visualId,
+    String questionId,
+    int revision,
+  ) => runOperation(() async {
+    if (revision < 1) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        '图形修订号无效。',
+      );
+    }
+    final scene = await _scene(visualId);
+    if (revision > scene.revision) {
+      throw const AppFormatException(
+        AppErrorCode.errorVisualSceneDoesNotExist,
+        '图形修订不存在。',
+      );
+    }
+    await db
+        .into(db.visualQuestionLinks)
+        .insertOnConflictUpdate(
+          VisualQuestionLinksCompanion.insert(
+            visualId: visualId,
+            questionId: questionId,
+            revision: Value(revision),
+          ),
+        );
+    changed();
+  });
+
+  /// The pinned (`visualId`, `revision`) pairs for a question, oldest
+  /// scene first. Render with [getRevisionSceneJson], never the live row.
+  Future<List<({String visualId, int revision})>> questionVisualLinks(
+    String questionId,
+  ) async {
+    final joined = db.select(db.visualScenes).join([
+      innerJoin(
+        db.visualQuestionLinks,
+        db.visualQuestionLinks.visualId.equalsExp(db.visualScenes.id),
+      ),
+    ]);
+    joined.where(db.visualQuestionLinks.questionId.equals(questionId));
+    joined.orderBy([OrderingTerm.asc(db.visualScenes.createdAt)]);
+    return (await joined.get())
+        .map(
+          (r) => (
+            visualId: r.readTable(db.visualQuestionLinks).visualId,
+            revision: r.readTable(db.visualQuestionLinks).revision,
+          ),
+        )
+        .toList();
+  }
+
+  /// Links a scene to exactly one study owner: a knowledge item or a
+  /// mistake. Which section the visual renders in follows its `source`:
+  /// 'original' renders under the original material, 'ai' under the AI
+  /// analysis, 'student' under the student's own analysis.
+  Future<void> linkToStudy(
+    String visualId, {
+    String? knowledgeId,
+    String? mistakeId,
+  }) => runOperation(() async {
+    if ((knowledgeId == null) == (mistakeId == null)) {
+      throw const AppFormatException(
+        AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
+        '请指定一条知识或一个错题。',
+      );
+    }
+    await _scene(visualId);
+    await db
+        .into(db.visualStudyLinks)
+        .insertOnConflictUpdate(
+          VisualStudyLinksCompanion.insert(
+            visualId: visualId,
+            knowledgeId: Value(knowledgeId),
+            mistakeId: Value(mistakeId),
+          ),
+        );
+    changed();
+  });
+
   /// Freezes the scene's current JSON for immutable quiz reference: bumps
   /// the scene revision, snapshots the current JSON at the new revision and
   /// returns the (`visualId`, `revision`) pair the question records.

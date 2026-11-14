@@ -92,6 +92,104 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('Visual answers: point distance with a tap-sized default tolerance, region ids', () {
+    const point = QuestionSpec(
+      kind: 'point_select',
+      stem: '点出抛物线的顶点',
+      answers: [
+        ['1,2'],
+      ],
+      absoluteTolerance: 0.5,
+      visualId: 'v',
+    );
+    expect(point.grade(['1.2,2.1']), true);
+    expect(point.grade(['1,2']), true);
+    expect(point.grade(['2,2']), false);
+    expect(point.grade(['not-a-point']), false);
+    expect(point.grade(['1,2', '3,4']), false);
+    // The const constructor keeps the numeric default (1e-6); the 0.5
+    // default only applies when the JSON omits absolute_tolerance.
+    final fromJson = QuestionSpec.fromJson({
+      'kind': 'point_select',
+      'stem': '点出抛物线的顶点',
+      'answers': [
+        ['1,2'],
+      ],
+      'visual_id': 'v',
+    });
+    expect(fromJson.absoluteTolerance, 0.5);
+    expect(fromJson.grade(['1.4,2.3']), true);
+    expect(fromJson.grade(['1.6,2']), false);
+    final explicit = QuestionSpec.fromJson({
+      'kind': 'point_select',
+      'stem': '点出抛物线的顶点',
+      'answers': [
+        ['1,2'],
+      ],
+      'visual_id': 'v',
+      'absolute_tolerance': 0.1,
+    });
+    expect(explicit.grade(['1.05,2']), true);
+    expect(explicit.grade(['1.2,2']), false);
+    const region = QuestionSpec(
+      kind: 'region_select',
+      stem: '点出阴影区域',
+      options: {'r1': '中心', 'r2': '右上'},
+      answers: [
+        ['r1'],
+      ],
+      visualId: 'v',
+    );
+    expect(region.grade(['r1']), true);
+    expect(region.grade(['r2']), false);
+    expect(region.grade([]), false);
+    // A visual-answer kind without a visual is unanswerable.
+    expect(
+      () => QuestionSpec.fromJson({
+        'kind': 'point_select',
+        'stem': '点出顶点',
+        'answers': [
+          ['1,2'],
+        ],
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => QuestionSpec.fromJson({
+        'kind': 'region_select',
+        'stem': '点出区域',
+        'options': {'r1': '中心'},
+        'answers': [
+          ['r1'],
+        ],
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => QuestionSpec.fromJson({
+        'kind': 'point_select',
+        'stem': '点出顶点',
+        'answers': [
+          ['1;2'],
+        ],
+        'visual_id': 'v',
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => QuestionSpec.fromJson({
+        'kind': 'region_select',
+        'stem': '点出区域',
+        'options': {'r1': '中心'},
+        'answers': [
+          ['r9'],
+        ],
+        'visual_id': 'v',
+      }),
+      throwsFormatException,
+    );
+  });
   test('Attempt drafts survive reopen, duplicate submissions are atomic, self assessment is separate', () async {
     final root = await Directory.systemTemp.createTemp('tixun-practice');
     var db = AppDatabase.file(File('${root.path}/test.sqlite'));

@@ -54,6 +54,11 @@ class VisualQuestionLinks extends Table {
       text().references(VisualScenes, #id, onDelete: KeyAction.cascade)();
   TextColumn get questionId =>
       text().references(PracticeQuestions, #id, onDelete: KeyAction.cascade)();
+
+  /// The pinned snapshot revision the question shows. A question never
+  /// follows later edits: its figure is frozen at the revision recorded
+  /// here (see `VisualStore.snapshotForQuestion`).
+  IntColumn get revision => integer().withDefault(const Constant(1))();
   @override
   Set<Column> get primaryKey => {visualId, questionId};
 }

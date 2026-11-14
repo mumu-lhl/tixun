@@ -200,7 +200,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 16;
+  static const latestSchemaVersion = 17;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -352,6 +352,12 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(table);
         }
         await _createVisualIndexes();
+      }
+      if (from >= 16 && from < 17) {
+        // Question links gain the pinned snapshot revision (v17): the
+        // table was created by v16 without it, so only existing v16
+        // databases need the column added.
+        await m.addColumn(visualQuestionLinks, visualQuestionLinks.revision);
       }
       if (from >= 9 && from < 12) {
         await m.addColumn(examAttachments, examAttachments.originalPath);

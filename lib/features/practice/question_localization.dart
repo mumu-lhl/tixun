@@ -11,5 +11,7 @@ String questionKindLabel(BuildContext context, String kind) => switch (kind) {
   'fill_blank' => context.l10n.fillInTheBlanks,
   'numeric' => context.l10n.numericalAnswer,
   'short_answer' => context.l10n.selfAssessed,
+  'point_select' => context.l10n.pointSelect,
+  'region_select' => context.l10n.regionSelect,
   _ => questionKinds[kind] ?? kind,
 };

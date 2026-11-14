@@ -49,13 +49,26 @@ Map<String, bool> visualInitialToggles(VisualScene scene) => {
 
 /// A rendered visual scene as a card: title row + 4:3 canvas. Tap opens
 /// the fullscreen view with interactive controls.
+///
+/// When [onTapModelPoint] is set (question answering), tapping the canvas
+/// reports the tapped position in model coordinates instead of opening
+/// fullscreen; the fullscreen button in the title row still works, and
+/// the fullscreen page itself stays view-only.
 class VisualCard extends StatelessWidget {
-  const VisualCard({required this.scene, this.title, super.key});
+  const VisualCard({
+    required this.scene,
+    this.title,
+    this.onTapModelPoint,
+    super.key,
+  });
 
   final VisualScene scene;
 
   /// Title override; defaults to the scene title, then `meta.alt`.
   final String? title;
+
+  /// Tap-to-answer handler; null means "tap opens fullscreen".
+  final ValueChanged<ui.Offset>? onTapModelPoint;
 
   String get _title => title ?? scene.title ?? scene.meta?.alt ?? '';
 
@@ -114,7 +127,9 @@ class VisualCard extends StatelessWidget {
             ],
           ),
           GestureDetector(
-            onTap: () => showVisualFullscreen(context, scene, title: _title),
+            onTap: onTapModelPoint == null
+                ? () => showVisualFullscreen(context, scene, title: _title)
+                : null,
             child: AspectRatio(
               aspectRatio: 4 / 3,
               child: _VisualCanvas(
@@ -122,6 +137,7 @@ class VisualCard extends StatelessWidget {
                 palette: palette,
                 parameters: visualInitialParameters(scene),
                 toggles: visualInitialToggles(scene),
+                onTapModelPoint: onTapModelPoint,
               ),
             ),
           ),
@@ -153,6 +169,7 @@ class _VisualCanvas extends StatefulWidget {
     this.dragEnabled = false,
     this.onDragStart,
     this.onDragUpdate,
+    this.onTapModelPoint,
   });
 
   final VisualScene scene;
@@ -178,6 +195,10 @@ class _VisualCanvas extends StatefulWidget {
 
   /// Called with the dragged element id and its new model position.
   final void Function(String id, ui.Offset modelPosition)? onDragUpdate;
+
+  /// Tap-to-answer handler (question cards only): reports the tapped
+  /// position in model coordinates. Mutually exclusive with [dragEnabled].
+  final ValueChanged<ui.Offset>? onTapModelPoint;
 
   /// Touch hit radius around a draggable point, in logical pixels.
   static const double dragHitRadius = 24;
@@ -275,6 +296,16 @@ class _VisualCanvasState extends State<_VisualCanvas> {
               ),
           ],
         );
+        if (widget.onTapModelPoint != null) {
+          return GestureDetector(
+            key: const Key('visual-tap-answer'),
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (details) => widget.onTapModelPoint!(
+              mapper.canvasToModel(details.localPosition),
+            ),
+            child: canvas,
+          );
+        }
         if (!widget.dragEnabled) return canvas;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,

@@ -21,6 +21,7 @@ tests=(
   'visual_flow:integration-visual.log'
   'visual_player_flow:integration-visual-player.log'
   'visual_drag_flow:integration-visual-drag.log'
+  'visual_quiz_flow:integration-visual-quiz.log'
 )
 for entry in "${tests[@]}"; do
   test_name="${entry%%:*}"

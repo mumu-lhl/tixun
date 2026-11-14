@@ -154,6 +154,40 @@ void main() {
       expect(ops.single.status, 'succeeded');
     });
 
+    test(
+      'a visual created in a study-linked session links to the study item',
+      () async {
+        await _seedMessage(db, 'session-1', 'run-1');
+        final now = DateTime.now();
+        await db
+            .into(db.knowledgeItems)
+            .insert(
+              KnowledgeItemsCompanion.insert(
+                id: 'k',
+                title: '二次函数',
+                content: '正文',
+                subject: '数学',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+        await db
+            .into(db.studyChatLinks)
+            .insert(
+              StudyChatLinksCompanion.insert(
+                id: 'l1',
+                sessionId: 'session-1',
+                knowledgeId: const Value('k'),
+              ),
+            );
+        final result = await runTool('call-1', _plotArgs());
+        expect(result['ok'], isTrue);
+        final scenes = await store.listByStudy(knowledgeId: 'k');
+        expect(scenes.map((s) => s.id), [result['visual_id']]);
+        expect(scenes.single.source, 'ai');
+      },
+    );
+
     test('invalid expression returns ok:false and creates nothing', () async {
       await _seedMessage(db, 'session-1', 'run-1');
       final result = await runTool(

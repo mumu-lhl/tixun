@@ -18897,8 +18897,20 @@ class $VisualQuestionLinksTable extends VisualQuestionLinks
       'REFERENCES practice_questions (id) ON DELETE CASCADE',
     ),
   );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
   @override
-  List<GeneratedColumn> get $columns => [visualId, questionId];
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [visualId, questionId, revision];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -18927,6 +18939,12 @@ class $VisualQuestionLinksTable extends VisualQuestionLinks
     } else if (isInserting) {
       context.missing(_questionIdMeta);
     }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    }
     return context;
   }
 
@@ -18944,6 +18962,10 @@ class $VisualQuestionLinksTable extends VisualQuestionLinks
         DriftSqlType.string,
         data['${effectivePrefix}question_id'],
       )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
     );
   }
 
@@ -18957,12 +18979,22 @@ class VisualQuestionLink extends DataClass
     implements Insertable<VisualQuestionLink> {
   final String visualId;
   final String questionId;
-  const VisualQuestionLink({required this.visualId, required this.questionId});
+
+  /// The pinned snapshot revision the question shows. A question never
+  /// follows later edits: its figure is frozen at the revision recorded
+  /// here (see `VisualStore.snapshotForQuestion`).
+  final int revision;
+  const VisualQuestionLink({
+    required this.visualId,
+    required this.questionId,
+    required this.revision,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['visual_id'] = Variable<String>(visualId);
     map['question_id'] = Variable<String>(questionId);
+    map['revision'] = Variable<int>(revision);
     return map;
   }
 
@@ -18970,6 +19002,7 @@ class VisualQuestionLink extends DataClass
     return VisualQuestionLinksCompanion(
       visualId: Value(visualId),
       questionId: Value(questionId),
+      revision: Value(revision),
     );
   }
 
@@ -18981,6 +19014,7 @@ class VisualQuestionLink extends DataClass
     return VisualQuestionLink(
       visualId: serializer.fromJson<String>(json['visualId']),
       questionId: serializer.fromJson<String>(json['questionId']),
+      revision: serializer.fromJson<int>(json['revision']),
     );
   }
   @override
@@ -18989,20 +19023,26 @@ class VisualQuestionLink extends DataClass
     return <String, dynamic>{
       'visualId': serializer.toJson<String>(visualId),
       'questionId': serializer.toJson<String>(questionId),
+      'revision': serializer.toJson<int>(revision),
     };
   }
 
-  VisualQuestionLink copyWith({String? visualId, String? questionId}) =>
-      VisualQuestionLink(
-        visualId: visualId ?? this.visualId,
-        questionId: questionId ?? this.questionId,
-      );
+  VisualQuestionLink copyWith({
+    String? visualId,
+    String? questionId,
+    int? revision,
+  }) => VisualQuestionLink(
+    visualId: visualId ?? this.visualId,
+    questionId: questionId ?? this.questionId,
+    revision: revision ?? this.revision,
+  );
   VisualQuestionLink copyWithCompanion(VisualQuestionLinksCompanion data) {
     return VisualQuestionLink(
       visualId: data.visualId.present ? data.visualId.value : this.visualId,
       questionId: data.questionId.present
           ? data.questionId.value
           : this.questionId,
+      revision: data.revision.present ? data.revision.value : this.revision,
     );
   }
 
@@ -19010,44 +19050,51 @@ class VisualQuestionLink extends DataClass
   String toString() {
     return (StringBuffer('VisualQuestionLink(')
           ..write('visualId: $visualId, ')
-          ..write('questionId: $questionId')
+          ..write('questionId: $questionId, ')
+          ..write('revision: $revision')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(visualId, questionId);
+  int get hashCode => Object.hash(visualId, questionId, revision);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is VisualQuestionLink &&
           other.visualId == this.visualId &&
-          other.questionId == this.questionId);
+          other.questionId == this.questionId &&
+          other.revision == this.revision);
 }
 
 class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
   final Value<String> visualId;
   final Value<String> questionId;
+  final Value<int> revision;
   final Value<int> rowid;
   const VisualQuestionLinksCompanion({
     this.visualId = const Value.absent(),
     this.questionId = const Value.absent(),
+    this.revision = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   VisualQuestionLinksCompanion.insert({
     required String visualId,
     required String questionId,
+    this.revision = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : visualId = Value(visualId),
        questionId = Value(questionId);
   static Insertable<VisualQuestionLink> custom({
     Expression<String>? visualId,
     Expression<String>? questionId,
+    Expression<int>? revision,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (visualId != null) 'visual_id': visualId,
       if (questionId != null) 'question_id': questionId,
+      if (revision != null) 'revision': revision,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -19055,11 +19102,13 @@ class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
   VisualQuestionLinksCompanion copyWith({
     Value<String>? visualId,
     Value<String>? questionId,
+    Value<int>? revision,
     Value<int>? rowid,
   }) {
     return VisualQuestionLinksCompanion(
       visualId: visualId ?? this.visualId,
       questionId: questionId ?? this.questionId,
+      revision: revision ?? this.revision,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -19073,6 +19122,9 @@ class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
     if (questionId.present) {
       map['question_id'] = Variable<String>(questionId.value);
     }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -19084,6 +19136,7 @@ class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
     return (StringBuffer('VisualQuestionLinksCompanion(')
           ..write('visualId: $visualId, ')
           ..write('questionId: $questionId, ')
+          ..write('revision: $revision, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

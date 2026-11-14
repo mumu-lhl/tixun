@@ -232,6 +232,104 @@ void main() {
     },
   );
 
+  test('linkToQuestion pins a revision and re-linking moves the pin', () async {
+    await _seedMessage(db, 's', 'm');
+    await _seedQuestion(db, 'q');
+    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+    final snap = await store.snapshotForQuestion(id);
+    await store.linkToQuestion(id, 'q', snap.revision);
+    expect(await store.questionVisualLinks('q'), [(visualId: id, revision: 2)]);
+    // Re-linking the same pair moves the pin instead of duplicating it.
+    await store.linkToQuestion(id, 'q', 1);
+    expect(await store.questionVisualLinks('q'), [(visualId: id, revision: 1)]);
+    expect(await store.questionVisualLinks('other'), isEmpty);
+  });
+
+  test('linkToQuestion rejects bad revisions and unknown scenes', () async {
+    await _seedMessage(db, 's', 'm');
+    await _seedQuestion(db, 'q');
+    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+    await expectLater(
+      store.linkToQuestion(id, 'q', 0),
+      throwsA(
+        isA<AppFormatException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.errorInvalidParameterType,
+        ),
+      ),
+    );
+    await expectLater(
+      store.linkToQuestion(id, 'q', 2),
+      throwsA(
+        isA<AppFormatException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.errorVisualSceneDoesNotExist,
+        ),
+      ),
+    );
+    await expectLater(
+      store.linkToQuestion('nope', 'q', 1),
+      throwsA(
+        isA<AppFormatException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.errorVisualSceneDoesNotExist,
+        ),
+      ),
+    );
+  });
+
+  test(
+    'linkToStudy links exactly one owner and is visible in listByStudy',
+    () async {
+      await _seedMessage(db, 's', 'm');
+      await _seedKnowledge(db, 'k');
+      final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+      await store.linkToStudy(id, knowledgeId: 'k');
+      expect((await store.listByStudy(knowledgeId: 'k')).map((s) => s.id), [
+        id,
+      ]);
+      await expectLater(
+        store.linkToStudy(id),
+        throwsA(
+          isA<AppFormatException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
+          ),
+        ),
+      );
+      await expectLater(
+        store.linkToStudy(id, knowledgeId: 'k', mistakeId: 'x'),
+        throwsA(
+          isA<AppFormatException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
+          ),
+        ),
+      );
+    },
+  );
+
+  test('a pinned question visual stays frozen after later edits', () async {
+    await _seedMessage(db, 's', 'm');
+    await _seedQuestion(db, 'q');
+    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+    final snap = await store.snapshotForQuestion(id);
+    await store.linkToQuestion(id, 'q', snap.revision);
+    await store.revise(id, _sceneV2);
+    expect((await store.get(id))!.sceneJson, _sceneV2);
+    final links = await store.questionVisualLinks('q');
+    expect(links.single.revision, 2);
+    expect(
+      await store.getRevisionSceneJson(id, links.single.revision),
+      _sceneV1,
+    );
+  });
+
   test('revise and snapshot reject unknown ids and empty JSON', () async {
     await expectLater(
       store.revise('nope', _sceneV2),

@@ -338,6 +338,50 @@ List<VisualElement> visualVisibleElements(
   Set<String> hiddenElementIds,
 ) => _visibleElements(scene, toggles, hiddenElementIds);
 
+/// The id of the topmost visible polygon containing [modelPoint], or null
+/// when the point is outside every polygon. Used by region-select
+/// questions: a tap on the visual answers with the tapped region's id.
+/// Elements arrive in paint order (layer, then scene order); later
+/// elements win because they paint on top.
+String? visualRegionAtPoint(
+  VisualScene scene,
+  ui.Offset modelPoint,
+  Map<String, double> parameters, {
+  Map<String, bool> toggles = const {},
+  Set<String> hiddenElementIds = const {},
+}) {
+  String? found;
+  for (final element in visualVisibleElements(
+    scene,
+    toggles,
+    hiddenElementIds,
+  )) {
+    if (element is PolygonElement) {
+      final points = [
+        for (final p in element.points) resolvePoint(p, parameters),
+      ];
+      if (points.any((p) => p == null)) continue;
+      if (_pointInPolygon(modelPoint, points.cast<ui.Offset>())) {
+        found = element.id;
+      }
+    }
+  }
+  return found;
+}
+
+/// Even-odd ray casting: a point on an edge counts as inside.
+bool _pointInPolygon(ui.Offset p, List<ui.Offset> poly) {
+  var inside = false;
+  for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    final a = poly[i], b = poly[j];
+    if ((a.dy > p.dy) != (b.dy > p.dy) &&
+        p.dx < (b.dx - a.dx) * (p.dy - a.dy) / (b.dy - a.dy) + a.dx) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
 /// Whether this scene gets axes + grid: always for `plot2d`/`chart`;
 /// for other kinds only when a view is present and `model.showAxes` is
 /// not false.

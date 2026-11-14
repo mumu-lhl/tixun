@@ -400,6 +400,22 @@ Future<Map<String, dynamic>> executeVisualTool(
         source: 'ai',
         verification: validation.verificationStatus,
       );
+      // A visual created in a study-linked session belongs to those
+      // study items too: the StudyVisuals section shows it under the
+      // matching source group. Mirrors the quiz tool's knowledge links.
+      final studyLinks =
+          await (store.db.select(store.db.studyChatLinks)
+                ..where((l) => l.sessionId.equals(sessionId))
+                ..limit(5))
+              .get();
+      for (final link in studyLinks) {
+        if ((link.knowledgeId == null) == (link.mistakeId == null)) continue;
+        await store.linkToStudy(
+          id,
+          knowledgeId: link.knowledgeId,
+          mistakeId: link.mistakeId,
+        );
+      }
       cancel.checkCancelled();
       await store.db
           .into(store.db.aiToolOperations)

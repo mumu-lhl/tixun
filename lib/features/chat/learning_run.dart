@@ -397,11 +397,20 @@ class LearningRun {
         // Rounds that called create_visual are accounted under
         // 'visual_create' and rounds that called update_visual under
         // 'visual_edit' instead of the default 'chat' category.
-        // get_visual is read-only and stays under 'chat'.
+        // get_visual is read-only and stays under 'chat'. A round that
+        // created a quiz with a visual attached is 'quiz_with_visual':
+        // the args are machine-generated JSON, so the literal key
+        // '"visual_id"' is a reliable marker for the attachment.
         String usageFeature() => calls.any((c) => c.name == 'update_visual')
             ? 'visual_edit'
             : calls.any((c) => c.name == 'create_visual')
             ? 'visual_create'
+            : calls.any(
+                (c) =>
+                    c.name == 'create_quiz' &&
+                    c.arguments.contains('"visual_id"'),
+              )
+            ? 'quiz_with_visual'
             : 'chat';
         var roundText = '';
         var roundReasoning = '';
@@ -586,6 +595,8 @@ class LearningRun {
                   runId: runId,
                   cancel: cancel,
                   sourceImages: sourceImages,
+                  visual: visual,
+                  exam: exam,
                 )
               : call.name == 'create_visual'
               ? visual == null
