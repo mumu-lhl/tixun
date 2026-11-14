@@ -9,6 +9,7 @@ import '../../app/controller.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/search_snippet.dart';
 
 class SessionList extends ConsumerStatefulWidget {
   const SessionList({this.onSelected, super.key});
@@ -20,6 +21,8 @@ class SessionList extends ConsumerStatefulWidget {
 class _SessionListState extends ConsumerState<SessionList> {
   late final TextEditingController _search;
   Timer? _searchDebounce;
+  String _snippetQuery = '';
+  final _snippetFutures = <String, Future<ChatMessage?>>{};
 
   @override
   void initState() {
@@ -40,6 +43,10 @@ class _SessionListState extends ConsumerState<SessionList> {
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
     final colors = Theme.of(context).colorScheme;
+    if (_snippetQuery != c.search) {
+      _snippetQuery = c.search;
+      _snippetFutures.clear();
+    }
     // The query can be cleared outside this widget (e.g. starting a new
     // session resets it); keep the field in sync without clobbering text
     // the user is typing. Programmatic changes do not fire onChanged, so
@@ -176,22 +183,43 @@ class _SessionListState extends ConsumerState<SessionList> {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 14),
                           ),
-                          subtitle: Text(
-                            context.l10n.monthDayWithLabel(
-                              l10nArgument((s.updatedAt.month)),
-                              l10nArgument((s.updatedAt.day)),
-                              l10nArgument(
-                                (s.mode == 'guided'
-                                    ? context.l10n.guidedLearning
-                                    : s.mode == 'direct'
-                                    ? context.l10n.directAnswer
-                                    : context.l10n.examMode),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.l10n.monthDayWithLabel(
+                                  l10nArgument((s.updatedAt.month)),
+                                  l10nArgument((s.updatedAt.day)),
+                                  l10nArgument(
+                                    (s.mode == 'guided'
+                                        ? context.l10n.guidedLearning
+                                        : s.mode == 'direct'
+                                        ? context.l10n.directAnswer
+                                        : context.l10n.examMode),
+                                  ),
+                                ),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: colors.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: colors.onSurfaceVariant,
-                            ),
+                              if (c.search.trim().isNotEmpty)
+                                FutureBuilder<ChatMessage?>(
+                                  future: _snippetFutures.putIfAbsent(
+                                    s.id,
+                                    () => c.db.matchingMessage(s.id, c.search),
+                                  ),
+                                  builder: (context, snapshot) {
+                                    final excerpt = searchExcerpt(
+                                      snapshot.data?.content ?? '',
+                                      c.search,
+                                    );
+                                    return excerpt == null
+                                        ? const SizedBox.shrink()
+                                        : SearchSnippet(excerpt, c.search);
+                                  },
+                                ),
+                            ],
                           ),
                           onTap: () => act(context, () async {
                             await c.selectSession(s);

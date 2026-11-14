@@ -533,6 +533,17 @@ class AppDatabase extends _$AppDatabase {
     return Future.wait(rows.map(chatSessions.mapFromRow));
   }
 
+  Future<ChatMessage?> matchingMessage(String sessionId, String query) async {
+    final term = query.trim();
+    if (term.isEmpty) return null;
+    final rows = await customSelect(
+      'SELECT * FROM chat_messages WHERE session_id = ? AND instr(lower(content), lower(?)) > 0 ORDER BY created_at DESC LIMIT 1',
+      variables: [Variable(sessionId), Variable(term)],
+      readsFrom: {chatMessages},
+    ).get();
+    return rows.isEmpty ? null : chatMessages.mapFromRow(rows.first);
+  }
+
   Future<List<ChatSession>> trash() =>
       (select(chatSessions)..where((s) => s.deleted.equals(true))).get();
   Future<ChatSession> createSession({
