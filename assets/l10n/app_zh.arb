@@ -2067,6 +2067,7 @@
   "usageFeatureVisualEdit": "图形修改",
   "usageFeatureQuizWithVisual": "带图出题",
   "visualSection": "图形",
+  "visualUntitled": "未命名图形",
   "visualSchematicNote": "示意图，不按比例",
   "visualAnswerSelectedPoint": "已选点：{arg0}",
   "visualAnswerSelectedRegion": "已选区域：{arg0}",

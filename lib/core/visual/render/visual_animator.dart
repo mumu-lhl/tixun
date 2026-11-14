@@ -47,10 +47,13 @@ double visualDurationMs(VisualScene scene) =>
 /// overrides an earlier one (`show` removes an id from the hidden set,
 /// `hide` adds it).
 ///
-/// When [stepIndex] is given, time is ignored for steps: exactly
-/// `steps[stepIndex]` is applied on top of the track-resolved parameters
-/// evaluated at that step's `atMs`, and the returned frame's [VisualFrame.timeMs]
-/// is that step's `atMs`.
+/// When [stepIndex] is given, it indexes the original (unsorted) step
+/// list, and the frame is resolved cumulatively: every step with
+/// `atMs <= steps[stepIndex].atMs` applies in ascending `atMs` order —
+/// exactly the frame the time path would produce at that step's `atMs` —
+/// with tracks evaluated at that `atMs`. The returned frame's
+/// [VisualFrame.timeMs] is that step's `atMs` and [VisualFrame.stepIndex]
+/// is the given index.
 ///
 /// Never throws on a malformed timeline (defensive: unknown track
 /// targets, non-finite values and degenerate windows are skipped);
@@ -90,12 +93,19 @@ VisualFrame resolveVisualFrame(
   if (stepIndex != null &&
       stepIndex >= 0 &&
       stepIndex < timeline.steps.length) {
+    // Cumulative, exactly like the time path: every step whose `atMs`
+    // is at or before this step's `atMs` applies, in ascending `atMs`
+    // order. A later step only undoes an earlier one by explicitly
+    // showing what the earlier step hid.
     final step = timeline.steps[stepIndex];
     resolvedTimeMs = step.atMs.toDouble();
     resolvedStepIndex = stepIndex;
     _applyTracks(timeline.tracks, parameters, resolvedTimeMs);
-    hidden.addAll(step.hide);
-    hidden.removeAll(step.show);
+    for (final earlier in steps) {
+      if (earlier.atMs > step.atMs) break;
+      hidden.addAll(earlier.hide);
+      hidden.removeAll(earlier.show);
+    }
   } else {
     _applyTracks(timeline.tracks, parameters, timeMs);
     for (var i = 0; i < steps.length; i++) {

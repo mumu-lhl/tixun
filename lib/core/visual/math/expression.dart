@@ -14,7 +14,10 @@
 /// Nothing here executes generated code: parsing builds an AST and
 /// [evaluate] walks it. AST depth is limited to 32 (see [maxDepth]); a
 /// deeper expression throws [FormatException] at parse time, which also
-/// bounds evaluation recursion.
+/// bounds evaluation recursion. Parser recursion itself is separately
+/// capped (see [expressionMaxRecursionDepth]) so pathological chains
+/// fail with [FormatException] instead of overflowing the stack before
+/// the AST check runs.
 library;
 
 import 'dart:math' as math;
@@ -24,6 +27,16 @@ import 'dart:math' as math;
 /// model-generated expressions are short, and the validator reports the
 /// failure so the model can retry with a shorter form.
 const expressionMaxDepth = 32;
+
+/// Maximum parser recursion depth (entries into `_parseExpr` /
+/// `_parsePrefix`). The AST depth check only runs after a subtree is
+/// built, so without this guard a long unary-minus or right-associative
+/// `^` chain could overflow the parser stack before the check ever
+/// runs. Each descent level adds at most one AST level, so a legal
+/// expression (AST depth ≤ 32) nests at most ~66 counted frames; 128
+/// leaves roughly 2x headroom while staying orders of magnitude below
+/// the stack-overflow threshold (thousands of frames).
+const expressionMaxRecursionDepth = 128;
 
 /// A parsed expression. Obtain via [Expression.parse]; evaluate with
 /// [evaluate].
@@ -374,9 +387,32 @@ double _finite(double value, String where) {
   return value;
 }
 
-double _sinh(double v) => (math.exp(v) - math.exp(-v)) / 2;
-double _cosh(double v) => (math.exp(v) + math.exp(-v)) / 2;
+/// sinh/cosh via the factored form for large |v|: `exp(v)` overflows a
+/// double past ln(double.max) ≈ 709.78, but sinh/cosh themselves stay
+/// finite up to |v| ≈ 710.47, so factor out exp(|v|)/2 and evaluate
+/// exp(|v| - ln 2) instead. Below the threshold the direct form is used.
+double _sinh(double v) {
+  final a = v.abs();
+  if (a > 709.0) {
+    final scaled = math.exp(a - math.ln2) * (1 - math.exp(-2 * a));
+    return v < 0 ? -scaled : scaled;
+  }
+  return (math.exp(v) - math.exp(-v)) / 2;
+}
+
+double _cosh(double v) {
+  final a = v.abs();
+  if (a > 709.0) {
+    return math.exp(a - math.ln2) * (1 + math.exp(-2 * a));
+  }
+  return (math.exp(v) + math.exp(-v)) / 2;
+}
+
 double _tanh(double v) {
+  // tanh(20) is already 1.0 to within one double ulp, so saturating
+  // here is exact; the (e^2v - 1) / (e^2v + 1) form below overflows
+  // to NaN once 2v passes ln(double.max).
+  if (v.abs() > 20) return v < 0 ? -1.0 : 1.0;
   final e2 = math.exp(2 * v);
   return (e2 - 1) / (e2 + 1);
 }
@@ -427,6 +463,27 @@ class _Parser {
   /// overflow the parser stack before the AST depth check runs.
   var _parenDepth = 0;
 
+  /// Current recursive-descent depth (entries into `_parseExpr` /
+  /// `_parsePrefix`). Guards the descent itself: the AST depth check
+  /// only runs after a subtree is built, so a long unary-minus or
+  /// right-associative `^` chain would otherwise overflow the stack
+  /// before any check runs.
+  var _recursionDepth = 0;
+
+  void _enterRecursion() {
+    _recursionDepth++;
+    if (_recursionDepth > expressionMaxRecursionDepth) {
+      throw FormatException(
+        'Expression is too deeply nested (parser recursion depth '
+        '$_recursionDepth > $expressionMaxRecursionDepth).',
+      );
+    }
+  }
+
+  void _exitRecursion() {
+    _recursionDepth--;
+  }
+
   _Token get _peek => _tokens[_pos];
   _Token _advance() => _tokens[_pos++];
 
@@ -464,23 +521,37 @@ class _Parser {
   }
 
   _Expr _parseExpr(int minPrecedence) {
-    var left = _parsePrefix();
-    while (true) {
-      final tok = _peek;
-      if (tok.kind != _TokenKind.op) break;
-      final prec = _binaryPrecedence(tok.text);
-      if (prec == null || prec < minPrecedence) break;
-      _advance();
-      // `^` is right-associative; all other binary operators are left-assoc.
-      final nextMin = tok.text == '^' ? prec : prec + 1;
-      final right = _parseExpr(nextMin);
-      left = _Binary(tok.text, left, right);
-      _checkDepth(left);
+    _enterRecursion();
+    try {
+      var left = _parsePrefix();
+      while (true) {
+        final tok = _peek;
+        if (tok.kind != _TokenKind.op) break;
+        final prec = _binaryPrecedence(tok.text);
+        if (prec == null || prec < minPrecedence) break;
+        _advance();
+        // `^` is right-associative; all other binary operators are left-assoc.
+        final nextMin = tok.text == '^' ? prec : prec + 1;
+        final right = _parseExpr(nextMin);
+        left = _Binary(tok.text, left, right);
+        _checkDepth(left);
+      }
+      return left;
+    } finally {
+      _exitRecursion();
     }
-    return left;
   }
 
   _Expr _parsePrefix() {
+    _enterRecursion();
+    try {
+      return _parsePrefixBody();
+    } finally {
+      _exitRecursion();
+    }
+  }
+
+  _Expr _parsePrefixBody() {
     final tok = _advance();
     switch (tok.kind) {
       case _TokenKind.number:

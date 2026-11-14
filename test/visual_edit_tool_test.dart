@@ -216,10 +216,46 @@ void main() {
       'meta': {'alt': '两个点'},
     };
 
+    /// Same two points, but with an explicit view so the quality check
+    /// can flag points that fall outside it.
+    Map<String, dynamic> viewedGeometryScene() => {
+      'v': 1,
+      'kind': 'geometry',
+      'title': '三角形',
+      'view': {
+        'x': [-3, 3],
+        'y': [-3, 3],
+      },
+      'elements': [
+        {
+          'id': 'p1',
+          'type': 'point',
+          'at': [0, 0],
+          'label': 'A',
+        },
+        {
+          'id': 'p2',
+          'type': 'point',
+          'at': [3, 0],
+          'label': 'B',
+        },
+      ],
+      'meta': {'alt': '两个点'},
+    };
+
     Future<String> createGeometryScene() async {
       await _seedMessage(db, 'session-1', 'run-1');
       final created = await runCreate('call-create', {
         'scene': geometryScene(),
+      });
+      expect(created['ok'], isTrue);
+      return created['visual_id'] as String;
+    }
+
+    Future<String> createViewedGeometryScene() async {
+      await _seedMessage(db, 'session-1', 'run-1');
+      final created = await runCreate('call-create', {
+        'scene': viewedGeometryScene(),
       });
       expect(created['ok'], isTrue);
       return created['visual_id'] as String;
@@ -269,6 +305,125 @@ void main() {
       ]);
       expect(original['title'], '三角形');
     });
+
+    test('update with ops patches an element inside a group', () async {
+      await _seedMessage(db, 'session-1', 'run-1');
+      final created = await runCreate('call-create', {
+        'scene': {
+          'v': 1,
+          'kind': 'geometry',
+          'title': '分组',
+          'elements': [
+            {
+              'id': 'g1',
+              'type': 'group',
+              'children': [
+                {
+                  'id': 'p1',
+                  'type': 'point',
+                  'at': [0, 0],
+                },
+                {
+                  'id': 'p2',
+                  'type': 'point',
+                  'at': [1, 1],
+                },
+              ],
+            },
+            {
+              'id': 'p3',
+              'type': 'point',
+              'at': [2, 2],
+            },
+          ],
+          'meta': {'alt': '分组场景'},
+        },
+      });
+      expect(created['ok'], isTrue);
+      final id = created['visual_id'] as String;
+      final updated = await runUpdate('call-patch', {
+        'visual_id': id,
+        'ops': [
+          {
+            'op': 'replace_element',
+            'id': 'p1',
+            'element': {
+              'id': 'p1',
+              'type': 'point',
+              'at': [1, 1],
+            },
+          },
+          {'op': 'remove_element', 'id': 'p2'},
+        ],
+      });
+      expect(updated['ok'], isTrue);
+      expect(updated['revision'], 2);
+      final scene = jsonDecode((await store.get(id))!.sceneJson) as Map;
+      final g1 = (scene['elements'] as List)[0] as Map;
+      expect((g1['children'] as List).map((e) => (e as Map)['id']).toList(), [
+        'p1',
+      ]);
+      expect(((g1['children'] as List)[0] as Map)['at'], [1, 1]);
+      expect((scene['elements'] as List).length, 2);
+    });
+
+    test(
+      'update reports quality_issues when a patch moves a point out of view',
+      () async {
+        final id = await createViewedGeometryScene();
+        final updated = await runUpdate('call-patch', {
+          'visual_id': id,
+          'ops': [
+            {
+              'op': 'replace_element',
+              'id': 'p1',
+              'element': {
+                'id': 'p1',
+                'type': 'point',
+                'at': [5, 5],
+                'label': 'A',
+              },
+            },
+          ],
+        });
+        expect(updated['ok'], isTrue);
+        expect(updated['revision'], 2);
+        final issues = updated['quality_issues'] as List;
+        expect(
+          issues.map((i) => (i as Map)['code']),
+          contains('point_outside_view'),
+        );
+        final outside = issues.firstWhere(
+          (i) => (i as Map)['code'] == 'point_outside_view',
+        ) as Map;
+        expect(outside['path'], 'p1');
+      },
+    );
+
+    test(
+      'update without quality issues omits the quality_issues key',
+      () async {
+        final id = await createViewedGeometryScene();
+        final updated = await runUpdate('call-patch', {
+          'visual_id': id,
+          'ops': [
+            {
+              'op': 'replace_element',
+              'id': 'p1',
+              'element': {
+                'id': 'p1',
+                'type': 'point',
+                'at': [1, 1],
+                'label': 'A',
+              },
+            },
+          ],
+        });
+        expect(updated['ok'], isTrue);
+        expect(updated['revision'], 2);
+        expect(updated.containsKey('quality_issues'), isFalse);
+      },
+    );
 
     test('update with bad ops returns ok:false and keeps revision 1', () async {
       final id = await createGeometryScene();

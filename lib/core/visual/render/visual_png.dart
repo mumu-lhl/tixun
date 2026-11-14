@@ -19,8 +19,11 @@ import 'visual_theme.dart';
 ///
 /// [timeMs] renders the frame at that moment: tracks are evaluated at
 /// [timeMs] and the teaching steps active then hide their elements. An
-/// explicit [stepIndex] (>= 0) pins the frame to that step instead
-/// (tracks evaluated at the step's `atMs`, as the animator defines).
+/// explicit [stepIndex] (>= 0) pins the frame to that step instead:
+/// [stepIndex] indexes the original (unsorted) step list, and the frame
+/// is resolved cumulatively (every step with `atMs <=` that step's
+/// `atMs` applies, tracks evaluated at the step's `atMs`), as the
+/// animator defines.
 /// [parameters]/[toggles] override the resolved frame (manual slider and
 /// toggle state win over the animation), exactly like the fullscreen page.
 Future<Uint8List> renderVisualPng(

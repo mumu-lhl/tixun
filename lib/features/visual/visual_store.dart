@@ -11,9 +11,10 @@ import '../../core/visual/validation/visual_validator.dart';
 /// Persistent storage for Visual DSL scenes and their links to chat
 /// messages, practice questions and study records.
 ///
-/// The store only persists the scene JSON; scene validation lives in the
-/// validator slice. The only content check here is that the JSON is
-/// non-empty. Every revision of a scene has one immutable snapshot row in
+/// [create] and [revise] validate the scene JSON first (via
+/// [validateVisualScene]) and refuse invalid scenes, so the store — the
+/// persistence boundary — never holds an unchecked scene. Every revision
+/// of a scene has one immutable snapshot row in
 /// [VisualSceneRevisions], so a quiz question can reference
 /// (`visualId`, `revision`) without later edits changing its figure.
 class VisualStore extends DatabaseNotifier {
@@ -46,6 +47,40 @@ class VisualStore extends DatabaseNotifier {
     return row;
   }
 
+  /// Parses [sceneJson] and validates it against the Visual DSL.
+  /// Throws [AppFormatException] when the JSON is empty, malformed or
+  /// invalid (the message is the first validation error's). Returns the
+  /// decoded scene JSON together with its validation, so callers can
+  /// sync the row's title/verification columns without re-validating.
+  ({Map<String, dynamic> json, VisualValidation validation})
+  _decodeAndValidateSceneJson(String sceneJson) {
+    if (sceneJson.trim().isEmpty) {
+      throw const AppFormatException(
+        AppErrorCode.errorVisualSceneJsonEmpty,
+        '图形场景内容不能为空。',
+      );
+    }
+    late final Map<String, dynamic> decoded;
+    try {
+      decoded = (jsonDecode(sceneJson) as Map).cast<String, dynamic>();
+    } catch (_) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        '图形场景 JSON 无效。',
+        ['scene'],
+      );
+    }
+    final validation = validateVisualScene(decoded);
+    if (!validation.ok) {
+      throw AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        validation.errors.first.message,
+        ['scene'],
+      );
+    }
+    return (json: decoded, validation: validation);
+  }
+
   /// Creates a scene, its revision-1 snapshot and the link to [messageId]
   /// in one transaction. Returns the new scene id.
   Future<String> create({
@@ -55,12 +90,7 @@ class VisualStore extends DatabaseNotifier {
     String source = 'ai',
     String verification = 'unverified',
   }) => runOperation(() async {
-    if (sceneJson.trim().isEmpty) {
-      throw const AppFormatException(
-        AppErrorCode.errorVisualSceneJsonEmpty,
-        '图形场景内容不能为空。',
-      );
-    }
+    _decodeAndValidateSceneJson(sceneJson);
     final now = DateTime.now();
     final id = const Uuid().v4();
     await db.transaction(() async {
@@ -177,6 +207,7 @@ class VisualStore extends DatabaseNotifier {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '图形修订号无效。',
+        ['revision'],
       );
     }
     final scene = await _scene(visualId);
@@ -286,30 +317,21 @@ class VisualStore extends DatabaseNotifier {
     String id,
     String newSceneJson,
   ) => runOperation(() async {
-    if (newSceneJson.trim().isEmpty) {
-      throw const AppFormatException(
-        AppErrorCode.errorVisualSceneJsonEmpty,
-        '图形场景内容不能为空。',
-      );
-    }
+    // Validate first: an invalid scene must not create a revision, and
+    // the row's title/verification columns are synced from the validated
+    // JSON below (no silent fallback to stale columns).
+    final validated = _decodeAndValidateSceneJson(newSceneJson);
     final result = await db.transaction(() async {
       final scene = await _scene(id);
       final revision = scene.revision + 1;
       final now = DateTime.now();
       // Keep the row's title / verification columns in sync with the
-      // new scene JSON (the JSON is the source of truth; the caller
-      // already validated it). If parsing fails here, leave the
-      // columns alone rather than failing the revision.
-      var titleValue = const Value<String?>.absent();
-      var verificationValue = const Value<String>.absent();
-      try {
-        final json = jsonDecode(newSceneJson) as Map<String, dynamic>;
-        final title = json['title'];
-        titleValue = Value(title is String && title.isNotEmpty ? title : null);
-        verificationValue = Value(validateVisualScene(json).verificationStatus);
-      } catch (_) {
-        // Columns stay as they were; sceneJson/revision still update.
-      }
+      // new scene JSON (the JSON is the source of truth).
+      final title = validated.json['title'];
+      final titleValue = Value(
+        title is String && title.isNotEmpty ? title : null,
+      );
+      final verificationValue = Value(validated.validation.verificationStatus);
       await (db.update(db.visualScenes)..where((s) => s.id.equals(id))).write(
         VisualScenesCompanion(
           sceneJson: Value(newSceneJson),
@@ -332,10 +354,8 @@ class VisualStore extends DatabaseNotifier {
       return scene.copyWith(
         sceneJson: newSceneJson,
         revision: revision,
-        title: titleValue.present ? titleValue : Value(scene.title),
-        verificationStatus: verificationValue.present
-            ? verificationValue.value
-            : scene.verificationStatus,
+        title: titleValue,
+        verificationStatus: verificationValue.value,
         updatedAt: now,
       );
     });

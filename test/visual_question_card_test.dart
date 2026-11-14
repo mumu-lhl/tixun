@@ -14,6 +14,7 @@ import 'package:tixun/core/ai/quiz_tool.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
+import 'package:tixun/core/visual/render/visual_painter.dart';
 import 'package:tixun/features/practice/question_card.dart';
 import 'package:tixun/features/visual/study_visuals.dart';
 
@@ -220,6 +221,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  /// The card's painter: the only CustomPaint in the tree carrying a
+  /// VisualPainter (the selection overlays use their own painters).
+  VisualPainter questionPainter(WidgetTester tester) {
+    final paints = tester.widgetList<CustomPaint>(find.byType(CustomPaint));
+    final visual = paints.where((p) => p.painter is VisualPainter).toList();
+    return visual.single.painter as VisualPainter;
+  }
+
   /// Creates a visual question through the real tool path and returns
   /// its id. The scene is created first so the tool can snapshot it.
   Future<String> createVisualQuestion(
@@ -418,4 +427,148 @@ void main() {
     await tester.pumpAndSettle();
     await submitAndCheck(tester, questionId, true);
   });
+
+  testWidgets('Drag-to-target: graded view keeps the point at the answer', (
+    tester,
+  ) async {
+    const scene =
+        '{"v":1,"kind":"geometry","title":"拖点图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"P","draggable":true}],"meta":{"alt":"拖点"}}';
+    final questionId = await createVisualQuestion(
+      tester,
+      'drag_to_target',
+      scene,
+      [
+        ['2,0'],
+      ],
+    );
+    await pumpScaffold(tester, QuestionCard(questionId));
+    final canvas = find.byKey(const Key('visual-canvas-paint'));
+    await tester.dragFrom(tester.getCenter(canvas), const Offset(90, 0));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('已选点：'), findsOneWidget);
+    // The live drag position, for comparison with the graded view.
+    final dragged = questionPainter(tester).pointOverrides['p1']!;
+    expect(dragged.dx, greaterThan(1.5));
+    await submitAndCheck(tester, questionId, true);
+    // Graded view: the answer hint stays, and the point still renders
+    // at the submitted position instead of snapping back to the origin.
+    expect(find.textContaining('已选点：'), findsOneWidget);
+    final overrides = questionPainter(tester).pointOverrides;
+    expect(overrides.keys, ['p1']);
+    expect(overrides['p1']!.dx, closeTo(dragged.dx, 0.01));
+    expect(overrides['p1']!.dy, closeTo(dragged.dy, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Point-select: graded view keeps the selection marker', (
+    tester,
+  ) async {
+    const scene =
+        '{"v":1,"kind":"geometry","title":"点选图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"原点"}],"meta":{"alt":"点选"}}';
+    final questionId = await createVisualQuestion(
+      tester,
+      'point_select',
+      scene,
+      [
+        ['0,0'],
+      ],
+    );
+    await pumpScaffold(tester, QuestionCard(questionId));
+    await tester.tap(find.byKey(const Key('visual-tap-answer')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('visual-selection-point')), findsOneWidget);
+    await submitAndCheck(tester, questionId, true);
+    // The marker and the hint survive grading: the student's own
+    // answer stays visible on the figure.
+    expect(find.textContaining('已选点：'), findsOneWidget);
+    expect(find.byKey(const Key('visual-selection-point')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Region-select: graded view keeps the region highlight', (
+    tester,
+  ) async {
+    const scene =
+        '{"v":1,"kind":"geometry","title":"区域图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r1","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true},{"id":"r2","type":"polygon","points":[[1.5,1.5],[2.5,1.5],[2.5,2.5],[1.5,2.5]],"fill":true}],"meta":{"alt":"区域"}}';
+    final questionId = await createVisualQuestion(
+      tester,
+      'region_select',
+      scene,
+      [
+        ['r1'],
+      ],
+      options: {'r1': '中心区域', 'r2': '右上区域'},
+    );
+    await pumpScaffold(tester, QuestionCard(questionId));
+    await tester.tap(find.byKey(const Key('visual-tap-answer')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('visual-selection-region')), findsOneWidget);
+    await submitAndCheck(tester, questionId, true);
+    expect(find.text('已选区域：中心区域'), findsOneWidget);
+    expect(find.byKey(const Key('visual-selection-region')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Drag-to-target: retry clears the previous drag position', (
+    tester,
+  ) async {
+    const scene =
+        '{"v":1,"kind":"geometry","title":"拖点图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"P","draggable":true}],"meta":{"alt":"拖点"}}';
+    final questionId = await createVisualQuestion(
+      tester,
+      'drag_to_target',
+      scene,
+      [
+        ['2,0'],
+      ],
+    );
+    await pumpScaffold(tester, QuestionCard(questionId));
+    final canvas = find.byKey(const Key('visual-canvas-paint'));
+    await tester.dragFrom(tester.getCenter(canvas), const Offset(90, 0));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('已选点：'), findsOneWidget);
+    await submitAndCheck(tester, questionId, true);
+    expect(find.text('再做一次'), findsOneWidget);
+    await tester.tap(find.text('再做一次'));
+    await tester.pumpAndSettle();
+    // Retry starts a new attempt (a Drift round-trip): wait for the
+    // draft view to come back, like the submit flow does.
+    for (var i = 0; i < 20; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 150)),
+      );
+      await tester.pumpAndSettle();
+      if (find.byKey(const Key('submit-quiz')).evaluate().isNotEmpty) break;
+      if (i == 19) fail('the retry never returned to the draft view');
+    }
+    // No answer yet: the hint is gone and the point is back at the
+    // scene's original position (no stale overrides).
+    expect(find.textContaining('已选点：'), findsNothing);
+    expect(questionPainter(tester).pointOverrides, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'Region-select: a region hidden by the first step cannot be tapped',
+    (tester) async {
+      const scene =
+          '{"v":1,"kind":"geometry","title":"区域图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r1","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true}],"timeline":{"durationMs":1000,"steps":[{"atMs":0,"show":[],"hide":["r1"],"note":"藏起"}]},"meta":{"alt":"区域"}}';
+      final questionId = await createVisualQuestion(
+        tester,
+        'region_select',
+        scene,
+        [
+          ['r1'],
+        ],
+        options: {'r1': '中心区域'},
+      );
+      await pumpScaffold(tester, QuestionCard(questionId));
+      // The canvas center (0,0) is inside r1, but the first step hides
+      // it — the card renders the t=0 frame, so the tap selects nothing.
+      await tester.tap(find.byKey(const Key('visual-tap-answer')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('已选区域：'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

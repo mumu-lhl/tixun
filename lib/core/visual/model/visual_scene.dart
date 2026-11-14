@@ -45,6 +45,7 @@ class VisualRange {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '范围必须是 [min, max] 形式的数组。',
+        ['range'],
       );
     }
     final min = json[0];
@@ -99,6 +100,7 @@ class VisualModel {
         throw const AppFormatException(
           AppErrorCode.errorInvalidParameterType,
           'model 的 parameters 必须是对象。',
+          ['parameters'],
         );
       }
       parameters = raw.map((key, value) {
@@ -124,6 +126,7 @@ class VisualModel {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         'model 的 showAxes 必须是布尔值。',
+        ['showAxes'],
       );
     }
     return VisualModel(
@@ -213,6 +216,7 @@ class VisualMeta {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         'meta 的 schematic 必须是布尔值。',
+        ['schematic'],
       );
     }
     return VisualMeta(
@@ -282,6 +286,7 @@ sealed class VisualControl {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
             'toggle 控件的 value 必须是布尔值。',
+            ['value'],
           );
         }
         return ToggleControl(
@@ -302,6 +307,7 @@ sealed class VisualControl {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
             'choice 控件的 options 必须是文字数组。',
+            ['options'],
           );
         }
         return ChoiceControl(
@@ -326,6 +332,7 @@ String _controlId(Map<String, dynamic> json) {
     throw const AppFormatException(
       AppErrorCode.errorInvalidParameterType,
       '控件的 id 必须是非空文字。',
+      ['id'],
     );
   }
   return id;
@@ -337,6 +344,7 @@ String _controlLabel(Map<String, dynamic> json) {
     throw const AppFormatException(
       AppErrorCode.errorInvalidParameterType,
       '控件的 label 必须是非空文字。',
+      ['label'],
     );
   }
   return label;
@@ -484,6 +492,7 @@ class VisualTrack {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         'track 的 id 必须是非空文字。',
+        ['id'],
       );
     }
     final target = json['target'];
@@ -491,6 +500,7 @@ class VisualTrack {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         'track 的 target 必须是非空文字。',
+        ['target'],
       );
     }
     return VisualTrack(
@@ -629,6 +639,7 @@ class VisualTimeline {
         throw const AppFormatException(
           AppErrorCode.errorInvalidParameterType,
           'timeline 的 tracks 必须是数组。',
+          ['tracks'],
         );
       }
       tracks = raw.map((t) {
@@ -636,6 +647,7 @@ class VisualTimeline {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
             'track 必须是对象。',
+            ['track'],
           );
         }
         return VisualTrack.fromJson(t);
@@ -648,6 +660,7 @@ class VisualTimeline {
         throw const AppFormatException(
           AppErrorCode.errorInvalidParameterType,
           'timeline 的 steps 必须是数组。',
+          ['steps'],
         );
       }
       steps = raw.map((s) {
@@ -655,6 +668,7 @@ class VisualTimeline {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
             'step 必须是对象。',
+            ['step'],
           );
         }
         return VisualStep.fromJson(s);

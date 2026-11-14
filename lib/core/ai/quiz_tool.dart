@@ -121,12 +121,14 @@ Future<Map<String, dynamic>> executeQuizTool(
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '考试模式下出题不能附加图形。',
+        ['visual_id'],
       );
     }
     if (spec.visualId != null && visual == null) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '当前会话未启用图形工具。',
+        ['visual_id'],
       );
     }
     final encoded = canonicalJson(args);

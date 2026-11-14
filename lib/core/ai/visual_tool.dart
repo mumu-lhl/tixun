@@ -79,8 +79,11 @@ Map<String, dynamic> applyVisualPatchOps(
   Map<String, dynamic> sceneJson,
   List<dynamic> ops,
 ) {
-  Never bad(String message) =>
-      throw AppFormatException(AppErrorCode.errorInvalidParameterType, message);
+  Never bad(String message, [String? param]) => throw AppFormatException(
+    AppErrorCode.errorInvalidParameterType,
+    message,
+    param == null ? const <String>[] : <String>[param],
+  );
   final patched = (jsonDecode(jsonEncode(sceneJson)) as Map)
       .cast<String, dynamic>();
   var elements = patched['elements'];
@@ -89,23 +92,45 @@ Map<String, dynamic> applyVisualPatchOps(
       elements = <dynamic>[];
       patched['elements'] = elements;
     }
-    if (elements is! List) bad('场景的 elements 必须是列表。');
+    if (elements is! List) bad('场景的 elements 必须是列表。', 'elements');
     return elements as List<dynamic>;
   }
 
-  int indexOf(String id) {
-    final list = elementList();
-    for (var i = 0; i < list.length; i++) {
-      final element = list[i];
-      if (element is Map && element['id'] == id) return i;
+  /// Finds the path of the element with [id], recursing into `group`
+  /// children; null when absent. The path is a chain of indexes: the
+  /// first is the top-level index, the rest descend into nested groups.
+  /// Element ids are globally unique (the validator enforces it), so
+  /// the first match is the only match.
+  List<int>? findPath(List<dynamic> elements, String id) {
+    for (var i = 0; i < elements.length; i++) {
+      final element = elements[i];
+      if (element is! Map) continue;
+      if (element['id'] == id) return [i];
+      if (element['type'] == 'group') {
+        final children = element['children'];
+        if (children is List) {
+          final child = findPath(children, id);
+          if (child != null) return [i, ...child];
+        }
+      }
     }
-    return -1;
+    return null;
+  }
+
+  /// The list that holds the element at [path]: the top-level list for
+  /// a top-level element, the enclosing group's `children` otherwise.
+  List<dynamic> listAt(List<dynamic> elements, List<int> path) {
+    var list = elements;
+    for (final index in path.sublist(0, path.length - 1)) {
+      list = (list[index] as Map)['children'] as List<dynamic>;
+    }
+    return list;
   }
 
   String requireId(Map<String, dynamic> op, String field) {
     final id = op[field];
     if (id == null || id is! String || id.isEmpty) {
-      bad('补丁操作缺少有效的 $field。');
+      bad('补丁操作缺少有效的 $field。', field);
     }
     return id;
   }
@@ -113,44 +138,50 @@ Map<String, dynamic> applyVisualPatchOps(
   Map<String, dynamic> requireElement(Map<String, dynamic> op) {
     final element = op['element'];
     if (element == null || element is! Map) {
-      bad('补丁操作缺少有效的 element。');
+      bad('补丁操作缺少有效的 element。', 'element');
     }
     return element.cast<String, dynamic>();
   }
 
   for (final rawOp in ops) {
-    if (rawOp is! Map) bad('补丁操作必须是对象。');
+    if (rawOp is! Map) bad('补丁操作必须是对象。', 'ops');
     final op = rawOp.cast<String, dynamic>();
     final name = op['op'];
-    if (name is! String) bad('补丁操作缺少有效的 op。');
+    if (name is! String) bad('补丁操作缺少有效的 op。', 'op');
     switch (name) {
       case 'replace_element':
         final id = requireId(op, 'id');
         final element = requireElement(op);
-        if (element['id'] != id) bad('替换的图元 id 与操作 id 不一致：$id。');
-        final at = indexOf(id);
-        if (at < 0) bad('找不到要替换的图元：$id。');
-        elementList()[at] = element;
+        if (element['id'] != id) {
+          bad('替换的图元 id 与操作 id 不一致：$id。', 'id');
+        }
+        final path = findPath(elementList(), id);
+        if (path == null) bad('找不到要替换的图元：$id。', 'id');
+        listAt(elementList(), path)[path.last] = element;
       case 'add_element':
         final element = requireElement(op);
         final id = requireId(element, 'id');
-        if (indexOf(id) >= 0) bad('图元 id 已存在：$id。');
+        if (findPath(elementList(), id) != null) {
+          bad('图元 id 已存在：$id。', 'id');
+        }
         elementList().add(element);
       case 'remove_element':
         final id = requireId(op, 'id');
-        final at = indexOf(id);
-        if (at < 0) bad('找不到要删除的图元：$id。');
-        elementList().removeAt(at);
+        final path = findPath(elementList(), id);
+        if (path == null) bad('找不到要删除的图元：$id。', 'id');
+        listAt(elementList(), path).removeAt(path.last);
       case 'set_title':
         final title = op['title'];
-        if (title == null || title is! String) bad('set_title 缺少有效的 title。');
+        if (title == null || title is! String) {
+          bad('set_title 缺少有效的 title。', 'title');
+        }
         if (title.isEmpty) {
           patched.remove('title');
         } else {
           patched['title'] = title;
         }
       default:
-        bad('未知的图形补丁操作：$name。');
+        bad('未知的图形补丁操作：$name。', 'op');
     }
   }
   return patched;
@@ -227,6 +258,7 @@ Future<Map<String, dynamic>> executeUpdateVisualTool(
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '参数 scene 与 ops 只能二选一。',
+        ['scene'],
       );
     }
     if (sceneArg == null && opsArg == null) {

@@ -193,12 +193,14 @@ class QuestionSpec {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '题目图形引用无效。',
+        ['visual_id'],
       );
     }
     if (visualRevision != null && (visualId == null || visualRevision! < 1)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '题目图形修订无效。',
+        ['visual_revision'],
       );
     }
     if ((kind == 'point_select' ||
@@ -209,6 +211,7 @@ class QuestionSpec {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '点选、区域选择、拖点或读图题必须附带图形。',
+        ['visual_id'],
       );
     }
     if (answers.length > 12 ||

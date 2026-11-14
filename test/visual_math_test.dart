@@ -22,6 +22,76 @@ void main() {
       }
     });
 
+    test('tan(x) splits at every asymptote over [-10, 10]', () {
+      final segments = sampleFunction(
+        'tan(x)',
+        variables: {},
+        min: -10,
+        max: 10,
+      );
+      const poles = [
+        -7 * math.pi / 2,
+        -5 * math.pi / 2,
+        -math.pi / 2,
+        math.pi / 2,
+        5 * math.pi / 2,
+        7 * math.pi / 2,
+      ];
+      for (final pole in poles) {
+        for (final segment in segments) {
+          final left = segment.points.any((p) => p.dx < pole);
+          final right = segment.points.any((p) => p.dx > pole);
+          expect(
+            left && right,
+            isFalse,
+            reason: 'no segment may span the asymptote at $pole',
+          );
+        }
+      }
+    });
+
+    test('1/x splits at 0 over [-2, 3]', () {
+      final segments = sampleFunction('1/x', variables: {}, min: -2, max: 3);
+      expect(segments.length, greaterThanOrEqualTo(2));
+      for (final segment in segments) {
+        final left = segment.points.any((p) => p.dx < 0);
+        final right = segment.points.any((p) => p.dx > 0);
+        expect(left && right, isFalse);
+      }
+    });
+
+    test('1/(x-0.7) splits at 0.7', () {
+      final segments = sampleFunction(
+        '1/(x-0.7)',
+        variables: {},
+        min: -3,
+        max: 3,
+      );
+      expect(segments.length, greaterThanOrEqualTo(2));
+      for (final segment in segments) {
+        final left = segment.points.any((p) => p.dx < 0.7);
+        final right = segment.points.any((p) => p.dx > 0.7);
+        expect(left && right, isFalse);
+      }
+    });
+
+    test('steep continuous 1e6*(x-0.5) stays in one segment', () {
+      final segments = sampleFunction(
+        '1e6*(x-0.5)',
+        variables: {},
+        min: -10,
+        max: 10,
+      );
+      expect(segments, hasLength(1));
+    });
+
+    test('sin(x) and x^3 stay in one segment over [-10, 10]', () {
+      for (final expr in ['sin(x)', 'x^3']) {
+        final segments = sampleFunction(expr, variables: {}, min: -10, max: 10);
+        expect(segments, hasLength(1), reason: expr);
+      }
+    });
+
     test('1/(x-1) splits at x=1', () {
       final segments = sampleFunction(
         '1/(x-1)',
@@ -143,6 +213,24 @@ void main() {
       expect(findZeros('x^2+1', {}, -3, 3), isEmpty);
     });
 
+    test('tan(x) poles are not reported as zeros', () {
+      final zeros = findZeros('tan(x)', {}, -3, 3);
+      expect(zeros, [closeTo(0, 1e-6)]);
+    });
+
+    test('1/x has no zeros', () {
+      expect(findZeros('1/x', {}, -2, 3), isEmpty);
+    });
+
+    test('1/(x-0.7) has no zeros', () {
+      expect(findZeros('1/(x-0.7)', {}, -3, 3), isEmpty);
+    });
+
+    test('steep genuine root 1e6*(x-0.5) is still found', () {
+      final zeros = findZeros('1e6*(x-0.5)', {}, -3, 3);
+      expect(zeros, [closeTo(0.5, 1e-6)]);
+    });
+
     test('exact hit at a grid point is caught', () {
       // x^2 touches zero at 0 without a sign change; 0 is on the grid.
       expect(findZeros('x^2', {}, -2, 2), [closeTo(0, 1e-9)]);
@@ -161,6 +249,13 @@ void main() {
 
     test('parallel lines have no intersections', () {
       expect(findIntersections('x', 'x+1', {}, -3, 3), isEmpty);
+    });
+
+    test('tan(x) meets 0 only at the origin, not at the poles', () {
+      final points = findIntersections('tan(x)', '0', {}, -3, 3);
+      expect(points, hasLength(1));
+      expect(points.single.dx, closeTo(0, 1e-6));
+      expect(points.single.dy, closeTo(0, 1e-6));
     });
   });
 

@@ -91,6 +91,48 @@ VisualScene _animatedScene() => VisualScene.fromJson({
   'meta': {'alt': '动画测试'},
 });
 
+/// Two steps that only hide (the second never re-shows the first
+/// step's element): the cumulative frame at step 1 hides both.
+VisualScene _cumulativeScene() => VisualScene.fromJson({
+  'v': 1,
+  'kind': 'geometry',
+  'title': '累积',
+  'view': {
+    'x': [-3, 3],
+    'y': [-3, 3],
+  },
+  'elements': [
+    {
+      'id': 'e1',
+      'type': 'point',
+      'at': [1, 1],
+    },
+    {
+      'id': 'e2',
+      'type': 'point',
+      'at': [2, 2],
+    },
+  ],
+  'timeline': {
+    'durationMs': 1000,
+    'steps': [
+      {
+        'atMs': 0,
+        'show': [],
+        'hide': ['e1'],
+        'note': '第一步',
+      },
+      {
+        'atMs': 500,
+        'show': [],
+        'hide': ['e2'],
+        'note': '第二步',
+      },
+    ],
+  },
+  'meta': {'alt': '累积测试'},
+});
+
 void main() {
   test('track interpolates linearly at start/mid/end', () {
     final scene = _animatedScene();
@@ -135,14 +177,76 @@ void main() {
     expect(resolveVisualFrame(scene, 1000).stepIndex, 2);
   });
 
-  test('stepIndex override applies exactly that step regardless of time', () {
+  test('stepIndex override resolves cumulatively at that step', () {
     final frame = resolveVisualFrame(_animatedScene(), 0, 1);
     expect(frame.timeMs, 500);
     expect(frame.stepIndex, 1);
     // Tracks are evaluated at the step's atMs.
     expect(frame.parameters['a'], 5);
-    // Only step 1's show/hide applies (not step 0's).
+    // Cumulative: step 0 hides e1, step 1 shows e1 and hides e2 — the
+    // same frame the time path produces at 500ms.
     expect(frame.hiddenElementIds, {'e2'});
+    expect(
+      frame.hiddenElementIds,
+      resolveVisualFrame(_animatedScene(), 500).hiddenElementIds,
+    );
+  });
+
+  test('stepIndex override keeps earlier hides that are not undone', () {
+    // Step 1 hides e2 without re-showing e1: the earlier hide stays,
+    // even though the explicit step is 1.
+    final frame = resolveVisualFrame(_cumulativeScene(), 0, 1);
+    expect(frame.timeMs, 500);
+    expect(frame.stepIndex, 1);
+    expect(frame.hiddenElementIds, {'e1', 'e2'});
+  });
+
+  test('stepIndex indexes the original step list', () {
+    // Steps listed out of atMs order: index 0 is the atMs-500 step.
+    final scene = VisualScene.fromJson({
+      'v': 1,
+      'kind': 'geometry',
+      'title': '乱序',
+      'view': {
+        'x': [-3, 3],
+        'y': [-3, 3],
+      },
+      'elements': [
+        {
+          'id': 'e1',
+          'type': 'point',
+          'at': [1, 1],
+        },
+        {
+          'id': 'e2',
+          'type': 'point',
+          'at': [2, 2],
+        },
+      ],
+      'timeline': {
+        'durationMs': 1000,
+        'steps': [
+          {
+            'atMs': 500,
+            'show': [],
+            'hide': ['e2'],
+            'note': '第二步',
+          },
+          {
+            'atMs': 0,
+            'show': [],
+            'hide': ['e1'],
+            'note': '第一步',
+          },
+        ],
+      },
+      'meta': {'alt': '乱序测试'},
+    });
+    final frame = resolveVisualFrame(scene, 0, 0);
+    expect(frame.timeMs, 500);
+    expect(frame.stepIndex, 0);
+    // Cumulative by atMs: both steps apply.
+    expect(frame.hiddenElementIds, {'e1', 'e2'});
   });
 
   test('scene without a timeline keeps defaults and duration 0', () {

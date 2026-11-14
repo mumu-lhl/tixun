@@ -2067,6 +2067,7 @@
   "usageFeatureVisualEdit": "Visual edit",
   "usageFeatureQuizWithVisual": "Quiz with visual",
   "visualSection": "Visuals",
+  "visualUntitled": "Untitled visual",
   "visualSchematicNote": "Schematic — not to scale",
   "visualAnswerSelectedPoint": "Selected point: {arg0}",
   "visualAnswerSelectedRegion": "Selected region: {arg0}",
