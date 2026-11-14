@@ -123,6 +123,8 @@ flutter test test/localization_test.dart
 
 先阅读 [接口与约定](docs/ARCHITECTURE_REVIEW.md)。新增 Provider 实现 `ChatProvider.start`，返回单次 `AiConversation`；请求使用 `AiRequest`，事件只发布完整工具调用和明确完成状态。不要把厂商 JSON 或令牌带回控制器。
 
+知识打印导出的三个写出器是纯函数，改排版先跑 `flutter test test/study_export_test.dart`（LaTeX 转文本、块解析、PDF 字体子集体积、DOCX 部件与 XML 合法性），改读库或图片加载再跑 `flutter test test/study_export_flow_test.dart`。字体来自 `assets/fonts/`，PDF 只嵌入实际用到的字形，单份打印稿应保持在几十 KB；渲染后可用 `pdftotext` / `pdftoppm` 抽查中文换行与分页，但不替代真实打印机和 Word/WPS 打开验证。
+
 修改模型参数先调整 `AiOptions` 并补能力矩阵；修改进度、调用上限、取消或结束判定时运行 `flutter test test/architecture_test.dart`，再跑对应协议和控制器回归。偏好写入通过 AppPreferences，跨文件与数据库的学习资料写入通过 Store，确保关闭/备份屏障可追踪。
 
 ## 每日 Nightly

@@ -25,6 +25,7 @@ Drift + SQLite 是学习数据的唯一持久化来源，当前 **schema v18**�
 | 各功能的 Store | 资料、练习、复习、考试、目录和草稿的校验、事务及写入屏障。 |
 | `core/visual/`、`features/visual/`、`core/ai/visual_tool.dart` | AI 教学图形：Visual DSL v1 场景、验证、采样、渲染、存储与卡片，`create_visual` / `update_visual` / `get_visual` 三个工具。图形 JSON 走版本化 DSL，不执行模型生成的代码；考试模式不提供探索图工具，使用 create_quiz 内联静态题面/解析图；出题钉住不可变快照。 |
 | `core/platform/`、`core/ui/` | 托管附件、平台能力和共用图片查看等实际复用的 UI。 |
+| `core/export/`、`features/library/study_export.dart` | 知识打印导出：Markdown 展平为块/行模型，PDF/DOCX/Markdown 三个写出器是纯函数；读库、读附件、加载字体和平台保存留给 UI 层。 |
 | `features/update/` | 发布信息、通道、版本比较、校验下载和平台安装/重启切换。 |
 
 每次学习运行创建独立 `AiConversation`，在同一次运行内顺序执行工具轮次。业务层传类型化 `AiRequest`，不拼厂商请求 Map；Adapter 只发布完整工具调用和明确的完成事件。加密推理状态限于当前 Conversation，不进入数据库或备份。
@@ -50,6 +51,12 @@ SSE 按 UTF-8、行和事件解帧，不依赖网络分块边界。取消、限�
 图形工具附带字段 schema、表达式规则和有效示例；创建图形后可继续解释、修正或出题，仍受原有轮次/调用上限约束。后续请求按选入历史恢复一个批量查询得到的图形索引（最多 24 条、条目共 6000 UTF-8 字节），仅包含 ID、标题、修订和类型；完整 DSL 按需 `get_visual`。卡片、命中检测和 PNG 使用同一解析后的首帧，祖先分组的可见性对子孙生效。坐标轴使用有界整数索引刻度；验证器拒绝相对精度不足的范围，绘制器也防御旧数据。结构/几何验证不证明学科内容或参考答案正确，不提供电路、化学或地理仿真。
 
 schema v18 为题图关联增加 `role=question|solution`，旧 pin 显式迁移为 question。考试 `create_quiz` 只接受内联 `question_scene` 和可选 `solution_scene`，不开放探索图的 create/update/get 工具或已有 ID 引用。PracticeStore 在同一事务验证静态题面、可作答性，保存两份独立场景与 pin；失败不留下题目或孤立场景，幂等重放复用原 pin。两种图均不关联聊天消息；题面图拒绝 controls、timeline、visible=false 和 visibleWhen。解析图只在当前 attempt 不再为 draft 时渲染，重做重新隐藏；修订、重启和备份保留两种 pin。结构校验不能证明模型题面中没有语义答案暗示，所有 AI 参考答案仍待核验。
+
+## 知识打印导出
+
+选中的知识可以导出为 PDF、Word（.docx）或 Markdown 打印稿。PDF 保持真实文本：内嵌 Noto Sans SC 的字体子集，可选中、可搜索，单份导出只有几十 KB；DOCX 由 `archive` 直接写 WordprocessingML 部件，带分页页码与图片关系；Markdown 是不含图片的纯文本回退。公式在导出前由 `core/export/latex_text.dart` 转成可读文本（分数保持斜杠、根号用 `√`、上下标用 Unicode 或 `^`/`_`），不做排版级还原；无法识别的命令保留原样，不会静默丢失。内容里的 Markdown 由与界面相同的语法扩展解析（含 `$...$` 公式），所以打印稿的行内强调、列表、表格、代码块和引用与屏幕一致。图片只导出 PNG/JPEG 附件，读取失败的单张图片跳过而不中止整份导出。
+
+导出是只读操作：不写数据库、不改修订、不新增偏好。Linux 使用系统保存对话框，Android 走系统文档选择器（`ACTION_CREATE_DOCUMENT`），暂存文件只在缓存目录并由导出器删除。
 
 ## 工具、凭据和边界
 

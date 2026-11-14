@@ -727,7 +727,7 @@
   "knowledgeType": "知识类型",
   "moreActions": "更多操作",
   "basicInformation": "基本信息",
-  "knowledgeContent": "知识内容",
+  "knowledgeContent": "知识正文",
   "questionAndImages": "题目与图片",
   "yourAttempt": "我的作答与思路",
   "errorAnalysis": "错因与分析",
@@ -1026,7 +1026,6 @@
   "createPracticeQuestion": "创建练习题",
   "suggestQuestionRegions": "提出分题建议",
   "referenceAnswers": "参考答案",
-  "knowledgeContent": "知识正文",
   "question": "题目",
   "aiProposedCauseNeedsConfirmation": "AI 建议的原因（待确认）",
   "couldNotReadPromptSettings": "提示词配置无法读取，暂用默认值；可在提示词管理中重新保存。",
@@ -1637,12 +1636,36 @@
   "pythonWorkspaceLoadFailed": "工作区读取失败，请刷新重试。",
   "noPythonWorkspaces": "暂无 Python 工作区文件。",
   "pythonWorkspaceTotal": "共 {count} 个工作区，占用 {size}",
-  "@pythonWorkspaceTotal": {"placeholders": {"count": {"type": "int"}, "size": {"type": "String"}}},
+  "@pythonWorkspaceTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "pythonWorkspaceDetails": "{files} 个文件 · {size}",
-  "@pythonWorkspaceDetails": {"placeholders": {"files": {"type": "int"}, "size": {"type": "String"}}},
+  "@pythonWorkspaceDetails": {
+    "placeholders": {
+      "files": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "deletePythonWorkspace": "删除 Python 工作区？",
   "deletePythonWorkspaceConfirmation": "将永久删除会话 {sessionId} 的全部工作区文件。此操作无法撤销。",
-  "@deletePythonWorkspaceConfirmation": {"placeholders": {"sessionId": {"type": "String"}}},
+  "@deletePythonWorkspaceConfirmation": {
+    "placeholders": {
+      "sessionId": {
+        "type": "String"
+      }
+    }
+  },
   "deleteAllPythonWorkspaces": "删除全部工作区",
   "deleteAllPythonWorkspacesConfirmation": "将永久删除所有 Python 工作区文件。此操作无法撤销。",
   "runPython": "运行 Python",
@@ -2196,5 +2219,58 @@
   },
   "usageCostUnknownShort": "未知",
   "usageSubscriptionShort": "订阅",
-  "errorFieldReason": "错误原因"
+  "errorFieldReason": "错误原因",
+  "exportForPrint": "导出打印版",
+  "exportDialogTitle": "导出知识",
+  "exportFormatLabel": "文件格式",
+  "exportFormatPdf": "PDF（可直接打印）",
+  "exportFormatDocx": "Word 文档（.docx）",
+  "exportFormatMarkdown": "Markdown 纯文本",
+  "exportIncludeImages": "包含图片附件",
+  "exportMarkdownWithoutImages": "纯文本导出不包含图片附件。",
+  "exportGenerate": "生成并保存",
+  "exportGenerating": "正在生成打印文件…",
+  "exportSaved": "已保存：{arg0}",
+  "@exportSaved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "导出失败，请重试。",
+  "exportDocumentTitle": "知识打印稿",
+  "exportGeneratedLine": "生成于 {arg0} · 共 {arg1} 条",
+  "@exportGeneratedLine": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "exportPageLabel": "第 {arg0} / {arg1} 页",
+  "@exportPageLabel": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "exportNoteMeta": "{arg0} · 更新于 {arg1}",
+  "@exportNoteMeta": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  }
 }

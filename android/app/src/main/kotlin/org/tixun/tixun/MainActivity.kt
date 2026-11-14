@@ -26,7 +26,8 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 val isBackup = call.method == "saveBackup"
                 val isUsage = call.method == "saveUsage"
-                if (!isBackup && !isUsage) {
+                val isExport = call.method == "saveExport"
+                if (!isBackup && !isUsage && !isExport) {
                     result.notImplemented()
                     return@setMethodCallHandler
                 }
@@ -37,10 +38,19 @@ class MainActivity : FlutterActivity() {
                 try {
                     val source = File(call.argument<String>("source") ?: "").canonicalFile
                     val cache = cacheDir.canonicalFile
-                    val validExtension = if (isBackup) {
-                        source.name.endsWith(".tixun-backup")
-                    } else {
-                        source.extension in setOf("csv", "jsonl")
+                    val extension = source.extension.lowercase()
+                    val exportMimes = mapOf(
+                        "pdf" to "application/pdf",
+                        "docx" to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "md" to "text/markdown",
+                    )
+                    val validExtension = when {
+                        isBackup -> source.name.endsWith(".tixun-backup")
+                        isUsage -> extension in setOf("csv", "jsonl")
+                        // The Dart side names the MIME type; a mismatch means a
+                        // caller tried to hand us a file the picker cannot list.
+                        else -> exportMimes[extension] != null &&
+                            call.argument<String>("mime") == exportMimes[extension]
                     }
                     if (!source.path.startsWith(cache.path + File.separator) ||
                         !source.isFile || !validExtension) {
@@ -53,12 +63,11 @@ class MainActivity : FlutterActivity() {
                     pendingSource = source
                     val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                         addCategory(Intent.CATEGORY_OPENABLE)
-                        type = if (isBackup) {
-                            "application/zip"
-                        } else if (source.extension == "csv") {
-                            "text/csv"
-                        } else {
-                            "application/json"
+                        type = when {
+                            isBackup -> "application/zip"
+                            isExport -> exportMimes.getValue(extension)
+                            source.extension == "csv" -> "text/csv"
+                            else -> "application/json"
                         }
                         putExtra(Intent.EXTRA_TITLE, File(name).name)
                     }

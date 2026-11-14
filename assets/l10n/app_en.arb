@@ -1026,7 +1026,6 @@
   "createPracticeQuestion": "Create practice question",
   "suggestQuestionRegions": "Suggest question regions",
   "referenceAnswers": "Reference answers",
-  "knowledgeContent": "Knowledge content",
   "question": "Question",
   "aiProposedCauseNeedsConfirmation": "AI-suggested cause (unconfirmed)",
   "couldNotReadPromptSettings": "Could not read prompt settings. Defaults are in use; save your preferences again in Prompts.",
@@ -1637,12 +1636,36 @@
   "pythonWorkspaceLoadFailed": "Could not load workspaces. Refresh and try again.",
   "noPythonWorkspaces": "No Python workspace files.",
   "pythonWorkspaceTotal": "{count} workspaces · {size} total",
-  "@pythonWorkspaceTotal": {"placeholders": {"count": {"type": "int"}, "size": {"type": "String"}}},
+  "@pythonWorkspaceTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "pythonWorkspaceDetails": "{files} files · {size}",
-  "@pythonWorkspaceDetails": {"placeholders": {"files": {"type": "int"}, "size": {"type": "String"}}},
+  "@pythonWorkspaceDetails": {
+    "placeholders": {
+      "files": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "deletePythonWorkspace": "Delete Python workspace?",
   "deletePythonWorkspaceConfirmation": "Permanently delete all workspace files for session {sessionId}. This cannot be undone.",
-  "@deletePythonWorkspaceConfirmation": {"placeholders": {"sessionId": {"type": "String"}}},
+  "@deletePythonWorkspaceConfirmation": {
+    "placeholders": {
+      "sessionId": {
+        "type": "String"
+      }
+    }
+  },
   "deleteAllPythonWorkspaces": "Delete all workspaces",
   "deleteAllPythonWorkspacesConfirmation": "Permanently delete all Python workspace files. This cannot be undone.",
   "runPython": "Run Python",
@@ -2196,5 +2219,58 @@
   },
   "usageCostUnknownShort": "Unknown",
   "usageSubscriptionShort": "Plan",
-  "errorFieldReason": "Error reason"
+  "errorFieldReason": "Error reason",
+  "exportForPrint": "Export for print",
+  "exportDialogTitle": "Export knowledge",
+  "exportFormatLabel": "File format",
+  "exportFormatPdf": "PDF (ready to print)",
+  "exportFormatDocx": "Word document (.docx)",
+  "exportFormatMarkdown": "Markdown text",
+  "exportIncludeImages": "Include image attachments",
+  "exportMarkdownWithoutImages": "Plain-text exports leave out image attachments.",
+  "exportGenerate": "Generate and save",
+  "exportGenerating": "Preparing the print file…",
+  "exportSaved": "Saved: {arg0}",
+  "@exportSaved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "Export failed. Please try again.",
+  "exportDocumentTitle": "Knowledge printout",
+  "exportGeneratedLine": "Generated {arg0} · {arg1} notes",
+  "@exportGeneratedLine": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "exportPageLabel": "Page {arg0} / {arg1}",
+  "@exportPageLabel": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "exportNoteMeta": "{arg0} · updated {arg1}",
+  "@exportNoteMeta": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  }
 }

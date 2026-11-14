@@ -18,6 +18,8 @@ import '../../core/ui/app_menu.dart';
 import '../../core/ui/search_snippet.dart';
 import 'library_providers.dart';
 import 'study_editor.dart';
+import 'study_export.dart';
+import 'study_export_dialog.dart';
 import 'study_images.dart';
 import 'study_photo_intake.dart';
 import 'study_store.dart';
@@ -244,6 +246,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     } finally {
       if (mounted) setState(() => _loadingMore = false);
     }
+  }
+
+  /// Prints the current selection. The database read stops as soon as a note
+  /// leaves the selection, so the file always matches what the bar reported.
+  Future<void> _exportSelected() async {
+    final choice = await showStudyExportDialog(context);
+    if (choice == null || !mounted || _selected.isEmpty) return;
+    await exportStudySelection(
+      context,
+      store: ref.read(studyStoreProvider),
+      ids: _selected.keys.toList(growable: false),
+      format: choice.format,
+      includeImages: choice.includeImages,
+    );
   }
 
   Future<void> _batch({bool permanent = false}) async {
@@ -814,6 +830,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             if (context.mounted) context.go('/chat');
                           }),
                     child: Text(context.l10n.knowledgeQuizUpTo5),
+                  ),
+                if (!_trash && !widget.isMistake)
+                  TextButton.icon(
+                    onPressed: _bulkBusy || _selected.isEmpty
+                        ? null
+                        : _exportSelected,
+                    icon: const Icon(Icons.print_outlined, size: 18),
+                    label: Text(context.l10n.exportForPrint),
                   ),
                 if (_trash)
                   TextButton(

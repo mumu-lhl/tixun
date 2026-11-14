@@ -15,6 +15,7 @@
 | `app/controller.dart` | 保留页面状态、会话/草稿、附件入口与任务准备；负责创建回复记录、节流保存进度、保存最终状态。委托 LearningRun 执行推理，不了解 tool_calls、finish_reason 或 Responses 私有字段。 |
 | `app/preferences.dart` | 语言、主题、配色、提示词与 Provider 配置。拥有独立写入跟踪；关闭、备份导出及恢复等待必要写入，不再借用 StudyStore 的空闲状态。现有控制器方法保留为 UI 的兼容入口。 |
 | `core/ai/chatgpt/auth.dart` | 只向 UI 返回只读账号摘要和一次取得的账号快照；令牌记录、HTTP 与安全存储细节留在实现内部。保留 PKCE/JWT 校验、合并刷新、取消等待、退出与原子保存语义。 |
+| `core/export/`、`features/library/study_export.dart` | 知识打印导出：`parseLearningMarkdown` 复用学习内容的 Markdown 与公式语法，`buildStudyPdf` / `buildStudyDocx` / `buildStudyMarkdown` 是无 Flutter 依赖的纯函数；`StudyStore` 读取、附件字节和字体资源只在 `StudyExportService` 里加载，导出不写数据库、不改修订。PDF 内嵌 CJK 字体子集，公式在导出前转为文本，无法识别的命令保留原文。 |
 | `features/update/` | 发布通道、版本与 ABI 选择、下载校验、Android 系统安装和 Linux 重启切换，学习数据与程序目录隔离。 |
 | `StudyStore` / `PracticeStore` | 分题接收的文件写入、事务和幂等操作集中于 `acceptQuestionRegion`；题目修订及继承关联集中于 `revise`。题图验证、快照与 pin 关联集中在 `PracticeStore.create` 的同一事务，AI 工具和编辑器不另补关联；修订/幂等重放保留原 pin。UI 不再自行组合这些写入。 |
 | `core/visual/*`、`features/visual/*`、`core/ai/visual_tool.dart` | Visual DSL v1 的场景验证、采样、渲染、存储与探索图工具。考试不提供探索图 create/update/get，而通过 create_quiz 内联题面/解析图，Store 事务固定两种 pin，解析仅在当前尝试提交后显示。题卡与全屏共享同一作答状态，不创建第二个 attempt；schema v18 迁移旧 pin 为 question。 |
@@ -48,6 +49,7 @@ flowchart TD
 - 资料写入仍逐项确认；模型输出、资料内容和用户自定义提示词都不能提升工具权限。
 - 图形工具只读写 Visual DSL 场景 JSON，不执行模型生成的代码；出题钉住的快照版本不受后续编辑影响。
 - 原图、裁剪、修订、历史作答、迁移和备份恢复能力保留。
+- 导出是只读边界：打印文件不经过 Store 写入，不产生修订或偏好写入；平台保存只接受缓存目录内、扩展名与 MIME 匹配的暂存文件。
 
 ## 维护与验证
 
