@@ -153,11 +153,121 @@ void main() {
     },
   );
 
+  test('exam creates separate immutable question and solution figures without chat exposure', () async {
+    await _seedSession(db, 's', 'r1');
+    final args = _quizArgs()
+      ..['question_scene'] = jsonDecode(_sceneJson)
+      ..['solution_scene'] = {
+        'v': 1,
+        'kind': 'geometry',
+        'title': 'SOLUTION ONLY',
+        'elements': [
+          {
+            'id': 'solution',
+            'type': 'text',
+            'at': [0, 0],
+            'text': 'x=2',
+          },
+        ],
+      };
+    final result = await runQuiz(args, exam: true);
+    expect(result['ok'], isTrue);
+    final detail = await practice.detail(result['question_id'] as String);
+    expect(detail.spec.visualId, isNotNull);
+    expect(detail.spec.solutionVisualId, isNotNull);
+    expect(detail.spec.solutionVisualId, isNot(detail.spec.visualId));
+    expect(await visual.listByMessage('r1'), isEmpty);
+    expect(
+      (await visual.getRevisionSceneJson(
+        detail.spec.solutionVisualId!,
+        detail.spec.solutionVisualRevision!,
+      )),
+      contains('SOLUTION ONLY'),
+    );
+    final again = await runQuiz(args, callId: 'retry', exam: true);
+    expect(again['question_id'], result['question_id']);
+    expect(await practice.list(), hasLength(1));
+    expect(await db.select(db.visualScenes).get(), hasLength(2));
+    await visual.revise(
+      detail.spec.solutionVisualId!,
+      jsonEncode({
+        'v': 1,
+        'kind': 'geometry',
+        'title': 'Later',
+        'elements': [
+          {
+            'id': 'p',
+            'type': 'point',
+            'at': [0, 0],
+          },
+        ],
+      }),
+    );
+    final revisedId = await practice.revise(
+      detail.row.id,
+      QuestionSpec(
+        kind: 'numeric',
+        stem: 'Edited',
+        answers: const [
+          ['2'],
+        ],
+        visualId: detail.spec.visualId,
+        visualRevision: detail.spec.visualRevision,
+      ),
+    );
+    final revised = await practice.detail(revisedId);
+    expect(revised.spec.solutionVisualRevision, 1);
+    expect(revised.solutionVisualLinks, detail.solutionVisualLinks);
+  });
+
+  for (final unsafe in ['controls', 'timeline', 'hidden']) {
+    test(
+      'exam rejects $unsafe in a question figure and rolls back all writes',
+      () async {
+        await _seedSession(db, 's', 'r1');
+        final scene = (jsonDecode(_sceneJson) as Map).cast<String, dynamic>();
+        if (unsafe == 'controls') {
+          scene['controls'] = [
+            {'id': 'show', 'kind': 'toggle', 'label': 'Show', 'value': false},
+          ];
+        }
+        if (unsafe == 'timeline') scene['timeline'] = {'durationMs': 1000};
+        if (unsafe == 'hidden') {
+          (scene['elements'] as List).first['visible'] = false;
+        }
+        final result = await runQuiz(
+          _quizArgs()..['question_scene'] = scene,
+          exam: true,
+        );
+        expect(result['ok'], isFalse);
+        expect(await practice.list(), isEmpty);
+        expect(await db.select(db.visualScenes).get(), isEmpty);
+        expect(await db.select(db.visualSceneRevisions).get(), isEmpty);
+      },
+    );
+  }
+  test(
+    'invalid solution cannot leave a question or orphaned figure behind',
+    () async {
+      await _seedSession(db, 's', 'r1');
+      final result = await runQuiz(
+        _quizArgs()
+          ..['question_scene'] = jsonDecode(_sceneJson)
+          ..['solution_scene'] = {'v': 1, 'kind': 'invalid'},
+        exam: true,
+      );
+      expect(result['ok'], isFalse);
+      expect(await practice.list(), isEmpty);
+      expect(await db.select(db.visualScenes).get(), isEmpty);
+      expect(await db.select(db.visualMessageLinks).get(), isEmpty);
+    },
+  );
+
   test('create_quiz in exam mode rejects the visual', () async {
     final id = await seedScene();
     final result = await runQuiz(_quizArgs(visualId: id), exam: true);
     expect(result['ok'], false);
-    expect(result['error'], contains('考试模式'));
+    expect(result['error'], contains('不能引用探索图'));
     expect(await db.select(db.practiceQuestions).get(), isEmpty);
   });
 

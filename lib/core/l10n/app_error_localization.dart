@@ -387,6 +387,8 @@ String appErrorText(
     l10n.errorVisualSceneRevisionDoesNotExist,
   AppErrorCode.errorVisualStudyLinkNeedsOneOwner =>
     l10n.errorVisualStudyLinkNeedsOneOwner,
+  AppErrorCode.errorAssessmentFigureMustBeStatic =>
+    l10n.errorAssessmentFigureMustBeStatic,
   AppErrorCode.errorVisualQuestionNotAnswerable =>
     l10n.errorVisualQuestionNotAnswerable,
 

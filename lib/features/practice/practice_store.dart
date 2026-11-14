@@ -25,8 +25,9 @@ class QuestionDetail {
     this.attempts,
     this.responses,
     this.images,
-    this.visualLinks,
-  );
+    this.visualLinks, [
+    this.solutionVisualLinks = const [],
+  ]);
   final PracticeQuestion row;
   final QuestionSpec spec;
   final List<PracticeAttempt> attempts;
@@ -38,6 +39,7 @@ class QuestionDetail {
   /// the scene's current JSON: the figure is frozen at the pinned
   /// revision.
   final List<({String visualId, int revision})> visualLinks;
+  final List<({String visualId, int revision})> solutionVisualLinks;
   PracticeAttempt? get latest => attempts.firstOrNull;
 }
 
@@ -68,16 +70,35 @@ class PracticeStore extends DatabaseNotifier {
       // figure. Older callers/editors may omit the visual fields.
       final sameVisual =
           spec.visualId == null || spec.visualId == previous.spec.visualId;
-      final inherited =
+      var inherited =
           sameVisual &&
               spec.visualRevision == null &&
+              spec.questionScene == null &&
               previous.spec.visualId != null
           ? QuestionSpec.fromJson({
               ...spec.toJson(),
               'visual_id': previous.spec.visualId,
               'visual_revision': previous.spec.visualRevision,
+              if (spec.solutionVisualId == null &&
+                  spec.solutionScene == null &&
+                  previous.spec.solutionVisualId != null) ...{
+                'solution_visual_id': previous.spec.solutionVisualId,
+                'solution_visual_revision':
+                    previous.spec.solutionVisualRevision,
+              },
             })
           : spec;
+      if (sameVisual &&
+          spec.questionScene == null &&
+          inherited.solutionVisualId == null &&
+          inherited.solutionScene == null &&
+          previous.spec.solutionVisualId != null) {
+        inherited = QuestionSpec.fromJson({
+          ...inherited.toJson(),
+          'solution_visual_id': previous.spec.solutionVisualId,
+          'solution_visual_revision': previous.spec.solutionVisualRevision,
+        });
+      }
       return create(
         inherited,
         parentId: parentId,
@@ -197,9 +218,18 @@ class PracticeStore extends DatabaseNotifier {
                 variables: [Variable(old.id)],
               )
               .get();
-          final oldVisual = await (db.select(
-            db.visualQuestionLinks,
-          )..where((l) => l.questionId.equals(old.id))).getSingleOrNull();
+          final oldVisual =
+              await (db.select(db.visualQuestionLinks)..where(
+                    (l) =>
+                        l.questionId.equals(old.id) & l.role.equals('question'),
+                  ))
+                  .getSingleOrNull();
+          final oldSolution =
+              await (db.select(db.visualQuestionLinks)..where(
+                    (l) =>
+                        l.questionId.equals(old.id) & l.role.equals('solution'),
+                  ))
+                  .getSingleOrNull();
           final oldSpec = QuestionSpec(
             kind: old.kind,
             stem: old.stem,
@@ -215,6 +245,8 @@ class PracticeStore extends DatabaseNotifier {
             timeLimitSeconds: old.timeLimitSeconds,
             visualId: oldVisual?.visualId,
             visualRevision: oldVisual?.revision,
+            solutionVisualId: oldSolution?.visualId,
+            solutionVisualRevision: oldSolution?.revision,
           );
           final incoming = normalized(spec);
           // An unspecified revision means "freeze at creation", not
@@ -222,7 +254,30 @@ class PracticeStore extends DatabaseNotifier {
           if (spec.visualId != null && spec.visualRevision == null) {
             incoming['visual_revision'] = oldVisual?.revision;
           }
-          if (canonical(normalized(oldSpec)) != canonical(incoming)) {
+          if (spec.solutionVisualId != null &&
+              spec.solutionVisualRevision == null) {
+            incoming['solution_visual_revision'] = oldSolution?.revision;
+          }
+          final previous = normalized(oldSpec);
+          for (final (sceneKey, idKey, revisionKey, link) in [
+            ('question_scene', 'visual_id', 'visual_revision', oldVisual),
+            (
+              'solution_scene',
+              'solution_visual_id',
+              'solution_visual_revision',
+              oldSolution,
+            ),
+          ]) {
+            if (!incoming.containsKey(sceneKey) || link == null) continue;
+            final json = await _visual.getRevisionSceneJson(
+              link.visualId,
+              link.revision,
+            );
+            previous.remove(idKey);
+            previous.remove(revisionKey);
+            previous[sceneKey] = json == null ? null : jsonDecode(json);
+          }
+          if (canonical(previous) != canonical(incoming)) {
             throw const AppFormatException(
               AppErrorCode.errorThisOperationAlreadyCreatedAQuestion,
               '该操作已创建过题目，内容与之前不一致，未覆盖旧题。',
@@ -235,6 +290,25 @@ class PracticeStore extends DatabaseNotifier {
           }
           return old.id;
         }
+      }
+      if (spec.questionScene != null || spec.solutionScene != null) {
+        final resolved = spec.toJson();
+        for (final (sceneKey, idKey, revisionKey) in [
+          ('question_scene', 'visual_id', 'visual_revision'),
+          ('solution_scene', 'solution_visual_id', 'solution_visual_revision'),
+        ]) {
+          final json = resolved.remove(sceneKey) as Map<String, dynamic>?;
+          if (json == null) continue;
+          final scene = VisualScene.fromJson(json);
+          if (sceneKey == 'question_scene') validateAssessmentScene(scene);
+          final visualId = await _visual.create(
+            sceneJson: jsonEncode(json),
+            source: 'assessment',
+          );
+          resolved[idKey] = visualId;
+          resolved[revisionKey] = 1;
+        }
+        spec = QuestionSpec.fromJson(resolved);
       }
       final id = const Uuid().v4();
       await db
@@ -410,6 +484,27 @@ class PracticeStore extends DatabaseNotifier {
             (await _visual.snapshotForQuestion(visualId)).revision;
         await _visual.linkToQuestion(visualId, id, revision);
       }
+      if (spec.solutionVisualId != null) {
+        final visualId = spec.solutionVisualId!;
+        final revision =
+            spec.solutionVisualRevision ??
+            (await _visual.snapshotForQuestion(visualId)).revision;
+        final json = await _visual.getRevisionSceneJson(visualId, revision);
+        if (json == null) {
+          throw const AppFormatException(
+            AppErrorCode.errorVisualSceneRevisionDoesNotExist,
+            '图形修订不存在。',
+          );
+        }
+        VisualScene.fromJson((jsonDecode(json) as Map).cast<String, dynamic>());
+        if (visualId == spec.visualId) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            '题面图与解析图必须独立保存。',
+          );
+        }
+        await _visual.linkToQuestion(visualId, id, revision, role: 'solution');
+      }
       return id;
     });
     changed();
@@ -454,7 +549,17 @@ class PracticeStore extends DatabaseNotifier {
     ]);
     visualJoin.where(db.visualQuestionLinks.questionId.equals(id));
     visualJoin.orderBy([OrderingTerm.asc(db.visualScenes.createdAt)]);
-    final visualLinks = (await visualJoin.get())
+    final allVisualRows = await visualJoin.get();
+    final solutionVisualLinks = [
+      for (final r in allVisualRows)
+        if (r.readTable(db.visualQuestionLinks).role == 'solution')
+          (
+            visualId: r.readTable(db.visualQuestionLinks).visualId,
+            revision: r.readTable(db.visualQuestionLinks).revision,
+          ),
+    ];
+    final visualLinks = allVisualRows
+        .where((r) => r.readTable(db.visualQuestionLinks).role == 'question')
         .map(
           (r) => (
             visualId: r.readTable(db.visualQuestionLinks).visualId,
@@ -479,6 +584,8 @@ class PracticeStore extends DatabaseNotifier {
       visualRevision: visualLinks.isNotEmpty
           ? visualLinks.first.revision
           : null,
+      solutionVisualId: solutionVisualLinks.firstOrNull?.visualId,
+      solutionVisualRevision: solutionVisualLinks.firstOrNull?.revision,
     );
     spec.validate();
     final storedAttempts =
@@ -518,6 +625,7 @@ class PracticeStore extends DatabaseNotifier {
         db.practiceImages,
       )..where((a) => a.questionId.equals(id))).get(),
       visualLinks,
+      solutionVisualLinks,
     );
   }
 

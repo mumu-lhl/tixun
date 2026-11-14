@@ -85,7 +85,7 @@ class VisualStore extends DatabaseNotifier {
   /// in one transaction. Returns the new scene id.
   Future<String> create({
     required String sceneJson,
-    required String messageId,
+    String? messageId,
     String? title,
     String source = 'ai',
     String verification = 'unverified',
@@ -117,14 +117,16 @@ class VisualStore extends DatabaseNotifier {
               createdAt: now,
             ),
           );
-      await db
-          .into(db.visualMessageLinks)
-          .insert(
-            VisualMessageLinksCompanion.insert(
-              visualId: id,
-              messageId: messageId,
-            ),
-          );
+      if (messageId != null) {
+        await db
+            .into(db.visualMessageLinks)
+            .insert(
+              VisualMessageLinksCompanion.insert(
+                visualId: id,
+                messageId: messageId,
+              ),
+            );
+      }
     });
     changed();
     return id;
@@ -156,6 +158,7 @@ class VisualStore extends DatabaseNotifier {
     ]);
     joined.where(
       db.visualQuestionLinks.questionId.equals(questionId) &
+          db.visualQuestionLinks.role.equals('question') &
           db.visualScenes.deleted.equals(false),
     );
     joined.orderBy([OrderingTerm.asc(db.visualScenes.createdAt)]);
@@ -201,8 +204,9 @@ class VisualStore extends DatabaseNotifier {
   Future<void> linkToQuestion(
     String visualId,
     String questionId,
-    int revision,
-  ) => runOperation(() async {
+    int revision, {
+    String role = 'question',
+  }) => runOperation(() async {
     if (revision < 1) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
@@ -224,6 +228,7 @@ class VisualStore extends DatabaseNotifier {
             visualId: visualId,
             questionId: questionId,
             revision: Value(revision),
+            role: Value(role),
           ),
         );
     changed();
@@ -242,6 +247,7 @@ class VisualStore extends DatabaseNotifier {
     ]);
     joined.where(
       db.visualQuestionLinks.questionId.equals(questionId) &
+          db.visualQuestionLinks.role.equals('question') &
           db.visualScenes.deleted.equals(false),
     );
     joined.orderBy([OrderingTerm.asc(db.visualScenes.createdAt)]);

@@ -657,6 +657,68 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       }
       if (last.role == AiRole.user &&
           names.contains('create_quiz') &&
+          last.text.contains('带图')) {
+        final drag = last.text.contains('拖点');
+        yield AiChunk(
+          completed: true,
+          calls: [
+            ToolCall(
+              'mock-assessment',
+              'create_quiz',
+              jsonEncode({
+                'kind': drag ? 'drag_to_target' : 'read_value',
+                'stem': drag ? '把点 P 拖到 (2, 0)。可全屏作答。' : '读图写出点 P 的横坐标。可全屏作答。',
+                'subject': '数学',
+                'answers': [
+                  [drag ? '2,0' : '2'],
+                ],
+                'explanation': '参考位置为 (2, 0)，横坐标为 2。',
+                'question_scene': {
+                  'v': 1,
+                  'kind': 'geometry',
+                  'title': '题面图',
+                  'view': {
+                    'x': [-3, 3],
+                    'y': [-3, 3],
+                  },
+                  'elements': [
+                    {
+                      'id': 'p',
+                      'type': 'point',
+                      'at': [drag ? 0 : 2, 0],
+                      'label': 'P',
+                      'draggable': drag,
+                    },
+                  ],
+                  'meta': {'alt': '坐标系中的点 P'},
+                },
+                'solution_scene': {
+                  'v': 1,
+                  'kind': 'geometry',
+                  'title': '提交后解析图',
+                  'view': {
+                    'x': [-3, 3],
+                    'y': [-3, 3],
+                  },
+                  'elements': [
+                    {
+                      'id': 'target',
+                      'type': 'point',
+                      'at': [2, 0],
+                      'label': '(2, 0)',
+                      'style': 'success',
+                    },
+                  ],
+                  'meta': {'alt': '参考位置与坐标'},
+                },
+              }),
+            ),
+          ],
+        );
+        return;
+      }
+      if (last.role == AiRole.user &&
+          names.contains('create_quiz') &&
           ['出题', '练习', '检测题', '变式', '考试'].any((v) => last.text.contains(v))) {
         yield AiChunk(
           completed: true,

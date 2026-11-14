@@ -15,6 +15,7 @@ import 'package:tixun/features/library/study_store.dart';
 import 'package:tixun/features/practice/practice_store.dart';
 import 'package:tixun/features/practice/question_spec.dart';
 import 'package:tixun/features/review/review_store.dart';
+import 'package:tixun/features/visual/visual_store.dart';
 
 import 'support/chatgpt_fixture.dart';
 
@@ -273,7 +274,7 @@ void main() {
       expect(progress.every((p) => p.text.isEmpty && !p.quizCreated), true);
     });
 
-    test('Exam quiz creation never attaches a visual', () async {
+    test('Exam quiz creation rejects an external exploration visual', () async {
       // A visual could carry the answer, and exam questions are
       // generated live and unreviewed: the executor must refuse the
       // attachment in exam mode, so no question is created at all.
@@ -294,6 +295,110 @@ void main() {
         throwsA(isA<AiFailure>()),
       );
       expect(await db.select(db.practiceQuestions).get(), isEmpty);
+    });
+
+    test('Exam uses atomic private figures without exposing teaching tools or solution progress', () async {
+      final visual = VisualStore(db);
+      addTearDown(visual.dispose);
+      final provider = ScriptProvider(
+        (_) => [
+          AiChunk(
+            text: 'SECRET SOLUTION',
+            completed: true,
+            calls: [
+              ToolCall(
+                'exam',
+                'create_quiz',
+                jsonEncode({
+                  'kind': 'read_value',
+                  'stem': 'Read the point',
+                  'subject': '数学',
+                  'answers': [
+                    ['2'],
+                  ],
+                  'explanation': 'SOLUTION',
+                  'question_scene': {
+                    'v': 1,
+                    'kind': 'geometry',
+                    'title': 'Question',
+                    'view': {
+                      'x': [-3, 3],
+                      'y': [-3, 3],
+                    },
+                    'elements': [
+                      {
+                        'id': 'p',
+                        'type': 'point',
+                        'at': [2, 0],
+                      },
+                    ],
+                  },
+                  'solution_scene': {
+                    'v': 1,
+                    'kind': 'geometry',
+                    'title': 'SOLUTION',
+                    'elements': [
+                      {
+                        'id': 's',
+                        'type': 'text',
+                        'at': [0, 0],
+                        'text': 'Answer 2',
+                      },
+                    ],
+                  },
+                }),
+              ),
+            ],
+          ),
+        ],
+      );
+      final progress = <LearningRunResult>[];
+      final result =
+          await LearningRun(
+            db,
+            AttachmentStore(dir),
+            study,
+            practice,
+            review,
+            provider,
+            visual: visual,
+          ).run(
+            sessionId: session.id,
+            runId: 'reply',
+            requestConfig: config,
+            requestPrompts: PromptSettings(),
+            history: [],
+            images: [],
+            mode: 'exam',
+            authorized: true,
+            cancel: CancelToken(),
+            confirm: (_, _, _) async => false,
+            onProgress: (p) async => progress.add(p),
+          );
+      expect(result.quizCreated, isTrue);
+      expect(result.text, isNot(contains('SECRET')));
+      expect(progress.every((p) => !p.text.contains('SECRET')), isTrue);
+      final request = provider.requests.single;
+      expect(
+        request.tools.map((t) => t.name),
+        isNot(contains('create_visual')),
+      );
+      expect(
+        request.tools.map((t) => t.name),
+        isNot(contains('update_visual')),
+      );
+      expect(request.tools.map((t) => t.name), isNot(contains('get_visual')));
+      final properties =
+          request.tools
+                  .singleWhere((t) => t.name == 'create_quiz')
+                  .parameters['properties']
+              as Map;
+      expect(properties, contains('question_scene'));
+      expect(properties, isNot(contains('visual_id')));
+      expect(await visual.listByMessage('reply'), isEmpty);
+      final detail = await practice.detail((await practice.list()).single.id);
+      expect(detail.visualLinks, hasLength(1));
+      expect(detail.solutionVisualLinks, hasLength(1));
     });
 
     test(

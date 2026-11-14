@@ -205,6 +205,7 @@ enum AppErrorCode {
   errorVisualSceneRevisionDoesNotExist,
   errorVisualStudyLinkNeedsOneOwner,
   errorVisualQuestionNotAnswerable,
+  errorAssessmentFigureMustBeStatic,
 
   generationTimedOutPartialContent,
   generationStopped,

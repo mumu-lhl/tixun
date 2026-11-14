@@ -403,7 +403,7 @@ class LearningRun {
             if (PythonRuntime.isSupportedPlatform &&
                 ['ask', 'auto'].contains(pythonPolicy))
               pythonToolSchema,
-            if (!materialRequest) quizToolSchema,
+            if (!materialRequest) exam ? examQuizToolSchema : quizToolSchema,
             if (!materialRequest && !exam && visual != null) visualToolSchema,
             if (!materialRequest && !exam && visual != null)
               updateVisualToolSchema,
@@ -426,9 +426,14 @@ class LearningRun {
           instructions: instructions,
         );
       }
-      if (request.tools.any((tool) => tool.name == 'create_visual')) {
+      if (request.tools.any(
+        (tool) =>
+            tool.name == 'create_visual' ||
+            (exam && tool.name == 'create_quiz'),
+      )) {
         request = request.copyWith(
-          instructions: '${request.instructions}\n$visualDslInstructions',
+          instructions:
+              '${request.instructions}\n$visualDslInstructions${exam ? '\nExam: create_quiz may include question_scene and solution_scene. Do not call create_visual/get_visual/update_visual. The question_scene is static with no timeline, controls, hidden elements, answer markers or solution hints. Put all solution diagrams only in solution_scene. Both are frozen atomically and are not linked to the chat message. Passing validation does not prove that question content is answer-free or scientifically correct.' : ''}',
         );
       }
       final runner = StudyToolRunner(
@@ -467,7 +472,8 @@ class LearningRun {
                 try {
                   final args = jsonDecode(c.arguments) as Map;
                   final visualId = args['visual_id'];
-                  return visualId is String && visualId.isNotEmpty;
+                  return (visualId is String && visualId.isNotEmpty) ||
+                      args['question_scene'] is Map;
                 } catch (_) {
                   return false;
                 }

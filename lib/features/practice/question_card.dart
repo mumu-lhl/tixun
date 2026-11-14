@@ -77,6 +77,48 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
   };
   bool busy = true;
   List<String> answers = [];
+  // Both routes render this attempt; opening fullscreen never begins another.
+  final _viewChanges = ValueNotifier<int>(0);
+  bool _fullscreenOpen = false;
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _viewChanges.value++;
+  }
+
+  Future<void> _openFullscreen() async {
+    if (_fullscreenOpen) return;
+    _fullscreenOpen = true;
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (routeContext) => ValueListenableBuilder<int>(
+            valueListenable: _viewChanges,
+            builder: (_, _, _) => Scaffold(
+              appBar: AppBar(
+                title: Text(routeContext.l10n.visualAnswerFullscreen),
+                leading: IconButton(
+                  key: const Key('visual-return-to-answer'),
+                  tooltip: routeContext.l10n.visualReturnToAnswer,
+                  onPressed: () => Navigator.of(routeContext).pop(),
+                  icon: const Icon(Icons.arrow_back),
+                ),
+              ),
+              body: SafeArea(
+                child: SingleChildScrollView(
+                  child: _buildQuestion(routeContext, fullscreen: true),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    } finally {
+      _fullscreenOpen = false;
+    }
+  }
+
   Future<void> _writes = Future.value();
   final controllers = <TextEditingController>[];
   @override
@@ -90,6 +132,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
     for (final c in controllers) {
       c.dispose();
     }
+    _viewChanges.dispose();
     super.dispose();
   }
 
@@ -166,10 +209,13 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
     });
   }
 
-  Future<void> _action(Future<void> Function() fn) async {
+  Future<void> _action(
+    BuildContext actionContext,
+    Future<void> Function() fn,
+  ) async {
     if (busy) return;
     setState(() => busy = true);
-    await act(context, () async {
+    await act(actionContext, () async {
       await _writes;
       await fn();
     });
@@ -199,7 +245,9 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _buildQuestion(context);
+
+  Widget _buildQuestion(BuildContext context, {bool fullscreen = false}) {
     if (d == null) {
       if (failure == null) return const LinearProgressIndicator();
       return Column(
@@ -268,6 +316,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
             alignment: Alignment.centerRight,
             child: ScratchpadButton('practice:${widget.id}'),
           ),
+          if (fullscreen) LearningMarkdown(q.stem),
           for (final link in detail.visualLinks)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -276,12 +325,14 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 kind: q.kind,
                 options: q.options,
                 selected: answers.isNotEmpty ? answers.first : '',
-                onSelect: editable ? _selectVisualAnswer : null,
-                onDragPosition: editable ? _updateVisualAnswer : null,
-                onDragEnd: editable ? _save : null,
+                onSelect: editable && !busy ? _selectVisualAnswer : null,
+                onDragPosition: editable && !busy ? _updateVisualAnswer : null,
+                onDragEnd: editable && !busy ? _save : null,
+                onFullscreen: fullscreen ? null : _openFullscreen,
+                fullscreen: fullscreen,
               ),
             ),
-          LearningMarkdown(q.stem),
+          if (!fullscreen) LearningMarkdown(q.stem),
           if (widget.showReasoning && detail.row.sourceMessageId != null)
             SourceReasoning(detail.row.sourceMessageId!),
           for (final image in detail.images)
@@ -424,7 +475,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                       : context.l10n.myIndependentAnswer,
                 ),
                 onChanged: (v) {
-                  answers[i] = v;
+                  setState(() => answers[i] = v);
                   _save();
                 },
               ),
@@ -445,7 +496,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                   key: const Key('submit-quiz'),
                   onPressed: busy
                       ? null
-                      : () => _action(() async {
+                      : () => _action(context, () async {
                           await store.submit(a.id, answers);
                         }),
                   child: Text(
@@ -458,7 +509,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                   TextButton(
                     onPressed: busy
                         ? null
-                        : () => _action(() => store.useHint(a.id)),
+                        : () => _action(context, () => store.useHint(a.id)),
                     child: Text(context.l10n.giveMeAHint),
                   ),
               ],
@@ -487,6 +538,20 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                 '参考答案：${q.answers.map((a) => a.join(' / ')).join('；')}',
               ),
             if (q.explanation.isNotEmpty) LearningMarkdown(q.explanation),
+            for (final link in detail.solutionVisualLinks)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.visualSolutionFigure,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    _SolutionVisual(link: link),
+                  ],
+                ),
+              ),
             if (graded)
               Text(
                 context.l10n.seconds(
@@ -511,7 +576,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                   FilledButton(
                     onPressed: busy
                         ? null
-                        : () => _action(() async {
+                        : () => _action(context, () async {
                             await store.selfGrade(a.id, true);
                           }),
                     child: Text(context.l10n.iSolvedItIndependently),
@@ -519,7 +584,7 @@ class _QuestionCardState extends ConsumerState<QuestionCard> {
                   OutlinedButton(
                     onPressed: busy
                         ? null
-                        : () => _action(() async {
+                        : () => _action(context, () async {
                             await store.selfGrade(a.id, false);
                           }),
                     child: Text(context.l10n.iNeedMorePractice),
@@ -695,7 +760,7 @@ class _RemainingTimeState extends State<_RemainingTime> {
 /// nothing. For `drag_to_target` the card is draggable instead: the
 /// dragged point's position is the answer, reported live through
 /// [onDragPosition] and saved when the drag ends ([onDragEnd]). The
-/// fullscreen page stays view-only.
+/// fullscreen page renders this same attempt via the owning QuestionCard.
 class _QuestionVisual extends ConsumerStatefulWidget {
   const _QuestionVisual({
     required this.link,
@@ -705,7 +770,11 @@ class _QuestionVisual extends ConsumerStatefulWidget {
     this.onSelect,
     this.onDragPosition,
     this.onDragEnd,
+    this.onFullscreen,
+    this.fullscreen = false,
   });
+  final VoidCallback? onFullscreen;
+  final bool fullscreen;
   final ({String visualId, int revision}) link;
   final String kind;
   final Map<String, String> options;
@@ -728,27 +797,10 @@ class _QuestionVisual extends ConsumerStatefulWidget {
 }
 
 class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
-  /// Drag positions from this session (element id → model coordinates).
-  final _pointOverrides = <String, ui.Offset>{};
-
   /// A tap outside every region shows an in-card "please choose" hint.
   /// A SnackBar would queue behind the submit-error SnackBar and hide
   /// the "answer incomplete" feedback on submit.
   var _showRegionHint = false;
-
-  @override
-  void didUpdateWidget(covariant _QuestionVisual oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // "Try again" starts a new attempt on the same question id, so this
-    // state object is reused (QuestionCard's key is `quiz-<questionId>`).
-    // A fresh attempt has no answer yet: drop the previous attempt's
-    // drag positions, or the point would sit at the old answer while the
-    // answer slot is empty (and submitting would then report "no answer"
-    // under a figure that clearly shows one).
-    if (widget.selected.isEmpty && oldWidget.selected.isNotEmpty) {
-      _pointOverrides.clear();
-    }
-  }
 
   /// Overrides for the card: this session's drags, or — on first render
   /// with a saved answer — the stored position, so a reloaded question
@@ -759,9 +811,8 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
   /// Group children count: a draggable point inside a group restores
   /// exactly like a top-level one.
   Map<String, ui.Offset> _dragOverrides(VisualScene scene) {
-    if (_pointOverrides.isNotEmpty) return _pointOverrides;
     final saved = parseVisualPoint(widget.selected);
-    if (saved == null) return _pointOverrides;
+    if (saved == null) return const {};
     final position = ui.Offset(saved.$1, saved.$2);
     final points = _draggablePoints(scene);
     final id = _dragAnswerId(widget.selected);
@@ -771,7 +822,7 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
       }
     }
     if (points.isNotEmpty) return {points.first.id: position};
-    return _pointOverrides;
+    return const {};
   }
 
   /// Draggable, literal points anywhere in the scene (group children
@@ -838,6 +889,8 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                 // an answer), so the fullscreen page gets no drag.
                 fullscreenAllowDrag: false,
                 assessment: true,
+                onFullscreen: widget.onFullscreen,
+                assessmentFullscreen: widget.fullscreen,
                 onTapModelPoint: answerable
                     ? (point) {
                         if (widget.kind == 'point_select') {
@@ -853,7 +906,8 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                             toggles: frame.toggles,
                             hiddenElementIds: frame.hiddenElementIds,
                           );
-                          if (region != null) {
+                          if (region != null &&
+                              widget.options.containsKey(region)) {
                             setState(() => _showRegionHint = false);
                             widget.onSelect!(region);
                           } else {
@@ -874,12 +928,15 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
                     : const {},
                 onDragUpdate: draggable
                     ? (id, position) {
-                        setState(() => _pointOverrides[id] = position);
                         // The answer carries the dragged element's id,
                         // so a later reload restores the same point
                         // instead of the first draggable one.
+                        final view = VisualCoordinateMapper.fromScene(
+                          scene,
+                          const ui.Size(1, 1),
+                        ).modelRect;
                         widget.onDragPosition?.call(
-                          '$id:${position.dx},${position.dy}',
+                          '$id:${position.dx.clamp(view.left, view.right)},${position.dy.clamp(view.top, view.bottom)}',
                         );
                       }
                     : null,
@@ -943,6 +1000,20 @@ class _QuestionVisualState extends ConsumerState<_QuestionVisual> {
     if (point == null) return value;
     return '(${point.$1.toStringAsFixed(2)}, ${point.$2.toStringAsFixed(2)})';
   }
+}
+
+class _SolutionVisual extends ConsumerWidget {
+  const _SolutionVisual({required this.link});
+  final ({String visualId, int revision}) link;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => ref
+      .watch(_questionVisualProvider(link))
+      .when(
+        data: (scene) =>
+            scene == null ? const SizedBox.shrink() : VisualCard(scene: scene),
+        loading: () => const LinearProgressIndicator(),
+        error: (_, _) => Text(context.l10n.thisQuestionCannotBeRead),
+      );
 }
 
 final _questionVisualProvider = FutureProvider.autoDispose

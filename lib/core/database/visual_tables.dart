@@ -59,6 +59,9 @@ class VisualQuestionLinks extends Table {
   /// follows later edits: its figure is frozen at the revision recorded
   /// here (see `VisualStore.snapshotForQuestion`).
   IntColumn get revision => integer().withDefault(const Constant(1))();
+  TextColumn get role => text()
+      .withDefault(const Constant('question'))
+      .check(const CustomExpression("role IN ('question', 'solution')"))();
   @override
   Set<Column> get primaryKey => {visualId, questionId};
 }

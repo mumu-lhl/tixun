@@ -93,6 +93,8 @@ class VisualCard extends StatelessWidget {
     this.dragEnabled = false,
     this.fullscreenAllowDrag = true,
     this.assessment = false,
+    this.onFullscreen,
+    this.assessmentFullscreen = false,
     this.pointOverrides = const {},
     this.onDragUpdate,
     this.onDragEnd,
@@ -114,12 +116,15 @@ class VisualCard extends StatelessWidget {
 
   /// Whether the fullscreen page opened from this card lets the user
   /// drag points. Question cards pass false (view-only fullscreen);
-  /// standalone cards keep the exploratory drag.
+  /// standalone cards keep the exploratory drag. QuestionCard overrides the
+  /// fullscreen action with its shared-attempt answer route instead.
   final bool fullscreenAllowDrag;
 
   /// Assessment snapshots expose only the initial frame in fullscreen;
   /// exploratory controls and teaching steps are not answer controls.
   final bool assessment;
+  final VoidCallback? onFullscreen;
+  final bool assessmentFullscreen;
 
   /// Local drag positions (element id → model coordinates).
   final Map<String, ui.Offset> pointOverrides;
@@ -191,17 +196,20 @@ class VisualCard extends StatelessWidget {
                   ),
                   icon: const Icon(Icons.play_arrow),
                 ),
-              IconButton(
-                tooltip: context.l10n.visualViewFullscreen,
-                onPressed: () => showVisualFullscreen(
-                  context,
-                  scene,
-                  title: _title,
-                  allowDrag: fullscreenAllowDrag,
-                  assessment: assessment,
+              if (!assessmentFullscreen)
+                IconButton(
+                  tooltip: context.l10n.visualViewFullscreen,
+                  onPressed:
+                      onFullscreen ??
+                      () => showVisualFullscreen(
+                        context,
+                        scene,
+                        title: _title,
+                        allowDrag: fullscreenAllowDrag,
+                        assessment: assessment,
+                      ),
+                  icon: const Icon(Icons.open_in_full),
                 ),
-                icon: const Icon(Icons.open_in_full),
-              ),
             ],
           ),
           Padding(
@@ -222,17 +230,19 @@ class VisualCard extends StatelessWidget {
               ),
             ),
           GestureDetector(
-            onTap: onTapModelPoint == null && !dragEnabled
-                ? () => showVisualFullscreen(
-                    context,
-                    scene,
-                    title: _title,
-                    allowDrag: fullscreenAllowDrag,
-                    assessment: assessment,
-                  )
+            onTap:
+                !assessmentFullscreen && onTapModelPoint == null && !dragEnabled
+                ? onFullscreen ??
+                      () => showVisualFullscreen(
+                        context,
+                        scene,
+                        title: _title,
+                        allowDrag: fullscreenAllowDrag,
+                        assessment: assessment,
+                      )
                 : null,
-            child: AspectRatio(
-              aspectRatio: 4 / 3,
+            child: _AssessmentViewport(
+              expanded: assessmentFullscreen,
               // The figure itself is the accessible content: `meta.alt`
               // is the accessibility text (the title is only a fallback
               // when no alt text was authored).
@@ -260,6 +270,82 @@ class VisualCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Presentation-only transform. Answer gestures still use the original canvas
+/// mapper after InteractiveViewer inverse-transforms the pointer positions.
+class _AssessmentViewport extends StatefulWidget {
+  const _AssessmentViewport({required this.expanded, required this.child});
+  final bool expanded;
+  final Widget child;
+  @override
+  State<_AssessmentViewport> createState() => _AssessmentViewportState();
+}
+
+class _AssessmentViewportState extends State<_AssessmentViewport> {
+  final _transform = TransformationController();
+  bool _navigate = false;
+  @override
+  void dispose() {
+    _transform.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.expanded) {
+      return AspectRatio(aspectRatio: 4 / 3, child: widget.child);
+    }
+    return Column(
+      children: [
+        Wrap(
+          spacing: 8,
+          children: [
+            TextButton.icon(
+              key: const Key('visual-navigation-mode'),
+              onPressed: () => setState(() => _navigate = !_navigate),
+              icon: Icon(_navigate ? Icons.touch_app : Icons.pan_tool),
+              label: Text(
+                _navigate
+                    ? context.l10n.visualAnswerMode
+                    : context.l10n.visualMoveView,
+              ),
+            ),
+            IconButton(
+              key: const Key('visual-reset-view'),
+              tooltip: context.l10n.visualResetView,
+              onPressed: () => _transform.value = Matrix4.identity(),
+              icon: const Icon(Icons.fit_screen),
+            ),
+          ],
+        ),
+        SizedBox(
+          height: (MediaQuery.sizeOf(context).height * .6).clamp(240, 720),
+          width: double.infinity,
+          child: ClipRect(
+            child: GestureDetector(
+              // Claim navigation pans before the surrounding scroll view.
+              onVerticalDragUpdate: !_navigate
+                  ? null
+                  : (details) {
+                      _transform.value =
+                          Matrix4.translationValues(0, details.delta.dy, 0) *
+                          _transform.value;
+                    },
+
+              child: InteractiveViewer(
+                transformationController: _transform,
+                panEnabled: _navigate,
+                minScale: 1,
+                maxScale: 4,
+                child: IgnorePointer(ignoring: _navigate, child: widget.child),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -396,6 +396,212 @@ void main() {
     expect(tester.takeException(), isNull);
   }
 
+  for (final kind in ['point_select', 'region_select', 'read_value']) {
+    testWidgets('fullscreen $kind shares selection, submission and retry', (
+      tester,
+    ) async {
+      const scene =
+          '{"v":1,"kind":"geometry","title":"Question figure","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true}]}';
+      final questionId = await createVisualQuestion(tester, kind, scene, [
+        [
+          kind == 'region_select'
+              ? 'r'
+              : kind == 'read_value'
+              ? '2'
+              : '0,0',
+        ],
+      ], options: kind == 'region_select' ? {'r': 'Region'} : const {});
+      await pumpScaffold(tester, QuestionCard(questionId));
+      await tester.tap(find.byIcon(Icons.open_in_full));
+      await tester.pumpAndSettle();
+      if (kind == 'read_value') {
+        await tester.ensureVisible(find.byKey(const Key('quiz-answer-0')));
+        await tester.enterText(find.byKey(const Key('quiz-answer-0')), '2');
+      } else {
+        await tester.tap(find.byKey(const Key('visual-tap-answer')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(
+            Key(
+              kind == 'region_select'
+                  ? 'visual-selection-region'
+                  : 'visual-selection-point',
+            ),
+          ),
+          findsOneWidget,
+        );
+      }
+      await tester.ensureVisible(find.byKey(const Key('submit-quiz')));
+      await submitAndCheck(tester, questionId, true);
+      await tester.tap(find.byKey(const Key('visual-return-to-answer')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('参考答案：'), findsOneWidget);
+      await tester.runAsync(() async {
+        final detail = await c.practice.detail(questionId);
+        expect(detail.attempts, hasLength(1));
+      });
+      await tester.ensureVisible(find.text('再做一次'));
+      await tester.tap(find.text('再做一次'));
+      for (var i = 0; i < 10; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pumpAndSettle();
+        if (find.byKey(const Key('submit-quiz')).evaluate().isNotEmpty) break;
+      }
+      expect(find.byKey(const Key('visual-selection-region')), findsNothing);
+      expect(find.byKey(const Key('visual-selection-point')), findsNothing);
+      if (kind == 'read_value') {
+        expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('quiz-answer-0')))
+              .controller!
+              .text,
+          isEmpty,
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets(
+    'solution figures are gated by the current attempt in both routes and on retry',
+    (tester) async {
+      late String id;
+      await tester.runAsync(() async {
+        await openController();
+        id = await c.practice.create(
+          const QuestionSpec(
+            kind: 'numeric',
+            stem: 'Read the graph',
+            answers: [
+              ['2'],
+            ],
+            questionScene: {
+              'v': 1,
+              'kind': 'plot2d',
+              'title': 'QUESTION ONLY',
+              'model': {'expression': 'x^2'},
+            },
+            solutionScene: {
+              'v': 1,
+              'kind': 'geometry',
+              'title': 'SOLUTION SECRET',
+              'elements': [
+                {
+                  'id': 'text',
+                  'type': 'text',
+                  'at': [0, 0],
+                  'text': 'ANSWER 2',
+                },
+              ],
+            },
+          ),
+        );
+      });
+      await pumpScaffold(tester, QuestionCard(id));
+      expect(find.text('SOLUTION SECRET'), findsNothing);
+      await tester.tap(find.byIcon(Icons.open_in_full));
+      await tester.pumpAndSettle();
+      expect(find.text('SOLUTION SECRET'), findsNothing);
+      await tester.ensureVisible(find.byKey(const Key('quiz-answer-0')));
+      await tester.enterText(find.byKey(const Key('quiz-answer-0')), '2');
+      await tester.ensureVisible(find.byKey(const Key('submit-quiz')));
+      await submitAndCheck(tester, id, true);
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 80)),
+        );
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('SOLUTION SECRET'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('visual-return-to-answer')));
+      await tester.pumpAndSettle();
+      expect(find.text('SOLUTION SECRET'), findsOneWidget);
+      await tester.ensureVisible(find.text('再做一次'));
+      await tester.tap(find.text('再做一次'));
+      for (var i = 0; i < 10; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 80)),
+        );
+        await tester.pumpAndSettle();
+        if (find.byKey(const Key('submit-quiz')).evaluate().isNotEmpty) break;
+      }
+      expect(find.text('SOLUTION SECRET'), findsNothing);
+      await tester.tap(find.byIcon(Icons.open_in_full));
+      await tester.pumpAndSettle();
+      expect(find.text('SOLUTION SECRET'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'fullscreen view navigation cannot change answers and transformed taps still use model coordinates',
+    (tester) async {
+      const scene =
+          '{"v":1,"kind":"geometry","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p","type":"point","at":[0,0]}]}';
+      final id = await createVisualQuestion(
+        tester,
+        'point_select',
+        scene,
+        const [
+          ['0,0'],
+        ],
+      );
+      await pumpScaffold(tester, QuestionCard(id));
+      await tester.tap(find.byIcon(Icons.open_in_full));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('visual-tap-answer')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('visual-navigation-mode')));
+      await tester.pumpAndSettle();
+      final canvas = find.byKey(const Key('visual-canvas-paint'));
+      final before = tester.getCenter(canvas);
+      final initialWidth = tester.getRect(canvas).width;
+      final finger1 = await tester.createGesture(pointer: 1);
+      final finger2 = await tester.createGesture(pointer: 2);
+      await finger1.down(before - const Offset(35, 0));
+      await finger2.down(before + const Offset(35, 0));
+      await tester.pump();
+      await finger1.moveTo(before - const Offset(60, 0));
+      await finger2.moveTo(before + const Offset(60, 0));
+      await tester.pump();
+      await finger1.moveTo(before - const Offset(95, 0));
+      await finger2.moveTo(before + const Offset(95, 0));
+      await tester.pump();
+      await finger1.up();
+      await finger2.up();
+      await tester.pumpAndSettle();
+      expect(tester.getRect(canvas).width, greaterThan(initialWidth * 1.2));
+      await tester.timedDragFrom(
+        before,
+        const Offset(50, 30),
+        const Duration(milliseconds: 300),
+      );
+      await tester.pumpAndSettle();
+      final after = tester.getCenter(canvas);
+      expect((after - before).distance, greaterThan(10));
+      expect(find.textContaining('已选点：(0.00, 0.00)'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('visual-navigation-mode')));
+      await tester.pumpAndSettle();
+      await tester.tapAt(after);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('已选点：'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('visual-reset-view')));
+      await tester.pumpAndSettle();
+      expect((tester.getCenter(canvas) - before).distance, lessThan(.1));
+      await tester.ensureVisible(find.byKey(const Key('submit-quiz')));
+      await submitAndCheck(tester, id, true);
+      await tester.runAsync(() async {
+        final d = await c.practice.detail(id);
+        final saved = parseVisualPoint(d.responses[d.latest!.id]!.single)!;
+        expect(saved.$1, closeTo(0, .00001));
+        expect(saved.$2, closeTo(0, .00001));
+      });
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('Point-select: tapping the visual answers and grades', (
     tester,
   ) async {
@@ -717,7 +923,7 @@ void main() {
     expect(parseVisualPoint('p2:'), isNull);
   });
 
-  testWidgets('QuestionCard fullscreen is view-only: dragging does nothing', (
+  testWidgets('fullscreen drag shares the card answer and persists the draft', (
     tester,
   ) async {
     const scene =
@@ -733,7 +939,7 @@ void main() {
     await pumpScaffold(tester, QuestionCard(questionId));
     await tester.tap(find.byIcon(Icons.open_in_full));
     await tester.pumpAndSettle();
-    // No reset-drag button: there is nothing to reset.
+    expect(find.byKey(const Key('visual-play-pause')), findsNothing);
     expect(find.byKey(const Key('visual-reset-drag')), findsNothing);
     final center = tester.getCenter(
       find.byKey(const Key('visual-canvas-paint')).last,
@@ -742,7 +948,23 @@ void main() {
     await tester.pump();
     final paints = tester.widgetList<CustomPaint>(find.byType(CustomPaint));
     final visual = paints.where((p) => p.painter is VisualPainter).toList();
-    expect((visual.last.painter as VisualPainter).pointOverrides, isEmpty);
+    final moved = (visual.last.painter as VisualPainter).pointOverrides['p1'];
+    expect(moved, isNotNull);
+    await tester.tap(find.byKey(const Key('visual-return-to-answer')));
+    await tester.pumpAndSettle();
+    expect(questionPainter(tester).pointOverrides['p1'], moved);
+    for (var i = 0; i < 5; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 80)),
+      );
+      await tester.pumpAndSettle();
+    }
+    await tester.runAsync(() async {
+      await c.practice.flushDrafts();
+      final d = await c.practice.detail(questionId);
+      expect(d.responses[d.latest!.id]!.single, startsWith('p1:'));
+      expect(d.attempts, hasLength(1));
+    });
     expect(tester.takeException(), isNull);
   });
 

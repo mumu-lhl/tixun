@@ -10,6 +10,33 @@ import 'dart:io';
 import 'generated_migrations/schema.dart';
 
 void main() {
+  test('Schema v18 keeps existing pins as question figures', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(17);
+    schema.rawDatabase.execute(
+      "INSERT INTO chat_sessions(id,title,created_at,updated_at) VALUES('s','Legacy',1,1)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO practice_questions(id,kind,stem,subject,origin,created_at) VALUES('q','numeric','2+2','数学','manual',1)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO visual_scenes(id,scene_json,revision,created_at,updated_at) VALUES('v','{}',3,1,1)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO visual_scene_revisions(visual_id,revision,scene_json,created_at) VALUES('v',3,'{}',1)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO visual_question_links(visual_id,question_id,revision) VALUES('v','q',3)",
+    );
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+    final link = (await db.select(db.visualQuestionLinks).get()).single;
+    expect(link.role, 'question');
+    expect(link.revision, 3);
+    expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+  });
+
   test(
     'Schema v16 adds visual scenes and links without touching old rows',
     () async {

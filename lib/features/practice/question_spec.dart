@@ -31,6 +31,10 @@ class QuestionSpec {
     this.timeLimitSeconds,
     this.visualId,
     this.visualRevision,
+    this.solutionVisualId,
+    this.solutionVisualRevision,
+    this.questionScene,
+    this.solutionScene,
   });
   final String kind, stem, subject, explanation, hint;
   final Map<String, String> options;
@@ -49,6 +53,11 @@ class QuestionSpec {
   /// The pinned snapshot revision of [visualId]. Null means "snapshot
   /// the scene's current state when the question is created".
   final int? visualRevision;
+  final String? solutionVisualId;
+  final int? solutionVisualRevision;
+
+  /// Inline figures are creation input only; Store resolves them to pins.
+  final Map<String, dynamic>? questionScene, solutionScene;
 
   factory QuestionSpec.fromJson(Map<String, dynamic> a) {
     const fields = {
@@ -66,6 +75,10 @@ class QuestionSpec {
       'time_limit_seconds',
       'visual_id',
       'visual_revision',
+      'solution_visual_id',
+      'solution_visual_revision',
+      'question_scene',
+      'solution_scene',
     };
     if (a.keys.any((k) => !fields.contains(k))) {
       throw const AppFormatException(
@@ -100,7 +113,15 @@ class QuestionSpec {
         (a.containsKey('time_limit_seconds') &&
             a['time_limit_seconds'] is! int) ||
         (a.containsKey('visual_id') && a['visual_id'] is! String) ||
-        (a.containsKey('visual_revision') && a['visual_revision'] is! int)) {
+        (a.containsKey('visual_revision') && a['visual_revision'] is! int) ||
+        (a.containsKey('solution_visual_id') &&
+            a['solution_visual_id'] is! String) ||
+        (a.containsKey('solution_visual_revision') &&
+            a['solution_visual_revision'] is! int) ||
+        (a.containsKey('question_scene') &&
+            a['question_scene'] is! Map<String, dynamic>) ||
+        (a.containsKey('solution_scene') &&
+            a['solution_scene'] is! Map<String, dynamic>)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidQuestionOptionsAnswersOrArguments,
         '题目选项、答案或参数格式无效。',
@@ -142,6 +163,10 @@ class QuestionSpec {
       timeLimitSeconds: a['time_limit_seconds'] as int?,
       visualId: a['visual_id'] as String?,
       visualRevision: a['visual_revision'] as int?,
+      solutionVisualId: a['solution_visual_id'] as String?,
+      solutionVisualRevision: a['solution_visual_revision'] as int?,
+      questionScene: a['question_scene'] as Map<String, dynamic>?,
+      solutionScene: a['solution_scene'] as Map<String, dynamic>?,
     );
     spec.validate();
     return spec;
@@ -203,11 +228,26 @@ class QuestionSpec {
         ['visual_revision'],
       );
     }
+    if ((questionScene != null && visualId != null) ||
+        (solutionScene != null && solutionVisualId != null) ||
+        (solutionVisualId != null && solutionVisualId!.trim().isEmpty) ||
+        (solutionVisualRevision != null &&
+            (solutionVisualId == null || solutionVisualRevision! < 1)) ||
+        ((solutionVisualId != null || solutionScene != null) &&
+            visualId == null &&
+            questionScene == null)) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        '题面图或解析图引用无效。',
+        ['visual_id'],
+      );
+    }
     if ((kind == 'point_select' ||
             kind == 'region_select' ||
             kind == 'drag_to_target' ||
             kind == 'read_value') &&
-        (visualId == null || visualId!.trim().isEmpty)) {
+        visualId == null &&
+        questionScene == null) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '点选、区域选择、拖点或读图题必须附带图形。',
@@ -295,6 +335,11 @@ class QuestionSpec {
     if (timeLimitSeconds != null) 'time_limit_seconds': timeLimitSeconds,
     if (visualId != null) 'visual_id': visualId,
     if (visualRevision != null) 'visual_revision': visualRevision,
+    if (solutionVisualId != null) 'solution_visual_id': solutionVisualId,
+    if (solutionVisualRevision != null)
+      'solution_visual_revision': solutionVisualRevision,
+    if (questionScene != null) 'question_scene': questionScene,
+    if (solutionScene != null) 'solution_scene': solutionScene,
   };
 
   int get responseCount => kind == 'fill_blank' ? answers.length : 1;

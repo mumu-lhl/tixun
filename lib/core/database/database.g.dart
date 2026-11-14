@@ -18909,8 +18909,19 @@ class $VisualQuestionLinksTable extends VisualQuestionLinks
     requiredDuringInsert: false,
     defaultValue: const Constant(1),
   );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
   @override
-  List<GeneratedColumn> get $columns => [visualId, questionId, revision];
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    check: () => const CustomExpression("role IN ('question', 'solution')"),
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('question'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [visualId, questionId, revision, role];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -18945,6 +18956,12 @@ class $VisualQuestionLinksTable extends VisualQuestionLinks
         revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
       );
     }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    }
     return context;
   }
 
@@ -18966,6 +18983,10 @@ class $VisualQuestionLinksTable extends VisualQuestionLinks
         DriftSqlType.int,
         data['${effectivePrefix}revision'],
       )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
     );
   }
 
@@ -18984,10 +19005,12 @@ class VisualQuestionLink extends DataClass
   /// follows later edits: its figure is frozen at the revision recorded
   /// here (see `VisualStore.snapshotForQuestion`).
   final int revision;
+  final String role;
   const VisualQuestionLink({
     required this.visualId,
     required this.questionId,
     required this.revision,
+    required this.role,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -18995,6 +19018,7 @@ class VisualQuestionLink extends DataClass
     map['visual_id'] = Variable<String>(visualId);
     map['question_id'] = Variable<String>(questionId);
     map['revision'] = Variable<int>(revision);
+    map['role'] = Variable<String>(role);
     return map;
   }
 
@@ -19003,6 +19027,7 @@ class VisualQuestionLink extends DataClass
       visualId: Value(visualId),
       questionId: Value(questionId),
       revision: Value(revision),
+      role: Value(role),
     );
   }
 
@@ -19015,6 +19040,7 @@ class VisualQuestionLink extends DataClass
       visualId: serializer.fromJson<String>(json['visualId']),
       questionId: serializer.fromJson<String>(json['questionId']),
       revision: serializer.fromJson<int>(json['revision']),
+      role: serializer.fromJson<String>(json['role']),
     );
   }
   @override
@@ -19024,6 +19050,7 @@ class VisualQuestionLink extends DataClass
       'visualId': serializer.toJson<String>(visualId),
       'questionId': serializer.toJson<String>(questionId),
       'revision': serializer.toJson<int>(revision),
+      'role': serializer.toJson<String>(role),
     };
   }
 
@@ -19031,10 +19058,12 @@ class VisualQuestionLink extends DataClass
     String? visualId,
     String? questionId,
     int? revision,
+    String? role,
   }) => VisualQuestionLink(
     visualId: visualId ?? this.visualId,
     questionId: questionId ?? this.questionId,
     revision: revision ?? this.revision,
+    role: role ?? this.role,
   );
   VisualQuestionLink copyWithCompanion(VisualQuestionLinksCompanion data) {
     return VisualQuestionLink(
@@ -19043,6 +19072,7 @@ class VisualQuestionLink extends DataClass
           ? data.questionId.value
           : this.questionId,
       revision: data.revision.present ? data.revision.value : this.revision,
+      role: data.role.present ? data.role.value : this.role,
     );
   }
 
@@ -19051,37 +19081,42 @@ class VisualQuestionLink extends DataClass
     return (StringBuffer('VisualQuestionLink(')
           ..write('visualId: $visualId, ')
           ..write('questionId: $questionId, ')
-          ..write('revision: $revision')
+          ..write('revision: $revision, ')
+          ..write('role: $role')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(visualId, questionId, revision);
+  int get hashCode => Object.hash(visualId, questionId, revision, role);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is VisualQuestionLink &&
           other.visualId == this.visualId &&
           other.questionId == this.questionId &&
-          other.revision == this.revision);
+          other.revision == this.revision &&
+          other.role == this.role);
 }
 
 class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
   final Value<String> visualId;
   final Value<String> questionId;
   final Value<int> revision;
+  final Value<String> role;
   final Value<int> rowid;
   const VisualQuestionLinksCompanion({
     this.visualId = const Value.absent(),
     this.questionId = const Value.absent(),
     this.revision = const Value.absent(),
+    this.role = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   VisualQuestionLinksCompanion.insert({
     required String visualId,
     required String questionId,
     this.revision = const Value.absent(),
+    this.role = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : visualId = Value(visualId),
        questionId = Value(questionId);
@@ -19089,12 +19124,14 @@ class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
     Expression<String>? visualId,
     Expression<String>? questionId,
     Expression<int>? revision,
+    Expression<String>? role,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (visualId != null) 'visual_id': visualId,
       if (questionId != null) 'question_id': questionId,
       if (revision != null) 'revision': revision,
+      if (role != null) 'role': role,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -19103,12 +19140,14 @@ class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
     Value<String>? visualId,
     Value<String>? questionId,
     Value<int>? revision,
+    Value<String>? role,
     Value<int>? rowid,
   }) {
     return VisualQuestionLinksCompanion(
       visualId: visualId ?? this.visualId,
       questionId: questionId ?? this.questionId,
       revision: revision ?? this.revision,
+      role: role ?? this.role,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -19125,6 +19164,9 @@ class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
     if (revision.present) {
       map['revision'] = Variable<int>(revision.value);
     }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -19137,6 +19179,7 @@ class VisualQuestionLinksCompanion extends UpdateCompanion<VisualQuestionLink> {
           ..write('visualId: $visualId, ')
           ..write('questionId: $questionId, ')
           ..write('revision: $revision, ')
+          ..write('role: $role, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

@@ -157,6 +157,95 @@ void main() {
     );
     expect((await c.study.knowledge(note)).content, '备份后的改动');
   });
+  test(
+    'backup restores private question/solution pins and the current draft',
+    () async {
+      final id = await c.practice.create(
+        const QuestionSpec(
+          kind: 'read_value',
+          stem: 'Read figure',
+          answers: [
+            ['2'],
+          ],
+          questionScene: {
+            'v': 1,
+            'kind': 'geometry',
+            'title': 'QUESTION',
+            'elements': [
+              {
+                'id': 'p',
+                'type': 'point',
+                'at': [2, 0],
+              },
+            ],
+          },
+          solutionScene: {
+            'v': 1,
+            'kind': 'geometry',
+            'title': 'SOLUTION',
+            'elements': [
+              {
+                'id': 's',
+                'type': 'text',
+                'at': [0, 0],
+                'text': 'Answer 2',
+              },
+            ],
+          },
+        ),
+      );
+      final attempt = await c.practice.begin(id);
+      await c.practice.draft(attempt.id, ['1']);
+      final original = await c.practice.detail(id);
+      final backup = File('${parent.path}/figures.tixun-backup');
+      await BackupService.export(c.db, c.files, backup);
+      await c.visual.revise(
+        original.spec.solutionVisualId!,
+        jsonEncode({
+          'v': 1,
+          'kind': 'geometry',
+          'title': 'LATER',
+          'elements': [
+            {
+              'id': 'p',
+              'type': 'point',
+              'at': [0, 0],
+            },
+          ],
+        }),
+      );
+      final prepared = await BackupService.prepare(backup, root);
+      final keys = c.keys;
+      await c.shutdown();
+      final activation = await BackupService.activate(prepared, root);
+      c = await AppController.openRoot(
+        root,
+        demo: false,
+        keyStore: keys,
+        chatProvider: MockChatProvider(),
+      );
+      await BackupService.finish(activation);
+      await prepared.discard();
+      final restored = await c.practice.detail(id);
+      expect(restored.visualLinks, original.visualLinks);
+      expect(restored.solutionVisualLinks, original.solutionVisualLinks);
+      expect(restored.latest!.status, 'draft');
+      expect(restored.responses[attempt.id], ['1']);
+      expect(
+        await c.visual.getRevisionSceneJson(
+          restored.spec.solutionVisualId!,
+          restored.spec.solutionVisualRevision!,
+        ),
+        contains('SOLUTION'),
+      );
+      expect(await c.db.select(c.db.visualMessageLinks).get(), isEmpty);
+      expect(
+        await c.db.customSelect('PRAGMA foreign_key_check').get(),
+        isEmpty,
+      );
+    },
+  );
+
   test('Damaged archives, traversal, duplicate paths and future versions never change live data', () async {
     final note = await fixture();
     final good = File('${parent.path}/good.tixun-backup');

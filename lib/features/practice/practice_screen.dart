@@ -496,6 +496,8 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
         subject: subject.text.trim(),
         visualId: widget.initial?.spec.visualId,
         visualRevision: widget.initial?.spec.visualRevision,
+        solutionVisualId: widget.initial?.spec.solutionVisualId,
+        solutionVisualRevision: widget.initial?.spec.solutionVisualRevision,
         options: !choice
             ? {}
             : kind == 'region_select'

@@ -12,10 +12,11 @@ import '../../features/visual/visual_store.dart';
 import '../database/database.dart';
 import 'chat_provider.dart';
 import 'study_tools.dart';
+import 'visual_schema.dart';
 
 final quizToolSchema = AiTool(
   name: 'create_quiz',
-  description: '仅用户请求出题、测验或训练时创建交互题，不代替资料整理或讲解；本条出题回复不得透露答案与解析。answers 为按位置排列的二维数组：填空每项包含等价答案，多选每个正确选项单独一项。仅校验结构，答案仍待核对。依赖图片时用 image_indices 引用本次请求前4张图片（0起）；纯文字题不填。需要配图时用 visual_id 引用本次对话中已创建的图形：图形只展示题干所需的图，不含答案与解法；不填 visual_revision 时冻结图形当前状态作为题目快照，填了则引用该修订。考试模式下出题不能附加图形。点选题（point_select）必须带 visual_id，答案是 "x,y" 形式的坐标；区域选择题（region_select）必须带 visual_id，options 是区域图元 id 到名称的映射，答案是选中的区域 id。拖点题（drag_to_target）必须带 visual_id 且图形中有点 draggable 为 true，答案是目标点的 "x,y" 坐标，学生把点拖到目标位置附近即算对；读图题（read_value）必须带 visual_id，答案是学生从图中读出的数值。',
+  description: '仅用户请求出题、测验或训练时创建交互题，不代替资料整理或讲解；本条出题回复不得透露答案与解析。answers 为按位置排列的二维数组：填空每项包含等价答案，多选每个正确选项单独一项。仅校验结构，答案仍待核对。依赖图片时用 image_indices 引用本次请求前4张图片（0起）；纯文字题不填。需要配图时用 visual_id 引用本次对话中已创建的图形：图形只展示题干所需的图，不含答案与解法；不填 visual_revision 时冻结图形当前状态作为题目快照，填了则引用该修订。考试模式使用 question_scene 和可选 solution_scene，一次性独立保存题面图与提交后解析图，不引用探索图。题面图不能含控件、时间线、隐藏图元或答案/解题标记；解析图只在提交后显示。点选题（point_select）必须带 visual_id 或 question_scene，答案是 "x,y" 形式的坐标；区域选择题（region_select）必须带 visual_id 或 question_scene，options 是区域图元 id 到名称的映射，答案是选中的区域 id。拖点题（drag_to_target）必须带 visual_id 或 question_scene 且图形中有点 draggable 为 true，答案是目标点的 "x,y" 坐标，学生把点拖到目标位置附近即算对；读图题（read_value）必须带 visual_id 或 question_scene，答案是学生从图中读出的数值。',
   parameters: {
     'type': 'object',
     'additionalProperties': false,
@@ -64,8 +65,22 @@ final quizToolSchema = AiTool(
       'time_limit_seconds': {'type': 'integer', 'minimum': 10, 'maximum': 7200},
       'visual_id': {'type': 'string'},
       'visual_revision': {'type': 'integer', 'minimum': 1},
+      'question_scene': visualSceneSchema,
+      'solution_scene': visualSceneSchema,
     },
     'required': ['kind', 'stem', 'subject', 'answers', 'explanation'],
+  },
+);
+
+/// Exam figures are scoped to one atomic quiz write, never chat visuals.
+final examQuizToolSchema = AiTool(
+  name: quizToolSchema.name,
+  description: 'Create an exam question only when requested. Never reveal answers or explanations in chat. Optional question_scene and solution_scene are separate inline Visual DSL objects saved atomically as private frozen snapshots. The question_scene must be static: no timeline, controls, hidden elements, answer markers or solution text. Put all worked solution diagrams in solution_scene, which is shown only after submission of the current attempt. Never reference existing visual IDs in exam mode. Point/drag/region/read_value kinds require question_scene; region options/answers use visible polygon IDs, point/drag answers use x,y coordinates. Use answers as one acceptable-answer list per response position. Content and scientific correctness remain unverified.',
+  parameters: {
+    ...quizToolSchema.parameters,
+    'properties': {...(quizToolSchema.parameters['properties'] as Map)}
+      ..remove('visual_id')
+      ..remove('visual_revision'),
   },
 );
 
@@ -81,7 +96,7 @@ Future<Map<String, dynamic>> executeQuizTool(
 }) async {
   try {
     cancel.checkCancelled();
-    if (call.arguments.length > 64000) {
+    if (call.arguments.length > 160000) {
       throw const AppFormatException(
         AppErrorCode.errorQuestionDataIsTooLong,
         '题目数据过长。',
@@ -113,18 +128,19 @@ Future<Map<String, dynamic>> executeQuizTool(
         '模型当前不能创建自主判分题。',
       );
     }
-    // Exam secrecy: a visual attached to a question could carry the
-    // answer, and exam questions are generated live and unreviewed, so
-    // create_quiz never attaches a visual in exam mode. Validation
-    // happens before any store write, like the other executors.
-    if (exam && spec.visualId != null) {
+    // Exam figures are inline, private assessment assets. Existing chat
+    // figures cannot be imported with teaching controls/hidden solutions.
+    if (exam && (spec.visualId != null || spec.solutionVisualId != null)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
-        '考试模式下出题不能附加图形。',
+        '考试题图必须随出题独立保存，不能引用探索图。',
         ['visual_id'],
       );
     }
-    if (spec.visualId != null && visual == null) {
+    if ((spec.visualId != null ||
+            spec.questionScene != null ||
+            spec.solutionScene != null) &&
+        visual == null) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         '当前会话未启用图形工具。',
@@ -179,16 +195,14 @@ Future<Map<String, dynamic>> executeQuizTool(
       );
       // PracticeStore owns validation and pinning for AI and manual
       // writes alike. Read the resulting pin for the tool response.
-      final visualRevision = spec.visualId == null
-          ? null
-          : (await store.detail(id)).spec.visualRevision;
+      final saved = (await store.detail(id)).spec;
       cancel.checkCancelled();
       final result = <String, dynamic>{
         'ok': true,
         'question_id': id,
         'verification': 'unverified',
-        'visual_id': ?spec.visualId,
-        'visual_revision': ?visualRevision,
+        'visual_id': ?saved.visualId,
+        'visual_revision': ?saved.visualRevision,
       };
       await store.db
           .into(store.db.aiToolOperations)

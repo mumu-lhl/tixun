@@ -6,6 +6,25 @@ import '../../core/visual/render/visual_animator.dart';
 import '../../core/visual/render/visual_painter.dart';
 import 'question_spec.dart';
 
+/// Dedicated assessment prompts contain only their static question surface.
+/// Content can still imply an answer: this is not a semantic secrecy proof.
+void validateAssessmentScene(VisualScene scene) {
+  bool hidden(List<VisualElement> elements) => elements.any(
+    (e) =>
+        !e.visible ||
+        e.visibleWhen != null ||
+        (e is GroupElement && hidden(e.children)),
+  );
+  if (scene.timeline != null ||
+      scene.controls.isNotEmpty ||
+      hidden(scene.elements)) {
+    throw const AppFormatException(
+      AppErrorCode.errorAssessmentFigureMustBeStatic,
+      '题面图不能包含动画、参数控件或隐藏图元。',
+    );
+  }
+}
+
 /// Checks the actual pinned, initial frame, not a possibly newer live scene.
 /// Used by the question Store for every write, including manual revisions.
 void validateQuestionVisual(QuestionSpec spec, VisualScene scene) {
