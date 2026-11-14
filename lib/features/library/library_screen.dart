@@ -15,6 +15,7 @@ import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/app_menu.dart';
+import '../../core/ui/search_snippet.dart';
 import 'library_providers.dart';
 import 'study_editor.dart';
 import 'study_images.dart';
@@ -113,7 +114,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   m.title,
                   m.subject,
                   m.chapter,
-                  m.question,
+                  [
+                            m.title,
+                            m.question,
+                            m.chapter,
+                            m.correctAnswer,
+                            m.originalAnswer,
+                            m.ownAnalysis,
+                            m.aiAnalysis,
+                            m.errorReason,
+                            m.suggestedReason,
+                          ]
+                          .map((text) => searchExcerpt(text, _query))
+                          .whereType<String>()
+                          .firstOrNull ??
+                      m.question,
                   m.errorReason,
                   m.revision,
                 ),
@@ -133,7 +148,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   k.title,
                   k.subject,
                   k.chapter,
-                  k.content,
+                  [k.title, k.content, k.chapter]
+                          .map((text) => searchExcerpt(text, _query))
+                          .whereType<String>()
+                          .firstOrNull ??
+                      k.content,
                   k.kind,
                   k.revision,
                 ),
@@ -143,6 +162,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       entries.map((e) => e.id),
       widget.isMistake,
     );
+    final tagMatches = _query.trim().isEmpty
+        ? <String, String>{}
+        : <String, String>{
+            for (final entry in entries)
+              if (searchExcerpt(entry.preview, _query) == null)
+                entry.id:
+                    (await store.tags(entry.id, isMistake: widget.isMistake))
+                        .map((tag) => searchExcerpt(tag, _query))
+                        .whereType<String>()
+                        .firstOrNull ??
+                    entry.preview,
+          };
     return entries
         .map(
           (e) => _Entry(
@@ -150,7 +181,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             e.title,
             e.subject,
             [e.chapter, ...?paths[e.id]].where((s) => s.isNotEmpty).join(' · '),
-            e.preview,
+            tagMatches[e.id] ?? e.preview,
             e.badge,
             e.revision,
           ),
@@ -986,12 +1017,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             if (e.preview.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 5),
-                                child: Text(
-                                  e.preview,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
+                                child: SearchSnippet(e.preview, _query),
                               ),
                           ],
                         ),
