@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 
 import '../../features/library/study_store.dart';
+import '../../features/library/subject_scope.dart';
 import '../../features/review/review_store.dart';
 import '../../features/progress/learning_progress.dart';
 import '../database/database.dart';
@@ -131,19 +132,19 @@ AiTool _schema(
 final studyToolSchemas = [
   _schema(
     'list_subject_modules',
-    '查询科目的模块和子模块目录；可用 query 查找名称。',
+    '只查询当前学习科目的模块目录；可用 query 查找名称，其他科目由应用拦截。',
     {'subject': _string, 'query': _string},
     ['subject'],
   ),
   _schema(
     'create_subject_module',
-    '经用户确认创建科目模块；parent_id 表示同科目的一级模块，最多两级。相同目录重复创建会复用。',
+    '仅在当前学习科目创建模块；需用户确认。parent_id 表示同科目的一级模块，最多两级。',
     {'subject': _string, 'name': _string, 'parent_id': _string},
     ['subject', 'name'],
   ),
   _schema(
     'link_study_module',
-    '经用户确认，将已有知识或错题关联到同科目的模块或子模块。只新增关联，不覆盖已有分类。',
+    '仅关联当前学习科目的知识/错题与模块；跨科目操作会被应用拦截，并需用户确认。',
     {
       'id': _string,
       'kind': {
@@ -154,63 +155,79 @@ final studyToolSchemas = [
     },
     ['id', 'kind', 'module_id'],
   ),
-  _schema('search_knowledge', '搜索用户授权的本地知识，返回最多5条摘要。', {
+  _schema('search_knowledge', '只搜索当前学习科目的本地知识，返回最多5条摘要；科目由应用强制限定。', {
     'query': _string,
     'subject': _string,
     'module_id': _string,
   }, []),
-  _schema('get_knowledge', '读取一条知识和版本号，正文最多12000字符。', {'id': _string}, ['id']),
-  _schema('create_knowledge', '提出新增知识建议；必须由用户在应用内确认后才保存。', _knowledgeFields, [
-    'title',
-    'content',
-    'subject',
-  ]),
+  _schema(
+    'get_knowledge',
+    '仅读取当前学习科目的知识和版本号；跨科目 ID 会被应用拦截。正文最多12000字符。',
+    {'id': _string},
+    ['id'],
+  ),
+  _schema(
+    'create_knowledge',
+    '提出新增当前学习科目知识的建议；科目由应用强制限定，必须由用户确认后保存。',
+    _knowledgeFields,
+    ['title', 'content', 'subject'],
+  ),
   _schema(
     'update_knowledge',
-    '提出知识修改建议，必须提供读取时的版本号，并由用户确认。',
+    '仅修改当前学习科目的知识；必须提供读取时的版本号并由用户确认，不能改到其他科目。',
     {'id': _string, 'expected_revision': _integer, ..._knowledgeFields},
     ['id', 'expected_revision'],
   ),
   _schema(
     'delete_knowledge',
-    '将知识移入回收区，可恢复，必须经用户确认。',
+    '仅将当前学习科目的知识移入回收区；可恢复，必须经用户确认。',
     {'id': _string, 'expected_revision': _integer},
     ['id', 'expected_revision'],
   ),
-  _schema('search_mistakes', '搜索错题，返回最多5条摘要。', {
+  _schema('search_mistakes', '只搜索当前学习科目的错题，返回最多5条摘要；科目由应用强制限定。', {
     'query': _string,
     'subject': _string,
     'module_id': _string,
   }, []),
-  _schema('get_mistake', '读取错题、AI解析、版本及用户明确记录的思路。', {'id': _string}, ['id']),
+  _schema(
+    'get_mistake',
+    '仅读取当前学习科目的错题、AI解析、版本及用户明确记录的思路。',
+    {'id': _string},
+    ['id'],
+  ),
   _schema(
     'create_mistake',
-    '提出错题保存建议；未知原题和答案不要编造。错误原因仅填写为建议，等待用户确认。题目依赖本次请求的图片时，用 image_indices 明确引用图片序号（从 0 开始，最多 4 张，仅前 4 张图片可用）；不填写时错题不附加图片。',
+    '只提出当前学习科目的错题保存建议；未知原题和答案不要编造。错误原因仅建议，等待用户确认。题目依赖本次请求的图片时，用 image_indices 明确引用图片序号（从 0 开始，最多 4 张，仅前 4 张图片可用）；不填写时错题不附加图片。',
     {..._mistakeFields, ..._imageIndicesField},
     ['title', 'subject'],
   ),
   _schema(
     'update_mistake',
-    '提出错题资料修改建议，不能修改用户原答案、用户分析或已确认的错误原因。',
+    '仅修改当前学习科目的错题；不能修改原答案、用户分析或已确认的错误原因，须确认。',
     {'id': _string, 'expected_revision': _integer, ..._mistakeFields},
     ['id', 'expected_revision'],
   ),
   _schema(
     'delete_mistake',
-    '将错题移入回收区，可恢复，必须经用户确认。',
+    '仅将当前学习科目的错题移入回收区；可恢复，必须经用户确认。',
     {'id': _string, 'expected_revision': _integer},
     ['id', 'expected_revision'],
   ),
   _schema(
     'link_mistake_to_knowledge',
-    '提出知识与错题关联建议，需用户确认。',
+    '仅关联当前学习科目的知识与错题；跨科目关联会被应用拦截，需用户确认。',
     {'knowledge_id': _string, 'mistake_id': _string},
     ['knowledge_id', 'mistake_id'],
   ),
-  _schema('get_learning_progress', '读取真实资料、训练与知识点检测证据；样本不足不能给出掌握分数。', {}, []),
+  _schema(
+    'get_learning_progress',
+    '读取当前学习科目的资料、训练与知识点检测证据；样本不足不能给出掌握分数。',
+    {},
+    [],
+  ),
   _schema(
     'schedule_review',
-    '将一条已存在的练习加入复习。需用户确认；日期由确定性调度代码管理，不能由模型指定。',
+    '仅将当前学习科目的练习加入复习。需用户确认；日期由确定性调度代码管理。',
     {'question_id': _string},
     ['question_id'],
   ),
@@ -258,11 +275,13 @@ class StudyToolRunner {
     this.reviews,
     this.sourceImages = const [],
     this.sourceSessionId,
+    this.subjectScope,
   });
   final StudyStore store;
   final ReviewStore? reviews;
   final String sessionId, runId;
   final String? sourceSessionId;
+  final String? subjectScope;
 
   /// Only set by the explicit app UI. Model/user text never sets this capability.
   final bool authorized;
@@ -381,6 +400,7 @@ class StudyToolRunner {
       if (args['tags'] != null) {
         store.cleanTags((args['tags'] as List).cast<String>());
       }
+      await _validateSubjectScope(call.name, args);
     } catch (e) {
       // Keep the specific reason (e.g. which parameter is missing) so the
       // model can fix the call instead of repeating the same bad call.
@@ -510,6 +530,93 @@ class StudyToolRunner {
         result: Value(jsonEncode(result)),
       ),
     );
+  }
+
+  Future<void> _validateSubjectScope(
+    String name,
+    Map<String, dynamic> args,
+  ) async {
+    final scope = subjectScope;
+    void check(String subject) {
+      if (scope != null) requireStudySubject(subject, scope);
+    }
+
+    void checkRequestedSubject() {
+      if (scope == null) return;
+      final requested = args['subject'] as String?;
+      if (requested != null && requested.trim().isNotEmpty) check(requested);
+      args['subject'] = scope;
+    }
+
+    switch (name) {
+      case 'search_knowledge':
+      case 'search_mistakes':
+      case 'list_subject_modules':
+      case 'create_subject_module':
+      case 'create_knowledge':
+      case 'create_mistake':
+        checkRequestedSubject();
+        return;
+      case 'get_knowledge':
+      case 'update_knowledge':
+      case 'delete_knowledge':
+        final row = await store.knowledge(
+          args['id'] as String,
+          includeDeleted: true,
+        );
+        check(row.subject);
+        if (name == 'update_knowledge') {
+          final requested = args['subject'] as String?;
+          if (requested != null && requested.trim().isNotEmpty) {
+            requireStudySubject(requested, row.subject);
+          }
+          args['subject'] = scope ?? row.subject;
+        }
+        return;
+      case 'get_mistake':
+      case 'update_mistake':
+      case 'delete_mistake':
+        final row = await store.mistake(
+          args['id'] as String,
+          includeDeleted: true,
+        );
+        check(row.subject);
+        if (name == 'update_mistake') {
+          final requested = args['subject'] as String?;
+          if (requested != null && requested.trim().isNotEmpty) {
+            requireStudySubject(requested, row.subject);
+          }
+          args['subject'] = scope ?? row.subject;
+        }
+        return;
+      case 'link_mistake_to_knowledge':
+        final knowledge = await store.knowledge(args['knowledge_id'] as String);
+        final mistake = await store.mistake(args['mistake_id'] as String);
+        check(knowledge.subject);
+        check(mistake.subject);
+        requireStudySubject(mistake.subject, knowledge.subject);
+        return;
+      case 'link_study_module':
+        final isMistake = args['kind'] == 'mistake';
+        final itemSubject = isMistake
+            ? (await store.mistake(args['id'] as String)).subject
+            : (await store.knowledge(args['id'] as String)).subject;
+        check(itemSubject);
+        final module = await (db.select(
+          db.subjectModules,
+        )..where((m) => m.id.equals(args['module_id'] as String))).getSingle();
+        check(module.subject);
+        requireStudySubject(module.subject, itemSubject);
+        return;
+      case 'schedule_review':
+        if (scope == null) return;
+        final question =
+            await (db.select(db.practiceQuestions)
+                  ..where((q) => q.id.equals(args['question_id'] as String)))
+                .getSingle();
+        check(question.subject);
+        return;
+    }
   }
 
   Future<Map<String, dynamic>> _invoke(
@@ -779,15 +886,26 @@ class StudyToolRunner {
         Future<int> count(String table) async =>
             (await db
                     .customSelect(
-                      'SELECT count(*) AS n FROM $table WHERE deleted = 0',
+                      'SELECT count(*) AS n FROM $table WHERE deleted = 0${subjectScope == null ? '' : ' AND subject=?'}',
+                      variables: subjectScope == null
+                          ? const []
+                          : [Variable.withString(subjectScope!)],
                     )
                     .getSingle())
                 .read<int>('n');
+        final chatCount = await db
+            .customSelect(
+              'SELECT count(*) AS n FROM chat_sessions WHERE deleted=0${subjectScope == null ? '' : ' AND subject=?'}',
+              variables: subjectScope == null
+                  ? const []
+                  : [Variable.withString(subjectScope!)],
+            )
+            .getSingle();
         return {
           'knowledge_count': await count('knowledge_items'),
           'mistake_count': await count('mistakes'),
-          'chat_count': await count('chat_sessions'),
-          ...(await LearningProgress.load(db)).toJson(),
+          'chat_count': chatCount.read<int>('n'),
+          ...(await LearningProgress.load(db, subject: subjectScope)).toJson(),
         };
       default:
         throw const AppFormatException(AppErrorCode.errorUnknownTool, '未知工具。');

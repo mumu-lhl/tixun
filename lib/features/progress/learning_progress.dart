@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart';
+
 import '../../core/database/database.dart';
 
 class TopicEvidence {
@@ -35,10 +37,16 @@ class LearningProgress {
   >
   recent;
   final Map<String, int> errorReasons;
-  static Future<LearningProgress> load(AppDatabase db) async {
+  static Future<LearningProgress> load(
+    AppDatabase db, {
+    String? subject,
+  }) async {
     final counts = await db
         .customSelect(
-          "SELECT count(*) total, sum(grading_basis='deterministic') checked, sum(grading_basis='self') self, sum(grading_basis='ai_reference') unverified, sum(hint_used) hinted, sum(correct) correct FROM practice_attempts WHERE status='graded'",
+          "SELECT count(*) total, sum(a.grading_basis='deterministic') checked, sum(a.grading_basis='self') self, sum(a.grading_basis='ai_reference') unverified, sum(a.hint_used) hinted, sum(a.correct) correct FROM practice_attempts a JOIN practice_questions q ON q.id=a.question_id WHERE a.status='graded'${subject == null ? '' : ' AND q.subject=?'}",
+          variables: subject == null
+              ? const []
+              : [Variable.withString(subject)],
         )
         .getSingle();
     int n(String name) => counts.readNullable<int>(name) ?? 0;
@@ -49,15 +57,22 @@ class LearningProgress {
       SELECT t.name,t.subject,count(*) n,sum(a.correct) correct FROM ranked a
       JOIN practice_question_topics l ON l.question_id=a.question_id
       JOIN learning_topics t ON t.id=l.topic_id
-      WHERE a.pos=1 AND a.grading_basis='deterministic' AND a.hint_used=0
+      WHERE a.pos=1 AND a.grading_basis='deterministic' AND a.hint_used=0${subject == null ? '' : ' AND t.subject=?'}
       GROUP BY t.id ORDER BY (count(*)-sum(a.correct)) DESC,count(*) DESC LIMIT 12''',
+      variables: subject == null ? const [] : [Variable.withString(subject)],
     ).get();
-    final recent = await db.customSelect('''SELECT q.stem,q.subject,a.grading_basis,a.correct,a.hint_used,a.submitted_at
-      FROM practice_attempts a JOIN practice_questions q ON q.id=a.question_id WHERE a.status='graded'
-      ORDER BY a.submitted_at DESC,a.rowid DESC LIMIT 12''').get();
+    final recent = await db.customSelect(
+      '''SELECT q.stem,q.subject,a.grading_basis,a.correct,a.hint_used,a.submitted_at
+      FROM practice_attempts a JOIN practice_questions q ON q.id=a.question_id WHERE a.status='graded'${subject == null ? '' : ' AND q.subject=?'}
+      ORDER BY a.submitted_at DESC,a.rowid DESC LIMIT 12''',
+      variables: subject == null ? const [] : [Variable.withString(subject)],
+    ).get();
     final reasons = await db
         .customSelect(
-          "SELECT error_reason,count(*) n FROM mistakes WHERE deleted=0 AND error_reason<>'暂未确定' GROUP BY error_reason ORDER BY n DESC LIMIT 8",
+          "SELECT error_reason,count(*) n FROM mistakes WHERE deleted=0 AND error_reason<>'暂未确定'${subject == null ? '' : ' AND subject=?'} GROUP BY error_reason ORDER BY n DESC LIMIT 8",
+          variables: subject == null
+              ? const []
+              : [Variable.withString(subject)],
         )
         .get();
     return LearningProgress(

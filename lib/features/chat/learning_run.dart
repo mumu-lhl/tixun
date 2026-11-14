@@ -17,6 +17,7 @@ import '../../core/ai/region_tool.dart';
 import '../../core/database/database.dart';
 import '../../core/platform/attachment_store.dart';
 import '../library/study_store.dart';
+import '../library/subject_scope.dart';
 import '../practice/practice_store.dart';
 import '../review/review_store.dart';
 import '../progress/learning_profile.dart';
@@ -261,6 +262,7 @@ class LearningRun {
           '会话不存在，请重新选择会话。',
         );
       }
+      final subjectScope = await readStudySubjectScope(db);
       final learningProfile = await LearningProfile.load(db);
       final english = requestPrompts.language == 'en';
       final profileData = jsonEncode({
@@ -294,6 +296,11 @@ class LearningRun {
       // newest user message instead; with no user message at all, it goes
       // into the system instructions.
       var instructions = '$baseInstructions$profileContext';
+      if (subjectScope != null) {
+        instructions += english
+            ? '\n[Current learning subject: $subjectScope. All study-data searches, reads, and changes must stay in this subject. Do not create or move records to another subject.]'
+            : '\n[当前学习科目：$subjectScope。所有学习资料的搜索、读取和修改都必须限定在该科目，不得新建或改到其他科目。]';
+      }
       if (contextMessages.isNotEmpty &&
           contextMessages.last.role == AiRole.user) {
         contextMessages[contextMessages.length - 1] = contextMessages.last
@@ -346,6 +353,7 @@ class LearningRun {
         categories: toolCategories,
         sourceImages: sourceImages,
         sourceSessionId: studyTask?.sourceSessionId,
+        subjectScope: subjectScope,
         confirm: (name, args) => approve(name, args, sourceImages.length),
       );
       final conversation = provider.start(requestConfig);

@@ -1,6 +1,7 @@
 import 'package:tixun/core/l10n/app_error.dart';
 
 import 'module_store.dart';
+import 'subject_scope.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -338,6 +339,7 @@ class StudyStore extends DatabaseNotifier {
         '知识记录不存在或已在回收区。',
       );
     }
+    requireStudySubject(row.subject, await readStudySubjectScope(db));
     return row;
   }
 
@@ -351,6 +353,7 @@ class StudyStore extends DatabaseNotifier {
         '错题不存在或已在回收区。',
       );
     }
+    requireStudySubject(row.subject, await readStudySubjectScope(db));
     return row;
   }
 
@@ -436,6 +439,8 @@ class StudyStore extends DatabaseNotifier {
       40,
       required: true,
     );
+    final subjectScope = await readStudySubjectScope(db);
+    requireStudySubject(subject, subjectScope);
     final chapter = _checked(draft.chapter, StudyErrorField.chapter, 160);
     if (!knowledgeKinds.contains(draft.kind)) {
       throw const AppFormatException(
@@ -446,6 +451,7 @@ class StudyStore extends DatabaseNotifier {
     final labels = cleanTags(draft.tags);
     final result = await db.transaction(() async {
       final old = id == null ? null : await knowledge(id);
+      if (old != null) requireStudySubject(old.subject, subjectScope);
       if (old != null && old.revision != expectedRevision) {
         throw const StudyConflict();
       }
@@ -510,6 +516,8 @@ class StudyStore extends DatabaseNotifier {
       40,
       required: true,
     );
+    final subjectScope = await readStudySubjectScope(db);
+    requireStudySubject(subject, subjectScope);
     for (final text in [
       draft.question,
       draft.correctAnswer,
@@ -534,6 +542,7 @@ class StudyStore extends DatabaseNotifier {
     final labels = cleanTags(draft.tags);
     final result = await db.transaction(() async {
       final old = id == null ? null : await mistake(id);
+      if (old != null) requireStudySubject(old.subject, subjectScope);
       if (old != null && old.revision != expectedRevision) {
         throw const StudyConflict();
       }
@@ -606,8 +615,10 @@ class StudyStore extends DatabaseNotifier {
     required bool deleted,
     required int expectedRevision,
   }) async {
+    final subjectScope = await readStudySubjectScope(db);
     if (isMistake) {
       final row = await mistake(id, includeDeleted: true);
+      requireStudySubject(row.subject, subjectScope);
       if (row.revision != expectedRevision) throw const StudyConflict();
       await db
           .update(db.mistakes)
@@ -620,6 +631,7 @@ class StudyStore extends DatabaseNotifier {
           );
     } else {
       final row = await knowledge(id, includeDeleted: true);
+      requireStudySubject(row.subject, subjectScope);
       if (row.revision != expectedRevision) throw const StudyConflict();
       final next = row.copyWith(
         deleted: deleted,
@@ -665,12 +677,19 @@ class StudyStore extends DatabaseNotifier {
   Future<int> purge(Map<String, int> revisions, {required bool isMistake}) =>
       runOperation(() async {
         _checkBatch(revisions);
+        final subjectScope = await readStudySubjectScope(db);
         final paths = <String>[];
         await db.transaction(() async {
           for (final entry in revisions.entries) {
             final row = isMistake
                 ? await mistake(entry.key, includeDeleted: true)
                 : await knowledge(entry.key, includeDeleted: true);
+            requireStudySubject(
+              isMistake
+                  ? (row as Mistake).subject
+                  : (row as KnowledgeItem).subject,
+              subjectScope,
+            );
             final deleted = isMistake
                 ? (row as Mistake).deleted
                 : (row as KnowledgeItem).deleted;
@@ -805,15 +824,20 @@ class StudyStore extends DatabaseNotifier {
     int limit,
     int offset,
     String moduleId,
-  ) {
+  ) async {
+    final scope = await readStudySubjectScope(db);
+    if (scope != null && subject.isNotEmpty) {
+      requireStudySubject(subject, scope);
+    }
+    final effectiveSubject = scope ?? subject;
     final term = _checked(query, StudyErrorField.searchTerm, 300);
     final tagTable = table == 'mistakes' ? 'mistake_tags' : 'knowledge_tags';
     final idColumn = table == 'mistakes' ? 'mistake_id' : 'knowledge_id';
     final vars = <Variable>[Variable(trash ? 1 : 0)];
     var where = 't.deleted = ?';
-    if (subject.isNotEmpty) {
+    if (effectiveSubject.isNotEmpty) {
       where += ' AND t.subject = ?';
-      vars.add(Variable(subject));
+      vars.add(Variable(effectiveSubject));
     }
     if (moduleId.isNotEmpty) {
       final links = table == 'mistakes'
@@ -1080,10 +1104,13 @@ class StudyStore extends DatabaseNotifier {
     String? mistakeId,
     bool remove = false,
   }) => runOperation(() async {
+    final subjectScope = await readStudySubjectScope(db);
     await db.transaction(() async {
-      await knowledge(knowledgeId);
+      final knowledgeRow = await knowledge(knowledgeId);
+      requireStudySubject(knowledgeRow.subject, subjectScope);
       if (mistakeId != null) {
-        await mistake(mistakeId);
+        final mistakeRow = await mistake(mistakeId);
+        requireStudySubject(mistakeRow.subject, subjectScope);
         if (remove) {
           await (db.delete(db.mistakeKnowledgeLinks)..where(
                 (t) =>
@@ -1109,7 +1136,11 @@ class StudyStore extends DatabaseNotifier {
             '请选择不同的知识记录。',
           );
         }
-        await knowledge(otherKnowledgeId);
+        final other = await knowledge(otherKnowledgeId);
+        requireStudySubject(other.subject, subjectScope);
+        if (other.subject != knowledgeRow.subject) {
+          requireStudySubject(other.subject, knowledgeRow.subject);
+        }
         final ids = [knowledgeId, otherKnowledgeId]..sort();
         if (remove) {
           await (db.delete(db.knowledgeRelations)..where(

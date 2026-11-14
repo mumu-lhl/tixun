@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/database/database.dart';
 import '../../core/database/database_notifier.dart';
+import 'subject_scope.dart';
 
 /// Curriculum folders are shared by notes and mistakes, independent of text history.
 class ModuleStore extends DatabaseNotifier {
@@ -42,6 +43,7 @@ class ModuleStore extends DatabaseNotifier {
     bool reuseExisting = true,
   }) => runOperation(() async {
     final title = name.trim(), discipline = subject.trim();
+    requireStudySubject(discipline, await readStudySubjectScope(db));
     if (title.isEmpty ||
         title.length > 80 ||
         discipline.isEmpty ||
@@ -116,12 +118,20 @@ class ModuleStore extends DatabaseNotifier {
         '目录名称需为 1–80 字。',
       );
     }
+    final row = await (db.select(
+      db.subjectModules,
+    )..where((t) => t.id.equals(id))).getSingle();
+    requireStudySubject(row.subject, await readStudySubjectScope(db));
     await (db.update(db.subjectModules)..where((t) => t.id.equals(id))).write(
       SubjectModulesCompanion(name: Value(title)),
     );
     changed();
   });
   Future<void> delete(String id) => runOperation(() async {
+    final row = await (db.select(
+      db.subjectModules,
+    )..where((t) => t.id.equals(id))).getSingle();
+    requireStudySubject(row.subject, await readStudySubjectScope(db));
     await (db.delete(db.subjectModules)..where((t) => t.id.equals(id))).go();
     changed();
   });
@@ -139,6 +149,7 @@ class ModuleStore extends DatabaseNotifier {
       final row = await (db.select(
         db.subjectModules,
       )..where((t) => t.id.equals(id))).getSingle();
+      requireStudySubject(row.subject, await readStudySubjectScope(db));
       final siblings = (await list(row.subject))
           .where((m) => m.parentId == row.parentId)
           .toList();
@@ -228,6 +239,8 @@ class ModuleStore extends DatabaseNotifier {
           '资料不存在或已在回收区。',
         );
       }
+      final itemSubject = item.read<String>('subject');
+      requireStudySubject(itemSubject, await readStudySubjectScope(db));
       final current = await ids(id, mistake);
       if (expected != null) {
         final previous = expected.toSet().toList()..sort();
