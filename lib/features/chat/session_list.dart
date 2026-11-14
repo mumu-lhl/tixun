@@ -48,6 +48,10 @@ class _SessionListState extends ConsumerState<SessionList> {
       _snippetQuery = c.search;
       _snippetFutures.clear();
     }
+    final liveSnippetKeys = c.sessions
+        .map((s) => '${s.id}:${s.updatedAt.microsecondsSinceEpoch}')
+        .toSet();
+    _snippetFutures.removeWhere((key, _) => !liveSnippetKeys.contains(key));
     // The query can be cleared outside this widget (e.g. starting a new
     // session resets it); keep the field in sync without clobbering text
     // the user is typing. Programmatic changes do not fire onChanged, so
@@ -218,7 +222,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                               if (c.search.trim().isNotEmpty)
                                 FutureBuilder<ChatMessage?>(
                                   future: _snippetFutures.putIfAbsent(
-                                    s.id,
+                                    '${s.id}:${s.updatedAt.microsecondsSinceEpoch}',
                                     () => c.db.matchingMessage(s.id, c.search),
                                   ),
                                   builder: (context, snapshot) {
@@ -239,7 +243,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                             final match = query.isEmpty
                                 ? null
                                 : await _snippetFutures.putIfAbsent(
-                                    s.id,
+                                    '${s.id}:${s.updatedAt.microsecondsSinceEpoch}',
                                     () => c.db.matchingMessage(s.id, query),
                                   );
                             if (!mounted || selection != _selectionEpoch) {

@@ -281,9 +281,11 @@ void main() {
       await tester.pumpAndSettle();
       c.showSearchMessage(c.selected!.id, 'search-test-15');
       await tester.pumpAndSettle();
+      final target = find.byKey(const ValueKey('message-search-test-15'));
+      expect(target, findsOneWidget);
       expect(
-        find.byKey(const ValueKey('message-search-test-15')),
-        findsOneWidget,
+        tester.getRect(target).overlaps(const Rect.fromLTWH(0, 0, 1280, 800)),
+        isTrue,
       );
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
