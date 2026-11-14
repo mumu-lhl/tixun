@@ -50,6 +50,41 @@ void main() {
       }
     });
 
+    test('tan(x) splits at every asymptote at 256 samples too', () {
+      // The slope rule compares against the median of the recent
+      // slopes, not the previous slope, so on the approach to a pole
+      // the rule alone could split late — but the pole rule (opposite
+      // signs, both far above the local magnitude scale) still breaks
+      // every asymptote, including at the coarser resolution the
+      // quality check and auto-fit use.
+      final segments = sampleFunction(
+        'tan(x)',
+        variables: {},
+        min: -10,
+        max: 10,
+        maxSamples: 256,
+      );
+      const poles = [
+        -7 * math.pi / 2,
+        -5 * math.pi / 2,
+        -math.pi / 2,
+        math.pi / 2,
+        5 * math.pi / 2,
+        7 * math.pi / 2,
+      ];
+      for (final pole in poles) {
+        for (final segment in segments) {
+          final left = segment.points.any((p) => p.dx < pole);
+          final right = segment.points.any((p) => p.dx > pole);
+          expect(
+            left && right,
+            isFalse,
+            reason: 'no segment may span the asymptote at $pole',
+          );
+        }
+      }
+    });
+
     test('1/x splits at 0 over [-2, 3]', () {
       final segments = sampleFunction('1/x', variables: {}, min: -2, max: 3);
       expect(segments.length, greaterThanOrEqualTo(2));
@@ -235,6 +270,23 @@ void main() {
       // x^2 touches zero at 0 without a sign change; 0 is on the grid.
       expect(findZeros('x^2', {}, -2, 2), [closeTo(0, 1e-9)]);
     });
+
+    test('tangent touch (x-1)^2 is found even off the grid', () {
+      // (x-1)^2 touches zero at x = 1 without a sign change, and 1
+      // is not a sweep grid point over [-3, 3].
+      final zeros = findZeros('(x-1)^2', {}, -3, 3);
+      expect(zeros, [closeTo(1, 1e-6)]);
+    });
+
+    test('tangent touch (x-2)^2 is found', () {
+      expect(findZeros('(x-2)^2', {}, -3, 3), [closeTo(2, 1e-6)]);
+    });
+
+    test('a small nonzero minimum is not reported as a zero', () {
+      // (x-1)^2 + 1e-7 dips to 1e-7 at x = 1: a local minimum of |f|,
+      // but not a zero.
+      expect(findZeros('(x-1)^2+1e-7', {}, -3, 3), isEmpty);
+    });
   });
 
   group('findIntersections', () {
@@ -255,6 +307,15 @@ void main() {
       final points = findIntersections('tan(x)', '0', {}, -3, 3);
       expect(points, hasLength(1));
       expect(points.single.dx, closeTo(0, 1e-6));
+      expect(points.single.dy, closeTo(0, 1e-6));
+    });
+
+    test('a tangent intersection is found', () {
+      // (x-1)^2 touches y = 0 at x = 1 without crossing; 1 is not a
+      // sweep grid point over [-3, 3].
+      final points = findIntersections('(x-1)^2', '0', {}, -3, 3);
+      expect(points, hasLength(1));
+      expect(points.single.dx, closeTo(1, 1e-6));
       expect(points.single.dy, closeTo(0, 1e-6));
     });
   });

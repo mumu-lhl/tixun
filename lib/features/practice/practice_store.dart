@@ -568,7 +568,7 @@ class PracticeStore extends DatabaseNotifier {
           '选项无效。',
         );
       }
-      if (d.spec.kind == 'numeric' &&
+      if ((d.spec.kind == 'numeric' || d.spec.kind == 'read_value') &&
           (answers.length != 1 || parseNumber(answers.single) == null)) {
         throw const AppFormatException(
           AppErrorCode.errorEnterAFiniteNumberDecimalOr,

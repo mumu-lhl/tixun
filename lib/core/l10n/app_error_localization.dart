@@ -383,6 +383,8 @@ String appErrorText(
   AppErrorCode.errorVisualSceneJsonEmpty => l10n.errorVisualSceneJsonEmpty,
   AppErrorCode.errorVisualSceneDoesNotExist =>
     l10n.errorVisualSceneDoesNotExist,
+  AppErrorCode.errorVisualSceneRevisionDoesNotExist =>
+    l10n.errorVisualSceneRevisionDoesNotExist,
   AppErrorCode.errorVisualStudyLinkNeedsOneOwner =>
     l10n.errorVisualStudyLinkNeedsOneOwner,
 

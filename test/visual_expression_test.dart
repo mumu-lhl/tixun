@@ -173,12 +173,40 @@ void main() {
     });
 
     test('AST depth limit 32', () {
-      final deepParens = '${'(' * 40}1${')' * 40}';
-      expect(() => Expression.parse(deepParens), throwsFormatException);
+      // Parentheses do not create AST nodes, so the paren cap follows
+      // the parser recursion budget (128 frames, two per paren level
+      // plus two for the innermost literal: 63 fit), not the AST depth
+      // limit (32): 40 parens around a literal is only one AST level
+      // deep.
+      expect(Expression.parse('${'(' * 40}1${')' * 40}').evaluate({}), 1);
+      expect(Expression.parse('${'(' * 63}1${')' * 63}').evaluate({}), 1);
+      expect(
+        () => Expression.parse('${'(' * 64}1${')' * 64}'),
+        throwsFormatException,
+      );
       final deepUnary = '${'-' * 40}x';
       expect(() => Expression.parse(deepUnary), throwsFormatException);
       // Just inside the limit parses fine.
       expect(Expression.parse('${'(' * 20}1+2${')' * 20}').evaluate({}), 3);
+    });
+
+    test('flat sums count against the AST depth limit', () {
+      // A flat `1+1+...` chain builds a left-deep tree, so 33 terms
+      // exceed depth 32 even though the expression is "flat".
+      expect(
+        () => Expression.parse(List.filled(33, '1').join('+')),
+        throwsFormatException,
+      );
+      expect(Expression.parse(List.filled(32, '1').join('+')).evaluate({}), 32);
+      // A balanced sum of the same size stays shallow and parses:
+      // depth is stored per node, so the check is a single pass.
+      String balanced(int n) {
+        if (n == 1) return '1';
+        final half = n ~/ 2;
+        return '(${balanced(half)}+${balanced(n - half)})';
+      }
+
+      expect(Expression.parse(balanced(16000)).evaluate({}), 16000);
     });
 
     test('very long unary / ^ chains throw FormatException, not StackOverflowError', () {
@@ -193,5 +221,127 @@ void main() {
     expect(Expression.parse('a*x+sin(y)').variables, {'a', 'x', 'y'});
     expect(Expression.parse('pi*2').variables, {'pi'});
     expect(Expression.parse('if(t>0,1,0)').variables, {'t'});
+  });
+
+  group('Expression.evaluate: unary plus and log base', () {
+    test('unary plus is a no-op', () {
+      expect(Expression.parse('+5').evaluate({}), 5);
+      expect(Expression.parse('2++3').evaluate({}), 5);
+      expect(Expression.parse('2+-3').evaluate({}), -1);
+      expect(Expression.parse('+(2*3)').evaluate({}), 6);
+      expect(Expression.parse('+x').evaluate({'x': 7}), 7);
+    });
+
+    test('log is base-10, ln is the natural log', () {
+      expect(Expression.parse('log(100)').evaluate({}), closeTo(2, 1e-12));
+      expect(Expression.parse('log(10)').evaluate({}), closeTo(1, 1e-12));
+      expect(Expression.parse('ln(e)').evaluate({}), closeTo(1, 1e-12));
+      expect(
+        Expression.parse('ln(100)').evaluate({}),
+        closeTo(4.605170185988092, 1e-12),
+      );
+    });
+
+    test('0^0 is 1; a negative base to a fractional power throws', () {
+      expect(Expression.parse('0^0').evaluate({}), 1);
+      expect(
+        () => Expression.parse('(-8)^(1/3)').evaluate({}),
+        throwsFormatException,
+      );
+    });
+  });
+
+  group('Expression.parse errors: messages name the problem', () {
+    String messageOf(void Function() f) {
+      try {
+        f();
+      } on FormatException catch (e) {
+        return e.message;
+      }
+      fail('expected a FormatException');
+    }
+
+    test('missing operand after an operator', () {
+      expect(
+        messageOf(() => Expression.parse('2+')),
+        contains('Expected an operand'),
+      );
+    });
+
+    test('malformed exponent is a bad number, not an identifier', () {
+      expect(
+        messageOf(() => Expression.parse('1e')),
+        contains('Invalid number'),
+      );
+      expect(
+        messageOf(() => Expression.parse('1e+')),
+        contains('Invalid number'),
+      );
+      expect(
+        messageOf(() => Expression.parse('1e+x')),
+        contains('Invalid number'),
+      );
+    });
+
+    test('too many function arguments name the arity', () {
+      expect(
+        messageOf(() => Expression.parse('sin(1,2)')),
+        contains('takes exactly 1 argument'),
+      );
+      expect(
+        messageOf(() => Expression.parse('if(1,2,3,4)')),
+        contains('takes exactly 3 arguments'),
+      );
+    });
+
+    test('a bare function name is not a variable', () {
+      expect(
+        messageOf(() => Expression.parse('sin')),
+        contains('needs arguments'),
+      );
+      expect(
+        messageOf(() => Expression.parse('if')),
+        contains('needs arguments'),
+      );
+      expect(
+        messageOf(() => Expression.parse('sin+1')),
+        contains('needs arguments'),
+      );
+    });
+
+    test('eval-time errors carry the source offset', () {
+      expect(
+        messageOf(() => Expression.parse('y+1').evaluate({})),
+        contains('at offset 0'),
+      );
+      expect(
+        messageOf(() => Expression.parse('1e308*10').evaluate({})),
+        contains('at offset 5'),
+      );
+    });
+  });
+
+  group('Expression.variablesReachable respects laziness', () {
+    test('a dead if branch contributes no variables', () {
+      final expr = Expression.parse('if(a==0, 0, y)');
+      expect(expr.variablesReachable({'a': 0}), {'a'});
+      expect(expr.variablesReachable({'a': 1}), {'a', 'y'});
+      expect(expr.variablesReachable({}), {'a', 'y'});
+      // `x` is not foldable (it varies), so both branches count.
+      expect(Expression.parse('if(x==0, 0, y)').variablesReachable({}), {
+        'x',
+        'y',
+      });
+      expect(Expression.parse('if(1, 0, y)').variablesReachable({}), isEmpty);
+    });
+
+    test('short-circuit logic skips the untaken side', () {
+      expect(Expression.parse('0 && y').variablesReachable({}), isEmpty);
+      expect(Expression.parse('1 || y').variablesReachable({}), isEmpty);
+      expect(Expression.parse('1 && y').variablesReachable({}), {'y'});
+      expect(Expression.parse('x!=0 && 1/x > 2').variablesReachable({'x': 0}), {
+        'x',
+      });
+    });
   });
 }

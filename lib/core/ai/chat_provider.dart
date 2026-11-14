@@ -687,6 +687,64 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
 
         return;
       }
+      // The update/get fixtures address a scene by the id carried in the
+      // user message: tool results are not persisted as chat messages, so
+      // a later turn cannot see the visual_id of a scene created earlier.
+      // Without an id there is nothing to update or read, and the turn
+      // answers in text instead of creating a new figure.
+      final visualIdMatch = RegExp(
+        r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+        caseSensitive: false,
+      ).firstMatch(last.text);
+      final visualId = visualIdMatch?.group(0);
+
+      if (last.role == AiRole.user &&
+          names.contains('update_visual') &&
+          ['修改', '更新', '改'].any((v) => last.text.contains(v)) &&
+          ['图', '图像'].any((v) => last.text.contains(v))) {
+        if (visualId != null) {
+          yield AiChunk(
+            completed: true,
+            calls: [
+              ToolCall(
+                'mock-visual-update',
+                'update_visual',
+                jsonEncode({
+                  'visual_id': visualId,
+                  'ops': [
+                    {'op': 'set_title', 'title': 'y = x²（已修改）'},
+                  ],
+                }),
+              ),
+            ],
+          );
+        } else {
+          yield AiChunk(text: '请在消息里附上图形 id，我才能修改它。');
+          yield const AiChunk(completed: true);
+        }
+        return;
+      }
+      if (last.role == AiRole.user &&
+          names.contains('get_visual') &&
+          ['查看', '看看', '读取'].any((v) => last.text.contains(v)) &&
+          ['图', '图像'].any((v) => last.text.contains(v))) {
+        if (visualId != null) {
+          yield AiChunk(
+            completed: true,
+            calls: [
+              ToolCall(
+                'mock-visual-get',
+                'get_visual',
+                jsonEncode({'visual_id': visualId}),
+              ),
+            ],
+          );
+        } else {
+          yield AiChunk(text: '请在消息里附上图形 id，我才能查看它。');
+          yield const AiChunk(completed: true);
+        }
+        return;
+      }
       if (last.role == AiRole.user &&
           names.contains('create_visual') &&
           ['画图', '图像', '函数图'].any((v) => last.text.contains(v))) {

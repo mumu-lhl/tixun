@@ -342,7 +342,7 @@ void main() {
         isA<AppFormatException>().having(
           (e) => e.code,
           'code',
-          AppErrorCode.errorVisualSceneDoesNotExist,
+          AppErrorCode.errorVisualSceneRevisionDoesNotExist,
         ),
       ),
     );
@@ -385,6 +385,54 @@ void main() {
             (e) => e.code,
             'code',
             AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
+          ),
+        ),
+      );
+    },
+  );
+
+  test('linkToStudy linking the same owner twice keeps a single row', () async {
+    await _seedMessage(db, 's', 'm');
+    await _seedKnowledge(db, 'k');
+    await _seedKnowledge(db, 'k2');
+    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+    await store.linkToStudy(id, knowledgeId: 'k');
+    await store.linkToStudy(id, knowledgeId: 'k');
+    expect((await store.listByStudy(knowledgeId: 'k')).map((s) => s.id), [id]);
+    // The nullable composite key cannot see the duplicate (SQLite treats
+    // NULLs as distinct), so the store must guard the write itself.
+    expect(await db.select(db.visualStudyLinks).get(), hasLength(1));
+    // A different owner is a genuinely different link.
+    await store.linkToStudy(id, knowledgeId: 'k2');
+    expect(await db.select(db.visualStudyLinks).get(), hasLength(2));
+  });
+
+  test('questionVisualLinks hides links of deleted scenes', () async {
+    await _seedMessage(db, 's', 'm');
+    await _seedQuestion(db, 'q');
+    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+    final snap = await store.snapshotForQuestion(id);
+    await store.linkToQuestion(id, 'q', snap.revision);
+    expect(await store.questionVisualLinks('q'), hasLength(1));
+    await (db.update(db.visualScenes)..where((s) => s.id.equals(id))).write(
+      const VisualScenesCompanion(deleted: Value(true)),
+    );
+    expect(await store.questionVisualLinks('q'), isEmpty);
+  });
+
+  test(
+    'linkToQuestion with a future revision reports the revision code',
+    () async {
+      await _seedMessage(db, 's', 'm');
+      await _seedQuestion(db, 'q');
+      final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+      await expectLater(
+        store.linkToQuestion(id, 'q', 99),
+        throwsA(
+          isA<AppFormatException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.errorVisualSceneRevisionDoesNotExist,
           ),
         ),
       );

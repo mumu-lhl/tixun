@@ -5,6 +5,15 @@
 /// plain numbers or `{"$param": "<name>"}` bindings (see [VisualCoord]).
 /// `fromJson` rejects unknown fields at every level, mirroring
 /// `QuestionSpec.fromJson`.
+///
+/// `fromJson` also enforces the obvious semantic guards (a circle radius
+/// > 0, polyline ≥ 2 / polygon ≥ 3 points, text ≤ 500 chars, a plot
+/// domain with min < max, a plot sample count in range, non-empty
+/// groups, circuit field mutual-exclusion). Deeper cross-field checks
+/// (slider ranges, track windows, constraint geometry) live in the
+/// validator; the top-level entry point (`VisualScene.fromJson`) and the
+/// store entry points run the full validator first, so `fromJson` here
+/// is a second line of defence for direct callers, not the only gate.
 library;
 
 import 'package:tixun/core/l10n/app_error.dart';
@@ -396,7 +405,7 @@ sealed class VisualElement {
           layer: c.layer,
           visible: c.visible,
           visibleWhen: c.visibleWhen,
-          points: _parsePoints(json['points'], 'polyline'),
+          points: _parsePoints(json['points'], 'polyline', 2),
         );
       case 'polygon':
         checkNoUnknownFields(json, {
@@ -411,7 +420,7 @@ sealed class VisualElement {
           layer: c.layer,
           visible: c.visible,
           visibleWhen: c.visibleWhen,
-          points: _parsePoints(json['points'], 'polygon'),
+          points: _parsePoints(json['points'], 'polygon', 3),
           fill: _optBool(json, 'fill', 'polygon 图元'),
         );
       case 'circle':
@@ -421,6 +430,14 @@ sealed class VisualElement {
           'r',
         }, 'circle 图元');
         final c = _parseCommonFields(json);
+        final circleR = _reqNumber(json, 'r', 'circle 图元');
+        if (circleR <= 0) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'circle 图元的 r 必须大于 0。',
+            ['r'],
+          );
+        }
         return CircleElement(
           id: c.id,
           style: c.style,
@@ -428,7 +445,7 @@ sealed class VisualElement {
           visible: c.visible,
           visibleWhen: c.visibleWhen,
           center: VisualPoint.fromJson(json['center']),
-          r: _reqNumber(json, 'r', 'circle 图元'),
+          r: circleR,
         );
       case 'arc':
         checkNoUnknownFields(json, {
@@ -439,6 +456,22 @@ sealed class VisualElement {
           'sweepDeg',
         }, 'arc 图元');
         final c = _parseCommonFields(json);
+        final arcR = _reqNumber(json, 'r', 'arc 图元');
+        if (arcR <= 0) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'arc 图元的 r 必须大于 0。',
+            ['r'],
+          );
+        }
+        final arcSweep = _reqNumber(json, 'sweepDeg', 'arc 图元');
+        if (arcSweep == 0) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'arc 图元的 sweepDeg 不能为 0。',
+            ['sweepDeg'],
+          );
+        }
         return ArcElement(
           id: c.id,
           style: c.style,
@@ -446,9 +479,9 @@ sealed class VisualElement {
           visible: c.visible,
           visibleWhen: c.visibleWhen,
           center: VisualPoint.fromJson(json['center']),
-          r: _reqNumber(json, 'r', 'arc 图元'),
+          r: arcR,
           startDeg: _reqNumber(json, 'startDeg', 'arc 图元'),
-          sweepDeg: _reqNumber(json, 'sweepDeg', 'arc 图元'),
+          sweepDeg: arcSweep,
         );
       case 'arrow':
         checkNoUnknownFields(json, {
@@ -469,6 +502,8 @@ sealed class VisualElement {
       case 'text':
         checkNoUnknownFields(json, {..._commonFields, 'at', 'text'}, 'text 图元');
         final c = _parseCommonFields(json);
+        final textValue = _reqString(json, 'text', 'text 图元');
+        _checkTextLength(textValue, 'text 图元');
         return TextElement(
           id: c.id,
           style: c.style,
@@ -476,7 +511,7 @@ sealed class VisualElement {
           visible: c.visible,
           visibleWhen: c.visibleWhen,
           at: VisualPoint.fromJson(json['at']),
-          text: _reqString(json, 'text', 'text 图元'),
+          text: textValue,
         );
       case 'math_label':
         checkNoUnknownFields(json, {
@@ -485,6 +520,8 @@ sealed class VisualElement {
           'tex',
         }, 'math_label 图元');
         final c = _parseCommonFields(json);
+        final texValue = _reqString(json, 'tex', 'math_label 图元');
+        _checkTextLength(texValue, 'math_label 图元');
         return MathLabelElement(
           id: c.id,
           style: c.style,
@@ -492,7 +529,7 @@ sealed class VisualElement {
           visible: c.visible,
           visibleWhen: c.visibleWhen,
           at: VisualPoint.fromJson(json['at']),
-          tex: _reqString(json, 'tex', 'math_label 图元'),
+          tex: texValue,
         );
       case 'group':
         checkNoUnknownFields(json, {..._commonFields, 'children'}, 'group 图元');
@@ -509,6 +546,16 @@ sealed class VisualElement {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
             'group 图元的 children 必须是数组。',
+            ['children'],
+          );
+        }
+        if (rawChildren.isEmpty) {
+          // The contract writes `children: [element, ...]` — a group
+          // with no children is not a group; the validator rejects it
+          // too, so the layers agree.
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'group 图元至少需要一个子图元。',
             ['children'],
           );
         }
@@ -559,6 +606,13 @@ sealed class VisualElement {
             );
           }
           domain = (min.toDouble(), max.toDouble());
+          if (domain.$1 >= domain.$2) {
+            throw const AppFormatException(
+              AppErrorCode.errorInvalidParameterType,
+              'plot 图元的 domain 下限必须小于上限。',
+              ['domain'],
+            );
+          }
         }
         int? samples;
         if (json['samples'] != null) {
@@ -567,6 +621,16 @@ sealed class VisualElement {
             throw const AppFormatException(
               AppErrorCode.errorParameterMustBeNumber,
               'plot 图元的 samples 必须是整数。',
+            );
+          }
+          // Mirrors visualMaxPlotSamples in visual_validator.dart (the
+          // model layer cannot import the validator: it imports this
+          // file, so a cycle would result).
+          if (raw <= 0 || raw > 4096) {
+            throw const AppFormatException(
+              AppErrorCode.errorInvalidParameterType,
+              'plot 图元的 samples 必须在 1~4096 之间。',
+              ['samples'],
             );
           }
           samples = raw;
@@ -635,9 +699,38 @@ sealed class VisualElement {
             );
           }
           meter = kinds.first;
+          if (json['from'] != null || json['to'] != null) {
+            throw const AppFormatException(
+              AppErrorCode.errorInvalidParameterType,
+              'meter 图元不需要 from/to 字段。',
+              ['from'],
+            );
+          }
         } else {
           from = VisualPoint.fromJson(json['from']);
           to = VisualPoint.fromJson(json['to']);
+          if (json['at'] != null) {
+            throw const AppFormatException(
+              AppErrorCode.errorInvalidParameterType,
+              'circuit 图元不需要 at 字段。',
+              ['at'],
+            );
+          }
+          if (json['meter'] != null) {
+            throw const AppFormatException(
+              AppErrorCode.errorInvalidParameterType,
+              '只有 meter 图元能带 meter 字段。',
+              ['meter'],
+            );
+          }
+        }
+        final closed = _optBool(json, 'closed', 'circuit 图元');
+        if (closed && comp != CircuitComponent.powerSwitch) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            '只有 switch 图元能带 closed 字段。',
+            ['closed'],
+          );
         }
         return CircuitElement(
           id: c.id,
@@ -649,7 +742,7 @@ sealed class VisualElement {
           from: from,
           to: to,
           at: at,
-          closed: _optBool(json, 'closed', 'circuit 图元'),
+          closed: closed,
           meter: meter,
           label: switch (json['label']) {
             null => null,
@@ -670,7 +763,7 @@ sealed class VisualElement {
   }
 }
 
-List<VisualPoint> _parsePoints(dynamic raw, String what) {
+List<VisualPoint> _parsePoints(dynamic raw, String what, int minLength) {
   if (raw is! List) {
     throw AppFormatException(
       AppErrorCode.errorInvalidParameterType,
@@ -678,7 +771,32 @@ List<VisualPoint> _parsePoints(dynamic raw, String what) {
       ['points'],
     );
   }
+  if (raw.length < minLength) {
+    throw AppFormatException(
+      AppErrorCode.errorInvalidParameterType,
+      '$what 图元至少需要 $minLength 个点。',
+      ['points'],
+    );
+  }
   return raw.map((p) => VisualPoint.fromJson(p)).toList();
+}
+
+/// Text/math_label content must be non-empty and at most 500 chars
+/// (contract table); an empty label renders nothing, a longer one is
+/// almost certainly a paste error.
+void _checkTextLength(String text, String what) {
+  if (text.isEmpty) {
+    throw AppFormatException(
+      AppErrorCode.errorInvalidParameterType,
+      '$what 的文字不能为空。',
+    );
+  }
+  if (text.length > 500) {
+    throw AppFormatException(
+      AppErrorCode.errorInvalidParameterType,
+      '$what 的文字不能超过 500 个字符。',
+    );
+  }
 }
 
 bool _optBool(Map<String, dynamic> json, String key, String what) {

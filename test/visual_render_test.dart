@@ -81,9 +81,50 @@ VisualScene _sliderScene() => VisualScene.fromJson({
   ],
 });
 
+/// Shared palette for the canvas-level tests below (same values as the
+/// inline palettes above).
+const _testPalette = VisualPalette(
+  primary: Color(0xff226450),
+  highlight: Color(0xff7d5700),
+  muted: Color(0xff767680),
+  success: Color(0xff226450),
+  danger: Color(0xffb3261e),
+  axis: Color(0x991c1b1f),
+  grid: Color(0xffd0d0d0),
+  background: Color(0xfffafbf8),
+  onBackground: Color(0xff1c1b1f),
+  textMuted: Color(0xff767680),
+);
+
+VisualScene _switchScene({required bool closed, required String style}) =>
+    VisualScene.fromJson({
+      'v': 1,
+      'kind': 'circuit',
+      'title': '开关',
+      'view': {
+        'x': [-1, 11],
+        'y': [-2, 4],
+      },
+      'elements': [
+        {
+          'id': 'sw',
+          'type': 'circuit',
+          'component': 'switch',
+          'from': [0, 0],
+          'to': [10, 0],
+          'closed': closed,
+          'style': style,
+        },
+      ],
+      'meta': {'alt': '开关'},
+    });
+
+int _drawLineCount(TestRecordingCanvas canvas) => canvas.invocations
+    .where((i) => i.invocation.memberName == #drawLine)
+    .length;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
   setUpAll(() async {
     final manifest =
         jsonDecode(await rootBundle.loadString('FontManifest.json')) as List;
@@ -349,5 +390,199 @@ void main() {
     await tester.pump();
     expect(fullscreenPainter().parameters['a'], isNot(1.0));
     expect(tester.takeException(), isNull);
+  });
+
+  group('auto-fit pole tails', () {
+    test('1/x without a view does not let pole samples stretch y', () {
+      // Near-pole samples reach |y| ~ 25, but the fit follows the
+      // main body instead (untrimmed, the height would be ~120).
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'title': '反比例',
+        'model': {'expression': '1/x'},
+        'meta': {'alt': '反比例'},
+      });
+      final rect = VisualCoordinateMapper.fromScene(
+        scene,
+        const Size(600, 400),
+      ).modelRect;
+      expect(rect.height, lessThan(10));
+    });
+
+    test('tan(x) without a view does not let pole samples stretch y', () {
+      // Near-pole samples reach |y| ~ 35, including lone samples
+      // wedged between two breaks right at a pole; those singletons
+      // are dropped and every branch is trimmed to ~|y| 8, so the
+      // height stays well under the untrimmed ~85.
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'title': '正切',
+        'model': {'expression': 'tan(x)'},
+        'meta': {'alt': '正切'},
+      });
+      final rect = VisualCoordinateMapper.fromScene(
+        scene,
+        const Size(600, 400),
+      ).modelRect;
+      expect(rect.height, lessThan(30));
+    });
+
+    test('a narrow peak is not mistaken for a pole singleton', () {
+      // A lone peak sample on a flat baseline must stay in auto-fit:
+      // its neighbours are ~0, so it is content, not pole approach.
+      // If it were dropped, the view would collapse to the baseline
+      // and the peak would sit outside it. (With no view the curve
+      // is sampled over [-10, 10], so the nearest sample to the peak
+      // is ~0.01 off-centre and the peak height is ~0.38, not 1.)
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'title': '窄峰',
+        'model': {'expression': 'exp(-((x-0.5)/0.01)^2)'},
+        'meta': {'alt': '窄峰'},
+      });
+      final rect = VisualCoordinateMapper.fromScene(
+        scene,
+        const Size(600, 400),
+      ).modelRect;
+      expect(rect.top, lessThan(0.2));
+      expect(rect.bottom, greaterThan(0.3));
+    });
+
+    test('a steep continuous curve is not trimmed', () {
+      // x^2 has one segment whose ends sit on the range edges: the
+      // real extent y in [0, 100] survives, plus 10% padding.
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'title': '抛物线',
+        'model': {'expression': 'x^2'},
+        'meta': {'alt': '抛物线'},
+      });
+      final rect = VisualCoordinateMapper.fromScene(
+        scene,
+        const Size(600, 400),
+      ).modelRect;
+      expect(rect.height, closeTo(120, 1));
+    });
+
+    test('exp(x) is not trimmed', () {
+      // Also a single segment ending on the range edges: y up to e^10.
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'title': '指数',
+        'model': {'expression': 'exp(x)'},
+        'meta': {'alt': '指数'},
+      });
+      final rect = VisualCoordinateMapper.fromScene(
+        scene,
+        const Size(600, 400),
+      ).modelRect;
+      expect(rect.height, greaterThan(20000));
+    });
+  });
+
+  group('switch dashing', () {
+    test('an open success-styled switch is dashed', () {
+      final painter = VisualPainter(
+        scene: _switchScene(closed: false, style: 'success'),
+        palette: _testPalette,
+        parameters: const {},
+      );
+      final canvas = TestRecordingCanvas();
+      painter.paint(canvas, const Size(600, 300));
+      // Two switch segments, each dashed into many short lines.
+      expect(_drawLineCount(canvas), greaterThan(10));
+    });
+
+    test('a closed success-styled switch is dashed', () {
+      final painter = VisualPainter(
+        scene: _switchScene(closed: true, style: 'success'),
+        palette: _testPalette,
+        parameters: const {},
+      );
+      final canvas = TestRecordingCanvas();
+      painter.paint(canvas, const Size(600, 300));
+      expect(_drawLineCount(canvas), greaterThan(10));
+    });
+
+    test('an open primary-styled switch is solid', () {
+      final painter = VisualPainter(
+        scene: _switchScene(closed: false, style: 'primary'),
+        palette: _testPalette,
+        parameters: const {},
+      );
+      final canvas = TestRecordingCanvas();
+      painter.paint(canvas, const Size(600, 300));
+      // Exactly one drawLine per switch segment (plus the contact dot).
+      expect(_drawLineCount(canvas), 2);
+    });
+  });
+
+  group('single-point segments', () {
+    test('a narrow peak renders as a dot, not nothing', () {
+      // The peak is narrower than the sampling step: at 1024 samples
+      // it is a single isolated sample (see the probe in the review:
+      // width 0.001 gives one singleton segment at y ~ 1).
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'title': '窄峰',
+        'model': {'expression': 'exp(-((x-0.50147)/0.001)^2)'},
+        'view': {
+          'x': [-3, 3],
+          'y': [-1, 2],
+        },
+        'meta': {'alt': '窄峰'},
+      });
+      final painter = VisualPainter(
+        scene: scene,
+        palette: _testPalette,
+        parameters: const {},
+      );
+      final canvas = TestRecordingCanvas();
+      painter.paint(canvas, const Size(600, 400));
+      final circles = canvas.invocations
+          .where((i) => i.invocation.memberName == #drawCircle)
+          .toList();
+      expect(circles, hasLength(1));
+      // The dot sits at the peak sample.
+      final mapper = VisualCoordinateMapper.fromScene(
+        scene,
+        const Size(600, 400),
+      );
+      final expected = mapper.modelToCanvas(const Offset(0.50147, 1));
+      final center = circles.single.invocation.positionalArguments[0] as Offset;
+      expect(center.dx, closeTo(expected.dx, 1.0));
+      expect(center.dy, closeTo(expected.dy, 1.0));
+    });
+
+    test('a smooth curve paints no dots', () {
+      final scene = VisualScene.fromJson({
+        'v': 1,
+        'kind': 'plot2d',
+        'title': '抛物线',
+        'model': {'expression': 'x^2'},
+        'view': {
+          'x': [-3, 3],
+          'y': [-5, 6],
+        },
+        'meta': {'alt': '抛物线'},
+      });
+      final painter = VisualPainter(
+        scene: scene,
+        palette: _testPalette,
+        parameters: const {},
+      );
+      final canvas = TestRecordingCanvas();
+      painter.paint(canvas, const Size(600, 400));
+      expect(
+        canvas.invocations.where((i) => i.invocation.memberName == #drawCircle),
+        isEmpty,
+      );
+    });
   });
 }

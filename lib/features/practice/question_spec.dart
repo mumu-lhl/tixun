@@ -355,9 +355,15 @@ double? parseNumber(String value) {
 }
 
 /// Parses a point answer in `"x,y"` form (model coordinates, as produced
-/// by tapping a visual). Returns null for anything else.
+/// by tapping a visual). A drag-to-target answer may carry the dragged
+/// element id as an `"id:x,y"` prefix; the id is ignored here (callers
+/// that need it read it separately), so old plain `"x,y"` answers keep
+/// grading exactly as before. Returns null for anything else.
 (double, double)? parseVisualPoint(String value) {
-  final parts = value.split(',');
+  var text = value;
+  final colon = text.indexOf(':');
+  if (colon >= 0) text = text.substring(colon + 1);
+  final parts = text.split(',');
   if (parts.length != 2) return null;
   final x = double.tryParse(parts[0].trim());
   final y = double.tryParse(parts[1].trim());

@@ -248,9 +248,56 @@ List<double> _dedupeSorted(List<double> sorted) {
   return out;
 }
 
+/// Refines a local minimum of |f| over [a, b] by golden-section search.
+///
+/// Returns the refined `(x, |f(x)|)`, or null when an evaluation fails
+/// inside the bracket. Used to pin down tangent touches, where |f|
+/// dips to (near) zero without changing sign.
+(double, double)? _refineAbsMinimum(
+  double? Function(double x) f,
+  double a,
+  double b,
+) {
+  const golden = 0.6180339887498949;
+  var lo = a;
+  var hi = b;
+  var c = hi - golden * (hi - lo);
+  var d = lo + golden * (hi - lo);
+  var fc = f(c)?.abs();
+  var fd = f(d)?.abs();
+  if (fc == null || fd == null) return null;
+  for (var i = 0; i < 80 && hi - lo > 1e-12; i++) {
+    // Null-checked on entry and after every reassignment below, so
+    // both are non-null here (promotion does not survive the loop
+    // back-edge for these mutable locals).
+    if (fc! < fd!) {
+      hi = d;
+      d = c;
+      fd = fc;
+      c = hi - golden * (hi - lo);
+      fc = f(c)?.abs();
+      if (fc == null) return null;
+    } else {
+      lo = c;
+      c = d;
+      fc = fd;
+      d = lo + golden * (hi - lo);
+      fd = f(d)?.abs();
+      if (fd == null) return null;
+    }
+  }
+  final x = (lo + hi) / 2;
+  final fx = f(x)?.abs();
+  if (fx == null) return null;
+  return (x, fx);
+}
+
 /// Finds zeros of [f] over `[min, max]` by a fine sweep with bisection on
-/// sign changes. Exact hits (`f == 0.0` at a sample) are recorded too;
-/// tangent touches that fall between samples are not detected.
+/// sign changes. Exact hits (`f == 0.0` at a sample) are recorded too,
+/// and tangent touches (e.g. `(x-1)^2`) are detected as local minima of
+/// |f| refined by golden-section search and accepted only when the
+/// refined value is tiny relative to the local scale — a small but
+/// nonzero minimum such as `(x-1)^2 + 1e-7` is not a zero.
 List<double> _findZerosOf(
   double? Function(double x) f,
   double min,
@@ -259,8 +306,10 @@ List<double> _findZerosOf(
   final roots = <double>[];
   final n = _zeroSweepIntervals;
   final step = (max - min) / n;
+  var prevPrevX = min;
+  var prevPrevY = f(min);
   var prevX = min;
-  var prevY = f(min);
+  var prevY = prevPrevY;
   if (prevY == 0.0) {
     roots.add(prevX);
   }
@@ -274,7 +323,32 @@ List<double> _findZerosOf(
       if (root != null) {
         roots.add(root);
       }
+    } else if (i >= 2 &&
+        prevPrevY != null &&
+        prevY != null &&
+        y != null &&
+        prevY != 0.0 &&
+        !_oppositeSigns(prevPrevY, prevY) &&
+        !_oppositeSigns(prevY, y)) {
+      // Tangent touch: the middle sample is a local minimum of |f|
+      // with no sign change on either adjacent edge (those already
+      // produced a bisection root above).
+      final prevAbs = prevY.abs();
+      if (prevAbs <= prevPrevY.abs() && prevAbs <= y.abs()) {
+        final refined = _refineAbsMinimum(f, prevPrevX, x);
+        if (refined != null) {
+          final localScale = math.max(
+            prevPrevY.abs(),
+            math.max(prevAbs, y.abs()),
+          );
+          if (refined.$2 <= 1e-9 * math.max(1.0, localScale)) {
+            roots.add(refined.$1);
+          }
+        }
+      }
     }
+    prevPrevX = prevX;
+    prevPrevY = prevY;
     prevX = x;
     prevY = y;
   }
@@ -284,7 +358,8 @@ List<double> _findZerosOf(
 
 /// Finds the zeros of [expression] over `[min, max]` by bisection on sign
 /// changes over a fine sweep (2048 subintervals), refined to a tolerance
-/// of 1e-9 in x. Roots closer than 1e-6 are deduped.
+/// of 1e-9 in x, plus tangent-touch detection (local minima of |f|).
+/// Roots closer than 1e-6 are deduped.
 ///
 /// Throws [ArgumentError] when `min >= max` and [FormatException] when
 /// [expression] fails to parse.

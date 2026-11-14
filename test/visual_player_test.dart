@@ -246,6 +246,37 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('playback at 0.5x advances half as fast', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: VisualCard(scene: _playerScene())),
+      ),
+    );
+    await tester.pump();
+    await _openFullscreen(tester);
+
+    await tester.tap(find.byKey(const Key('visual-speed')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('0.5×').last);
+    await tester.pumpAndSettle();
+    expect(find.text('0.5×'), findsOneWidget);
+
+    // At 0.5×, one second of wall time advances the animation half a
+    // second.
+    await tester.tap(find.byKey(const Key('visual-play-pause')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('0.5s / 5.0s'), findsOneWidget);
+    // The track drives `a` from 1 to 3 over 5 s: at 0.5 s it is 1.2.
+    expect(_fullscreenPainter(tester).parameters['a'], closeTo(1.2, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('playback speed changes the rate', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
@@ -276,6 +307,96 @@ void main() {
     expect(find.text('2.0s / 5.0s'), findsOneWidget);
     // The track drives `a` from 1 to 3 over 5 s: at 2 s it is 1.8.
     expect(_fullscreenPainter(tester).parameters['a'], closeTo(1.8, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('changing speed while playing keeps the position', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: VisualCard(scene: _playerScene())),
+      ),
+    );
+    await tester.pump();
+    await _openFullscreen(tester);
+
+    await tester.tap(find.byKey(const Key('visual-play-pause')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('0.5s / 5.0s'), findsOneWidget);
+    // No pumpAndSettle while the animation runs: it never settles.
+    // The first pump after opening the menu only starts the menu's
+    // 300 ms entrance-animation ticker (elapsed 0); the menu settles
+    // after 300 ms of further pumps, so advance it in 100 ms steps
+    // (300 ms of scene time at 1×) before tapping the item.
+    await tester.tap(find.byKey(const Key('visual-speed')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('2×'));
+    await tester.pump();
+    // The menu item is still animating out, so assert the button label
+    // itself rather than counting '2×' widgets.
+    expect(
+      tester.widget<Text>(find.byKey(const Key('visual-speed-label'))).data,
+      '2×',
+    );
+    // Half a second of wall time at 2× adds a full second of scene
+    // time: 0.5 + 0.3 (menu animation at 1×) + 1.0 = 1.8 s.
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('1.8s / 5.0s'), findsOneWidget);
+    // The track drives `a` from 1 to 3 over 5 s: at 1.8 s it is 1.72.
+    expect(_fullscreenPainter(tester).parameters['a'], closeTo(1.72, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pinch zoom clamps to 0.5x and 4x', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: VisualCard(scene: _playerScene())),
+      ),
+    );
+    await tester.pump();
+    await _openFullscreen(tester);
+
+    final center = tester.getCenter(
+      find.byKey(const Key('visual-canvas-paint')).last,
+    );
+    // Spread 100 px apart to 800 px apart: ratio 8, clamped to 4×.
+    final first = await tester.startGesture(center + const Offset(-50, 0));
+    final second = await tester.startGesture(center + const Offset(50, 0));
+    await first.moveBy(const Offset(-350, 0));
+    await second.moveBy(const Offset(350, 0));
+    await tester.pump();
+    expect(_fullscreenPainter(tester).zoom, 4.0);
+    await first.up();
+    await second.up();
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('visual-reset-view')));
+    await tester.pump();
+    expect(_fullscreenPainter(tester).zoom, 1.0);
+
+    // Pinch 100 px apart to 10 px apart: ratio 0.1, clamped to 0.5×.
+    final third = await tester.startGesture(center + const Offset(-50, 0));
+    final fourth = await tester.startGesture(center + const Offset(50, 0));
+    await third.moveBy(const Offset(45, 0));
+    await fourth.moveBy(const Offset(-45, 0));
+    await tester.pump();
+    expect(_fullscreenPainter(tester).zoom, 0.5);
+    await third.up();
+    await fourth.up();
     expect(tester.takeException(), isNull);
   });
 
@@ -408,7 +529,13 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(_fullscreenPainter(tester).timeMs, 0);
 
-    // Tapping the player play button must not start playback either.
+    // Tapping the player play button must not start playback either:
+    // with animations disabled the button is greyed out, not a tap
+    // that silently does nothing.
+    final playButton = tester.widget<IconButton>(
+      find.byKey(const Key('visual-play-pause')),
+    );
+    expect(playButton.onPressed, isNull);
     await tester.tap(find.byKey(const Key('visual-play-pause')));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));

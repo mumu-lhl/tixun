@@ -1923,6 +1923,7 @@
   "errorTheDateMustBeBetweenToday": "The date must be between today and one year from today.",
   "errorVisualSceneJsonEmpty": "The visual scene content must not be empty.",
   "errorVisualSceneDoesNotExist": "The visual does not exist.",
+  "errorVisualSceneRevisionDoesNotExist": "The visual revision does not exist.",
   "errorVisualStudyLinkNeedsOneOwner": "Specify exactly one knowledge item or mistake.",
   "visualExportPng": "Export PNG",
   "visualCreatedMessage": "The figure is ready below.",
@@ -2070,7 +2071,21 @@
   "visualUntitled": "Untitled visual",
   "visualSchematicNote": "Schematic — not to scale",
   "visualAnswerSelectedPoint": "Selected point: {arg0}",
+  "@visualAnswerSelectedPoint": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
   "visualAnswerSelectedRegion": "Selected region: {arg0}",
+  "@visualAnswerSelectedRegion": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
   "usageStatusComplete": "Complete",
   "usageStatusError": "Failed",
   "usageStatusIncomplete": "Incomplete",

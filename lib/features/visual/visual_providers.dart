@@ -14,11 +14,6 @@ final visualsByMessageProvider = FutureProvider.autoDispose
       return ref.watch(visualStoreProvider).listByMessage(messageId);
     });
 
-final visualsByQuestionProvider = FutureProvider.autoDispose
-    .family<List<StoredVisualScene>, String>((ref, questionId) {
-      return ref.watch(visualStoreProvider).listByQuestion(questionId);
-    });
-
 final visualsByStudyProvider = FutureProvider.autoDispose
     .family<
       List<StoredVisualScene>,

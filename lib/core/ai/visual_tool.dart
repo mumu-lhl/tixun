@@ -221,7 +221,7 @@ Future<Map<String, dynamic>> executeUpdateVisualTool(
 }) async {
   try {
     cancel.checkCancelled();
-    if (call.arguments.length > 64000) {
+    if (utf8.encode(call.arguments).length > 65536) {
       throw const AppFormatException(
         AppErrorCode.errorToolCallDataIsTooLong,
         '图形数据过长。',
@@ -279,48 +279,11 @@ Future<Map<String, dynamic>> executeUpdateVisualTool(
     // The new scene JSON, from a full replacement or from patch ops
     // applied to the stored scene. Either way the same validation and
     // revise path below runs, so a bad patch creates no revision.
-    final Map<String, dynamic> merged;
-    if (sceneArg != null) {
-      if (sceneArg is! Map) {
-        throw const AppFormatException(
-          AppErrorCode.errorInvalidParameterType,
-          '参数 scene 必须是对象。',
-          ['scene'],
-        );
-      }
-      merged = Map<String, dynamic>.of(sceneArg.cast<String, dynamic>());
-    } else {
-      if (opsArg is! List || opsArg.isEmpty) {
-        throw const AppFormatException(
-          AppErrorCode.errorInvalidParameterType,
-          '参数 ops 必须是非空列表。',
-          ['ops'],
-        );
-      }
-      final stored = await store.get(visualId);
-      if (stored == null) {
-        throw const AppFormatException(
-          AppErrorCode.errorVisualSceneDoesNotExist,
-          '图形不存在。',
-        );
-      }
-      final current = (jsonDecode(stored.sceneJson) as Map)
-          .cast<String, dynamic>();
-      merged = applyVisualPatchOps(current, opsArg);
-    }
-    // Same merge rule as create: a tool-level title fills the gap when
-    // the scene itself has none; the scene's own title wins.
-    if (title is String && title.trim().isNotEmpty && merged['title'] == null) {
-      merged['title'] = title;
-    }
-    // Validate before touching the store: an invalid scene must not
-    // create a revision.
-    final validation = validateVisualScene(merged);
-    if (!validation.ok) {
-      return {'ok': false, 'error': validation.errors.first.message};
-    }
-    final scene = VisualScene.fromJson(merged);
-    final qualityIssues = _qualityIssuesJson(scene);
+    // The scene is built inside the transaction below, after the
+    // idempotency check: the ops path reads the stored scene, and
+    // reading it before the check could miss the cached result when the
+    // scene was deleted after that read (a replay must answer from the
+    // cache, not fail on the missing scene).
     final encoded = canonicalJson(args);
     final result = await store.db.transaction(() async {
       cancel.checkCancelled();
@@ -338,6 +301,50 @@ Future<Map<String, dynamic>> executeUpdateVisualTool(
       if (old != null && old.status == 'succeeded' && old.result != null) {
         return (jsonDecode(old.result!) as Map).cast<String, dynamic>();
       }
+      final Map<String, dynamic> merged;
+      if (sceneArg != null) {
+        if (sceneArg is! Map) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            '参数 scene 必须是对象。',
+            ['scene'],
+          );
+        }
+        merged = Map<String, dynamic>.of(sceneArg.cast<String, dynamic>());
+      } else {
+        if (opsArg is! List || opsArg.isEmpty) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            '参数 ops 必须是非空列表。',
+            ['ops'],
+          );
+        }
+        final stored = await store.get(visualId);
+        if (stored == null) {
+          throw const AppFormatException(
+            AppErrorCode.errorVisualSceneDoesNotExist,
+            '图形不存在。',
+          );
+        }
+        final current = (jsonDecode(stored.sceneJson) as Map)
+            .cast<String, dynamic>();
+        merged = applyVisualPatchOps(current, opsArg);
+      }
+      // Same merge rule as create: a tool-level title fills the gap when
+      // the scene itself has none; the scene's own title wins.
+      if (title is String &&
+          title.trim().isNotEmpty &&
+          merged['title'] == null) {
+        merged['title'] = title;
+      }
+      // Validate before touching the store: an invalid scene must not
+      // create a revision.
+      final validation = validateVisualScene(merged);
+      if (!validation.ok) {
+        return {'ok': false, 'error': validation.errors.first.message};
+      }
+      final scene = VisualScene.fromJson(merged);
+      final qualityIssues = _qualityIssuesJson(scene);
       final updated = await store.revise(visualId, jsonEncode(scene.toJson()));
       cancel.checkCancelled();
       await store.db
@@ -398,7 +405,7 @@ Future<Map<String, dynamic>> executeGetVisualTool(
 }) async {
   try {
     cancel.checkCancelled();
-    if (call.arguments.length > 64000) {
+    if (utf8.encode(call.arguments).length > 65536) {
       throw const AppFormatException(
         AppErrorCode.errorToolCallDataIsTooLong,
         '图形数据过长。',
@@ -450,21 +457,38 @@ Future<Map<String, dynamic>> executeGetVisualTool(
     }
     final row = await store.get(visualId);
     if (row == null) {
-      return {'ok': false, 'error': '图形不存在。'};
+      throw const AppFormatException(
+        AppErrorCode.errorVisualSceneDoesNotExist,
+        '图形不存在。',
+      );
     }
     final sceneJson = revision == null
         ? row.sceneJson
         : await store.getRevisionSceneJson(visualId, revision);
     if (sceneJson == null) {
-      return {'ok': false, 'error': '该版本不存在。'};
+      throw const AppFormatException(
+        AppErrorCode.errorVisualSceneRevisionDoesNotExist,
+        '图形修订不存在。',
+      );
     }
+    // A snapshot carries its own title and verification: the row holds
+    // the CURRENT title/status, which a later edit may have changed.
+    final decoded = (jsonDecode(sceneJson) as Map).cast<String, dynamic>();
+    final title = revision == null
+        ? row.title
+        : (decoded['title'] is String && (decoded['title'] as String).isNotEmpty
+              ? decoded['title'] as String
+              : row.title);
+    final verificationStatus = revision == null
+        ? row.verificationStatus
+        : validateVisualScene(decoded).verificationStatus;
     return <String, dynamic>{
       'ok': true,
       'visual_id': visualId,
       'revision': revision ?? row.revision,
-      'scene': jsonDecode(sceneJson),
-      'verification_status': row.verificationStatus,
-      'title': row.title,
+      'scene': decoded,
+      'verification_status': verificationStatus,
+      'title': title,
     };
   } on DioException {
     rethrow;
@@ -476,6 +500,11 @@ Future<Map<String, dynamic>> executeGetVisualTool(
   }
 }
 
+/// Told to the model with a fresh figure so it does not repeat the
+/// figure's full data in prose. Shared by the live and cached create
+/// results so a replay answers identically.
+const _visualCreatedNote = '图形已在应用内显示；不要在正文中复述图形的完整数据。';
+
 Future<Map<String, dynamic>> executeVisualTool(
   VisualStore store,
   ToolCall call, {
@@ -485,7 +514,7 @@ Future<Map<String, dynamic>> executeVisualTool(
 }) async {
   try {
     cancel.checkCancelled();
-    if (call.arguments.length > 64000) {
+    if (utf8.encode(call.arguments).length > 65536) {
       throw const AppFormatException(
         AppErrorCode.errorToolCallDataIsTooLong,
         '图形数据过长。',
@@ -586,8 +615,13 @@ Future<Map<String, dynamic>> executeVisualTool(
                 ..where((l) => l.sessionId.equals(sessionId))
                 ..limit(5))
               .get();
+      // studyChatLinks has a surrogate key, so the same owner can appear
+      // twice for one session; linkToStudy also guards, but skip the
+      // repeat call here.
+      final seenOwners = <(String?, String?)>{};
       for (final link in studyLinks) {
         if ((link.knowledgeId == null) == (link.mistakeId == null)) continue;
+        if (!seenOwners.add((link.knowledgeId, link.mistakeId))) continue;
         await store.linkToStudy(
           id,
           knowledgeId: link.knowledgeId,
@@ -610,7 +644,9 @@ Future<Map<String, dynamic>> executeVisualTool(
                   'ok': true,
                   'visual_id': id,
                   'verification': validation.verificationStatus,
+                  'computed': computed,
                   'quality_issues': ?qualityIssues,
+                  'note': _visualCreatedNote,
                 }),
               ),
               createdAt: DateTime.now(),
@@ -622,7 +658,7 @@ Future<Map<String, dynamic>> executeVisualTool(
         'verification': validation.verificationStatus,
         'computed': computed,
         'quality_issues': ?qualityIssues,
-        'note': '图形已在应用内显示；不要在正文中复述图形的完整数据。',
+        'note': _visualCreatedNote,
       };
     });
     return result;

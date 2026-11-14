@@ -396,17 +396,23 @@ class LearningRun {
         // 'visual_edit' instead of the default 'chat' category.
         // get_visual is read-only and stays under 'chat'. A round that
         // created a quiz with a visual attached is 'quiz_with_visual':
-        // the args are machine-generated JSON, so the literal key
-        // '"visual_id"' is a reliable marker for the attachment.
+        // the args are machine-generated JSON, so parse them and check
+        // for a non-empty 'visual_id' — a substring match would also
+        // fire on '"visual_id": null'.
         String usageFeature() => calls.any((c) => c.name == 'update_visual')
             ? 'visual_edit'
             : calls.any((c) => c.name == 'create_visual')
             ? 'visual_create'
-            : calls.any(
-                (c) =>
-                    c.name == 'create_quiz' &&
-                    c.arguments.contains('"visual_id"'),
-              )
+            : calls.any((c) {
+                if (c.name != 'create_quiz') return false;
+                try {
+                  final args = jsonDecode(c.arguments) as Map;
+                  final visualId = args['visual_id'];
+                  return visualId is String && visualId.isNotEmpty;
+                } catch (_) {
+                  return false;
+                }
+              })
             ? 'quiz_with_visual'
             : 'chat';
         var roundText = '';

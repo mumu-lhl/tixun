@@ -1923,6 +1923,7 @@
   "errorTheDateMustBeBetweenToday": "日期需在今天至一年内。",
   "errorVisualSceneJsonEmpty": "图形场景内容不能为空。",
   "errorVisualSceneDoesNotExist": "图形不存在。",
+  "errorVisualSceneRevisionDoesNotExist": "图形修订不存在。",
   "errorVisualStudyLinkNeedsOneOwner": "请指定一条知识或一个错题。",
   "visualExportPng": "导出 PNG",
   "visualCreatedMessage": "已生成图形，可在下方查看。",
@@ -2070,7 +2071,21 @@
   "visualUntitled": "未命名图形",
   "visualSchematicNote": "示意图，不按比例",
   "visualAnswerSelectedPoint": "已选点：{arg0}",
+  "@visualAnswerSelectedPoint": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
   "visualAnswerSelectedRegion": "已选区域：{arg0}",
+  "@visualAnswerSelectedRegion": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
   "usageStatusComplete": "完成",
   "usageStatusError": "失败",
   "usageStatusIncomplete": "未完成",

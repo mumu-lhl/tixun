@@ -271,6 +271,74 @@ void main() {
       },
     );
 
+    test(
+      'a replayed create returns the cached computed values and note',
+      () async {
+        await _seedMessage(db, 'session-1', 'run-1');
+        final first = await runTool('call-1', _plotArgs());
+        expect(first['ok'], isTrue);
+        expect(first['computed'], isNotNull);
+        expect(first['note'], isA<String>());
+        final replay = await runTool('call-1', _plotArgs());
+        expect(replay['ok'], isTrue);
+        expect(replay['visual_id'], first['visual_id']);
+        expect(replay['computed'], first['computed']);
+        expect(replay['note'], first['note']);
+        expect(await db.select(db.visualScenes).get(), hasLength(1));
+      },
+    );
+
+    test('the 64 KiB cap counts UTF-8 bytes, not UTF-16 units', () async {
+      await _seedMessage(db, 'session-1', 'run-1');
+      // 20000 CJK chars are 20000 UTF-16 units but ~60000 UTF-8 bytes:
+      // under the byte cap, so the scene is created.
+      final under = await runTool('call-under', _plotArgs(title: '汉' * 20000));
+      expect(under['ok'], isTrue);
+      // 30000 CJK chars are still under 64000 UTF-16 units but ~90000
+      // UTF-8 bytes: over the cap.
+      final over = await runTool('call-over', _plotArgs(title: '汉' * 30000));
+      expect(over['ok'], isFalse);
+      expect(over['error'], contains('过长'));
+      expect(await db.select(db.visualScenes).get(), hasLength(1));
+    });
+
+    test('study links for two owners create two study links', () async {
+      await _seedMessage(db, 'session-1', 'run-1');
+      final now = DateTime.now();
+      // Two distinct study owners linked to one session: the loop links
+      // the new scene to both. (Two links for the SAME owner cannot be
+      // seeded: StudyChatLinks has unique keys on (session, knowledge)
+      // and (session, mistake), so the executor never sees the same
+      // owner twice; the single-row invariant for one owner is covered
+      // at the store level in visual_store_test.dart.)
+      for (final k in ['k1', 'k2']) {
+        await db
+            .into(db.knowledgeItems)
+            .insert(
+              KnowledgeItemsCompanion.insert(
+                id: k,
+                title: '知识点 $k',
+                content: '正文',
+                subject: '数学',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+        await db
+            .into(db.studyChatLinks)
+            .insert(
+              StudyChatLinksCompanion.insert(
+                id: 'l$k',
+                sessionId: 'session-1',
+                knowledgeId: Value(k),
+              ),
+            );
+      }
+      final result = await runTool('call-1', _plotArgs());
+      expect(result['ok'], isTrue);
+      expect(await db.select(db.visualStudyLinks).get(), hasLength(2));
+    });
+
     test('tool title and alt fill gaps in the scene', () async {
       await _seedMessage(db, 'session-1', 'run-1');
       final result = await runTool(
@@ -564,6 +632,70 @@ void main() {
       final result = jsonDecode(op.result!) as Map;
       expect(result['verification'], 'verified');
       expect(await c.visual.listByMessage(c.messages.last.id), hasLength(1));
+    });
+
+    Future<AppController> openMock() async {
+      final root = await Directory.systemTemp.createTemp('tixun-visual-mock');
+      final c = AppController(
+        AppDatabase.memory(),
+        AttachmentStore(root),
+        MemoryKeyStore(),
+        MockChatProvider(),
+      );
+      addTearDown(() async {
+        await c.shutdown();
+        await root.delete(recursive: true);
+      });
+      await c.initialize();
+      await c.newSession();
+      c.prompts = c.prompts.withLanguage('zh');
+      await c.send('请画图，画出 y = x^2 的函数图');
+      expect(c.messages.last.status, 'complete');
+      expect((await c.db.select(c.db.visualScenes).get()), hasLength(1));
+      return c;
+    }
+
+    test('asking to change the figure updates it via the mock', () async {
+      final c = await openMock();
+      final id = (await c.db.select(c.db.visualScenes).get()).single.id;
+      await c.send('请把这张图改一下，图形 id 是 $id');
+      expect(c.messages.last.status, 'complete');
+      final scenes = await c.db.select(c.db.visualScenes).get();
+      expect(scenes, hasLength(1));
+      expect(scenes.single.title, 'y = x²（已修改）');
+      expect(scenes.single.revision, 2);
+      final ops = await c.db.select(c.db.aiToolOperations).get();
+      expect(ops.map((o) => o.name), contains('update_visual'));
+    });
+
+    test('asking to view the figure reads it via the mock', () async {
+      final c = await openMock();
+      final id = (await c.db.select(c.db.visualScenes).get()).single.id;
+      await c.send('请查看这张图，图形 id 是 $id');
+      expect(c.messages.last.status, 'complete');
+      // get_visual is read-only: no op row, no revision bump, no retitle.
+      final scenes = await c.db.select(c.db.visualScenes).get();
+      expect(scenes, hasLength(1));
+      expect(scenes.single.title, 'y = x²');
+      expect(scenes.single.revision, 1);
+      final ops = await c.db.select(c.db.aiToolOperations).get();
+      expect(ops.map((o) => o.name), ['create_visual']);
+      expect(c.messages.last.content, contains('工具已确认保存成功'));
+    });
+
+    test('asking to change the figure without an id answers in text', () async {
+      final c = await openMock();
+      await c.send('请把这张图改一下');
+      expect(c.messages.last.status, 'complete');
+      // No id in the message: no update is attempted and no new figure
+      // is created by mistake.
+      final scenes = await c.db.select(c.db.visualScenes).get();
+      expect(scenes, hasLength(1));
+      expect(scenes.single.title, 'y = x²');
+      expect(scenes.single.revision, 1);
+      final ops = await c.db.select(c.db.aiToolOperations).get();
+      expect(ops.map((o) => o.name), ['create_visual']);
+      expect(c.messages.last.content, contains('附上图形 id'));
     });
   });
 }

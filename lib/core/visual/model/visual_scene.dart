@@ -59,7 +59,22 @@ class VisualRange {
         '范围端点必须是有限数字。',
       );
     }
-    return VisualRange(min.toDouble(), max.toDouble());
+    final range = VisualRange(min.toDouble(), max.toDouble());
+    if (range.min >= range.max) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        '范围下限必须小于上限。',
+        ['range'],
+      );
+    }
+    if (range.span > visualMaxRangeSpan) {
+      throw AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        '范围跨度超过 $visualMaxRangeSpan。',
+        ['range'],
+      );
+    }
+    return range;
   }
 
   List<double> toJson() => [min, max];
@@ -266,13 +281,38 @@ sealed class VisualControl {
           'step',
           'value',
         }, 'slider 控件');
+        final sliderMin = _controlNumber(json, 'min');
+        final sliderMax = _controlNumber(json, 'max');
+        final sliderStep = _controlNumber(json, 'step');
+        final sliderValue = _controlNumber(json, 'value');
+        if (sliderMin >= sliderMax) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'slider 控件的 min 必须小于 max。',
+            ['min'],
+          );
+        }
+        if (sliderStep <= 0) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'slider 控件的 step 必须大于 0。',
+            ['step'],
+          );
+        }
+        if (sliderValue < sliderMin || sliderValue > sliderMax) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'slider 控件的 value 必须在 [min, max] 之间。',
+            ['value'],
+          );
+        }
         return SliderControl(
           id: _controlId(json),
           label: _controlLabel(json),
-          min: _controlNumber(json, 'min'),
-          max: _controlNumber(json, 'max'),
-          step: _controlNumber(json, 'step'),
-          value: _controlNumber(json, 'value'),
+          min: sliderMin,
+          max: sliderMax,
+          step: sliderStep,
+          value: sliderValue,
         );
       case 'toggle':
         checkNoUnknownFields(json, const {
@@ -310,11 +350,28 @@ sealed class VisualControl {
             ['options'],
           );
         }
+        if (options.isEmpty) {
+          // Mirrors the validator: a choice with no options can never
+          // hold a valid value.
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'choice 控件的 options 不能为空。',
+            ['options'],
+          );
+        }
+        final choiceValue = _controlString(json, 'value');
+        if (!options.contains(choiceValue)) {
+          throw const AppFormatException(
+            AppErrorCode.errorInvalidParameterType,
+            'choice 控件的 value 必须是 options 中的一项。',
+            ['value'],
+          );
+        }
         return ChoiceControl(
           id: _controlId(json),
           label: _controlLabel(json),
           options: options.cast<String>(),
-          value: _controlString(json, 'value'),
+          value: choiceValue,
         );
       default:
         throw AppFormatException(
@@ -503,13 +560,29 @@ class VisualTrack {
         ['target'],
       );
     }
+    final trackStartMs = _trackInt(json, 'startMs');
+    final trackEndMs = _trackInt(json, 'endMs');
+    if (trackStartMs < 0 || trackEndMs < 0) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        'track 的 startMs/endMs 不能小于 0。',
+        ['startMs'],
+      );
+    }
+    if (trackStartMs >= trackEndMs) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        'track 的 startMs 必须小于 endMs。',
+        ['startMs'],
+      );
+    }
     return VisualTrack(
       id: id,
       target: target,
       from: _trackNumber(json, 'from'),
       to: _trackNumber(json, 'to'),
-      startMs: _trackInt(json, 'startMs'),
-      endMs: _trackInt(json, 'endMs'),
+      startMs: trackStartMs,
+      endMs: trackEndMs,
     );
   }
 
@@ -568,6 +641,13 @@ class VisualStep {
       throw const AppFormatException(
         AppErrorCode.errorParameterMustBeNumber,
         'step 的 atMs 必须是整数。',
+      );
+    }
+    if (atMs < 0) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        'step 的 atMs 不能小于 0。',
+        ['atMs'],
       );
     }
     List<String> idList(String key) {
@@ -630,6 +710,13 @@ class VisualTimeline {
       throw const AppFormatException(
         AppErrorCode.errorParameterMustBeNumber,
         'timeline 的 durationMs 必须是整数。',
+      );
+    }
+    if (durationMs <= 0) {
+      throw const AppFormatException(
+        AppErrorCode.errorInvalidParameterType,
+        'timeline 的 durationMs 必须是正整数。',
+        ['durationMs'],
       );
     }
     List<VisualTrack> tracks = const [];
@@ -703,6 +790,14 @@ const _topLevelFields = {
 };
 
 /// A Visual DSL v1 scene.
+///
+/// Direct `const` construction bypasses validation by design (the model
+/// classes are plain data holders); every entry point that accepts
+/// untrusted JSON — `VisualScene.fromJson` and `VisualStore.create` /
+/// `revise` — runs the full validator first, so an unvalidated scene
+/// cannot be stored or rebuilt from a stored row. Changing the
+/// constructors to validate would be a breaking API change and is
+/// deliberately not done.
 class VisualScene {
   const VisualScene({
     this.v = 1,
@@ -747,11 +842,7 @@ class VisualScene {
     if (validation.errors.isNotEmpty) {
       final first = validation.errors.first;
       throw AppFormatException(
-        first.code == 'unknown_field'
-            ? AppErrorCode.errorUnknownParameter
-            : first.code == 'missing_field'
-            ? AppErrorCode.errorMissingParameter
-            : AppErrorCode.errorInvalidParameterType,
+        _errorCodeFor(first),
         first.message,
         first.path == null ? const [] : [first.path!],
       );
@@ -814,6 +905,36 @@ class VisualScene {
       meta: meta,
       constraints: constraints,
     );
+  }
+
+  /// Maps the first validation error to the most specific
+  /// [AppErrorCode] available. The enum has no codes for range,
+  /// expression, reference or constraint failures, so those stay
+  /// [AppErrorCode.errorInvalidParameterType]. `invalid_type` is refined
+  /// by the validator's own message wording (text- vs number-expected):
+  /// the issue carries no expected-type field, and the messages are the
+  /// validator's stable strings.
+  static AppErrorCode _errorCodeFor(VisualIssue issue) {
+    switch (issue.code) {
+      case 'unknown_field':
+        return AppErrorCode.errorUnknownParameter;
+      case 'missing_field':
+        return AppErrorCode.errorMissingParameter;
+      case 'non_finite_number':
+        return AppErrorCode.errorParameterMustBeNumber;
+      case 'invalid_type':
+        if (issue.message.contains('必须是文字')) {
+          return AppErrorCode.errorParameterMustBeText;
+        }
+        if (issue.message.contains('必须是数字') ||
+            issue.message.contains('必须是整数') ||
+            issue.message.contains('必须是有限数字')) {
+          return AppErrorCode.errorParameterMustBeNumber;
+        }
+        return AppErrorCode.errorInvalidParameterType;
+      default:
+        return AppErrorCode.errorInvalidParameterType;
+    }
   }
 
   Map<String, dynamic> toJson() => {
