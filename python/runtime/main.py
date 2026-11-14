@@ -44,24 +44,25 @@ def execute(request, cancel_path):
     out, err = Capture(), Capture()
     cwd = os.getcwd()
     workspace = Path(request['workspace'])
-    workspace.mkdir(parents=True, exist_ok=True)
-    code_file = workspace / ('run-' + request['id'] + '.py')
-    code_file.write_text(request['code'], encoding='utf-8')
-    last_check = 0.0
-
-    def trace(frame, event, arg):
-        nonlocal last_check
-        now = time.monotonic()
-        if now - last_check > .02:
-            last_check = now
-            if cancel_path.exists():
-                raise InterruptedError('Python execution cancellation requested')
-            if now >= deadline:
-                raise TimeoutError('Python execution exceeded its time limit')
-        return trace
-
+    code_file = None
     result = {'ok': True}
     try:
+        workspace.mkdir(parents=True, exist_ok=True)
+        code_file = workspace / ('run-' + request['id'] + '.py')
+        code_file.write_text(request['code'], encoding='utf-8')
+        last_check = 0.0
+
+        def trace(frame, event, arg):
+            nonlocal last_check
+            now = time.monotonic()
+            if now - last_check > .02:
+                last_check = now
+                if cancel_path.exists():
+                    raise InterruptedError('Python execution cancellation requested')
+                if now >= deadline:
+                    raise TimeoutError('Python execution exceeded its time limit')
+            return trace
+
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             os.chdir(workspace)
             sys.settrace(trace)
@@ -70,16 +71,45 @@ def execute(request, cancel_path):
                 'WORKSPACE': str(workspace),
             })
     except BaseException as exc:
-        sys.settrace(None)
         result = {'ok': False, 'error': type(exc).__name__,
                   'traceback': ''.join(traceback.format_exception(exc))[-LIMIT:]}
     finally:
         sys.settrace(None)
         os.chdir(cwd)
+        # The actual code is already retained in the app's execution history;
+        # don't leave an extra generated script in the user's workspace.
+        if code_file is not None:
+            try:
+                code_file.unlink(missing_ok=True)
+            except OSError:
+                pass
     result.update(stdout=out.value(), stderr=err.value(),
                   output_truncated=out.truncated or err.truncated,
                   elapsed_ms=round((time.monotonic() - started) * 1000))
     return result
+
+
+def publish_result(target, result):
+    temp = target.with_name(target.name + '.tmp')
+    temp.write_text(json.dumps(result, ensure_ascii=True), encoding='utf-8')
+    temp.replace(target)
+
+
+def process_request(path, root):
+    request_id = path.name.removesuffix('.request.json')
+    target = root / (request_id + '.result.json')
+    try:
+        request = json.loads(path.read_text(encoding='utf-8'))
+        if request.get('id') != request_id:
+            raise ValueError('Request id does not match its filename')
+        result = execute(request, root / (request_id + '.cancel'))
+    except BaseException as exc:
+        result = {'ok': False, 'error': type(exc).__name__,
+                  'traceback': ''.join(traceback.format_exception(exc))[-LIMIT:],
+                  'stdout': '', 'stderr': '', 'output_truncated': False}
+    finally:
+        path.unlink(missing_ok=True)
+    publish_result(target, result)
 
 
 def worker():
@@ -88,13 +118,7 @@ def worker():
     (root / 'ready').write_text(sys.version, encoding='utf-8')
     while not (root / 'shutdown').exists():
         for path in root.glob('*.request.json'):
-            request = json.loads(path.read_text(encoding='utf-8'))
-            path.unlink()
-            result = execute(request, root / (request['id'] + '.cancel'))
-            target = root / (request['id'] + '.result.json')
-            temp = target.with_suffix('.tmp')
-            temp.write_text(json.dumps(result, ensure_ascii=True), encoding='utf-8')
-            temp.replace(target)
+            process_request(path, root)
         time.sleep(.05)
 
 

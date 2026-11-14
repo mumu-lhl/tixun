@@ -15,7 +15,10 @@ class PythonRuntime {
   static final instance = PythonRuntime();
   Future<Directory>? _starting;
   bool _busy = false;
-  Future<Directory> _start() => _starting ??= _boot();
+  Future<Directory> _start() => _starting ??= _boot().catchError((error) {
+    _starting = null;
+    throw error;
+  });
   Future<Directory> _boot() async {
     final root = await Directory.systemTemp.createTemp('tixun-python-');
     final app = await SeriousPython.prepareApp();
@@ -44,6 +47,8 @@ class PythonRuntime {
     if (_busy) return {'ok': false, 'error': 'Python 仍在运行，结束后才能执行下一段代码。'};
     _busy = true;
     var awaitingNativeStop = false;
+    File? pendingRequest;
+    File? pendingTemporary;
     try {
       cancel.checkCancelled();
       final root = await Future.any<Directory>([
@@ -53,9 +58,11 @@ class PythonRuntime {
       cancel.checkCancelled();
       final id = const Uuid().v4();
       final request = File(p.join(root.path, '$id.request.json'));
+      pendingRequest = request;
+      pendingTemporary = File('${request.path}.tmp');
       final result = File(p.join(root.path, '$id.result.json'));
       final stop = File(p.join(root.path, '$id.cancel'));
-      await File('${request.path}.tmp').writeAsString(
+      await pendingTemporary.writeAsString(
         jsonEncode({
           'id': id,
           'code': code,
@@ -63,26 +70,22 @@ class PythonRuntime {
           'timeout_seconds': timeoutSeconds,
         }),
       );
-      await File('${request.path}.tmp').rename(request.path);
+      await pendingTemporary.rename(request.path);
       final deadline = DateTime.now().add(Duration(seconds: timeoutSeconds));
-      var stopRequested = false;
       while (!await result.exists()) {
         if (cancel.isCancelled || DateTime.now().isAfter(deadline)) {
-          if (!stopRequested) {
-            await stop.writeAsString('stop');
-            stopRequested = true;
-          }
-          // The worker retains ownership until it really exits. Do not release
-          // the busy flag and run another script after a mere Dart timeout.
-          if (cancel.isCancelled) {
-            awaitingNativeStop = true;
-            unawaited(_awaitStopped(result));
-            return {
-              'ok': false,
-              'running': true,
-              'error': '已请求停止；原生调用可能仍在运行，必要时请重启应用。',
-            };
-          }
+          await stop.writeAsString('stop');
+          // Return promptly, but quarantine the interpreter until the worker
+          // confirms completion. Native calls cannot be safely interrupted.
+          awaitingNativeStop = true;
+          unawaited(_awaitStopped(result));
+          return {
+            'ok': false,
+            'running': true,
+            'error': cancel.isCancelled
+                ? '已请求停止；原生调用可能仍在运行，必要时请重启应用。'
+                : 'Python 已超时并请求停止；原生调用可能仍在运行，完成前不能再次执行。',
+          };
         }
         await Future<void>.delayed(const Duration(milliseconds: 100));
       }
@@ -92,8 +95,17 @@ class PythonRuntime {
       if (await stop.exists()) await stop.delete();
       return value;
     } finally {
-      // A cancelled native operation must not make the interpreter available.
-      if (!awaitingNativeStop) _busy = false;
+      // A timed-out/cancelled native operation must not make the interpreter
+      // available until its result proves that execution really stopped.
+      if (!awaitingNativeStop) {
+        _busy = false;
+        if (pendingRequest != null && await pendingRequest.exists()) {
+          await pendingRequest.delete();
+        }
+        if (pendingTemporary != null && await pendingTemporary.exists()) {
+          await pendingTemporary.delete();
+        }
+      }
     }
   }
 

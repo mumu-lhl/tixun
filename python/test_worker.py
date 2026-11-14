@@ -22,9 +22,25 @@ class PythonWorkerTests(unittest.TestCase):
         self.assertEqual(r['stdout'], '25/12\n')
 
     def test_files_and_stderr_are_allowed(self):
-        r = self.run_code("from pathlib import Path\nimport sys\nPath('result.txt').write_text('42')\nprint(Path('result.txt').read_text())\nprint('note', file=sys.stderr)")
-        self.assertEqual(r['stdout'], '42\n')
-        self.assertEqual(r['stderr'], 'note\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            stop = Path(tmp) / 'cancel'
+            r = worker.execute({'id': 'test', 'code': "from pathlib import Path\nimport sys\nPath('result.txt').write_text('42')\nprint(Path('result.txt').read_text())\nprint('note', file=sys.stderr)",
+                'workspace': tmp, 'timeout_seconds': 2}, stop)
+            self.assertEqual(r['stdout'], '42\n')
+            self.assertEqual(r['stderr'], 'note\n')
+            self.assertTrue((Path(tmp) / 'result.txt').exists())
+            self.assertFalse((Path(tmp) / 'run-test.py').exists())
+
+    def test_bad_request_is_reported_without_killing_worker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            request = root / 'broken.request.json'
+            request.write_text('{not json', encoding='utf-8')
+            worker.process_request(request, root)
+            result = __import__('json').loads((root / 'broken.result.json').read_text())
+            self.assertFalse(result['ok'])
+            self.assertEqual(result['error'], 'JSONDecodeError')
+            self.assertFalse(request.exists())
 
     def test_exception_and_system_exit_are_reported(self):
         for code in ['1/0', 'raise SystemExit(2)']:
