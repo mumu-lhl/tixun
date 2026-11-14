@@ -111,10 +111,16 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
         : ref.read(appControllerProvider).prompts.text(widget.id),
   );
   bool saving = false;
-  late final String initialText = input.text;
+  late final String initialText;
   Object? failure;
 
   bool get isDirty => input.text != initialText;
+
+  @override
+  void initState() {
+    super.initState();
+    initialText = input.text;
+  }
 
   String _failureText(Object issue) => switch (issue) {
     PromptError.invalidEntry => context.l10n.eachPromptMustHaveA,
@@ -281,6 +287,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                   Row(
                     children: [
                       IconButton(
+                        key: const Key('prompt-back'),
                         tooltip: context.l10n.backToPromptManager,
                         onPressed: saving ? null : leave,
                         icon: const Icon(Icons.arrow_back),
@@ -347,44 +354,49 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                           child: Text(context.l10n.preview),
                         ),
                       ),
-                      TextButton(
-                        onPressed: saving
-                            ? null
-                            : () async {
-                                final reset = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: Text(context.l10n.resetThisPrompt),
-                                    content: Text(
-                                      context.l10n.thisReplacesTheCurrentEditor,
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx, false),
-                                        child: Text(context.l10n.cancel),
+                      SizedBox(
+                        height: 48,
+                        child: TextButton(
+                          onPressed: saving
+                              ? null
+                              : () async {
+                                  final reset = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: Text(context.l10n.resetThisPrompt),
+                                      content: Text(
+                                        context
+                                            .l10n
+                                            .thisReplacesTheCurrentEditor,
                                       ),
-                                      FilledButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx, true),
-                                        child: Text(
-                                          context.l10n.resetToDefault,
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, false),
+                                          child: Text(context.l10n.cancel),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (reset == true && mounted) {
-                                  setState(() {
-                                    input.text = ref
-                                        .read(appControllerProvider)
-                                        .prompts
-                                        .defaultText(p.id);
-                                    failure = null;
-                                  });
-                                }
-                              },
-                        child: Text(context.l10n.resetToDefault),
+                                        FilledButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, true),
+                                          child: Text(
+                                            context.l10n.resetToDefault,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (reset == true && mounted) {
+                                    setState(() {
+                                      input.text = ref
+                                          .read(appControllerProvider)
+                                          .prompts
+                                          .defaultText(p.id);
+                                      failure = null;
+                                    });
+                                  }
+                                },
+                          child: Text(context.l10n.resetToDefault),
+                        ),
                       ),
                     ],
                   ),

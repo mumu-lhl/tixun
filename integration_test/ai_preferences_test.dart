@@ -53,6 +53,11 @@ void main() {
       await click(t, find.text('预览效果'));
       expect(find.textContaining('每次只问我一个问题'), findsWidgets);
       await click(t, find.text('关闭'));
+      await click(t, find.byKey(const Key('prompt-back')));
+      await t.pumpAndSettle();
+      expect(find.text('提示词尚未保存'), findsOneWidget);
+      await click(t, find.text('取消'));
+      await t.pumpAndSettle();
       await guiCapture('ai-preferences', 'prompt-editor-desktop');
       await resizeGui(t, 390, 844);
       await guiCapture('ai-preferences', 'prompt-editor-phone');
