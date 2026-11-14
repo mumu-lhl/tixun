@@ -278,6 +278,13 @@ void main() {
       expect(c.selected!.title, '不匹配搜索的新标题');
     },
   );
+  test('Session search applies subject and literal title matching', () async {
+    final math = await c.db.createSession(title: 'A "数学"', subject: '数学');
+    await c.db.createSession(title: 'A "数学"', subject: '物理');
+    expect((await c.db.sessions('数学', '数学')).map((s) => s.id), [math.id]);
+    expect((await c.db.sessions('"数学"', '数学')).map((s) => s.id), [math.id]);
+    expect(await c.db.sessions('数学', '英语'), isEmpty);
+  });
   test('Rapidly switching sessions keeps the last selected one', () async {
     final first = c.selected!;
     final second = await c.db.createSession(title: '第二个会话');

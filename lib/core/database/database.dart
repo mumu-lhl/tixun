@@ -501,32 +501,36 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
-  Future<List<ChatSession>> sessions([String query = '']) async {
-    final rows =
-        await (select(chatSessions)
-              ..where((s) => s.deleted.equals(false))
-              ..orderBy([(s) => OrderingTerm.desc(s.updatedAt)]))
-            .get();
-    if (query.trim().isEmpty) return rows;
-    // LIKE fallback handles short Chinese queries that FTS trigram cannot index.
+  Future<List<ChatSession>> sessions([
+    String query = '',
+    String subject = '',
+  ]) async {
     final term = query.trim();
-    final ids = term.runes.length >= 3
-        ? await customSelect(
-            'SELECT DISTINCT session_id FROM message_search WHERE message_search MATCH ?',
-            variables: [Variable('"${term.replaceAll('"', '""')}"')],
-          ).get()
-        : await customSelect(
-            'SELECT DISTINCT session_id FROM chat_messages WHERE instr(lower(content), lower(?)) > 0',
-            variables: [Variable(term)],
-          ).get();
-    final matched = ids.map((r) => r.read<String>('session_id')).toSet();
-    return rows
-        .where(
-          (s) =>
-              s.title.toLowerCase().contains(query.trim().toLowerCase()) ||
-              matched.contains(s.id),
-        )
-        .toList();
+    final variables = <Variable>[];
+    var where = 's.deleted = 0';
+    if (subject.isNotEmpty) {
+      where += ' AND s.subject = ?';
+      variables.add(Variable(subject));
+    }
+    if (term.isNotEmpty) {
+      final messageMatch = term.runes.length >= 3
+          ? 'SELECT session_id FROM message_search WHERE message_search MATCH ?'
+          : 'SELECT session_id FROM chat_messages WHERE instr(lower(content), lower(?)) > 0';
+      where +=
+          ' AND (instr(lower(s.title), lower(?)) > 0 OR s.id IN ($messageMatch))';
+      variables.add(Variable(term));
+      variables.add(
+        Variable(
+          term.runes.length >= 3 ? '"${term.replaceAll('"', '""')}"' : term,
+        ),
+      );
+    }
+    final rows = await customSelect(
+      'SELECT s.* FROM chat_sessions s WHERE $where ORDER BY s.updated_at DESC, s.id',
+      variables: variables,
+      readsFrom: {chatSessions, chatMessages},
+    ).get();
+    return Future.wait(rows.map(chatSessions.mapFromRow));
   }
 
   Future<List<ChatSession>> trash() =>

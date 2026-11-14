@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../core/ui/app_menu.dart';
 
 import 'package:material_ui/material_ui.dart';
@@ -17,6 +19,7 @@ class SessionList extends ConsumerStatefulWidget {
 
 class _SessionListState extends ConsumerState<SessionList> {
   late final TextEditingController _search;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -28,6 +31,7 @@ class _SessionListState extends ConsumerState<SessionList> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _search.dispose();
     super.dispose();
   }
@@ -40,7 +44,7 @@ class _SessionListState extends ConsumerState<SessionList> {
     // session resets it); keep the field in sync without clobbering text
     // the user is typing. Programmatic changes do not fire onChanged, so
     // this cannot loop.
-    if (_search.text != c.search) {
+    if (_searchDebounce?.isActive != true && _search.text != c.search) {
       _search.value = TextEditingValue(
         text: c.search,
         selection: TextSelection.collapsed(offset: c.search.length),
@@ -63,6 +67,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                 tooltip: context.l10n.newConversation,
                 key: const Key('new-session'),
                 onPressed: () => act(context, () async {
+                  _searchDebounce?.cancel();
                   await c.newSession();
                   widget.onSelected?.call();
                 }),
@@ -87,6 +92,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                 TextButton(
                   key: const Key('session-show-all'),
                   onPressed: () => act(context, () async {
+                    _searchDebounce?.cancel();
                     await c.searchSessions('');
                     await c.setSubjectFilter('');
                   }),
@@ -99,16 +105,23 @@ class _SessionListState extends ConsumerState<SessionList> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: TextField(
             controller: _search,
-            onChanged: c.searchSessions,
+            onChanged: (value) {
+              _searchDebounce?.cancel();
+              _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+                if (mounted) c.searchSessions(value);
+              });
+              setState(() {});
+            },
             decoration: InputDecoration(
               hintText: context.l10n.searchTitlesOrMessages,
               prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: c.search.isEmpty
+              suffixIcon: _search.text.isEmpty
                   ? null
                   : IconButton(
                       tooltip: context.l10n.clearSearch,
                       icon: const Icon(Icons.clear, size: 20),
                       onPressed: () {
+                        _searchDebounce?.cancel();
                         _search.clear();
                         c.searchSessions('');
                       },

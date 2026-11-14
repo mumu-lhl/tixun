@@ -324,8 +324,9 @@ class AppController extends ChangeNotifier {
 
   Future<void> searchSessions(String value) async {
     search = value;
-    final result = await db.sessions(value);
-    if (search == value) {
+    final subject = subjectFilter;
+    final result = await db.sessions(value, subject);
+    if (search == value && subjectFilter == subject) {
       sessions = _visibleSessions(result);
       changed();
     }
