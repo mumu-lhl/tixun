@@ -10,18 +10,19 @@ import zipfile
 def check_android(apk):
     with zipfile.ZipFile(apk) as bundle:
         names = set(bundle.namelist())
-        for name in ('assets/stdlib.zip', 'assets/sitepackages.zip', 'assets/app.zip'):
+        for name in ('assets/stdlib.zip', 'assets/sitepackages.zip', 'assets/extract.zip', 'assets/app.zip'):
             if name not in names:
                 raise ValueError(f'{apk.name}: missing {name}')
         with zipfile.ZipFile(io.BytesIO(bundle.read('assets/app.zip'))) as app:
-            if 'main.py' not in app.namelist():
-                raise ValueError(f'{apk.name}: missing Python worker')
+            for worker in ('main.py', 'android_worker.py', 'android_workspace.py'):
+                if worker not in app.namelist():
+                    raise ValueError(f'{apk.name}: missing Python worker: {worker}')
         package_names = set()
         for archive in ('assets/sitepackages.zip', 'assets/extract.zip'):
             if archive in names:
                 with zipfile.ZipFile(io.BytesIO(bundle.read(archive))) as packages:
                     package_names.update(packages.namelist())
-        for name in ('sympy/__init__.py', 'mpmath/__init__.py', 'numpy/__init__.py',
+        for name in ('pyfakefs/__init__.py', 'sympy/__init__.py', 'mpmath/__init__.py', 'numpy/__init__.py',
                      'numpy/_core/_multiarray_umath.soref', 'numpy/linalg/_umath_linalg.soref'):
             if name not in package_names:
                 raise ValueError(f'{apk.name}: missing {name}')
@@ -31,7 +32,7 @@ def check_android(apk):
         abis = {n.split('/')[1] for n in names
                 if n.startswith('lib/') and '/libpython3' in n}
         for abi in abis:
-            for module in ('libnumpy-_core-_multiarray_umath.so',
+            for module in ('libtixun_python_sandbox.so', 'libnumpy-_core-_multiarray_umath.so',
                            'libnumpy-linalg-_umath_linalg.so'):
                 name = f'lib/{abi}/{module}'
                 if name not in names:

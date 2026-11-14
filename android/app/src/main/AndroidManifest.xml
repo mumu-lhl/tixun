@@ -13,6 +13,12 @@
         android:name="${applicationName}"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher">
+        <service
+            android:name="org.tixun.tixun.python.PythonSandboxService"
+            android:exported="false"
+            android:isolatedProcess="true"
+            android:process=":python_sandbox"
+            android:stopWithTask="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

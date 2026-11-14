@@ -19,13 +19,14 @@ def zipped(files):
 
 class PythonBundleTests(unittest.TestCase):
     def apk(self, root, *, worker=True, sympy=True, runtime=True, numpy=True,
-            numpy_native=True, machine=183):
+            numpy_native=True, launcher=True, virtual_fs=True, machine=183):
         apk = root / 'app.apk'
         with zipfile.ZipFile(apk, 'w') as out:
-            out.writestr('assets/app.zip', zipped(['main.py'] if worker else []))
+            out.writestr('assets/app.zip', zipped(['main.py', 'android_worker.py', 'android_workspace.py'] if worker else []))
             out.writestr('assets/stdlib.zip', zipped(['encodings/__init__.pyc']))
             out.writestr('assets/sitepackages.zip', zipped(
-                ['mpmath/__init__.py'] + (['sympy/__init__.py'] if sympy else [])))
+                ['mpmath/__init__.py'] + (['sympy/__init__.py'] if sympy else [])
+                + (['pyfakefs/__init__.py'] if virtual_fs else [])))
             if runtime:
                 out.writestr('lib/arm64-v8a/libpython3.13.so', b'fixture')
             if numpy:
@@ -34,6 +35,8 @@ class PythonBundleTests(unittest.TestCase):
                     'numpy/linalg/_umath_linalg.soref']))
             if numpy_native:
                 header = b'\x7fELF\x02\x01' + bytes(12) + machine.to_bytes(2, 'little')
+                if launcher:
+                    out.writestr('lib/arm64-v8a/libtixun_python_sandbox.so', header)
                 for name in ('libnumpy-_core-_multiarray_umath.so',
                              'libnumpy-linalg-_umath_linalg.so'):
                     out.writestr('lib/arm64-v8a/' + name, header)
@@ -44,7 +47,7 @@ class PythonBundleTests(unittest.TestCase):
             check_android(self.apk(Path(tmp)))
 
     def test_incomplete_android_bundles_fail(self):
-        for missing in ('worker', 'sympy', 'runtime', 'numpy', 'numpy_native'):
+        for missing in ('worker', 'sympy', 'runtime', 'numpy', 'numpy_native', 'launcher', 'virtual_fs'):
             with self.subTest(missing=missing), tempfile.TemporaryDirectory() as tmp:
                 with self.assertRaises(ValueError):
                     check_android(self.apk(Path(tmp), **{missing: False}))
