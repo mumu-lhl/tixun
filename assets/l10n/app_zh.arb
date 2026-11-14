@@ -2272,5 +2272,137 @@
         "type": "String"
       }
     }
+  },
+  "accountBalance": "账户余额",
+  "checkBalance": "查询余额",
+  "checkBalanceInProgress": "正在查询服务商的最新余额…",
+  "accountBalanceTotal": "可用余额 {arg0}",
+  "@accountBalanceTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "accountBalanceBreakdown": "赠金 {arg0} · 充值 {arg1}",
+  "@accountBalanceBreakdown": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "accountBalanceUnavailable": "账户当前不可用（余额不足或无权限），请到服务商平台确认。",
+  "accountBalanceFetchedAt": "查询于 {arg0}",
+  "@accountBalanceFetchedAt": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "saveAnAPIKeyBeforeQueryingTheBalance": "请先保存 API Key 再查询余额。",
+  "chatGptSubscriptionHasNoBalance": "ChatGPT 订阅没有公开的余额或额度查询接口，额度与用量请在官方页面查看。",
+  "thisProviderHasNoBalanceEndpoint": "该服务商没有提供查询余额的公开接口。",
+  "chatGptQuota": "订阅额度",
+  "chatGptQuotaCheck": "查询额度",
+  "chatGptQuotaChecking": "正在查询订阅额度…",
+  "chatGptQuotaPlan": "订阅类型：{arg0}",
+  "@chatGptQuotaPlan": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaPlanUnknown": "未知",
+  "chatGptQuotaHours": "{arg0} 小时窗口",
+  "@chatGptQuotaHours": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaDays": "{arg0} 天窗口",
+  "@chatGptQuotaDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaUsed": "{arg0} · 已用 {arg1}%",
+  "@chatGptQuotaUsed": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaResetsIn": "{arg0} 后重置",
+  "@chatGptQuotaResetsIn": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaLimitReached": "该窗口已达上限，等待重置后才能继续。",
+  "chatGptQuotaCredits": "剩余额度 {arg0}",
+  "@chatGptQuotaCredits": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaUnlimited": "额度不限。",
+  "chatGptQuotaFetchedAt": "查询于 {arg0}",
+  "@chatGptQuotaFetchedAt": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaExperimental": "此数值来自 ChatGPT 官方 Codex 客户端使用的未公开接口，字段可能随时变化；请在官方用量页核对。",
+  "chatGptQuotaDurationDays": "{arg0} 天",
+  "@chatGptQuotaDurationDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaDurationHours": "{arg0} 小时",
+  "@chatGptQuotaDurationHours": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaDurationMinutes": "{arg0} 分钟",
+  "@chatGptQuotaDurationMinutes": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaDurationSeconds": "{arg0} 秒",
+  "@chatGptQuotaDurationSeconds": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
   }
 }

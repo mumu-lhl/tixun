@@ -69,6 +69,10 @@ String appErrorText(
   AppErrorCode.connectionTestCancelled => l10n.connectionTestCancelled,
   AppErrorCode.theResponseReachedItsLength => l10n.theResponseReachedItsLength,
   AppErrorCode.theAPIKeyIsInvalid => l10n.theAPIKeyIsInvalid,
+  AppErrorCode.saveAnAPIKeyBeforeQueryingTheBalance =>
+    l10n.saveAnAPIKeyBeforeQueryingTheBalance,
+  AppErrorCode.thisProviderHasNoBalanceEndpoint =>
+    l10n.thisProviderHasNoBalanceEndpoint,
   AppErrorCode.insufficientAPIBalanceCheckYour =>
     l10n.insufficientAPIBalanceCheckYour,
   AppErrorCode.tooManyRequestsTryAgain => l10n.tooManyRequestsTryAgain,

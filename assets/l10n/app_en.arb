@@ -2272,5 +2272,137 @@
         "type": "String"
       }
     }
+  },
+  "accountBalance": "Account balance",
+  "checkBalance": "Check balance",
+  "checkBalanceInProgress": "Checking the provider's current balance…",
+  "accountBalanceTotal": "Available {arg0}",
+  "@accountBalanceTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "accountBalanceBreakdown": "Granted {arg0} · topped up {arg1}",
+  "@accountBalanceBreakdown": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "accountBalanceUnavailable": "This account cannot be used right now (no balance or no permission). Check the provider console.",
+  "accountBalanceFetchedAt": "Checked {arg0}",
+  "@accountBalanceFetchedAt": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "saveAnAPIKeyBeforeQueryingTheBalance": "Save an API key before checking the balance.",
+  "chatGptSubscriptionHasNoBalance": "A ChatGPT subscription has no public balance or quota API. Check allowance and usage on the official page.",
+  "thisProviderHasNoBalanceEndpoint": "This provider has no public balance API.",
+  "chatGptQuota": "Subscription quota",
+  "chatGptQuotaCheck": "Check quota",
+  "chatGptQuotaChecking": "Checking the subscription quota…",
+  "chatGptQuotaPlan": "Plan: {arg0}",
+  "@chatGptQuotaPlan": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaPlanUnknown": "unknown",
+  "chatGptQuotaHours": "{arg0}-hour window",
+  "@chatGptQuotaHours": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaDays": "{arg0}-day window",
+  "@chatGptQuotaDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaUsed": "{arg0} · {arg1}% used",
+  "@chatGptQuotaUsed": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaResetsIn": "resets in {arg0}",
+  "@chatGptQuotaResetsIn": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaLimitReached": "This window is used up; wait for it to reset.",
+  "chatGptQuotaCredits": "Remaining credits {arg0}",
+  "@chatGptQuotaCredits": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaUnlimited": "Unlimited.",
+  "chatGptQuotaFetchedAt": "Checked {arg0}",
+  "@chatGptQuotaFetchedAt": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaExperimental": "These figures come from the undocumented endpoint the official ChatGPT Codex client uses, so fields can change at any time. Cross-check on the official usage page.",
+  "chatGptQuotaDurationDays": "{arg0} d",
+  "@chatGptQuotaDurationDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaDurationHours": "{arg0} h",
+  "@chatGptQuotaDurationHours": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaDurationMinutes": "{arg0} min",
+  "@chatGptQuotaDurationMinutes": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGptQuotaDurationSeconds": "{arg0} s",
+  "@chatGptQuotaDurationSeconds": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -20,6 +20,8 @@ import 'package:uuid/uuid.dart';
 import 'preferences.dart';
 
 import '../core/ai/chat_provider.dart';
+import '../core/ai/chatgpt/usage.dart';
+import '../core/ai/provider_balance.dart';
 import '../core/ai/ai_usage_store.dart';
 import '../core/ai/chatgpt/auth.dart';
 import '../core/ai/chatgpt/responses.dart';
@@ -1535,6 +1537,35 @@ class AppController extends ChangeNotifier {
       preferences.saveSettings(next, key);
   Future<bool> hasApiKey(ProviderConfig provider) =>
       preferences.hasApiKey(provider);
+
+  /// Reads the ChatGPT subscription quota from the endpoint the official Codex
+  /// client uses. User initiated only; nothing is cached or polled.
+  Future<ChatGptQuota> chatGptQuota({ChatGptUsageClient? client}) =>
+      (client ?? ChatGptUsageClient(auth: chatGpt)).fetch();
+
+  /// Reads the provider's own account balance. Only DeepSeek documents such an
+  /// endpoint; the key is used here so the UI never has to read it itself.
+  Future<ProviderBalance> providerBalance(
+    ProviderConfig candidate, {
+    String? key,
+    ProviderBalanceClient? client,
+  }) async {
+    if (candidate.kind != 'deepseek') {
+      throw const AiFailure.localized(
+        AppErrorCode.thisProviderHasNoBalanceEndpoint,
+        '该服务商没有提供查询余额的公开接口。',
+      );
+    }
+    final typed = key?.trim() ?? '';
+    final apiKey = typed.isNotEmpty
+        ? typed
+        : await keys.read(providerKeyId(candidate)) ?? '';
+    return (client ?? ProviderBalanceClient()).deepSeek(
+      baseUrl: candidate.baseUrl,
+      apiKey: apiKey,
+    );
+  }
+
   Future<void> restoreApiProvider() async {
     await stop();
     await preferences.restoreApiProvider();

@@ -25,6 +25,8 @@ enum AppErrorCode {
   connectionTestCancelled,
   theResponseReachedItsLength,
   theAPIKeyIsInvalid,
+  saveAnAPIKeyBeforeQueryingTheBalance,
+  thisProviderHasNoBalanceEndpoint,
   insufficientAPIBalanceCheckYour,
   tooManyRequestsTryAgain,
   theServiceDoesNotSupport,

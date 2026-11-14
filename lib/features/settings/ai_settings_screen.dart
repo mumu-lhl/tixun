@@ -11,11 +11,13 @@ import 'package:go_router/go_router.dart';
 import '../../app/controller.dart';
 import '../../core/ai/chat_provider.dart';
 import '../../core/ai/context_compactor.dart';
+import '../../core/ai/provider_balance.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/l10n/app_error_localization.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/reasoning_labels.dart';
+import 'provider_balance_panel.dart';
 
 class AiSettingsScreen extends ConsumerStatefulWidget {
   const AiSettingsScreen({super.key});
@@ -42,6 +44,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   bool _keyVisible = false;
   bool? _hasSavedKey;
   Object? _status;
+  ProviderBalance? _balance;
+  Object? _balanceFailure;
+  bool _balanceLoading = false;
 
   String _statusText(Object status) => switch (status) {
     _AiSettingsStatus.mockTest => context.l10n.mockTestCompletedNoReal,
@@ -101,6 +106,26 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       if (mounted) setState(() => _hasSavedKey = hasKey);
     } catch (_) {
       if (mounted) setState(() => _hasSavedKey = null);
+    }
+  }
+
+  /// Asks the provider for its own account balance. A key being typed wins over
+  /// the stored one so a fresh key can be checked before it is saved.
+  Future<void> _loadBalance() async {
+    if (_balanceLoading) return;
+    setState(() {
+      _balanceLoading = true;
+      _balanceFailure = null;
+    });
+    try {
+      final balance = await ref
+          .read(appControllerProvider)
+          .providerBalance(_candidate(), key: _key.text);
+      if (mounted) setState(() => _balance = balance);
+    } catch (e) {
+      if (mounted) setState(() => _balanceFailure = e);
+    } finally {
+      if (mounted) setState(() => _balanceLoading = false);
     }
   }
 
@@ -203,6 +228,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
         _applyConfig(next);
         _key.clear();
         _hasSavedKey = null;
+        _balance = null;
+        _balanceFailure = null;
       });
       _refreshKeyStatus();
     });
@@ -291,6 +318,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                               _thinking = false;
                               _effort = AiOptions(_candidate()).preferredEffort;
                               _hasSavedKey = null;
+                              _balance = null;
+                              _balanceFailure = null;
                             });
                             _refreshKeyStatus();
                             _scheduleSave();
@@ -431,6 +460,15 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                               : colors.onSurfaceVariant,
                         ),
                       ),
+                    ),
+                  if (!c.demo && _kind == 'deepseek')
+                    ProviderBalancePanel(
+                      balance: _balance,
+                      loading: _balanceLoading,
+                      failure: _balanceFailure,
+                      onRefresh: _working || _balanceLoading
+                          ? null
+                          : _loadBalance,
                     ),
                   const SizedBox(height: 16),
                   if (_kind == 'compatible')

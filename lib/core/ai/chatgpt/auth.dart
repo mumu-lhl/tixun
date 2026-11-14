@@ -31,11 +31,39 @@ class ChatGptAccount {
   String get id => '$clientId:$subject';
 }
 
+/// Token and identity for account-scoped requests.
+class ChatGptSession {
+  const ChatGptSession({required this.accessToken, required this.accountId});
+  final String accessToken;
+
+  /// `chatgpt_account_id`; empty when the token does not carry the claim.
+  final String accountId;
+}
+
 class ChatGptSnapshot {
   ChatGptSnapshot(List<ChatGptAccount> accounts, this.activeId)
     : accounts = List.unmodifiable(accounts);
   final List<ChatGptAccount> accounts;
   final String? activeId;
+}
+
+/// Reads the payload of an already verified ID token.
+///
+/// Signature checking happened at sign-in; this only re-reads a claim the app
+/// itself stored, and any malformed token simply yields no claim.
+Map<String, dynamic>? _unverifiedTokenPayload(Object? raw) {
+  if (raw is! String) return null;
+  final parts = raw.split('.');
+  if (parts.length < 2) return null;
+  try {
+    final decoded = utf8.decode(
+      base64Url.decode(base64Url.normalize(parts[1])),
+    );
+    final payload = jsonDecode(decoded);
+    return payload is Map<String, dynamic> ? payload : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 class _AccountRecord {
@@ -57,6 +85,29 @@ class _AccountRecord {
   String get label =>
       data['email'] as String? ?? data['name'] as String? ?? 'ChatGPT';
   bool get connected => (data['refresh_token'] as String? ?? '').isNotEmpty;
+
+  /// Identity OpenAI uses for account-scoped endpoints. Sign-in stores it when
+  /// the verified ID token carries it; older records fall back to the same
+  /// claim inside the stored token, so a quota check works without re-login.
+  String get accountId {
+    final stored = data['account_id'];
+    if (stored is String && stored.isNotEmpty) return stored;
+    final payload = _unverifiedTokenPayload(data['id_token']);
+    final auth = payload?['https://api.openai.com/auth'];
+    final id = auth is Map ? auth['chatgpt_account_id'] : null;
+    return id is String ? id : '';
+  }
+
+  /// Plan label from the same claim, e.g. `plus`, `pro`. Not a quota figure.
+  String get planType {
+    final stored = data['plan_type'];
+    if (stored is String && stored.isNotEmpty) return stored;
+    final payload = _unverifiedTokenPayload(data['id_token']);
+    final auth = payload?['https://api.openai.com/auth'];
+    final plan = auth is Map ? auth['chatgpt_plan_type'] : null;
+    return plan is String ? plan : '';
+  }
+
   ChatGptAccount get summary => ChatGptAccount(
     clientId: clientId,
     subject: subject,
@@ -473,11 +524,16 @@ class ChatGptAuth {
         'ChatGPT 账号身份校验失败，请重新登录。',
       );
     }
+    final auth = claims['https://api.openai.com/auth'];
     return {
       'sub': claims.subject,
       'id_token': raw,
       if (claims['email'] is String) 'email': claims['email'],
       if (claims['name'] is String) 'name': claims['name'],
+      if (auth is Map && auth['chatgpt_account_id'] is String)
+        'account_id': auth['chatgpt_account_id'],
+      if (auth is Map && auth['chatgpt_plan_type'] is String)
+        'plan_type': auth['chatgpt_plan_type'],
     };
   }
 
@@ -517,7 +573,13 @@ class ChatGptAuth {
     };
   }
 
-  Future<String> accessToken({CancelToken? cancel}) async {
+  Future<String> accessToken({CancelToken? cancel}) async =>
+      (await session(cancel: cancel)).accessToken;
+
+  /// The access token plus the account identity needed by account-scoped
+  /// endpoints (the private quota endpoint used by the official Codex client).
+  /// The identity is empty when the token carries no such claim.
+  Future<ChatGptSession> session({CancelToken? cancel}) async {
     cancel?.checkCancelled();
     final epoch = _accountEpoch;
     final data = await _load();
@@ -548,7 +610,10 @@ class ChatGptAuth {
     );
     if (expiry != null &&
         expiry.isAfter(DateTime.now().add(const Duration(minutes: 1)))) {
-      return account.data['access_token'] as String;
+      return ChatGptSession(
+        accessToken: account.data['access_token'] as String,
+        accountId: account.accountId,
+      );
     }
     var pending = _refreshes[account.id];
     if (pending == null) {
@@ -582,7 +647,7 @@ class ChatGptAuth {
         'ChatGPT 账号已切换，请重新发送。',
       );
     }
-    return token;
+    return ChatGptSession(accessToken: token, accountId: account.accountId);
   }
 
   Future<String> _refresh(_AccountRecord account) async {

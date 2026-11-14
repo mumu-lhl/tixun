@@ -11,10 +11,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app/controller.dart';
 import '../../core/ai/chat_provider.dart';
 import '../../core/ai/chatgpt/auth.dart';
+import '../../core/ai/chatgpt/usage.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/l10n/app_error_localization.dart';
 import '../../core/ui/reasoning_labels.dart';
+import 'chatgpt_quota_panel.dart';
 
 class ChatGptScreen extends ConsumerStatefulWidget {
   const ChatGptScreen({super.key});
@@ -37,6 +39,9 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
   List<ChatGptModel> models = [];
   String? active, model;
   Object? message;
+  ChatGptQuota? quota;
+  Object? quotaFailure;
+  bool quotaLoading = false;
 
   String _messageText(Object value) => switch (value) {
     _ChatGptStatus.loadFailed => context.l10n.couldNotReadChatGPTSign,
@@ -101,6 +106,24 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
       }
     } finally {
       if (mounted) setState(() => working = false);
+    }
+  }
+
+  /// Manual quota check. Nothing is cached beyond this screen and no timer
+  /// repeats the request.
+  Future<void> loadQuota() async {
+    if (quotaLoading) return;
+    setState(() {
+      quotaLoading = true;
+      quotaFailure = null;
+    });
+    try {
+      final value = await ref.read(appControllerProvider).chatGptQuota();
+      if (mounted) setState(() => quota = value);
+    } catch (e) {
+      if (mounted) setState(() => quotaFailure = e);
+    } finally {
+      if (mounted) setState(() => quotaLoading = false);
     }
   }
 
@@ -418,6 +441,13 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 16),
+                  ChatGptQuotaPanel(
+                    quota: quota,
+                    loading: quotaLoading,
+                    failure: quotaFailure,
+                    onRefresh: working || quotaLoading ? null : loadQuota,
+                  ),
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 10,
                     runSpacing: 8,
@@ -476,6 +506,10 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                     }
                   },
                   child: Text(context.l10n.manageUsageAndPermissionsIn),
+                ),
+                Text(
+                  context.l10n.chatGptSubscriptionHasNoBalance,
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
                 Text(
                   context.l10n.connectionTestsAndLearningRequests,

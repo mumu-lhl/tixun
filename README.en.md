@@ -35,7 +35,7 @@ Open **Settings → Models and connections** and choose:
 - **OpenAI-compatible:** configure the URL, model ID, key and actual model capabilities.
 - **ChatGPT:** open the plan sign-in page from model settings and choose **Continue with ChatGPT**. Authorize in your browser, then select your account and model. Available models and allowance depend on your account's permissions. Requests do not automatically fall back to API billing. [Integration details](docs/CHATGPT_PROVIDER.md).
 
-A connection test sends a short request and may consume provider usage. Without AI configured, you can still organize material and practise existing questions.
+A connection test sends a short request and may consume provider usage. Settings can also show the DeepSeek account balance (the documented `GET /user/balance`, with total, granted and topped-up amounts) and the ChatGPT subscription quota (used percentage of the 5-hour and weekly windows, reset time, credit balance). The ChatGPT figures come from the undocumented endpoint used by the official Codex client: check-on-demand only, no polling, fields may change, and the official usage page is always offered next to them. Without AI configured, you can still organize material and practise existing questions.
 
 Start a conversation from Study. Guided teaching offers hints and invites you to try; Direct answer provides a full explanation. Exam mode lets you answer before showing feedback. Replies stream, and interactive question cards save actual answers. AI-generated reference answers remain unverified until checked.
 
