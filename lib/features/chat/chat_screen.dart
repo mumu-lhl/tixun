@@ -341,6 +341,9 @@ class _ConversationState extends ConsumerState<Conversation> {
   late final TextEditingController _input;
   final _focus = FocusNode();
   bool _stick = true, _scrolling = false;
+  int _targetRevision = 0;
+  int? _anchorIndex;
+  final _anchorKey = GlobalKey();
   Size? _reportedViewport;
   String? _reportedSessionId;
   String? _composerSessionId;
@@ -484,6 +487,19 @@ class _ConversationState extends ConsumerState<Conversation> {
     }
 
     final pending = c.attachments.where((a) => a.messageId == null).toList();
+    if (_targetRevision != c.searchTargetRevision) {
+      _targetRevision = c.searchTargetRevision;
+      final index = c.messages.indexWhere(
+        (m) => m.id == c.searchTargetMessageId,
+      );
+      if (index >= 0) {
+        _anchorIndex = index;
+        _stick = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _scroll.hasClients) _scroll.jumpTo(0);
+        });
+      }
+    }
     _followBottom();
     // Data-writing flows can send outside this widget. Observe committed
     // messages rather than a local send-button flag, including instant replies.
@@ -584,6 +600,72 @@ class _ConversationState extends ConsumerState<Conversation> {
                                   ),
                                 ),
                               ),
+                            )
+                          : _anchorIndex != null &&
+                                _anchorIndex! < c.messages.length
+                          ? CustomScrollView(
+                              controller: _scroll,
+                              center: _anchorKey,
+                              slivers: [
+                                SliverPadding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  sliver: SliverList.builder(
+                                    itemCount: _anchorIndex!,
+                                    itemBuilder: (context, index) => Align(
+                                      alignment: Alignment.topCenter,
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 790,
+                                        ),
+                                        child: MessageView(
+                                          message:
+                                              c.messages[_anchorIndex! -
+                                                  index -
+                                                  1],
+                                          isLast: false,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SliverPadding(
+                                  key: _anchorKey,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 24,
+                                  ),
+                                  sliver: SliverList.builder(
+                                    itemCount:
+                                        c.messages.length -
+                                        _anchorIndex! +
+                                        (c.pendingTool != null ? 1 : 0),
+                                    itemBuilder: (context, offset) {
+                                      final index = _anchorIndex! + offset;
+                                      return Align(
+                                        alignment: Alignment.topCenter,
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 790,
+                                          ),
+                                          child: index == c.messages.length
+                                              ? const ToolApprovalCard()
+                                              : MessageView(
+                                                  key: ValueKey(
+                                                    'message-${c.messages[index].id}',
+                                                  ),
+                                                  message: c.messages[index],
+                                                  isLast:
+                                                      index ==
+                                                      c.messages.length - 1,
+                                                ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
                             )
                           : ListView.builder(
                               controller: _scroll,

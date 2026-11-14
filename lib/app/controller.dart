@@ -114,6 +114,18 @@ class AppController extends ChangeNotifier {
   int _epoch = 0;
   bool _disposed = false;
   String search = '';
+  String? searchTargetMessageId;
+  int searchTargetRevision = 0;
+
+  void showSearchMessage(String sessionId, String messageId) {
+    if (selected?.id != sessionId || !messages.any((m) => m.id == messageId)) {
+      return;
+    }
+    searchTargetMessageId = messageId;
+    searchTargetRevision++;
+    changed();
+  }
+
   AppNotice? notice;
   List<String> get learningSubjects => preferences.learningSubjects;
   Future<void> setLearningSubjects(List<String> values) async {

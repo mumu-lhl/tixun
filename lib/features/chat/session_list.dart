@@ -22,6 +22,7 @@ class _SessionListState extends ConsumerState<SessionList> {
   late final TextEditingController _search;
   Timer? _searchDebounce;
   String _snippetQuery = '';
+  int _selectionEpoch = 0;
   final _snippetFutures = <String, Future<ChatMessage?>>{};
 
   @override
@@ -233,7 +234,24 @@ class _SessionListState extends ConsumerState<SessionList> {
                             ],
                           ),
                           onTap: () => act(context, () async {
+                            final selection = ++_selectionEpoch;
+                            final query = c.search;
+                            final match = query.isEmpty
+                                ? null
+                                : await _snippetFutures.putIfAbsent(
+                                    s.id,
+                                    () => c.db.matchingMessage(s.id, query),
+                                  );
+                            if (!mounted || selection != _selectionEpoch) {
+                              return;
+                            }
                             await c.selectSession(s);
+                            if (!mounted || selection != _selectionEpoch) {
+                              return;
+                            }
+                            if (match != null) {
+                              c.showSearchMessage(s.id, match.id);
+                            }
                             widget.onSelected?.call();
                           }),
                           trailing: PopupMenuButton<String>(

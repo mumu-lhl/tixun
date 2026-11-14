@@ -228,6 +228,68 @@ void main() {
     },
   );
   testWidgets(
+    'Search target opens the matching message in a long conversation',
+    (tester) async {
+      late AppController c;
+      await tester.runAsync(() async {
+        final dir = await Directory.systemTemp.createTemp(
+          'tixun-search-widget',
+        );
+        c = AppController(
+          AppDatabase.memory(),
+          AttachmentStore(dir),
+          MemoryKeyStore(),
+          MockChatProvider(),
+          demo: true,
+        );
+        await c.initialize();
+        final session = c.selected!;
+        for (var i = 0; i < 80; i++) {
+          await c.db.customStatement(
+            'INSERT INTO chat_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)',
+            [
+              'search-test-$i',
+              session.id,
+              'user',
+              'Search message number $i',
+              i + 1,
+            ],
+          );
+        }
+        await c.selectSession(session);
+      });
+      final container = ProviderContainer(
+        overrides: [appControllerProvider.overrideWith((ref) => c)],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await c.db.close();
+        await c.files.root.delete(recursive: true);
+      });
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1280, 800);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const TixunApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      container.read(routerProvider).go('/chat');
+      await tester.pumpAndSettle();
+      c.showSearchMessage(c.selected!.id, 'search-test-15');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('message-search-test-15')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+  testWidgets(
     'Math supports fractions, matrix, aligned and invalid syntax fallback',
     (tester) async {
       tester.view.physicalSize = const Size(390, 1000);
