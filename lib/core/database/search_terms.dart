@@ -6,6 +6,6 @@ List<String> searchTerms(String query) {
   if (term.startsWith('"') && term.endsWith('"') && term.length > 1) {
     return [term.substring(1, term.length - 1)];
   }
-  if (RegExp(r'[=+*/^<>]').hasMatch(term)) return [term];
+  if (RegExp(r'[=+*/^<>\\(){}\[\],.:;!?-]').hasMatch(term)) return [term];
   return term.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
 }

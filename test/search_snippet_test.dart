@@ -9,5 +9,7 @@ void main() {
     expect(searchExcerpt('内容', ''), isNull);
     expect(searchExcerpt('函数顶点', '函数 顶点'), '函数顶点');
     expect(searchExcerpt('x = 1', 'x = 1'), 'x = 1');
+    expect(searchExcerpt('😀match😀', 'match', context: 1), '😀match😀');
+    expect(searchExcerpt('A, B', 'A, B'), 'A, B');
   });
 }
