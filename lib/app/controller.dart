@@ -1514,6 +1514,8 @@ class AppController extends ChangeNotifier {
 
   Future<void> saveSettings(ProviderConfig next, String? key) =>
       preferences.saveSettings(next, key);
+  Future<bool> hasApiKey(ProviderConfig provider) =>
+      preferences.hasApiKey(provider);
   Future<void> restoreApiProvider() async {
     await stop();
     await preferences.restoreApiProvider();

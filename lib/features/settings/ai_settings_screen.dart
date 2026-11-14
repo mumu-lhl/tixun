@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:tixun/core/l10n/app_error.dart';
 
 import '../../core/ui/app_menu.dart';
@@ -36,7 +38,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   late String _kind, _effort;
   late bool _vision, _thinking, _supportsThinking, _supportsTools;
   bool _working = false;
+  Timer? _saveTimer;
   bool _keyVisible = false;
+  bool? _hasSavedKey;
   Object? _status;
 
   String _statusText(Object status) => switch (status) {
@@ -86,6 +90,18 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       text: ref.read(appControllerProvider).maxContextTokens.toString(),
     );
     _applyConfig(c);
+    _refreshKeyStatus();
+  }
+
+  Future<void> _refreshKeyStatus() async {
+    try {
+      final hasKey = await ref
+          .read(appControllerProvider)
+          .hasApiKey(_candidate());
+      if (mounted) setState(() => _hasSavedKey = hasKey);
+    } catch (_) {
+      if (mounted) setState(() => _hasSavedKey = null);
+    }
   }
 
   @override
@@ -93,6 +109,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     _base.dispose();
     _model.dispose();
     _maxContext.dispose();
+    _saveTimer?.cancel();
     _key.dispose();
     super.dispose();
   }
@@ -109,6 +126,13 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     effort: _effort,
     reasoningLevels: _reasoningLevels,
   );
+  void _scheduleSave() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 700), () {
+      if (mounted) _perform();
+    });
+  }
+
   Future<void> _perform({bool test = false, bool remove = false}) async {
     setState(() {
       _working = true;
@@ -149,7 +173,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
             : remove
             ? _AiSettingsStatus.keyRemoved
             : (c.demo ? _AiSettingsStatus.demoSaved : _AiSettingsStatus.saved);
-        if (!test) _key.clear();
+        if (!test) {
+          _key.clear();
+          _refreshKeyStatus();
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -175,7 +202,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       setState(() {
         _applyConfig(next);
         _key.clear();
+        _hasSavedKey = null;
       });
+      _refreshKeyStatus();
     });
     final colors = Theme.of(context).colorScheme;
     return ListView(
@@ -192,7 +221,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     BackButton(onPressed: () => context.go('/settings')),
                     Expanded(
                       child: Text(
-                        context.l10n.aiService,
+                        context.l10n.modelsAndConnections,
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                     ),
@@ -246,21 +275,26 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     ],
                     onChanged: _working
                         ? null
-                        : (kind) => setState(() {
-                            _kind = kind!;
-                            _reasoningLevels = null;
-                            _base.text = kind == 'deepseek'
-                                ? 'https://api.deepseek.com'
-                                : 'https://api.openai.com/v1';
-                            _model.text = kind == 'deepseek'
-                                ? 'deepseek-flash'
-                                : '';
-                            _vision = kind == 'deepseek';
-                            _supportsThinking = kind == 'deepseek';
-                            _supportsTools = kind == 'deepseek';
-                            _thinking = false;
-                            _effort = AiOptions(_candidate()).preferredEffort;
-                          }),
+                        : (kind) {
+                            setState(() {
+                              _kind = kind!;
+                              _reasoningLevels = null;
+                              _base.text = kind == 'deepseek'
+                                  ? 'https://api.deepseek.com'
+                                  : 'https://api.openai.com/v1';
+                              _model.text = kind == 'deepseek'
+                                  ? 'deepseek-flash'
+                                  : '';
+                              _vision = kind == 'deepseek';
+                              _supportsThinking = kind == 'deepseek';
+                              _supportsTools = kind == 'deepseek';
+                              _thinking = false;
+                              _effort = AiOptions(_candidate()).preferredEffort;
+                              _hasSavedKey = null;
+                            });
+                            _refreshKeyStatus();
+                            _scheduleSave();
+                          },
                   ),
                 if (_kind == 'chatgpt')
                   Column(
@@ -284,6 +318,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _base,
+                    onChanged: (_) {
+                      setState(() => _hasSavedKey = null);
+                      _refreshKeyStatus();
+                      _scheduleSave();
+                    },
                     enabled: !_working,
                     autocorrect: false,
                     decoration: InputDecoration(
@@ -321,18 +360,24 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       ],
                       onChanged: _working
                           ? null
-                          : (model) => setState(() {
-                              _model.text = model!;
-                              _vision = model == 'deepseek-flash';
-                            }),
+                          : (model) {
+                              setState(() {
+                                _model.text = model!;
+                                _vision = model == 'deepseek-flash';
+                              });
+                              _scheduleSave();
+                            },
                     )
                   else
                     TextField(
                       controller: _model,
-                      onChanged: (_) => setState(() {
-                        _reasoningLevels = null;
-                        _effort = AiOptions(_candidate()).preferredEffort;
-                      }),
+                      onChanged: (_) {
+                        setState(() {
+                          _reasoningLevels = null;
+                          _effort = AiOptions(_candidate()).preferredEffort;
+                        });
+                        _scheduleSave();
+                      },
                       enabled: !_working,
                       autocorrect: false,
                       decoration: InputDecoration(
@@ -344,6 +389,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   TextField(
                     key: const Key('api-key'),
                     controller: _key,
+                    onChanged: (_) => _scheduleSave(),
                     obscureText: !_keyVisible,
                     enableSuggestions: false,
                     autocorrect: false,
@@ -369,6 +415,23 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       ),
                     ),
                   ),
+                  if (!c.demo)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        _hasSavedKey == null
+                            ? context.l10n.apiKeyStatusUnknown
+                            : _hasSavedKey!
+                            ? context.l10n.apiKeyAlreadySaved
+                            : context.l10n.apiKeyNotSaved,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _hasSavedKey == true
+                              ? colors.primary
+                              : colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   if (_kind == 'compatible')
                     SwitchListTile(
@@ -381,7 +444,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       value: _supportsTools,
                       onChanged: _working
                           ? null
-                          : (v) => setState(() => _supportsTools = v),
+                          : (v) {
+                              setState(() => _supportsTools = v);
+                              _scheduleSave();
+                            },
                     ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
@@ -397,7 +463,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     value: _vision,
                     onChanged: _working || (_kind == 'deepseek')
                         ? null
-                        : (v) => setState(() => _vision = v),
+                        : (v) {
+                            setState(() => _vision = v);
+                            _scheduleSave();
+                          },
                   ),
                   if (_kind == 'compatible')
                     SwitchListTile(
@@ -410,10 +479,13 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       value: _supportsThinking,
                       onChanged: _working
                           ? null
-                          : (v) => setState(() {
-                              _supportsThinking = v;
-                              if (!v) _thinking = false;
-                            }),
+                          : (v) {
+                              setState(() {
+                                _supportsThinking = v;
+                                if (!v) _thinking = false;
+                              });
+                              _scheduleSave();
+                            },
                     ),
                   if (_supportsThinking) ...[
                     SwitchListTile(
@@ -430,7 +502,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       value: _thinking,
                       onChanged: _working
                           ? null
-                          : (v) => setState(() => _thinking = v),
+                          : (v) {
+                              setState(() => _thinking = v);
+                              _scheduleSave();
+                            },
                     ),
                     if (_thinking)
                       Padding(
@@ -458,13 +533,17 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                           ],
                           onChanged: _working
                               ? null
-                              : (v) => setState(() => _effort = v!),
+                              : (v) {
+                                  setState(() => _effort = v!);
+                                  _scheduleSave();
+                                },
                         ),
                       ),
                   ],
                   const SizedBox(height: 16),
                   TextField(
                     controller: _maxContext,
+                    onChanged: (_) => _scheduleSave(),
                     enabled: !_working,
                     autocorrect: false,
                     keyboardType: TextInputType.number,
@@ -495,14 +574,6 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      FilledButton(
-                        onPressed: _working || c.busy ? null : () => _perform(),
-                        child: Text(
-                          _working
-                              ? context.l10n.working
-                              : context.l10n.saveConfiguration,
-                        ),
-                      ),
                       OutlinedButton(
                         onPressed: _working ? null : () => _perform(test: true),
                         child: Text(context.l10n.testConnection),

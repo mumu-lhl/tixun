@@ -111,7 +111,10 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
         : ref.read(appControllerProvider).prompts.text(widget.id),
   );
   bool saving = false;
+  late final String initialText = input.text;
   Object? failure;
+
+  bool get isDirty => input.text != initialText;
 
   String _failureText(Object issue) => switch (issue) {
     PromptError.invalidEntry => context.l10n.eachPromptMustHaveA,
@@ -126,6 +129,38 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
   void dispose() {
     input.dispose();
     super.dispose();
+  }
+
+  Future<void> leave() async {
+    if (saving) return;
+    if (!isDirty) {
+      context.go('/settings/prompts');
+      return;
+    }
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(context.l10n.unsavedPromptChanges),
+        content: Text(context.l10n.savePromptBeforeLeaving),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'stay'),
+            child: Text(context.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'discard'),
+            child: Text(context.l10n.discardChanges),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, 'save'),
+            child: Text(context.l10n.savePrompt),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'discard') context.go('/settings/prompts');
+    if (choice == 'save') await save();
   }
 
   Future<void> save() async {
@@ -229,123 +264,136 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
         ),
       );
     }
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 880),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      tooltip: context.l10n.backToPromptManager,
-                      onPressed: saving
-                          ? null
-                          : () => context.go('/settings/prompts'),
-                      icon: const Icon(Icons.arrow_back),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        promptTitle(context, p),
-                        style: Theme.of(context).textTheme.headlineSmall,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) leave();
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 880),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: context.l10n.backToPromptManager,
+                        onPressed: saving ? null : leave,
+                        icon: const Icon(Icons.arrow_back),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(promptDescription(context, p)),
-                const SizedBox(height: 8),
-                Text(
-                  context.l10n.promptsAreSentToThe,
-                  style: TextStyle(fontSize: 12),
-                ),
-                const SizedBox(height: 18),
-                TextField(
-                  key: const Key('prompt-content'),
-                  controller: input,
-                  enabled: !saving,
-                  minLines: 12,
-                  maxLines: 24,
-                  maxLength: 6000,
-                  decoration: InputDecoration(
-                    labelText: context.l10n.promptContent,
-                    alignLabelWithHint: true,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          promptTitle(context, p),
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                if (failure != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      _failureText(failure!),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
+                  const SizedBox(height: 10),
+                  Text(promptDescription(context, p)),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.l10n.promptsAreSentToThe,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    key: const Key('prompt-content'),
+                    controller: input,
+                    enabled: !saving,
+                    minLines: 12,
+                    maxLines: 24,
+                    maxLength: 6000,
+                    decoration: InputDecoration(
+                      labelText: context.l10n.promptContent,
+                      alignLabelWithHint: true,
                     ),
                   ),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton(
-                      key: const Key('save-prompt'),
-                      onPressed: saving ? null : save,
+                  if (failure != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
-                        saving
-                            ? context.l10n.savingEllipsis
-                            : context.l10n.savePrompt,
+                        _failureText(failure!),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                       ),
                     ),
-                    OutlinedButton(
-                      onPressed: saving ? null : preview,
-                      child: Text(context.l10n.preview),
-                    ),
-                    TextButton(
-                      onPressed: saving
-                          ? null
-                          : () async {
-                              final reset = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: Text(context.l10n.resetThisPrompt),
-                                  content: Text(
-                                    context.l10n.thisReplacesTheCurrentEditor,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      SizedBox(
+                        height: 48,
+                        child: FilledButton(
+                          key: const Key('save-prompt'),
+                          onPressed: saving ? null : save,
+                          child: Text(
+                            saving
+                                ? context.l10n.savingEllipsis
+                                : context.l10n.savePrompt,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 48,
+                        child: OutlinedButton(
+                          onPressed: saving ? null : preview,
+                          child: Text(context.l10n.preview),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: saving
+                            ? null
+                            : () async {
+                                final reset = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text(context.l10n.resetThisPrompt),
+                                    content: Text(
+                                      context.l10n.thisReplacesTheCurrentEditor,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, false),
+                                        child: Text(context.l10n.cancel),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
+                                        child: Text(
+                                          context.l10n.resetToDefault,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(ctx, false),
-                                      child: Text(context.l10n.cancel),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      child: Text(context.l10n.resetToDefault),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (reset == true && mounted) {
-                                setState(() {
-                                  input.text = ref
-                                      .read(appControllerProvider)
-                                      .prompts
-                                      .defaultText(p.id);
-                                  failure = null;
-                                });
-                              }
-                            },
-                      child: Text(context.l10n.resetToDefault),
-                    ),
-                  ],
-                ),
-              ],
+                                );
+                                if (reset == true && mounted) {
+                                  setState(() {
+                                    input.text = ref
+                                        .read(appControllerProvider)
+                                        .prompts
+                                        .defaultText(p.id);
+                                    failure = null;
+                                  });
+                                }
+                              },
+                        child: Text(context.l10n.resetToDefault),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

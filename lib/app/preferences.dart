@@ -178,6 +178,11 @@ class AppPreferences extends DatabaseNotifier {
     changed();
   });
 
+  Future<bool> hasApiKey(ProviderConfig provider) async {
+    final key = await keys.read(providerKeyId(provider));
+    return key?.isNotEmpty == true;
+  }
+
   Future<void> saveSettings(ProviderConfig next, String? key) =>
       runOperation(() async {
         validateConfig(next);
