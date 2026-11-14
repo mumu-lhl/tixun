@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import '../../core/python/python_tool.dart';
+import '../../core/python/python_runtime.dart';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
@@ -332,7 +333,9 @@ class LearningRun {
         request = request.copyWith(
           messages: contextMessages,
           tools: [
-            if (['ask', 'auto'].contains(pythonPolicy)) pythonToolSchema,
+            if (PythonRuntime.isSupportedPlatform &&
+                ['ask', 'auto'].contains(pythonPolicy))
+              pythonToolSchema,
             if (!materialRequest) quizToolSchema,
             if (!exam && sourceImages.isNotEmpty && studyTask == null)
               regionToolSchema,

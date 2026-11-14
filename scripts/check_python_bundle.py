@@ -45,9 +45,12 @@ def check_android(apk):
 
 def check_linux(bundle):
     for name in ('app/main.py', 'site-packages/sympy/__init__.py',
-                 'site-packages/mpmath/__init__.py', 'site-packages/numpy/__init__.py'):
+                 'site-packages/mpmath/__init__.py', 'site-packages/numpy/__init__.py',
+                 'libexec/tixun-python-sandbox'):
         if not (bundle / name).is_file():
             raise ValueError(f'{bundle}: missing {name}')
+    if not (bundle / 'libexec/tixun-python-sandbox').stat().st_mode & 0o111:
+        raise ValueError(f'{bundle}: Python sandbox launcher is not executable')
     if not list((bundle / 'lib').glob('libpython3*.so*')):
         raise ValueError(f'{bundle}: missing native Python runtime')
     if not list(bundle.glob('python3.*/encodings/__init__.*')):

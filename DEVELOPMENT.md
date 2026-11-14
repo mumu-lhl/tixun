@@ -19,7 +19,7 @@ flutter run -d linux --dart-define=TIXUN_DEMO=true
 flutter run -d <设备ID>
 ```
 
-Linux 系统依赖：`sudo bash scripts/install_linux_deps.sh`。保存 API Key 需要可用且已解锁的 Secret Service（例如 GNOME Keyring）；没有密钥环时不回退到明文存储，仍可浏览本地学习资料。
+Linux 系统依赖：`sudo bash scripts/install_linux_deps.sh`（包含 bubblewrap）。构建 Linux 沙盒 Python 还需要 Zig 0.17.1；将 `zig` 加入 PATH（ZVM 用户可 `export PATH="$HOME/.zvm/bin:$PATH"`）。保存 API Key 需要可用且已解锁的 Secret Service（例如 GNOME Keyring）；没有密钥环时不回退到明文存储，仍可浏览本地学习资料。
 
 ## 测试与构建
 
@@ -197,20 +197,21 @@ AI 资料整理按操作筛选工具，本地 `estimateTokens` 对同一套序�
 
 ## 嵌入 Python 的构建与验证
 
-运行时固定 `serious_python` 6.1.3 / CPython 3.13（具体补丁版本由锁定插件决定）。依赖固定在 `python/requirements.txt`，包含 SymPy、mpmath 和 NumPy 2.4.6。安装脚本明确指定 CPython 3.13 ABI；Android NumPy 来自 [Flet wheel 索引](https://pypi.flet.dev/numpy/)，三个架构分别安装，Linux 使用 PyPI wheel。不能跨架构复制原生扩展。
+运行时使用 CPython 3.13（具体补丁版本由锁定插件决定）；Linux 通过 Zig 构建独立 CPython launcher，并用 bubblewrap、用户/PID 命名空间和只读根文件系统隔离执行，仅把当前 Python 工作区重新挂载为可写。缺少 bubblewrap 或命名空间不可用时拒绝执行。Android 暂时关闭 Python，等待独立隔离服务实现。隔离限制文件写入，不限制读取其他应用文件或网络访问。依赖固定在 `python/requirements.txt`，包含 SymPy、mpmath 和 NumPy 2.4.6。安装脚本明确指定 CPython 3.13 ABI；Android NumPy 来自 [Flet wheel 索引](https://pypi.flet.dev/numpy/)，三个架构分别安装，Linux 使用 PyPI wheel。不能跨架构复制原生扩展。
 
 Python 包保留最新兼容版本：Flet 目前为 CPython 3.13 提供的三个 Android ABI 的 NumPy wheel 均为 2.4.6，因此 Android 和 Linux 统一使用此版本；SymPy 1.14.0 要求 `mpmath < 1.4`，保留 mpmath 1.3.0。升级时须同时检查 Android wheel 可用性和包之间的版本约束。
 
 ```bash
 bash scripts/prepare_python.sh Linux
 bash scripts/flutter_python.sh build linux --release
-# Android 改为 prepare_python.sh Android，再用同一个 wrapper 构建 APK。
+# 构建依赖 Zig 0.17.1、bubblewrap 和允许 unprivileged user namespaces 的 Linux 内核。
+# Android 改为 prepare_python.sh Android，再用同一个 wrapper 构建 APK；执行功能暂时关闭。
 python3 -m unittest discover -s python -p 'test_*.py'
 bash scripts/flutter_python.sh test integration_test/python_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true
 ```
 
 需要 Python 3 与 pip。CI 的构建任务自动准备包并缓存上游运行时下载；Android 保留 arm64-v8a、armeabi-v7a、x86_64 与 Universal 产物。宿主 Python 版本可以不同，pip 按目标解释器版本选择 wheel，不在应用运行时安装依赖。普通 `flutter build` 也必须设置 wrapper 中的环境变量；Android 需 `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES='numpy*'`，让 NumPy 的 Python 文件和元数据可从实际目录访问，原生模块仍由插件按 ABI 打包。
 
-消融：复用原工具循环、审批卡与审计表；没有预设数学函数白名单、独立服务器、Flask 服务或另一套 AI 客户端。传输长度和输出展示上限不限制 Python 语法或模块能力。`test/python_tool_test.dart` 验证拒绝/关闭/自动授权、参数及重复执行；Python 单测验证标准库、文件、异常、时限与输出；原生 GUI 测试真实运行打包 SymPy 和 NumPy（数组运算、线性方程求解）、审查/自动允许、查看结果及手机全屏导航。
+复用原工具循环、审批卡与审计表。`test/python_tool_test.dart` 验证审批、参数和重复执行；Python 单测确保旧的进程内入口 fail-closed；Linux GUI 集成验证隔离进程真实运行打包 SymPy/NumPy、工作区写入成功、工作区外写入被拒绝、硬超时和停止。Android 隔离服务尚未实现，故不暴露 Python 工具。
 
 发布检查还会逐个确认 APK 与 Linux 包内含实际 Python 运行时、工作脚本、NumPy、SymPy 和 mpmath，并校验 Android NumPy 核心原生模块的 ELF 架构，防止仅编译成功却漏打包依赖。

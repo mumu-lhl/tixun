@@ -1,42 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../ai/ai_types.dart';
 
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
-import 'package:serious_python/serious_python.dart';
 import 'package:uuid/uuid.dart';
 
-/// Native CPython in the application's process. Intentionally NOT a sandbox.
-/// One interpreter is reused across controller restores; executions are serial.
+/// Executes Python only in a separate Linux process under bubblewrap.
+/// Android remains disabled until its isolated-service adapter is implemented.
 class PythonRuntime {
   static final instance = PythonRuntime();
-  Future<Directory>? _starting;
+  static bool get isSupportedPlatform => Platform.isLinux;
+
+  static const _outputLimit = 32000;
   bool _busy = false;
-  Future<Directory> _start() => _starting ??= _boot().catchError((error) {
-    _starting = null;
-    throw error;
-  });
-  Future<Directory> _boot() async {
-    final root = await Directory.systemTemp.createTemp('tixun-python-');
-    final app = await SeriousPython.prepareApp();
-    final failure = await SeriousPython.runProgram(
-      p.join(app, 'main.py'),
-      environmentVariables: {'TIXUN_PYTHON_ROOT': root.path},
-    );
-    if (failure != null) throw StateError(failure);
-    final until = DateTime.now().add(const Duration(seconds: 30));
-    while (!await File(p.join(root.path, 'ready')).exists()) {
-      if (DateTime.now().isAfter(until)) {
-        // Do not start a second interpreter after an ambiguous boot timeout.
-        throw StateError('Python 启动超时，请重启应用后重试。');
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-    }
-    return root;
-  }
 
   Future<Map<String, dynamic>> execute({
     required String code,
@@ -44,78 +24,186 @@ class PythonRuntime {
     required int timeoutSeconds,
     required CancelToken cancel,
   }) async {
+    if (!isSupportedPlatform) {
+      return {'ok': false, 'error': 'Python 沙盒暂不可用于此平台。'};
+    }
     if (_busy) return {'ok': false, 'error': 'Python 仍在运行，结束后才能执行下一段代码。'};
     _busy = true;
-    var awaitingNativeStop = false;
-    File? pendingRequest;
-    File? pendingTemporary;
+    final started = DateTime.now();
+    File? script;
+    Process? process;
+    Timer? timer;
+    var cancelled = false;
+    var timedOut = false;
+    var processFinished = false;
+    final terminated = Completer<void>();
     try {
       cancel.checkCancelled();
-      final root = await Future.any<Directory>([
-        _start(),
-        cancel.whenCancel.then<Directory>((_) => throw cancel.cancelError!),
-      ]);
+      final workspacesRoot = Directory(p.dirname(workspace.absolute.path));
+      if (p.basename(workspacesRoot.path) != 'python-workspaces') {
+        return {'ok': false, 'error': 'Python 工作目录无效，执行已阻止。'};
+      }
+      await workspace.create(recursive: true);
+      final canonicalRoot = await workspacesRoot.resolveSymbolicLinks();
+      final canonicalWorkspace = await workspace.resolveSymbolicLinks();
+      if (p.dirname(canonicalWorkspace) != canonicalRoot ||
+          p.basename(canonicalWorkspace) == '.tixun-runtime') {
+        return {'ok': false, 'error': 'Python 工作目录无效，执行已阻止。'};
+      }
+
+      final bundle = p.dirname(Platform.resolvedExecutable);
+      final launcher = p.join(bundle, 'libexec', 'tixun-python-sandbox');
+      if (!await File(launcher).exists()) {
+        return {'ok': false, 'error': 'Python 沙盒运行时未安装。'};
+      }
+      script = File(
+        p.join(canonicalWorkspace, '.tixun-${const Uuid().v4()}.py'),
+      );
+      await script.writeAsString(code, flush: true);
       cancel.checkCancelled();
-      final id = const Uuid().v4();
-      final request = File(p.join(root.path, '$id.request.json'));
-      pendingRequest = request;
-      pendingTemporary = File('${request.path}.tmp');
-      final result = File(p.join(root.path, '$id.result.json'));
-      final stop = File(p.join(root.path, '$id.cancel'));
-      await pendingTemporary.writeAsString(
-        jsonEncode({
-          'id': id,
-          'code': code,
-          'workspace': workspace.path,
-          'timeout_seconds': timeoutSeconds,
+      process = await Process.start(
+        'bwrap',
+        [
+          '--die-with-parent',
+          '--new-session',
+          '--unshare-user',
+          '--unshare-pid',
+          '--unshare-ipc',
+          '--unshare-uts',
+          '--cap-drop',
+          'ALL',
+          '--ro-bind',
+          '/',
+          '/',
+          '--proc',
+          '/proc',
+          '--bind',
+          canonicalWorkspace,
+          canonicalWorkspace,
+          '--chdir',
+          canonicalWorkspace,
+          '--setenv',
+          'HOME',
+          canonicalWorkspace,
+          '--setenv',
+          'TMPDIR',
+          canonicalWorkspace,
+          '--setenv',
+          'XDG_CACHE_HOME',
+          canonicalWorkspace,
+          '--',
+          launcher,
+          '--bundle',
+          bundle,
+          script.path,
+        ],
+        runInShell: false,
+        includeParentEnvironment: false,
+        environment: const {
+          'PATH': '/usr/bin:/bin',
+          'LANG': 'C.UTF-8',
+          'PYTHONDONTWRITEBYTECODE': '1',
+          'PYTHONNOUSERSITE': '1',
+          'PYTHONUNBUFFERED': '1',
+        },
+      );
+
+      final stdout = _capture(process.stdout);
+      final stderr = _capture(process.stderr);
+      final exit = process.exitCode;
+      final runningProcess = process;
+      timer = Timer(Duration(seconds: timeoutSeconds), () {
+        if (processFinished) return;
+        timedOut = true;
+        processFinished = true;
+        runningProcess.kill(ProcessSignal.sigkill);
+        if (!terminated.isCompleted) terminated.complete();
+      });
+      unawaited(
+        cancel.whenCancel.then((_) {
+          if (processFinished) return;
+          cancelled = true;
+          processFinished = true;
+          runningProcess.kill(ProcessSignal.sigkill);
+          if (!terminated.isCompleted) terminated.complete();
         }),
       );
-      await pendingTemporary.rename(request.path);
-      final deadline = DateTime.now().add(Duration(seconds: timeoutSeconds));
-      while (!await result.exists()) {
-        if (cancel.isCancelled || DateTime.now().isAfter(deadline)) {
-          await stop.writeAsString('stop');
-          // Return promptly, but quarantine the interpreter until the worker
-          // confirms completion. Native calls cannot be safely interrupted.
-          awaitingNativeStop = true;
-          unawaited(_awaitStopped(result));
-          return {
-            'ok': false,
-            'running': true,
-            'error': cancel.isCancelled
-                ? '已请求停止；原生调用可能仍在运行，必要时请重启应用。'
-                : 'Python 已超时并请求停止；原生调用可能仍在运行，完成前不能再次执行。',
-          };
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final exitCode = await Future.any<int>([
+        exit,
+        terminated.future.then((_) => -1),
+      ]);
+      processFinished = true;
+      if (exitCode == -1) {
+        await exit;
+        if (cancelled) cancel.checkCancelled();
       }
-      final value =
-          jsonDecode(await result.readAsString()) as Map<String, dynamic>;
-      await result.delete();
-      if (await stop.exists()) await stop.delete();
-      return value;
+      timer.cancel();
+      final out = await stdout;
+      final err = await stderr;
+      if (timedOut) {
+        return {
+          'ok': false,
+          'error': 'Python 执行超时，隔离进程已终止。',
+          'stdout': out.text,
+          'stderr': err.text,
+          'output_truncated': out.truncated || err.truncated,
+          'elapsed_ms': DateTime.now().difference(started).inMilliseconds,
+        };
+      }
+      return {
+        'ok': exitCode == 0,
+        if (exitCode != 0) 'error': 'Python 进程退出，状态码 $exitCode。',
+        'stdout': out.text,
+        'stderr': err.text,
+        'output_truncated': out.truncated || err.truncated,
+        'elapsed_ms': DateTime.now().difference(started).inMilliseconds,
+      };
+    } on DioException {
+      rethrow;
+    } on ProcessException catch (error) {
+      return {'ok': false, 'error': 'Python 沙盒启动失败：${error.message}'};
+    } catch (error) {
+      if (cancel.isCancelled) rethrow;
+      return {'ok': false, 'error': 'Python 沙盒执行失败：$error'};
     } finally {
-      // A timed-out/cancelled native operation must not make the interpreter
-      // available until its result proves that execution really stopped.
-      if (!awaitingNativeStop) {
+      timer?.cancel();
+      try {
+        if (process != null && !processFinished) {
+          processFinished = true;
+          process.kill(ProcessSignal.sigkill);
+          await process.exitCode;
+        }
+        if (script != null && await script.exists()) {
+          try {
+            await script.delete();
+          } on FileSystemException {
+            // User code may have removed or replaced its temporary source file.
+          }
+        }
+      } finally {
         _busy = false;
-        if (pendingRequest != null && await pendingRequest.exists()) {
-          await pendingRequest.delete();
-        }
-        if (pendingTemporary != null && await pendingTemporary.exists()) {
-          await pendingTemporary.delete();
-        }
       }
     }
   }
 
-  Future<void> _awaitStopped(File result) async {
-    while (!await result.exists()) {
-      await Future<void>.delayed(const Duration(milliseconds: 250));
+  Future<_CapturedOutput> _capture(Stream<List<int>> stream) async {
+    final bytes = BytesBuilder(copy: false);
+    var truncated = false;
+    await for (final chunk in stream) {
+      final remaining = _outputLimit - bytes.length;
+      if (remaining > 0) bytes.add(chunk.take(remaining).toList());
+      if (chunk.length > remaining) truncated = true;
     }
-    await result.delete();
-    final stop = File(result.path.replaceFirst('.result.json', '.cancel'));
-    if (await stop.exists()) await stop.delete();
-    _busy = false;
+    return _CapturedOutput(
+      utf8.decode(bytes.takeBytes(), allowMalformed: true),
+      truncated,
+    );
   }
+}
+
+class _CapturedOutput {
+  const _CapturedOutput(this.text, this.truncated);
+  final String text;
+  final bool truncated;
 }

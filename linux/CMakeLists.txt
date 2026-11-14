@@ -91,6 +91,47 @@ install(CODE "
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
+# Build a separate embedded CPython executable for the Linux sandbox. Python
+# code must never run in the Flutter application's process.
+file(GLOB TIXUN_PYTHON_INCLUDE_DIRS LIST_DIRECTORIES true
+  "${CMAKE_BINARY_DIR}/python/include/python*")
+list(LENGTH TIXUN_PYTHON_INCLUDE_DIRS TIXUN_PYTHON_INCLUDE_COUNT)
+if(NOT TIXUN_PYTHON_INCLUDE_COUNT EQUAL 1)
+  message(FATAL_ERROR "Could not identify the bundled CPython headers")
+endif()
+list(GET TIXUN_PYTHON_INCLUDE_DIRS 0 TIXUN_PYTHON_INCLUDE_DIR)
+get_filename_component(TIXUN_PYTHON_VERSION "${TIXUN_PYTHON_INCLUDE_DIR}" NAME)
+string(REPLACE "python" "" TIXUN_PYTHON_VERSION "${TIXUN_PYTHON_VERSION}")
+set(TIXUN_PYTHON_LIBRARY
+  "${CMAKE_BINARY_DIR}/python/lib/libpython${TIXUN_PYTHON_VERSION}.so.1.0")
+if(NOT EXISTS "${TIXUN_PYTHON_LIBRARY}")
+  message(FATAL_ERROR "Bundled CPython shared library missing: ${TIXUN_PYTHON_LIBRARY}")
+endif()
+if(NOT TIXUN_PYTHON_VERSION STREQUAL "3.13")
+  message(FATAL_ERROR "The sandbox launcher currently requires CPython 3.13; build with scripts/flutter_python.sh")
+endif()
+find_program(TIXUN_ZIG_EXECUTABLE zig)
+if(NOT TIXUN_ZIG_EXECUTABLE)
+  message(FATAL_ERROR "Zig 0.17.1 is required to build the Linux Python sandbox")
+endif()
+set(TIXUN_PYTHON_SANDBOX ${CMAKE_BINARY_DIR}/tixun-python-sandbox)
+add_custom_command(
+  OUTPUT "${TIXUN_PYTHON_SANDBOX}"
+  COMMAND "${TIXUN_ZIG_EXECUTABLE}" build-exe
+    "${CMAKE_CURRENT_SOURCE_DIR}/python_sandbox.zig"
+    -O ReleaseFast
+    "${TIXUN_PYTHON_LIBRARY}"
+    -lc
+    -rpath "$ORIGIN/../lib"
+    "-femit-bin=${TIXUN_PYTHON_SANDBOX}"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/python_sandbox.zig"
+          "${TIXUN_PYTHON_LIBRARY}"
+  VERBATIM
+  COMMENT "Building isolated CPython launcher with Zig")
+add_custom_target(tixun-python-sandbox-build ALL DEPENDS "${TIXUN_PYTHON_SANDBOX}")
+install(PROGRAMS "${TIXUN_PYTHON_SANDBOX}"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/libexec" COMPONENT Runtime)
+
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 

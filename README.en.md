@@ -23,7 +23,7 @@ Choose a file under **Assets**:
 
 Published packages use **Release mode**. v0.6.1 and current Nightly APKs share the same release signing key; `SHA256SUMS` provides download checksums. v0.5.2 uses an older development key: export a full backup before uninstalling it, then install the new version and restore your data.
 
-Linux needs GTK 3 and, for credentials, an unlocked Secret Service keyring such as GNOME Keyring. Missing secure storage is reported; keys are not silently saved as plain text. Run `chmod u+x tixun` if needed.
+Linux needs GTK 3, bubblewrap, and a kernel that permits unprivileged user namespaces; Python refuses to run if isolation is unavailable. Credentials also require an unlocked Secret Service keyring such as GNOME Keyring. Missing secure storage is reported; keys are not silently saved as plain text. Run `chmod u+x tixun` if needed.
 
 Nightly builds start daily at 20:30 UTC, subject to GitHub scheduling and successful verification. Only the latest successful Nightly release, assets and tag are retained. Stable releases are preserved.
 
@@ -47,9 +47,9 @@ On phones, the chat's more menu contains material tools, linked material and mod
 
 ## Photos and study material
 
-Python execution is available under Settings → Python execution. By default you review the exact code before allowing it; you can disable execution or explicitly enable automatic permission. Chat, question generation, mistake explanations and AI knowledge writing share the tool. CPython, NumPy, SymPy and mpmath are bundled locally. Expand execution history to inspect code, output and errors; output is sent to the current model.
+Linux Python execution is available under Settings → Python execution. By default you review the exact code before allowing it; you can disable execution or explicitly enable automatic permission. Chat, question generation, mistake explanations and AI knowledge writing share the tool. CPython, NumPy, SymPy and mpmath are bundled locally. Code runs in a separate bubblewrap process with only the current session workspace writable; timeout or stop terminates that process. Expand execution history to inspect code, output and errors; output is sent to the current model. Android execution is temporarily disabled until its isolated runner is implemented.
 
-**Arbitrary Python runs with the app’s file and network access; it is not a sandbox.** Code can damage local data. Stop requests may not immediately interrupt native code or I/O. Generated files are not automatically included in study records or backups. Mobile Chat fills the screen and provides a Back button.
+**The isolation restricts filesystem writes, not reads or networking.** Code can still read other local files and access the network; automatic permission skips code review. Generated files are not automatically included in study records or backups. A successful calculation does not verify the whole problem’s assumptions or reasoning. Mobile Chat fills the screen and provides a Back button.
 
 Android provides WeChat-style capture and gallery previews with multiple selection, plus image files. The capture screen also offers a system-camera fallback. Linux uses file selection. Imported photos open an editor for cropping, rotating and zooming. Save uses the edited result; closing retains the uncropped photo. Originals are preserved in chat, knowledge, mistakes and exam records. Tap a thumbnail for fullscreen viewing.
 

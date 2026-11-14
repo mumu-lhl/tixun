@@ -13,7 +13,7 @@ import 'python_runtime.dart';
 const pythonPolicyKey = 'python_execution_policy';
 final pythonToolSchema = AiTool(
   name: 'run_python',
-  description: 'Execute Python code locally for calculations or checking answers. Standard library, NumPy, SymPy and mpmath are available. Use print() to return results. The app may ask the user to approve the exact code. Files persist in WORKSPACE. This is unrestricted Python, not a sandbox. A computed result verifies only the supplied mathematical model, not the whole question. Do not use code to bypass application approval for study-data edits.',
+  description: 'Execute Python code in a separate Linux process for calculations or checking answers. Standard library, NumPy, SymPy and mpmath are available. Use print() to return results. Files persist in WORKSPACE. Linux filesystem writes are restricted to WORKSPACE; reads and network access remain unrestricted. Execution fails closed if bubblewrap isolation is unavailable. This feature is temporarily unavailable on Android. A computed result verifies only the supplied mathematical model, not the whole question. Do not use code to bypass application approval for study-data edits.',
   parameters: {
     'type': 'object',
     'additionalProperties': false,
@@ -47,6 +47,9 @@ class PythonTool {
     required CancelToken cancel,
     required Future<bool> Function(String, Map<String, dynamic>) confirm,
   }) async {
+    if (!PythonRuntime.isSupportedPlatform) {
+      return {'ok': false, 'error': 'Python 沙盒暂不可用于此平台。'};
+    }
     final policy = await db.preference(pythonPolicyKey) ?? 'ask';
     if (!['ask', 'auto'].contains(policy)) {
       return {'ok': false, 'error': 'Python 执行已关闭。'};

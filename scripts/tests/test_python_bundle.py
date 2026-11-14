@@ -59,6 +59,7 @@ class PythonBundleTests(unittest.TestCase):
             root = Path(tmp)
             files = ['app/main.py', 'site-packages/sympy/__init__.py',
                      'site-packages/mpmath/__init__.py', 'lib/libpython3.13.so.1.0',
+                     'libexec/tixun-python-sandbox',
                      'python3.13/encodings/__init__.pyc',
                      'site-packages/numpy/__init__.py',
                      'site-packages/numpy/_core/_multiarray_umath.cpython-313-x86_64-linux-gnu.so',
@@ -67,6 +68,7 @@ class PythonBundleTests(unittest.TestCase):
                 p = root / name
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.touch()
+            (root / 'libexec/tixun-python-sandbox').chmod(0o755)
             check_linux(root)
             for name in files:
                 p = root / name

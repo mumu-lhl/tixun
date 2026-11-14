@@ -208,6 +208,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.1
       - name: Install Linux dependencies
         timeout-minutes: 8
         run: sudo bash scripts/install_linux_deps.sh --github-runner

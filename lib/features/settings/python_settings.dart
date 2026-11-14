@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/python/python_tool.dart';
+import '../../core/python/python_runtime.dart';
 import '../../core/python/python_workspace_store.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/app_menu.dart';
@@ -157,7 +158,12 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
           children: [
             Text(context.l10n.aiPythonCapabilities),
             const SizedBox(height: 20),
-            if (loadError)
+            if (!PythonRuntime.isSupportedPlatform)
+              Text(
+                context.l10n.pythonSandboxNotAvailable,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              )
+            else if (loadError)
               Text(
                 context.l10n.couldNotLoadExecutionPermissions,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),

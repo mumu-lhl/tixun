@@ -61,27 +61,52 @@ void main() {
       await t.pumpAndSettle();
       await guiCapture('python', 'execution-result-phone');
       // Real execution is not constrained to predefined mathematics functions.
+      final pythonWorkspace = Directory(
+        '${c.files.root.path}/python-workspaces/python-check',
+      );
+      final outsideWrite = File('${c.files.root.path}/blocked.txt');
       final result = await PythonRuntime.instance.execute(
-        code: "from pathlib import Path\nprint(sum(i*i for i in range(10)))\nPath('generated.txt').write_text('Python file output')",
-        workspace: Directory('${c.files.root.path}/python-check'),
+        code:
+            "from pathlib import Path\nprint(sum(i*i for i in range(10)))\nPath('generated.txt').write_text('Python file output')\ntry:\n Path(r'${outsideWrite.path}').write_text('escape')\nexcept OSError as exc:\n print(type(exc).__name__)",
+        workspace: pythonWorkspace,
         timeoutSeconds: 10,
         cancel: CancelToken(),
       );
       expect(result['ok'], true, reason: result.toString());
-      expect(result['stdout'], '285\n');
+      expect(result['stdout'], contains('285\n'));
+      expect(result['stdout'], contains('OSError'));
+      expect(await outsideWrite.exists(), isFalse);
       final numeric = await PythonRuntime.instance.execute(
         code: 'import numpy as np\nprint(np.__version__)\nprint((np.array([1, 2, 3]) ** 2).tolist())\nprint(np.linalg.solve([[2, 0], [0, 4]], [6, 8]).tolist())',
-        workspace: Directory('${c.files.root.path}/python-check'),
+        workspace: pythonWorkspace,
         timeoutSeconds: 20,
         cancel: CancelToken(),
       );
       expect(numeric['ok'], true, reason: numeric.toString());
       expect(numeric['stdout'], '2.4.6\n[1, 4, 9]\n[3.0, 2.0]\n');
       expect(
-        await File('${c.files.root.path}/python-check/generated.txt')
-            .readAsString(),
+        await File('${pythonWorkspace.path}/generated.txt').readAsString(),
         'Python file output',
       );
+      final timedOut = await PythonRuntime.instance.execute(
+        code: 'while True: pass',
+        workspace: pythonWorkspace,
+        timeoutSeconds: 1,
+        cancel: CancelToken(),
+      );
+      expect(timedOut['error'], contains('超时'));
+      final stopToken = CancelToken();
+      final stopped = PythonRuntime.instance.execute(
+        code: 'while True: pass',
+        workspace: pythonWorkspace,
+        timeoutSeconds: 30,
+        cancel: stopToken,
+      );
+      await t.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 250)),
+      );
+      stopToken.cancel('test stop');
+      await expectLater(stopped, throwsA(isA<DioException>()));
       await t.tap(find.byKey(const Key('chat-back')));
       await t.pumpAndSettle();
       expect(find.byType(NavigationBar), findsOneWidget);
