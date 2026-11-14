@@ -99,12 +99,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   Future<List<_Entry>> _load(StudyStore store, {int offset = 0}) async {
+    final query = _query;
+    final module = _moduleId;
+    final subject = ref.read(appControllerProvider).subjectFilter;
+    final trash = _trash;
     final entries = widget.isMistake
         ? (await store.searchMistakes(
-                query: _query,
-                moduleId: _moduleId,
-                subject: ref.read(appControllerProvider).subjectFilter,
-                trash: _trash,
+                query: query,
+                moduleId: module,
+                subject: subject,
+                trash: trash,
                 limit: 100,
                 offset: offset,
               ))
@@ -125,7 +129,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             m.errorReason,
                             m.suggestedReason,
                           ]
-                          .map((text) => searchExcerpt(text, _query))
+                          .map((text) => searchExcerpt(text, query))
                           .whereType<String>()
                           .firstOrNull ??
                       m.question,
@@ -135,10 +139,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               )
               .toList()
         : (await store.searchKnowledge(
-                query: _query,
-                moduleId: _moduleId,
-                subject: ref.read(appControllerProvider).subjectFilter,
-                trash: _trash,
+                query: query,
+                moduleId: module,
+                subject: subject,
+                trash: trash,
                 limit: 100,
                 offset: offset,
               ))
@@ -149,7 +153,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   k.subject,
                   k.chapter,
                   [k.title, k.content, k.chapter]
-                          .map((text) => searchExcerpt(text, _query))
+                          .map((text) => searchExcerpt(text, query))
                           .whereType<String>()
                           .firstOrNull ??
                       k.content,
@@ -162,18 +166,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       entries.map((e) => e.id),
       widget.isMistake,
     );
-    final tagMatches = _query.trim().isEmpty
-        ? <String, String>{}
-        : <String, String>{
-            for (final entry in entries)
-              if (searchExcerpt(entry.preview, _query) == null)
-                entry.id:
-                    (await store.tags(entry.id, isMistake: widget.isMistake))
-                        .map((tag) => searchExcerpt(tag, _query))
-                        .whereType<String>()
-                        .firstOrNull ??
-                    entry.preview,
-          };
+    final missingPreview = query.trim().isEmpty
+        ? <_Entry>[]
+        : entries
+              .where((entry) => searchExcerpt(entry.preview, query) == null)
+              .toList();
+    final tags = await store.tagsForIds(
+      missingPreview.map((entry) => entry.id),
+      isMistake: widget.isMistake,
+    );
+    final tagMatches = <String, String>{
+      for (final entry in missingPreview)
+        entry.id:
+            (tags[entry.id] ?? [])
+                .map((tag) => searchExcerpt(tag, query))
+                .whereType<String>()
+                .firstOrNull ??
+            entry.preview,
+    };
     return entries
         .map(
           (e) => _Entry(

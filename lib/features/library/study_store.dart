@@ -371,6 +371,31 @@ class StudyStore extends DatabaseNotifier {
             )..where((t) => t.knowledgeId.equals(id))).get())
             .map((t) => t.tag)
             .toList();
+  Future<Map<String, List<String>>> tagsForIds(
+    Iterable<String> ids, {
+    required bool isMistake,
+  }) async {
+    final values = ids.toList();
+    if (values.isEmpty) return {};
+    final result = <String, List<String>>{};
+    if (isMistake) {
+      final rows = await (db.select(
+        db.mistakeTags,
+      )..where((t) => t.mistakeId.isIn(values))).get();
+      for (final row in rows) {
+        result.putIfAbsent(row.mistakeId, () => []).add(row.tag);
+      }
+    } else {
+      final rows = await (db.select(
+        db.knowledgeTags,
+      )..where((t) => t.knowledgeId.isIn(values))).get();
+      for (final row in rows) {
+        result.putIfAbsent(row.knowledgeId, () => []).add(row.tag);
+      }
+    }
+    return result;
+  }
+
   Future<void> _tags(String id, List<String> tags, bool isMistake) async {
     if (isMistake) {
       await (db.delete(
