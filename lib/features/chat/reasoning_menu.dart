@@ -46,7 +46,7 @@ class ReasoningMenu extends ConsumerWidget {
       ),
       onSelected: (value) {
         if (value == 'prompts') {
-          context.go('/settings/prompts');
+          context.push('/settings/prompts');
           return;
         }
         act(context, () => c.setSessionReasoning(value));

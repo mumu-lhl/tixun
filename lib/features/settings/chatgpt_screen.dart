@@ -195,8 +195,10 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: context.l10n.backToSettings,
-                      onPressed: () => context.go('/settings'),
+                      tooltip: context.l10n.back,
+                      onPressed: () => context.canPop()
+                          ? context.pop()
+                          : context.go('/settings'),
                       icon: const Icon(Icons.arrow_back),
                     ),
                     const SizedBox(width: 8),

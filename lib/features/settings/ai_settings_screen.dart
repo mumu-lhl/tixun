@@ -245,7 +245,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
               children: [
                 Row(
                   children: [
-                    BackButton(onPressed: () => context.go('/settings')),
+                    BackButton(
+                      onPressed: () => context.canPop()
+                          ? context.pop()
+                          : context.go('/settings'),
+                    ),
                     Expanded(
                       child: Text(
                         context.l10n.modelsAndConnections,
@@ -273,7 +277,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   title: Text(context.l10n.chatGPTPlan),
                   subtitle: Text(context.l10n.signInThroughYourBrowser),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.go('/settings/chatgpt'),
+                  onTap: () => context.push('/settings/chatgpt'),
                 ),
                 const SizedBox(height: 12),
                 // ChatGPT is managed from the subscription tile above; the

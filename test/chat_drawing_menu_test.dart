@@ -51,7 +51,9 @@ void main() {
       );
       scope.read(routerProvider).go('/chat');
       await tester.pumpAndSettle();
-      final menu = find.byKey(const Key('chat-drawing-menu'));
+      final menu = find.byKey(const Key('chat-more'));
+      expect(find.byKey(const Key('chat-drawing-menu')), findsNothing);
+      expect(tester.getCenter(menu).dy, lessThan(100));
       Future<void> choose(String value) async {
         await tester.tap(menu);
         await tester.pumpAndSettle();
@@ -59,15 +61,27 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      String? tooltip() => tester.widget<PopupMenuButton<String>>(menu).tooltip;
+      Future<void> expectStatus(
+        String status, {
+        bool followDefault = false,
+      }) async {
+        await tester.tap(menu);
+        await tester.pumpAndSettle();
+        expect(find.textContaining(status), findsOneWidget);
+        expect(
+          find.textContaining('跟随默认'),
+          followDefault ? findsOneWidget : findsNothing,
+        );
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+      }
+
       expect(menu, findsOneWidget);
-      expect(tooltip(), contains('绘图已关闭'));
-      expect(tooltip(), contains('跟随默认'));
+      await expectStatus('绘图已关闭', followDefault: true);
       await choose('on');
       expect(c.sessionDrawingOverride, true);
       expect(c.aiDrawingEnabled, false);
-      expect(tooltip(), contains('绘图已开启'));
-      expect(tooltip(), isNot(contains('跟随默认')));
+      await expectStatus('绘图已开启');
       await choose('off');
       expect(c.sessionDrawingEnabled, false);
       await tester.runAsync(() async {
@@ -83,7 +97,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(c.sessionDrawingEnabled, false);
 
-      // The control stays in the input row even when the mode row is hidden.
+      // The title menu remains accessible with the software keyboard open.
       tester.view.viewInsets = const FakeViewPadding(bottom: 300);
       await tester.pumpAndSettle();
       expect(menu.hitTestable(), findsOneWidget);
@@ -100,7 +114,7 @@ void main() {
       });
       await tester.pumpAndSettle();
       expect(c.sessionDrawingOverride, true);
-      expect(tooltip(), contains('Drawing on'));
+      await expectStatus('Drawing on');
       await tester.tap(menu);
       await tester.pumpAndSettle();
       expect(find.text('Temporarily enable drawing'), findsOneWidget);
@@ -110,7 +124,20 @@ void main() {
       c.busy = true;
       c.changed();
       await tester.pump();
-      expect(tester.widget<PopupMenuButton<String>>(menu).enabled, false);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      for (final choice in ['default', 'on', 'off']) {
+        expect(
+          tester
+              .widget<CheckedPopupMenuItem<String>>(
+                find.byKey(Key('chat-drawing-$choice')),
+              )
+              .enabled,
+          false,
+        );
+      }
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       c.setSessionDrawingEnabled(true);
       expect(c.sessionDrawingOverride, isNull);
       c.busy = false;

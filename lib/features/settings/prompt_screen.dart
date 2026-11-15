@@ -37,8 +37,11 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: context.l10n.backToSettings,
-                      onPressed: () => context.go('/settings'),
+                      key: const Key('prompt-manager-back'),
+                      tooltip: context.l10n.back,
+                      onPressed: () => context.canPop()
+                          ? context.pop()
+                          : context.go('/settings'),
                       icon: const Icon(Icons.arrow_back),
                     ),
                     const SizedBox(width: 8),
@@ -79,7 +82,7 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                       '${c.prompts.overrides.containsKey(p.id) ? context.l10n.customized : context.l10n.defaultLabel} · ${promptDescription(context, p)}',
                     ),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.go('/settings/prompts/${p.id}'),
+                    onTap: () => context.push('/settings/prompts/${p.id}'),
                   ),
                   const Divider(),
                 ],
@@ -137,10 +140,18 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
     super.dispose();
   }
 
+  void _returnToManager() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/settings/prompts');
+    }
+  }
+
   Future<void> leave() async {
     if (saving) return;
     if (!isDirty) {
-      context.go('/settings/prompts');
+      _returnToManager();
       return;
     }
     final choice = await showDialog<String>(
@@ -165,7 +176,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
       ),
     );
     if (!mounted) return;
-    if (choice == 'discard') context.go('/settings/prompts');
+    if (choice == 'discard') _returnToManager();
     if (choice == 'save') await save();
   }
 
@@ -180,7 +191,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.promptSavedForFutureRequests)),
         );
-        context.go('/settings/prompts');
+        _returnToManager();
       }
     } catch (error) {
       if (mounted) {
@@ -265,7 +276,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
     if (p == null) {
       return Center(
         child: TextButton(
-          onPressed: () => context.go('/settings/prompts'),
+          onPressed: _returnToManager,
           child: Text(context.l10n.promptNotFoundReturnTo),
         ),
       );

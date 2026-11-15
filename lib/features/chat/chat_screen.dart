@@ -155,31 +155,31 @@ class ChatScreen extends ConsumerWidget {
                         onPressed: () => context.push('/settings/ai'),
                         icon: const Icon(Icons.tune, size: 21),
                       ),
-                    if (compact)
-                      PopupMenuButton<String>(
-                        popUpAnimationStyle: menuAnimation(context),
-                        key: const Key('chat-more'),
-                        tooltip: context.l10n.moreChatActions,
-                        icon: Badge(
-                          isLabelVisible: c.selected?.toolsEnabled == true,
-                          smallSize: 6,
-                          child: const Icon(Icons.more_vert),
-                        ),
-                        onSelected: (action) {
-                          if (action == 'tools') {
-                            act(context, () => _toggleStudyTools(context, c));
-                          }
-                          if (action == 'links') {
-                            act(
-                              context,
-                              () => openChatStudyLinks(context, ref),
-                            );
-                          }
-                          if (action == 'settings') {
-                            context.push('/settings/ai');
-                          }
-                        },
-                        itemBuilder: (ctx) => [
+                    PopupMenuButton<String>(
+                      popUpAnimationStyle: menuAnimation(context),
+                      key: const Key('chat-more'),
+                      tooltip: context.l10n.moreChatActions,
+                      icon: Badge(
+                        isLabelVisible: c.selected?.toolsEnabled == true,
+                        smallSize: 6,
+                        child: const Icon(Icons.more_vert),
+                      ),
+                      onSelected: (action) {
+                        if (handleDrawingMenuSelection(c, action)) return;
+                        if (action == 'tools') {
+                          act(context, () => _toggleStudyTools(context, c));
+                        }
+                        if (action == 'links') {
+                          act(context, () => openChatStudyLinks(context, ref));
+                        }
+                        if (action == 'settings') {
+                          context.push('/settings/ai');
+                        }
+                      },
+                      itemBuilder: (ctx) => [
+                        ...drawingMenuItems(ctx, c),
+                        if (compact) const PopupMenuDivider(),
+                        if (compact)
                           CheckedPopupMenuItem(
                             value: 'tools',
                             checked: c.selected?.toolsEnabled == true,
@@ -190,17 +190,19 @@ class ChatScreen extends ConsumerWidget {
                                   : ctx.l10n.enableMaterialTools),
                             ),
                           ),
+                        if (compact)
                           PopupMenuItem(
                             value: 'links',
                             enabled: c.selected != null,
                             child: Text(ctx.l10n.linkedLearningMaterial),
                           ),
+                        if (compact)
                           PopupMenuItem(
                             value: 'settings',
                             child: Text(ctx.l10n.modelSettings),
                           ),
-                        ],
-                      ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -941,7 +943,6 @@ class _ConversationState extends ConsumerState<Conversation> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.center,
                                     children: [
-                                      const DrawingMenu(),
                                       Expanded(
                                         child: TextField(
                                           key: const Key('chat-input'),
