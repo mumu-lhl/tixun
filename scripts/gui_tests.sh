@@ -6,6 +6,12 @@ export LIBGL_ALWAYS_SOFTWARE=1
 # Xvfb and xdotool require X11, even when invoked from a Wayland desktop.
 export GDK_BACKEND=x11
 log_dir="${TIXUN_GUI_LOG_DIR:-.}"
+shard_count="${TIXUN_GUI_SHARD_COUNT:-1}"
+shard_index="${TIXUN_GUI_SHARD_INDEX:-0}"
+if [[ ! "$shard_count" =~ ^[1-9][0-9]*$ || ! "$shard_index" =~ ^(0|[1-9][0-9]*)$ ]] || (( shard_index >= shard_count )); then
+  echo 'Invalid GUI shard: index must be zero-based and less than the positive shard count' >&2
+  exit 2
+fi
 mkdir -p "$log_dir"
 tests=(
   'chat_flow:integration.log'
@@ -30,7 +36,9 @@ tests=(
   'visual_constraints_flow:integration-visual-constraints.log'
   'visual_drag_answer_flow:integration-visual-drag-answer.log'
 )
-for entry in "${tests[@]}"; do
+for i in "${!tests[@]}"; do
+  (( i % shard_count == shard_index )) || continue
+  entry="${tests[i]}"
   test_name="${entry%%:*}"
   log_name="${entry#*:}"
   timeout 240s xvfb-run -a -s '-screen 0 1280x900x24' dbus-run-session -- \

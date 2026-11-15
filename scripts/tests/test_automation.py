@@ -200,7 +200,7 @@ class HistoryTests(unittest.TestCase):
 
 
 class GuiRunnerTests(unittest.TestCase):
-    def run_gui(self, fail=''):
+    def run_gui(self, fail='', extra_env=None):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             for name, body in {
@@ -217,7 +217,8 @@ case "$2" in *"$FAIL_GUI"*) if [ -n "$FAIL_GUI" ]; then exit 23; fi;; esac''',
                 file.chmod(0o755)
             env = {**os.environ, 'PATH': f'{root}:{os.environ["PATH"]}',
                    'GUI_CALLS': str(root / 'calls'), 'FAIL_GUI': fail,
-                   'TIXUN_GUI_LOG_DIR': str(root / 'logs'), 'GDK_BACKEND': 'wayland'}
+                   'TIXUN_GUI_LOG_DIR': str(root / 'logs'), 'GDK_BACKEND': 'wayland',
+                   **(extra_env or {})}
             result = subprocess.run(['bash', str(SCRIPTS / 'gui_tests.sh')], env=env, capture_output=True, text=True)
             calls = (root / 'calls').read_text().splitlines()
             logs = {p.name: p.read_text() for p in (root / 'logs').iterdir()}
@@ -231,6 +232,19 @@ case "$2" in *"$FAIL_GUI"*) if [ -n "$FAIL_GUI" ]; then exit 23; fi;; esac''',
         self.assertEqual(len(set(calls)), len(calls))
         self.assertEqual(len(logs), len(calls))
         self.assertIn('practice_management_test', logs['integration-management.log'])
+
+    def test_shards_cover_every_flow_exactly_once(self):
+        all_calls = []
+        for index in range(3):
+            code, calls, logs = self.run_gui(extra_env={
+                'TIXUN_GUI_SHARD_COUNT': '3', 'TIXUN_GUI_SHARD_INDEX': str(index),
+            })
+            self.assertEqual(code, 0)
+            self.assertEqual(len(calls), len(logs))
+            all_calls.extend(calls)
+        self.assertEqual(len(all_calls), len(set(all_calls)))
+        self.assertEqual(sorted(Path(p).name for p in all_calls),
+                         sorted(p.name for p in (SCRIPTS.parent / 'integration_test').glob('*_test.dart')))
 
     def test_first_failure_stops_later_builds_and_preserves_exit_code_and_log(self):
         code, calls, logs = self.run_gui('learning_materials')

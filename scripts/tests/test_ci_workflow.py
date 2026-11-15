@@ -19,8 +19,7 @@ class NativeGuiPolicyTests(unittest.TestCase):
     def test_gui_condition_covers_push_pr_and_explicit_opt_out(self):
         source = WORKFLOW.read_text()
         condition = re.search(
-            r"- name: Run complete native GUI regressions\n\s+if: ([^\n]+)",
-            source,
+            r"  gui:\n(?:.*\n)*?    if: ([^\n]+)", source,
         ).group(1)
         expression = condition.replace("&&", " and ").replace("||", " or ")
         # Evaluate only the checked-in Actions expression, with no Python builtins.
@@ -52,9 +51,10 @@ class NativeGuiPolicyTests(unittest.TestCase):
         self.assertIn('run_gui: false', nightly_inputs)
         self.assertIn('run_tests: false', nightly_inputs)
         source = WORKFLOW.read_text()
-        for name in ('Verify bubblewrap user namespaces',
-                     'Run complete native GUI regressions'):
-            self.assertRegex(source, rf'- name: {name}\n\s+if: format\(\'\{{0\}}\', inputs.run_gui\) != \'false\'')
+        self.assertRegex(source, r"- name: Verify bubblewrap user namespaces\n\s+if: format\('\{0\}', inputs.run_gui\) != 'false'")
+        self.assertIn("shard: [0, 1, 2]", source)
+        self.assertIn("TIXUN_GUI_SHARD_COUNT: '3'", source)
+        self.assertIn('TIXUN_GUI_SHARD_INDEX: ${{ matrix.shard }}', source)
         for command in ('flutter build linux --release --dart-define=TIXUN_DEMO=true',
                         'scripts/gui_smoke.sh'):
             self.assertIn(f"- run: {command}\n        if: format('{{0}}', inputs.run_gui) != 'false'", source)
