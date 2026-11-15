@@ -501,7 +501,8 @@ Future<Map<String, dynamic>> executeGetVisualTool(
 /// Told to the model with a fresh figure so it does not repeat the
 /// figure's full data in prose. Shared by the live and cached create
 /// results so a replay answers identically.
-const _visualCreatedNote = '图形已在应用内显示；不要在正文中复述图形的完整数据。';
+const _visualCreatedNote =
+    '图形已保存；可在说明或知识正文的对应位置独立插入 ![图注](visual:返回的visual_id)，不要复述完整场景数据。';
 
 Future<Map<String, dynamic>> executeVisualTool(
   VisualStore store,

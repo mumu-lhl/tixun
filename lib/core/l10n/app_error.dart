@@ -6,6 +6,7 @@ const interruptedChatFailure =
 /// Stable identifiers for application-generated failures. External error text
 /// is not treated as an app message and is preserved verbatim.
 enum AppErrorCode {
+  cannotForkMessage,
   chooseAModelThatSupports,
   selectAnAIReplyWith,
   restoreTheDeletedSourceConversation,
@@ -252,6 +253,8 @@ enum AppErrorCode {
   invalidReasoningEffort,
   invalidToolCallFormat,
   maxContextTokensMustBe,
+  invalidToolCallLimit,
+  toolCallLimitReached,
   modelDoesNotSupportImages,
   modelDoesNotSupportReasoningParameter,
   noPreviousAPISettingsWere,

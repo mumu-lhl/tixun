@@ -13,6 +13,13 @@ List<PopupMenuEntry<String>> drawingMenuItems(
   final canChange = !controller.busy && controller.selected != null;
   return [
     PopupMenuItem<String>(
+      value: 'tool-call-limit',
+      child: Text(
+        '${context.l10n.maxToolCalls}: ${controller.maxToolCalls == 0 ? context.l10n.toolCallsUnlimited : controller.maxToolCalls}',
+      ),
+    ),
+    const PopupMenuDivider(),
+    PopupMenuItem<String>(
       enabled: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

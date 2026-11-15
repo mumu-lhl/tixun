@@ -12,8 +12,9 @@
 | `core/ai/chatgpt/usage.dart` | ChatGPT 订阅额度：读取 `chatgpt.com/backend-api/wham/usage`（官方 Codex 客户端使用的私有端点，经用户批准的唯一例外）。`ChatGptAuth.session()` 同时给出访问令牌与 `chatgpt_account_id` 声明（`ChatGPT-Account-Id` 缺少时省略），字段全部可选、数字兼容字符串。设置页进入时自动读取，五分钟内复用内存结果，手动刷新绕过缓存；不轮询、不落库，账号选择、登录与退出使旧缓存失效；401/403 分别归因登录失效与订阅权限。 |
 | `core/ai/provider_balance.dart` | DeepSeek 官方 `GET /user/balance` 的余额查询：Bearer Key、状态码到既定错误码的映射、容错解析（未知字段忽略、缺 `balance_infos` 不抛错）。数字保留服务商原始字符串，不在本地重算。设置页进入时用已保存的 Key 自动查询，五分钟内复用内存结果，手动刷新绕过缓存；端点或 Key 变化时隔离缓存。ChatGPT 额度只使用上一行经批准的例外，不当作现金余额。 |
 | `core/ai/ai_options.dart` | 统一配置校验、会话思考覆盖、图片能力、思考与工具兼容性，以及实际发送的强度参数。DeepSeek 可显式关闭思考；其他兼容路线省略强度参数表示模型默认，界面按该语义显示。 |
-| `features/chat/learning_run.dart` | 学习上下文、教学提示、用量汇总、三分钟超时、四轮/八次工具上限、结束判定和受控工具执行。Android/Linux 隔离运行器可用时才提供 Python 工具；通过进度与结果返回给调用方，考试过程中不会把原始模型答案当进度发布。 |
+| `features/chat/learning_run.dart` | 学习上下文、教学提示、用量汇总、三分钟超时、用户可设的累计工具调用次数上限（默认 8，0 不限；批量逐个计数，包含协议加载；无额外固定轮数限制）、结束判定和受控工具执行。Android/Linux 隔离运行器可用时才提供 Python 工具；通过进度与结果返回给调用方，考试过程中不会把原始模型答案当进度发布。 |
 | `core/python/python_runtime.dart` / `python_workspace_store.dart` | Linux 使用独立 CPython 进程和 bubblewrap：只读根文件系统、当前会话工作区可写、超时/停止终止隔离进程；隔离不限制读取和网络，缺少 bwrap/user namespace 时失败关闭。Android 使用隔离 UID 服务、Zig/JNI launcher 和有界管道，不继承应用文件及网络权限；工作区以有界虚拟文件系统快照传输，不共享应用目录。V2230A / Android 13 已通过真实包执行、工作区同步、直接 libc 越界读写拒绝、网络拒绝、超时/停止、崩溃恢复及审批 UI 回归；工作区管理与传输验证由本地 Store 提供。 |
+| `features/chat/chat_branch_store.dart` | 事务复制截至指定消息（含该消息）的聊天前缀，保留图片、公开图形和练习关联；新建消息 ID，正文和顺序不变，原聊天与草稿不动。仅复用覆盖范围完全在分支内的摘要；会话偏好复制委托 AppPreferences。整理知识从分支追加授权指令，仍保留写入确认与版本校验。 |
 | `app/controller.dart` | 保留页面状态、会话/草稿、附件入口与任务准备；负责创建回复记录、节流保存进度、保存最终状态。委托 LearningRun 执行推理，不了解 tool_calls、finish_reason 或 Responses 私有字段。 |
 | `app/preferences.dart` | 语言、主题、配色、提示词与 Provider 配置。拥有独立写入跟踪；关闭、备份导出及恢复等待必要写入，不再借用 StudyStore 的空闲状态。现有控制器方法保留为 UI 的兼容入口。 |
 | `core/ai/chatgpt/auth.dart` | 只向 UI 返回只读账号摘要和一次取得的账号快照；令牌记录、HTTP 与安全存储细节留在实现内部。保留 PKCE/JWT 校验、合并刷新、取消等待、退出与原子保存语义。 |

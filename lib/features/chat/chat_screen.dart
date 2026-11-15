@@ -17,11 +17,11 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/platform/photo_picker.dart';
 import '../../core/ui/image_viewer.dart';
-import '../../core/ui/learning_markdown.dart';
 import '../library/chat_study_actions.dart';
 import '../library/image_editor.dart';
 import '../practice/question_card.dart';
-import 'message_visuals.dart';
+import '../visual/visual_markdown.dart';
+import '../settings/tool_call_limit_setting.dart';
 import 'reasoning_menu.dart';
 import 'drawing_menu.dart';
 import 'message_reasoning.dart';
@@ -166,6 +166,10 @@ class ChatScreen extends ConsumerWidget {
                       ),
                       onSelected: (action) {
                         if (handleDrawingMenuSelection(c, action)) return;
+                        if (action == 'tool-call-limit') {
+                          editToolCallLimit(context, c);
+                          return;
+                        }
                         if (action == 'tools') {
                           act(context, () => _toggleStudyTools(context, c));
                         }
@@ -344,7 +348,7 @@ class _ConversationState extends ConsumerState<Conversation> {
   );
   late final TextEditingController _input;
   final _focus = FocusNode();
-  bool _stick = true, _scrolling = false;
+  bool _stick = true, _scrolling = false, _followScheduled = false;
   int _targetRevision = 0;
   int? _anchorIndex;
   final _anchorKey = GlobalKey();
@@ -384,10 +388,13 @@ class _ConversationState extends ConsumerState<Conversation> {
   }
 
   void _followBottom() {
-    if (!_stick || _scrolling) return;
+    if (!_stick || _scrolling || _followScheduled) return;
+    _followScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _followScheduled = false;
       if (mounted && _scroll.hasClients && _stick && !_scrolling) {
-        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        final bottom = _scroll.position.maxScrollExtent;
+        if ((bottom - _scroll.offset).abs() > .5) _scroll.jumpTo(bottom);
       }
     });
   }
@@ -477,7 +484,8 @@ class _ConversationState extends ConsumerState<Conversation> {
         MediaQuery.viewInsetsOf(context).bottom > 0 ||
         View.of(context).viewInsets.bottom > 0;
     final shortInput = keyboard || MediaQuery.sizeOf(context).height < 700;
-    final showQuickActions = c.messages.isNotEmpty && !c.busy && !shortInput;
+    final reserveQuickActions = c.messages.isNotEmpty && !shortInput;
+    final showQuickActions = reserveQuickActions && !c.busy;
     final viewport = MediaQuery.sizeOf(context);
     // A new session re-reports the composer geometry: the smoke script
     // waits for a fresh composer point after Ctrl+N.
@@ -485,6 +493,8 @@ class _ConversationState extends ConsumerState<Conversation> {
     if (sessionId != _reportedSessionId) {
       _reportedSessionId = sessionId;
       _reportedViewport = null;
+      _anchorIndex = null;
+      _stick = true;
     }
     if (c.demo && _reportedViewport != viewport) {
       _scheduleComposerReport(viewport, sessionId);
@@ -681,9 +691,21 @@ class _ConversationState extends ConsumerState<Conversation> {
                               itemCount:
                                   c.messages.length +
                                   (c.pendingTool != null ? 1 : 0),
+                              findChildIndexCallback: (key) {
+                                if (key == const ValueKey('tool-approval')) {
+                                  return c.pendingTool == null
+                                      ? null
+                                      : c.messages.length;
+                                }
+                                final index = c.messages.indexWhere(
+                                  (m) => ValueKey(m.id) == key,
+                                );
+                                return index < 0 ? null : index;
+                              },
                               itemBuilder: (context, index) =>
                                   index == c.messages.length
                                   ? Align(
+                                      key: const ValueKey('tool-approval'),
                                       alignment: Alignment.topCenter,
                                       child: ConstrainedBox(
                                         constraints: const BoxConstraints(
@@ -693,6 +715,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                                       ),
                                     )
                                   : Align(
+                                      key: ValueKey(c.messages[index].id),
                                       alignment: Alignment.topCenter,
                                       child: ConstrainedBox(
                                         constraints: const BoxConstraints(
@@ -738,6 +761,9 @@ class _ConversationState extends ConsumerState<Conversation> {
               // and the send button above the keyboard.
               Visibility(
                 visible: showQuickActions,
+                maintainState: reserveQuickActions,
+                maintainAnimation: reserveQuickActions,
+                maintainSize: reserveQuickActions,
                 child: SizedBox(
                   height: 40,
                   child: ListView(
@@ -772,7 +798,7 @@ class _ConversationState extends ConsumerState<Conversation> {
               ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight:
-                      (constraints.maxHeight - (showQuickActions ? 40 : 0))
+                      (constraints.maxHeight - (reserveQuickActions ? 40 : 0))
                           .clamp(0.0, double.infinity),
                 ),
                 child: SingleChildScrollView(
@@ -1176,8 +1202,17 @@ class MessageView extends ConsumerWidget {
                       ),
                     ),
                   )
-                : LearningMarkdown(message.content),
-          if (!user) MessageVisuals(message.id),
+                : VisualMarkdown(
+                    message.content,
+                    sessionId: message.sessionId,
+                    messageId: message.id,
+                  ),
+          if (!user && message.content.isEmpty)
+            VisualMarkdown(
+              '',
+              sessionId: message.sessionId,
+              messageId: message.id,
+            ),
           if (!user) MessageQuestions(message.id),
           if (!user) ToolHistory(message.id),
           if (message.status == 'generating')

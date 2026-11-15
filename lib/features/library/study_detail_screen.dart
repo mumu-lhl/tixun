@@ -17,6 +17,8 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/learning_markdown.dart';
 import '../visual/study_visuals.dart';
+import '../visual/visual_markdown.dart';
+import '../../core/markdown/visual_references.dart';
 import '../practice/question_spec.dart';
 import 'library_providers.dart';
 import 'study_editor.dart';
@@ -363,7 +365,7 @@ class StudyDetailScreen extends ConsumerWidget {
                               _panel(
                                 context,
                                 context.l10n.knowledgeContent,
-                                LearningMarkdown(k.item.content),
+                                VisualMarkdown(k.item.content, knowledgeId: id),
                               ),
                             const SizedBox(height: 24),
                             StudyImages(
@@ -376,6 +378,7 @@ class StudyDetailScreen extends ConsumerWidget {
                             StudyVisuals(
                               knowledgeId: id,
                               mistakeId: null,
+                              exclude: visualReferences(k.item.content),
                               panelTitle: context.l10n.visualSection,
                             ),
                           ] else ...[

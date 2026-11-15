@@ -16,6 +16,8 @@ import '../../core/database/database_notifier.dart';
 
 import 'package:uuid/uuid.dart';
 
+import '../../core/markdown/visual_references.dart';
+
 import '../../core/database/database.dart';
 import '../../core/database/attachment_cleanup.dart';
 import '../../core/platform/attachment_selection.dart';
@@ -512,6 +514,10 @@ class StudyStore extends DatabaseNotifier {
                 .write(row);
         if (count != 1) throw const StudyConflict();
       }
+      await _linkKnowledgeVisuals(key, content, {
+        ?sourceSessionId,
+        if (old?.sourceSessionId != null) old!.sourceSessionId!,
+      });
       await _removeMismatchedModules(key, subject, false);
       await _tags(key, labels, false);
       await _snapshot(row, labels);
@@ -523,6 +529,55 @@ class StudyStore extends DatabaseNotifier {
     changed();
     return result;
   });
+
+  /// Only public figures from verified source chats can acquire a new owner.
+  /// Existing owner links survive edits; arbitrary/private quiz IDs never do.
+  Future<void> _linkKnowledgeVisuals(
+    String knowledgeId,
+    String content,
+    Set<String> sourceSessions,
+  ) async {
+    if (sourceSessions.isEmpty) return;
+    for (final visualId in visualReferences(content)) {
+      final existing =
+          await (db.select(db.visualStudyLinks)..where(
+                (l) =>
+                    l.visualId.equals(visualId) &
+                    l.knowledgeId.equals(knowledgeId),
+              ))
+              .get();
+      if (existing.isNotEmpty) continue;
+      final allowed = await db
+          .customSelect(
+            'SELECT v.id FROM visual_scenes v '
+            'JOIN visual_message_links l ON l.visual_id = v.id '
+            'JOIN chat_messages m ON m.id = l.message_id '
+            'JOIN chat_sessions s ON s.id = m.session_id '
+            'WHERE v.id = ? AND v.deleted = 0 AND s.deleted = 0 '
+            'AND s.id IN (${List.filled(sourceSessions.length, '?').join(',')}) LIMIT 1',
+            variables: [
+              Variable(visualId),
+              ...sourceSessions.map(Variable.new),
+            ],
+            readsFrom: {
+              db.visualScenes,
+              db.visualMessageLinks,
+              db.chatMessages,
+              db.chatSessions,
+            },
+          )
+          .get();
+      if (allowed.isEmpty) continue;
+      await db
+          .into(db.visualStudyLinks)
+          .insert(
+            VisualStudyLinksCompanion.insert(
+              visualId: visualId,
+              knowledgeId: Value(knowledgeId),
+            ),
+          );
+    }
+  }
 
   Future<Mistake> saveMistake(
     MistakeDraft draft, {

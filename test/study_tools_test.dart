@@ -428,7 +428,28 @@ void main() {
     expect(collector.finish().single.arguments, '{"id":"note"}');
     expect(
       () => ToolCallCollector().add([
-        {'index': 8},
+        {'index': -1},
+      ]),
+      throwsA(isA<AiFailure>()),
+    );
+    final batch = ToolCallCollector()
+      ..add([
+        for (var index = 0; index < 9; index++)
+          {
+            'index': index,
+            'id': 'read-$index',
+            'function': {'name': 'get_knowledge', 'arguments': '{"id":"note"}'},
+          },
+      ]);
+    expect(batch.finish(), hasLength(9));
+    expect(() => validateToolCalls(batch.finish()), returnsNormally);
+    expect(
+      () => ToolCallCollector().add([
+        {
+          'index': 0,
+          'id': 'oversized',
+          'function': {'name': 'get_knowledge', 'arguments': 'x' * 64001},
+        },
       ]),
       throwsA(isA<AiFailure>()),
     );

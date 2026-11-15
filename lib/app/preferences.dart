@@ -10,6 +10,8 @@ import 'package:material_ui/material_ui.dart';
 import '../core/ai/chat_provider.dart';
 import '../core/ai/context_compactor.dart';
 import '../core/ai/prompt_settings.dart';
+import '../core/ai/tool_limits.dart';
+import '../core/ai/study_tools.dart' show studyToolCategoriesKey;
 import '../core/ai/visual_toolset.dart' show aiDrawingEnabledKey;
 import '../core/database/database.dart';
 import '../core/database/database_notifier.dart';
@@ -28,6 +30,7 @@ class AppPreferences extends DatabaseNotifier {
   static const subjectsPreference = 'learning_subjects_v1';
   late ProviderConfig config;
   int maxContextTokens = kDefaultMaxContextTokens;
+  int maxToolCalls = defaultMaxToolCalls;
   PromptSettings _prompts = PromptSettings();
   PromptSettings get prompts {
     if (_prompts.language != promptLanguage) {
@@ -50,6 +53,7 @@ class AppPreferences extends DatabaseNotifier {
   Future<void> load() async {
     config = await db.config();
     maxContextTokens = await loadMaxContextTokens(db);
+    maxToolCalls = await loadMaxToolCalls(db);
     aiDrawingEnabled = await db.preference(aiDrawingEnabledKey) == 'true';
     await loadSubjects();
     final language = await db.preference('app_language') ?? 'zh';
@@ -151,9 +155,32 @@ class AppPreferences extends DatabaseNotifier {
     changed();
   });
 
+  Future<void> copyChatSettings(String source, String target) =>
+      runOperation(() async {
+        for (final (oldKey, newKey) in [
+          ('ai_reasoning:$source', 'ai_reasoning:$target'),
+          (studyToolCategoriesKey(source), studyToolCategoriesKey(target)),
+        ]) {
+          final value = await db.preference(oldKey);
+          if (value != null) await db.setPreference(newKey, value);
+        }
+      });
+
   Future<void> setAiDrawingEnabled(bool value) => runOperation(() async {
     await db.setPreference(aiDrawingEnabledKey, value.toString());
     aiDrawingEnabled = value;
+    changed();
+  });
+
+  Future<void> setMaxToolCalls(int value) => runOperation(() async {
+    if (value < 0) {
+      throw const AppFormatException(
+        AppErrorCode.invalidToolCallLimit,
+        '工具调用上限应为非负整数，0 表示不限制。',
+      );
+    }
+    await db.setPreference(maxToolCallsKey, value.toString());
+    maxToolCalls = value;
     changed();
   });
 

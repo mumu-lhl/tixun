@@ -471,44 +471,56 @@ void main() {
     expect(await c.study.searchKnowledge(), isEmpty);
   });
 
-  test('discovery preserves four work rounds and eight action calls', () async {
-    final provider = _Provider((_, turn) {
-      if (turn == 1) return _load;
-      if (turn == 5) return _done;
-      return AiChunk(
-        completed: true,
-        calls: [
-          for (var i = 0; i < (turn == 4 ? 2 : 3); i++)
-            ToolCall('read-$turn-$i', 'get_learning_progress', '{}'),
-        ],
+  test(
+    'configured cumulative budget counts discovery and each batched call',
+    () async {
+      final provider = _Provider((_, turn) {
+        if (turn == 1) return _load;
+        if (turn == 5) return _done;
+        return AiChunk(
+          completed: true,
+          calls: [
+            for (var i = 0; i < (turn == 4 ? 2 : 3); i++)
+              ToolCall('read-$turn-$i', 'get_learning_progress', '{}'),
+          ],
+        );
+      });
+      final c = await open(provider);
+      await c.setMaxToolCalls(9);
+      await c.setTools(true);
+      await c.send('查看学习进度');
+      expect(c.messages.last.status, 'complete');
+      expect(provider.requests, hasLength(5));
+      expect(
+        provider.requests.last.messages.where((m) => m.role == AiRole.tool),
+        hasLength(9),
       );
-    });
-    final c = await open(provider);
-    await c.setTools(true);
-    await c.send('查看学习进度');
-    expect(c.messages.last.status, 'complete');
-    expect(provider.requests, hasLength(5));
-    expect(
-      provider.requests.last.messages.where((m) => m.role == AiRole.tool),
-      hasLength(9),
-    );
-  });
+    },
+  );
 
-  test('schema discovery cannot reset the round limit', () async {
-    final provider = _Provider(
-      (_, turn) => turn == 1
-          ? _load
-          : AiChunk(
-              completed: true,
-              calls: [ToolCall('read-$turn', 'get_learning_progress', '{}')],
-            ),
-    );
-    final c = await open(provider);
-    await c.setTools(true);
-    await c.send('查看学习进度');
-    expect(c.messages.last.status, 'error');
-    expect(provider.requests, hasLength(5));
-  });
+  test(
+    'schema discovery cannot reset or extend the default call budget',
+    () async {
+      final provider = _Provider(
+        (_, turn) => turn == 1
+            ? _load
+            : AiChunk(
+                completed: true,
+                calls: [ToolCall('read-$turn', 'get_learning_progress', '{}')],
+              ),
+      );
+      final c = await open(provider);
+      await c.setTools(true);
+      await c.send('查看学习进度');
+      expect(c.maxToolCalls, 8);
+      expect(c.messages.last.status, 'error');
+      expect(provider.requests, hasLength(9));
+      expect(
+        provider.requests.last.messages.where((m) => m.role == AiRole.tool),
+        hasLength(8),
+      );
+    },
+  );
 
   test(
     'repeated loading is rejected rather than extending discovery again',
@@ -541,25 +553,27 @@ void main() {
     },
   );
 
-  test(
-    'material and non-tool-capable requests cannot load visual tools',
-    () async {
-      final provider = _Provider((_, _) => _done);
-      final c = await open(provider);
-      await c.send('请整理数学公式清单');
-      expect(
-        provider.requests.last.tools.map((t) => t.name),
-        isNot(contains(enableVisualToolsName)),
-      );
-      expect(
-        provider.requests.last.tools.map((t) => t.name),
-        isNot(contains('create_quiz')),
-      );
-      c.config = c.config.copyWith(supportsTools: false);
-      await c.send('解释导数');
-      expect(provider.requests.last.tools, isEmpty);
-    },
-  );
+  test('material requests can load drawings without quizzes, incapable models cannot', () async {
+    final provider = _Provider((_, turn) => turn == 1 ? _load : _done);
+    final c = await open(provider);
+    await c.send('请整理数学公式清单');
+    expect(
+      provider.requests.first.tools.map((t) => t.name),
+      contains(enableVisualToolsName),
+    );
+    expect(c.messages.last.status, 'complete');
+    expect(
+      provider.requests.last.tools.map((t) => t.name),
+      containsAll(['create_visual', 'update_visual', 'get_visual']),
+    );
+    expect(
+      provider.requests.expand((r) => r.tools).map((t) => t.name),
+      isNot(contains('create_quiz')),
+    );
+    c.config = c.config.copyWith(supportsTools: false);
+    await c.send('解释导数');
+    expect(provider.requests.last.tools, isEmpty);
+  });
 
   test('changing practice state and profile keeps system and old assistant turns stable', () async {
     final provider = _Provider((_, _) => _done);

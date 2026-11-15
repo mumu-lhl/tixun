@@ -9,6 +9,7 @@ import 'package:tixun/app/preferences.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/ai/prompt_settings.dart';
 import 'package:tixun/core/database/database.dart';
+import 'package:tixun/core/l10n/app_error.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/features/chat/learning_run.dart';
@@ -416,29 +417,53 @@ void main() {
     });
 
     test(
-      'Runtime enforces four tool rounds independently of provider protocol',
+      'Runtime enforces the configured call count and supports no count limit',
       () async {
-        final provider = ScriptProvider(
-          (turn) => [
-            AiChunk(
-              completed: true,
-              calls: [ToolCall('read-$turn', 'get_learning_progress', '{}')],
-            ),
-          ],
-        );
-        await expectLater(
-          run(provider),
-          throwsA(
-            isA<AiFailure>().having((e) => e.message, 'limit', contains('4 轮')),
-          ),
-        );
-        expect(provider.turns, 4);
-        expect(
-          provider.requests.last.messages
-              .where((m) => m.role == AiRole.tool)
-              .length,
-          3,
-        );
+        final preferences = AppPreferences(db, MemoryKeyStore(), demo: false);
+        try {
+          for (final limit in [3, 0]) {
+            await preferences.setMaxToolCalls(limit);
+            final provider = ScriptProvider(
+              (turn) => [
+                if (turn == 10)
+                  const AiChunk(text: '完成', completed: true)
+                else
+                  AiChunk(
+                    completed: true,
+                    calls: [
+                      ToolCall('read-$turn', 'get_learning_progress', '{}'),
+                    ],
+                  ),
+              ],
+            );
+            if (limit == 0) {
+              expect((await run(provider)).text, '完成');
+              expect(provider.turns, 10);
+            } else {
+              await expectLater(
+                run(provider),
+                throwsA(
+                  isA<AiFailure>()
+                      .having(
+                        (e) => e.code,
+                        'code',
+                        AppErrorCode.toolCallLimitReached,
+                      )
+                      .having((e) => e.arguments, 'limit', ['3']),
+                ),
+              );
+              expect(provider.turns, 4);
+            }
+            expect(
+              provider.requests.last.messages.where(
+                (m) => m.role == AiRole.tool,
+              ),
+              hasLength(limit == 0 ? 9 : 3),
+            );
+          }
+        } finally {
+          preferences.dispose();
+        }
       },
     );
 

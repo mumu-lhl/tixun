@@ -115,8 +115,9 @@ class _ReadableTableColumnWidth extends IntrinsicColumnWidth {
 }
 
 class LearningMarkdown extends StatelessWidget {
-  const LearningMarkdown(this.data, {super.key});
+  const LearningMarkdown(this.data, {this.visualBuilder, super.key});
   final String data;
+  final Widget? Function(Uri source)? visualBuilder;
   @override
   Widget build(BuildContext context) =>
       // Keep standalone Markdown widgets themed as well as the main app.
@@ -137,7 +138,9 @@ class LearningMarkdown extends StatelessWidget {
           'mathblock': MathBuilder(block: true),
           'code': _InlineCodeBuilder(),
         },
-        imageBuilder: (_, _, _) => Text(context.l10n.externalImageWasNotLoaded),
+        imageBuilder: (uri, _, _) =>
+            visualBuilder?.call(uri) ??
+            Text(context.l10n.externalImageWasNotLoaded),
         onTapLink: (_, href, _) async {
           if (href == null) return;
           await Clipboard.setData(ClipboardData(text: href));

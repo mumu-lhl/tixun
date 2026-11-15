@@ -452,12 +452,6 @@ Stream<AiChunk> decodeResponses(
       final calls = output
           .where((o) => o is Map && o['type'] == 'function_call')
           .toList();
-      if (calls.length > 8) {
-        throw const AiFailure.localized(
-          AppErrorCode.thisRequestReachedTheLimit,
-          '已达到本次最多 8 个工具调用的限制。',
-        );
-      }
       if (calls.isNotEmpty) {
         final context = output
             .where(

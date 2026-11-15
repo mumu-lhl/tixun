@@ -25,7 +25,7 @@ Linux 系统依赖：`sudo bash scripts/install_linux_deps.sh`（包含 bubblewr
 
 ```bash
 flutter analyze
-flutter test
+flutter test -j 4
 flutter build apk --debug
 flutter build linux --release
 # GUI 检查必须使用隔离 Mock 构建
@@ -33,6 +33,8 @@ flutter build linux --release --dart-define=TIXUN_DEMO=true
 scripts/gui_smoke.sh
 scripts/gui_tests.sh
 ```
+
+Flutter 单元和 Widget 测试统一使用 `flutter test -j 4`，按四个并发测试任务运行；指定测试文件时也保留 `-j 4`。这是测试套件之间的并发，不是把单个测试拆成四个线程。原生设备/GUI 集成测试仍按下述脚本隔离、顺序执行，不套用该并发参数。
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。启动冒烟截图保存在 `artifacts/gui/`，集成场景截图在 `artifacts/gui-*/`，各入口日志由 `TIXUN_GUI_LOG_DIR` 指定（默认当前目录）；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
@@ -54,7 +56,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 新增图形功能时，先补 `test/visual_*_test.dart` 的行为测试。DSL 对模型公开的契约在 `lib/core/ai/visual_schema.dart`，示例须通过真实验证器。题图的可作答性规则在 `lib/features/practice/question_visual.dart`，由 `PracticeStore` 事务调用；不要在 AI 工具或 UI 另行补写 pin。首帧以 `resolveVisualFrame(scene, 0)` 为准，测评全屏不开放教学播放或参数控制；全屏复用题卡的 attempt、答案、提交和重做状态。考试通过 `create_quiz` 的 `question_scene` / `solution_scene` 原子保存独立图形，不链接消息、不开放探索图工具；解析图只在当前尝试提交后显示。新增 `integration_test/assessment_flow_test.dart` 覆盖手机尺寸全屏作答、提交后解析和桌面重做；可用 `GDK_BACKEND=x11 scripts/flutter_python.sh test integration_test/assessment_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true` 在隔离 Xvfb 中验证。
 
-审查回归覆盖在 `visual_review_regression_test.dart`、`visual_axis_safety_test.dart`、`visual_question_invariants_test.dart` 和 `visual_question_editor_test.dart`。修改刻度循环后，先用外部超时运行绘制安全测试：`timeout --kill-after=3s 30s flutter test test/visual_axis_safety_test.dart`，避免同步绘制回归阻塞整个测试进程。Widget 测试里数据库操作必须放在 `tester.runAsync` 内；`PracticeStore.detail()` 不能在提交事务进行中调用（参考 `test/visual_question_card_test.dart` 的 `submitAndCheck` 模式：先点提交，再循环 `runAsync` + `pumpAndSettle` 等判分视图出现，之后才读 Store）。
+审查回归覆盖在 `visual_review_regression_test.dart`、`visual_axis_safety_test.dart`、`visual_question_invariants_test.dart` 和 `visual_question_editor_test.dart`。修改刻度循环后，先用外部超时运行绘制安全测试：`timeout --kill-after=3s 30s flutter test -j 4 test/visual_axis_safety_test.dart`，避免同步绘制回归阻塞整个测试进程。Widget 测试里数据库操作必须放在 `tester.runAsync` 内；`PracticeStore.detail()` 不能在提交事务进行中调用（参考 `test/visual_question_card_test.dart` 的 `submitAndCheck` 模式：先点提交，再循环 `runAsync` + `pumpAndSettle` 等判分视图出现，之后才读 Store）。
 
 ## 按版本标签发布
 
@@ -104,7 +106,7 @@ ARB 可使用 Flutter `gen-l10n` 支持的 ICU plural/select。生成文件 `lib
 
 ```bash
 flutter gen-l10n
-flutter test test/localization_test.dart
+flutter test -j 4 test/localization_test.dart
 ```
 
 测试会核对源字典、生成结果及参数占位符，检查中英文切换、偏好重启保留和窄屏布局。默认提示词随界面语言切换，覆盖内容原样保存；安全规则由应用追加。
@@ -114,7 +116,7 @@ flutter test test/localization_test.dart
 
 ## ChatGPT 订阅适配的验证
 
-`flutter test test/chatgpt_test.dart` 使用隔离的签名/JWKS、真实本机回调和 HTTP 适配器，验证授权、刷新、退出、流式失败、工具和备份边界；不需要真实账号。`integration_test/chatgpt_flow_test.dart` 通过同一业务代码驱动原生登录/模型/聊天/退出 UI，截图保存在 `artifacts/gui-chatgpt/`，CI 有独立日志。
+`flutter test -j 4 test/chatgpt_test.dart` 使用隔离的签名/JWKS、真实本机回调和 HTTP 适配器，验证授权、刷新、退出、流式失败、工具和备份边界；不需要真实账号。`integration_test/chatgpt_flow_test.dart` 通过同一业务代码驱动原生登录/模型/聊天/退出 UI，截图保存在 `artifacts/gui-chatgpt/`，CI 有独立日志。
 
 真实账号验收必须单独进行。不要把 OAuth 令牌或其他应用的登录文件放入测试、仓库、环境日志或备份；通过应用的 Continue with ChatGPT 打开官方登录页。没有安全存储或浏览器时会报错，不提供明文凭据回退。
 
@@ -123,9 +125,9 @@ flutter test test/localization_test.dart
 
 先阅读 [接口与约定](docs/ARCHITECTURE_REVIEW.md)。新增 Provider 实现 `ChatProvider.start`，返回单次 `AiConversation`；请求使用 `AiRequest`，事件只发布完整工具调用和明确完成状态。不要把厂商 JSON 或令牌带回控制器。
 
-知识打印导出的三个写出器是纯函数，改排版先跑 `flutter test test/study_export_test.dart`（LaTeX 转文本、块解析、PDF 字体子集体积、DOCX 部件与 XML 合法性），改读库或图片加载再跑 `flutter test test/study_export_flow_test.dart`。字体来自 `assets/fonts/`，PDF 只嵌入实际用到的字形，单份打印稿应保持在几十 KB；渲染后可用 `pdftotext` / `pdftoppm` 抽查中文换行与分页，但不替代真实打印机和 Word/WPS 打开验证。
+知识打印导出的三个写出器是纯函数，改排版先跑 `flutter test -j 4 test/study_export_test.dart`（LaTeX 转文本、块解析、PDF 字体子集体积、DOCX 部件与 XML 合法性），改读库或图片加载再跑 `flutter test -j 4 test/study_export_flow_test.dart`。字体来自 `assets/fonts/`，PDF 只嵌入实际用到的字形，单份打印稿应保持在几十 KB；渲染后可用 `pdftotext` / `pdftoppm` 抽查中文换行与分页，但不替代真实打印机和 Word/WPS 打开验证。
 
-修改模型参数先调整 `AiOptions` 并补能力矩阵；修改进度、调用上限、取消或结束判定时运行 `flutter test test/architecture_test.dart`，再跑对应协议和控制器回归。偏好写入通过 AppPreferences，跨文件与数据库的学习资料写入通过 Store，确保关闭/备份屏障可追踪。
+修改模型参数先调整 `AiOptions` 并补能力矩阵；修改进度、调用上限、取消或结束判定时运行 `flutter test -j 4 test/architecture_test.dart`，再跑对应协议和控制器回归。偏好写入通过 AppPreferences，跨文件与数据库的学习资料写入通过 Store，确保关闭/备份屏障可追踪。
 
 ## 每日 Nightly
 

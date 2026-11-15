@@ -1,6 +1,9 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
+
+import 'tool_call_limit_setting.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -129,6 +132,15 @@ class SettingsScreen extends ConsumerWidget {
                       subtitle: Text(context.l10n.teachingStyleAndStudyTask),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.push('/settings/prompts'),
+                    ),
+                    ListTile(
+                      key: const Key('settings-tool-call-limit'),
+                      leading: const _SettingsIcon(Icons.tune),
+                      title: Text(context.l10n.maxToolCalls),
+                      subtitle: Text(
+                        '${c.maxToolCalls == 0 ? context.l10n.toolCallsUnlimited : c.maxToolCalls}\n${context.l10n.maxToolCallsHelp}',
+                      ),
+                      onTap: () => editToolCallLimit(context, c),
                     ),
                     SwitchListTile(
                       key: const Key('settings-ai-drawing'),

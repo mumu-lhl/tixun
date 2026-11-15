@@ -136,6 +136,7 @@ void main() {
       () async {
         final original = c.selected!.id;
         final source = c.messages.last;
+        final originalHistory = c.messages.toList();
         final prompt = await c.prepareStudyWriting(
           sourceMessageId: source.id,
           mistake: mistake,
@@ -145,7 +146,15 @@ void main() {
         expect(c.studyToolCategories, {
           mistake ? StudyToolCategory.mistakes : StudyToolCategory.knowledge,
         });
-        expect(prompt, contains(source.content));
+        expect(prompt, isNot(contains(source.content)));
+        expect(
+          c.messages.map((m) => (m.role, m.content)),
+          orderedEquals(originalHistory.map((m) => (m.role, m.content))),
+        );
+        expect(
+          (await c.db.messages(original)).map((m) => m.id),
+          orderedEquals(originalHistory.map((m) => m.id)),
+        );
         final pending = c.send(prompt);
         await waitFor(() => c.pendingTool != null);
         expect(await c.study.searchKnowledge(), isEmpty);
@@ -166,6 +175,12 @@ void main() {
           hasLength(1),
         );
         expect(links.where((l) => l.sessionId == c.selected!.id), hasLength(1));
+        expect(
+          provider.requests[1].messages
+              .take(originalHistory.length)
+              .map((m) => m.text),
+          orderedEquals(originalHistory.map((m) => m.content)),
+        );
         final tools = provider.requests[1].tools
             .where((t) => t.name != 'run_python')
             .map((t) => t.name)

@@ -38,6 +38,7 @@ import '../core/platform/key_store.dart';
 import '../features/library/study_store.dart';
 import '../features/practice/practice_store.dart';
 import '../features/chat/learning_run.dart';
+import '../features/chat/chat_branch_store.dart';
 import '../features/chat/chat_failure.dart';
 import '../features/progress/learning_profile.dart';
 import '../features/review/review_store.dart';
@@ -118,6 +119,9 @@ class AppController extends ChangeNotifier {
     }
     changed();
   }
+
+  int get maxToolCalls => preferences.maxToolCalls;
+  Future<void> setMaxToolCalls(int value) => preferences.setMaxToolCalls(value);
 
   int get maxContextTokens => preferences.maxContextTokens;
   Future<void> setMaxContextTokens(int value) =>
@@ -1306,8 +1310,9 @@ class AppController extends ChangeNotifier {
         l10n.thisWritingTaskIsInvalid,
       );
     }
-    ChatMessage? source, question;
+    ChatMessage? source;
     ChatSession? original;
+    final sourceMessageIds = <String>{};
     if (sourceMessageId != null) {
       source = await (db.select(
         db.chatMessages,
@@ -1332,7 +1337,7 @@ class AppController extends ChangeNotifier {
       }
       final history = await db.messages(original.id);
       final index = history.indexWhere((m) => m.id == source!.id);
-      question = history.take(index).where((m) => m.role == 'user').lastOrNull;
+      sourceMessageIds.addAll(history.take(index + 1).map((m) => m.id));
     }
     final target = knowledgeId == null
         ? null
@@ -1367,16 +1372,7 @@ class AppController extends ChangeNotifier {
     if (target != null) {
       body.writeln(l10n.selectedKnowledge(l10nArgument(target.title)));
     }
-    if (source != null) {
-      body
-        ..writeln(l10n.theSelectedContentBelowIs)
-        ..writeln(
-          l10n.originalQuestionWithContent(
-            l10nArgument(question?.content ?? ''),
-          ),
-        )
-        ..writeln(l10n.aiReply(l10nArgument(source.content)));
-    }
+    if (source != null) body.writeln(l10n.organizeForkedContext);
     final text = body.toString().trim();
     if (source == null && instruction.trim().isEmpty) {
       throw AppFormatException(
@@ -1384,9 +1380,9 @@ class AppController extends ChangeNotifier {
         l10n.describeWhatYouWantTo,
       );
     }
-    final images = mistake && question != null
-        ? (await db.images(original!.id))
-              .where((a) => a.messageId == question!.id)
+    final images = original != null
+        ? (await db.images(original.id))
+              .where((a) => sourceMessageIds.contains(a.messageId))
               .toList()
         : <Attachment>[];
     if (images.isNotEmpty && !AiOptions(config).vision) {
@@ -1401,7 +1397,17 @@ class AppController extends ChangeNotifier {
         await study.checkImageFile(image.originalPath!);
       }
     }
-    await newSession();
+    if (source == null) {
+      await newSession();
+    } else {
+      if (busy) {
+        throw AppFormatException(
+          AppErrorCode.stopGenerationBeforeOrganizingMaterial,
+          l10n.stopGenerationBeforeOrganizingMaterial,
+        );
+      }
+      await _forkSession(source, inheritStudyLinks: false);
+    }
     await mode('direct');
     await setSessionSubject(selected!, subject);
     await renameSession(
@@ -1415,17 +1421,7 @@ class AppController extends ChangeNotifier {
     if (target != null) {
       await study.linkChat(selected!.id, knowledgeId: target.id);
     }
-    for (final image in images) {
-      final copy = await addImage(files.resolve(image.relativePath).path);
-      if (image.originalPath != null) {
-        await (db.update(
-          db.attachments,
-        )..where((a) => a.id.equals(copy.id))).write(
-          AttachmentsCompanion(originalPath: Value(image.originalPath)),
-        );
-      }
-    }
-    attachments = await db.images(selected!.id);
+    // Forking already copied the prefix's attachment references.
     await StudyWriteTask(
       operation: operation,
       prompt: text,
@@ -1526,67 +1522,62 @@ class AppController extends ChangeNotifier {
     if (user != null) await editAndResend(user, user.content);
   }
 
+  /// Fork without inference; the chosen message is included in the prefix.
+  Future<void> forkChat(ChatMessage message) async {
+    if (busy) return;
+    busy = true;
+    final ready = Completer<void>();
+    _preparation = ready;
+    changed();
+    try {
+      await _forkSession(message);
+    } finally {
+      ready.complete();
+      if (identical(_preparation, ready)) _preparation = null;
+      busy = false;
+      changed();
+    }
+  }
+
+  Future<ChatSession> _forkSession(
+    ChatMessage message, {
+    String? editedText,
+    bool inheritStudyLinks = true,
+  }) async {
+    final parent = await (db.select(
+      db.chatSessions,
+    )..where((s) => s.id.equals(message.sessionId))).getSingleOrNull();
+    if (parent == null) {
+      throw AppFormatException(
+        AppErrorCode.cannotForkMessage,
+        l10n.cannotForkMessage,
+      );
+    }
+    final branch =
+        await ChatBranchStore(
+          db,
+          practice,
+          copySettings: preferences.copyChatSettings,
+        ).fork(
+          through: message,
+          title: l10n.chatBranchTitle(l10nArgument(parent.title)),
+          editedText: editedText,
+          inheritStudyLinks: inheritStudyLinks,
+        );
+    final drawing = _sessionDrawingOverrides[parent.id];
+    if (drawing != null) _sessionDrawingOverrides[branch.id] = drawing;
+    await _loadSession(branch);
+    search = '';
+    await reload();
+    return branch;
+  }
+
   Future<void> editAndResend(ChatMessage message, String text) async {
     if (busy || text.trim().isEmpty || selected == null) return;
     final index = messages.indexWhere((m) => m.id == message.id);
     if (index < 0 || message.role != 'user') return;
-    // Preserve original messages in a new branch so editing never destroys history.
     await _startRequest(() async {
-      final originalImages = attachments;
-      final parent = selected!;
-      final reasoning = sessionReasoning;
-      final categories = studyToolCategories;
-      final branch = await db.createSession(
-        title: '${parent.title} · 重问',
-        mode: parent.mode,
-        subject: parent.subject,
-      );
-      await db.transaction(() async {
-        await db.setPreference('ai_reasoning:${branch.id}', reasoning);
-        await db.setPreference(
-          studyToolCategoriesKey(branch.id),
-          categories.map((c) => c.name).join(','),
-        );
-        await db
-            .update(db.chatSessions)
-            .replace(branch.copyWith(toolsEnabled: parent.toolsEnabled));
-        final links = await (db.select(
-          db.studyChatLinks,
-        )..where((t) => t.sessionId.equals(parent.id))).get();
-        for (final link in links) {
-          await db
-              .into(db.studyChatLinks)
-              .insert(
-                link.copyWith(id: const Uuid().v4(), sessionId: branch.id),
-              );
-        }
-        for (final m in messages.take(index + 1)) {
-          final newId = const Uuid().v4();
-          await db
-              .into(db.chatMessages)
-              .insert(
-                m.copyWith(
-                  id: newId,
-                  sessionId: branch.id,
-                  content: m.id == message.id ? text.trim() : m.content,
-                ),
-              );
-          if (m.role == 'assistant') await practice.linkFork(m.id, newId);
-          for (final a in originalImages.where((a) => a.messageId == m.id)) {
-            await db
-                .into(db.attachments)
-                .insert(
-                  a.copyWith(
-                    id: const Uuid().v4(),
-                    sessionId: branch.id,
-                    messageId: Value(newId),
-                  ),
-                );
-          }
-        }
-      });
-      await _loadSession(branch);
-      await reload();
+      final branch = await _forkSession(message, editedText: text);
       return (sessionId: branch.id, enableConversationTitle: false);
     });
   }

@@ -29,6 +29,7 @@ String appErrorText(
   AppErrorCode code, [
   List<String> arguments = const [],
 ]) => switch (code) {
+  AppErrorCode.cannotForkMessage => l10n.cannotForkMessage,
   AppErrorCode.chooseAModelThatSupports => l10n.chooseAModelThatSupports,
   AppErrorCode.selectAnAIReplyWith => l10n.selectAnAIReplyWith,
   AppErrorCode.restoreTheDeletedSourceConversation =>
@@ -452,6 +453,10 @@ String appErrorText(
   AppErrorCode.invalidReasoningEffort => l10n.invalidReasoningEffort,
   AppErrorCode.invalidToolCallFormat => l10n.invalidToolCallFormat,
   AppErrorCode.maxContextTokensMustBe => l10n.maxContextTokensMustBe,
+  AppErrorCode.invalidToolCallLimit => l10n.invalidToolCallLimit,
+  AppErrorCode.toolCallLimitReached => l10n.toolCallLimitReached(
+    arguments.firstOrNull ?? '',
+  ),
   AppErrorCode.modelDoesNotSupportImages => l10n.modelDoesNotSupportImages,
   AppErrorCode.modelDoesNotSupportReasoningParameter =>
     l10n.modelDoesNotSupportReasoningParameter,

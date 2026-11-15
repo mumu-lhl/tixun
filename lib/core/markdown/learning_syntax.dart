@@ -8,13 +8,15 @@ import 'package:markdown/markdown.dart' as md;
 class MathInlineSyntax extends md.InlineSyntax {
   // A single-$ span is only a formula when its content carries a LaTeX
   // feature character (\ ^ _ { } = ( ) < > /) or is a bare variable
-  // ($x$), or a fully delimited number ($-1$). Plain money such as "$5 and $10" has neither, so it stays
+  // ($x$), a delimited number ($-1$), or a simple list/expression ($A,B,C$,
+  // $a+b$). The latter accepts terms separated by operators, not prose.
+  // Plain money such as "$5 and $10" has neither, so it stays
   // literal text instead of being parsed as a formula and losing its
   // `$` signs when the (invalid) formula falls back. `$$...$$`,
   // `\(...\)` and `\[...\]` are unchanged.
   MathInlineSyntax()
     : super(
-        r'\$\$([^$]+?)\$\$|\$((?:[^\n$]*[\\^_{}=()<>\\/][^\n$]*?)|(?:[A-Za-z][A-Za-z0-9_]*)|(?:[+-]?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)))\$|\\\((.+?)\\\)|\\\[([^\]]+?)\\\]',
+        r'\$\$([^$]+?)\$\$|\$((?:[^\n$]*[\\^_{}=()<>\\/][^\n$]*?)|(?:[A-Za-z][A-Za-z0-9_]*)|(?:[A-Za-z0-9]+(?:\.[0-9]+)?(?:\s*[,;+*:|−±×÷-]\s*[A-Za-z0-9]+(?:\.[0-9]+)?)+)|(?:[+-]?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)))\$|\\\((.+?)\\\)|\\\[([^\]]+?)\\\]',
       );
   @override
   bool onMatch(md.InlineParser parser, Match match) {

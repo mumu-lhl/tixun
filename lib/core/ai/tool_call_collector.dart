@@ -5,17 +5,8 @@ import 'ai_types.dart';
 class ToolCallCollector {
   final _calls = <int, Map<String, String>>{};
   void add(List<dynamic> parts) {
-    if (parts.length > 8) {
-      throw const AiFailure.localized(
-        AppErrorCode.errorAtMost8ToolCallsAre,
-        '一次最多允许 8 个工具调用。',
-      );
-    }
     for (final raw in parts) {
-      if (raw is! Map ||
-          raw['index'] is! int ||
-          raw['index'] < 0 ||
-          raw['index'] > 7) {
+      if (raw is! Map || raw['index'] is! int || raw['index'] < 0) {
         throw const AiFailure.localized(
           AppErrorCode.errorInvalidToolCallIndex,
           '工具调用索引无效。',

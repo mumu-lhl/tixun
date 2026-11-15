@@ -132,6 +132,28 @@ class VisualStore extends DatabaseNotifier {
     return id;
   });
 
+  /// Only public message-linked scenes, never private quiz snapshots.
+  Future<List<StoredVisualScene>> listBySession(String sessionId) async {
+    final rows = await db
+        .customSelect(
+          'SELECT DISTINCT v.* FROM visual_scenes v '
+          'JOIN visual_message_links l ON l.visual_id = v.id '
+          'JOIN chat_messages m ON m.id = l.message_id '
+          'JOIN chat_sessions s ON s.id = m.session_id '
+          'WHERE s.id = ? AND s.deleted = 0 AND v.deleted = 0 '
+          'ORDER BY v.created_at',
+          variables: [Variable(sessionId)],
+          readsFrom: {
+            db.visualScenes,
+            db.visualMessageLinks,
+            db.chatMessages,
+            db.chatSessions,
+          },
+        )
+        .get();
+    return rows.map((row) => db.visualScenes.map(row.data)).toList();
+  }
+
   Future<List<StoredVisualScene>> listByMessage(String messageId) async {
     final joined = db.select(db.visualScenes).join([
       innerJoin(

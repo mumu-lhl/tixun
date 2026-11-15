@@ -21,26 +21,31 @@ const enableVisualToolsSchema = AiTool(
 /// A per-run, model-selected capability. Ordinary text requests carry no
 /// scene DSL; loading preserves the complete field contracts, not loose objects.
 class VisualToolset {
-  VisualToolset({required this.exam});
+  VisualToolset({required this.exam, this.includeQuiz = true});
 
   final bool exam;
+  final bool includeQuiz;
   bool _enabled = false;
   bool get enabled => _enabled;
 
   List<AiTool> get tools => _enabled
       ? [
-          if (exam) examQuizToolSchema else chatQuizToolSchema,
+          if (includeQuiz)
+            if (exam) examQuizToolSchema else chatQuizToolSchema,
           if (!exam) ...[
             visualToolSchema,
             updateVisualToolSchema,
             getVisualToolSchema,
           ],
         ]
-      : [textQuizToolSchema(exam: exam), enableVisualToolsSchema];
+      : [
+          if (includeQuiz) textQuizToolSchema(exam: exam),
+          enableVisualToolsSchema,
+        ];
 
   String get instructions => !_enabled
       ? ''
-      : '$visualDslInstructions${exam ? '\nExam: create_quiz may include question_scene and solution_scene. Do not call create_visual/get_visual/update_visual. The question_scene is static with no timeline, controls, hidden elements, answer markers or solution hints. Put all solution diagrams only in solution_scene. Both are frozen atomically and are not linked to the chat message. Passing validation does not prove that question content is answer-free or scientifically correct.' : ''}';
+      : '$visualDslInstructions${!exam ? '\nPlace figures within explanations or knowledge content using a standalone Markdown image ![caption](visual:VISUAL_ID), with the real ID returned by create_visual. Create the scene first, then reference its ID in create_knowledge/update_knowledge content or the chat explanation. Never repeat scene JSON in prose. Reuse relevant existing public figures; never reference private quiz figures.' : ''}${exam ? '\nExam: create_quiz may include question_scene and solution_scene. Do not call create_visual/get_visual/update_visual. The question_scene is static with no timeline, controls, hidden elements, answer markers or solution hints. Put all solution diagrams only in solution_scene. Both are frozen atomically and are not linked to the chat message. Passing validation does not prove that question content is answer-free or scientifically correct.' : ''}';
 
   Map<String, dynamic> enable(ToolCall call) {
     try {

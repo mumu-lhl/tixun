@@ -184,12 +184,6 @@ extension CancelGuard on CancelToken {
 
 void validateToolCalls(List<ToolCall> calls) {
   final ids = <String>{};
-  if (calls.length > 8) {
-    throw const AiFailure.localized(
-      AppErrorCode.errorAtMost8ToolCallsAre,
-      '一次最多允许 8 个工具调用。',
-    );
-  }
   for (final c in calls) {
     if (c.id.isEmpty || c.name.isEmpty || !ids.add(c.id)) {
       throw const AiFailure.localized(

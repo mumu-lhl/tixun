@@ -247,6 +247,12 @@ class ChatStudyMenu extends ConsumerWidget {
       icon: const Icon(Icons.bookmark_add_outlined, size: 18),
       enabled: message.status != 'generating',
       itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'fork',
+          enabled: !ref.read(appControllerProvider).busy,
+          child: Text(context.l10n.forkFromHere),
+        ),
+        const PopupMenuDivider(),
         if (hasMistake && message.content.trim().isNotEmpty)
           PopupMenuItem(
             value: 'analysis',
@@ -287,6 +293,11 @@ class ChatStudyMenu extends ConsumerWidget {
   Future<void> _save(BuildContext context, WidgetRef ref, String type) async {
     final c = ref.read(appControllerProvider);
     final store = ref.read(studyStoreProvider);
+    if (type == 'fork') {
+      await c.forkChat(message);
+      if (context.mounted) context.go('/chat');
+      return;
+    }
     if (type.startsWith('ai-')) {
       final target = type == 'ai-merge'
           ? await pickKnowledgeForAi(context, store)

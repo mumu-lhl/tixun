@@ -22,6 +22,8 @@ Future<String?> editText(
   required String title,
   String initial = '',
   bool multiline = false,
+  String? helperText,
+  TextInputType? keyboardType,
 }) async {
   final controller = TextEditingController(text: initial);
   final result = await showDialog<String>(
@@ -33,10 +35,15 @@ Future<String?> editText(
         width: 480,
         child: TextField(
           controller: controller,
+          keyboardType: keyboardType,
           autofocus: true,
           minLines: multiline ? 4 : 1,
           maxLines: multiline ? 12 : 1,
-          decoration: InputDecoration(labelText: context.l10n.content),
+          decoration: InputDecoration(
+            labelText: context.l10n.content,
+            helperText: helperText,
+            helperMaxLines: 5,
+          ),
         ),
       ),
       actions: [

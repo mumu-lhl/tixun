@@ -212,14 +212,6 @@ class VisualCard extends StatelessWidget {
                 ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-            child: Text(
-              context.l10n.visualValidationNote,
-              style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
-            ),
-          ),
           if (scene.meta?.schematic == true)
             Padding(
               padding: const EdgeInsets.only(left: 12, bottom: 4),

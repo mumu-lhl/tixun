@@ -26,12 +26,14 @@ class StudyVisuals extends ConsumerWidget {
     required this.mistakeId,
     this.source,
     this.panelTitle,
+    this.exclude = const {},
     super.key,
   });
   final String? knowledgeId;
   final String? mistakeId;
   final String? source;
   final String? panelTitle;
+  final Set<String> exclude;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ref
@@ -42,11 +44,13 @@ class StudyVisuals extends ConsumerWidget {
         )),
       )
       .when(
+        skipLoadingOnReload: true,
         loading: () => const SizedBox.shrink(),
         error: (_, _) => const SizedBox.shrink(),
         data: (scenes) {
           final groups = <String, List<VisualScene>>{};
           for (final stored in scenes) {
+            if (exclude.contains(stored.id)) continue;
             if (source != null && stored.source != source) continue;
             VisualScene? scene;
             try {
