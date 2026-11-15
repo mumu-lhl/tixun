@@ -42,6 +42,10 @@ on:
         description: Run the complete native GUI regression suite
         type: boolean
         default: true
+      run_gui:
+        description: Run Linux GUI smoke and regression tests
+        type: boolean
+        default: true
       run_tests:
         description: Run unit and GUI test suites
         type: boolean
@@ -63,7 +67,7 @@ defaults:
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.android_release && 'release' || 'debug' }}-${{ (github.event_name == 'push' || github.event_name == 'pull_request' || inputs.full_gui) && format('{0}', inputs.run_tests) != 'false' && 'full-gui' || 'smoke' }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.android_release && 'release' || 'debug' }}-${{ format('{0}', inputs.run_gui) == 'false' && 'no-gui' || (github.event_name == 'push' || github.event_name == 'pull_request' || inputs.full_gui) && format('{0}', inputs.run_tests) != 'false' && 'full-gui' || 'smoke' }}
   cancel-in-progress: true
 env:
   FLUTTER_VERSION: '3.50.0'
@@ -219,6 +223,7 @@ jobs:
         timeout-minutes: 8
         run: sudo bash scripts/install_linux_deps.sh --github-runner
       - name: Verify bubblewrap user namespaces
+        if: format('{0}', inputs.run_gui) != 'false'
         run: |
           probe() {
             bwrap --unshare-user --unshare-pid --unshare-ipc --unshare-uts \
@@ -275,9 +280,11 @@ jobs:
           path: ${{ steps.artifact.outputs.bundle_path }}
           if-no-files-found: error
       - run: flutter build linux --release --dart-define=TIXUN_DEMO=true
+        if: format('{0}', inputs.run_gui) != 'false'
       - run: scripts/gui_smoke.sh
+        if: format('{0}', inputs.run_gui) != 'false'
       - name: Run complete native GUI regressions
-        if: (github.event_name == 'push' || github.event_name == 'pull_request' || inputs.full_gui) && format('{0}', inputs.run_tests) != 'false'
+        if: format('{0}', inputs.run_gui) != 'false' && (github.event_name == 'push' || github.event_name == 'pull_request' || inputs.full_gui) && format('{0}', inputs.run_tests) != 'false'
         run: scripts/gui_tests.sh
       - uses: actions/upload-artifact@v6
         if: always()

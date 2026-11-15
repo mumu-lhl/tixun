@@ -24,10 +24,10 @@ class NativeGuiPolicyTests(unittest.TestCase):
         ).group(1)
         expression = condition.replace("&&", " and ").replace("||", " or ")
         # Evaluate only the checked-in Actions expression, with no Python builtins.
-        def enabled(event, full_gui=None, run_tests=None):
+        def enabled(event, full_gui=None, run_tests=None, run_gui=None):
             return bool(eval(expression, {"__builtins__": {}}, {
                 "github": SimpleNamespace(event_name=event),
-                "inputs": SimpleNamespace(full_gui=full_gui, run_tests=run_tests),
+                "inputs": SimpleNamespace(full_gui=full_gui, run_tests=run_tests, run_gui=run_gui),
                 "format": lambda _, value: str(value).lower() if value is not None else "",
             }))
 
@@ -39,6 +39,21 @@ class NativeGuiPolicyTests(unittest.TestCase):
         self.assertFalse(enabled("workflow_dispatch", True, False))
         self.assertFalse(enabled("schedule", True, False))
         self.assertFalse(enabled("push", True, False))
+        self.assertFalse(enabled("push", True, True, False))
+        self.assertFalse(enabled("workflow_dispatch", True, True, False))
+
+    def test_release_skips_all_gui_steps_but_keeps_unit_tests(self):
+        release = (WORKFLOW.parent / 'release.yml').read_text()
+        inputs = re.search(r'    with:\n(.*?)    secrets:', release, re.S).group(1)
+        self.assertIn('run_gui: false', inputs)
+        self.assertNotIn('run_tests:', inputs)
+        source = WORKFLOW.read_text()
+        for name in ('Verify bubblewrap user namespaces',
+                     'Run complete native GUI regressions'):
+            self.assertRegex(source, rf'- name: {name}\n\s+if: format\(\'\{{0\}}\', inputs.run_gui\) != \'false\'')
+        for command in ('flutter build linux --release --dart-define=TIXUN_DEMO=true',
+                        'scripts/gui_smoke.sh'):
+            self.assertIn(f"- run: {command}\n        if: format('{{0}}', inputs.run_gui) != 'false'", source)
 
 
 if __name__ == "__main__":

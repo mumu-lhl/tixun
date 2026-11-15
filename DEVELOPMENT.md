@@ -58,7 +58,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 按版本标签发布
 
-推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用完整 CI，最后将 Android Release APK（Universal 与三个 ABI）、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
+推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用 CI 运行静态分析、单元测试及正式构建（不运行 GUI 冒烟或 GUI 回归），最后将 Android Release APK（Universal 与三个 ABI）、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
 
 例如，发布下一个版本（先更新并提交版本号）：
 
