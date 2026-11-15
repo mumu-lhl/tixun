@@ -210,6 +210,63 @@ void main() {
       },
     );
 
+    test('fresh quota is reused, refresh bypasses it, and account changes invalidate', () async {
+      final keys = MemoryKeyStore();
+      await keys.write(
+        ChatGptAuth.storageKey,
+        jsonEncode({
+          'version': 1,
+          'active': 'oaiapp_test:user-1',
+          'accounts': [
+            _record(),
+            {..._record(), 'sub': 'user-2', 'access_token': 'second-token'},
+          ],
+        }),
+      );
+      final auth = ChatGptAuth(keys, client: _dio((_) => fixtureJson({})));
+      var calls = 0;
+      final client = ChatGptUsageClient(
+        auth: auth,
+        client: _dio((_) {
+          calls++;
+          return fixtureJson(_usageResponse);
+        }),
+      );
+      final first = await client.fetch();
+      expect(await client.fetch(), same(first));
+      expect(calls, 1);
+      await client.fetch(refresh: true);
+      expect(calls, 2);
+      await auth.select('oaiapp_test:user-2');
+      expect(client.cached, isNull);
+      await client.fetch();
+      expect(calls, 3);
+      await auth.signOut('oaiapp_test:user-2');
+      expect(client.cached, isNull);
+      await expectLater(client.fetch(), throwsA(isA<AiFailure>()));
+      expect(calls, 3);
+    });
+
+    test('an account change rejects a late quota response', () async {
+      final auth = await _auth(_record());
+      final response = Completer<ResponseBody>();
+      final started = Completer<void>();
+      final client = ChatGptUsageClient(
+        auth: auth,
+        client: _dio((_) {
+          started.complete();
+          return response.future;
+        }),
+      );
+      final pending = client.fetch();
+      final rejected = expectLater(pending, throwsA(isA<AiFailure>()));
+      await started.future;
+      await auth.select('oaiapp_test:user-1');
+      response.complete(fixtureJson(_usageResponse));
+      await rejected;
+      expect(client.cached, isNull);
+    });
+
     test('omits the account header when the token carries no claim', () async {
       late RequestOptions seen;
       final client = ChatGptUsageClient(
@@ -425,6 +482,26 @@ void main() {
       );
       expect(find.text('ChatGPT 登录已失效，请重新登录。'), findsOneWidget);
       expect(find.textContaining('raw provider text'), findsNothing);
+    });
+
+    testWidgets('a failed refresh keeps the last quota marked stale', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          ChatGptQuotaPanel(
+            quota: quota(),
+            loading: false,
+            failure: const AiFailure.localized(
+              AppErrorCode.theChatGPTRequestFailedCheck,
+              'offline',
+            ),
+            onRefresh: () {},
+          ),
+        ),
+      );
+      expect(find.text('5 小时窗口 · 已用 23%'), findsOneWidget);
+      expect(find.text('上次查询结果，可能已过期。'), findsOneWidget);
     });
 
     test('plan labels capitalize the server word', () {

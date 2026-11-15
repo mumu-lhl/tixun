@@ -1596,10 +1596,22 @@ class AppController extends ChangeNotifier {
   Future<bool> hasApiKey(ProviderConfig provider) =>
       preferences.hasApiKey(provider);
 
-  /// Reads the ChatGPT subscription quota from the endpoint the official Codex
-  /// client uses. User initiated only; nothing is cached or polled.
-  Future<ChatGptQuota> chatGptQuota({ChatGptUsageClient? client}) =>
-      (client ?? ChatGptUsageClient(auth: chatGpt)).fetch();
+  late final _quotaClient = ChatGptUsageClient(auth: chatGpt);
+  late final _balanceClient = ProviderBalanceClient();
+
+  ChatGptQuota? get cachedChatGptQuota => _quotaClient.cached;
+
+  Future<ChatGptQuota> chatGptQuota({
+    ChatGptUsageClient? client,
+    bool refresh = false,
+  }) => (client ?? _quotaClient).fetch(refresh: refresh);
+
+  Future<ProviderBalance?> cachedProviderBalance(
+    ProviderConfig candidate,
+  ) async => _balanceClient.cached(
+    baseUrl: candidate.baseUrl,
+    apiKey: await keys.read(providerKeyId(candidate)) ?? '',
+  );
 
   /// Reads the provider's own account balance. Only DeepSeek documents such an
   /// endpoint; the key is used here so the UI never has to read it itself.
@@ -1607,6 +1619,7 @@ class AppController extends ChangeNotifier {
     ProviderConfig candidate, {
     String? key,
     ProviderBalanceClient? client,
+    bool refresh = false,
   }) async {
     if (candidate.kind != 'deepseek') {
       throw const AiFailure.localized(
@@ -1618,9 +1631,10 @@ class AppController extends ChangeNotifier {
     final apiKey = typed.isNotEmpty
         ? typed
         : await keys.read(providerKeyId(candidate)) ?? '';
-    return (client ?? ProviderBalanceClient()).deepSeek(
+    return (client ?? _balanceClient).deepSeek(
       baseUrl: candidate.baseUrl,
       apiKey: apiKey,
+      refresh: refresh,
     );
   }
 

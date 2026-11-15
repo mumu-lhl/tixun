@@ -154,6 +154,9 @@ class ChatGptAuth {
   CancelToken? _login;
   bool _signingOut = false;
   int _accountEpoch = 0;
+
+  /// Non-secret invalidation marker for account-scoped, in-memory results.
+  int get accountRevision => _accountEpoch;
   bool get signingIn => _login != null;
   void cancelLogin() => _login?.cancel();
 

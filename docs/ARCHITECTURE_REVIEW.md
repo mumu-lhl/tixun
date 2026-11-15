@@ -9,8 +9,8 @@
 | `core/ai/ai_types.dart` | `AiRequest`、`AiMessage`、`AiTool`、完整 `ToolCall` 与 `AiChunk`。`ChatProvider.start` 创建单次 `AiConversation`，同一运行内顺序完成工具轮次。调用方不传厂商请求 Map，也不收集厂商工具片段。 |
 | `core/ai/chat_provider.dart`、`chatgpt/responses.dart` | Chat Completions、Responses 与 Mock 三个 Adapter。各自编码 HTTP、解析流、处理完整工具调用。API Key 在实现内部读取；未保存的密钥只允许配置页连接测试显式覆盖。Responses 加密推理上下文属于当前 Conversation，不写入 AiRequest 或消息历史。 |
 | `core/ai/context_compactor.dart`、`token_estimator.dart` | 上下文预算估算、旧对话摘要及覆盖位置；失败可降级，原始消息保留。不是固定条数截断，也不冒充精确 tokenizer。 |
-| `core/ai/chatgpt/usage.dart` | ChatGPT 订阅额度：读取 `chatgpt.com/backend-api/wham/usage`（官方 Codex 客户端使用的私有端点，经用户批准的唯一例外）。`ChatGptAuth.session()` 同时给出访问令牌与 `chatgpt_account_id` 声明（`ChatGPT-Account-Id` 缺少时省略），字段全部可选、数字兼容字符串。仅由设置页手动触发，不轮询、不落库；401/403 分别归因登录失效与订阅权限。 |
-| `core/ai/provider_balance.dart` | DeepSeek 官方 `GET /user/balance` 的余额查询：Bearer Key、状态码到既定错误码的映射、容错解析（未知字段忽略、缺 `balance_infos` 不抛错）。数字保留服务商原始字符串，不在本地重算。ChatGPT 订阅没有公开的余额/额度接口，不使用私有 `backend-api`；界面只提供官方用量页入口。 |
+| `core/ai/chatgpt/usage.dart` | ChatGPT 订阅额度：读取 `chatgpt.com/backend-api/wham/usage`（官方 Codex 客户端使用的私有端点，经用户批准的唯一例外）。`ChatGptAuth.session()` 同时给出访问令牌与 `chatgpt_account_id` 声明（`ChatGPT-Account-Id` 缺少时省略），字段全部可选、数字兼容字符串。设置页进入时自动读取，五分钟内复用内存结果，手动刷新绕过缓存；不轮询、不落库，账号选择、登录与退出使旧缓存失效；401/403 分别归因登录失效与订阅权限。 |
+| `core/ai/provider_balance.dart` | DeepSeek 官方 `GET /user/balance` 的余额查询：Bearer Key、状态码到既定错误码的映射、容错解析（未知字段忽略、缺 `balance_infos` 不抛错）。数字保留服务商原始字符串，不在本地重算。设置页进入时用已保存的 Key 自动查询，五分钟内复用内存结果，手动刷新绕过缓存；端点或 Key 变化时隔离缓存。ChatGPT 额度只使用上一行经批准的例外，不当作现金余额。 |
 | `core/ai/ai_options.dart` | 统一配置校验、会话思考覆盖、图片能力、思考与工具兼容性，以及实际发送的强度参数。DeepSeek 可显式关闭思考；其他兼容路线省略强度参数表示模型默认，界面按该语义显示。 |
 | `features/chat/learning_run.dart` | 学习上下文、教学提示、用量汇总、三分钟超时、四轮/八次工具上限、结束判定和受控工具执行。Android/Linux 隔离运行器可用时才提供 Python 工具；通过进度与结果返回给调用方，考试过程中不会把原始模型答案当进度发布。 |
 | `core/python/python_runtime.dart` / `python_workspace_store.dart` | Linux 使用独立 CPython 进程和 bubblewrap：只读根文件系统、当前会话工作区可写、超时/停止终止隔离进程；隔离不限制读取和网络，缺少 bwrap/user namespace 时失败关闭。Android 使用隔离 UID 服务、Zig/JNI launcher 和有界管道，不继承应用文件及网络权限；工作区以有界虚拟文件系统快照传输，不共享应用目录。V2230A / Android 13 已通过真实包执行、工作区同步、直接 libc 越界读写拒绝、网络拒绝、超时/停止、崩溃恢复及审批 UI 回归；工作区管理与传输验证由本地 Store 提供。 |
@@ -52,7 +52,7 @@ flowchart TD
 - 图形工具只读写 Visual DSL 场景 JSON，不执行模型生成的代码；出题钉住的快照版本不受后续编辑影响。
 - 原图、裁剪、修订、历史作答、迁移和备份恢复能力保留。
 - 导出是只读边界：打印文件不经过 Store 写入，不产生修订或偏好写入；平台保存只接受缓存目录内、扩展名与 MIME 匹配的暂存文件。
-- 私有 `chatgpt.com/backend-api` 只有额度查询一处，且只由用户手动触发：不轮询、不写数据库或备份、字段缺失不视为失败；其他私有端点仍不使用。
+- 私有 `chatgpt.com/backend-api` 只有额度查询一处，经用户批准可在订阅设置页进入时自动读取并短期缓存，也支持手动刷新：不轮询、不写数据库或备份、字段缺失不视为失败；其他私有端点仍不使用。
 
 ## 维护与验证
 

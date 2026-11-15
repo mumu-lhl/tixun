@@ -42,6 +42,7 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
   ChatGptQuota? quota;
   Object? quotaFailure;
   bool quotaLoading = false;
+  int quotaRequest = 0;
 
   String _messageText(Object value) => switch (value) {
     _ChatGptStatus.loadFailed => context.l10n.couldNotReadChatGPTSign,
@@ -88,9 +89,16 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
         setState(() {
           accounts = saved;
           active = selected;
+          quotaRequest++;
+          quotaLoading = false;
+          quota = ref.read(appControllerProvider).cachedChatGptQuota;
+          quotaFailure = null;
         });
       }
       if (saved.any((a) => a.id == selected && a.connected)) {
+        if (mounted && !ref.read(appControllerProvider).demo) {
+          loadQuota(refresh: false);
+        }
         final choices = await auth.models();
         if (mounted) {
           setState(() {
@@ -109,21 +117,26 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
     }
   }
 
-  /// Manual quota check. Nothing is cached beyond this screen and no timer
-  /// repeats the request.
-  Future<void> loadQuota() async {
+  /// Page entry uses the cache; the explicit refresh bypasses its lifetime.
+  Future<void> loadQuota({bool refresh = true}) async {
     if (quotaLoading) return;
+    final request = ++quotaRequest;
+    final revision = auth.accountRevision;
+    bool current() =>
+        mounted && request == quotaRequest && revision == auth.accountRevision;
     setState(() {
       quotaLoading = true;
       quotaFailure = null;
     });
     try {
-      final value = await ref.read(appControllerProvider).chatGptQuota();
-      if (mounted) setState(() => quota = value);
+      final value = await ref
+          .read(appControllerProvider)
+          .chatGptQuota(refresh: refresh);
+      if (current()) setState(() => quota = value);
     } catch (e) {
-      if (mounted) setState(() => quotaFailure = e);
+      if (current()) setState(() => quotaFailure = e);
     } finally {
-      if (mounted) setState(() => quotaLoading = false);
+      if (current()) setState(() => quotaLoading = false);
     }
   }
 
@@ -132,6 +145,10 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
     setState(() {
       working = true;
       message = null;
+      quotaRequest++;
+      quotaLoading = false;
+      quota = null;
+      quotaFailure = null;
     });
     try {
       await task();

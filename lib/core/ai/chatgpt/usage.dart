@@ -14,6 +14,7 @@ import 'package:dio/dio.dart';
 
 import '../../l10n/app_error.dart';
 import '../ai_types.dart';
+import '../account_query_cache.dart';
 import 'auth.dart';
 
 /// One rolling quota window (typically five hours, plus a weekly window).
@@ -78,10 +79,17 @@ class ChatGptUsageClient {
   final ChatGptAuth auth;
   final Uri _endpoint;
   final Dio _client;
+  final _cache = AccountQueryCache<ChatGptQuota>((value) => value.fetchedAt);
 
-  /// Manual, user-initiated read. No polling and no persistence: the answer is
-  /// shown once and never stored.
-  Future<ChatGptQuota> fetch() async {
+  ChatGptQuota? get cached => _cache.peek(auth.accountRevision);
+
+  /// A settings-page read, with five-minute memory caching and no polling.
+  Future<ChatGptQuota> fetch({bool refresh = false}) {
+    final revision = auth.accountRevision;
+    return _cache.load(revision, () => _fetch(revision), refresh: refresh);
+  }
+
+  Future<ChatGptQuota> _fetch(int revision) async {
     final session = await auth.session();
     Response<dynamic> response;
     try {
@@ -129,6 +137,12 @@ class ChatGptUsageClient {
       throw const AiFailure.localized(
         AppErrorCode.theChatGPTRequestFailedCheck,
         'ChatGPT 请求失败，请检查网络后重试。',
+      );
+    }
+    if (revision != auth.accountRevision) {
+      throw const AiFailure.localized(
+        AppErrorCode.selectASavedChatGPTAccount,
+        '请选择已保存的 ChatGPT 账号。',
       );
     }
     return parseChatGptQuota(response.data);

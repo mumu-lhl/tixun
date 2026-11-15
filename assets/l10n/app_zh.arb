@@ -2280,6 +2280,7 @@
       }
     }
   },
+  "accountQueryStale": "上次查询结果，可能已过期。",
   "accountBalance": "账户余额",
   "checkBalance": "查询余额",
   "checkBalanceInProgress": "正在查询服务商的最新余额…",

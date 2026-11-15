@@ -132,6 +132,38 @@ void main() {
       expect(balance.lines.single.total, '42.00');
     });
 
+    test(
+      'cache is scoped to normalized endpoint and key, with explicit refresh',
+      () async {
+        var calls = 0;
+        final client = ProviderBalanceClient(
+          client: _dio((_) {
+            calls++;
+            return _json({'is_available': true, 'balance_infos': []});
+          }),
+        );
+        Future<ProviderBalance> read(
+          String key, {
+          String base = 'https://api.deepseek.com',
+          bool refresh = false,
+        }) => client.deepSeek(baseUrl: base, apiKey: key, refresh: refresh);
+        final first = await read('first');
+        expect(
+          await read(' first ', base: 'https://api.deepseek.com/'),
+          same(first),
+        );
+        expect(calls, 1);
+        await read('first', refresh: true);
+        await read('second');
+        await read('second', base: 'https://other.example');
+        expect(calls, 4);
+        expect(
+          client.cached(baseUrl: 'https://api.deepseek.com', apiKey: ''),
+          isNull,
+        );
+      },
+    );
+
     test('an unauthorized key is reported as an invalid key', () async {
       final client = ProviderBalanceClient(
         client: _dio((_) => _json({'error': 'unauthorized'}, status: 401)),
@@ -367,6 +399,26 @@ void main() {
       );
       expect(find.text('API Key 无效或没有访问权限，请检查设置。'), findsOneWidget);
       expect(find.textContaining('raw provider text'), findsNothing);
+    });
+
+    testWidgets('a failed refresh keeps the previous amount marked stale', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          ProviderBalancePanel(
+            balance: balance(),
+            loading: false,
+            failure: const AiFailure.localized(
+              AppErrorCode.theConnectionFailedOrThe,
+              'offline',
+            ),
+            onRefresh: () {},
+          ),
+        ),
+      );
+      expect(find.text('可用余额 ¥42.00'), findsOneWidget);
+      expect(find.text('上次查询结果，可能已过期。'), findsOneWidget);
     });
 
     test('formats the currency it was given', () {

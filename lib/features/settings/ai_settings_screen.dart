@@ -47,6 +47,14 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   ProviderBalance? _balance;
   Object? _balanceFailure;
   bool _balanceLoading = false;
+  int _balanceRequest = 0;
+
+  void _resetBalance() {
+    _balanceRequest++;
+    _balance = null;
+    _balanceFailure = null;
+    _balanceLoading = false;
+  }
 
   String _statusText(Object status) => switch (status) {
     _AiSettingsStatus.mockTest => context.l10n.mockTestCompletedNoReal,
@@ -100,10 +108,19 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
 
   Future<void> _refreshKeyStatus() async {
     try {
-      final hasKey = await ref
-          .read(appControllerProvider)
-          .hasApiKey(_candidate());
-      if (mounted) setState(() => _hasSavedKey = hasKey);
+      final controller = ref.read(appControllerProvider);
+      final candidate = _candidate();
+      final hasKey = await controller.hasApiKey(candidate);
+      if (!mounted || providerKeyId(candidate) != providerKeyId(_candidate())) {
+        return;
+      }
+      setState(() => _hasSavedKey = hasKey);
+      if (hasKey &&
+          !controller.demo &&
+          _kind == 'deepseek' &&
+          _key.text.isEmpty) {
+        await _loadBalance(refresh: false);
+      }
     } catch (_) {
       if (mounted) setState(() => _hasSavedKey = null);
     }
@@ -111,21 +128,33 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
 
   /// Asks the provider for its own account balance. A key being typed wins over
   /// the stored one so a fresh key can be checked before it is saved.
-  Future<void> _loadBalance() async {
+  Future<void> _loadBalance({bool refresh = true}) async {
     if (_balanceLoading) return;
+    final request = ++_balanceRequest;
+    final controller = ref.read(appControllerProvider);
+    final candidate = _candidate();
+    final key = _key.text;
+    bool current() => mounted && request == _balanceRequest;
     setState(() {
       _balanceLoading = true;
       _balanceFailure = null;
     });
     try {
-      final balance = await ref
-          .read(appControllerProvider)
-          .providerBalance(_candidate(), key: _key.text);
-      if (mounted) setState(() => _balance = balance);
+      if (key.isEmpty) {
+        final cached = await controller.cachedProviderBalance(candidate);
+        if (current()) setState(() => _balance = cached);
+      }
+      if (!current()) return;
+      final balance = await controller.providerBalance(
+        candidate,
+        key: key,
+        refresh: refresh,
+      );
+      if (current()) setState(() => _balance = balance);
     } catch (e) {
-      if (mounted) setState(() => _balanceFailure = e);
+      if (current()) setState(() => _balanceFailure = e);
     } finally {
-      if (mounted) setState(() => _balanceLoading = false);
+      if (current()) setState(() => _balanceLoading = false);
     }
   }
 
@@ -199,6 +228,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
             ? _AiSettingsStatus.keyRemoved
             : (c.demo ? _AiSettingsStatus.demoSaved : _AiSettingsStatus.saved);
         if (!test) {
+          _resetBalance();
           _key.clear();
           _refreshKeyStatus();
         }
@@ -228,8 +258,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
         _applyConfig(next);
         _key.clear();
         _hasSavedKey = null;
-        _balance = null;
-        _balanceFailure = null;
+        _resetBalance();
       });
       _refreshKeyStatus();
     });
@@ -322,8 +351,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                               _thinking = false;
                               _effort = AiOptions(_candidate()).preferredEffort;
                               _hasSavedKey = null;
-                              _balance = null;
-                              _balanceFailure = null;
+                              _resetBalance();
                             });
                             _refreshKeyStatus();
                             _scheduleSave();
@@ -352,7 +380,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   TextField(
                     controller: _base,
                     onChanged: (_) {
-                      setState(() => _hasSavedKey = null);
+                      setState(() {
+                        _hasSavedKey = null;
+                        _resetBalance();
+                      });
                       _refreshKeyStatus();
                       _scheduleSave();
                     },
@@ -422,7 +453,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   TextField(
                     key: const Key('api-key'),
                     controller: _key,
-                    onChanged: (_) => _scheduleSave(),
+                    onChanged: (_) {
+                      setState(_resetBalance);
+                      _scheduleSave();
+                    },
                     obscureText: !_keyVisible,
                     enableSuggestions: false,
                     autocorrect: false,

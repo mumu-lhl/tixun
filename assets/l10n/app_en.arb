@@ -2280,6 +2280,7 @@
       }
     }
   },
+  "accountQueryStale": "Previous result; it may be out of date.",
   "accountBalance": "Account balance",
   "checkBalance": "Check balance",
   "checkBalanceInProgress": "Checking the provider's current balance…",

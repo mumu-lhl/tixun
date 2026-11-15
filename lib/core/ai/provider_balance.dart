@@ -2,15 +2,18 @@
 ///
 /// DeepSeek documents a public endpoint for this (`GET /user/balance`), so the
 /// number shown in Settings is the provider's own figure rather than an
-/// estimate derived from local usage. No other configured provider exposes a
-/// balance API: the ChatGPT subscription has no documented endpoint, and the
-/// private web endpoints are deliberately not used.
+/// estimate derived from local usage. This module uses no private web balance
+/// endpoints; ChatGPT subscription quota is handled separately in chatgpt/usage.
 library;
 
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 
 import '../l10n/app_error.dart';
 import 'ai_types.dart';
+import 'account_query_cache.dart';
 
 /// One currency line of a DeepSeek balance. Values stay as the provider's
 /// decimal strings so rounding is never invented locally.
@@ -54,10 +57,29 @@ class ProviderBalanceClient {
           );
 
   final Dio _client;
+  final _cache = AccountQueryCache<ProviderBalance>((value) => value.fetchedAt);
+
+  Object _identity(String baseUrl, String apiKey) => (
+    baseUrl.trim().replaceFirst(RegExp(r'/+$'), ''),
+    sha256.convert(utf8.encode(apiKey.trim())).toString(),
+  );
+
+  ProviderBalance? cached({required String baseUrl, required String apiKey}) =>
+      _cache.peek(_identity(baseUrl, apiKey));
 
   /// `GET {baseUrl}/user/balance`, documented at
   /// https://api-docs.deepseek.com/zh-cn/api/get-user-balance
   Future<ProviderBalance> deepSeek({
+    required String baseUrl,
+    required String apiKey,
+    bool refresh = false,
+  }) => _cache.load(
+    _identity(baseUrl, apiKey),
+    () => _fetch(baseUrl: baseUrl, apiKey: apiKey),
+    refresh: refresh,
+  );
+
+  Future<ProviderBalance> _fetch({
     required String baseUrl,
     required String apiKey,
   }) async {

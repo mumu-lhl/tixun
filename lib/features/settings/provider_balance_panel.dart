@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/ai/provider_balance.dart';
+import '../../core/ai/account_query_cache.dart';
 import '../../core/l10n/app_error_localization.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/time_format.dart';
@@ -84,8 +85,15 @@ class ProviderBalancePanel extends StatelessWidget {
                 failureText(l10n, failure!),
                 style: TextStyle(fontSize: 12, color: colors.error),
               ),
-            )
-          else if (value != null) ...[
+            ),
+          if (value != null) ...[
+            if (failure != null ||
+                DateTime.now().difference(value.fetchedAt) >=
+                    AccountQueryCache.lifetime)
+              Text(
+                l10n.accountQueryStale,
+                style: TextStyle(fontSize: 12, color: colors.error),
+              ),
             if (!value.available)
               Text(
                 l10n.accountBalanceUnavailable,
