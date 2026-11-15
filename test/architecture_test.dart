@@ -301,56 +301,63 @@ void main() {
       final visual = VisualStore(db);
       addTearDown(visual.dispose);
       final provider = ScriptProvider(
-        (_) => [
-          AiChunk(
-            text: 'SECRET SOLUTION',
-            completed: true,
-            calls: [
-              ToolCall(
-                'exam',
-                'create_quiz',
-                jsonEncode({
-                  'kind': 'read_value',
-                  'stem': 'Read the point',
-                  'subject': '数学',
-                  'answers': [
-                    ['2'],
+        (turn) => turn == 1
+            ? [
+                const AiChunk(
+                  completed: true,
+                  calls: [ToolCall('load', 'enable_visual_tools', '{}')],
+                ),
+              ]
+            : [
+                AiChunk(
+                  text: 'SECRET SOLUTION',
+                  completed: true,
+                  calls: [
+                    ToolCall(
+                      'exam',
+                      'create_quiz',
+                      jsonEncode({
+                        'kind': 'read_value',
+                        'stem': 'Read the point',
+                        'subject': '数学',
+                        'answers': [
+                          ['2'],
+                        ],
+                        'explanation': 'SOLUTION',
+                        'question_scene': {
+                          'v': 1,
+                          'kind': 'geometry',
+                          'title': 'Question',
+                          'view': {
+                            'x': [-3, 3],
+                            'y': [-3, 3],
+                          },
+                          'elements': [
+                            {
+                              'id': 'p',
+                              'type': 'point',
+                              'at': [2, 0],
+                            },
+                          ],
+                        },
+                        'solution_scene': {
+                          'v': 1,
+                          'kind': 'geometry',
+                          'title': 'SOLUTION',
+                          'elements': [
+                            {
+                              'id': 's',
+                              'type': 'text',
+                              'at': [0, 0],
+                              'text': 'Answer 2',
+                            },
+                          ],
+                        },
+                      }),
+                    ),
                   ],
-                  'explanation': 'SOLUTION',
-                  'question_scene': {
-                    'v': 1,
-                    'kind': 'geometry',
-                    'title': 'Question',
-                    'view': {
-                      'x': [-3, 3],
-                      'y': [-3, 3],
-                    },
-                    'elements': [
-                      {
-                        'id': 'p',
-                        'type': 'point',
-                        'at': [2, 0],
-                      },
-                    ],
-                  },
-                  'solution_scene': {
-                    'v': 1,
-                    'kind': 'geometry',
-                    'title': 'SOLUTION',
-                    'elements': [
-                      {
-                        'id': 's',
-                        'type': 'text',
-                        'at': [0, 0],
-                        'text': 'Answer 2',
-                      },
-                    ],
-                  },
-                }),
-              ),
-            ],
-          ),
-        ],
+                ),
+              ],
       );
       final progress = <LearningRunResult>[];
       final result =
@@ -378,7 +385,8 @@ void main() {
       expect(result.quizCreated, isTrue);
       expect(result.text, isNot(contains('SECRET')));
       expect(progress.every((p) => !p.text.contains('SECRET')), isTrue);
-      final request = provider.requests.single;
+      expect(provider.requests, hasLength(2));
+      final request = provider.requests.last;
       expect(
         request.tools.map((t) => t.name),
         isNot(contains('create_visual')),
@@ -509,7 +517,7 @@ void main() {
       },
     );
 
-    test('Practice state is attached to recent assistant messages from one batched lookup', () async {
+    test('Practice state is associated with its source without mutating assistant history', () async {
       await db
           .into(db.chatMessages)
           .insert(
@@ -553,9 +561,10 @@ void main() {
       final result = await runConfirmed(provider, history: history);
       expect(result.text, '好的');
       final sent = provider.requests.single.messages;
+      expect(sent.singleWhere((m) => m.role == AiRole.assistant).text, '已出题');
       expect(
-        sent.any((m) => m.text.contains('已出题') && m.text.contains('应用保存的练习状态')),
-        true,
+        sent.singleWhere((m) => m.role == AiRole.user).text,
+        allOf(contains('应用保存的练习状态'), contains('"source_message_id":"a1"')),
       );
     });
 

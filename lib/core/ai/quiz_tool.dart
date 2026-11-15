@@ -84,6 +84,44 @@ final examQuizToolSchema = AiTool(
   },
 );
 
+/// Normal chat figures are created once, then referenced by ID. Inline scenes
+/// belong to the atomic exam tool rather than being repeated in every schema.
+final chatQuizToolSchema = AiTool(
+  name: quizToolSchema.name,
+  description: '仅用户请求出题、测验或训练时创建交互题，不代替资料或讲解。正文不透露答案与解析；explanation 仍须完整。answers 按作答位置排列，每项为等价答案列表；多选每个正确选项单独一项。image_indices 引用本次请求前4张图片（0起）。配图用 visual_id 引用已创建图形，visual_revision 可冻结指定版本，否则冻结当前版本。题面不得含答案或解法。点选和拖点答案为 x,y；区域题 options/answers 使用可见区域图元 id；拖点需 draggable 点；读图题答案为数值。结构校验不代表答案已核实。',
+  parameters: {
+    ...quizToolSchema.parameters,
+    'properties': {...(quizToolSchema.parameters['properties'] as Map)}
+      ..remove('question_scene')
+      ..remove('solution_scene'),
+  },
+);
+
+/// Small initial quiz contract. The model can opt into every visual kind and
+/// its full schemas via enable_visual_tools, including in exam mode.
+AiTool textQuizToolSchema({required bool exam}) {
+  final base = exam ? examQuizToolSchema : chatQuizToolSchema;
+  final properties = {...(base.parameters['properties'] as Map)}
+    ..remove('question_scene')
+    ..remove('solution_scene');
+  properties['kind'] = {
+    'type': 'string',
+    'enum': [
+      'single_choice',
+      'multiple_choice',
+      'true_false',
+      'fill_blank',
+      'numeric',
+    ],
+  };
+  return AiTool(
+    name: base.name,
+    description:
+        'Create a text or image-based interactive question only when requested, never instead of reference material. Never reveal answers or explanations in chat; provide a complete explanation in the explanation field for after submission. answers lists equivalent answers per response position; each correct multiple-choice option is a separate item. image_indices references the first four input images (0-based). Validation does not verify correctness. For any diagrams or visual question kinds, first call enable_visual_tools to load the full schemas.${exam ? ' Exam mode never references exploration visual IDs.' : ''}',
+    parameters: {...base.parameters, 'properties': properties},
+  );
+}
+
 Future<Map<String, dynamic>> executeQuizTool(
   PracticeStore store,
   ToolCall call, {

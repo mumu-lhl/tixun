@@ -299,7 +299,7 @@ void main() {
     expect(await StudyWriteTask.load(c.db, c.selected!.id, '换个问题'), isNull);
   });
 
-  test('Stage and optional region reach system context as background, old profiles remain readable', () async {
+  test('Stage and optional region reach current-turn background, old profiles remain readable', () async {
     await c.db.setPreference('learning_profile', '{"stage":"高三"}');
     expect((await LearningProfile.load(c.db)).region, isEmpty);
     expect((await LearningProfile.load(c.db)).partialFallback, false);
@@ -307,8 +307,10 @@ void main() {
     expect((await LearningProfile.load(c.db)).region, '浙江');
     await c.send('梳理数学公式');
     final request = provider.requests.last;
-    expect(request.instructions, contains('"stage":"高三"'));
-    expect(request.instructions, contains('"region":"浙江"'));
+    final background = request.messages.last.text;
+    expect(background, contains('"stage":"高三"'));
+    expect(background, contains('"region":"浙江"'));
+    expect(request.instructions, isNot(contains('"stage":"高三"')));
     expect(request.instructions, contains('不可断定当地考纲'));
     expect(
       request.tools.any((t) => t.name == 'suggest_question_regions'),

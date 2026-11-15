@@ -64,7 +64,17 @@ class RecordingProvider implements ChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
         requests.add(request);
-        if (requests.length == 1) {
+        if (request.tools.any((t) => t.name == 'enable_visual_tools')) {
+          yield const AiChunk(
+            completed: true,
+            calls: [ToolCall('load', 'enable_visual_tools', '{}')],
+          );
+          return;
+        }
+        final toolMessages = request.messages.where(
+          (m) => m.role == AiRole.tool,
+        );
+        if (toolMessages.last.callId == 'load') {
           yield AiChunk(
             completed: true,
             calls: [
@@ -147,13 +157,10 @@ void main() {
     expect((await c.db.select(c.db.visualScenes).get()), hasLength(1));
     expect((await c.db.select(c.db.practiceQuestions).get()), hasLength(1));
     expect(
-      provider.requests.first.instructions,
+      provider.requests[1].instructions,
       contains('[TiXun Visual DSL v1 contract]'),
     );
-    expect(
-      provider.requests.first.instructions,
-      contains('"expression":"a*x^2"'),
-    );
+    expect(provider.requests[1].instructions, contains('"expression":"a*x^2"'));
   });
 
   test(
