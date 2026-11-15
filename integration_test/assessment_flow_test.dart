@@ -17,6 +17,7 @@ void main() {
     tester,
   ) async {
     final c = await AppController.open(demo: true);
+    await c.setAiDrawingEnabled(true);
     await c.newSession();
     await c.mode('exam');
     await c.send('请出一道带图拖点考试题');

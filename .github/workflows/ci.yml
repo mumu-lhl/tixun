@@ -274,13 +274,19 @@ jobs:
             doctor.log
 
   gui:
-    name: Native GUI regressions (${{ matrix.shard }}/3)
+    name: Native GUI regressions (${{ matrix.display }}/3)
     needs: checks
     if: format('{0}', inputs.run_gui) != 'false' && (github.event_name == 'push' || github.event_name == 'pull_request' || inputs.full_gui) && format('{0}', inputs.run_tests) != 'false'
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2]
+        include:
+          - shard: 0
+            display: 1
+          - shard: 1
+            display: 2
+          - shard: 2
+            display: 3
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

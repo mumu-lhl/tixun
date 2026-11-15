@@ -41,6 +41,14 @@ class NativeGuiPolicyTests(unittest.TestCase):
         self.assertFalse(enabled("push", True, True, False))
         self.assertFalse(enabled("workflow_dispatch", True, True, False))
 
+    def test_gui_display_is_one_based_without_changing_shard_indices(self):
+        source = WORKFLOW.read_text()
+        self.assertIn('name: Native GUI regressions (${{ matrix.display }}/3)', source)
+        shards = re.findall(r'- shard: (\d+)\n\s+display: (\d+)', source)
+        self.assertEqual(shards, [('0', '1'), ('1', '2'), ('2', '3')])
+        self.assertIn('TIXUN_GUI_SHARD_INDEX: ${{ matrix.shard }}', source)
+        self.assertIn('name: tixun-linux-gui-regressions-${{ matrix.shard }}', source)
+
     def test_release_skips_all_gui_steps_but_keeps_unit_tests(self):
         release = (WORKFLOW.parent / 'release.yml').read_text()
         inputs = re.search(r'    with:\n(.*?)    secrets:', release, re.S).group(1)
@@ -52,7 +60,6 @@ class NativeGuiPolicyTests(unittest.TestCase):
         self.assertIn('run_tests: false', nightly_inputs)
         source = WORKFLOW.read_text()
         self.assertRegex(source, r"- name: Verify bubblewrap user namespaces\n\s+if: format\('\{0\}', inputs.run_gui\) != 'false'")
-        self.assertIn("shard: [0, 1, 2]", source)
         self.assertIn("TIXUN_GUI_SHARD_COUNT: '3'", source)
         self.assertIn('TIXUN_GUI_SHARD_INDEX: ${{ matrix.shard }}', source)
         for command in ('flutter build linux --release --dart-define=TIXUN_DEMO=true',
