@@ -596,9 +596,13 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       final last = history.last.callId == 'mock-enable-visuals'
           ? history.lastWhere((m) => m.role == AiRole.user)
           : history.last;
+      // Appended learning data is context, not an explicit Mock action request.
+      final intentText = last.text
+          .split(RegExp(r'\n\[(?:Learning background data|学习背景数据)'))
+          .first;
       if (last.role == AiRole.user &&
           names.contains('enable_visual_tools') &&
-          ['画图', '图像', '函数图', '这张图'].any(last.text.contains)) {
+          ['画图', '图像', '函数图', '这张图'].any(intentText.contains)) {
         yield const AiChunk(
           completed: true,
           calls: [ToolCall('mock-enable-visuals', 'enable_visual_tools', '{}')],
@@ -607,7 +611,7 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       }
       if (last.role == AiRole.user &&
           names.contains('create_knowledge') &&
-          (last.text.contains('保存知识') ||
+          (intentText.contains('保存知识') ||
               (names.length == 3 &&
                   names.contains('get_knowledge') &&
                   names.contains('search_knowledge')))) {
@@ -632,7 +636,7 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       }
       if (last.role == AiRole.user &&
           names.contains('suggest_question_regions') &&
-          last.text.contains('分题')) {
+          intentText.contains('分题')) {
         yield AiChunk(
           completed: true,
           calls: [
@@ -670,8 +674,8 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       }
       if (last.role == AiRole.user &&
           names.contains('create_quiz') &&
-          last.text.contains('带图')) {
-        final drag = last.text.contains('拖点');
+          intentText.contains('带图')) {
+        final drag = intentText.contains('拖点');
         yield AiChunk(
           completed: true,
           calls: [
@@ -732,7 +736,7 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       }
       if (last.role == AiRole.user &&
           names.contains('create_quiz') &&
-          ['出题', '练习', '检测题', '变式', '考试'].any((v) => last.text.contains(v))) {
+          ['出题', '练习', '检测题', '变式', '考试'].any(intentText.contains)) {
         yield AiChunk(
           completed: true,
           calls: [
@@ -764,15 +768,10 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       }
       // Match an explicit id, otherwise use the app's persisted visual
       // index just as a real model does on a natural follow-up turn.
-      final visualIdMatch =
-          RegExp(
-            r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
-            caseSensitive: false,
-          ).firstMatch(
-            last.text
-                .split(RegExp(r'\n\[(?:Learning background data|学习背景数据)'))
-                .first,
-          );
+      final visualIdMatch = RegExp(
+        r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+        caseSensitive: false,
+      ).firstMatch(intentText);
       String? indexedVisualId;
       for (final message in request.messages.reversed) {
         final marker = message.text.indexOf(
@@ -788,8 +787,8 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
 
       if (last.role == AiRole.user &&
           names.contains('update_visual') &&
-          ['修改', '更新', '改'].any((v) => last.text.contains(v)) &&
-          ['图', '图像'].any((v) => last.text.contains(v))) {
+          ['修改', '更新', '改'].any(intentText.contains) &&
+          ['图', '图像'].any(intentText.contains)) {
         if (visualId != null) {
           yield AiChunk(
             completed: true,
@@ -814,8 +813,8 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       }
       if (last.role == AiRole.user &&
           names.contains('get_visual') &&
-          ['查看', '看看', '读取'].any((v) => last.text.contains(v)) &&
-          ['图', '图像'].any((v) => last.text.contains(v))) {
+          ['查看', '看看', '读取'].any(intentText.contains) &&
+          ['图', '图像'].any(intentText.contains)) {
         if (visualId != null) {
           yield AiChunk(
             completed: true,
@@ -835,7 +834,7 @@ $$f(x)=a\left(x+\frac{b}{2a}\right)^2+\frac{4ac-b^2}{4a}$$
       }
       if (last.role == AiRole.user &&
           names.contains('create_visual') &&
-          ['画图', '图像', '函数图'].any((v) => last.text.contains(v))) {
+          ['画图', '图像', '函数图'].any(intentText.contains)) {
         yield AiChunk(
           completed: true,
           calls: [

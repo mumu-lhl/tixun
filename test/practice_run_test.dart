@@ -126,6 +126,28 @@ void main() {
     ]);
     expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
   });
+  test('Mock explanation follow-ups do not treat saved practice state as a new quiz request', () async {
+    final root = await Directory.systemTemp.createTemp('tixun-mock-follow-up');
+    final c = AppController(
+      AppDatabase.memory(),
+      AttachmentStore(root),
+      MemoryKeyStore(),
+      MockChatProvider(),
+    );
+    addTearDown(() async {
+      await c.shutdown();
+      await root.delete(recursive: true);
+    });
+    await c.initialize();
+    await c.prepareQuickQuiz();
+    await c.send(c.selected!.draft);
+    expect((await c.db.select(c.db.practiceQuestions).get()).length, 1);
+
+    await c.send('请重新解释');
+
+    expect((await c.db.select(c.db.practiceQuestions).get()).length, 1);
+    expect(await c.practice.list(messageId: c.messages.last.id), isEmpty);
+  });
   test('Knowledge-scoped quizzes, variant provenance, image references and branched chats stay linked without duplicate statistics', () async {
     final root = await Directory.systemTemp.createTemp('tixun-training-links');
     final c = AppController(
