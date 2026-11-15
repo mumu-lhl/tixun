@@ -23,9 +23,30 @@ Linux 系统依赖：`sudo bash scripts/install_linux_deps.sh`（包含 bubblewr
 
 ## 测试与构建
 
+### 开发时优先最小充分验证
+
+- 默认只运行能覆盖本次变更风险的最小测试集：先定位受影响模块、调用方和已有回归，指定相关测试文件，不把全量测试作为每次改动的固定步骤。
+- 测试失败时，先缩小到失败文件或用 `--plain-name` 筛选用例复现；修复后运行受影响的回归，必要时再扩大范围。不要以跳过测试或削弱断言代替修复，也不要无变化地重复跑全量。
+- 涉及跨模块公共边界、数据库迁移、全局配置或依赖等高风险改动且难以界定影响范围，或进行发布验收、用户明确要求时，再运行全量测试。普通 CI 的完整检查保持不变。
+- 纯文档修改只检查差异、链接和命令示例；不因此运行 Flutter 测试或构建。构建及 GUI 验证也按变更需要选择，不要求每次全部执行。
+
+日常开发命令（测试文件仅为示例，按实际影响范围替换）：
+
 ```bash
 flutter analyze
+flutter test -j 4 test/architecture_test.dart
+# 需要聚焦单个用例时：flutter test -j 4 <测试文件> --plain-name '<用例名>'
+```
+
+需要全量验证时：
+
+```bash
 flutter test -j 4
+```
+
+按需构建及 GUI 检查：
+
+```bash
 flutter build apk --debug
 flutter build linux --release
 # GUI 检查必须使用隔离 Mock 构建
