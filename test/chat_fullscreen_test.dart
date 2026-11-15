@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tixun/app/app.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/features/chat/chat_screen.dart';
+import 'package:tixun/features/visual/visual_markdown.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
@@ -133,7 +134,10 @@ void main() {
               id: 'history-$i',
               sessionId: session.id,
               role: i.isEven ? 'user' : 'assistant',
-              content: '第 $i 条学习记录。\n解释知识与独立尝试。\n记录这一轮的学习结果。',
+              // Public figures may be attached without accompanying prose.
+              // Cover that stable state instead of relying on a fleeting
+              // empty assistant body during a live stream.
+              content: i == 33 ? '' : '第 $i 条学习记录。\n解释知识与独立尝试。\n记录这一轮的学习结果。',
               createdAt: DateTime(2026, 11, 12, 10, i),
             ),
           );
@@ -147,6 +151,12 @@ void main() {
     final bottom = find.byKey(const Key('chat-scroll-bottom'));
     final messages = find.byKey(PageStorageKey('messages-${session.id}'));
     expect(bottom, findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is VisualMarkdown && widget.data.isEmpty,
+      ),
+      findsOneWidget,
+    );
     final drag = await t.startGesture(t.getCenter(messages));
     await drag.moveBy(const Offset(0, 20));
     await t.pump();

@@ -149,7 +149,9 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
-      for (final width in [1280.0, 390.0, 360.0]) {
+      // Keep both layout branches and the narrowest supported phone. A second
+      // phone width only repeats the same route/overflow sweep.
+      for (final width in [1280.0, 360.0]) {
         tester.view.physicalSize = Size(width, 860);
         await tester.pumpWidget(
           UncontrolledProviderScope(

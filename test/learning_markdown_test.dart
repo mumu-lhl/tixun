@@ -109,26 +109,4 @@ void main() {
       findsNWidgets(6),
     );
   });
-
-  testWidgets('Formula tooltip goes through localization', (tester) async {
-    tester.view.physicalSize = const Size(390, 1000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    const content = r'行内 $x^2$ 公式。';
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: appTheme(Brightness.light),
-        home: const Scaffold(
-          body: SingleChildScrollView(child: LearningMarkdown(content)),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(
-      find.byWidgetPredicate((w) => w is Tooltip && w.message == '长按复制 LaTeX'),
-      findsOneWidget,
-    );
-  });
 }

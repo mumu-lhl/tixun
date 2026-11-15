@@ -83,30 +83,34 @@ Future<void> pageBack(WidgetTester tester, String destination) async {
 }
 
 void main() {
-  for (final width in [390.0, 1200.0]) {
-    for (final destination in ['ai', 'prompts']) {
-      for (final systemBack in [false, true]) {
-        testWidgets(
-          'chat → $destination → ${systemBack ? 'system' : 'page'} back at $width',
-          (tester) async {
-            final (c, router) = await openApp(tester, width: width);
-            final sessionId = c.selected!.id;
-            await openFromChat(tester, destination, width: width);
-            expect(router.state.uri.path, '/settings/$destination');
-            if (systemBack) {
-              await tester.binding.handlePopRoute();
-              await tester.pumpAndSettle();
-            } else {
-              await pageBack(tester, destination);
-            }
-            expect(router.state.uri.path, '/chat');
-            expect(find.byKey(const Key('chat-input')), findsOneWidget);
-            expect(c.selected!.id, sessionId);
-            expect(tester.takeException(), isNull);
-          },
-        );
-      }
-    }
+  // Pairwise coverage: both layouts × destinations, both destinations ×
+  // back methods, and both layouts × back methods. Nested/deep-link/editor
+  // regressions below remain independent.
+  for (final (width, destination, systemBack) in [
+    (390.0, 'ai', false),
+    (1200.0, 'ai', true),
+    (390.0, 'prompts', true),
+    (1200.0, 'prompts', false),
+  ]) {
+    testWidgets(
+      'chat → $destination → ${systemBack ? 'system' : 'page'} back at $width',
+      (tester) async {
+        final (c, router) = await openApp(tester, width: width);
+        final sessionId = c.selected!.id;
+        await openFromChat(tester, destination, width: width);
+        expect(router.state.uri.path, '/settings/$destination');
+        if (systemBack) {
+          await tester.binding.handlePopRoute();
+          await tester.pumpAndSettle();
+        } else {
+          await pageBack(tester, destination);
+        }
+        expect(router.state.uri.path, '/chat');
+        expect(find.byKey(const Key('chat-input')), findsOneWidget);
+        expect(c.selected!.id, sessionId);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   for (final destination in ['ai', 'prompts']) {

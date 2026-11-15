@@ -407,7 +407,9 @@ void main() {
       await t.pumpWidget(
         UncontrolledProviderScope(container: scope, child: const TixunApp()),
       );
-      for (final width in [360.0, 390.0, 1280.0]) {
+      // English still exercises narrow-phone and desktop layouts; the
+      // intermediate phone width adds no distinct layout branch.
+      for (final width in [360.0, 1280.0]) {
         t.view.physicalSize = Size(width, 844);
         for (final path in [
           '/study',

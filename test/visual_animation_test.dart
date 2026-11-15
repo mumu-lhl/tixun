@@ -141,6 +141,65 @@ void main() {
     expect(resolveVisualFrame(scene, 1000).parameters['a'], 10);
   });
 
+  test('frames outside the timeline clamp tracks without inventing steps', () {
+    final scene = _animatedScene();
+    final before = resolveVisualFrame(scene, -500);
+    expect(before.parameters['a'], 0);
+    expect(before.hiddenElementIds, isEmpty);
+    expect(before.stepIndex, visualNoStepIndex);
+    expect(before.timeMs, -500);
+    final after = resolveVisualFrame(scene, 8000);
+    expect(after.parameters['a'], 10);
+    expect(after.hiddenElementIds, isEmpty);
+    expect(after.stepIndex, 2);
+    expect(after.timeMs, 8000);
+  });
+
+  test('later tracks on the same target override earlier tracks', () {
+    final json = _animatedScene().toJson();
+    (json['timeline'] as Map)['tracks'] = [
+      {
+        'id': 'first',
+        'target': 'a',
+        'from': 0,
+        'to': 10,
+        'startMs': 0,
+        'endMs': 1000,
+      },
+      {
+        'id': 'last',
+        'target': 'a',
+        'from': 100,
+        'to': 200,
+        'startMs': 0,
+        'endMs': 1000,
+      },
+    ];
+    final scene = VisualScene.fromJson(json);
+    for (final (time, value) in [
+      (0.0, 100.0),
+      (500.0, 150.0),
+      (1000.0, 200.0),
+    ]) {
+      expect(
+        resolveVisualFrame(scene, time).parameters['a'],
+        value,
+        reason: 'time=$time',
+      );
+    }
+  });
+
+  test('invalid step indexes fall back to the time path with real steps', () {
+    final scene = _animatedScene();
+    for (final index in [-1, 99]) {
+      final frame = resolveVisualFrame(scene, 250, index);
+      expect(frame.parameters['a'], 2.5, reason: 'index=$index');
+      expect(frame.hiddenElementIds, {'e1'}, reason: 'index=$index');
+      expect(frame.stepIndex, 0, reason: 'index=$index');
+      expect(frame.timeMs, 250, reason: 'index=$index');
+    }
+  });
+
   test('track clamps before start and after end', () {
     final scene = _animatedScene();
     // Track t2 (target b) runs 200..800, from 2 to 12.

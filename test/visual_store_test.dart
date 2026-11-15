@@ -337,7 +337,7 @@ void main() {
       ),
     );
     await expectLater(
-      store.linkToQuestion(id, 'q', 2),
+      store.linkToQuestion(id, 'q', 99),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
@@ -419,25 +419,6 @@ void main() {
     );
     expect(await store.questionVisualLinks('q'), isEmpty);
   });
-
-  test(
-    'linkToQuestion with a future revision reports the revision code',
-    () async {
-      await _seedMessage(db, 's', 'm');
-      await _seedQuestion(db, 'q');
-      final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
-      await expectLater(
-        store.linkToQuestion(id, 'q', 99),
-        throwsA(
-          isA<AppFormatException>().having(
-            (e) => e.code,
-            'code',
-            AppErrorCode.errorVisualSceneRevisionDoesNotExist,
-          ),
-        ),
-      );
-    },
-  );
 
   test('a pinned question visual stays frozen after later edits', () async {
     await _seedMessage(db, 's', 'm');

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tixun/core/visual/model/visual_scene.dart';
 import 'package:tixun/core/visual/render/visual_painter.dart';
+import 'package:tixun/core/visual/render/visual_animator.dart';
 import 'package:tixun/core/visual/render/visual_png.dart';
 import 'package:tixun/core/visual/render/visual_theme.dart';
 import 'package:tixun/core/visual/validation/visual_validator.dart';
@@ -218,10 +219,16 @@ void main() {
       expect(bytes.sublist(0, 4), [0x89, 0x50, 0x4e, 0x47]);
     });
 
-    test('combustion reaction validates', () {
+    test('combustion reaction validates and renders a complete PNG', () async {
       final v = validateVisualScene(combustionJson());
       expect(v.ok, isTrue);
       expect(v.errors, isEmpty);
+      final bytes = await renderVisualPng(
+        VisualScene.fromJson(combustionJson()),
+        _palette,
+      );
+      expect(bytes, isNotEmpty);
+      expect(bytes.sublist(0, 8), [137, 80, 78, 71, 13, 10, 26, 10]);
     });
   });
 
@@ -237,13 +244,50 @@ void main() {
       expect(bytes.sublist(0, 4), [0x89, 0x50, 0x4e, 0x47]);
     });
 
-    test('earth revolution validates, steps resolve', () {
+    test('earth revolution validates, resolves every step and renders', () async {
       final v = validateVisualScene(revolutionJson());
       expect(v.ok, isTrue);
       expect(v.errors, isEmpty);
       final scene = VisualScene.fromJson(revolutionJson());
       expect(scene.timeline!.steps.length, 4);
       expect(scene.timeline!.durationMs, 8000);
+      for (final (time, index) in [
+        (0.0, 0),
+        (2000.0, 1),
+        (4000.0, 2),
+        (6000.0, 3),
+        (8000.0, 3),
+        (12000.0, 3),
+      ]) {
+        final frame = resolveVisualFrame(scene, time);
+        expect(frame.stepIndex, index, reason: 'time=$time');
+        // Exact equality also proves that orbit/sun never become hidden.
+        expect(
+          frame.hiddenElementIds,
+          {'earth0', 'earth1', 'earth2', 'earth3'}..remove('earth$index'),
+          reason: 'time=$time',
+        );
+      }
+      // All four steps still render: consolidate the fixture, not PNG coverage.
+      for (var i = 0; i < 4; i++) {
+        final bytes = await renderVisualPng(
+          scene,
+          _palette,
+          timeMs: i * 2000.0,
+          stepIndex: i,
+        );
+        expect(bytes, isNotEmpty, reason: 'step=$i');
+        expect(bytes.sublist(0, 8), [
+          137,
+          80,
+          78,
+          71,
+          13,
+          10,
+          26,
+          10,
+        ], reason: 'step=$i');
+      }
     });
 
     test('geography and chemistry scenes have no axes by default', () {

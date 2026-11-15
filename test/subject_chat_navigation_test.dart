@@ -16,6 +16,10 @@ void main() {
     for (final existing in [true, false]) {
       for (final entry in ['navigation', 'dashboard', 'shortcut']) {
         if (!existing && entry != 'navigation') continue;
+        // Navigation has separate phone/sidebar controls: keep both states
+        // at both widths. Dashboard and keyboard dispatch are shared paths.
+        if (entry == 'dashboard' && width != 390) continue;
+        if (entry == 'shortcut' && width != 1200) continue;
         testWidgets(
           '$entry chat entry at $width ${existing ? 'reopens' : 'creates'} the selected subject',
           (tester) async {

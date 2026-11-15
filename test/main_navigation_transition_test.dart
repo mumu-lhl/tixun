@@ -15,52 +15,48 @@ import 'package:tixun/features/settings/settings_screen.dart';
 
 void main() {
   for (final reducedMotion in [false, true]) {
-    for (final rightward in [true, false]) {
-      testWidgets(
-        'bottom navigation enters from the ${rightward ? 'right' : 'left'} (reduced motion: $reducedMotion)',
-        (tester) async {
-          debugDefaultTargetPlatformOverride = TargetPlatform.android;
-          addTearDown(() => debugDefaultTargetPlatformOverride = null);
-          tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
-              FakeAccessibilityFeatures(disableAnimations: reducedMotion);
-          addTearDown(
-            tester
-                .binding
-                .platformDispatcher
-                .clearAccessibilityFeaturesTestValue,
+    testWidgets(
+      'bottom navigation follows both directions (reduced motion: $reducedMotion)',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+        tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
+            FakeAccessibilityFeatures(disableAnimations: reducedMotion);
+        addTearDown(
+          tester.binding.platformDispatcher.clearAccessibilityFeaturesTestValue,
+        );
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(390, 844);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
+        late Directory root;
+        late AppController c;
+        await tester.runAsync(() async {
+          root = await Directory.systemTemp.createTemp('navigation-motion');
+          c = AppController(
+            AppDatabase.memory(),
+            AttachmentStore(root),
+            MemoryKeyStore(),
+            MockChatProvider(),
+            demo: true,
           );
-          tester.view.devicePixelRatio = 1;
-          tester.view.physicalSize = const Size(390, 844);
-          addTearDown(tester.view.resetDevicePixelRatio);
-          addTearDown(tester.view.resetPhysicalSize);
-          late Directory root;
-          late AppController c;
-          await tester.runAsync(() async {
-            root = await Directory.systemTemp.createTemp('navigation-motion');
-            c = AppController(
-              AppDatabase.memory(),
-              AttachmentStore(root),
-              MemoryKeyStore(),
-              MockChatProvider(),
-              demo: true,
-            );
-            await c.initialize(seed: false);
-          });
-          final scope = ProviderContainer(
-            overrides: [appControllerProvider.overrideWith((_) => c)],
-          );
-          addTearDown(() async {
-            scope.dispose();
-            await c.db.close();
-            await root.delete(recursive: true);
-          });
-          await tester.pumpWidget(
-            UncontrolledProviderScope(
-              container: scope,
-              child: const TixunApp(),
-            ),
-          );
-          final router = scope.read(routerProvider);
+          await c.initialize(seed: false);
+        });
+        final scope = ProviderContainer(
+          overrides: [appControllerProvider.overrideWith((_) => c)],
+        );
+        addTearDown(() async {
+          scope.dispose();
+          await c.db.close();
+          await root.delete(recursive: true);
+        });
+        await tester.pumpWidget(
+          UncontrolledProviderScope(container: scope, child: const TixunApp()),
+        );
+        final router = scope.read(routerProvider);
+        // Both directions share one app fixture, but each transition starts
+        // from its own settled root and retains its intermediate-frame check.
+        for (final rightward in [true, false]) {
           router.go(rightward ? '/mistakes' : '/settings');
           await tester.pumpAndSettle();
           await tester.tap(find.byKey(Key(rightward ? 'nav-4' : 'nav-2')));
@@ -83,10 +79,10 @@ void main() {
           expect(tester.getTopLeft(page).dx, closeTo(0, .01));
           expect(router.state.uri.path, rightward ? '/settings' : '/mistakes');
           expect(tester.takeException(), isNull);
-          await tester.pumpWidget(const SizedBox.shrink());
-          await tester.pumpAndSettle();
-        },
-      );
-    }
+        }
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+      },
+    );
   }
 }
