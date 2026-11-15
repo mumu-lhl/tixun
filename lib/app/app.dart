@@ -29,7 +29,14 @@ import '../features/settings/prompt_screen.dart';
 import '../features/settings/chatgpt_screen.dart';
 import '../features/settings/settings_screen.dart';
 import 'controller.dart';
+import 'main_navigation_page.dart';
 import 'theme.dart';
+
+class _MainNavigationMotion {
+  const _MainNavigationMotion(this.from, this.to);
+  final int from;
+  final int to;
+}
 
 // Ink belongs to its route, not the shell's Scaffold below the Navigator.
 // Otherwise an outgoing page can leave its splash on top of a pushed page.
@@ -37,14 +44,33 @@ GoRoute _materialRoute({
   required String path,
   required GoRouterWidgetBuilder builder,
   List<RouteBase> routes = const [],
-}) => GoRoute(
-  path: path,
-  routes: routes,
-  builder: (context, state) => Material(
+}) {
+  final mainIndex = AppShell.paths.indexOf(path);
+  Widget content(BuildContext context, GoRouterState state) => Material(
     color: Theme.of(context).colorScheme.surface,
     child: builder(context, state),
-  ),
-);
+  );
+  return GoRoute(
+    path: path,
+    routes: routes,
+    builder: mainIndex < 0 ? content : null,
+    pageBuilder: mainIndex < 0
+        ? null
+        : (context, state) {
+            final motion = state.extra;
+            return MainNavigationPage(
+              key: state.pageKey,
+              direction:
+                  motion is _MainNavigationMotion &&
+                      motion.from >= 0 &&
+                      motion.to == mainIndex
+                  ? motion.to.compareTo(motion.from)
+                  : 0,
+              child: content(context, state),
+            );
+          },
+  );
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -280,6 +306,22 @@ class AppShell extends ConsumerWidget {
   static int navIndexFor(String path) =>
       paths.indexWhere((p) => path == p || path.startsWith('$p/'));
 
+  Future<void> _openSubjectChat(
+    BuildContext context,
+    AppController controller, {
+    bool push = false,
+    Object? extra,
+  }) async {
+    await controller.prepareSubjectChat();
+    // A slow history load must not navigate over a later destination tap.
+    if (!context.mounted || GoRouter.of(context).state.uri.path != path) return;
+    if (push) {
+      context.push('/chat', extra: extra);
+    } else {
+      context.go('/chat', extra: extra);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= 800;
@@ -316,7 +358,7 @@ class AppShell extends ConsumerWidget {
         const SingleActivator(LogicalKeyboardKey.digit1, control: true): () =>
             context.go('/study'),
         const SingleActivator(LogicalKeyboardKey.digit2, control: true): () =>
-            context.go('/chat'),
+            act(context, () => _openSubjectChat(context, c)),
         const SingleActivator(LogicalKeyboardKey.digit3, control: true): () =>
             context.go('/mistakes'),
         const SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
@@ -508,7 +550,12 @@ class AppShell extends ConsumerWidget {
                                       .withValues(alpha: .65),
                                   leading: Icon(icons[i], size: 22),
                                   title: Text(labels[i]),
-                                  onTap: () => context.go(paths[i]),
+                                  onTap: i == 1
+                                      ? () => act(
+                                          context,
+                                          () => _openSubjectChat(context, c),
+                                        )
+                                      : () => context.go(paths[i]),
                                 ),
                               ),
                             const Spacer(),
@@ -561,10 +608,20 @@ class AppShell extends ConsumerWidget {
             : NavigationBar(
                 selectedIndex: index,
                 onDestinationSelected: (i) {
+                  if (i == index) return;
+                  final motion = _MainNavigationMotion(index, i);
                   if (i == 1) {
-                    context.push(paths[i]);
+                    act(
+                      context,
+                      () => _openSubjectChat(
+                        context,
+                        c,
+                        push: true,
+                        extra: motion,
+                      ),
+                    );
                   } else {
-                    context.go(paths[i]);
+                    context.go(paths[i], extra: motion);
                   }
                 },
                 destinations: [

@@ -304,7 +304,13 @@ class DashboardScreen extends ConsumerWidget {
                       style: TextButton.styleFrom(
                         minimumSize: const Size(0, 48),
                       ),
-                      onPressed: () => context.go('/chat'),
+                      onPressed: () => act(context, () async {
+                        await c.prepareSubjectChat();
+                        if (context.mounted &&
+                            GoRouter.of(context).state.uri.path == '/study') {
+                          context.go('/chat');
+                        }
+                      }),
                       child: Text(context.l10n.allConversations),
                     ),
                   ],

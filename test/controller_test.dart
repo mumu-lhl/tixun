@@ -109,6 +109,67 @@ void main() {
     expect(c.sessions.length, 3);
     expect(() => c.setSubjectFilter('奥数'), throwsA(isA<FormatException>()));
   });
+  test('Subject chat entry ignores search and preserves an explicit matching session', () async {
+    await c.setSubjectFilter('物理');
+    await c.newSession();
+    final older = c.selected!;
+    await c.newSession();
+    await c.selectSession(older);
+    await c.searchSessions('找不到的标题');
+    expect(c.sessions, isEmpty);
+    await c.prepareSubjectChat();
+    expect(c.selected!.id, older.id);
+    await c.setSubjectFilter('数学');
+    await c.newSession();
+    await c.setSubjectFilter('物理');
+    await c.searchSessions('找不到的标题');
+    await c.prepareSubjectChat();
+    expect(c.selected!.subject, '物理');
+    expect(c.sessions, isEmpty);
+  });
+  test(
+    'Concurrent subject chat entries create only one conversation',
+    () async {
+      await c.setSubjectFilter('物理');
+      await Future.wait([
+        c.prepareSubjectChat(),
+        c.prepareSubjectChat(),
+        c.prepareSubjectChat(),
+      ]);
+      expect(c.selected!.subject, '物理');
+      expect((await c.db.sessions('', '物理')).length, 1);
+    },
+  );
+  test(
+    'All-subject chat entry retains the selected conversation and draft',
+    () async {
+      await c.setSubjectFilter('物理');
+      await c.newSession();
+      await c.draft('未发送的内容');
+      final id = c.selected!.id;
+      await c.setSubjectFilter('');
+      await c.prepareSubjectChat();
+      expect(c.selected!.id, id);
+      expect(c.selected!.draft, '未发送的内容');
+    },
+  );
+  test(
+    'Subject chat entry skips deleted conversations without reclassifying them',
+    () async {
+      await c.setSubjectFilter('物理');
+      await c.newSession();
+      final deleted = c.selected!;
+      await c.deleteSession(deleted);
+      await c.prepareSubjectChat();
+      expect(c.selected!.subject, '物理');
+      expect(c.selected!.id, isNot(deleted.id));
+      final row = await (c.db.select(
+        c.db.chatSessions,
+      )..where((s) => s.id.equals(deleted.id))).getSingle();
+      expect(row.deleted, isTrue);
+      expect(row.subject, '物理');
+    },
+  );
   test('New sessions inherit the global subject filter', () async {
     await c.setSubjectFilter('物理');
     await c.newSession();

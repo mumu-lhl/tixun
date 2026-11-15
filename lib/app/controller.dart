@@ -377,6 +377,41 @@ class AppController extends ChangeNotifier {
     await _loadSession(session);
   }
 
+  Future<void>? _subjectChatPreparation;
+
+  /// Main chat entry follows the subject selected on the study page. Filtering
+  /// alone does not interrupt a conversation, and explicit history/source links
+  /// continue to open the exact session the user selected.
+  Future<void> prepareSubjectChat() async {
+    final pending = _subjectChatPreparation;
+    if (pending != null) return pending;
+    final preparation = _prepareSubjectChat();
+    _subjectChatPreparation = preparation;
+    try {
+      await preparation;
+    } finally {
+      if (identical(_subjectChatPreparation, preparation)) {
+        _subjectChatPreparation = null;
+      }
+    }
+  }
+
+  Future<void> _prepareSubjectChat() async {
+    while (!_disposed) {
+      final subject = subjectFilter;
+      if (subject.isEmpty || selected?.subject == subject) return;
+      // Search text only filters the history list, never the candidate session.
+      final candidates = await db.sessions('', subject);
+      if (_disposed) return;
+      if (subject != subjectFilter) continue;
+      if (candidates.isEmpty) {
+        await newSession();
+      } else {
+        await selectSession(candidates.first);
+      }
+    }
+  }
+
   Future<void> _loadSession(ChatSession session) async {
     final current = ++_epoch;
     final loaded = await Future.wait<Object>([
