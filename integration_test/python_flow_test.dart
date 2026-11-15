@@ -46,10 +46,10 @@ void main() {
       await until(t, () => !c.busy);
       await pending;
       expect(c.messages.last.status, 'complete', reason: c.error?.name);
-      expect(c.messages.last.content, contains('9'));
       final operation = (await c.db.select(c.db.aiToolOperations).get())
           .singleWhere((op) => op.name == 'run_python');
-      expect(operation.status, 'succeeded');
+      expect(operation.status, 'succeeded', reason: operation.result);
+      expect(c.messages.last.content, contains('9'), reason: operation.result);
       expect(operation.result, contains('9'));
       await until(t, () => find.text('Python · 执行完成').evaluate().isNotEmpty);
       final history = find.byKey(

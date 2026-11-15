@@ -120,6 +120,8 @@ add_custom_command(
   COMMAND "${TIXUN_ZIG_EXECUTABLE}" build-exe
     "${CMAKE_CURRENT_SOURCE_DIR}/python_sandbox.zig"
     -O ReleaseFast
+    # Release artifacts must run on machines other than the build host.
+    -mcpu baseline
     "${TIXUN_PYTHON_LIBRARY}"
     -lc
     -rpath "$ORIGIN/../lib"
