@@ -51,14 +51,14 @@ jobs:
       GH_REPO: ${{ github.repository }}
       LINUX_SUFFIX: ${{ needs.verify-and-build.outputs.linux_suffix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: ${{ needs.verify-and-build.outputs.android_artifact }}
           path: downloaded/android
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: ${{ needs.verify-and-build.outputs.linux_artifact }}
           path: downloaded/linux
