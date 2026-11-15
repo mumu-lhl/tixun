@@ -16,6 +16,7 @@ void main() {
     'Real Linux GUI: ask for a figure, card renders, fullscreen opens',
     (tester) async {
       final c = await AppController.open(demo: true);
+      await c.setAiDrawingEnabled(true);
       final container = ProviderContainer(
         overrides: [appControllerProvider.overrideWith((ref) => c)],
       );

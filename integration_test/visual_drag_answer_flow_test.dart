@@ -22,6 +22,7 @@ void main() {
     tester,
   ) async {
     final c = await AppController.open(demo: true);
+    await c.setAiDrawingEnabled(true);
     final container = ProviderContainer(
       overrides: [appControllerProvider.overrideWith((ref) => c)],
     );

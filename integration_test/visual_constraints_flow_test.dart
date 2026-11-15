@@ -72,6 +72,7 @@ void main() {
   testWidgets('Real Linux GUI: a constrained triangle renders; a schematic one '
       'shows the not-to-scale note', (tester) async {
     final c = await AppController.open(demo: true);
+    await c.setAiDrawingEnabled(true);
     final container = ProviderContainer(
       overrides: [appControllerProvider.overrideWith((ref) => c)],
     );

@@ -155,6 +155,9 @@ class LearningRun {
         effectiveMode = 'direct';
         exam = false;
       }
+      // Snapshot the opt-in once per run; disabled requests carry no figure
+      // index, discovery tool or DSL, including in exam mode.
+      final drawingEnabled = await db.preference(aiDrawingEnabledKey) == 'true';
       // Token-budgeted context: older turns are summarized by the model
       // when the budget is exceeded; the recent turns stay verbatim.
       final maxContextTokens = await loadMaxContextTokens(db);
@@ -264,7 +267,10 @@ class LearningRun {
       // on follow-up turns (also after restart). Only index selected history,
       // newest first, with a separate small metadata budget; fetch full DSL
       // with get_visual rather than injecting every scene.
-      if (visual != null && !exam && assistantIds.isNotEmpty) {
+      if (drawingEnabled &&
+          visual != null &&
+          !exam &&
+          assistantIds.isNotEmpty) {
         final query =
             db.select(db.visualScenes).join([
                 innerJoin(
@@ -405,7 +411,10 @@ class LearningRun {
           : '';
       final pythonPolicy = await db.preference(pythonPolicyKey) ?? 'ask';
       final visualTools =
-          quizEnabled && !materialRequest && (exam || visual != null)
+          drawingEnabled &&
+              quizEnabled &&
+              !materialRequest &&
+              (exam || visual != null)
           ? VisualToolset(exam: exam)
           : null;
       if (quizEnabled) {
@@ -415,7 +424,9 @@ class LearningRun {
             if (PythonRuntime.isSupportedPlatform &&
                 ['ask', 'auto'].contains(pythonPolicy))
               pythonToolSchema,
-            if (!materialRequest) ...visualTools?.tools ?? [chatQuizToolSchema],
+            if (!materialRequest)
+              ...visualTools?.tools ??
+                  [textQuizToolSchema(exam: exam, visualsAvailable: false)],
             if (!exam && sourceImages.isNotEmpty && studyTask == null)
               regionToolSchema,
             if (toolsEnabled)
@@ -693,7 +704,7 @@ class LearningRun {
                   runId: runId,
                   cancel: cancel,
                   sourceImages: sourceImages,
-                  visual: visual,
+                  visual: drawingEnabled ? visual : null,
                   exam: exam,
                 )
               : call.name == 'create_visual'

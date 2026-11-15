@@ -5,6 +5,7 @@ import 'quiz_tool.dart';
 import 'visual_schema.dart';
 import 'visual_tool.dart';
 
+const aiDrawingEnabledKey = 'ai_drawing_enabled';
 const enableVisualToolsName = 'enable_visual_tools';
 
 const enableVisualToolsSchema = AiTool(

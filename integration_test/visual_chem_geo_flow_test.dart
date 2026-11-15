@@ -32,6 +32,7 @@ void main() {
     'Real Linux GUI: chemistry molecule and geography profile render',
     (tester) async {
       final c = await AppController.open(demo: true);
+      await c.setAiDrawingEnabled(true);
       final container = ProviderContainer(
         overrides: [appControllerProvider.overrideWith((ref) => c)],
       );

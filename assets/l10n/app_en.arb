@@ -1,5 +1,7 @@
 {
   "@@locale": "en",
+  "aiDrawing": "AI drawing",
+  "aiDrawingHelp": "Off by default. Enable AI-created diagrams, edits and visual questions. When off, no drawing tools, loader or figure index are sent; saved figures remain viewable.",
   "aiQuiz": "AI quiz",
   "aiReferenceAnswerNeedsChecking": "AI reference answer · needs checking",
   "aiMaySearchRelevantKnowledge": "AI may search relevant knowledge and mistakes and read selected material. You must confirm each addition, edit, deletion or link. Search tools do not automatically upload images.",

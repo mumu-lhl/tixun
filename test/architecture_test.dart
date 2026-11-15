@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
+import 'package:tixun/app/preferences.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/ai/prompt_settings.dart';
 import 'package:tixun/core/database/database.dart';
@@ -298,6 +299,11 @@ void main() {
     });
 
     test('Exam uses atomic private figures without exposing teaching tools or solution progress', () async {
+      await AppPreferences(
+        db,
+        MemoryKeyStore(),
+        demo: false,
+      ).setAiDrawingEnabled(true);
       final visual = VisualStore(db);
       addTearDown(visual.dispose);
       final provider = ScriptProvider(

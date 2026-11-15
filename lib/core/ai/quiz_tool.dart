@@ -97,13 +97,17 @@ final chatQuizToolSchema = AiTool(
   },
 );
 
-/// Small initial quiz contract. The model can opt into every visual kind and
-/// its full schemas via enable_visual_tools, including in exam mode.
-AiTool textQuizToolSchema({required bool exam}) {
+/// Small quiz contract. Schema discovery is only mentioned when the user has
+/// enabled drawing; otherwise no figure fields or loading instructions remain.
+AiTool textQuizToolSchema({required bool exam, bool visualsAvailable = true}) {
   final base = exam ? examQuizToolSchema : chatQuizToolSchema;
   final properties = {...(base.parameters['properties'] as Map)}
     ..remove('question_scene')
     ..remove('solution_scene');
+  if (!visualsAvailable) {
+    properties.remove('visual_id');
+    properties.remove('visual_revision');
+  }
   properties['kind'] = {
     'type': 'string',
     'enum': [
@@ -117,7 +121,7 @@ AiTool textQuizToolSchema({required bool exam}) {
   return AiTool(
     name: base.name,
     description:
-        'Create a text or image-based interactive question only when requested, never instead of reference material. Never reveal answers or explanations in chat; provide a complete explanation in the explanation field for after submission. answers lists equivalent answers per response position; each correct multiple-choice option is a separate item. image_indices references the first four input images (0-based). Validation does not verify correctness. For any diagrams or visual question kinds, first call enable_visual_tools to load the full schemas.${exam ? ' Exam mode never references exploration visual IDs.' : ''}',
+        'Create a text or image-based interactive question only when requested, never instead of reference material. Never reveal answers or explanations in chat; provide a complete explanation in the explanation field for after submission. answers lists equivalent answers per response position; each correct multiple-choice option is a separate item. image_indices references the first four input images (0-based). Validation does not verify correctness.${visualsAvailable ? ' For any diagrams or visual question kinds, first call enable_visual_tools to load the full schemas.${exam ? ' Exam mode never references exploration visual IDs.' : ''}' : ''}',
     parameters: {...base.parameters, 'properties': properties},
   );
 }

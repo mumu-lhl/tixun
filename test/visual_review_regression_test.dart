@@ -124,6 +124,7 @@ void main() {
       await root.delete(recursive: true);
     });
     await c.initialize();
+    await c.setAiDrawingEnabled(true);
     await c.newSession();
     return c;
   }

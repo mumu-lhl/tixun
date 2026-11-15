@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
+import 'package:tixun/app/preferences.dart';
+import 'package:tixun/core/ai/visual_toolset.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
@@ -43,6 +45,31 @@ Future<AppController> _open(KeyStore keys) async {
 }
 
 void main() {
+  test(
+    'AI drawing is off by default and opt-in survives preference reload',
+    () async {
+      final c = await _open(MemoryKeyStore());
+      addTearDown(() async {
+        await c.shutdown();
+        await c.files.root.delete(recursive: true);
+      });
+      expect(c.aiDrawingEnabled, false);
+      await c.setAiDrawingEnabled(true);
+      expect(c.aiDrawingEnabled, true);
+      expect(await c.db.preference(aiDrawingEnabledKey), 'true');
+      final reloaded = AppPreferences(c.db, c.keys, demo: false);
+      await reloaded.load();
+      expect(reloaded.aiDrawingEnabled, true);
+      await c.setAiDrawingEnabled(false);
+      await reloaded.load();
+      expect(reloaded.aiDrawingEnabled, false);
+      await c.db.setPreference(aiDrawingEnabledKey, 'invalid');
+      await reloaded.load();
+      expect(reloaded.aiDrawingEnabled, false);
+      reloaded.dispose();
+    },
+  );
+
   test('saveSettings persists config before rotating the key', () async {
     final keys = MemoryKeyStore();
     final c = await _open(keys);

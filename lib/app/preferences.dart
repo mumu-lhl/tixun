@@ -10,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/ai/chat_provider.dart';
 import '../core/ai/context_compactor.dart';
 import '../core/ai/prompt_settings.dart';
+import '../core/ai/visual_toolset.dart' show aiDrawingEnabledKey;
 import '../core/database/database.dart';
 import '../core/database/database_notifier.dart';
 import '../core/l10n/app_strings.dart';
@@ -38,6 +39,7 @@ class AppPreferences extends DatabaseNotifier {
   set prompts(PromptSettings value) => _prompts = value;
   String languageChoice = 'zh';
   bool dynamicColors = true;
+  bool aiDrawingEnabled = false;
   Locale? get appLocale =>
       languageChoice == 'system' ? null : Locale(languageChoice);
   String get promptLanguage => languageChoice == 'system'
@@ -48,6 +50,7 @@ class AppPreferences extends DatabaseNotifier {
   Future<void> load() async {
     config = await db.config();
     maxContextTokens = await loadMaxContextTokens(db);
+    aiDrawingEnabled = await db.preference(aiDrawingEnabledKey) == 'true';
     await loadSubjects();
     final language = await db.preference('app_language') ?? 'zh';
     languageChoice = ['zh', 'en', 'system'].contains(language)
@@ -145,6 +148,12 @@ class AppPreferences extends DatabaseNotifier {
   Future<void> setDynamicColors(bool value) => runOperation(() async {
     await db.setPreference('dynamic_colors', value.toString());
     dynamicColors = value;
+    changed();
+  });
+
+  Future<void> setAiDrawingEnabled(bool value) => runOperation(() async {
+    await db.setPreference(aiDrawingEnabledKey, value.toString());
+    aiDrawingEnabled = value;
     changed();
   });
 

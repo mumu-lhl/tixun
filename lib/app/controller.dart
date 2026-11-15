@@ -99,6 +99,9 @@ class AppController extends ChangeNotifier {
   Set<StudyToolCategory> studyToolCategories = allStudyToolCategories;
   String get languageChoice => preferences.languageChoice;
   bool get dynamicColors => preferences.dynamicColors;
+  bool get aiDrawingEnabled => preferences.aiDrawingEnabled;
+  Future<void> setAiDrawingEnabled(bool value) =>
+      preferences.setAiDrawingEnabled(value);
   int get maxContextTokens => preferences.maxContextTokens;
   Future<void> setMaxContextTokens(int value) =>
       preferences.setMaxContextTokens(value);

@@ -130,6 +130,15 @@ class SettingsScreen extends ConsumerWidget {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.push('/settings/prompts'),
                     ),
+                    SwitchListTile(
+                      key: const Key('settings-ai-drawing'),
+                      secondary: const _SettingsIcon(Icons.draw_outlined),
+                      title: Text(context.l10n.aiDrawing),
+                      subtitle: Text(context.l10n.aiDrawingHelp),
+                      value: c.aiDrawingEnabled,
+                      onChanged: (value) =>
+                          act(context, () => c.setAiDrawingEnabled(value)),
+                    ),
                     ListTile(
                       key: const Key('settings-python'),
                       leading: const _SettingsIcon(Icons.code),

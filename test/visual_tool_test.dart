@@ -613,6 +613,7 @@ void main() {
         await root.delete(recursive: true);
       });
       await c.initialize();
+      await c.setAiDrawingEnabled(true);
       await c.newSession();
       // Pin the prompt language so the run's closing text is deterministic
       // (the test host locale decides the default otherwise).
@@ -647,6 +648,7 @@ void main() {
         await root.delete(recursive: true);
       });
       await c.initialize();
+      await c.setAiDrawingEnabled(true);
       await c.newSession();
       c.prompts = c.prompts.withLanguage('zh');
       await c.send('请画图，画出 y = x^2 的函数图');
@@ -700,6 +702,7 @@ void main() {
         await root.delete(recursive: true);
       });
       await c.initialize();
+      await c.setAiDrawingEnabled(true);
       await c.newSession();
       await c.send('请画图，画出 y = x^2 的函数图');
       final id = (await c.db.select(c.db.visualScenes).get()).single.id;

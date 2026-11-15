@@ -41,7 +41,7 @@ const _load = AiChunk(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Future<AppController> open(_Provider provider) async {
+  Future<AppController> open(_Provider provider, {bool drawing = true}) async {
     final root = await Directory.systemTemp.createTemp('prompt-cost');
     final c = AppController(
       AppDatabase.memory(),
@@ -54,10 +54,137 @@ void main() {
       await root.delete(recursive: true);
     });
     await c.initialize();
+    if (drawing) await c.setAiDrawingEnabled(true);
     c.prompts = c.prompts.withLanguage('zh');
     await c.newSession();
     return c;
   }
+
+  for (final exam in [false, true]) {
+    test('drawing is opt-in with no protocol or index (exam=$exam)', () async {
+      final provider = _Provider((_, _) => _done);
+      final c = await open(provider, drawing: false);
+      if (exam) await c.mode('exam');
+      await c.send('请画图并出一道题');
+      final request = provider.requests.single;
+      expect(c.aiDrawingEnabled, false);
+      expect(
+        request.tools.map((t) => t.name),
+        isNot(contains(enableVisualToolsName)),
+      );
+      final payload = jsonEncode(encodeCompletion(c.config, request));
+      for (final field in [
+        'enable_visual_tools',
+        'create_visual',
+        'update_visual',
+        'get_visual',
+        'question_scene',
+        'solution_scene',
+        'visual_id',
+        'visual_revision',
+        'Saved visual index',
+      ]) {
+        expect(payload, isNot(contains(field)));
+      }
+      expect(request.instructions, isNot(contains(visualDslInstructions)));
+      final quiz = request.tools.singleWhere((t) => t.name == 'create_quiz');
+      expect(
+        (quiz.parameters['properties'] as Map)['kind']['enum'],
+        isNot(contains('point_select')),
+      );
+    });
+
+    test(
+      'disabled drawing rejects hidden quiz scene arguments (exam=$exam)',
+      () async {
+        final provider = _Provider(
+          (_, turn) => turn == 1
+              ? AiChunk(
+                  completed: true,
+                  calls: [
+                    ToolCall(
+                      'quiz',
+                      'create_quiz',
+                      jsonEncode({
+                        'kind': 'numeric',
+                        'stem': '2+2',
+                        'subject': '数学',
+                        'answers': [
+                          ['4'],
+                        ],
+                        'explanation': '相加得4',
+                        'question_scene': visualDslExamples.first,
+                      }),
+                    ),
+                  ],
+                )
+              : _done,
+        );
+        final c = await open(provider, drawing: false);
+        if (exam) await c.mode('exam');
+        await c.send('请出题');
+        final result =
+            jsonDecode(provider.requests.last.messages.last.text) as Map;
+        expect(result['ok'], false);
+        expect(await c.db.select(c.db.practiceQuestions).get(), isEmpty);
+        expect(await c.db.select(c.db.visualScenes).get(), isEmpty);
+      },
+    );
+  }
+
+  test('disabled drawing rejects the loader before execution', () async {
+    final provider = _Provider((_, _) => _load);
+    final c = await open(provider, drawing: false);
+    await c.send('请画图');
+    expect(c.messages.last.status, 'error');
+    expect(provider.requests, hasLength(1));
+    expect(await c.db.select(c.db.visualScenes).get(), isEmpty);
+  });
+
+  test(
+    'turning drawing off removes saved indices without altering history',
+    () async {
+      final provider = _Provider((_, _) => _done);
+      final c = await open(provider);
+      await c.send('解释导数');
+      final source = c.messages.last;
+      final scene = await c.visual.create(
+        sceneJson: jsonEncode(visualDslExamples.first),
+        messageId: source.id,
+        title: 'SAVED_FIGURE_TITLE',
+      );
+      final originals = await c.db.select(c.db.chatMessages).get();
+      await c.send('继续');
+      expect(
+        provider.requests.last.messages.last.text,
+        contains('SAVED_FIGURE_TITLE'),
+      );
+      await c.setAiDrawingEnabled(false);
+      await c.send('再继续');
+      final request = provider.requests.last;
+      expect(
+        request.messages.map((m) => m.text).join(),
+        isNot(contains('Saved visual index')),
+      );
+      expect(
+        request.messages.map((m) => m.text).join(),
+        isNot(contains('SAVED_FIGURE_TITLE')),
+      );
+      expect(request.messages[1].text, source.content);
+      final stored = await c.db.select(c.db.chatMessages).get();
+      for (final original in originals) {
+        final current = stored.singleWhere((m) => m.id == original.id);
+        expect(current.content, original.content);
+        expect(current.role, original.role);
+      }
+      expect(stored.where((m) => m.role == 'user').map((m) => m.content), [
+        '解释导数',
+        '继续',
+        '再继续',
+      ]);
+      expect(await c.visual.get(scene), isNotNull);
+    },
+  );
 
   test(
     'ordinary requests omit large visual schemas and DSL examples',
