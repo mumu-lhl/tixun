@@ -1,7 +1,12 @@
 {
   "@@locale": "en",
+  "chatDrawingEnabled": "Drawing on for this chat",
+  "chatDrawingDisabled": "Drawing off for this chat",
+  "chatDrawingHelp": "Applies only to this chat, without changing global settings. Resets to the global default after restarting the app. Unavailable while generating.",
+  "enableDrawingForThisChat": "Temporarily enable drawing",
+  "disableDrawingForThisChat": "Temporarily disable drawing",
   "aiDrawing": "AI drawing",
-  "aiDrawingHelp": "Off by default. Enable AI-created diagrams, edits and visual questions. When off, no drawing tools, loader or figure index are sent; saved figures remain viewable.",
+  "aiDrawingHelp": "Off globally by default; chats can temporarily override it. Drawing enables AI-created diagrams, edits and visual questions. When off, no drawing tools, loader or figure index are sent; saved figures remain viewable.",
   "aiQuiz": "AI quiz",
   "aiReferenceAnswerNeedsChecking": "AI reference answer · needs checking",
   "aiMaySearchRelevantKnowledge": "AI may search relevant knowledge and mistakes and read selected material. You must confirm each addition, edit, deletion or link. Search tools do not automatically upload images.",

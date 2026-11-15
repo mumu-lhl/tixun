@@ -23,6 +23,7 @@ import '../library/image_editor.dart';
 import '../practice/question_card.dart';
 import 'message_visuals.dart';
 import 'reasoning_menu.dart';
+import 'drawing_menu.dart';
 import 'message_reasoning.dart';
 import 'chat_failure.dart';
 import 'session_list.dart';
@@ -940,6 +941,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.center,
                                     children: [
+                                      const DrawingMenu(),
                                       Expanded(
                                         child: TextField(
                                           key: const Key('chat-input'),

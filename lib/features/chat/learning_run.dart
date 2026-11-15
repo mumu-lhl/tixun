@@ -94,6 +94,7 @@ class LearningRun {
     required String mode,
     required bool authorized,
     bool enableConversationTitle = false,
+    bool? drawingOverride,
     required CancelToken cancel,
     required Future<bool> Function(
       String name,
@@ -157,7 +158,9 @@ class LearningRun {
       }
       // Snapshot the opt-in once per run; disabled requests carry no figure
       // index, discovery tool or DSL, including in exam mode.
-      final drawingEnabled = await db.preference(aiDrawingEnabledKey) == 'true';
+      final drawingEnabled =
+          drawingOverride ??
+          (await db.preference(aiDrawingEnabledKey) == 'true');
       // Token-budgeted context: older turns are summarized by the model
       // when the budget is exceeded; the recent turns stay verbatim.
       final maxContextTokens = await loadMaxContextTokens(db);

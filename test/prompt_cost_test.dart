@@ -187,6 +187,152 @@ void main() {
   );
 
   test(
+    'chat drawing override enables discovery without changing defaults',
+    () async {
+      late AppController c;
+      final provider = _Provider((_, _) {
+        expect(c.busy, true);
+        c.setSessionDrawingEnabled(
+          false,
+        ); // A running request cannot change policy.
+        return _done;
+      });
+      c = await open(provider, drawing: false);
+      c.setSessionDrawingEnabled(true);
+      await c.send('解释导数');
+      expect(c.sessionDrawingOverride, true);
+      expect(c.aiDrawingEnabled, false);
+      expect(await c.db.preference(aiDrawingEnabledKey), isNull);
+      expect(
+        provider.requests.single.tools.map((t) => t.name),
+        contains(enableVisualToolsName),
+      );
+      c.setSessionDrawingEnabled(false);
+      expect(c.sessionDrawingEnabled, false);
+    },
+  );
+
+  test(
+    'chat drawing off suppresses global drawing protocol and hidden scenes',
+    () async {
+      final provider = _Provider(
+        (_, turn) => turn == 1
+            ? AiChunk(
+                completed: true,
+                calls: [
+                  ToolCall(
+                    'quiz',
+                    'create_quiz',
+                    jsonEncode({
+                      'kind': 'numeric',
+                      'stem': '2+2',
+                      'subject': '数学',
+                      'answers': [
+                        ['4'],
+                      ],
+                      'explanation': '相加得4',
+                      'question_scene': visualDslExamples.first,
+                    }),
+                  ),
+                ],
+              )
+            : _done,
+      );
+      final c = await open(provider);
+      c.setSessionDrawingEnabled(false);
+      await c.send('请画图并出题');
+      final request = provider.requests.first;
+      expect(
+        request.tools.map((t) => t.name),
+        isNot(contains(enableVisualToolsName)),
+      );
+      final quiz = request.tools.singleWhere((t) => t.name == 'create_quiz');
+      expect(quiz.parameters['properties'], isNot(contains('visual_id')));
+      final result =
+          jsonDecode(provider.requests.last.messages.last.text) as Map;
+      expect(result['ok'], false);
+      expect(await c.db.select(c.db.practiceQuestions).get(), isEmpty);
+      expect(await c.db.select(c.db.visualScenes).get(), isEmpty);
+      expect(c.aiDrawingEnabled, true);
+      expect(await c.db.preference(aiDrawingEnabledKey), 'true');
+    },
+  );
+
+  test(
+    'chat drawing choice is isolated and follow-default stays live',
+    () async {
+      final provider = _Provider((_, _) => _done);
+      final c = await open(provider, drawing: false);
+      final first = c.selected!;
+      c.setSessionDrawingEnabled(true);
+      await c.newSession();
+      expect(c.sessionDrawingOverride, isNull);
+      expect(c.sessionDrawingEnabled, false);
+      await c.send('解释导数');
+      expect(
+        provider.requests.last.tools.map((t) => t.name),
+        isNot(contains(enableVisualToolsName)),
+      );
+      await c.setAiDrawingEnabled(true);
+      expect(c.sessionDrawingEnabled, true);
+      c.setSessionDrawingEnabled(false);
+      await c.send('继续');
+      expect(
+        provider.requests.last.tools.map((t) => t.name),
+        isNot(contains(enableVisualToolsName)),
+      );
+      await c.selectSession(first);
+      expect(c.sessionDrawingOverride, true);
+      await c.setAiDrawingEnabled(false);
+      expect(c.sessionDrawingEnabled, true);
+      c.setSessionDrawingEnabled(null);
+      expect(c.sessionDrawingOverride, isNull);
+      expect(c.sessionDrawingEnabled, false);
+      await c.setAiDrawingEnabled(true);
+      expect(c.sessionDrawingEnabled, true);
+      await c.send('继续');
+      expect(
+        provider.requests.last.tools.map((t) => t.name),
+        contains(enableVisualToolsName),
+      );
+    },
+  );
+
+  test(
+    'chat drawing overrides disappear after restarting the controller',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'chat-drawing-restart',
+      );
+      AppController? active;
+      addTearDown(() async {
+        await active?.shutdown();
+        await root.delete(recursive: true);
+      });
+      Future<AppController> reopen() => AppController.openRoot(
+        root,
+        demo: false,
+        seed: false,
+        keyStore: MemoryKeyStore(),
+        chatProvider: _Provider((_, _) => _done),
+      );
+      active = await reopen();
+      await active.newSession();
+      await active.setAiDrawingEnabled(true);
+      active.setSessionDrawingEnabled(false);
+      final session = active.selected!.id;
+      expect(active.sessionDrawingEnabled, false);
+      await active.shutdown();
+      active = null;
+      active = await reopen();
+      expect(active.selected!.id, session);
+      expect(active.aiDrawingEnabled, true);
+      expect(active.sessionDrawingOverride, isNull);
+      expect(active.sessionDrawingEnabled, true);
+    },
+  );
+
+  test(
     'ordinary requests omit large visual schemas and DSL examples',
     () async {
       final provider = _Provider((_, _) => _done);

@@ -102,6 +102,23 @@ class AppController extends ChangeNotifier {
   bool get aiDrawingEnabled => preferences.aiDrawingEnabled;
   Future<void> setAiDrawingEnabled(bool value) =>
       preferences.setAiDrawingEnabled(value);
+
+  // Temporary overrides belong to this controller lifetime, not preferences
+  // or message history. Switching chats preserves each chat's own choice.
+  final Map<String, bool> _sessionDrawingOverrides = {};
+  bool? get sessionDrawingOverride => _sessionDrawingOverrides[selected?.id];
+  bool get sessionDrawingEnabled => sessionDrawingOverride ?? aiDrawingEnabled;
+  void setSessionDrawingEnabled(bool? value) {
+    final id = selected?.id;
+    if (_disposed || busy || id == null) return;
+    if (value == null) {
+      _sessionDrawingOverrides.remove(id);
+    } else {
+      _sessionDrawingOverrides[id] = value;
+    }
+    changed();
+  }
+
   int get maxContextTokens => preferences.maxContextTokens;
   Future<void> setMaxContextTokens(int value) =>
       preferences.setMaxContextTokens(value);
@@ -490,6 +507,7 @@ class AppController extends ChangeNotifier {
       await (db.delete(db.chatSessions)..where((s) => s.id.equals(id))).go();
       await db.setPreference('practice_parent:$id', '');
     });
+    _sessionDrawingOverrides.remove(id);
     final failed = await cleanupPurgedAttachments(db, files, paths);
     practice.changed();
     study.changed();
@@ -1022,6 +1040,7 @@ class AppController extends ChangeNotifier {
     final titleBeforeGeneration = selected?.title;
     final requestConfig = sessionConfig;
     final requestPrompts = prompts;
+    final requestDrawingEnabled = sessionDrawingEnabled;
     var text = '';
     var status = 'complete';
     String? failure;
@@ -1056,6 +1075,7 @@ class AppController extends ChangeNotifier {
         mode: selected!.mode,
         authorized: selected!.toolsEnabled,
         enableConversationTitle: enableConversationTitle,
+        drawingOverride: requestDrawingEnabled,
         cancel: cancel,
         confirm: (name, args, count) =>
             _confirmTool(name, args, cancel, imageCount: count),
