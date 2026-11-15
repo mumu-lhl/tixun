@@ -47,6 +47,10 @@ class NativeGuiPolicyTests(unittest.TestCase):
         inputs = re.search(r'    with:\n(.*?)    secrets:', release, re.S).group(1)
         self.assertIn('run_gui: false', inputs)
         self.assertNotIn('run_tests:', inputs)
+        nightly = (WORKFLOW.parent / 'nightly.yml').read_text()
+        nightly_inputs = re.search(r'    with:\n(.*?)    secrets:', nightly, re.S).group(1)
+        self.assertIn('run_gui: false', nightly_inputs)
+        self.assertIn('run_tests: false', nightly_inputs)
         source = WORKFLOW.read_text()
         for name in ('Verify bubblewrap user namespaces',
                      'Run complete native GUI regressions'):
