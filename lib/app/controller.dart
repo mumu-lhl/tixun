@@ -104,20 +104,16 @@ class AppController extends ChangeNotifier {
   Future<void> setAiDrawingEnabled(bool value) =>
       preferences.setAiDrawingEnabled(value);
 
-  // Temporary overrides belong to this controller lifetime, not preferences
-  // or message history. Switching chats preserves each chat's own choice.
-  final Map<String, bool> _sessionDrawingOverrides = {};
-  bool? get sessionDrawingOverride => _sessionDrawingOverrides[selected?.id];
+  bool? sessionDrawingOverride;
   bool get sessionDrawingEnabled => sessionDrawingOverride ?? aiDrawingEnabled;
-  void setSessionDrawingEnabled(bool? value) {
+  Future<void> setSessionDrawingEnabled(bool? value) {
     final id = selected?.id;
-    if (_disposed || busy || id == null) return;
-    if (value == null) {
-      _sessionDrawingOverrides.remove(id);
-    } else {
-      _sessionDrawingOverrides[id] = value;
-    }
+    if (_disposed || busy || id == null) return Future.value();
+    sessionDrawingOverride = value;
     changed();
+    return preferences.runOperation(
+      () => db.setPreference('ai_drawing:$id', value?.toString() ?? ''),
+    );
   }
 
   int get maxToolCalls => preferences.maxToolCalls;
@@ -425,6 +421,7 @@ class AppController extends ChangeNotifier {
       db
           .preference(studyToolCategoriesKey(session.id))
           .then((v) => readStudyToolCategories(v)),
+      db.preference('ai_drawing:${session.id}').then((v) => v ?? ''),
     ]);
     if (_epoch != current) return;
     final row = await (db.select(
@@ -438,6 +435,11 @@ class AppController extends ChangeNotifier {
     attachments = loaded[1] as List<Attachment>;
     final override = loaded[2] as String;
     studyToolCategories = loaded[3] as Set<StudyToolCategory>;
+    sessionDrawingOverride = switch (loaded[4]) {
+      'true' => true,
+      'false' => false,
+      _ => null,
+    };
     sessionReasoning = AiOptions(config).supportsOverride(override)
         ? override
         : '';
@@ -546,7 +548,7 @@ class AppController extends ChangeNotifier {
       await (db.delete(db.chatSessions)..where((s) => s.id.equals(id))).go();
       await db.setPreference('practice_parent:$id', '');
     });
-    _sessionDrawingOverrides.remove(id);
+
     final failed = await cleanupPurgedAttachments(db, files, paths);
     practice.changed();
     study.changed();
@@ -1564,8 +1566,6 @@ class AppController extends ChangeNotifier {
           editedText: editedText,
           inheritStudyLinks: inheritStudyLinks,
         );
-    final drawing = _sessionDrawingOverrides[parent.id];
-    if (drawing != null) _sessionDrawingOverrides[branch.id] = drawing;
     await _loadSession(branch);
     search = '';
     await reload();

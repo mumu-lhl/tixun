@@ -24,6 +24,10 @@ import 'study_images.dart';
 import 'study_photo_intake.dart';
 import 'study_store.dart';
 
+// Keep only a few first pages per store; full records and image bytes stay on disk.
+final _libraryCache = Expando<Map<Object, List<_Entry>>>();
+final _libraryRequests = Expando<Map<Object, Object>>();
+
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({required this.isMistake, this.initialModule, super.key});
   final bool isMistake;
@@ -75,6 +79,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   List<_Entry> _visible = [];
   Timer? _debounce;
   Future<List<_Entry>>? _future;
+  List<_Entry>? _cached;
   final _searchController = TextEditingController();
   @override
   void dispose() {
@@ -532,11 +537,48 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (_epoch != store.epoch) {
       _epoch = store.epoch;
       _extra.clear();
-      _visible = [];
+      final key = (widget.isMistake, _query, _moduleId, subjectFilter, _trash);
+      final cache = _libraryCache[store] ??= {};
+      _cached = cache.remove(key);
+      if (_cached != null) cache[key] = _cached!;
+      _visible = _cached ?? [];
       _nextOffset = 100;
       _hasMore = true;
       _selected.clear();
-      _future = _load(store);
+      final requests = _libraryRequests[store] ??= {};
+      final request = Object();
+      requests[key] = request;
+      _future = _load(store).then(
+        (entries) {
+          if (identical(requests[key], request)) {
+            requests.remove(key);
+            cache.remove(key);
+            cache[key] = entries
+                .map(
+                  (e) => _Entry(
+                    e.id,
+                    e.title,
+                    e.subject,
+                    e.chapter,
+                    e.preview.length > 1000
+                        ? String.fromCharCodes(e.preview.runes.take(500))
+                        : e.preview,
+                    e.badge,
+                    e.revision,
+                  ),
+                )
+                .toList();
+            while (cache.length > 4) {
+              cache.remove(cache.keys.first);
+            }
+          }
+          return entries;
+        },
+        onError: (Object error, StackTrace stack) {
+          if (identical(requests[key], request)) requests.remove(key);
+          Error.throwWithStackTrace(error, stack);
+        },
+      );
     }
     final small = MediaQuery.sizeOf(context).width < 700;
     return Column(
@@ -853,252 +895,275 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         Expanded(
           child: FutureBuilder<List<_Entry>>(
             future: _future,
+            initialData: _cached,
             builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(
-                  child: TextButton.icon(
-                    onPressed: _refresh,
-                    icon: const Icon(Icons.refresh),
-                    label: Text(context.l10n.couldNotLoadTapTo),
-                  ),
-                );
-              }
-              if (!snapshot.hasData ||
-                  snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final entries = [...snapshot.data!, ..._extra];
-              _visible = entries;
-              final canLoadMore = snapshot.data!.length == 100 && _hasMore;
-              final hasFilters = _query.isNotEmpty || _moduleId.isNotEmpty;
-              if (entries.isEmpty) {
-                // Scrollable so the empty state fits short screens
-                // (the shell subject bar takes 48px of height).
-                return Center(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(28),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            widget.isMistake
-                                ? Icons.menu_book_outlined
-                                : Icons.bookmarks_outlined,
-                            size: 40,
-                            color: colors.primary,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _trash && !hasFilters
-                                ? context.l10n.trashIsEmpty
-                                : hasFilters
-                                ? context.l10n.noMatchingMaterial
-                                : context.l10n.startWith(
-                                    l10nArgument(
-                                      (widget.isMistake
-                                          ? context.l10n.aMistake
-                                          : context.l10n.aKnowledgePoint),
-                                    ),
-                                  ),
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            hasFilters
-                                ? context.l10n.tryAnotherKeywordOrClear
-                                : _trash
-                                ? context.l10n.deletedMaterialCanBeRestored
-                                : widget.isMistake
-                                ? context.l10n.importAndCropAQuestion
-                                : context.l10n.writeDownYourUnderstandingWith,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: colors.onSurfaceVariant,
-                              height: 1.8,
-                            ),
-                          ),
-                          if (subjectFilter.isNotEmpty) ...[
-                            Text(
-                              context.l10n.currentSubject(
-                                l10nArgument(
-                                  context.subjectName(subjectFilter),
-                                ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () => act(context, () async {
-                                await ref
-                                    .read(appControllerProvider)
-                                    .setSubjectFilter('');
-                              }),
-                              child: Text(context.l10n.clearSubjectFilter),
-                            ),
-                          ],
-                          if (hasFilters)
-                            TextButton.icon(
-                              key: const Key('clear-empty-library-filters'),
-                              onPressed: () => act(context, () async {
-                                _debounce?.cancel();
-                                _searchController.clear();
-                                ref
-                                        .read(
-                                          libraryModuleFilterProvider(
-                                            widget.isMistake,
-                                          ).notifier,
-                                        )
-                                        .state =
-                                    '';
-                                setState(() {
-                                  _query = '';
-                                  _moduleId = '';
-                                  _epoch = -1;
-                                });
-                              }),
-                              icon: const Icon(Icons.filter_alt_off_outlined),
-                              label: Text(context.l10n.clearFilters),
-                            ),
-                          if (!_trash)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 20),
-                              child: OutlinedButton(
-                                onPressed: _importing
-                                    ? null
-                                    : () => act(
-                                        context,
-                                        widget.isMistake
-                                            ? _pickMistakePhotos
-                                            : _create,
-                                      ),
-                                child: Text(
-                                  widget.isMistake
-                                      ? context.l10n.importPhotos
-                                      : context.l10n.newKnowledge,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
-              return ListView.separated(
-                padding: EdgeInsets.symmetric(
-                  horizontal: small ? 12 : 28,
-                  vertical: 8,
-                ),
-                itemCount: entries.length + (canLoadMore ? 1 : 0),
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  if (index == entries.length) {
-                    return Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: TextButton(
-                        onPressed: _loadingMore
-                            ? null
-                            : () => act(context, _more),
-                        child: Text(
-                          _loadingMore
-                              ? context.l10n.loading
-                              : context.l10n.loadMore,
-                        ),
-                      ),
-                    );
-                  }
-                  final e = entries[index];
-                  return Card(
-                    key: ValueKey('card-${e.id}'),
-                    margin: EdgeInsets.zero,
-                    clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      key: ValueKey(e.id),
-                      selected: _selected.containsKey(e.id),
-                      leading: _selecting
-                          ? Checkbox(
-                              value: _selected.containsKey(e.id),
-                              onChanged: _bulkBusy ? null : (_) => _toggle(e),
-                            )
-                          : Icon(
-                              widget.isMistake
-                                  ? Icons.error_outline
-                                  : Icons.lightbulb_outline,
-                              color: widget.isMistake
-                                  ? colors.tertiary
-                                  : colors.primary,
-                            ),
-                      onLongPress: () => _toggle(e),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      title: Text(
-                        e.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${e.subject}${e.chapter.isEmpty ? '' : ' · ${e.chapter}'}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: colors.primary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            if (e.badge.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  e.badge,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: colors.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            if (e.preview.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 5),
-                                child: SearchSnippet(e.preview, _query),
-                              ),
-                          ],
-                        ),
-                      ),
-                      trailing: _selecting
-                          ? null
-                          : _trash
-                          ? TextButton(
-                              onPressed: () => act(
-                                context,
-                                () => store.setDeleted(
-                                  e.id,
-                                  isMistake: widget.isMistake,
-                                  deleted: false,
-                                  expectedRevision: e.revision,
-                                ),
-                              ),
-                              child: Text(context.l10n.restore),
-                            )
-                          : const Icon(Icons.chevron_right),
-                      onTap: _selecting
-                          ? () => _toggle(e)
-                          : _trash
-                          ? null
-                          : () => context.push(
-                              '${widget.isMistake ? '/mistakes' : '/knowledge'}/${e.id}',
-                            ),
+              Widget content() {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: TextButton.icon(
+                      onPressed: _refresh,
+                      icon: const Icon(Icons.refresh),
+                      label: Text(context.l10n.couldNotLoadTapTo),
                     ),
                   );
-                },
+                }
+                if (!snapshot.hasData) {
+                  return const SizedBox.expand();
+                }
+                // FutureBuilder retains the previous future's result when filters
+                // change; only use it when it belongs to the current query.
+                final base = snapshot.connectionState == ConnectionState.waiting
+                    ? _cached
+                    : snapshot.data;
+                if (base == null) return const SizedBox.expand();
+                final entries = [...base, ..._extra];
+                _visible = entries;
+                final canLoadMore = base.length == 100 && _hasMore;
+                final hasFilters = _query.isNotEmpty || _moduleId.isNotEmpty;
+                if (entries.isEmpty) {
+                  // Scrollable so the empty state fits short screens
+                  // (the shell subject bar takes 48px of height).
+                  return Center(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(28),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              widget.isMistake
+                                  ? Icons.menu_book_outlined
+                                  : Icons.bookmarks_outlined,
+                              size: 40,
+                              color: colors.primary,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _trash && !hasFilters
+                                  ? context.l10n.trashIsEmpty
+                                  : hasFilters
+                                  ? context.l10n.noMatchingMaterial
+                                  : context.l10n.startWith(
+                                      l10nArgument(
+                                        (widget.isMistake
+                                            ? context.l10n.aMistake
+                                            : context.l10n.aKnowledgePoint),
+                                      ),
+                                    ),
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              hasFilters
+                                  ? context.l10n.tryAnotherKeywordOrClear
+                                  : _trash
+                                  ? context.l10n.deletedMaterialCanBeRestored
+                                  : widget.isMistake
+                                  ? context.l10n.importAndCropAQuestion
+                                  : context.l10n.writeDownYourUnderstandingWith,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: colors.onSurfaceVariant,
+                                height: 1.8,
+                              ),
+                            ),
+                            if (subjectFilter.isNotEmpty) ...[
+                              Text(
+                                context.l10n.currentSubject(
+                                  l10nArgument(
+                                    context.subjectName(subjectFilter),
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => act(context, () async {
+                                  await ref
+                                      .read(appControllerProvider)
+                                      .setSubjectFilter('');
+                                }),
+                                child: Text(context.l10n.clearSubjectFilter),
+                              ),
+                            ],
+                            if (hasFilters)
+                              TextButton.icon(
+                                key: const Key('clear-empty-library-filters'),
+                                onPressed: () => act(context, () async {
+                                  _debounce?.cancel();
+                                  _searchController.clear();
+                                  ref
+                                          .read(
+                                            libraryModuleFilterProvider(
+                                              widget.isMistake,
+                                            ).notifier,
+                                          )
+                                          .state =
+                                      '';
+                                  setState(() {
+                                    _query = '';
+                                    _moduleId = '';
+                                    _epoch = -1;
+                                  });
+                                }),
+                                icon: const Icon(Icons.filter_alt_off_outlined),
+                                label: Text(context.l10n.clearFilters),
+                              ),
+                            if (!_trash)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 20),
+                                child: OutlinedButton(
+                                  onPressed: _importing
+                                      ? null
+                                      : () => act(
+                                          context,
+                                          widget.isMistake
+                                              ? _pickMistakePhotos
+                                              : _create,
+                                        ),
+                                  child: Text(
+                                    widget.isMistake
+                                        ? context.l10n.importPhotos
+                                        : context.l10n.newKnowledge,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: small ? 12 : 28,
+                    vertical: 8,
+                  ),
+                  itemCount: entries.length + (canLoadMore ? 1 : 0),
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    if (index == entries.length) {
+                      return Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: TextButton(
+                          onPressed: _loadingMore
+                              ? null
+                              : () => act(context, _more),
+                          child: Text(
+                            _loadingMore
+                                ? context.l10n.loading
+                                : context.l10n.loadMore,
+                          ),
+                        ),
+                      );
+                    }
+                    final e = entries[index];
+                    return Card(
+                      key: ValueKey('card-${e.id}'),
+                      margin: EdgeInsets.zero,
+                      clipBehavior: Clip.antiAlias,
+                      child: ListTile(
+                        key: ValueKey(e.id),
+                        selected: _selected.containsKey(e.id),
+                        leading: _selecting
+                            ? Checkbox(
+                                value: _selected.containsKey(e.id),
+                                onChanged: _bulkBusy ? null : (_) => _toggle(e),
+                              )
+                            : Icon(
+                                widget.isMistake
+                                    ? Icons.error_outline
+                                    : Icons.lightbulb_outline,
+                                color: widget.isMistake
+                                    ? colors.tertiary
+                                    : colors.primary,
+                              ),
+                        onLongPress: () => _toggle(e),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        title: Text(
+                          e.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${e.subject}${e.chapter.isEmpty ? '' : ' · ${e.chapter}'}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: colors.primary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (e.badge.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    e.badge,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: colors.onSurfaceVariant,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              if (e.preview.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 5),
+                                  child: SearchSnippet(e.preview, _query),
+                                ),
+                            ],
+                          ),
+                        ),
+                        trailing: _selecting
+                            ? null
+                            : _trash
+                            ? TextButton(
+                                onPressed: () => act(
+                                  context,
+                                  () => store.setDeleted(
+                                    e.id,
+                                    isMistake: widget.isMistake,
+                                    deleted: false,
+                                    expectedRevision: e.revision,
+                                  ),
+                                ),
+                                child: Text(context.l10n.restore),
+                              )
+                            : const Icon(Icons.chevron_right),
+                        onTap: _selecting
+                            ? () => _toggle(e)
+                            : _trash
+                            ? null
+                            : () => context.push(
+                                '${widget.isMistake ? '/mistakes' : '/knowledge'}/${e.id}',
+                              ),
+                      ),
+                    );
+                  },
+                );
+              }
+
+              final shown = snapshot.connectionState == ConnectionState.waiting
+                  ? _cached
+                  : snapshot.data;
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: KeyedSubtree(
+                  key: ValueKey((
+                    snapshot.hasError,
+                    shown?.map((e) => e.id).join('|'),
+                    _extra.map((e) => e.id).join('|'),
+                  )),
+                  child: content(),
+                ),
               );
             },
           ),

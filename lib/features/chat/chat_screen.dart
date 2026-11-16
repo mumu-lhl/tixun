@@ -165,7 +165,9 @@ class ChatScreen extends ConsumerWidget {
                         child: const Icon(Icons.more_vert),
                       ),
                       onSelected: (action) {
-                        if (handleDrawingMenuSelection(c, action)) return;
+                        if (handleDrawingMenuSelection(context, c, action)) {
+                          return;
+                        }
                         if (action == 'tool-call-limit') {
                           editToolCallLimit(context, c);
                           return;

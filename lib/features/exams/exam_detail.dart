@@ -8,6 +8,7 @@ import '../../app/controller.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/cached_stream_builder.dart';
 import 'exam_calendar.dart';
 import 'exam_store.dart';
 
@@ -17,7 +18,9 @@ class ExamDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(appControllerProvider);
-    return StreamBuilder<ExamEvent?>(
+    return CachedStreamBuilder<ExamEvent?>(
+      owner: c.exams,
+      cacheKey: ('event', id),
       stream: (c.db.select(
         c.db.examEvents,
       )..where((t) => t.id.equals(id))).watchSingleOrNull(),
@@ -97,35 +100,43 @@ class ExamDetailScreen extends ConsumerWidget {
                     ),
                     Text(examDate(event.date.toUtc())),
                     const SizedBox(height: 24),
-                    StreamBuilder<List<ExamSubject>>(
+                    CachedStreamBuilder<List<ExamSubject>>(
+                      owner: c.exams,
+                      cacheKey: ('subjects', id),
                       stream:
                           (c.db.select(c.db.examSubjects)
                                 ..where((t) => t.eventId.equals(id))
                                 ..orderBy([(t) => OrderingTerm.asc(t.subject)]))
                               .watch(),
-                      builder: (ctx, subjects) => Column(
-                        children: [
-                          if (subjects.hasError)
-                            Text(ctx.l10n.couldNotLoadExamRecords),
-                          if (subjects.hasData && subjects.data!.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Text(ctx.l10n.addASubjectToRecord),
-                            ),
-                          for (final subject
-                              in subjects.data ?? <ExamSubject>[])
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(ctx.subjectName(subject.subject)),
-                              subtitle: Text(
-                                '${ctx.l10n.rawScore} ${points(subject.rawScore)}${subject.maximum == null ? '' : ' / ${points(subject.maximum)}'}${subject.usesScaling ? ' · ${ctx.l10n.scaledScore} ${points(subject.scaledScore)}' : ''}',
+                      builder: (ctx, subjects) => AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        child: Column(
+                          key: ValueKey(
+                            subjects.data?.map((s) => s.id).join('|'),
+                          ),
+                          children: [
+                            if (subjects.hasError)
+                              Text(ctx.l10n.couldNotLoadExamRecords),
+                            if (subjects.hasData && subjects.data!.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text(ctx.l10n.addASubjectToRecord),
                               ),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () => context.push(
-                                '/exams/$id/subject/${subject.id}',
+                            for (final subject
+                                in subjects.data ?? <ExamSubject>[])
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(ctx.subjectName(subject.subject)),
+                                subtitle: Text(
+                                  '${ctx.l10n.rawScore} ${points(subject.rawScore)}${subject.maximum == null ? '' : ' / ${points(subject.maximum)}'}${subject.usesScaling ? ' · ${ctx.l10n.scaledScore} ${points(subject.scaledScore)}' : ''}',
+                                ),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => context.push(
+                                  '/exams/$id/subject/${subject.id}',
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),

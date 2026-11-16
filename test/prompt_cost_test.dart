@@ -298,39 +298,39 @@ void main() {
     },
   );
 
-  test(
-    'chat drawing overrides disappear after restarting the controller',
-    () async {
-      final root = await Directory.systemTemp.createTemp(
-        'chat-drawing-restart',
-      );
-      AppController? active;
-      addTearDown(() async {
-        await active?.shutdown();
-        await root.delete(recursive: true);
-      });
-      Future<AppController> reopen() => AppController.openRoot(
-        root,
-        demo: false,
-        seed: false,
-        keyStore: MemoryKeyStore(),
-        chatProvider: _Provider((_, _) => _done),
-      );
-      active = await reopen();
-      await active.newSession();
-      await active.setAiDrawingEnabled(true);
-      active.setSessionDrawingEnabled(false);
-      final session = active.selected!.id;
-      expect(active.sessionDrawingEnabled, false);
-      await active.shutdown();
-      active = null;
-      active = await reopen();
-      expect(active.selected!.id, session);
-      expect(active.aiDrawingEnabled, true);
-      expect(active.sessionDrawingOverride, isNull);
-      expect(active.sessionDrawingEnabled, true);
-    },
-  );
+  test('chat drawing overrides survive restarting the controller', () async {
+    final root = await Directory.systemTemp.createTemp('chat-drawing-restart');
+    AppController? active;
+    addTearDown(() async {
+      await active?.shutdown();
+      await root.delete(recursive: true);
+    });
+    Future<AppController> reopen() => AppController.openRoot(
+      root,
+      demo: false,
+      seed: false,
+      keyStore: MemoryKeyStore(),
+      chatProvider: _Provider((_, _) => _done),
+    );
+    active = await reopen();
+    await active.newSession();
+    await active.setAiDrawingEnabled(true);
+    await active.setSessionDrawingEnabled(false);
+    final session = active.selected!.id;
+    expect(active.sessionDrawingEnabled, false);
+    await active.shutdown();
+    active = null;
+    active = await reopen();
+    expect(active.selected!.id, session);
+    expect(active.aiDrawingEnabled, true);
+    expect(active.sessionDrawingOverride, false);
+    expect(active.sessionDrawingEnabled, false);
+    await active.setSessionDrawingEnabled(null);
+    await active.shutdown();
+    active = await reopen();
+    expect(active.sessionDrawingOverride, isNull);
+    expect(active.sessionDrawingEnabled, true);
+  });
 
   test(
     'ordinary requests omit large visual schemas and DSL examples',

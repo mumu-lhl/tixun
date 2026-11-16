@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/actions.dart';
 
 /// Temporary drawing choices embedded in the chat title's overflow menu.
 List<PopupMenuEntry<String>> drawingMenuItems(
@@ -58,14 +59,18 @@ List<PopupMenuEntry<String>> drawingMenuItems(
 }
 
 /// Returns false for other overflow actions; the controller locks active runs.
-bool handleDrawingMenuSelection(AppController controller, String value) {
+bool handleDrawingMenuSelection(
+  BuildContext context,
+  AppController controller,
+  String value,
+) {
   switch (value) {
     case 'drawing-default':
-      controller.setSessionDrawingEnabled(null);
+      act(context, () => controller.setSessionDrawingEnabled(null));
     case 'drawing-on':
-      controller.setSessionDrawingEnabled(true);
+      act(context, () => controller.setSessionDrawingEnabled(true));
     case 'drawing-off':
-      controller.setSessionDrawingEnabled(false);
+      act(context, () => controller.setSessionDrawingEnabled(false));
     default:
       return false;
   }

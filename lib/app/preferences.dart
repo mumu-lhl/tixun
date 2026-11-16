@@ -159,6 +159,7 @@ class AppPreferences extends DatabaseNotifier {
       runOperation(() async {
         for (final (oldKey, newKey) in [
           ('ai_reasoning:$source', 'ai_reasoning:$target'),
+          ('ai_drawing:$source', 'ai_drawing:$target'),
           (studyToolCategoriesKey(source), studyToolCategoriesKey(target)),
         ]) {
           final value = await db.preference(oldKey);

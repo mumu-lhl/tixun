@@ -14,6 +14,7 @@ import '../../core/ai/ai_usage_store.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/cached_stream_builder.dart';
 import '../../core/ui/reasoning_labels.dart';
 import '../../core/ui/image_viewer.dart';
 import '../../core/ui/reasoning_panel.dart';
@@ -33,7 +34,9 @@ class ExamSubjectScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(appControllerProvider);
-    return StreamBuilder<ExamSubject?>(
+    return CachedStreamBuilder<ExamSubject?>(
+      owner: c.exams,
+      cacheKey: ('subject', id),
       stream: (c.db.select(
         c.db.examSubjects,
       )..where((t) => t.id.equals(id))).watchSingleOrNull(),
@@ -124,7 +127,9 @@ class ExamSubjectScreen extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     Text(context.l10n.originalPhotosAreStoredLocally),
-                    StreamBuilder<List<ExamAttachment>>(
+                    CachedStreamBuilder<List<ExamAttachment>>(
+                      owner: c.exams,
+                      cacheKey: ('attachments', id),
                       stream:
                           (c.db.select(c.db.examAttachments)
                                 ..where((t) => t.subjectId.equals(id))
@@ -395,7 +400,9 @@ class ExamSubjectScreen extends ConsumerWidget {
                     if (subject.aiReasoning.isNotEmpty)
                       ReasoningPanel(text: subject.aiReasoning),
                     const SizedBox(height: 16),
-                    StreamBuilder<List<ExamScoreRow>>(
+                    CachedStreamBuilder<List<ExamScoreRow>>(
+                      owner: c.exams,
+                      cacheKey: ('scores', id),
                       stream:
                           (c.db.select(c.db.examScoreRows)
                                 ..where((t) => t.subjectId.equals(id))

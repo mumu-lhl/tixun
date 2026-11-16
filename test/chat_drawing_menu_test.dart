@@ -117,7 +117,7 @@ void main() {
       await expectStatus('Drawing on');
       await tester.tap(menu);
       await tester.pumpAndSettle();
-      expect(find.text('Temporarily enable drawing'), findsOneWidget);
+      expect(find.text('Enable drawing for this chat'), findsOneWidget);
       await tester.tap(find.byKey(const Key('chat-drawing-default')));
       await tester.pumpAndSettle();
       expect(c.sessionDrawingOverride, isNull);

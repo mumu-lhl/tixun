@@ -6,6 +6,7 @@ import '../../app/controller.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/cached_stream_builder.dart';
 
 String examDate(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -101,9 +102,11 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
           ),
         ),
         Expanded(
-          child: StreamBuilder<List<ExamEvent>>(
+          child: CachedStreamBuilder<List<ExamEvent>>(
+            owner: store,
+            cacheKey: (listView, month.year, month.month),
             key: ValueKey((listView, month.year, month.month)),
-            stream: events,
+            stream: events!,
             builder: (context, snap) {
               final all = snap.data ?? [];
               final visible = listView
@@ -115,205 +118,222 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                         .toList();
               final first = DateTime(month.year, month.month).weekday - 1;
               final days = DateUtils.getDaysInMonth(month.year, month.month);
-              return ListView.builder(
-                key: PageStorageKey(
-                  listView ? 'exam-timeline' : 'exam-calendar',
-                ),
-                padding: const EdgeInsets.all(20),
-                itemCount: visible.length + 1,
-                itemBuilder: (context, index) => Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 850),
-                    child: index > 0
-                        ? ListTile(
-                            key: ValueKey(
-                              'exam-event-${visible[index - 1].id}',
-                            ),
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.event_note_outlined),
-                            title: Text(visible[index - 1].title),
-                            subtitle: Text(
-                              examDate(visible[index - 1].date.toUtc()),
-                            ),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () =>
-                                context.push('/exams/${visible[index - 1].id}'),
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (listView)
-                                Text(
-                                  context.l10n.newestExamDateFirst,
-                                  style: Theme.of(context).textTheme.bodySmall,
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: KeyedSubtree(
+                  key: ValueKey((
+                    listView,
+                    selected,
+                    visible.map((e) => e.id).join('|'),
+                  )),
+                  child: ListView.builder(
+                    key: PageStorageKey(
+                      listView ? 'exam-timeline' : 'exam-calendar',
+                    ),
+                    padding: const EdgeInsets.all(20),
+                    itemCount: visible.length + 1,
+                    itemBuilder: (context, index) => Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 850),
+                        child: index > 0
+                            ? ListTile(
+                                key: ValueKey(
+                                  'exam-event-${visible[index - 1].id}',
                                 ),
-                              if (!listView) ...[
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    IconButton(
-                                      tooltip: context.l10n.previousMonth,
-                                      onPressed: () => move(-1),
-                                      icon: const Icon(Icons.chevron_left),
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        '${month.year} / ${month.month}',
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge,
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => setState(() {
-                                        selected = DateUtils.dateOnly(
-                                          DateTime.now(),
-                                        );
-                                        month = DateTime(
-                                          selected.year,
-                                          selected.month,
-                                        );
-                                        events = null;
-                                      }),
-                                      child: Text(context.l10n.today),
-                                    ),
-                                    IconButton(
-                                      tooltip: context.l10n.nextMonth,
-                                      onPressed: () => move(1),
-                                      icon: const Icon(Icons.chevron_right),
-                                    ),
-                                  ],
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.event_note_outlined),
+                                title: Text(visible[index - 1].title),
+                                subtitle: Text(
+                                  examDate(visible[index - 1].date.toUtc()),
                                 ),
-                                Row(
-                                  children: [
-                                    for (final day in [
-                                      context.l10n.mon,
-                                      context.l10n.tue,
-                                      context.l10n.wed,
-                                      context.l10n.thu,
-                                      context.l10n.fri,
-                                      context.l10n.sat,
-                                      context.l10n.sun,
-                                    ])
-                                      Expanded(
-                                        child: Center(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(10),
-                                            child: Text(day),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => context.push(
+                                  '/exams/${visible[index - 1].id}',
+                                ),
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (listView)
+                                    Text(
+                                      context.l10n.newestExamDateFirst,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall,
+                                    ),
+                                  if (!listView) ...[
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        IconButton(
+                                          tooltip: context.l10n.previousMonth,
+                                          onPressed: () => move(-1),
+                                          icon: const Icon(Icons.chevron_left),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            '${month.year} / ${month.month}',
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleLarge,
                                           ),
                                         ),
-                                      ),
-                                  ],
-                                ),
-                                GridView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: ((first + days + 6) ~/ 7) * 7,
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 7,
-                                        mainAxisExtent: 48,
-                                      ),
-                                  itemBuilder: (_, i) {
-                                    final day = i - first + 1;
-                                    if (day < 1 || day > days) {
-                                      return const SizedBox();
-                                    }
-                                    final date = DateTime(
-                                      month.year,
-                                      month.month,
-                                      day,
-                                    );
-                                    final count = all
-                                        .where(
-                                          (e) => DateUtils.isSameDay(
-                                            e.date.toUtc(),
-                                            date,
+                                        TextButton(
+                                          onPressed: () => setState(() {
+                                            selected = DateUtils.dateOnly(
+                                              DateTime.now(),
+                                            );
+                                            month = DateTime(
+                                              selected.year,
+                                              selected.month,
+                                            );
+                                            events = null;
+                                          }),
+                                          child: Text(context.l10n.today),
+                                        ),
+                                        IconButton(
+                                          tooltip: context.l10n.nextMonth,
+                                          onPressed: () => move(1),
+                                          icon: const Icon(Icons.chevron_right),
+                                        ),
+                                      ],
+                                    ),
+                                    Row(
+                                      children: [
+                                        for (final day in [
+                                          context.l10n.mon,
+                                          context.l10n.tue,
+                                          context.l10n.wed,
+                                          context.l10n.thu,
+                                          context.l10n.fri,
+                                          context.l10n.sat,
+                                          context.l10n.sun,
+                                        ])
+                                          Expanded(
+                                            child: Center(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(
+                                                  10,
+                                                ),
+                                                child: Text(day),
+                                              ),
+                                            ),
                                           ),
-                                        )
-                                        .length;
-                                    final active = DateUtils.isSameDay(
-                                      date,
-                                      selected,
-                                    );
-                                    final colors = Theme.of(context)
-                                        .colorScheme;
-                                    return Semantics(
-                                      label:
-                                          '${examDate(date)}, $count ${context.l10n.exams}',
-                                      selected: active,
-                                      child: InkWell(
-                                        onTap: () =>
-                                            setState(() => selected = date),
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Container(
-                                          margin: const EdgeInsets.all(2),
-                                          decoration: BoxDecoration(
-                                            color: active
-                                                ? colors.primaryContainer
-                                                : null,
+                                      ],
+                                    ),
+                                    GridView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: ((first + days + 6) ~/ 7) * 7,
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: 7,
+                                            mainAxisExtent: 48,
+                                          ),
+                                      itemBuilder: (_, i) {
+                                        final day = i - first + 1;
+                                        if (day < 1 || day > days) {
+                                          return const SizedBox();
+                                        }
+                                        final date = DateTime(
+                                          month.year,
+                                          month.month,
+                                          day,
+                                        );
+                                        final count = all
+                                            .where(
+                                              (e) => DateUtils.isSameDay(
+                                                e.date.toUtc(),
+                                                date,
+                                              ),
+                                            )
+                                            .length;
+                                        final active = DateUtils.isSameDay(
+                                          date,
+                                          selected,
+                                        );
+                                        final colors = Theme.of(context)
+                                            .colorScheme;
+                                        return Semantics(
+                                          label:
+                                              '${examDate(date)}, $count ${context.l10n.exams}',
+                                          selected: active,
+                                          child: InkWell(
+                                            onTap: () =>
+                                                setState(() => selected = date),
                                             borderRadius: BorderRadius.circular(
                                               12,
                                             ),
-                                          ),
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                '$day',
-                                                style: TextStyle(
-                                                  fontWeight: active
-                                                      ? FontWeight.bold
-                                                      : null,
-                                                ),
+                                            child: Container(
+                                              margin: const EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                color: active
+                                                    ? colors.primaryContainer
+                                                    : null,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
                                               ),
-                                              if (count > 0)
-                                                Container(
-                                                  width: 5,
-                                                  height: 5,
-                                                  decoration: BoxDecoration(
-                                                    color: colors.primary,
-                                                    shape: BoxShape.circle,
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    '$day',
+                                                    style: TextStyle(
+                                                      fontWeight: active
+                                                          ? FontWeight.bold
+                                                          : null,
+                                                    ),
                                                   ),
-                                                ),
-                                            ],
+                                                  if (count > 0)
+                                                    Container(
+                                                      width: 5,
+                                                      height: 5,
+                                                      decoration: BoxDecoration(
+                                                        color: colors.primary,
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                        );
+                                      },
+                                    ),
+                                    const Divider(height: 32),
+                                    Text(
+                                      examDate(selected),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
+                                    ),
+                                  ],
+                                  if (snap.hasError)
+                                    Text(context.l10n.couldNotLoadExamRecords),
+
+                                  if (visible.isEmpty && snap.hasData)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 30,
                                       ),
-                                    );
-                                  },
-                                ),
-                                const Divider(height: 32),
-                                Text(
-                                  examDate(selected),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium,
-                                ),
-                              ],
-                              if (snap.hasError)
-                                Text(context.l10n.couldNotLoadExamRecords),
-                              if (snap.connectionState ==
-                                  ConnectionState.waiting)
-                                const LinearProgressIndicator(),
-                              if (visible.isEmpty && snap.hasData)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 30,
-                                  ),
-                                  child: Text(
-                                    (listView
-                                        ? context.l10n.noExamsYetSelectRecord
-                                        : context.l10n.noExamsOnThisDate),
-                                  ),
-                                ),
-                            ],
-                          ),
+                                      child: Text(
+                                        (listView
+                                            ? context
+                                                  .l10n
+                                                  .noExamsYetSelectRecord
+                                            : context.l10n.noExamsOnThisDate),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                      ),
+                    ),
                   ),
                 ),
               );
