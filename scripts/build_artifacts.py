@@ -72,7 +72,7 @@ def build_release(directory, run=subprocess.run, source=Path('build/app/outputs/
 
 
 def package_android(source, destination, tag):
-    if not re.fullmatch(r'(v[0-9A-Za-z.-]+|nightly-[0-9]{8}-[0-9]{6})', tag):
+    if not re.fullmatch(r'(v[0-9A-Za-z.-]+|nightly|nightly-[0-9]{8}-[0-9]{6})', tag):
         raise ValueError('Invalid release tag')
     expected = {name for _, name in release_apks()}
     if {p.name for p in Path(source).iterdir()} != expected:

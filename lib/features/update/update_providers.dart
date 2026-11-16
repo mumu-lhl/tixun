@@ -298,6 +298,7 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
           previousRelease != null &&
           outcome != null &&
           outcome.release?.tag == previousRelease.tag &&
+          outcome.release?.updateIdentity == previousRelease.updateIdentity &&
           (state.status == UpdateStatus.upToDate ||
               state.status == UpdateStatus.available)) {
         try {
@@ -397,9 +398,12 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
       } else if (Platform.isLinux) {
         final staged = await stageLinuxUpdate(
           tarGzFile: file,
-          tag: release.tag,
+          tag: release.updateIdentity,
         );
-        await markPendingUpdate(tag: release.tag, stagedPath: staged.path);
+        await markPendingUpdate(
+          tag: release.updateIdentity,
+          stagedPath: staged.path,
+        );
         try {
           await file.delete();
         } catch (_) {}

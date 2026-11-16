@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   prepare:
-    name: Prepare nightly tag
+    name: Prepare nightly build identity
     if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -46,7 +46,8 @@ jobs:
     permissions:
       contents: write
     env:
-      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      RELEASE_TAG: nightly
+      BUILD_ID: ${{ needs.prepare.outputs.tag }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       LINUX_SUFFIX: ${{ needs.verify-and-build.outputs.linux_suffix }}
@@ -71,16 +72,9 @@ jobs:
           chmod u+x downloaded/linux/tixun
           tar -czf "dist/tixun-${RELEASE_TAG}-${LINUX_SUFFIX}" -C downloaded/linux .
           (cd dist && sha256sum ./*.apk ./*.tar.gz > SHA256SUMS)
-      - name: Create local tag for changelog boundaries
-        run: |
-          if git show-ref --verify --quiet "refs/tags/${RELEASE_TAG}"; then
-            test "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" = "$GITHUB_SHA"
-          else
-            git tag "$RELEASE_TAG" "$GITHUB_SHA"
-          fi
-      - name: Resolve previous published nightly
+      - name: Resolve previous published release or nightly
         id: base
-        run: python3 scripts/release_notes.py --nightly --tag "$RELEASE_TAG" --repo "$GH_REPO" >> "$GITHUB_OUTPUT"
+        run: python3 scripts/release_notes.py --nightly --tag "$RELEASE_TAG" --ref "$GITHUB_SHA" --repo "$GH_REPO" >> "$GITHUB_OUTPUT"
       - name: Generate GitHub-style changelog
         if: steps.base.outputs.has_changes == 'true'
         uses: orhun/git-cliff-action@v4
@@ -93,30 +87,39 @@ jobs:
             --github-repo ${{ github.repository }} --output release-notes.md
       - name: Describe a nightly with no new commits
         if: steps.base.outputs.has_changes == 'false'
-        env:
-          BASE_TAG: ${{ steps.base.outputs.base_tag }}
         run: |
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-          repo, base, tag = (os.environ[k] for k in ('GH_REPO', 'BASE_TAG', 'RELEASE_TAG'))
-          Path('release-notes.md').write_text(
-              "## What's Changed\n\n自上次发布以来没有新的代码提交，本次重新构建并验证。\n\n"
-              f"**Full Changelog**: https://github.com/{repo}/compare/{base}...{tag}\n",
-              encoding='utf-8')
-          PY
-      - name: Publish a new prerelease after all verification succeeds
+          printf '## What\x27s Changed\n\n自上次发布以来没有新的代码提交，本次重新构建并验证。\n' > release-notes.md
+      - name: Add exact comparison link
+        env:
+          BASE: ${{ steps.base.outputs.base_tag }}
+        run: python3 scripts/release_notes.py --nightly --tag "$RELEASE_TAG" --ref "$GITHUB_SHA" --repo "$GH_REPO" --notes release-notes.md --base "$BASE"
+      - name: Publish fixed nightly release
         run: |
           set -euo pipefail
-          git push origin "refs/tags/${RELEASE_TAG}"
-          if gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
-            python3 -c 'import json; assert json.load(open("existing-release.json"))["isDraft"], "该 Nightly 已公开，停止覆盖。"'
-            gh release edit "$RELEASE_TAG" --notes-file release-notes.md
+          # Hide the release while replacing assets so clients never observe a
+          # mixture of builds or a checksum file from the previous build.
+          exists=false
+          if gh release view "$RELEASE_TAG" --json isDraft,name,body > existing-release.json 2>/dev/null; then
+            exists=true
+            # Preserve the original boundary when resuming this build after a
+            # failed upload or tag move.
+            python3 -c 'import json,os,pathlib; r=json.load(open("existing-release.json")); p=pathlib.Path("release-notes.md"); p.write_text(r["body"], encoding="utf-8") if r.get("isDraft") and r.get("name") == "题训 " + os.environ["BUILD_ID"] and r.get("body") else None'
+            gh release edit "$RELEASE_TAG" --draft=true --title "题训 ${BUILD_ID}" --notes-file release-notes.md
+          fi
+          old=$(git rev-parse -q --verify "refs/tags/${RELEASE_TAG}" || true)
+          git tag -f "$RELEASE_TAG" "$GITHUB_SHA"
+          if [ -n "$old" ]; then
+            git push --force-with-lease="refs/tags/${RELEASE_TAG}:${old}" origin "refs/tags/${RELEASE_TAG}"
+          else
+            git push origin "refs/tags/${RELEASE_TAG}"
+          fi
+          if [ "$exists" = true ]; then
+            gh release edit "$RELEASE_TAG" --title "题训 ${BUILD_ID}" --notes-file release-notes.md
           else
             gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease --latest=false \
-              --title "题训 ${RELEASE_TAG}" --notes-file release-notes.md
+              --title "题训 ${BUILD_ID}" --notes-file release-notes.md
           fi
           gh release upload "$RELEASE_TAG" dist/* --clobber
           gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
-      - name: Keep only the latest published nightly and tag
+      - name: Remove old timestamped nightly releases
         run: python3 scripts/prune_nightlies.py --repo "$GH_REPO" --keep "$RELEASE_TAG" --apply

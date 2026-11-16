@@ -24,6 +24,11 @@ class ReleaseInfo {
   final bool draft;
   final List<ReleaseAssetInfo> assets;
 
+  // Fixed nightly tags need an immutable build identity for comparisons.
+  String get updateIdentity => tag == 'nightly'
+      ? RegExp(r'nightly-\d{8}-\d{6}').firstMatch(name)?.group(0) ?? ''
+      : tag;
+
   const ReleaseInfo({
     required this.tag,
     required this.name,

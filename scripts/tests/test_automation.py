@@ -118,9 +118,9 @@ class HistoryTests(unittest.TestCase):
         releases = [self.public('v0.1.0'), self.public('v0.3.0', '2026-02-01T00:00:00Z')]
         self.assertEqual(choose_base(releases, 'v0.3.0', self.repo), 'v0.1.0')
 
-    def test_published_prereleases_participate(self):
+    def test_stable_release_uses_previous_stable_not_prerelease(self):
         releases = [self.public('v0.1.0'), self.public('v0.3.0-rc.1', '2026-02-01T00:00:00Z')]
-        self.assertEqual(choose_base(releases, 'v0.3.0', self.repo), 'v0.3.0-rc.1')
+        self.assertEqual(choose_base(releases, 'v0.3.0', self.repo), 'v0.1.0')
 
     def test_other_branch_is_not_a_comparison_base(self):
         self.git('checkout', '-b', 'other', 'v0.1.0')
@@ -133,15 +133,38 @@ class HistoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             choose_base([self.public('v1.0.0')], 'v0.3.0', self.repo)
 
-    def test_nightly_prefers_published_nightly_and_falls_back_to_stable(self):
+    def test_nightly_uses_newest_reachable_stable_or_nightly_commit(self):
         old, current = 'nightly-20261107-203000', 'nightly-20261108-203000'
         self.git('tag', old, 'v0.2.0')
         self.git('tag', current, 'v0.3.0')
-        releases = [self.public('v0.1.0'), self.public(old, '2026-01-02T00:00:00Z'),
-                    self.public('v0.3.0', '2026-01-03T00:00:00Z')]
-        self.assertEqual(choose_base(releases, current, self.repo, nightly=True), old)
-        releases[1]['draft'] = True
+        releases = [self.public('v0.1.0'), self.public(old, '2026-01-02T00:00:00Z')]
+        old_sha = self.git('rev-parse', old).strip()
+        self.assertEqual(choose_base(releases, current, self.repo, nightly=True), old_sha)
+        releases.append(self.public('v0.3.0', '2026-01-03T00:00:00Z'))
         self.assertEqual(choose_base(releases, current, self.repo, nightly=True), 'v0.3.0')
+        releases[-1]['draft'] = True
+        self.assertEqual(choose_base(releases, current, self.repo, nightly=True), old_sha)
+
+    def test_fixed_nightly_reads_old_tag_before_moving_it(self):
+        self.git('tag', 'nightly', 'v0.2.0')
+        releases = [self.public('nightly'), self.public('v0.1.0')]
+        self.assertEqual(choose_base(releases, 'nightly', self.repo, nightly=True, current_ref='HEAD'),
+                         self.git('rev-parse', 'v0.2.0').strip())
+        self.assertEqual(self.git('rev-parse', 'nightly').strip(), self.git('rev-parse', 'v0.2.0').strip())
+
+    def test_changelog_link_uses_formal_tags_or_immutable_nightly_commit(self):
+        notes = self.repo / 'notes.md'
+        current_sha = self.git('rev-parse', 'HEAD').strip()
+        for nightly in (False, True):
+            notes.write_text('Changes')
+            args = [sys.executable, str(SCRIPTS / 'release_notes.py'),
+                    '--tag', 'nightly' if nightly else 'v0.3.0',
+                    '--repo', 'owner/repo', '--notes', str(notes), '--base', 'v0.1.0']
+            if nightly:
+                args += ['--nightly', '--ref', 'HEAD']
+            subprocess.run(args, cwd=self.repo, check=True)
+            target = current_sha if nightly else 'v0.3.0'
+            self.assertIn(f'/compare/v0.1.0...{target}', notes.read_text())
 
     def test_stable_changelog_ignores_nightly_and_invalid_nightly_fails(self):
         old = 'nightly-20261107-203000'
@@ -194,9 +217,13 @@ class HistoryTests(unittest.TestCase):
                 # git-cliff accepts a single OID, but not a single tag name.
                 self.assertRegex(values['commit_range'], r'^[0-9a-f]{40,64}$')
             commits = self.git('log', '--format=%s', values['commit_range']).splitlines()
-            self.assertIn('Current release', commits)
-            self.assertIn('Failed build must remain in history', commits)
-            self.assertEqual('Initial public release' in commits, not published)
+            if published:
+                self.assertEqual(commits, [])
+                self.assertEqual(values['has_changes'], 'false')
+            else:
+                self.assertIn('Current release', commits)
+                self.assertIn('Failed build must remain in history', commits)
+                self.assertIn('Initial public release', commits)
 
 
 class GuiRunnerTests(unittest.TestCase):

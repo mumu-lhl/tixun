@@ -6,19 +6,24 @@ import re
 import subprocess
 import sys
 
-from release_notes import decode_pages, is_nightly
+from release_notes import decode_pages
+
+
+def is_legacy_nightly(tag):
+    return re.fullmatch(r'nightly-[0-9]{8}-[0-9]{6}', tag) is not None
 
 
 def deletion_candidates(releases, keep):
-    if not is_nightly(keep):
-        raise ValueError('Expected a timestamped nightly tag')
-    published = [r for r in releases if is_nightly(r['tag_name'])
-                 and r.get('prerelease') is True and not r.get('draft')
-                 and r.get('published_at')]
-    if not published or max(published, key=lambda r: (
-            r['published_at'], r['tag_name']))['tag_name'] != keep:
-        raise ValueError('Keep tag must be the latest published nightly prerelease')
-    return [r for r in published if r['tag_name'] != keep]
+    if keep != 'nightly':
+        raise ValueError('Expected the fixed nightly tag')
+    current = next((r for r in releases if r['tag_name'] == keep
+                    and r.get('prerelease') is True and not r.get('draft')
+                    and r.get('published_at')), None)
+    if current is None:
+        raise ValueError('Fixed nightly must be a published prerelease')
+    return [r for r in releases if is_legacy_nightly(r['tag_name'])
+            and r.get('prerelease') is True and not r.get('draft')
+            and r.get('published_at')]
 
 
 def prune(repo, keep, apply=False, run=subprocess.run):

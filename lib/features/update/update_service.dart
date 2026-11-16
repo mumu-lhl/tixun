@@ -19,17 +19,37 @@ class UpdateService {
   static const String releasesUrl =
       'https://api.github.com/repos/mumu-lhl/tixun/releases?per_page=20';
 
+  static const String nightlyUrl =
+      'https://api.github.com/repos/mumu-lhl/tixun/releases/tags/nightly';
+
   static const Duration _timeout = Duration(seconds: 10);
 
   final Dio _dio;
 
   /// Fetches the release list (newest first), skipping drafts.
-  Future<List<ReleaseInfo>> fetchReleases() async {
+  Future<List<ReleaseInfo>> fetchReleases({bool includeNightly = false}) async {
     final response = await _dio.get<dynamic>(
       releasesUrl,
       options: Options(connectTimeout: _timeout, receiveTimeout: _timeout),
     );
-    return parseReleases(response.data);
+    final releases = List<ReleaseInfo>.of(parseReleases(response.data));
+    // GitHub orders the list by release creation time. An edited fixed-tag
+    // release can eventually fall outside the first page even when current.
+    if (includeNightly && !releases.any((r) => r.tag == 'nightly')) {
+      try {
+        final fixed = await _dio.get<dynamic>(
+          nightlyUrl,
+          options: Options(connectTimeout: _timeout, receiveTimeout: _timeout),
+        );
+        releases.insertAll(0, parseReleases([fixed.data]));
+      } on DioException catch (error) {
+        // Before migration the fixed release may not exist; keep the legacy
+        // list available in that case. Other failures must not look like an
+        // up-to-date or unavailable release.
+        if (error.response?.statusCode != 404) rethrow;
+      }
+    }
+    return releases;
   }
 
   /// Pure JSON -> models conversion, shared by [fetchReleases] and tests.
@@ -71,9 +91,18 @@ class UpdateService {
   ///
   /// stable: first release with `prerelease == false`.
   /// prerelease: first release with `prerelease == true` and a tag
-  /// starting with `v`. nightly: first release with a tag starting with
-  /// `nightly-`. Returns null when no release matches.
+  /// starting with `v`. Nightly prefers the fixed tag, with the old
+  /// timestamped tags accepted during migration.
   ReleaseInfo? pickRelease(List<ReleaseInfo> releases, UpdateChannel channel) {
+    if (channel == UpdateChannel.nightly) {
+      for (final release in releases) {
+        if (release.prerelease &&
+            release.tag == 'nightly' &&
+            release.updateIdentity.isNotEmpty) {
+          return release;
+        }
+      }
+    }
     for (final release in releases) {
       switch (channel) {
         case UpdateChannel.stable:
@@ -83,7 +112,9 @@ class UpdateService {
             return release;
           }
         case UpdateChannel.nightly:
-          if (release.tag.startsWith('nightly-')) return release;
+          if (release.prerelease && release.tag.startsWith('nightly-')) {
+            return release;
+          }
       }
     }
     return null;
@@ -100,7 +131,9 @@ class UpdateService {
     required String embeddedNightlyTag,
   }) async {
     try {
-      final releases = await fetchReleases();
+      final releases = await fetchReleases(
+        includeNightly: channel == UpdateChannel.nightly,
+      );
       final candidate = pickRelease(releases, channel);
       if (candidate == null) {
         return UpdateCheckOutcome(
@@ -114,7 +147,7 @@ class UpdateService {
       }
       if (channel == UpdateChannel.nightly) {
         final needsUpdate = nightlyNeedsUpdate(
-          candidateTag: candidate.tag,
+          candidateTag: candidate.updateIdentity,
           embeddedTag: embeddedNightlyTag,
         );
         return UpdateCheckOutcome(

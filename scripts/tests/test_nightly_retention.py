@@ -10,7 +10,8 @@ from prune_nightlies import deletion_candidates, prune
 
 
 OLD = 'nightly-20261107-203000'
-KEEP = 'nightly-20261108-203000'
+KEEP = 'nightly'
+OTHER = 'nightly-20261108-203000'
 
 
 def release(tag, **overrides):
@@ -24,7 +25,7 @@ class RetentionTests(unittest.TestCase):
         protected = [release('v1.0.0', prerelease=False), release('v1.1.0-rc.1'),
                      release('nightly-other'), release('nightly-20261106-203000', draft=True),
                      release('nightly-20261105-203000', prerelease=False)]
-        self.assertEqual(deletion_candidates([old, release(KEEP), *protected], KEEP), [old])
+        self.assertEqual(deletion_candidates([old, release(OTHER), release(KEEP), *protected], KEEP), [old, release(OTHER)])
 
     def test_missing_draft_stable_and_superseded_keep_are_rejected(self):
         for releases, keep in [([], KEEP), ([release(KEEP, draft=True)], KEEP),

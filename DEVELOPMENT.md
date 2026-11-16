@@ -154,9 +154,9 @@ flutter test -j 4 test/localization_test.dart
 
 [Publish nightly](.github/workflows/nightly.yml) 每天 UTC 20:30（北京时间次日 04:30）从默认分支运行，也支持手动触发。GitHub 定时任务可能延迟；不承诺精确到分钟。
 
-每次采用独立 UTC 时间标签 `nightly-YYYYMMDD-HHMMSS`，复用 CI 的构建流程（跳过单元测试、GUI 启动冒烟和完整 GUI 回归），产出正式签名 Android Release APK、Linux Release 与校验文件。构建时把本次标签以 `--dart-define=TIXUN_NIGHTLY_TAG=<标签>` 写入应用内，供应用内更新比对；正式发布与普通构建不带标签。全部检查成功后创建草稿，附件完整上传后公开为 Prerelease，并明确不设为 Latest。失败不会替换已有 Nightly 或稳定版，可重跑失败任务继续草稿。公开成功后执行 `scripts/prune_nightlies.py`，只保留最新的公开 Nightly，并删除旧 Nightly Release、附件和 Tag；稳定版、其他预发布和草稿不参与清理。清理前将当前更新日志的旧 Tag 比较链接改用提交 SHA，避免删除 Tag 后失效。清理失败会使工作流失败，已公开的新版本保留，可重新执行清理脚本。
+主 Nightly Release 使用固定标签 `nightly`。每次构建生成独立 UTC 标识 `nightly-YYYYMMDD-HHMMSS` 并通过 `--dart-define=TIXUN_NIGHTLY_TAG` 写入应用，同时写入 Release 标题，应用用它比较两次构建；正式发布与普通构建不带标识。构建复用 CI（跳过单元测试和 GUI），产出签名 APK、Linux Release 和校验文件。旧版应用只识别时间戳标签，需要手动更新一次；新版应用可识别固定标签。发布成功后清理旧的公开时间戳 Nightly Release 和标签。更新固定 Release 的附件时先设为草稿，全部上传后重新公开，避免客户端读取混合版本。固定标签通过带租约的推送移动；发布不设为 Latest。
 
-更新日志继续使用 git-cliff：优先比较上一条已公开且可达的 Nightly，首次回退到已公开的版本标签；无基线时包含完整历史。稳定版日志仍只比较版本标签，不会被 Nightly 截断。应用内版本名和构建号沿用 `pubspec.yaml`，下载文件名与 Release 标签区分各次 Nightly。首次从开发签名迁移仍需备份并卸载旧版。
+更新日志继续使用 git-cliff。正式版以最近的已公开、可达正式版为基线，忽略预发布和 Nightly；Nightly 在上一公开 Nightly 的提交和最近公开正式版之间选择更近的基线。正式版比较链接使用版本标签；Nightly 链接使用明确的基线与当前提交 SHA，因此固定标签移动或旧标签清理后仍可使用。首次没有基线时包含完整历史。首次从开发签名迁移仍需备份并卸载旧版。
 
 Golden 像素比对及基线图片已移除；Widget 行为、窄屏/键盘布局、公式回退和原生 GUI 回归继续执行，不再因颜色、间距等像素变化更新快照。
 

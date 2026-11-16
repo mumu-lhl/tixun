@@ -109,6 +109,10 @@ class ApkVariantTests(unittest.TestCase):
         package_android(source, destination, 'v0.6.0')
         self.assertEqual({p.name for p in destination.iterdir()}, {
             f'tixun-v0.6.0-android-{abi}-release.apk' for abi, _ in release_apks()})
+        fixed = self.root / 'fixed-nightly'
+        package_android(source, fixed, 'nightly')
+        self.assertEqual({p.name for p in fixed.iterdir()}, {
+            f'tixun-nightly-android-{abi}-release.apk' for abi, _ in release_apks()})
         (source / 'app-debug.apk').write_text('debug')
         with self.assertRaisesRegex(ValueError, 'exactly'):
             package_android(source, destination, 'nightly-20261108-203000')

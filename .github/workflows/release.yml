@@ -90,6 +90,10 @@ jobs:
             '${{ steps.base.outputs.commit_range }}' --tag '${{ env.RELEASE_TAG }}'
             --tag-pattern '${{ steps.base.outputs.tag_pattern }}'
             --github-repo ${{ github.repository }} --output release-notes.md
+      - name: Add exact comparison link
+        env:
+          BASE: ${{ steps.base.outputs.base_tag }}
+        run: python3 scripts/release_notes.py --tag "$RELEASE_TAG" --repo "$GH_REPO" --notes release-notes.md --base "$BASE"
       - name: Create or resume a draft, then publish complete assets
         run: |
           set -euo pipefail

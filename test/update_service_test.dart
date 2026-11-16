@@ -71,6 +71,9 @@ Dio stubDio(Map<String, Object?> handlers, {bool failAll = false}) {
           handler.reject(
             DioException(
               requestOptions: options,
+              response: !failAll && options.path == UpdateService.nightlyUrl
+                  ? Response<dynamic>(requestOptions: options, statusCode: 404)
+                  : null,
               error: 'stubbed network failure for ${options.path}',
             ),
           );
@@ -136,6 +139,25 @@ void main() {
         UpdateService().pickRelease(releases, UpdateChannel.nightly)?.tag,
         'nightly-20261109-abc123',
       );
+    });
+
+    test('fixed nightly takes precedence over the legacy alias', () {
+      final releases = UpdateService.parseReleases([
+        ...fixtureJson,
+        {
+          'tag_name': 'nightly',
+          'name': '题训 nightly-20261109-203000',
+          'prerelease': true,
+          'draft': false,
+          'assets': [],
+        },
+      ]);
+      final selected = UpdateService().pickRelease(
+        releases,
+        UpdateChannel.nightly,
+      );
+      expect(selected?.tag, 'nightly');
+      expect(selected?.updateIdentity, 'nightly-20261109-203000');
     });
 
     test('prerelease channel with no v* prerelease returns null', () {
@@ -253,6 +275,59 @@ void main() {
           embeddedNightlyTag: 'nightly-20261109-abc123',
         );
         expect(same.kind, UpdateCheckKind.upToDate);
+      },
+    );
+
+    test('fixed nightly compares the embedded build identity', () async {
+      final service = UpdateService(
+        dio: stubDio({
+          UpdateService.releasesUrl: [
+            {
+              'tag_name': 'nightly',
+              'name': '题训 nightly-20261109-203000',
+              'prerelease': true,
+              'draft': false,
+              'assets': [],
+            },
+          ],
+        }),
+      );
+      final same = await service.check(
+        UpdateChannel.nightly,
+        currentVersion: '0.5.2',
+        embeddedNightlyTag: 'nightly-20261109-203000',
+      );
+      final newer = await service.check(
+        UpdateChannel.nightly,
+        currentVersion: '0.5.2',
+        embeddedNightlyTag: 'nightly-20261108-203000',
+      );
+      expect(same.kind, UpdateCheckKind.upToDate);
+      expect(newer.kind, UpdateCheckKind.available);
+    });
+
+    test(
+      'nightly lookup finds an older release outside the first page',
+      () async {
+        final service = UpdateService(
+          dio: stubDio({
+            UpdateService.releasesUrl: <Object>[],
+            UpdateService.nightlyUrl: {
+              'tag_name': 'nightly',
+              'name': '题训 nightly-20261109-203000',
+              'prerelease': true,
+              'draft': false,
+              'assets': [],
+            },
+          }),
+        );
+        final outcome = await service.check(
+          UpdateChannel.nightly,
+          currentVersion: '0.5.2',
+          embeddedNightlyTag: 'nightly-20261108-203000',
+        );
+        expect(outcome.kind, UpdateCheckKind.available);
+        expect(outcome.release?.tag, 'nightly');
       },
     );
 

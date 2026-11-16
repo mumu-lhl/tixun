@@ -242,6 +242,43 @@ void main() {
     expect(await apk.exists(), isTrue);
   });
 
+  test(
+    'a new fixed-tag nightly does not reuse an older downloaded APK',
+    () async {
+      final container = await makeContainer();
+      final apk = File('${tempDir.path}/old-nightly.apk');
+      await apk.writeAsString('older-build');
+      const old = ReleaseInfo(
+        tag: 'nightly',
+        name: '题训 nightly-20261108-203000',
+        prerelease: true,
+        draft: false,
+        assets: [],
+      );
+      const next = ReleaseInfo(
+        tag: 'nightly',
+        name: '题训 nightly-20261109-203000',
+        prerelease: true,
+        draft: false,
+        assets: [],
+      );
+      final notifier = container.read(updateStatusProvider.notifier);
+      notifier.state = UpdateState(
+        status: UpdateStatus.available,
+        release: old,
+        readyToInstall: true,
+        apkPath: apk.path,
+      );
+      service.checkOutcome = const UpdateCheckOutcome(
+        kind: UpdateCheckKind.available,
+        release: next,
+      );
+      await notifier.checkForUpdate(manual: true);
+      expect(container.read(updateStatusProvider).readyToInstall, isFalse);
+      expect(container.read(updateStatusProvider).apkPath, isNull);
+    },
+  );
+
   test('a re-check drops the ready APK when the cached file is gone', () async {
     final container = await makeContainer();
     final notifier = container.read(updateStatusProvider.notifier);
