@@ -71,11 +71,23 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  key: const Key('open-exams'),
-                  onPressed: () => context.push('/exams'),
-                  icon: const Icon(Icons.calendar_month_outlined),
-                  label: Text(context.l10n.examRecords),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      key: const Key('open-timeline'),
+                      onPressed: () => context.push('/timeline'),
+                      icon: const Icon(Icons.event_note_outlined),
+                      label: Text(context.l10n.timelineTitle),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('open-exams'),
+                      onPressed: () => context.push('/exams'),
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text(context.l10n.examRecords),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 const DailyLearning(),

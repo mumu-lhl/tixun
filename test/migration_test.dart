@@ -10,6 +10,19 @@ import 'dart:io';
 import 'generated_migrations/schema.dart';
 
 void main() {
+  test('Schema v19 adds the timeline without changing exam records', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(18);
+    schema.rawDatabase.execute(
+      "INSERT INTO exam_events(id,title,date,updated_at) VALUES('e','期中',1,1)",
+    );
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+    expect((await db.select(db.examEvents).get()).single.title, '期中');
+    expect(await db.select(db.timelineEvents).get(), isEmpty);
+  });
+
   test('Schema v18 keeps existing pins as question figures', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final schema = await verifier.schemaAt(17);

@@ -182,6 +182,7 @@ class AiModelPrices extends Table {
     PracticeChatLinks,
     Scratchpads,
     ExamEvents,
+    TimelineEvents,
     ExamSubjects,
     ExamScoreRows,
     ExamAttachments,
@@ -200,7 +201,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 18;
+  static const latestSchemaVersion = 19;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -213,6 +214,7 @@ class AppDatabase extends _$AppDatabase {
       await _createPracticeLinkIndex();
       await _createModuleIndexes();
       await _createExamIndexes();
+      await _createTimelineIndex();
       await _createVisualIndexes();
       await customStatement(
         'CREATE INDEX ai_usage_occurred ON ai_usage_events(occurred_at)',
@@ -240,6 +242,10 @@ class AppDatabase extends _$AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from < 19) {
+        await m.createTable(timelineEvents);
+        await _createTimelineIndex();
+      }
       if (from < 2) {
         await m.addColumn(chatSessions, chatSessions.toolsEnabled);
         await m.addColumn(providerConfigs, providerConfigs.supportsTools);
@@ -458,6 +464,12 @@ class AppDatabase extends _$AppDatabase {
     );
     await customStatement(
       'CREATE INDEX mistake_module_lookup ON mistake_module_links(module_id,mistake_id)',
+    );
+  }
+
+  Future<void> _createTimelineIndex() async {
+    await customStatement(
+      'CREATE INDEX timeline_event_start ON timeline_events(start_date)',
     );
   }
 

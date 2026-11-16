@@ -1,3 +1,5 @@
+import '../features/timeline/timeline_store.dart';
+
 import 'package:tixun/core/l10n/app_error.dart';
 
 import 'app_notice.dart';
@@ -71,6 +73,7 @@ class AppController extends ChangeNotifier {
   final bool demo;
   late final StudyStore study = StudyStore(db, files);
   late final ExamStore exams = ExamStore(db, files);
+  late final TimelineStore timeline = TimelineStore(db);
   late final ScratchStore scratch = ScratchStore(db);
   late final ReviewStore review = ReviewStore(db);
   late final VisualStore visual = VisualStore(db);
@@ -1723,6 +1726,7 @@ class AppController extends ChangeNotifier {
     _disposed = true;
     scratch.dispose();
     exams.dispose();
+    timeline.dispose();
     preferences.dispose();
     study.modules.dispose();
     study.dispose();
@@ -1739,6 +1743,7 @@ class AppController extends ChangeNotifier {
     await practice.flushDrafts();
     await scratch.flush();
     await exams.whenIdle;
+    await timeline.whenIdle;
     await preferences.whenIdle;
     await study.modules.whenIdle;
     await study.whenIdle;

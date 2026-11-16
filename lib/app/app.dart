@@ -1,3 +1,4 @@
+import '../features/timeline/timeline_screen.dart';
 import '../core/ui/app_menu.dart';
 import '../features/settings/ai_settings_screen.dart';
 import '../features/settings/ai_usage_screen.dart';
@@ -128,6 +129,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ],
               ),
             ],
+          ),
+          _materialRoute(
+            path: '/timeline',
+            builder: (_, _) => const TimelineScreen(),
           ),
           _materialRoute(
             path: '/study',

@@ -67,6 +67,12 @@ void main() {
     );
     await c.practice.submit((await c.practice.begin(q)).id, ['4']);
     await c.setTools(true);
+    await c.timeline.save(
+      title: '期中考',
+      start: DateTime(2027, 4, 5),
+      end: DateTime(2027, 4, 6),
+      notes: '带准考证',
+    );
     await c.savePrompt('guided', '保留我的教学偏好。');
     await c.setLanguage('en');
     await c.setDynamicColors(false);
@@ -111,6 +117,10 @@ void main() {
     await BackupService.finish(activation);
     await prepared.discard();
     expect((await c.study.knowledge(note)).content, '恢复前的内容');
+    final timeline = (await c.db.select(c.db.timelineEvents).get()).single;
+    expect(timeline.title, '期中考');
+    expect(timeline.notes, '带准考证');
+    expect(timeline.endDate!.toUtc(), DateTime.utc(2027, 4, 6));
     expect(c.selected!.draft, '待发送草稿');
     expect(c.languageChoice, 'en');
     expect(c.dynamicColors, false);

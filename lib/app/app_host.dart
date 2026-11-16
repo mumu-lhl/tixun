@@ -180,6 +180,7 @@ class _TixunHostState extends State<TixunHost> {
     await c.practice.flushDrafts();
     await c.scratch.flush();
     await c.exams.whenIdle;
+    await c.timeline.whenIdle;
     await c.preferences.whenIdle;
     await c.study.modules.whenIdle;
     await c.study.whenIdle;
@@ -214,6 +215,7 @@ class _TixunHostState extends State<TixunHost> {
           await old?.practice.flushDrafts();
           await old?.scratch.flush();
           await old?.exams.whenIdle;
+          await old?.timeline.whenIdle;
           await old?.preferences.whenIdle;
           await old?.study.modules.whenIdle;
           await old?.study.whenIdle;

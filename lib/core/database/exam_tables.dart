@@ -61,3 +61,14 @@ class ExamAttachments extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class TimelineEvents extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get endDate => dateTime().nullable()();
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  DateTimeColumn get updatedAt => dateTime()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
