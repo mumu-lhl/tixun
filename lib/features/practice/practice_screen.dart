@@ -10,6 +10,7 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/l10n/app_error.dart';
 import '../../core/l10n/app_error_localization.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/markdown_editor.dart';
 import '../review/review_screen.dart';
 import 'practice_providers.dart';
 import 'practice_run_screen.dart';
@@ -684,6 +685,23 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
                       maxLines: lines + 3,
                       decoration: InputDecoration(
                         labelText: label,
+                        suffixIcon:
+                            {stem, options, explanation, hint}.contains(ctrl)
+                            ? MarkdownFullscreenButton(
+                                key: ValueKey(
+                                  'practice-markdown-${ctrl == stem
+                                      ? 'stem'
+                                      : ctrl == options
+                                      ? 'options'
+                                      : ctrl == hint
+                                      ? 'hint'
+                                      : 'explanation'}',
+                                ),
+                                controller: ctrl,
+                                title: label,
+                                enabled: !saving,
+                              )
+                            : null,
                         helperText: ctrl == options && kind == 'region_select'
                             ? widget.initial?.spec.options.keys.join(' · ')
                             : null,

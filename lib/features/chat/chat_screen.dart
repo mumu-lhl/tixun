@@ -15,6 +15,7 @@ import '../../core/ai/study_tools.dart';
 import '../../core/ai/ai_usage_store.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/markdown_editor.dart';
 import '../../core/platform/photo_picker.dart';
 import '../../core/ui/image_viewer.dart';
 import '../library/chat_study_actions.dart';
@@ -1011,6 +1012,47 @@ class _ConversationState extends ConsumerState<Conversation> {
                                           ),
                                         ),
                                       ),
+                                      IconButton(
+                                        key: const Key(
+                                          'chat-markdown-fullscreen',
+                                        ),
+                                        tooltip: context.l10n.markdownOpenFull,
+                                        icon: const Icon(
+                                          Icons.open_in_full_outlined,
+                                          size: 19,
+                                        ),
+                                        onPressed: c.selected == null
+                                            ? null
+                                            : () async {
+                                                final sessionId =
+                                                    c.selected!.id;
+                                                final result =
+                                                    await showMarkdownEditor(
+                                                      context,
+                                                      title: context
+                                                          .l10n
+                                                          .markdownEditor,
+                                                      initialValue:
+                                                          _input.value,
+                                                      maxLength: 32000,
+                                                      previewBuilder:
+                                                          (ctx, text) =>
+                                                              VisualMarkdown(
+                                                                text,
+                                                                sessionId:
+                                                                    sessionId,
+                                                              ),
+                                                    );
+                                                if (!mounted ||
+                                                    result == null ||
+                                                    c.selected?.id !=
+                                                        sessionId) {
+                                                  return;
+                                                }
+                                                _input.value = result;
+                                                await c.draft(result.text);
+                                              },
+                                      ),
                                       c.busy
                                           ? IconButton.filled(
                                               key: const Key('stop-generation'),
@@ -1292,6 +1334,7 @@ class MessageView extends ConsumerWidget {
                               title: context.l10n.editAndAskAgainKeep,
                               initial: message.content,
                               multiline: true,
+                              markdown: true,
                             );
                             if (text != null && context.mounted) {
                               await act(

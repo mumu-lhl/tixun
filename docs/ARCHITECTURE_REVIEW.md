@@ -20,6 +20,7 @@
 | `core/ai/chatgpt/auth.dart` | 只向 UI 返回只读账号摘要和一次取得的账号快照；令牌记录、HTTP 与安全存储细节留在实现内部。保留 PKCE/JWT 校验、合并刷新、取消等待、退出与原子保存语义。 |
 | `core/export/`、`features/library/study_export.dart` | 知识打印导出：`parseLearningMarkdown` 复用学习内容的 Markdown 与公式语法，`buildStudyPdf` / `buildStudyDocx` / `buildStudyMarkdown` 是无 Flutter 依赖的纯函数；`StudyStore` 读取、附件字节和字体资源只在 `StudyExportService` 里加载，导出不写数据库、不改修订。PDF 内嵌 CJK 字体子集，公式在导出前转为文本，无法识别的命令保留原文。 |
 | `features/timeline/timeline_store.dart` | 历程事项的本地日期、可选结束日期和备注；通过数据库迁移及备份保留，日期按日历日计算。 |
+| `core/ui/markdown_editor.dart` | 复用现有学习内容解析器的全屏 Markdown 编辑和预览；暂存修改直到用户完成，公式模板使用当前数学渲染器支持的语法。 |
 | `features/update/` | 发布通道、版本与 ABI 选择、下载校验、Android 系统安装和 Linux 重启切换，学习数据与程序目录隔离。 |
 | `StudyStore` / `PracticeStore` | 分题接收的文件写入、事务和幂等操作集中于 `acceptQuestionRegion`；题目修订及继承关联集中于 `revise`。题图验证、快照与 pin 关联集中在 `PracticeStore.create` 的同一事务，AI 工具和编辑器不另补关联；修订/幂等重放保留原 pin。UI 不再自行组合这些写入。 |
 | `core/visual/*`、`features/visual/*`、`core/ai/visual_tool.dart` | Visual DSL v1 的场景验证、采样、渲染、存储与探索图工具。考试不提供探索图 create/update/get，而通过 create_quiz 内联题面/解析图，Store 事务固定两种 pin，解析仅在当前尝试提交后显示。题卡与全屏共享同一作答状态，不创建第二个 attempt；schema v18 迁移旧 pin 为 question。 |

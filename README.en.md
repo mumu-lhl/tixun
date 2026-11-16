@@ -43,6 +43,8 @@ The composer supports multiple lines; Ctrl+Enter sends on desktop. When you brow
 
 An AI reply’s save menu can organize it into knowledge or a mistake, or merge it into an existing note you select. Review the process in a separate chat and confirm each write. Knowledge also has AI create and edit actions; edits preserve revision history.
 
+Chat drafts, knowledge, mistakes and practice questions offer a fullscreen Markdown editor with syntax highlighting, edit/preview, formatting, find and replace, undo/redo, and math, physics and chemistry formula templates. Choose **Done** to apply the changes to the original field.
+
 On phones, the chat's more menu contains material tools, linked material and model settings. Choose knowledge, mistakes, subject modules, learning progress and review scheduling separately, or enable/disable all at once. Your choices are saved per conversation. Disabled categories are not offered to AI; writes still require application permissions and confirmation. DeepSeek and ChatGPT support reasoning with tools; compatible services follow their declared capabilities.
 
 ## AI teaching figures
@@ -57,7 +59,7 @@ Saved figures and questions remain local and work offline. Passing structural or
 
 ## Photos and study material
 
-Android and Linux Python execution is available under Settings → Python execution. By default you review the exact code before allowing it; you can disable execution or explicitly enable automatic permission. Chat, question generation, mistake explanations and AI knowledge writing share the tool. CPython, NumPy, SymPy and mpmath are bundled locally. Linux uses a separate bubblewrap process with only the current session workspace writable. Android uses a separate isolated UID without app permissions, exchanging workspace files through bounded pipes rather than sharing app directories. Timeout or stop terminates the isolated process. Expand execution history to inspect code, output and errors; output is sent to the current model.
+Android and Linux Python execution is available under Settings → Python execution. By default you review the exact code before allowing it; you can disable execution or explicitly enable automatic permission. Chat, question generation, mistake explanations and AI knowledge writing share the tool. CPython, NumPy, SymPy and mpmath are bundled locally. Linux uses a separate bubblewrap process with only the current session workspace writable. Android uses a separate isolated UID without app permissions, exchanging workspace files through bounded pipes rather than sharing app directories. Timeout or stop terminates the isolated process. Code previews use a monospaced font and syntax highlighting; expand execution history to inspect code, output and errors; output is sent to the current model.
 
 **Linux isolation restricts filesystem writes, not reads or networking:** code can still read other local files and access the network. Android cannot directly access private app files or networking. Its virtual workspace transfers at most 8 MiB and 1000 entries per run; links, special files and native operations using virtual filenames are unsupported. Native extensions must use file-like objects. Automatic permission skips code review. Generated files are not automatically included in study records or backups; unfinished Android snapshots are not saved after timeout, cancellation or a process crash. A successful calculation does not verify the whole problem’s assumptions or reasoning. Mobile Chat fills the screen and provides a Back button.
 

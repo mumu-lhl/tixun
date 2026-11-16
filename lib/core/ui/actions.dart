@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../ai/chat_provider.dart';
 import '../l10n/app_strings.dart';
 import '../l10n/app_error_localization.dart';
+import 'markdown_editor.dart';
 
 Future<void> act(BuildContext context, Future<void> Function() action) async {
   try {
@@ -22,6 +23,7 @@ Future<String?> editText(
   required String title,
   String initial = '',
   bool multiline = false,
+  bool markdown = false,
   String? helperText,
   TextInputType? keyboardType,
 }) async {
@@ -41,6 +43,9 @@ Future<String?> editText(
           maxLines: multiline ? 12 : 1,
           decoration: InputDecoration(
             labelText: context.l10n.content,
+            suffixIcon: markdown
+                ? MarkdownFullscreenButton(controller: controller, title: title)
+                : null,
             helperText: helperText,
             helperMaxLines: 5,
           ),

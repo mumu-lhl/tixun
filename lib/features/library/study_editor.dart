@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import '../../core/ui/markdown_editor.dart';
+import '../visual/visual_markdown.dart';
 import 'library_providers.dart';
 import 'study_store.dart';
 
@@ -72,10 +74,14 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       'suggestedReason': m?.item.suggestedReason ?? md?.suggestedReason ?? '',
     };
     for (final e in values.entries) {
-      _fields[e.key] = TextEditingController(text: e.value)
-        ..addListener(() {
-          if (!_dirty) setState(() => _dirty = true);
-        });
+      final controller = TextEditingController(text: e.value);
+      var previousText = e.value;
+      controller.addListener(() {
+        if (controller.text == previousText) return;
+        previousText = controller.text;
+        if (!_dirty) setState(() => _dirty = true);
+      });
+      _fields[e.key] = controller;
     }
   }
 
@@ -491,6 +497,21 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       decoration: InputDecoration(
         labelText: label,
         alignLabelWithHint: lines > 1,
+        suffixIcon: lines > 1
+            ? MarkdownFullscreenButton(
+                key: ValueKey('study-markdown-$name'),
+                controller: field(name),
+                title: label,
+                enabled: !_saving,
+                maxLength: maxLength,
+                previewBuilder: name == 'content' && widget.knowledge != null
+                    ? (context, text) => VisualMarkdown(
+                        text,
+                        knowledgeId: widget.knowledge!.item.id,
+                      )
+                    : null,
+              )
+            : null,
         // Fields with a visible limit keep the counter; body fields pass no
         // maxLength at all, so over-long input reaches the store's 60000
         // check and is rejected with an error instead of being silently

@@ -220,4 +220,30 @@ void main() {
       await t.pumpAndSettle();
     },
   );
+  testWidgets('fullscreen Markdown editor applies and saves the chat draft', (
+    t,
+  ) async {
+    await c.draft('原草稿');
+    router.go('/chat');
+    await t.pumpWidget(
+      UncontrolledProviderScope(container: scope, child: const TixunApp()),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('chat-markdown-fullscreen')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('markdown-source')), '## 新问题');
+    await t.tap(find.byKey(const Key('markdown-done')));
+    await t.pumpAndSettle();
+    await t.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 80)),
+    );
+    await t.pumpAndSettle();
+    expect(
+      t.widget<TextField>(find.byKey(const Key('chat-input'))).controller!.text,
+      '## 新问题',
+    );
+    expect(c.selected!.draft, '## 新问题');
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpAndSettle();
+  });
 }

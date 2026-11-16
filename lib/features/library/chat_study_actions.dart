@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:val_highlight/languages/python.dart';
+import 'package:val_highlight_flutter/val_highlight_flutter.dart';
 
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
@@ -167,14 +169,7 @@ class ToolApprovalCard extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           if (e.key == 'code')
-                            SelectableText(
-                              e.value.toString(),
-                              style: const TextStyle(
-                                fontFamily: 'TixunMono',
-                                fontFamilyFallback: ['NotoSansSC'],
-                                fontSize: 12,
-                              ),
-                            )
+                            PythonCodeView(e.value.toString(), fontSize: 12)
                           else
                             LearningMarkdown(
                               e.value is List
@@ -558,6 +553,33 @@ Future<void> openChatStudyLinks(BuildContext context, WidgetRef ref) async {
   if (path != null && context.mounted) context.push(path);
 }
 
+// A small shared cache avoids retaining an unbounded history of model code.
+final _pythonHighlighter = CodeHighlighter(
+  cacheSize: 4,
+  isolateThreshold: 12000,
+);
+
+class PythonCodeView extends StatelessWidget {
+  const PythonCodeView(this.code, {super.key, this.fontSize = 13});
+  final String code;
+  final double fontSize;
+  @override
+  Widget build(BuildContext context) => CodeView(
+    code,
+    key: const Key('python-highlighted-code'),
+    language: pythonLanguage,
+    highlighter: _pythonHighlighter,
+    selectable: true,
+    padding: const EdgeInsets.all(8),
+    textStyle: TextStyle(
+      fontFamily: 'TixunMono',
+      fontFamilyFallback: const ['NotoSansSC'],
+      fontSize: fontSize,
+      height: 1.5,
+    ),
+  );
+}
+
 Future<void> showPythonCode(BuildContext context, String code) =>
     showDialog<void>(
       context: context,
@@ -566,16 +588,7 @@ Future<void> showPythonCode(BuildContext context, String code) =>
         content: SizedBox(
           width: 760,
           height: MediaQuery.sizeOf(ctx).height * .6,
-          child: SingleChildScrollView(
-            child: SelectableText(
-              code,
-              style: const TextStyle(
-                fontFamily: 'TixunMono',
-                fontFamilyFallback: ['NotoSansSC'],
-                fontSize: 13,
-              ),
-            ),
-          ),
+          child: SingleChildScrollView(child: PythonCodeView(code)),
         ),
         actions: [
           TextButton(
