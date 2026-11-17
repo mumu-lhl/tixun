@@ -2518,5 +2518,8 @@
   "toolCreateVisual": "Visual: create",
   "toolUpdateVisual": "Visual: update",
   "toolReadVisual": "Visual: read",
-  "toolActivityFallback": "Tool call"
+  "toolActivityFallback": "Tool call",
+  "chatStarterConcept": "How can I understand the vertex formula instead of memorizing it?",
+  "chatStarterMethod": "I can solve this problem, but why does this method work?",
+  "chatCompactInputHint": "Ask a question…"
 }

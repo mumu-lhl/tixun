@@ -183,7 +183,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                       ),
                       child: Material(
                         color: active
-                            ? colors.primaryContainer.withValues(alpha: .65)
+                            ? colors.primaryContainer.withValues(alpha: .55)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         child: ListTile(
@@ -198,7 +198,15 @@ class _SessionListState extends ConsumerState<SessionList> {
                             s.title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 14),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: active
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: active
+                                  ? colors.onPrimaryContainer
+                                  : colors.onSurface,
+                            ),
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

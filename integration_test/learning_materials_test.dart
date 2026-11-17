@@ -51,6 +51,8 @@ void main() {
       container.read(routerProvider).go('/chat');
       await t.pumpAndSettle();
       await resizeGui(t, 390, 844);
+      await t.enterText(find.byKey(const Key('chat-input')), '请帮我看看这道题');
+      await t.pumpAndSettle();
       await t.tap(find.byTooltip('添加图片'));
       await t.pumpAndSettle();
       await t.tap(find.text('选择图片文件'));
@@ -76,6 +78,13 @@ void main() {
         () => find.byKey(const Key('crop-canvas')).evaluate().isEmpty,
       );
       final edited = c.attachments.single;
+      expect(
+        t
+            .widget<TextField>(find.byKey(const Key('chat-input')))
+            .controller!
+            .text,
+        '请帮我看看这道题',
+      );
       expect(edited.originalPath, source.relativePath);
       expect(edited.relativePath, isNot(source.relativePath));
       expect(await c.files.resolve(source.relativePath).exists(), true);

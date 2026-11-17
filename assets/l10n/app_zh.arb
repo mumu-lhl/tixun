@@ -2518,5 +2518,8 @@
   "toolCreateVisual": "图形：创建",
   "toolUpdateVisual": "图形：修改",
   "toolReadVisual": "图形：读取",
-  "toolActivityFallback": "调用工具"
+  "toolActivityFallback": "调用工具",
+  "chatStarterConcept": "二次函数的顶点公式，怎样理解而不是死记？",
+  "chatStarterMethod": "我会做这道题，但不知道为什么要用这个方法。",
+  "chatCompactInputHint": "写下你的问题…"
 }

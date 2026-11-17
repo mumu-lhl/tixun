@@ -57,6 +57,29 @@ void main() {
     await c.db.close();
     await root.delete(recursive: true);
   });
+  testWidgets('A photo can be added after typing on a narrow phone', (t) async {
+    t.view.physicalSize = const Size(320, 720);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    router.go('/chat');
+    await t.pumpWidget(
+      UncontrolledProviderScope(container: scope, child: const TixunApp()),
+    );
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('chat-input')), '请看看这道题');
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('send-message')), findsOneWidget);
+    await t.tap(find.byKey(const Key('chat-add-photo')));
+    await t.pumpAndSettle();
+    expect(find.text('选择图片文件'), findsOneWidget);
+    expect(
+      t.widget<TextField>(find.byKey(const Key('chat-input'))).controller!.text,
+      '请看看这道题',
+    );
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('Material tools support individual categories and all-on/off', (
     t,
   ) async {

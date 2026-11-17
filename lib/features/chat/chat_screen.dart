@@ -39,7 +39,13 @@ class ChatScreen extends ConsumerWidget {
     return Row(
       children: [
         if (wide) ...[
-          const SizedBox(width: 268, child: SessionList()),
+          SizedBox(
+            width: 268,
+            child: ColoredBox(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              child: const SessionList(),
+            ),
+          ),
           const VerticalDivider(width: 1),
         ],
         Expanded(
@@ -433,13 +439,9 @@ class _ConversationState extends ConsumerState<Conversation> {
 
   // Demo-only geometry reporting for the GUI smoke script.
   //
-  // The action slot morphs: an empty composer shows the image button, not
-  // the send button. The composer point is therefore reported whenever the
-  // input exists (once per session/position); the send point only once the
-  // send button has appeared. Called from build() and from the slot builder:
-  // typing updates the draft without notifying the controller, so build()
-  // does not re-run on keystrokes and only the slot builder observes the
-  // morph.
+  // The send point is reported once the draft can be sent. Typing updates the
+  // draft without notifying the controller, so the button builder also asks
+  // for a report when it observes a non-empty draft.
   void _scheduleComposerReport(Size viewport, String? sessionId) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _reportedViewport == viewport) return;
@@ -572,6 +574,22 @@ class _ConversationState extends ConsumerState<Conversation> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         const SizedBox(height: 24),
+                                        Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration: BoxDecoration(
+                                            color: colors.primaryContainer,
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.auto_awesome_outlined,
+                                            color: colors.onPrimaryContainer,
+                                            size: 23,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 18),
                                         Text(
                                           context
                                               .l10n
@@ -589,26 +607,68 @@ class _ConversationState extends ConsumerState<Conversation> {
                                           ),
                                         ),
                                         const SizedBox(height: 28),
-                                        for (final prompt in [
-                                          '二次函数的顶点公式，怎样理解而不是死记？',
-                                          '我会做这道题，但不知道为什么要用这个方法。',
+                                        for (final (prompt, icon) in [
+                                          (
+                                            context.l10n.chatStarterConcept,
+                                            Icons.lightbulb_outline_rounded,
+                                          ),
+                                          (
+                                            context.l10n.chatStarterMethod,
+                                            Icons.account_tree_outlined,
+                                          ),
                                         ])
                                           Padding(
                                             padding: const EdgeInsets.only(
                                               bottom: 12,
                                             ),
                                             child: OutlinedButton(
+                                              style: OutlinedButton.styleFrom(
+                                                backgroundColor:
+                                                    colors.surfaceContainerLow,
+                                                side: BorderSide(
+                                                  color: colors.outlineVariant
+                                                      .withValues(alpha: .55),
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 14,
+                                                    ),
+                                              ),
                                               onPressed: () {
                                                 _input.text = prompt;
                                                 c.draft(prompt);
                                                 _focus.requestFocus();
                                               },
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 12,
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    icon,
+                                                    size: 20,
+                                                    color: colors.primary,
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: Text(
+                                                      prompt,
+                                                      style: TextStyle(
+                                                        color: colors.onSurface,
+                                                        fontSize: 14,
+                                                      ),
                                                     ),
-                                                child: Text(prompt),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Icon(
+                                                    Icons.north_east_rounded,
+                                                    size: 16,
+                                                    color:
+                                                        colors.onSurfaceVariant,
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ),
@@ -769,32 +829,37 @@ class _ConversationState extends ConsumerState<Conversation> {
                 maintainSize: reserveQuickActions,
                 child: SizedBox(
                   height: 40,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
-                      for (final text in [
-                        context.l10n.giveMeAHint,
-                        context.l10n.explainDifferently,
-                        context.l10n.makeItSimpler,
-                        context.l10n.showTheAnswer,
-                        context.l10n.giveMeAnotherQuestion,
-                      ])
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ActionChip(
-                            label: Text(
-                              text,
-                              style: const TextStyle(fontSize: 12),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 830),
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        children: [
+                          for (final text in [
+                            context.l10n.giveMeAHint,
+                            context.l10n.explainDifferently,
+                            context.l10n.makeItSimpler,
+                            context.l10n.showTheAnswer,
+                            context.l10n.giveMeAnotherQuestion,
+                          ])
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ActionChip(
+                                label: Text(
+                                  text,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                onPressed: () {
+                                  _input.text = text;
+                                  c.draft(text);
+                                  _focus.requestFocus();
+                                },
+                              ),
                             ),
-                            onPressed: () {
-                              _input.text = text;
-                              c.draft(text);
-                              _focus.requestFocus();
-                            },
-                          ),
-                        ),
-                    ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -868,9 +933,20 @@ class _ConversationState extends ConsumerState<Conversation> {
                               decoration: BoxDecoration(
                                 color: colors.surfaceContainerLowest,
                                 border: Border.all(
-                                  color: colors.outlineVariant,
+                                  color: colors.outlineVariant.withValues(
+                                    alpha: .8,
+                                  ),
                                 ),
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colors.shadow.withValues(
+                                      alpha: .045,
+                                    ),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               child: Column(
                                 children: [
@@ -996,8 +1072,13 @@ class _ConversationState extends ConsumerState<Conversation> {
                                           maxLines: 4,
                                           maxLength: 32000,
                                           decoration: InputDecoration(
-                                            hintText:
-                                                context.l10n.askAQuestionOrAdd,
+                                            hintText: viewport.width < 600
+                                                ? context
+                                                      .l10n
+                                                      .chatCompactInputHint
+                                                : context
+                                                      .l10n
+                                                      .askAQuestionOrAdd,
                                             counterText: '',
                                             filled: false,
                                             border: InputBorder.none,
@@ -1006,11 +1087,46 @@ class _ConversationState extends ConsumerState<Conversation> {
                                             disabledBorder: InputBorder.none,
                                             contentPadding:
                                                 const EdgeInsets.symmetric(
-                                                  horizontal: 8,
+                                                  horizontal: 14,
                                                   vertical: 14,
                                                 ),
                                           ),
                                         ),
+                                      ),
+                                      PopupMenuButton<String>(
+                                        key: const Key('chat-add-photo'),
+                                        popUpAnimationStyle: menuAnimation(
+                                          context,
+                                        ),
+                                        tooltip: context.l10n.addPhotos,
+                                        enabled: !c.busy,
+                                        icon: const Icon(
+                                          Icons.add_photo_alternate_outlined,
+                                          size: 21,
+                                        ),
+                                        onSelected: _import,
+                                        itemBuilder: (_) => [
+                                          if (Platform.isAndroid) ...[
+                                            PopupMenuItem(
+                                              value: 'camera',
+                                              child: Text(
+                                                context.l10n.takePhoto,
+                                              ),
+                                            ),
+                                            PopupMenuItem(
+                                              value: 'gallery',
+                                              child: Text(
+                                                context.l10n.chooseFromPhotos,
+                                              ),
+                                            ),
+                                          ],
+                                          PopupMenuItem(
+                                            value: 'file',
+                                            child: Text(
+                                              context.l10n.chooseImageFile,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       IconButton(
                                         key: const Key(
@@ -1068,16 +1184,6 @@ class _ConversationState extends ConsumerState<Conversation> {
                                             >(
                                               valueListenable: _input,
                                               builder: (context, value, _) {
-                                                // The right-hand slot morphs
-                                                // with state: with nothing to
-                                                // send it offers adding an
-                                                // image; once there is text —
-                                                // or a pending image — it
-                                                // becomes the send button.
-                                                // The image button therefore
-                                                // only ever appears while the
-                                                // input is empty, and the
-                                                // field width never jumps.
                                                 final canSend =
                                                     value.text
                                                         .trim()
@@ -1086,79 +1192,32 @@ class _ConversationState extends ConsumerState<Conversation> {
                                                       (a) =>
                                                           a.messageId == null,
                                                     );
-                                                if (!canSend) {
-                                                  return PopupMenuButton<
-                                                    String
-                                                  >(
-                                                    popUpAnimationStyle:
-                                                        menuAnimation(context),
-                                                    tooltip:
-                                                        context.l10n.addPhotos,
-                                                    enabled: !c.busy,
-                                                    icon: const Icon(
-                                                      Icons
-                                                          .add_photo_alternate_outlined,
-                                                      size: 23,
-                                                    ),
-                                                    onSelected: _import,
-                                                    itemBuilder: (_) => [
-                                                      if (Platform
-                                                          .isAndroid) ...[
-                                                        PopupMenuItem(
-                                                          value: 'camera',
-                                                          child: Text(
-                                                            context
-                                                                .l10n
-                                                                .takePhoto,
-                                                          ),
-                                                        ),
-                                                        PopupMenuItem(
-                                                          value: 'gallery',
-                                                          child: Text(
-                                                            context
-                                                                .l10n
-                                                                .chooseFromPhotos,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                      PopupMenuItem(
-                                                        value: 'file',
-                                                        child: Text(
-                                                          context
-                                                              .l10n
-                                                              .chooseImageFile,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  );
-                                                }
-                                                // Typing does not rebuild the
-                                                // enclosing state (draft updates
-                                                // do not notify), so report from
-                                                // here: this builder is what
-                                                // observes the slot morphing
-                                                // into the send button.
-                                                if (c.demo) {
+                                                if (canSend && c.demo) {
                                                   _scheduleComposerReport(
                                                     viewport,
                                                     sessionId,
                                                   );
                                                 }
                                                 return IconButton.filled(
-                                                  key: const Key(
-                                                    'send-message',
-                                                  ),
+                                                  key: canSend
+                                                      ? const Key(
+                                                          'send-message',
+                                                        )
+                                                      : null,
                                                   tooltip: context
                                                       .l10n
                                                       .sendCtrlEnter,
-                                                  onPressed: () =>
-                                                      act(context, _send),
+                                                  onPressed: canSend
+                                                      ? () =>
+                                                            act(context, _send)
+                                                      : null,
                                                   icon: const Icon(
                                                     Icons.arrow_upward_rounded,
                                                   ),
                                                 );
                                               },
                                             ),
+                                      const SizedBox(width: 4),
                                     ],
                                   ),
                                 ],
@@ -1194,7 +1253,7 @@ class MessageView extends ConsumerWidget {
     final colors = Theme.of(context).colorScheme;
     final images = c.attachments.where((a) => a.messageId == message.id);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1218,12 +1277,42 @@ class MessageView extends ConsumerWidget {
                 ),
               ),
             ),
-          if (!user)
+          if (!user) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer.withValues(alpha: .65),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome_outlined,
+                      size: 15,
+                      color: colors.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    context.l10n.aiLearningAssistant,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             MessageReasoning(
               message,
               examGenerating:
                   message.status == 'generating' && c.selected?.mode == 'exam',
             ),
+          ],
           if (message.content.isNotEmpty)
             user
                 ? Align(
@@ -1236,8 +1325,13 @@ class MessageView extends ConsumerWidget {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: colors.primaryContainer,
-                          borderRadius: BorderRadius.circular(18),
+                          color: colors.primaryContainer.withValues(alpha: .72),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                            bottomLeft: Radius.circular(20),
+                            bottomRight: Radius.circular(6),
+                          ),
                         ),
                         child: SelectableText(
                           message.content,
@@ -1307,6 +1401,9 @@ class MessageView extends ConsumerWidget {
             ),
           if (message.status != 'generating')
             Row(
+              mainAxisAlignment: user
+                  ? MainAxisAlignment.end
+                  : MainAxisAlignment.start,
               children: [
                 IconButton(
                   tooltip: context.l10n.copyMessage,
