@@ -14,10 +14,10 @@ class MathInlineSyntax extends md.InlineSyntax {
   // literal text instead of being parsed as a formula and losing its
   // `$` signs when the (invalid) formula falls back. `$$...$$`,
   // `\(...\)` and `\[...\]` are unchanged.
-  MathInlineSyntax()
-    : super(
-        r'\$\$([^$]+?)\$\$|\$((?:[^\n$]*[\\^_{}=()<>\\/][^\n$]*?)|(?:[A-Za-z][A-Za-z0-9_]*)|(?:[A-Za-z0-9]+(?:\.[0-9]+)?(?:\s*[,;+*:|−±×÷-]\s*[A-Za-z0-9]+(?:\.[0-9]+)?)+)|(?:[+-]?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)))\$|\\\((.+?)\\\)|\\\[([^\]]+?)\\\]',
-      );
+  static const expression =
+      r'\$\$([^$]+?)\$\$|\$((?:[^\n$]*[\\^_{}=()<>\\/][^\n$]*?)|(?:[A-Za-z][A-Za-z0-9_]*)|(?:[A-Za-z0-9]+(?:\.[0-9]+)?(?:\s*[,;+*:|−±×÷-]\s*[A-Za-z0-9]+(?:\.[0-9]+)?)+)|(?:[+-]?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)))\$|\\\((.+?)\\\)|\\\[([^\]]+?)\\\]';
+
+  MathInlineSyntax() : super(expression);
   @override
   bool onMatch(md.InlineParser parser, Match match) {
     parser.addNode(

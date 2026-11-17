@@ -1,114 +1,128 @@
 import 'package:material_ui/material_ui.dart';
-// Markdown's theme API has not migrated to material_ui yet.
-// ignore: deprecated_member_use
-import 'package:flutter/material.dart' as legacy;
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
-import 'package:markdown/markdown.dart' as md;
+import 'package:gpt_markdown/gpt_markdown.dart';
 
 import '../l10n/app_strings.dart';
 import '../markdown/learning_syntax.dart';
 
 export '../markdown/learning_syntax.dart';
 
-class MathBuilder extends MarkdownElementBuilder {
-  MathBuilder({this.block = false});
-  final bool block;
-  @override
-  bool isBlockElement() => block;
-  @override
-  Widget visitElementAfterWithContext(
-    BuildContext context,
-    md.Element element,
-    TextStyle? preferredStyle,
-    TextStyle? parentStyle,
-  ) {
-    final source = element.textContent;
-    final formula = Tooltip(
-      message: context.l10n.longPressToCopyLaTeX,
-      child: GestureDetector(
-        onLongPress: () => Clipboard.setData(ClipboardData(text: source)),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.symmetric(vertical: block ? 12 : 2),
-          child: Math.tex(
+Widget _math(BuildContext context, String source, {bool block = false}) {
+  return Tooltip(
+    message: context.l10n.longPressToCopyLaTeX,
+    child: GestureDetector(
+      onLongPress: () => Clipboard.setData(ClipboardData(text: source)),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(vertical: block ? 12 : 2),
+        child: Math.tex(
+          source,
+          mathStyle: block ? MathStyle.display : MathStyle.text,
+          textStyle: TextStyle(
+            fontSize: block ? 19 : 16,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          onErrorFallback: (_) => SelectableText(
             source,
-            mathStyle: block ? MathStyle.display : MathStyle.text,
-            textStyle: TextStyle(
-              fontSize: block ? 19 : 16,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            onErrorFallback: (_) => SelectableText(
-              source,
-              style: const TextStyle(fontFamily: 'TixunMono'),
-            ),
+            style: const TextStyle(fontFamily: 'TixunMono'),
           ),
         ),
       ),
-    );
-    if (block) return formula;
-    // A text span lets Markdown merge math into the surrounding paragraph.
-    // Returning an independent widget makes punctuation wrap as a separate run.
-    return Text.rich(
-      TextSpan(
-        children: [
-          WidgetSpan(alignment: PlaceholderAlignment.middle, child: formula),
-        ],
-      ),
-    );
-  }
+    ),
+  );
 }
 
-/// Inline `code` rendered as a small chip: a subtle surface background with
-/// rounded corners, matching the fenced-code-block decoration. Fenced blocks
-/// are left alone — their text always ends with a newline while inline code
-/// never contains one, so the builder returns null there and the default
-/// scrollable code-block rendering applies.
-class _InlineCodeBuilder extends MarkdownElementBuilder {
+class _MathBlock extends MarkdownBlockSyntax {
+  const _MathBlock(this.prefix);
   @override
-  Widget? visitElementAfterWithContext(
-    BuildContext context,
-    md.Element element,
-    TextStyle? preferredStyle,
-    TextStyle? parentStyle,
-  ) {
-    if (element.textContent.contains('\n')) return null;
-    final colors = Theme.of(context).colorScheme;
-    return Text.rich(
-      TextSpan(
-        children: [
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Container(
-              decoration: BoxDecoration(
-                color: colors.surfaceContainer,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              child: Text(
-                element.textContent,
-                style:
-                    preferredStyle ??
-                    const TextStyle(fontFamily: 'TixunMono', fontSize: 14),
-              ),
-            ),
-          ),
-        ],
-      ),
+  final String prefix;
+  @override
+  String get type =>
+      prefix == r'$$' ? 'tixun-dollar-math' : 'tixun-bracket-math';
+  @override
+  MarkdownBlockMatch? parse(List<String> lines, int startLine) {
+    final end = prefix == r'$$' ? r'$$' : r'\]';
+    final first = lines[startLine].trim().substring(2);
+    if (first.endsWith(end)) {
+      return MarkdownBlockMatch(
+        node: MdCustomBlock(
+          type: type,
+          body: first.substring(0, first.length - 2),
+        ),
+        endLine: startLine + 1,
+      );
+    }
+    final body = <String>[first];
+    var next = startLine + 1;
+    var closed = false;
+    while (next < lines.length) {
+      final line = lines[next++].trimRight();
+      if (line.endsWith(end)) {
+        body.add(line.substring(0, line.length - 2));
+        closed = true;
+        break;
+      }
+      body.add(lines[next - 1]);
+    }
+    return MarkdownBlockMatch(
+      node: MdCustomBlock(type: type, body: body.join('\n'), closed: closed),
+      endLine: next,
     );
   }
 }
 
-// Intrinsic sizing keeps short columns compact and enables the Markdown
-// package's horizontal scrolling. Cap long cells so prose still wraps.
+// Disable the package's dollar-math heuristic: its price detection differs
+// from the syntax used by existing notes and the print exporters. Mask escape
+// sequences before Markdown removes them, then use the shared inline syntax.
+final _mathPattern = InlinePattern(
+  pattern: RegExp('(?<!\\\\)(?:${MathInlineSyntax.expression})'),
+  scopes: MarkdownComponent.allScopes,
+  builder: (context, match, style) => WidgetSpan(
+    alignment: PlaceholderAlignment.middle,
+    child: _math(
+      context,
+      match.group(1) ?? match.group(2) ?? match.group(3) ?? match.group(4)!,
+    ),
+  ),
+);
+final _escapedDollarPattern = InlinePattern(
+  pattern: RegExp(r'(?<!\\)((?:\\\\)*)\\\$'),
+  scopes: MarkdownComponent.allScopes,
+  builder: (context, match, style) =>
+      TextSpan(text: '${r'\' * (match.group(1)!.length ~/ 2)}\$', style: style),
+);
+final _escapedSlashMathPattern = InlinePattern(
+  pattern: RegExp('${r'(?<!\\)((?:\\\\)+)(?:'}${MathInlineSyntax.expression})'),
+  scopes: MarkdownComponent.allScopes,
+  builder: (context, match, style) => TextSpan(
+    text: r'\' * (match.group(1)!.length ~/ 2),
+    style: style,
+    children: [
+      WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: _math(
+          context,
+          match.group(2) ?? match.group(3) ?? match.group(4) ?? match.group(5)!,
+        ),
+      ),
+    ],
+  ),
+);
+final _mathBlocks = [
+  for (final syntax in [const _MathBlock(r'$$'), const _MathBlock(r'\[')])
+    MarkdownBlockComponent(
+      syntax: syntax,
+      builder: (context, node, config) =>
+          _math(context, node.body, block: true),
+    ),
+];
+
 class _ReadableTableColumnWidth extends IntrinsicColumnWidth {
   const _ReadableTableColumnWidth();
-
   @override
   double minIntrinsicWidth(Iterable<RenderBox> cells, double containerWidth) =>
       super.minIntrinsicWidth(cells, containerWidth).clamp(72, 260);
-
   @override
   double maxIntrinsicWidth(Iterable<RenderBox> cells, double containerWidth) =>
       super.maxIntrinsicWidth(cells, containerWidth).clamp(72, 260);
@@ -119,71 +133,71 @@ class LearningMarkdown extends StatelessWidget {
   final String data;
   final Widget? Function(Uri source)? visualBuilder;
   @override
-  Widget build(BuildContext context) =>
-      // Keep standalone Markdown widgets themed as well as the main app.
-      // ignore: deprecated_member_use
-      MaterialUiCompatibilityBridge(child: Builder(builder: _buildContent));
+  Widget build(BuildContext context) => _buildContent(context);
 
   Widget _buildContent(BuildContext context) {
     final theme = Theme.of(context);
     return SelectionArea(
-      child: MarkdownBody(
-        data: data,
-        selectable: false,
-        softLineBreak: true,
-        inlineSyntaxes: [MathInlineSyntax()],
-        blockSyntaxes: const [MathBlockSyntax()],
-        builders: {
-          'math': MathBuilder(),
-          'mathblock': MathBuilder(block: true),
-          'code': _InlineCodeBuilder(),
+      child: GptMarkdown(
+        data,
+        style: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
+        html: false,
+        autolink: false,
+        inlinePatterns: [
+          _escapedDollarPattern,
+          _escapedSlashMathPattern,
+          _mathPattern,
+        ],
+        blockComponents: _mathBlocks,
+        inlineLatexBuilder: (details) =>
+            details.asWidgetSpan(_math(details.context, details.source)),
+        blockLatexBuilder: (details) =>
+            _math(details.context, details.source, block: true),
+        inlineCodeBuilder: (context, code, style, codeStyle) => WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            child: Text(code, style: style),
+          ),
+        ),
+        imageBuilder: (context, url, width, height) {
+          final uri = Uri.tryParse(url);
+          return (uri == null ? null : visualBuilder?.call(uri)) ??
+              Text(context.l10n.externalImageWasNotLoaded);
         },
-        imageBuilder: (uri, _, _) =>
-            visualBuilder?.call(uri) ??
-            Text(context.l10n.externalImageWasNotLoaded),
-        onTapLink: (_, href, _) async {
-          if (href == null) return;
-          await Clipboard.setData(ClipboardData(text: href));
+        onLinkTap: (url, _) async {
+          await Clipboard.setData(ClipboardData(text: url));
           if (context.mounted) {
             ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(content: Text(context.l10n.linkCopied)));
           }
         },
-        styleSheet: MarkdownStyleSheet.fromTheme(legacy.Theme.of(context))
-            .copyWith(
-              p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
-              blockSpacing: 14,
-              tableColumnWidth: const _ReadableTableColumnWidth(),
-              tableScrollbarThumbVisibility: true,
-              tableVerticalAlignment: TableCellVerticalAlignment.top,
-              tableCellsPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-              tableBody: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-              tableHead: theme.textTheme.bodyLarge?.copyWith(
-                height: 1.6,
-                fontWeight: FontWeight.w600,
-              ),
-              tableBorder: TableBorder.all(
-                color: theme.colorScheme.outlineVariant,
-              ),
-              code: TextStyle(
-                fontFamily: 'TixunMono',
-                fontSize: 14,
-                color: theme.colorScheme.onSurface,
-              ),
-              codeblockDecoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              blockquoteDecoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerLow,
-                border: Border(
-                  left: BorderSide(color: theme.colorScheme.primary, width: 3),
-                ),
-              ),
+        styleSheet: GptMarkdownStyleSheet(
+          blockSpacing: 14,
+          table: TableStyle(
+            columnWidth: const _ReadableTableColumnWidth(),
+            cellPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
             ),
+            borderColor: theme.colorScheme.outlineVariant,
+          ),
+          codeBlock: CodeBlockStyle(
+            backgroundColor: theme.colorScheme.surfaceContainer,
+            borderRadius: const Radius.circular(10),
+            fontFamily: 'TixunMono',
+            fontSize: 14,
+          ),
+        ),
+        inlineCodeStyle: InlineCodeStyle(
+          fontFamily: 'TixunMono',
+          backgroundColor: theme.colorScheme.surfaceContainer,
+          borderRadius: const Radius.circular(6),
+        ),
       ),
     );
   }

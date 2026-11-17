@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/theme.dart';
 import 'package:tixun/core/ui/learning_markdown.dart';
@@ -55,28 +56,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
-      final surfaceContainer = appTheme(Brightness.light)
-          .colorScheme
-          .surfaceContainer;
-      var inlineChip = false;
-      var fencedBlock = false;
-      for (final container in tester.widgetList<Container>(
-        find.byType(Container),
-      )) {
-        final decoration = container.decoration;
-        if (decoration is! BoxDecoration) continue;
-        if (decoration.color != surfaceContainer) continue;
-        if (decoration.borderRadius == BorderRadius.circular(6)) {
-          inlineChip = true;
-        }
-        if (decoration.borderRadius == BorderRadius.circular(10)) {
-          fencedBlock = true;
-        }
-      }
-      expect(inlineChip, isTrue, reason: 'inline code chip missing');
-      expect(fencedBlock, isTrue, reason: 'fenced block decoration missing');
-      expect(find.text('foo()'), findsOneWidget);
-      expect(find.text('int x = 1;'), findsOneWidget);
+      final inline = find.text('foo()');
+      expect(inline, findsOneWidget);
+      expect(
+        find.ancestor(
+          of: inline,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Container &&
+                widget.decoration is BoxDecoration &&
+                (widget.decoration as BoxDecoration).borderRadius ==
+                    BorderRadius.circular(6),
+          ),
+        ),
+        findsWidgets,
+      );
+      expect(
+        find.textContaining('int x = 1;', findRichText: true),
+        findsWidgets,
+      );
     },
   );
 
@@ -108,5 +106,103 @@ void main() {
       find.byWidgetPredicate((w) => w is Tooltip && w.message == '长按复制 LaTeX'),
       findsNWidgets(6),
     );
+  });
+  testWidgets('Math and images respect Markdown context', (tester) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    const id = '12345678-1234-1234-1234-123456789abc';
+    const content =
+        r'Inline $x$ and \(y+1\).'
+        '\n\n'
+        r'$$\frac{1}{2}$$'
+        '\n\n'
+        r'\['
+        '\n'
+        r'z^2'
+        '\n'
+        r'\]'
+        '\n\n'
+        r'`$notMath$`'
+        '\n\n'
+        '```text\n\$notMath\$\n```\n\n'
+        '![local](visual:$id)\n\n'
+        '![external](https://example.invalid/image.png)';
+    final visited = <Uri>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: LearningMarkdown(
+              content,
+              visualBuilder: (uri) {
+                visited.add(uri);
+                return uri.scheme == 'visual'
+                    ? const Text('local scene')
+                    : null;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byWidgetPredicate((w) => w is Tooltip && w.message == '长按复制 LaTeX'),
+      findsNWidgets(4),
+    );
+    expect(find.text('local scene'), findsOneWidget);
+    expect(visited.map((uri) => uri.scheme), containsAll(['visual', 'https']));
+    expect(find.text('[外部图片未自动加载]'), findsOneWidget);
+    await tester.longPress(
+      find
+          .byWidgetPredicate((w) => w is Tooltip && w.message == '长按复制 LaTeX')
+          .first,
+    );
+    expect(copied, 'x');
+  });
+  testWidgets('Escaped dollars and formulas in links keep their meaning', (
+    tester,
+  ) async {
+    const cases = <(String, int)>[
+      (r'\$x$ and $y$', 1),
+      (r'\\$x$', 1),
+      (r'\\\$x$', 0),
+      (r'\\\\$x$', 1),
+      (r'[$x$](https://example.org)', 1),
+      (r'[`$x$`](https://example.org)', 0),
+    ];
+    for (final (content, expected) in cases) {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: LearningMarkdown(content)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Tooltip && w.message == '长按复制 LaTeX',
+        ),
+        findsNWidgets(expected),
+        reason: content,
+      );
+      expect(tester.takeException(), isNull);
+    }
   });
 }
