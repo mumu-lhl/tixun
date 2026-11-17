@@ -1,9 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tixun/core/ui/markdown_editor.dart';
 import 'package:val_highlight_flutter/val_highlight_flutter.dart';
+import 'package:val_latex_flutter/val_latex_flutter.dart';
 
 void main() {
   testWidgets(
@@ -24,6 +24,7 @@ void main() {
         r'v\,\mathrm{m/s}',
         r'\mathrm{H_2O}',
         r'2\mathrm{H_2} + \mathrm{O_2} \rightarrow 2\mathrm{H_2O}',
+        r'\ce{2H2 + O2 -> 2H2O}',
       ];
       await tester.pumpWidget(
         MaterialApp(
@@ -34,7 +35,7 @@ void main() {
                   for (final expression in expressions)
                     Math.tex(
                       expression,
-                      onErrorFallback: (_) {
+                      onError: (_, _) {
                         errors.add(expression);
                         return const SizedBox();
                       },

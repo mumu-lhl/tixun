@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
+import 'package:val_latex_flutter/val_latex_flutter.dart';
 
 import '../l10n/app_strings.dart';
 import '../markdown/learning_syntax.dart';
@@ -18,12 +18,19 @@ Widget _math(BuildContext context, String source, {bool block = false}) {
         padding: EdgeInsets.symmetric(vertical: block ? 12 : 2),
         child: Math.tex(
           source,
-          mathStyle: block ? MathStyle.display : MathStyle.text,
+          displayMode: block,
+          block: false,
+          wrap: false,
+          overflow: MathOverflow.visible,
+          parseOptions: const ParseOptions(
+            strict: Strict.ignore,
+            streaming: true,
+          ),
           textStyle: TextStyle(
             fontSize: block ? 19 : 16,
             color: Theme.of(context).colorScheme.onSurface,
           ),
-          onErrorFallback: (_) => SelectableText(
+          onError: (_, _) => SelectableText(
             source,
             style: const TextStyle(fontFamily: 'TixunMono'),
           ),

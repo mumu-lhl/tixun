@@ -3,8 +3,29 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/theme.dart';
 import 'package:tixun/core/ui/learning_markdown.dart';
+import 'package:val_latex_flutter/val_latex_flutter.dart' as latex;
 
 void main() {
+  testWidgets('Chemical formulas render and invalid formulas retain source', (
+    tester,
+  ) async {
+    const chemical = r'\ce{2H2 + O2 -> 2H2O}';
+    const invalid = r'\unknowncommand{x}';
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: LearningMarkdown('\$$chemical\$\n\n\$$invalid\$'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(latex.Math), findsNWidgets(2));
+    expect(find.text(chemical), findsNothing);
+    expect(find.text(invalid), findsOneWidget);
+  });
   testWidgets(
     'Wide tables keep long cells readable and scroll to the last column',
     (tester) async {

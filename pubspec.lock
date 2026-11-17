@@ -1442,7 +1442,7 @@ packages:
     source: hosted
     version: "0.1.4"
   val_latex_flutter:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: val_latex_flutter
       sha256: "7e80cd9c113e257c3f4ad779adb8a386e33e05ee2946960e3b96317ea6f47089"
