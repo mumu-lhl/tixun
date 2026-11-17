@@ -10,6 +10,7 @@ import 'package:tixun/core/export/latex_text.dart';
 import 'package:tixun/core/export/markdown_blocks.dart';
 import 'package:tixun/core/export/markdown_export.dart';
 import 'package:tixun/core/export/pdf_export.dart';
+import 'package:tixun/core/export/pdf_math.dart';
 import 'package:tixun/core/export/study_export.dart';
 import 'package:xml/xml.dart' as xml;
 
@@ -299,6 +300,14 @@ void main() {
       expect(bytes.length, lessThan(200 * 1024));
     });
 
+    test('renders formulas into PDF image objects', () async {
+      final formula = await renderPdfFormula(r'\frac{a}{b}', display: true);
+      expect(formula, isNotNull);
+      expect(formula!.bytes.take(8), [137, 80, 78, 71, 13, 10, 26, 10]);
+      final bytes = await _pdf(_bundle());
+      expect(latin1.decode(bytes), contains('/Subtype/Image'));
+    });
+
     test('includes attachment images without breaking the page flow', () async {
       final bundle = _bundle(
         images: [StudyExportImage(bytes: _png, mime: 'image/png')],
@@ -365,6 +374,46 @@ void main() {
       expect(document, contains('知识打印稿'));
       expect(document, contains('<w:tbl>'));
       expect(document, contains('Heading2'));
+    });
+
+    test('writes editable formulas and keeps unsupported source', () {
+      final base = _bundle();
+      final bundle = StudyExportBundle(
+        title: base.title,
+        generatedAt: base.generatedAt,
+        notes: [
+          StudyExportNote(
+            title: 'Formulas',
+            subject: 'Math',
+            updatedAt: base.generatedAt,
+            content:
+                r'Inline $\frac{a}{b}+x^2$ and $\unknownmacro{x}$.'
+                '\n\n'
+                r'$$\begin{pmatrix}1&2\\3&4\end{pmatrix}$$'
+                '\n\n'
+                r'$\sum_{i=1}^{n} x_i$'
+                '\n\n'
+                r'$\ce{2H2 + O2 -> 2H2O}$',
+          ),
+        ],
+      );
+      final archive = read(
+        buildStudyDocx(bundle: bundle, chrome: _chrome(bundle)),
+      );
+      final document = utf8.decode(
+        archive.files
+                .firstWhere((file) => file.name == 'word/document.xml')
+                .content
+            as List<int>,
+      );
+      expect(() => xml.XmlDocument.parse(document), returnsNormally);
+      expect(document, contains('<m:oMath>'));
+      expect(document, contains('<m:f>'));
+      expect(document, contains('<m:sSup>'));
+      expect(document, contains('<m:m>'));
+      expect(document, contains('<m:nary>'));
+      expect(document, contains('→'));
+      expect(document, contains(r'\unknownmacro{x}'));
     });
 
     test('adds images as media parts with a relationship', () {

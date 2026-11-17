@@ -1,7 +1,7 @@
 /// Flattens learning Markdown into the block/run model used by the print
 /// exporters. The model keeps only what a printed page can show: block type,
-/// nesting level, inline emphasis, code and tables. Maths is converted to text
-/// here so every exporter renders the same characters.
+/// nesting level, inline emphasis, code and tables. Maths retains its source
+/// alongside a readable text fallback for the exporters.
 library;
 
 import 'package:markdown/markdown.dart' as md;
@@ -27,10 +27,12 @@ class MdRun {
     this.italic = false,
     this.code = false,
     this.math = false,
+    this.tex,
   });
 
   final String text;
   final bool bold, italic, code, math;
+  final String? tex;
 
   /// Text used where emphasis cannot be applied.
   String get plain => text;
@@ -283,7 +285,7 @@ List<MdRow> _tableRows(md.Element table) {
 List<MdRun> _mathRuns(String tex) {
   final text = latexToText(tex);
   if (text.isEmpty) return const [];
-  return [MdRun(text, math: true)];
+  return [MdRun(text, math: true, tex: tex)];
 }
 
 List<MdRun> _runs(List<md.Node> nodes) {
@@ -326,9 +328,21 @@ List<MdRun> _runs(List<md.Node> nodes) {
       case 'code':
         add(MdRun(node.textContent, bold: bold, italic: italic, code: true));
       case 'math':
-        add(MdRun(latexToText(node.textContent), math: true));
+        add(
+          MdRun(
+            latexToText(node.textContent),
+            math: true,
+            tex: node.textContent,
+          ),
+        );
       case 'mathblock':
-        add(MdRun(latexToText(node.textContent), math: true));
+        add(
+          MdRun(
+            latexToText(node.textContent),
+            math: true,
+            tex: node.textContent,
+          ),
+        );
       case 'br':
         add(const MdRun('\n'));
       case 'img':
@@ -363,6 +377,7 @@ List<MdRun> _runs(List<md.Node> nodes) {
         italic: last.italic,
         code: last.code,
         math: last.math,
+        tex: last.tex,
       );
     }
   }
@@ -370,6 +385,8 @@ List<MdRun> _runs(List<md.Node> nodes) {
 }
 
 bool _sameStyle(MdRun a, MdRun b) =>
+    a.tex == null &&
+    b.tex == null &&
     a.bold == b.bold &&
     a.italic == b.italic &&
     a.code == b.code &&

@@ -136,9 +136,15 @@ class _ReadableTableColumnWidth extends IntrinsicColumnWidth {
 }
 
 class LearningMarkdown extends StatelessWidget {
-  const LearningMarkdown(this.data, {this.visualBuilder, super.key});
+  const LearningMarkdown(
+    this.data, {
+    this.visualBuilder,
+    this.streaming = false,
+    super.key,
+  });
   final String data;
   final Widget? Function(Uri source)? visualBuilder;
+  final bool streaming;
   @override
   Widget build(BuildContext context) => _buildContent(context);
 
@@ -147,6 +153,11 @@ class LearningMarkdown extends StatelessWidget {
     return SelectionArea(
       child: GptMarkdown(
         data,
+        animation: streaming
+            ? GptMarkdownAnimation.typewriter
+            : GptMarkdownAnimation.none,
+        isStreaming: streaming,
+        charactersPerSecond: 90,
         style: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
         html: false,
         autolink: false,

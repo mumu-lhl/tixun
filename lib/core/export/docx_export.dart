@@ -13,6 +13,7 @@ import 'package:archive/archive.dart';
 
 import 'image_size.dart';
 import 'markdown_blocks.dart';
+import 'math_omml.dart';
 import 'study_export.dart';
 
 /// A4 usable width inside the default margins (twips: 11906 - 2 * 1134).
@@ -226,12 +227,13 @@ String _paragraph(String runsXml, {String style = '', int indent = 0}) {
 String _runs(List<MdRun> runs, {bool bold = false, bool italic = false}) => [
   for (final run in runs)
     if (run.text.isNotEmpty)
-      _run(
-        run.text,
-        bold: bold || run.bold,
-        italic: italic || run.italic || run.math,
-        code: run.code,
-      ),
+      (run.tex == null ? null : latexToOmml(run.tex!)) ??
+          _run(
+            run.tex ?? run.text,
+            bold: bold || run.bold,
+            italic: italic || run.italic || run.math,
+            code: run.code,
+          ),
 ].join();
 
 String _run(
@@ -323,6 +325,7 @@ String _document(StringBuffer body) =>
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     '<w:document '
     'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+    'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" '
     'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
     'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
     'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '

@@ -1250,6 +1250,7 @@ class MessageView extends ConsumerWidget {
                     message.content,
                     sessionId: message.sessionId,
                     messageId: message.id,
+                    streaming: message.status == 'generating',
                   ),
           if (!user && message.content.isEmpty)
             VisualMarkdown(

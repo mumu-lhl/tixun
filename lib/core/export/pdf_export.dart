@@ -2,7 +2,8 @@
 ///
 /// Text stays real text (selectable, searchable and small on disk): the CJK
 /// font is embedded as a subset and no page is rasterised. Markdown is expanded
-/// by [parseLearningMarkdown], so formulas arrive already converted to text.
+/// by [parseLearningMarkdown]. Formulas are rendered separately at print
+/// resolution; ordinary text stays selectable.
 library;
 
 import 'dart:math' as math;
@@ -12,14 +13,19 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'markdown_blocks.dart';
+import 'pdf_math.dart';
 import 'study_export.dart';
 
 const _pageMargin = pw.EdgeInsets.fromLTRB(44, 52, 44, 48);
 
 class _Styles {
-  const _Styles(this.base, this.mono);
+  _Styles(this.base, this.mono, this.formulas);
   final pw.Font base;
   final pw.Font mono;
+  final Map<(String, bool), PdfFormulaImage> formulas;
+  final _formulaProviders = <PdfFormulaImage, pw.MemoryImage>{};
+  pw.MemoryImage image(PdfFormulaImage formula) => _formulaProviders
+      .putIfAbsent(formula, () => pw.MemoryImage(formula.bytes));
 
   pw.TextStyle get body =>
       pw.TextStyle(font: base, fontSize: 10.5, lineSpacing: 3.2);
@@ -55,7 +61,20 @@ Future<Uint8List> buildStudyPdf({
 }) async {
   final base = pw.Font.ttf(font);
   final mono = monoFont == null ? base : pw.Font.ttf(monoFont);
-  final styles = _Styles(base, mono);
+  final formulas = <(String, bool), PdfFormulaImage>{};
+  final attempted = <(String, bool)>{};
+  for (final note in bundle.notes) {
+    for (final block in parseLearningMarkdown(note.content).blocks) {
+      final display = block.kind == MdBlockKind.formula;
+      for (final run in block.allRuns) {
+        final tex = run.tex;
+        if (tex == null || !attempted.add((tex, display))) continue;
+        final image = await renderPdfFormula(tex, display: display);
+        if (image != null) formulas[(tex, display)] = image;
+      }
+    }
+  }
+  final styles = _Styles(base, mono, formulas);
   final contentWidth =
       pageFormat.availableWidth - _pageMargin.left - _pageMargin.right;
 
@@ -213,13 +232,7 @@ List<pw.Widget> _block(MdBlock block, _Styles styles, double contentWidth) {
         pw.Container(
           margin: const pw.EdgeInsets.symmetric(vertical: 6),
           alignment: pw.Alignment.center,
-          child: pw.Text(
-            plainText(block.runs),
-            style: styles.body.copyWith(
-              fontStyle: pw.FontStyle.italic,
-              fontSize: 12,
-            ),
-          ),
+          child: _formulaBlock(block, styles, contentWidth),
         ),
       ];
     case MdBlockKind.table:
@@ -313,6 +326,10 @@ pw.Widget _table(MdBlock block, _Styles styles, double contentWidth) {
                                     ? pw.FontWeight.bold
                                     : pw.FontWeight.normal,
                               ),
+                              maxFormulaWidth: math.max(
+                                20,
+                                contentWidth / columns - 12,
+                              ),
                             )
                           : <pw.InlineSpan>[],
                     ),
@@ -367,21 +384,70 @@ List<pw.InlineSpan> _spans(
   List<MdRun> runs,
   _Styles styles, {
   pw.TextStyle? style,
+  double maxFormulaWidth = 120,
 }) {
   final baseStyle = style ?? styles.body;
   return [
     for (final run in runs)
       if (run.text.isNotEmpty)
-        pw.TextSpan(
-          text: run.text,
-          style: run.code
-              ? baseStyle.copyWith(font: styles.mono, fontSize: 9)
-              : run.math
-              ? baseStyle.copyWith(fontStyle: pw.FontStyle.italic)
-              : baseStyle.copyWith(
-                  fontWeight: run.bold ? pw.FontWeight.bold : null,
-                  fontStyle: run.italic ? pw.FontStyle.italic : null,
-                ),
-        ),
+        if (run.tex != null && styles.formulas[(run.tex!, false)] != null)
+          _formulaSpan(
+            styles.formulas[(run.tex!, false)]!,
+            baseStyle.fontSize ?? 10.5,
+            maxFormulaWidth,
+            styles,
+          )
+        else
+          pw.TextSpan(
+            text: run.tex ?? run.text,
+            style: run.code
+                ? baseStyle.copyWith(font: styles.mono, fontSize: 9)
+                : run.math
+                ? baseStyle.copyWith(fontStyle: pw.FontStyle.italic)
+                : baseStyle.copyWith(
+                    fontWeight: run.bold ? pw.FontWeight.bold : null,
+                    fontStyle: run.italic ? pw.FontStyle.italic : null,
+                  ),
+          ),
   ];
+}
+
+pw.Widget _formulaBlock(MdBlock block, _Styles styles, double width) {
+  final run = block.runs.isEmpty ? null : block.runs.first;
+  final formula = run?.tex == null ? null : styles.formulas[(run!.tex!, true)];
+  if (formula == null) {
+    return pw.Text(run?.tex ?? plainText(block.runs), style: styles.body);
+  }
+  const size = 12.0;
+  final factor = math.min(
+    1.0,
+    math.min(width / (formula.width * size), 600 / (formula.height * size)),
+  );
+  return pw.Image(
+    styles.image(formula),
+    width: formula.width * size * factor,
+    height: formula.height * size * factor,
+  );
+}
+
+pw.InlineSpan _formulaSpan(
+  PdfFormulaImage formula,
+  double size,
+  double maxWidth,
+  _Styles styles,
+) {
+  final factor = math.min(
+    1.0,
+    math.min(maxWidth / (formula.width * size), 100 / (formula.height * size)),
+  );
+  return pw.WidgetSpan(
+    // PDF coordinates grow upwards: the image bottom must sit below the
+    // text baseline by the formula's descent, not above it.
+    baseline: -formula.depth * size * factor,
+    child: pw.Image(
+      styles.image(formula),
+      width: formula.width * size * factor,
+      height: formula.height * size * factor,
+    ),
+  );
 }

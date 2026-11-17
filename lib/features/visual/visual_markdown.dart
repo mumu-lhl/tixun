@@ -19,11 +19,13 @@ class VisualMarkdown extends ConsumerWidget {
     this.sessionId,
     this.messageId,
     this.knowledgeId,
+    this.streaming = false,
     super.key,
   }) : assert((sessionId == null) != (knowledgeId == null));
 
   final String data;
   final String? sessionId, messageId, knowledgeId;
+  final bool streaming;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -65,6 +67,7 @@ class VisualMarkdown extends ConsumerWidget {
             if (data.isNotEmpty)
               LearningMarkdown(
                 data,
+                streaming: streaming,
                 visualBuilder: (uri) {
                   final id = visualReferenceId(uri.toString());
                   if (id == null) return null;
