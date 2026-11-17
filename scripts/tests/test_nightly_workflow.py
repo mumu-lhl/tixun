@@ -10,6 +10,49 @@ WORKFLOW = Path(__file__).resolve().parents[2] / '.github/workflows/nightly.yml'
 
 
 class NightlyPublishTests(unittest.TestCase):
+    def test_build_only_when_published_nightly_needs_updating(self):
+        text = WORKFLOW.read_text()
+        step = text.split('      - name: Check for changes since the published nightly\n', 1)[1]
+        step = textwrap.dedent(step.split('        run: |\n', 1)[1].split('      - id: tag', 1)[0])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args):
+                return subprocess.run(['git', *args], cwd=root, check=True,
+                                      capture_output=True, text=True).stdout.strip()
+            git('init', '-b', 'main')
+            git('config', 'user.name', 'Nightly Test')
+            git('config', 'user.email', 'nightly@example.invalid')
+            git('commit', '--allow-empty', '-m', 'published')
+            git('tag', 'nightly')
+            published = git('rev-parse', 'HEAD')
+            git('commit', '--allow-empty', '-m', 'new commit')
+            current = git('rev-parse', 'HEAD')
+            curl = root / 'curl'
+            curl.write_text('''#!/bin/sh
+printf '%s' "$RELEASE_JSON" > nightly-release.json
+printf '%s' "$RELEASE_STATUS"
+''')
+            curl.chmod(0o755)
+            output = root / 'output'
+            env = {**os.environ, 'PATH': f'{root}{os.pathsep}{os.environ["PATH"]}',
+                   'GH_TOKEN': 'test', 'GH_API_URL': 'https://example.invalid',
+                   'GH_REPO': 'test/test', 'GITHUB_OUTPUT': str(output)}
+            for status, release, sha, expected in (
+                ('404', '{}', current, 'true'),
+                ('200', '{"draft": false}', published, 'false'),
+                ('200', '{"draft": false}', current, 'true'),
+                ('200', '{"draft": true}', published, 'true'),
+            ):
+                with self.subTest(status=status, release=release, sha=sha):
+                    output.write_text('')
+                    env.update(RELEASE_STATUS=status, RELEASE_JSON=release, GITHUB_SHA=sha)
+                    subprocess.run(['bash', '-c', step], cwd=root, env=env,
+                                   check=True, capture_output=True, text=True)
+                    self.assertEqual(output.read_text().strip(), f'should_build={expected}')
+            env.update(RELEASE_STATUS='500', RELEASE_JSON='{}', GITHUB_SHA=current)
+            self.assertNotEqual(subprocess.run(['bash', '-c', step], cwd=root, env=env,
+                                               capture_output=True).returncode, 0)
+
     def test_first_publish_and_replacement_move_the_fixed_tag(self):
         text = WORKFLOW.read_text()
         step = text.split('      - name: Publish fixed nightly release\n        run: |\n', 1)[1]

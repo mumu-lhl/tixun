@@ -19,13 +19,47 @@ jobs:
     timeout-minutes: 5
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
+      should_build: ${{ steps.check.outputs.should_build }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Check for changes since the published nightly
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_API_URL: ${{ github.api_url }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          status=$(curl --silent --show-error --output nightly-release.json --write-out '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "$GH_API_URL/repos/$GH_REPO/releases/tags/nightly")
+          if [ "$status" = 404 ]; then
+            echo 'should_build=true' >> "$GITHUB_OUTPUT"
+          elif [ "$status" = 200 ]; then
+            draft=$(python3 -c 'import json; print(str(json.load(open("nightly-release.json"))["draft"]).lower())')
+            if [ "$draft" = true ]; then
+              # A failed publication may have moved the tag before uploading all assets.
+              echo 'should_build=true' >> "$GITHUB_OUTPUT"
+            elif [ "$(git rev-parse 'refs/tags/nightly^{commit}')" = "$(git rev-parse "$GITHUB_SHA^{commit}")" ]; then
+              echo 'should_build=false' >> "$GITHUB_OUTPUT"
+              echo 'The published nightly already contains this commit; skipping the build.'
+            else
+              echo 'should_build=true' >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "Failed to check the nightly release (HTTP $status)." >&2
+            exit 1
+          fi
       - id: tag
+        if: steps.check.outputs.should_build == 'true'
         run: echo "tag=nightly-$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
 
   verify-and-build:
     name: Build and verify release
     needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
     uses: ./.github/workflows/ci.yml
     with:
       android_release: true
