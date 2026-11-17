@@ -675,13 +675,18 @@ void main() {
       final id = (await c.db.select(c.db.visualScenes).get()).single.id;
       await c.send('请查看这张图，图形 id 是 $id');
       expect(c.messages.last.status, 'complete');
-      // get_visual is read-only: no op row, no revision bump, no retitle.
+      // Reading leaves the scene untouched; the chat keeps a compact activity
+      // record without duplicating the scene contents.
       final scenes = await c.db.select(c.db.visualScenes).get();
       expect(scenes, hasLength(1));
       expect(scenes.single.title, 'y = x²');
       expect(scenes.single.revision, 1);
       final ops = await c.db.select(c.db.aiToolOperations).get();
-      expect(ops.map((o) => o.name), ['create_visual']);
+      expect(ops.map((o) => o.name), ['create_visual', 'get_visual']);
+      final read = ops.singleWhere((o) => o.name == 'get_visual');
+      expect(read.runId, c.messages.last.id);
+      expect(jsonDecode(read.result!)['title'], 'y = x²');
+      expect(jsonDecode(read.result!), isNot(contains('scene')));
       expect(c.messages.last.content, contains('工具已确认保存成功'));
     });
 

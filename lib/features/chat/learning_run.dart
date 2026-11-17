@@ -776,6 +776,36 @@ class LearningRun {
                         cancel: cancel,
                       )
               : await runner.execute(call, cancel);
+          if (call.name == 'get_visual') {
+            // The visual reader remains read-only. Store only a small display
+            // record here, never the scene, so chat can show the actual call.
+            final title = result['title'];
+            try {
+              await db
+                  .into(db.aiToolOperations)
+                  .insert(
+                    AiToolOperationsCompanion.insert(
+                      id: '$runId:${call.id}',
+                      runId: runId,
+                      sessionId: sessionId,
+                      name: call.name,
+                      arguments: '{}',
+                      status: result['ok'] == true ? 'succeeded' : 'failed',
+                      result: Value(
+                        jsonEncode({
+                          'ok': result['ok'] == true,
+                          if (title is String) 'title': title,
+                        }),
+                      ),
+                      createdAt: DateTime.now(),
+                    ),
+                    mode: InsertMode.insertOrIgnore,
+                  );
+            } on Exception {
+              // A display-only history failure must not turn a read into a
+              // failed tool response or change the figure.
+            }
+          }
           if (studyTask?.operation == 'update_knowledge' &&
               call.name == 'get_knowledge') {
             selectedKnowledgeRead =

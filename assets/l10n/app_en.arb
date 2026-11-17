@@ -2505,5 +2505,18 @@
         "type": "String"
       }
     }
-  }
+  },
+  "toolActivityCount": "Tool calls · {count}",
+  "@toolActivityCount": {"placeholders": {"count": {"type": "String"}}},
+  "toolSearchKnowledge": "Knowledge: search",
+  "toolSearchMistakes": "Mistakes: search",
+  "toolReadKnowledge": "Knowledge: read",
+  "toolReadMistake": "Mistake: read",
+  "toolSearchModules": "Modules: search",
+  "toolReadProgress": "Learning progress: read",
+  "toolSearchAll": "All",
+  "toolCreateVisual": "Visual: create",
+  "toolUpdateVisual": "Visual: update",
+  "toolReadVisual": "Visual: read",
+  "toolActivityFallback": "Tool call"
 }

@@ -2505,5 +2505,18 @@
         "type": "String"
       }
     }
-  }
+  },
+  "toolActivityCount": "{count} 次工具调用",
+  "@toolActivityCount": {"placeholders": {"count": {"type": "String"}}},
+  "toolSearchKnowledge": "知识：搜索",
+  "toolSearchMistakes": "错题：搜索",
+  "toolReadKnowledge": "知识：读取",
+  "toolReadMistake": "错题：读取",
+  "toolSearchModules": "模块：搜索",
+  "toolReadProgress": "学习进度：读取",
+  "toolSearchAll": "全部",
+  "toolCreateVisual": "图形：创建",
+  "toolUpdateVisual": "图形：修改",
+  "toolReadVisual": "图形：读取",
+  "toolActivityFallback": "调用工具"
 }

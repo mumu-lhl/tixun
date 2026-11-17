@@ -51,6 +51,14 @@ void main() {
       expect(operation.status, 'succeeded', reason: operation.result);
       expect(c.messages.last.content, contains('9'), reason: operation.result);
       expect(operation.result, contains('9'));
+      final toolHistory = find.byKey(
+        PageStorageKey('tool-history-${c.messages.last.id}'),
+      );
+      await until(t, () => toolHistory.evaluate().isNotEmpty);
+      await t.ensureVisible(toolHistory);
+      await t.pumpAndSettle();
+      await t.tap(toolHistory);
+      await t.pumpAndSettle();
       await until(t, () => find.text('Python · 执行完成').evaluate().isNotEmpty);
       final history = find.byKey(
         PageStorageKey('python-history-${operation.id}'),

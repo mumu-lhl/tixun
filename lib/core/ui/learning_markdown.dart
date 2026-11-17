@@ -154,10 +154,15 @@ class LearningMarkdown extends StatelessWidget {
       child: GptMarkdown(
         data,
         animation: streaming
-            ? GptMarkdownAnimation.typewriter
+            ? GptMarkdownAnimation.wave
             : GptMarkdownAnimation.none,
+        blockAnimation: streaming
+            ? GptMarkdownBlockAnimation.fadeIn
+            : GptMarkdownBlockAnimation.none,
         isStreaming: streaming,
-        charactersPerSecond: 90,
+        charactersPerSecond: 120,
+        revealFadeSeconds: 0.14,
+        blockAnimationDuration: const Duration(milliseconds: 180),
         style: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
         html: false,
         autolink: false,
