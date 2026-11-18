@@ -1,5 +1,4 @@
 import '../features/timeline/timeline_screen.dart';
-import '../core/ui/app_menu.dart';
 import '../features/settings/ai_settings_screen.dart';
 import '../features/settings/ai_usage_screen.dart';
 import '../features/settings/python_settings.dart';
@@ -336,14 +335,7 @@ class AppShell extends ConsumerWidget {
     final index = navIndexFor(path);
     final c = ref.read(appControllerProvider);
     final shell = ref.watch(
-      appControllerProvider.select(
-        (c) => (
-          demo: c.demo,
-          notice: c.notice,
-          subjectFilter: c.subjectFilter,
-          subjects: c.learningSubjects,
-        ),
-      ),
+      appControllerProvider.select((c) => (demo: c.demo, notice: c.notice)),
     );
     final colors = Theme.of(context).colorScheme;
     final labels = [
@@ -410,74 +402,6 @@ class AppShell extends ConsumerWidget {
                       child: Text(context.l10n.gotIt),
                     ),
                   ],
-                ),
-              if (path == '/study')
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 320),
-                            child: Semantics(
-                              key: const Key('subject-switch'),
-                              label: context.l10n.switchSubject,
-                              child: AppSelectField<String>(
-                                initialValue: shell.subjectFilter,
-                                decoration: const InputDecoration(
-                                  prefixIcon: Icon(
-                                    Icons.school_outlined,
-                                    size: 19,
-                                  ),
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                ),
-                                items: [
-                                  DropdownMenuItem(
-                                    value: '',
-                                    child: Text(context.l10n.allSubjects),
-                                  ),
-                                  for (final subject in [
-                                    ...shell.subjects,
-                                    if (shell.subjectFilter.isNotEmpty &&
-                                        !shell.subjects.contains(
-                                          shell.subjectFilter,
-                                        ))
-                                      shell.subjectFilter,
-                                  ])
-                                    DropdownMenuItem(
-                                      value: subject,
-                                      child: Text(
-                                        context.subjectName(subject),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                ],
-                                onChanged: (value) {
-                                  if (value != null) {
-                                    // Filtering never switches the conversation.
-                                    act(
-                                      context,
-                                      () => c.setSubjectFilter(value),
-                                    );
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               Expanded(
                 child: Row(
@@ -604,39 +528,56 @@ class AppShell extends ConsumerWidget {
         // selected index in range, so there is no way to show it with
         // nothing highlighted; the side rail (wide layout) simply shows
         // no selected tile on those pages.
-        bottomNavigationBar:
-            wide ||
-                path == '/chat' ||
-                MediaQuery.viewInsetsOf(context).bottom > 0 ||
-                index < 0
+        bottomNavigationBar: wide
             ? null
-            : NavigationBar(
-                selectedIndex: index,
-                onDestinationSelected: (i) {
-                  if (i == index) return;
-                  final motion = _MainNavigationMotion(index, i);
-                  if (i == 1) {
-                    act(
-                      context,
-                      () => _openSubjectChat(
-                        context,
-                        c,
-                        push: true,
-                        extra: motion,
+            : AnimatedSwitcher(
+                key: const Key('bottom-navigation-transition'),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 200),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) => SizeTransition(
+                  sizeFactor: animation,
+                  alignment: Alignment.topCenter,
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child:
+                    path == '/chat' ||
+                        MediaQuery.viewInsetsOf(context).bottom > 0 ||
+                        index < 0
+                    ? const SizedBox.shrink(
+                        key: ValueKey('hidden-navigation-bar'),
+                      )
+                    : NavigationBar(
+                        key: const ValueKey('main-navigation-bar'),
+                        selectedIndex: index,
+                        onDestinationSelected: (i) {
+                          if (i == index) return;
+                          final motion = _MainNavigationMotion(index, i);
+                          if (i == 1) {
+                            act(
+                              context,
+                              () => _openSubjectChat(
+                                context,
+                                c,
+                                push: true,
+                                extra: motion,
+                              ),
+                            );
+                          } else {
+                            context.go(paths[i], extra: motion);
+                          }
+                        },
+                        destinations: [
+                          for (var i = 0; i < paths.length; i++)
+                            NavigationDestination(
+                              key: Key('nav-$i'),
+                              icon: Icon(icons[i]),
+                              label: labels[i],
+                            ),
+                        ],
                       ),
-                    );
-                  } else {
-                    context.go(paths[i], extra: motion);
-                  }
-                },
-                destinations: [
-                  for (var i = 0; i < paths.length; i++)
-                    NavigationDestination(
-                      key: Key('nav-$i'),
-                      icon: Icon(icons[i]),
-                      label: labels[i],
-                    ),
-                ],
               ),
       ),
     );

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tixun/features/exams/exam_calendar.dart';
 import 'package:tixun/features/chat/session_list.dart';
 import 'package:tixun/features/library/library_screen.dart';
+import 'package:tixun/features/settings/prompt_screen.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/app/theme.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
@@ -36,6 +37,49 @@ void main() {
     await c.shutdown();
     if (await c.files.root.exists()) await c.files.root.delete(recursive: true);
   });
+
+  for (final screen in [
+    (
+      name: 'knowledge',
+      widget: const LibraryScreen(isMistake: false),
+      key: 'library-search',
+    ),
+    (
+      name: 'mistakes',
+      widget: const LibraryScreen(isMistake: true),
+      key: 'library-search',
+    ),
+    (
+      name: 'conversation history',
+      widget: const SessionList(),
+      key: 'session-search',
+    ),
+    (name: 'prompts', widget: const PromptScreen(), key: 'prompt-search'),
+  ]) {
+    testWidgets('${screen.name} search loses focus on outside touch', (
+      t,
+    ) async {
+      await t.pumpWidget(
+        UncontrolledProviderScope(
+          container: scope,
+          child: MaterialApp(home: Scaffold(body: screen.widget)),
+        ),
+      );
+      await t.pumpAndSettle();
+      final field = find.byKey(Key(screen.key));
+      await t.tap(field);
+      await t.pumpAndSettle();
+      final editable = t.widget<EditableText>(
+        find.descendant(of: field, matching: find.byType(EditableText)),
+      );
+      expect(editable.focusNode.hasFocus, isTrue);
+      await t.tapAt(const Offset(5, 5));
+      await t.pump();
+      expect(editable.focusNode.hasFocus, isFalse);
+      await t.pumpWidget(const SizedBox.shrink());
+      await t.pumpAndSettle();
+    });
+  }
 
   testWidgets('Empty knowledge and mistakes retain the selected subject', (
     t,

@@ -126,7 +126,7 @@ class _SessionListState extends ConsumerState<SessionList> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 20, 12, 10),
           child: Row(
             children: [
               Expanded(
@@ -174,9 +174,10 @@ class _SessionListState extends ConsumerState<SessionList> {
             ),
           ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: TextField(
             key: const Key('session-search'),
+            onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
             controller: _search,
             onChanged: (value) {
               _searchDebounce?.cancel();
@@ -199,11 +200,16 @@ class _SessionListState extends ConsumerState<SessionList> {
                         c.searchSessions('');
                       },
                     ),
+              filled: true,
+              fillColor: colors.surfaceContainerHighest.withValues(alpha: .45),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
               isDense: true,
             ),
           ),
         ),
-        const Divider(),
         Expanded(
           child: c.sessions.isEmpty
               ? Center(
@@ -276,6 +282,27 @@ class _SessionListState extends ConsumerState<SessionList> {
                             left: 12,
                             right: 0,
                           ),
+                          leading: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: active
+                                  ? colors.primary.withValues(alpha: .12)
+                                  : colors.surfaceContainerHighest.withValues(
+                                      alpha: .6,
+                                    ),
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                            child: Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              size: 17,
+                              color: active
+                                  ? colors.primary
+                                  : colors.onSurfaceVariant,
+                            ),
+                          ),
+                          minLeadingWidth: 0,
+                          horizontalTitleGap: 10,
                           title: Text(
                             s.title,
                             maxLines: 2,

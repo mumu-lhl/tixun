@@ -26,6 +26,12 @@ class _MainNavigationRoute extends PageRoute<void>
   MainNavigationPage get _page => settings as MainNavigationPage;
 
   @override
+  Duration get transitionDuration => const Duration(milliseconds: 200);
+
+  @override
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 200);
+
+  @override
   bool get maintainState => true;
 
   @override

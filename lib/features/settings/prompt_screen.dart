@@ -58,6 +58,8 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                 const SizedBox(height: 18),
                 TextField(
                   key: const Key('prompt-search'),
+                  onTapOutside: (_) =>
+                      FocusManager.instance.primaryFocus?.unfocus(),
                   decoration: InputDecoration(
                     prefixIcon: Icon(Icons.search),
                     hintText: context.l10n.searchPrompts,

@@ -728,6 +728,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               const SizedBox(height: 18),
               TextField(
                 key: const Key('library-search'),
+                onTapOutside: (_) =>
+                    FocusManager.instance.primaryFocus?.unfocus(),
                 controller: _searchController,
                 onChanged: (v) {
                   setState(() {});

@@ -54,6 +54,34 @@ void main() {
           UncontrolledProviderScope(container: scope, child: const TixunApp()),
         );
         final router = scope.read(routerProvider);
+        router.go('/study');
+        await tester.pumpAndSettle();
+        final bar = find.byKey(const Key('bottom-navigation-transition'));
+        final fullBarHeight = tester.getSize(bar).height;
+        expect(fullBarHeight, greaterThan(0));
+        router.push('/chat');
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 60));
+        if (!reducedMotion) {
+          expect(
+            find.byKey(const Key('subject-switch')),
+            findsOneWidget,
+            reason: 'The outgoing study page keeps its subject selector.',
+          );
+          expect(tester.getSize(bar).height, greaterThan(0));
+          expect(tester.getSize(bar).height, lessThan(fullBarHeight));
+        }
+        await tester.pumpAndSettle();
+        expect(tester.getSize(bar).height, 0);
+        router.pop();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 60));
+        if (!reducedMotion) {
+          expect(tester.getSize(bar).height, greaterThan(0));
+          expect(tester.getSize(bar).height, lessThan(fullBarHeight));
+        }
+        await tester.pumpAndSettle();
+        expect(tester.getSize(bar).height, fullBarHeight);
         // Both directions share one app fixture, but each transition starts
         // from its own settled root and retains its intermediate-frame check.
         for (final rightward in [true, false]) {
