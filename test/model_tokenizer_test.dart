@@ -30,6 +30,10 @@ void main() {
       'deepseek_v4',
     );
     expect(ModelTokenizer.encodingFor('chatgpt', 'gpt-5.1'), 'o200k_base');
+    expect(ModelTokenizer.encodingFor('chatgpt', 'gpt-6'), 'o200k_base');
+    expect(ModelTokenizer.encodingFor('chatgpt', 'gpt-6.1-sol'), 'o200k_base');
+    expect(ModelTokenizer.encodingFor('openai', 'gpt-6.2-sol'), 'o200k_base');
+    expect(ModelTokenizer.encodingFor('chatgpt', 'gpt-60'), isNull);
     expect(ModelTokenizer.encodingFor('chatgpt', 'gpt-4-0613'), 'cl100k_base');
     expect(
       ModelTokenizer.encodingFor(
