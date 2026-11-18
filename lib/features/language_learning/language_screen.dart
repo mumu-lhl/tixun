@@ -10,6 +10,7 @@ import '../../core/ai/ai_usage_store.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
+import 'language_course.dart';
 import 'language_store.dart';
 import 'next_practice.dart';
 import 'exam_ai.dart';
@@ -226,6 +227,20 @@ class _LanguageLearningScreenState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(l10n.languageEnglish, style: theme.headlineMedium),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => LanguageCourse(
+                            practice: ref.read(appControllerProvider).practice,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.school_outlined),
+                      label: Text(l10n.languageFoundations),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   StreamBuilder<int>(
                     stream: _due,
