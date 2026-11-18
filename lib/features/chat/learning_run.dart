@@ -14,6 +14,8 @@ import '../../core/ai/chat_provider.dart';
 import '../../core/ai/ai_usage_store.dart';
 import '../../core/ai/context_compactor.dart';
 import '../../core/ai/tool_limits.dart';
+import '../../core/ai/token_estimator.dart';
+import 'chat_context_store.dart';
 import '../../core/ai/study_tools.dart';
 import '../../core/ai/quiz_tool.dart';
 import '../../core/ai/region_tool.dart';
@@ -162,6 +164,98 @@ class LearningRun {
       final drawingEnabled =
           drawingOverride ??
           (await db.preference(aiDrawingEnabledKey) == 'true');
+      final contextStore = ChatContextStore(db);
+      final transcript = await contextStore.load(sessionId);
+      final toolCategories = readStudyToolCategories(
+        await db.preference(studyToolCategoriesKey(sessionId)),
+      );
+      final subjectScope = await readStudySubjectScope(db);
+      final pythonPolicy = await db.preference(pythonPolicyKey) ?? 'ask';
+      final quizEnabled = AiOptions(requestConfig).toolsAvailable;
+      final toolsEnabled = authorized;
+      if (toolsEnabled && !quizEnabled) {
+        throw requestConfig.supportsTools
+            ? const AiFailure.localized(
+                AppErrorCode.conversationDataToolsRequireModelWithoutThinking,
+                '此会话启用了资料工具，请选择支持工具调用的模型并关闭深度思考，或关闭本会话资料工具。',
+              )
+            : const AiFailure.localized(
+                AppErrorCode.conversationDataToolsRequireToolCapableModel,
+                '此会话启用了资料工具，请选择支持工具调用的模型，或关闭本会话资料工具。',
+              );
+      }
+      final canRunPython =
+          PythonRuntime.isSupportedPlatform &&
+          ['ask', 'auto'].contains(pythonPolicy);
+      final visualTools =
+          drawingEnabled && quizEnabled && (exam || visual != null)
+          ? VisualToolset(exam: exam, includeQuiz: !materialRequest)
+          : null;
+      final studyTools = toolsEnabled
+          ? studyToolsFor(toolCategories)
+                .where(
+                  (tool) =>
+                      studyTask == null || studyTask.tools.contains(tool.name),
+                )
+                .toList()
+          : <AiTool>[];
+      final scope = ChatContextScope(
+        config: requestConfig,
+        mode: effectiveMode,
+        subject: subjectScope,
+        studyAuthorized: toolsEnabled,
+        drawingEnabled: drawingEnabled,
+        writingScope: studyTask == null
+            ? null
+            : jsonEncode([studyTask.context, studyTask.sourceSessionId]),
+      );
+      final replies = transcript.replies(
+        history: history,
+        scope: scope,
+        allowedTools: {
+          if (quizEnabled) ...[
+            if (canRunPython) pythonToolSchema.name,
+            if (visualTools != null && !exam) ...[
+              enableVisualToolsName,
+              'create_visual',
+              'get_visual',
+              'update_visual',
+            ],
+            if (!exam && studyTask == null && images.isNotEmpty)
+              regionToolSchema.name,
+            ...studyTools.map((tool) => tool.name),
+          ],
+        },
+      );
+      final savedInputs = {
+        for (final message in history)
+          if (message.role == 'user')
+            message.id: ?transcript.input(message.id, scope),
+      };
+      final currentUser = history
+          .where((message) => message.role == 'user')
+          .lastOrNull;
+      // Stored input and tool replies count toward the budget together with
+      // the visible messages. Tool batches never straddle a selection boundary.
+      final tokenCosts = <String, int>{
+        for (final entry in savedInputs.entries)
+          entry.key: estimateTokens(entry.value.$1),
+        for (final entry in replies.entries)
+          entry.key: entry.value.fold(
+            0,
+            (sum, message) =>
+                sum +
+                estimateTokens(message.text) +
+                estimateTokens(message.reasoningContent ?? '') +
+                message.calls.fold(
+                  0,
+                  (cost, call) =>
+                      cost +
+                      estimateTokens(call.name) +
+                      estimateTokens(call.arguments),
+                ),
+          ),
+      };
       // Token-budgeted context: older turns are summarized by the model
       // when the budget is exceeded; the recent turns stay verbatim.
       final maxContextTokens = await loadMaxContextTokens(db);
@@ -179,7 +273,11 @@ class LearningRun {
         maxContextTokens: maxContextTokens,
         cancel: cancel,
         language: requestPrompts.language,
+        tokenCosts: tokenCosts,
+        saveCheckpoint: (through, summary) =>
+            contextStore.checkpoint(sessionId, through, summary),
       );
+      final sourceImages = <Attachment>[];
       var request = await prepareAiRequest(
         requestConfig,
         history,
@@ -188,6 +286,10 @@ class LearningRun {
         effectiveMode,
         selectedHistory: compacted.selected,
         droppedUncovered: compacted.droppedUncovered,
+        attachmentIdsByMessage: {
+          for (final entry in savedInputs.entries) entry.key: entry.value.$2,
+        },
+        onImageIncluded: sourceImages.add,
       );
       // Messages are positionally aligned with the selected persisted history.
       final contextHistory = compacted.selected;
@@ -352,26 +454,6 @@ class LearningRun {
         }
       }
       cancel.checkCancelled();
-      final toolsEnabled = authorized;
-      final toolCategories = readStudyToolCategories(
-        await db.preference(studyToolCategoriesKey(sessionId)),
-      );
-      if (toolsEnabled && !AiOptions(requestConfig).toolsAvailable) {
-        throw requestConfig.supportsTools
-            ? const AiFailure.localized(
-                AppErrorCode.conversationDataToolsRequireModelWithoutThinking,
-                '此会话启用了资料工具，请选择支持工具调用的模型并关闭深度思考，或关闭本会话资料工具。',
-              )
-            : const AiFailure.localized(
-                AppErrorCode.conversationDataToolsRequireToolCapableModel,
-                '此会话启用了资料工具，请选择支持工具调用的模型，或关闭本会话资料工具。',
-              );
-      }
-      final quizEnabled = AiOptions(requestConfig).toolsAvailable;
-      final sourceImages = <Attachment>[
-        for (final m in contextHistory)
-          ...images.where((a) => a.messageId == m.id),
-      ];
       final currentLesson = await (db.select(
         db.chatSessions,
       )..where((s) => s.id.equals(sessionId))).getSingleOrNull();
@@ -381,7 +463,6 @@ class LearningRun {
           '会话不存在，请重新选择会话。',
         );
       }
-      final subjectScope = await readStudySubjectScope(db);
       final learningProfile = await LearningProfile.load(db);
       final english = requestPrompts.language == 'en';
       final profileData = jsonEncode({
@@ -401,21 +482,13 @@ class LearningRun {
         toolsEnabled: toolsEnabled,
         prompts: requestPrompts,
       );
-      if (compacted.summary != null && compacted.summary!.isNotEmpty) {
-        stateNotes.insert(
-          0,
-          contextSummarySection(compacted.summary!, english: english),
-        );
-      }
       if (studyTask != null) {
         baseInstructions += english
             ? '\n[App-authorized writing task: ${jsonEncode(studyTask.context)}. Read the selected knowledge and its latest revision with get_knowledge before editing; preserve valid existing content.]'
             : '\n[应用授权的资料整理任务：${jsonEncode(studyTask.context)}。修改前用 get_knowledge 读取所选知识的最新正文和版本，保留有效内容。]';
       }
-      // The teaching state used to be dropped silently when history ended
-      // with an assistant message (e.g. regenerate). Attach it to the
-      // newest user message instead; with no user message at all, it goes
-      // into the system instructions.
+      // Append changing teaching state only when a user input is first sent.
+      // Earlier inputs keep exactly the text the model saw at the time.
       var instructions = baseInstructions;
       final currentContext =
           '$profileContext$dynamicContext\n${stateNotes.join('\n')}';
@@ -424,47 +497,54 @@ class LearningRun {
             ? '\n[Current learning subject: $subjectScope. All study-data searches, reads, and changes must stay in this subject. Do not create or move records to another subject.]'
             : '\n[当前学习科目：$subjectScope。所有学习资料的搜索、读取和修改都必须限定在该科目，不得新建或改到其他科目。]';
       }
-      if (contextMessages.isNotEmpty &&
-          contextMessages.last.role == AiRole.user) {
-        contextMessages[contextMessages.length - 1] = contextMessages.last
-            .withText('${contextMessages.last.text}\n$currentContext');
-      } else if (contextMessages.any((m) => m.role == AiRole.user)) {
-        final lastUser = contextMessages.lastIndexWhere(
-          (m) => m.role == AiRole.user,
-        );
-        contextMessages[lastUser] = contextMessages[lastUser].withText(
-          '${contextMessages[lastUser].text}\n$currentContext',
-        );
-      } else {
-        instructions += currentContext;
+      AiMessage? sentInput;
+      final summary = compacted.summary;
+      final projected = <AiMessage>[
+        if (summary != null && summary.isNotEmpty)
+          AiMessage.user(contextSummarySection(summary, english: english)),
+      ];
+      for (var i = 0; i < contextHistory.length; i++) {
+        final item = contextHistory[i];
+        final message = contextMessages[i];
+        if (item.role == 'user') {
+          final saved = savedInputs[item.id];
+          final input = saved != null
+              ? message.withText(saved.$1)
+              : item.id == currentUser?.id
+              ? message.withText('${message.text}\n$currentContext')
+              : message;
+          if (item.id == currentUser?.id) sentInput = input;
+          projected.add(input);
+        } else {
+          projected.addAll(
+            replies[item.id] ??
+                [
+                  if (exam || transcript.hasRounds(item.id))
+                    AiMessage.assistant(message.text)
+                  else
+                    message,
+                ],
+          );
+        }
       }
+      if (sentInput == null) instructions += currentContext;
       final quizPolicy = materialRequest
           ? (english
                 ? 'Provide the requested material in full; do not replace it with a quiz or diagnostic questions.'
                 : '完整提供本次所需资料，不以测验或诊断问题代替。')
           : '';
-      final pythonPolicy = await db.preference(pythonPolicyKey) ?? 'ask';
-      final visualTools =
-          drawingEnabled && quizEnabled && (exam || visual != null)
-          ? VisualToolset(exam: exam, includeQuiz: !materialRequest)
-          : null;
       if (quizEnabled) {
         request = request.copyWith(
-          messages: contextMessages,
+          messages: projected,
           tools: [
-            if (PythonRuntime.isSupportedPlatform &&
-                ['ask', 'auto'].contains(pythonPolicy))
-              pythonToolSchema,
+            if (canRunPython) pythonToolSchema,
             if (visualTools != null)
               ...visualTools.tools
             else if (!materialRequest)
               textQuizToolSchema(exam: exam, visualsAvailable: false),
             if (!exam && sourceImages.isNotEmpty && studyTask == null)
               regionToolSchema,
-            if (toolsEnabled)
-              ...studyToolsFor(toolCategories).where(
-                (t) => studyTask == null || studyTask.tools.contains(t.name),
-              ),
+            ...studyTools,
           ],
           instructions: quizPolicy.isEmpty
               ? instructions
@@ -472,7 +552,7 @@ class LearningRun {
         );
       } else {
         request = request.copyWith(
-          messages: contextMessages,
+          messages: projected,
           instructions: instructions,
         );
       }
@@ -489,6 +569,20 @@ class LearningRun {
         confirm: (name, args) => approve(name, args, sourceImages.length),
       );
       final conversation = provider.start(requestConfig);
+      final contextRun = await contextStore.start(
+        sessionId: sessionId,
+        runId: runId,
+        input: currentUser,
+        sentInput: sentInput,
+        attachmentIds: [
+          for (final image in sourceImages)
+            if (image.messageId == currentUser?.id) image.id,
+        ],
+        scope: scope,
+        selected: contextHistory,
+        summaryThrough: compacted.summaryThrough,
+        cancel: cancel,
+      );
       var selectedKnowledgeRead = false;
       var callsUsed = 0;
       final maxToolCalls = await loadMaxToolCalls(db);
@@ -534,6 +628,7 @@ class LearningRun {
           enableConversationTitle: titleRequestPending,
         );
         titleRequestPending = false;
+        await contextRun?.request(roundRequest);
         final requestImageCount = request.messages.fold<int>(
           0,
           (count, message) => count + message.images.length,
@@ -601,6 +696,10 @@ class LearningRun {
             imageCount: requestImageCount,
             toolCallCount: calls.length,
             usage: roundUsage,
+            request: roundRequest,
+            response: roundText,
+            reasoning: roundReasoning,
+            calls: calls,
           );
           rethrow;
         }
@@ -615,6 +714,10 @@ class LearningRun {
           imageCount: requestImageCount,
           toolCallCount: calls.length,
           usage: roundUsage,
+          request: roundRequest,
+          response: roundText,
+          reasoning: roundReasoning,
+          calls: calls,
         );
         // Keep the reasoning of the round that just streamed, even if the
         // text is later replaced by the quiz placeholder below.
@@ -626,6 +729,7 @@ class LearningRun {
           );
         }
         validateToolCalls(calls);
+        await contextRun?.output(roundText, roundReasoning, calls);
         if (calls.isEmpty) break;
         if (!quizEnabled ||
             calls.any(
@@ -844,6 +948,9 @@ class LearningRun {
             ],
           );
         }
+        await contextRun?.results(
+          request.messages.skip(request.messages.length - calls.length),
+        );
         if (quizCreated || regionsCreated) {
           text = quizCreated
               ? '先独立尝试下面的题目。提交后查看参考答案与解析。'
@@ -902,6 +1009,10 @@ class LearningRun {
     required int imageCount,
     required int toolCallCount,
     required AiTokenUsage? usage,
+    required AiRequest request,
+    required String response,
+    required String reasoning,
+    required List<ToolCall> calls,
   }) async {
     if (provider is MockChatProvider) return;
     try {
@@ -920,8 +1031,11 @@ class LearningRun {
           imageCount: imageCount,
           toolCallCount: toolCallCount,
           usage: usage,
-          usageSource: provider is MockChatProvider ? 'mock' : null,
         ),
+        request: request,
+        response: response,
+        reasoning: reasoning,
+        calls: calls,
       );
     } catch (_) {
       // Usage-accounting failures must never fail a learning request.

@@ -83,6 +83,8 @@ void main() {
 
   test('Complete backup round-trip and undo preserve relational data, managed images, drafts and external keys', () async {
     final note = await fixture();
+    final context = await c.db.select(c.db.chatContextEvents).get();
+    expect(context, hasLength(2));
     final backup = File('${parent.path}/complete.tixun-backup');
     final preview = await BackupService.export(c.db, c.files, backup);
     expect(preview.counts['attempts'], 1);
@@ -129,6 +131,10 @@ void main() {
     expect(c.prompts.text('global'), startsWith('You are TiXun'));
     expect(c.selected!.toolsEnabled, false);
     expect(c.messages.length, 2);
+    expect(
+      await c.db.select(c.db.chatContextEvents).get(),
+      unorderedEquals(context),
+    );
     expect(
       (await c.db.select(c.db.practiceAttempts).get()).single.correct,
       true,

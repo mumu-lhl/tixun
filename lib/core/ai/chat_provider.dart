@@ -190,6 +190,8 @@ Future<AiRequest> prepareAiRequest(
   String mode, {
   List<ChatMessage>? selectedHistory,
   int droppedUncovered = 0,
+  Map<String, List<String>> attachmentIdsByMessage = const {},
+  void Function(Attachment)? onImageIncluded,
 }) async {
   try {
     validateConfig(config);
@@ -202,10 +204,26 @@ Future<AiRequest> prepareAiRequest(
   // caps are gone; the token budget governs instead.
   final selected = selectedHistory ?? history;
   final ids = selected.map((m) => m.id).toSet();
-  final includedImages = images
-      .where((a) => a.messageId != null && ids.contains(a.messageId))
-      .toList();
-  if (includedImages.isNotEmpty && !AiOptions(config).vision) {
+  final includedImages = <String, List<Attachment>>{};
+  final imagesById = {for (final image in images) image.id: image};
+  for (final image in images) {
+    final id = image.messageId;
+    if (id != null &&
+        ids.contains(id) &&
+        !attachmentIdsByMessage.containsKey(id)) {
+      includedImages.putIfAbsent(id, () => []).add(image);
+    }
+  }
+  for (final entry in attachmentIdsByMessage.entries) {
+    if (!ids.contains(entry.key)) continue;
+    includedImages[entry.key] = [
+      for (final id in entry.value)
+        if (imagesById[id] case final image? when image.messageId == entry.key)
+          image,
+    ];
+  }
+  if (includedImages.values.any((list) => list.isNotEmpty) &&
+      !AiOptions(config).vision) {
     throw const AiFailure.localized(
       AppErrorCode.thisConversationContainsImagesBut,
       '当前对话包含图片，所选模型不支持视觉。请切换到 Flash 或启用支持图片的模型。',
@@ -215,7 +233,7 @@ Future<AiRequest> prepareAiRequest(
   var totalImageBytes = 0;
   var skippedImages = 0;
   for (final m in selected) {
-    final attachments = includedImages.where((a) => a.messageId == m.id);
+    final attachments = includedImages[m.id] ?? const <Attachment>[];
     final images = <AiImage>[];
     for (final a in attachments) {
       final file = files.resolve(a.relativePath);
@@ -233,6 +251,7 @@ Future<AiRequest> prepareAiRequest(
         continue;
       }
       totalImageBytes += length;
+      onImageIncluded?.call(a);
       images.add(
         AiImage(
           'data:${a.mime};base64,${base64Encode(await file.readAsBytes())}',

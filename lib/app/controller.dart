@@ -1652,8 +1652,14 @@ class AppController extends ChangeNotifier {
     final startedAt = DateTime.now();
     AiTokenUsage? usage;
     var requestStatus = 'error';
+    final request = AiRequest(
+      instructions: '',
+      messages: [const AiMessage.user('只回复 OK')],
+      maxOutputTokens: 16,
+    );
+    final text = StringBuffer();
+    final reasoning = StringBuffer();
     try {
-      var receivedText = false;
       await for (final chunk
           in provider
               .start(
@@ -1662,17 +1668,11 @@ class AppController extends ChangeNotifier {
                     ? key!.trim()
                     : null,
               )
-              .complete(
-                AiRequest(
-                  instructions: '',
-                  messages: [const AiMessage.user('只回复 OK')],
-                  maxOutputTokens: 16,
-                ),
-                cancel,
-              )) {
+              .complete(request, cancel)) {
         if (chunk.usage != null) usage = chunk.usage;
-        receivedText = receivedText || chunk.text.isNotEmpty;
-        if (receivedText && chunk.completed && chunk.calls.isEmpty) {
+        text.write(chunk.text);
+        reasoning.write(chunk.reasoning);
+        if (text.isNotEmpty && chunk.completed && chunk.calls.isEmpty) {
           requestStatus = 'complete';
         }
       }
@@ -1710,6 +1710,9 @@ class AppController extends ChangeNotifier {
               durationMs: DateTime.now().difference(startedAt).inMilliseconds,
               usage: usage,
             ),
+            request: request,
+            response: text.toString(),
+            reasoning: reasoning.toString(),
           );
         } catch (_) {
           // A usage write must not override the connection-test result.

@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_error.dart';
 import '../practice/practice_store.dart';
+import 'chat_context_store.dart';
 
 /// Copies only the prefix ending at the chosen message. Original messages,
 /// drafts stay untouched. Saved figures and attempts retain their references;
@@ -76,6 +77,7 @@ class ChatBranchStore {
         );
     final visualLinks = await query.get();
     final messageIds = <String, String>{};
+    final attachmentIds = <String, String>{};
     for (final message in prefix) {
       final newId = const Uuid().v4();
       messageIds[message.id] = newId;
@@ -91,11 +93,13 @@ class ChatBranchStore {
         await practice.linkFork(message.id, newId);
       }
       for (final image in images.where((a) => a.messageId == message.id)) {
+        final id = const Uuid().v4();
+        attachmentIds[image.id] = id;
         await db
             .into(db.attachments)
             .insert(
               image.copyWith(
-                id: const Uuid().v4(),
+                id: id,
                 sessionId: branch.id,
                 messageId: Value(newId),
               ),
@@ -110,14 +114,22 @@ class ChatBranchStore {
             .insert(link.copyWith(messageId: newId));
       }
     }
-    // Reuse an existing summary only if its entire covered prefix survived.
-    // Never bring later turns into a branch through an overreaching summary.
-    final watermark = messageIds[parent.contextSummaryUpToId];
-    if (editedText == null &&
-        parent.contextSummary != null &&
-        watermark != null) {
+    final context = ChatContextStore(db);
+    final transcript = await context.load(parent.id);
+    // The edited turn has new content and must be captured on its first send.
+    // Earlier checkpoints remain valid if their entire prefix survived.
+    if (editedText != null) messageIds.remove(source.id);
+    await context.copyPrefix(
+      source: transcript,
+      messages: messageIds,
+      attachments: attachmentIds,
+    );
+    final checkpoint = transcript.latestCheckpoint(messageIds.keys);
+    final watermark = messageIds[checkpoint?.$1 ?? parent.contextSummaryUpToId];
+    final summary = checkpoint?.$2 ?? parent.contextSummary;
+    if (summary != null && watermark != null) {
       branch = branch.copyWith(
-        contextSummary: Value(parent.contextSummary),
+        contextSummary: Value(summary),
         contextSummaryUpToId: Value(watermark),
       );
       await db.update(db.chatSessions).replace(branch);

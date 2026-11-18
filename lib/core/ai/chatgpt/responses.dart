@@ -56,7 +56,9 @@ class ChatGptResponses implements ChatProvider {
         'ChatGPT 使用浏览器登录，无需 API Key。',
       );
     }
-    final context = <String, List<dynamic>>{};
+    // Match the actual live call, not a provider ID that a replayed turn
+    // could also contain. Encrypted reasoning never leaves this Conversation.
+    final context = Map<ToolCall, List<dynamic>>.identity();
     return AiConversation(
       (request, cancel) => _complete(config, request, context, cancel),
     );
@@ -65,7 +67,7 @@ class ChatGptResponses implements ChatProvider {
   Map<String, dynamic> _requestBody(
     ProviderConfig config,
     AiRequest request,
-    Map<String, List<dynamic>> context,
+    Map<ToolCall, List<dynamic>> context,
   ) {
     final input = <dynamic>[];
     for (final m in request.messages) {
@@ -76,7 +78,7 @@ class ChatGptResponses implements ChatProvider {
           'output': m.text,
         });
       } else if (m.calls.isNotEmpty) {
-        final saved = context[m.calls.first.id];
+        final saved = context[m.calls.first];
         if (saved != null) {
           input.addAll(saved);
         } else {
@@ -144,7 +146,7 @@ class ChatGptResponses implements ChatProvider {
   Stream<AiChunk> _complete(
     ProviderConfig config,
     AiRequest request,
-    Map<String, List<dynamic>> context,
+    Map<ToolCall, List<dynamic>> context,
     CancelToken cancel,
   ) async* {
     try {
@@ -344,7 +346,7 @@ Stream<List<int>> _compatibleResponseEvents(
 
 Stream<AiChunk> decodeResponses(
   Stream<List<int>> bytes,
-  void Function(String id, List<dynamic> context)? retainContext,
+  void Function(ToolCall call, List<dynamic> context)? retainContext,
 ) async* {
   var completed = false, summarySeen = false;
   final streamedText = StringBuffer();
@@ -492,7 +494,7 @@ Stream<AiChunk> decodeResponses(
           );
         }
         validateToolCalls(parts);
-        retainContext?.call(parts.first.id, context);
+        retainContext?.call(parts.first, context);
         yield AiChunk(
           calls: parts,
           completed: true,

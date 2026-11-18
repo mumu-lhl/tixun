@@ -535,21 +535,27 @@ void main() {
   );
 
   test(
-    'changing summaries does not change the fixed system protocol',
+    'a checkpoint is historical data without rewriting previous inputs',
     () async {
       final provider = _Provider((_, _) => _done);
       final c = await open(provider);
       await c.db.setContextSummary(c.selected!.id, '历史摘要 A', null);
       await c.send('解释一下');
       final before = provider.requests.last;
-      expect(before.messages.last.text, contains('历史摘要 A'));
+      expect(before.instructions, isNot(contains('历史摘要 A')));
+      expect(before.messages.first.text, contains('历史摘要 A'));
+      expect(before.messages.last.text, isNot(contains('历史摘要 A')));
       await c.db.setContextSummary(c.selected!.id, '历史摘要 B', null);
       await c.send('继续');
       final after = provider.requests.last;
       expect(after.instructions, before.instructions);
-      expect(after.messages.last.text, contains('历史摘要 B'));
-      expect(after.messages.first.text, '解释一下');
-      expect(after.instructions, isNot(contains('历史摘要')));
+      expect(after.messages.first.text, contains('历史摘要 B'));
+      expect(
+        after.messages.map((m) => m.text).join(),
+        isNot(contains('历史摘要 A')),
+      );
+      expect(after.messages.last.text, isNot(contains('历史摘要 B')));
+      expect(after.messages[1].text, before.messages[1].text);
     },
   );
 
@@ -606,8 +612,9 @@ void main() {
     await c.send('再继续');
     final after = provider.requests.last;
     expect(after.instructions, before.instructions);
-    expect(after.messages.first.text, '解释一下');
+    expect(after.messages.first.text, before.messages.first.text);
     expect(after.messages[1].text, source.content);
+    expect(after.messages[2].text, before.messages[2].text);
     expect(after.messages.last.text, contains('"status":"graded"'));
     expect(after.messages.last.text, contains('"stage":"高三"'));
     expect(after.messages.last.text, contains('"user_answer":["4"]'));

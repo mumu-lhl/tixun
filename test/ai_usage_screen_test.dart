@@ -37,6 +37,8 @@ void main() {
           status: 'complete',
           occurredAt: DateTime.now(),
           durationMs: 1200,
+          tokenBreakdownJson:
+              '{"encoding":"cl100k_base","counts":{"system":25,"user":75}}',
           usage: const AiTokenUsage(
             inputTokens: 1000,
             cachedInputTokens: 200,
@@ -68,9 +70,17 @@ void main() {
 
     expect(find.text('AI 用量'), findsOneWidget);
     expect(find.byKey(const Key('ai-usage-summary')), findsOneWidget);
-    expect(find.text('每日 Token'), findsOneWidget);
     expect(find.text('20.0%'), findsOneWidget);
-    expect(find.textContaining('1,300'), findsWidgets);
+    expect(find.textContaining('1.3K'), findsWidgets);
+    await tester.scrollUntilVisible(find.text('Token 类型占比'), 250);
+    expect(find.text('76.9% · 1K (1,000)'), findsOneWidget);
+    expect(find.text('3.8% · 50 (50)'), findsOneWidget);
+    expect(find.textContaining('服务商不提供'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('本地文本 Token 分类'), 250);
+    expect(find.text('25.0% · 25 (25)'), findsOneWidget);
+    expect(find.text('75.0% · 75 (75)'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('每日 Token'), 250);
+    expect(find.text('每日 Token'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // The breakdown, prices, and details are below the fold on a phone.

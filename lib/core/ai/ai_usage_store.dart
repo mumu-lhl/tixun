@@ -4,7 +4,9 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../database/database.dart';
+import 'ai_types.dart';
 import 'ai_usage.dart';
+import 'token_breakdown.dart';
 
 const _nanoUsdPerUsd = 1000000000;
 const _tokensPerMillion = 1000000;
@@ -26,6 +28,7 @@ class AiUsageCapture {
     this.toolCallCount = 0,
     this.usage,
     this.usageSource,
+    this.tokenBreakdownJson,
   }) : id = id ?? const Uuid().v4();
 
   final String id;
@@ -43,6 +46,7 @@ class AiUsageCapture {
   final int toolCallCount;
   final AiTokenUsage? usage;
   final String? usageSource;
+  final String? tokenBreakdownJson;
 }
 
 /// Local request-level AI usage history, pricing snapshots, and export.
@@ -50,7 +54,29 @@ class AiUsageStore {
   const AiUsageStore(this.db);
   final AppDatabase db;
 
-  Future<void> record(AiUsageCapture capture) async {
+  Future<void> record(
+    AiUsageCapture capture, {
+    AiRequest? request,
+    String response = '',
+    String reasoning = '',
+    List<ToolCall> calls = const [],
+  }) async {
+    var breakdown = capture.tokenBreakdownJson;
+    if (breakdown == null && request != null) {
+      try {
+        breakdown = await countRequestBreakdown(
+          provider: capture.providerKind,
+          model: capture.model,
+          endpoint: capture.endpoint,
+          request: request,
+          response: response,
+          reasoning: reasoning,
+          calls: calls,
+        );
+      } catch (_) {
+        // Local text counting is optional; still record provider usage.
+      }
+    }
     final usage = capture.usage;
     final isSubscription = capture.providerKind == 'chatgpt';
     final source =
@@ -112,6 +138,7 @@ class AiUsageStore {
             outputTokens: Value(usage?.outputTokens),
             reasoningTokens: Value(usage?.reasoningTokens),
             totalTokens: Value(usage?.totalTokens),
+            tokenBreakdownJson: Value(breakdown),
             costNanoUsd: Value(cost),
             costBasis: Value(
               isSubscription
@@ -150,6 +177,12 @@ class AiUsageStore {
               return filter;
             })
             ..orderBy([(e) => OrderingTerm.desc(e.occurredAt)]))
+          .get();
+
+  Future<List<AiUsageEvent>> eventsForSession(String sessionId) =>
+      (db.select(db.aiUsageEvents)
+            ..where((event) => event.sessionId.equals(sessionId))
+            ..orderBy([(event) => OrderingTerm.desc(event.occurredAt)]))
           .get();
 
   Future<List<AiUsageEvent>> eventsForAction(String actionId) =>
@@ -245,7 +278,7 @@ class AiUsageStore {
 
   String toCsv(List<AiUsageEvent> rows) {
     final out = StringBuffer(
-      'occurred_at,action_id,session_id,message_id,provider,endpoint,model,feature,status,usage_source,image_count,tool_call_count,input_tokens,cached_input_tokens,output_tokens,reasoning_tokens,total_tokens,cost_basis,cost_usd,input_rate_nano_usd_per_million,cached_rate_nano_usd_per_million,output_rate_nano_usd_per_million,rate_source,rate_updated_at,duration_ms\r\n',
+      'occurred_at,action_id,session_id,message_id,provider,endpoint,model,feature,status,usage_source,image_count,tool_call_count,input_tokens,cached_input_tokens,output_tokens,reasoning_tokens,total_tokens,cost_basis,cost_usd,input_rate_nano_usd_per_million,cached_rate_nano_usd_per_million,output_rate_nano_usd_per_million,rate_source,rate_updated_at,duration_ms,token_breakdown_json\r\n',
     );
     for (final row in rows) {
       out.writeln(
@@ -277,6 +310,7 @@ class AiUsageStore {
           row.rateSource ?? '',
           row.rateUpdatedAt?.toIso8601String() ?? '',
           row.durationMs?.toString() ?? '',
+          row.tokenBreakdownJson ?? '',
         ].map(_csvField).join(','),
       );
     }
@@ -303,6 +337,9 @@ class AiUsageStore {
           'outputTokens': row.outputTokens,
           'reasoningTokens': row.reasoningTokens,
           'totalTokens': row.totalTokens,
+          'tokenBreakdown': row.tokenBreakdownJson == null
+              ? null
+              : jsonDecode(row.tokenBreakdownJson!),
           'costBasis': row.costBasis,
           'inputRateNanoUsdPerMillion': row.inputRateNanoUsdPerMillion,
           'cachedInputRateNanoUsdPerMillion':

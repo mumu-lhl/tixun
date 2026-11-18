@@ -53,6 +53,21 @@ class ChatMessages extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Ordered model events attached to the visible message that owns them.
+class ChatContextEvents extends Table {
+  TextColumn get messageId =>
+      text().references(ChatMessages, #id, onDelete: KeyAction.cascade)();
+  IntColumn get sequence => integer()();
+  TextColumn get inputMessageId => text().nullable().references(
+    ChatMessages,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  TextColumn get payload => text()();
+  @override
+  Set<Column> get primaryKey => {messageId, sequence};
+}
+
 class Scratchpads extends Table {
   TextColumn get contextKey => text()();
   TextColumn get document => text()();
@@ -123,6 +138,7 @@ class AiUsageEvents extends Table {
   IntColumn get outputTokens => integer().nullable()();
   IntColumn get reasoningTokens => integer().nullable()();
   IntColumn get totalTokens => integer().nullable()();
+  TextColumn get tokenBreakdownJson => text().nullable()();
   IntColumn get costNanoUsd => integer().nullable()();
   TextColumn get costBasis => text().withDefault(const Constant('unknown'))();
   IntColumn get inputRateNanoUsdPerMillion => integer().nullable()();
@@ -153,6 +169,7 @@ class AiModelPrices extends Table {
   tables: [
     ChatSessions,
     ChatMessages,
+    ChatContextEvents,
     Attachments,
     ProviderConfigs,
     Preferences,
@@ -201,7 +218,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 19;
+  static const latestSchemaVersion = 21;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override
@@ -242,6 +259,10 @@ class AppDatabase extends _$AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from < 21) await m.createTable(chatContextEvents);
+      if (from >= 14 && from < 20) {
+        await m.addColumn(aiUsageEvents, aiUsageEvents.tokenBreakdownJson);
+      }
       if (from < 19) {
         await m.createTable(timelineEvents);
         await _createTimelineIndex();

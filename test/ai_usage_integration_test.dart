@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -55,6 +56,7 @@ Future<AppController> _controller(Directory root, ChatProvider provider) async {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   test('a chat action records request breakdown and price snapshot', () async {
     final root = await Directory.systemTemp.createTemp('tixun-ai-usage');
     final controller = await _controller(root, UsageProvider());
@@ -85,6 +87,14 @@ void main() {
     expect(event.reasoningTokens, 5);
     expect(event.costBasis, 'estimate');
     expect(event.costNanoUsd, 45300);
+    final breakdown = jsonDecode(event.tokenBreakdownJson!) as Map;
+    expect(breakdown['encoding'], 'deepseek_v4');
+    final counts = breakdown['counts'] as Map;
+    expect(counts['system'], greaterThan(0));
+    expect(counts['user'], greaterThan(0));
+    expect(counts['reply'], greaterThan(0));
+    expect(counts['toolCalls'], 0);
+    expect(counts['toolResults'], 0);
     await controller.shutdown();
     await root.delete(recursive: true);
   });

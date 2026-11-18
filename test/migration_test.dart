@@ -10,6 +10,42 @@ import 'dart:io';
 import 'generated_migrations/schema.dart';
 
 void main() {
+  test(
+    'Schema v21 keeps legacy chat messages without inventing context',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(20);
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_sessions(id,title,created_at,updated_at) VALUES('s','Legacy',1,1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO chat_messages(id,session_id,role,content,created_at) VALUES('u','s','user','question',1)",
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+      expect((await db.messages('s')).single.content, 'question');
+      expect(await db.select(db.chatContextEvents).get(), isEmpty);
+    },
+  );
+
+  test(
+    'Schema v20 preserves existing usage and marks breakdown unavailable',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(19);
+      schema.rawDatabase.execute(
+        "INSERT INTO ai_usage_events(id,action_id,provider_kind,model,feature,status,occurred_at) VALUES('u','a','deepseek','deepseek-flash','chat','complete',1)",
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+      final event = (await db.select(db.aiUsageEvents).get()).single;
+      expect(event.id, 'u');
+      expect(event.tokenBreakdownJson, isNull);
+    },
+  );
+
   test('Schema v19 adds the timeline without changing exam records', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final schema = await verifier.schemaAt(18);

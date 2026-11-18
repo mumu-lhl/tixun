@@ -1396,6 +1396,341 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
   }
 }
 
+class $ChatContextEventsTable extends ChatContextEvents
+    with TableInfo<$ChatContextEventsTable, ChatContextEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChatContextEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _messageIdMeta = const VerificationMeta(
+    'messageId',
+  );
+  @override
+  late final GeneratedColumn<String> messageId = GeneratedColumn<String>(
+    'message_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_messages (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _sequenceMeta = const VerificationMeta(
+    'sequence',
+  );
+  @override
+  late final GeneratedColumn<int> sequence = GeneratedColumn<int>(
+    'sequence',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _inputMessageIdMeta = const VerificationMeta(
+    'inputMessageId',
+  );
+  @override
+  late final GeneratedColumn<String> inputMessageId = GeneratedColumn<String>(
+    'input_message_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_messages (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    messageId,
+    sequence,
+    inputMessageId,
+    payload,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chat_context_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ChatContextEvent> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('message_id')) {
+      context.handle(
+        _messageIdMeta,
+        messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_messageIdMeta);
+    }
+    if (data.containsKey('sequence')) {
+      context.handle(
+        _sequenceMeta,
+        sequence.isAcceptableOrUnknown(data['sequence']!, _sequenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sequenceMeta);
+    }
+    if (data.containsKey('input_message_id')) {
+      context.handle(
+        _inputMessageIdMeta,
+        inputMessageId.isAcceptableOrUnknown(
+          data['input_message_id']!,
+          _inputMessageIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {messageId, sequence};
+  @override
+  ChatContextEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChatContextEvent(
+      messageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_id'],
+      )!,
+      sequence: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sequence'],
+      )!,
+      inputMessageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}input_message_id'],
+      ),
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $ChatContextEventsTable createAlias(String alias) {
+    return $ChatContextEventsTable(attachedDatabase, alias);
+  }
+}
+
+class ChatContextEvent extends DataClass
+    implements Insertable<ChatContextEvent> {
+  final String messageId;
+  final int sequence;
+  final String? inputMessageId;
+  final String payload;
+  const ChatContextEvent({
+    required this.messageId,
+    required this.sequence,
+    this.inputMessageId,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['message_id'] = Variable<String>(messageId);
+    map['sequence'] = Variable<int>(sequence);
+    if (!nullToAbsent || inputMessageId != null) {
+      map['input_message_id'] = Variable<String>(inputMessageId);
+    }
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  ChatContextEventsCompanion toCompanion(bool nullToAbsent) {
+    return ChatContextEventsCompanion(
+      messageId: Value(messageId),
+      sequence: Value(sequence),
+      inputMessageId: inputMessageId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(inputMessageId),
+      payload: Value(payload),
+    );
+  }
+
+  factory ChatContextEvent.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChatContextEvent(
+      messageId: serializer.fromJson<String>(json['messageId']),
+      sequence: serializer.fromJson<int>(json['sequence']),
+      inputMessageId: serializer.fromJson<String?>(json['inputMessageId']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'messageId': serializer.toJson<String>(messageId),
+      'sequence': serializer.toJson<int>(sequence),
+      'inputMessageId': serializer.toJson<String?>(inputMessageId),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  ChatContextEvent copyWith({
+    String? messageId,
+    int? sequence,
+    Value<String?> inputMessageId = const Value.absent(),
+    String? payload,
+  }) => ChatContextEvent(
+    messageId: messageId ?? this.messageId,
+    sequence: sequence ?? this.sequence,
+    inputMessageId: inputMessageId.present
+        ? inputMessageId.value
+        : this.inputMessageId,
+    payload: payload ?? this.payload,
+  );
+  ChatContextEvent copyWithCompanion(ChatContextEventsCompanion data) {
+    return ChatContextEvent(
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+      sequence: data.sequence.present ? data.sequence.value : this.sequence,
+      inputMessageId: data.inputMessageId.present
+          ? data.inputMessageId.value
+          : this.inputMessageId,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatContextEvent(')
+          ..write('messageId: $messageId, ')
+          ..write('sequence: $sequence, ')
+          ..write('inputMessageId: $inputMessageId, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(messageId, sequence, inputMessageId, payload);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChatContextEvent &&
+          other.messageId == this.messageId &&
+          other.sequence == this.sequence &&
+          other.inputMessageId == this.inputMessageId &&
+          other.payload == this.payload);
+}
+
+class ChatContextEventsCompanion extends UpdateCompanion<ChatContextEvent> {
+  final Value<String> messageId;
+  final Value<int> sequence;
+  final Value<String?> inputMessageId;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const ChatContextEventsCompanion({
+    this.messageId = const Value.absent(),
+    this.sequence = const Value.absent(),
+    this.inputMessageId = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChatContextEventsCompanion.insert({
+    required String messageId,
+    required int sequence,
+    this.inputMessageId = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : messageId = Value(messageId),
+       sequence = Value(sequence),
+       payload = Value(payload);
+  static Insertable<ChatContextEvent> custom({
+    Expression<String>? messageId,
+    Expression<int>? sequence,
+    Expression<String>? inputMessageId,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (messageId != null) 'message_id': messageId,
+      if (sequence != null) 'sequence': sequence,
+      if (inputMessageId != null) 'input_message_id': inputMessageId,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChatContextEventsCompanion copyWith({
+    Value<String>? messageId,
+    Value<int>? sequence,
+    Value<String?>? inputMessageId,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return ChatContextEventsCompanion(
+      messageId: messageId ?? this.messageId,
+      sequence: sequence ?? this.sequence,
+      inputMessageId: inputMessageId ?? this.inputMessageId,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (messageId.present) {
+      map['message_id'] = Variable<String>(messageId.value);
+    }
+    if (sequence.present) {
+      map['sequence'] = Variable<int>(sequence.value);
+    }
+    if (inputMessageId.present) {
+      map['input_message_id'] = Variable<String>(inputMessageId.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatContextEventsCompanion(')
+          ..write('messageId: $messageId, ')
+          ..write('sequence: $sequence, ')
+          ..write('inputMessageId: $inputMessageId, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $AttachmentsTable extends Attachments
     with TableInfo<$AttachmentsTable, Attachment> {
   @override
@@ -2901,6 +3236,17 @@ class $AiUsageEventsTable extends AiUsageEvents
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _tokenBreakdownJsonMeta =
+      const VerificationMeta('tokenBreakdownJson');
+  @override
+  late final GeneratedColumn<String> tokenBreakdownJson =
+      GeneratedColumn<String>(
+        'token_breakdown_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _costNanoUsdMeta = const VerificationMeta(
     'costNanoUsd',
   );
@@ -3001,6 +3347,7 @@ class $AiUsageEventsTable extends AiUsageEvents
     outputTokens,
     reasoningTokens,
     totalTokens,
+    tokenBreakdownJson,
     costNanoUsd,
     costBasis,
     inputRateNanoUsdPerMillion,
@@ -3170,6 +3517,15 @@ class $AiUsageEventsTable extends AiUsageEvents
         ),
       );
     }
+    if (data.containsKey('token_breakdown_json')) {
+      context.handle(
+        _tokenBreakdownJsonMeta,
+        tokenBreakdownJson.isAcceptableOrUnknown(
+          data['token_breakdown_json']!,
+          _tokenBreakdownJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('cost_nano_usd')) {
       context.handle(
         _costNanoUsdMeta,
@@ -3312,6 +3668,10 @@ class $AiUsageEventsTable extends AiUsageEvents
         DriftSqlType.int,
         data['${effectivePrefix}total_tokens'],
       ),
+      tokenBreakdownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}token_breakdown_json'],
+      ),
       costNanoUsd: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}cost_nano_usd'],
@@ -3369,6 +3729,7 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
   final int? outputTokens;
   final int? reasoningTokens;
   final int? totalTokens;
+  final String? tokenBreakdownJson;
   final int? costNanoUsd;
   final String costBasis;
   final int? inputRateNanoUsdPerMillion;
@@ -3396,6 +3757,7 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
     this.outputTokens,
     this.reasoningTokens,
     this.totalTokens,
+    this.tokenBreakdownJson,
     this.costNanoUsd,
     required this.costBasis,
     this.inputRateNanoUsdPerMillion,
@@ -3441,6 +3803,9 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
     }
     if (!nullToAbsent || totalTokens != null) {
       map['total_tokens'] = Variable<int>(totalTokens);
+    }
+    if (!nullToAbsent || tokenBreakdownJson != null) {
+      map['token_breakdown_json'] = Variable<String>(tokenBreakdownJson);
     }
     if (!nullToAbsent || costNanoUsd != null) {
       map['cost_nano_usd'] = Variable<int>(costNanoUsd);
@@ -3507,6 +3872,9 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
       totalTokens: totalTokens == null && nullToAbsent
           ? const Value.absent()
           : Value(totalTokens),
+      tokenBreakdownJson: tokenBreakdownJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tokenBreakdownJson),
       costNanoUsd: costNanoUsd == null && nullToAbsent
           ? const Value.absent()
           : Value(costNanoUsd),
@@ -3557,6 +3925,9 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
       outputTokens: serializer.fromJson<int?>(json['outputTokens']),
       reasoningTokens: serializer.fromJson<int?>(json['reasoningTokens']),
       totalTokens: serializer.fromJson<int?>(json['totalTokens']),
+      tokenBreakdownJson: serializer.fromJson<String?>(
+        json['tokenBreakdownJson'],
+      ),
       costNanoUsd: serializer.fromJson<int?>(json['costNanoUsd']),
       costBasis: serializer.fromJson<String>(json['costBasis']),
       inputRateNanoUsdPerMillion: serializer.fromJson<int?>(
@@ -3595,6 +3966,7 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
       'outputTokens': serializer.toJson<int?>(outputTokens),
       'reasoningTokens': serializer.toJson<int?>(reasoningTokens),
       'totalTokens': serializer.toJson<int?>(totalTokens),
+      'tokenBreakdownJson': serializer.toJson<String?>(tokenBreakdownJson),
       'costNanoUsd': serializer.toJson<int?>(costNanoUsd),
       'costBasis': serializer.toJson<String>(costBasis),
       'inputRateNanoUsdPerMillion': serializer.toJson<int?>(
@@ -3631,6 +4003,7 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
     Value<int?> outputTokens = const Value.absent(),
     Value<int?> reasoningTokens = const Value.absent(),
     Value<int?> totalTokens = const Value.absent(),
+    Value<String?> tokenBreakdownJson = const Value.absent(),
     Value<int?> costNanoUsd = const Value.absent(),
     String? costBasis,
     Value<int?> inputRateNanoUsdPerMillion = const Value.absent(),
@@ -3662,6 +4035,9 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
         ? reasoningTokens.value
         : this.reasoningTokens,
     totalTokens: totalTokens.present ? totalTokens.value : this.totalTokens,
+    tokenBreakdownJson: tokenBreakdownJson.present
+        ? tokenBreakdownJson.value
+        : this.tokenBreakdownJson,
     costNanoUsd: costNanoUsd.present ? costNanoUsd.value : this.costNanoUsd,
     costBasis: costBasis ?? this.costBasis,
     inputRateNanoUsdPerMillion: inputRateNanoUsdPerMillion.present
@@ -3721,6 +4097,9 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
       totalTokens: data.totalTokens.present
           ? data.totalTokens.value
           : this.totalTokens,
+      tokenBreakdownJson: data.tokenBreakdownJson.present
+          ? data.tokenBreakdownJson.value
+          : this.tokenBreakdownJson,
       costNanoUsd: data.costNanoUsd.present
           ? data.costNanoUsd.value
           : this.costNanoUsd,
@@ -3766,6 +4145,7 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
           ..write('outputTokens: $outputTokens, ')
           ..write('reasoningTokens: $reasoningTokens, ')
           ..write('totalTokens: $totalTokens, ')
+          ..write('tokenBreakdownJson: $tokenBreakdownJson, ')
           ..write('costNanoUsd: $costNanoUsd, ')
           ..write('costBasis: $costBasis, ')
           ..write('inputRateNanoUsdPerMillion: $inputRateNanoUsdPerMillion, ')
@@ -3800,6 +4180,7 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
     outputTokens,
     reasoningTokens,
     totalTokens,
+    tokenBreakdownJson,
     costNanoUsd,
     costBasis,
     inputRateNanoUsdPerMillion,
@@ -3831,6 +4212,7 @@ class AiUsageEvent extends DataClass implements Insertable<AiUsageEvent> {
           other.outputTokens == this.outputTokens &&
           other.reasoningTokens == this.reasoningTokens &&
           other.totalTokens == this.totalTokens &&
+          other.tokenBreakdownJson == this.tokenBreakdownJson &&
           other.costNanoUsd == this.costNanoUsd &&
           other.costBasis == this.costBasis &&
           other.inputRateNanoUsdPerMillion == this.inputRateNanoUsdPerMillion &&
@@ -3862,6 +4244,7 @@ class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
   final Value<int?> outputTokens;
   final Value<int?> reasoningTokens;
   final Value<int?> totalTokens;
+  final Value<String?> tokenBreakdownJson;
   final Value<int?> costNanoUsd;
   final Value<String> costBasis;
   final Value<int?> inputRateNanoUsdPerMillion;
@@ -3890,6 +4273,7 @@ class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
     this.outputTokens = const Value.absent(),
     this.reasoningTokens = const Value.absent(),
     this.totalTokens = const Value.absent(),
+    this.tokenBreakdownJson = const Value.absent(),
     this.costNanoUsd = const Value.absent(),
     this.costBasis = const Value.absent(),
     this.inputRateNanoUsdPerMillion = const Value.absent(),
@@ -3919,6 +4303,7 @@ class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
     this.outputTokens = const Value.absent(),
     this.reasoningTokens = const Value.absent(),
     this.totalTokens = const Value.absent(),
+    this.tokenBreakdownJson = const Value.absent(),
     this.costNanoUsd = const Value.absent(),
     this.costBasis = const Value.absent(),
     this.inputRateNanoUsdPerMillion = const Value.absent(),
@@ -3954,6 +4339,7 @@ class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
     Expression<int>? outputTokens,
     Expression<int>? reasoningTokens,
     Expression<int>? totalTokens,
+    Expression<String>? tokenBreakdownJson,
     Expression<int>? costNanoUsd,
     Expression<String>? costBasis,
     Expression<int>? inputRateNanoUsdPerMillion,
@@ -3983,6 +4369,8 @@ class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
       if (outputTokens != null) 'output_tokens': outputTokens,
       if (reasoningTokens != null) 'reasoning_tokens': reasoningTokens,
       if (totalTokens != null) 'total_tokens': totalTokens,
+      if (tokenBreakdownJson != null)
+        'token_breakdown_json': tokenBreakdownJson,
       if (costNanoUsd != null) 'cost_nano_usd': costNanoUsd,
       if (costBasis != null) 'cost_basis': costBasis,
       if (inputRateNanoUsdPerMillion != null)
@@ -4018,6 +4406,7 @@ class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
     Value<int?>? outputTokens,
     Value<int?>? reasoningTokens,
     Value<int?>? totalTokens,
+    Value<String?>? tokenBreakdownJson,
     Value<int?>? costNanoUsd,
     Value<String>? costBasis,
     Value<int?>? inputRateNanoUsdPerMillion,
@@ -4047,6 +4436,7 @@ class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
       outputTokens: outputTokens ?? this.outputTokens,
       reasoningTokens: reasoningTokens ?? this.reasoningTokens,
       totalTokens: totalTokens ?? this.totalTokens,
+      tokenBreakdownJson: tokenBreakdownJson ?? this.tokenBreakdownJson,
       costNanoUsd: costNanoUsd ?? this.costNanoUsd,
       costBasis: costBasis ?? this.costBasis,
       inputRateNanoUsdPerMillion:
@@ -4122,6 +4512,9 @@ class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
     if (totalTokens.present) {
       map['total_tokens'] = Variable<int>(totalTokens.value);
     }
+    if (tokenBreakdownJson.present) {
+      map['token_breakdown_json'] = Variable<String>(tokenBreakdownJson.value);
+    }
     if (costNanoUsd.present) {
       map['cost_nano_usd'] = Variable<int>(costNanoUsd.value);
     }
@@ -4177,6 +4570,7 @@ class AiUsageEventsCompanion extends UpdateCompanion<AiUsageEvent> {
           ..write('outputTokens: $outputTokens, ')
           ..write('reasoningTokens: $reasoningTokens, ')
           ..write('totalTokens: $totalTokens, ')
+          ..write('tokenBreakdownJson: $tokenBreakdownJson, ')
           ..write('costNanoUsd: $costNanoUsd, ')
           ..write('costBasis: $costBasis, ')
           ..write('inputRateNanoUsdPerMillion: $inputRateNanoUsdPerMillion, ')
@@ -19880,6 +20274,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
   late final $ChatMessagesTable chatMessages = $ChatMessagesTable(this);
+  late final $ChatContextEventsTable chatContextEvents =
+      $ChatContextEventsTable(this);
   late final $AttachmentsTable attachments = $AttachmentsTable(this);
   late final $ProviderConfigsTable providerConfigs = $ProviderConfigsTable(
     this,
@@ -19958,6 +20354,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     chatSessions,
     chatMessages,
+    chatContextEvents,
     attachments,
     providerConfigs,
     preferences,
@@ -20008,6 +20405,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('chat_messages', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('chat_context_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('chat_context_events', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(

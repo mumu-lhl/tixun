@@ -57,6 +57,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/demo/two_problems.png
+    - assets/tokenizers/deepseek_v4.json
+    - assets/tokenizers/cl100k_base.tiktoken
+    - assets/tokenizers/o200k_base.tiktoken
+    - assets/tokenizers/LICENSE.tiktoken
   fonts:
     - family: NotoSansSC
       fonts:
