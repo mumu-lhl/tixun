@@ -11,6 +11,54 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/search_snippet.dart';
 
+/// One row in the history list: a recency header or a session tile.
+sealed class _HistoryRow {
+  const _HistoryRow();
+}
+
+class _HistoryHeader extends _HistoryRow {
+  const _HistoryHeader(this.label);
+  final String label;
+}
+
+class _HistorySession extends _HistoryRow {
+  const _HistorySession(this.session);
+  final ChatSession session;
+}
+
+/// Groups already newest-first sessions by how recently they were updated:
+/// today, yesterday, the last 7 days, earlier. Sessions arrive ordered by
+/// `updated_at DESC`, so groups come out in that order too.
+List<_HistoryRow> _groupedRows(
+  List<ChatSession> sessions,
+  DateTime now, {
+  required String today,
+  required String yesterday,
+  required String last7Days,
+  required String earlier,
+}) {
+  final todayStart = DateTime(now.year, now.month, now.day);
+  var currentLabel = '';
+  final rows = <_HistoryRow>[];
+  for (final s in sessions) {
+    final day = DateTime(s.updatedAt.year, s.updatedAt.month, s.updatedAt.day);
+    final diff = todayStart.difference(day).inDays;
+    final label = diff <= 0
+        ? today
+        : diff == 1
+        ? yesterday
+        : diff <= 7
+        ? last7Days
+        : earlier;
+    if (label != currentLabel) {
+      currentLabel = label;
+      rows.add(_HistoryHeader(label));
+    }
+    rows.add(_HistorySession(s));
+  }
+  return rows;
+}
+
 class SessionList extends ConsumerStatefulWidget {
   const SessionList({this.onSelected, super.key});
   final VoidCallback? onSelected;
@@ -62,6 +110,18 @@ class _SessionListState extends ConsumerState<SessionList> {
         selection: TextSelection.collapsed(offset: c.search.length),
       );
     }
+    // Group by recency only for the plain list. A search ranks title
+    // matches first, so grouping would scramble that order.
+    final rows = c.search.trim().isEmpty
+        ? _groupedRows(
+            c.sessions,
+            DateTime.now(),
+            today: context.l10n.today,
+            yesterday: context.l10n.yesterday,
+            last7Days: context.l10n.last7Days,
+            earlier: context.l10n.earlier,
+          )
+        : c.sessions.map(_HistorySession.new).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -152,6 +212,14 @@ class _SessionListState extends ConsumerState<SessionList> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        Icon(
+                          c.search.isNotEmpty
+                              ? Icons.search_off_outlined
+                              : Icons.forum_outlined,
+                          size: 40,
+                          color: colors.onSurfaceVariant.withValues(alpha: .6),
+                        ),
+                        const SizedBox(height: 12),
                         Text(
                           c.search.isNotEmpty
                               ? context.l10n.noMatchingConversations
@@ -172,9 +240,23 @@ class _SessionListState extends ConsumerState<SessionList> {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: c.sessions.length,
+                  itemCount: rows.length,
                   itemBuilder: (context, index) {
-                    final s = c.sessions[index];
+                    final row = rows[index];
+                    if (row is _HistoryHeader) {
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                        child: Text(
+                          row.label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      );
+                    }
+                    final s = (row as _HistorySession).session;
                     final active = c.selected?.id == s.id;
                     return Padding(
                       padding: const EdgeInsets.symmetric(

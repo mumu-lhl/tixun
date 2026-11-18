@@ -1439,6 +1439,8 @@
   "previousMonth": "Previous month",
   "nextMonth": "Next month",
   "today": "Today",
+  "yesterday": "Yesterday",
+  "earlier": "Earlier",
   "mon": "Mon",
   "tue": "Tue",
   "wed": "Wed",

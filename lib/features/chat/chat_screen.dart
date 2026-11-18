@@ -34,6 +34,7 @@ class ChatScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(appControllerProvider);
+    final colors = Theme.of(context).colorScheme;
     final wide = MediaQuery.sizeOf(context).width >= 1100;
     final compact = MediaQuery.sizeOf(context).width < 700;
     return Row(
@@ -58,7 +59,9 @@ class ChatScreen extends ConsumerWidget {
                 ),
                 decoration: BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: Theme.of(context).dividerColor),
+                    bottom: BorderSide(
+                      color: colors.outlineVariant.withValues(alpha: .45),
+                    ),
                   ),
                 ),
                 child: Row(

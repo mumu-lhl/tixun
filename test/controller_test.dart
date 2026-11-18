@@ -397,4 +397,18 @@ void main() {
     await c.selectSession(gone);
     expect(c.selected!.id, current.id);
   });
+  test(
+    'Sending in an older session moves it to the top of the history list',
+    () async {
+      final first = c.selected!;
+      await c.send('第一个会话的问题');
+      await c.newSession();
+      final second = c.selected!;
+      await c.send('第二个会话的问题');
+      expect(c.sessions.map((s) => s.id), [second.id, first.id]);
+      await c.selectSession(first);
+      await c.send('第一个会话的追问');
+      expect(c.sessions.map((s) => s.id), [first.id, second.id]);
+    },
+  );
 }

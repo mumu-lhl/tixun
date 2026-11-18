@@ -584,9 +584,14 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
     }
+    // updated_at is stored with second precision, so two sends inside the
+    // same second tie. Break the tie with the latest message's rowid, which
+    // grows with every insert and therefore tracks the newest activity.
+    const activityTieBreak =
+        '(SELECT MAX(rowid) FROM chat_messages WHERE session_id = s.id) DESC';
     final order = term.isEmpty
-        ? 's.updated_at DESC, s.id'
-        : 'CASE WHEN instr(lower(s.title), lower(?)) > 0 THEN 0 ELSE 1 END, s.updated_at DESC, s.id';
+        ? 's.updated_at DESC, $activityTieBreak, s.id'
+        : 'CASE WHEN instr(lower(s.title), lower(?)) > 0 THEN 0 ELSE 1 END, s.updated_at DESC, $activityTieBreak, s.id';
     if (term.isNotEmpty) variables.add(Variable(searchTerms(term).join(' ')));
     final rows = await customSelect(
       'SELECT s.* FROM chat_sessions s WHERE $where ORDER BY $order',
