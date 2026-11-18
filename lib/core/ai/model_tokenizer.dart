@@ -45,7 +45,8 @@ class ModelTokenizer {
       return null;
     }
     bool family(String prefix) => m == prefix || m.startsWith('$prefix-');
-    if (RegExp(r'^gpt-5(?:\.\d+)?(?:-|$)').hasMatch(m) ||
+    // GPT-6 uses o200k_base for local estimates; its official encoding is unconfirmed.
+    if (RegExp(r'^gpt-[56](?:\.\d+)?(?:-|$)').hasMatch(m) ||
         const [
           'gpt-4o',
           'gpt-4.1',
