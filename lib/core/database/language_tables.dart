@@ -248,3 +248,21 @@ class LearningExamAttempts extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+@DataClassName('LearningWritingTaskRow')
+class LearningWritingTasks extends Table {
+  TextColumn get id => text()();
+  TextColumn get kind => text()();
+  TextColumn get profile => text()();
+  TextColumn get level => text()();
+  TextColumn get topic => text()();
+  TextColumn get title => text()();
+  TextColumn get prompt => text()();
+  TextColumn get passage => text().nullable()();
+  TextColumn get model => text()();
+  IntColumn get promptVersion => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

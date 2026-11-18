@@ -26,8 +26,8 @@ import 'vocabulary_ai.dart';
 import 'vocabulary_batch.dart';
 import 'vocabulary_editor.dart';
 import 'vocabulary_proposal_dialog.dart';
-import 'writing_ai.dart';
-import 'writing_practice.dart';
+import 'writing_lab.dart';
+import 'writing_task_ai.dart';
 
 const _language = 'en';
 
@@ -133,10 +133,9 @@ class _LanguageLearningScreenState
     final controller = ref.read(appControllerProvider);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => WritingPractice(
-          store: _store,
-          feedbackLanguage: _feedbackLanguage,
-          ai: WritingAi(
+        builder: (_) => WritingLab(
+          glossLanguage: _feedbackLanguage,
+          ai: WritingTaskAi(
             store: _store,
             provider: controller.provider,
             config: controller.config,

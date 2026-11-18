@@ -42,6 +42,7 @@ extension _DatabaseMigrations on AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from < 24) await m.createTable(learningWritingTasks);
       if (from < 23) {
         await m.createTable(learningExamMaterials);
         await m.createTable(learningExamAttempts);

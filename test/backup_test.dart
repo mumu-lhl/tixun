@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
@@ -12,6 +13,8 @@ import 'package:tixun/features/language_learning/exam_bundled.dart';
 import 'package:tixun/features/language_learning/exam_material.dart';
 import 'package:tixun/features/language_learning/exam_store.dart';
 import 'package:tixun/features/language_learning/sentence_content.dart';
+import 'package:tixun/features/language_learning/writing_store.dart';
+import 'package:tixun/features/language_learning/writing_task_ai.dart';
 import 'package:tixun/features/practice/question_spec.dart';
 
 void main() {
@@ -107,6 +110,21 @@ void main() {
       confidence: ExamConfidence.unsure,
       hintUsed: false,
     );
+    final writing =
+        await WritingTaskAi(
+          store: c.language,
+          provider: MockChatProvider(),
+          config: c.config,
+        ).generate(
+          kind: WritingTaskKind.continuation,
+          level: SentenceLevel.beginner,
+          topic: 'Market',
+          cancel: CancelToken(),
+        );
+    await c.language.snapshotWriting(
+      'Maya asked for directions.',
+      taskId: writing.id,
+    );
     final backup = File('${parent.path}/complete.tixun-backup');
     final preview = await BackupService.export(c.db, c.files, backup);
     expect(preview.counts['attempts'], 1);
@@ -149,6 +167,14 @@ void main() {
         (await c.language.examHistory(savedExam.row.id).first).single;
     expect(savedAttempt.confidence, ExamConfidence.unsure);
     expect(savedAttempt.matched, 5);
+    final savedWriting = openWritingTask(
+      await c.db.select(c.db.learningWritingTasks).getSingle(),
+    );
+    expect(savedWriting.passage, writing.passage);
+    expect(
+      await c.language.writingDraft(taskId: savedWriting.id),
+      'Maya asked for directions.',
+    );
     final timeline = (await c.db.select(c.db.timelineEvents).get()).single;
     expect(timeline.title, '期中考');
     expect(timeline.notes, '带准考证');

@@ -31,15 +31,29 @@ Future<void> addVocabularyEntry(
 }) => showDialog<void>(
   context: context,
   barrierDismissible: false,
-  builder: (_) => _VocabularyEditor(store, language, group),
+  builder: (_) => _VocabularyEditor.add(store, language, group),
+);
+
+Future<VocabularyEntry?> editVocabularyCandidate(
+  BuildContext context,
+  VocabularyEntry entry,
+) => showDialog<VocabularyEntry>(
+  context: context,
+  builder: (_) => _VocabularyEditor.preview(entry),
 );
 
 class _VocabularyEditor extends StatefulWidget {
-  const _VocabularyEditor(this.store, this.language, this.group);
+  const _VocabularyEditor.add(this.store, this.language, this.group)
+    : initial = null;
+  const _VocabularyEditor.preview(this.initial)
+    : store = null,
+      language = 'en',
+      group = null;
 
-  final LanguageLearningStore store;
+  final LanguageLearningStore? store;
   final String language;
   final LearningVocabularyGroup? group;
+  final VocabularyEntry? initial;
 
   @override
   State<_VocabularyEditor> createState() => _VocabularyEditorState();
@@ -48,14 +62,20 @@ class _VocabularyEditor extends StatefulWidget {
 class _VocabularyEditorState extends State<_VocabularyEditor> {
   final _form = GlobalKey<FormState>();
   final _title = TextEditingController();
-  final _expression = TextEditingController();
-  final _meaning = TextEditingController();
-  final _example = TextEditingController();
-  final _translation = TextEditingController();
-  final _application = TextEditingController();
-  final _answer = TextEditingController();
+  late final _expression = TextEditingController(text: widget.initial?.form);
+  late final _meaning = TextEditingController(text: widget.initial?.meaning);
+  late final _example = TextEditingController(text: widget.initial?.example);
+  late final _translation = TextEditingController(
+    text: widget.initial?.translation,
+  );
+  late final _application = TextEditingController(
+    text: widget.initial?.application,
+  );
+  late final _answer = TextEditingController(
+    text: widget.initial?.applicationAnswer,
+  );
   var _groupType = VocabularyGroupType.topic;
-  var _lexicalType = LexicalType.word;
+  late var _lexicalType = widget.initial?.type ?? LexicalType.word;
   var _saving = false;
 
   @override
@@ -76,23 +96,27 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
 
   Future<void> _save() async {
     if (_saving || !_form.currentState!.validate()) return;
+    final entry = VocabularyEntry(
+      form: _expression.text,
+      meaning: _meaning.text,
+      type: _lexicalType,
+      example: _example.text,
+      translation: _translation.text,
+      application: _application.text,
+      applicationAnswer: _answer.text,
+    );
+    final store = widget.store;
+    if (store == null) {
+      Navigator.of(context).pop(entry);
+      return;
+    }
     setState(() => _saving = true);
     await act(context, () async {
-      await widget.store.saveEntries(
+      await store.saveEntries(
         language: widget.language,
         groupTitle: widget.group?.title ?? _title.text,
         groupType: _groupType,
-        entries: [
-          VocabularyEntry(
-            form: _expression.text,
-            meaning: _meaning.text,
-            type: _lexicalType,
-            example: _example.text,
-            translation: _translation.text,
-            application: _application.text,
-            applicationAnswer: _answer.text,
-          ),
-        ],
+        entries: [entry],
       );
       if (mounted) Navigator.of(context).pop();
     });
@@ -117,7 +141,7 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
     return PopScope(
       canPop: !_saving,
       child: AlertDialog(
-        title: Text(l10n.languageAddEntry),
+        title: Text(widget.initial == null ? l10n.languageAddEntry : l10n.edit),
         scrollable: true,
         content: SizedBox(
           width: 480,
@@ -126,7 +150,7 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (widget.group == null) ...[
+                if (widget.initial == null && widget.group == null) ...[
                   field(_title, l10n.languageGroupTitle, requiredText),
                   DropdownButtonFormField<VocabularyGroupType>(
                     initialValue: _groupType,
@@ -143,8 +167,8 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
                     ],
                     onChanged: _saving ? null : (type) => _groupType = type!,
                   ),
-                ] else
-                  Text(widget.group!.title),
+                ] else if (widget.group case final group?)
+                  Text(group.title),
                 field(_expression, l10n.languageExpression, requiredText),
                 field(_meaning, l10n.languageMeaning, requiredText),
                 DropdownButtonFormField<LexicalType>(

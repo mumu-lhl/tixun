@@ -208,6 +208,7 @@ String _featureLabel(BuildContext context, String feature) => switch (feature) {
   'language_sentence_batch' => context.l10n.usageFeatureLanguageSentenceBatch,
   'language_exam_generation' => context.l10n.usageFeatureLanguageExamGeneration,
   'language_exam_review' => context.l10n.usageFeatureLanguageExamReview,
+  'language_writing_task' => context.l10n.usageFeatureLanguageWritingTask,
   'language_writing' => context.l10n.usageFeatureLanguageWriting,
   'connection_test' => context.l10n.usageFeatureConnectionTest,
   'visual_create' => context.l10n.usageFeatureVisualCreate,

@@ -7,6 +7,8 @@ import '../../core/l10n/app_error_localization.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
+import 'sentence_content.dart';
+import 'sentence_practice.dart' show sentenceSkillLabel;
 import 'vocabulary_ai.dart';
 import 'vocabulary_editor.dart';
 
@@ -51,9 +53,12 @@ class _ProposalDialogState extends State<_ProposalDialog> {
   late final _topic = TextEditingController(text: widget.group?.title);
   VocabularyGroupType _kind = VocabularyGroupType.topic;
   late VocabularyLevel _level = widget.initialLevel;
+  int _count = 5;
+  SentenceSkill? _focus;
   VocabularyProposal? _proposal;
   Map<VocabularyEntry, List<String>> _matches = {};
   final _chosen = <VocabularyEntry>{};
+  final _entries = <VocabularyEntry>[];
   CancelToken? _running;
   bool _saving = false;
   String? _error;
@@ -97,6 +102,8 @@ class _ProposalDialogState extends State<_ProposalDialog> {
             .toSet()
             .toList(),
         cancel: token,
+        count: _count,
+        focus: _focus,
       );
       token.checkCancelled();
       final matches = await widget.store.existingGroupsForEntries(
@@ -106,6 +113,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
       if (!mounted || token.isCancelled) return;
       setState(() {
         _proposal = proposal;
+        _entries.addAll(proposal.entries);
         _matches = matches;
         _chosen.addAll(
           proposal.entries.where((entry) => !matches[entry]!.contains(_title)),
@@ -133,7 +141,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
         language: 'en',
         groupTitle: _title,
         groupType: _groupType,
-        entries: proposal.entries.where(_chosen.contains).toList(),
+        entries: _entries.where(_chosen.contains).toList(),
         provenance: proposal.provenance,
       );
       if (mounted) Navigator.of(context).pop();
@@ -223,6 +231,45 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                             ? null
                             : (level) => _level = level!,
                       ),
+                      DropdownButtonFormField<int>(
+                        initialValue: _count,
+                        decoration: InputDecoration(
+                          labelText: l10n.languageVocabularyCount,
+                        ),
+                        items: [
+                          for (final count in [5, 10, 20])
+                            DropdownMenuItem(
+                              value: count,
+                              child: Text('$count'),
+                            ),
+                        ],
+                        onChanged: running == null
+                            ? (count) => _count = count!
+                            : null,
+                      ),
+                      DropdownButtonFormField<SentenceSkill>(
+                        hint: Text(l10n.languageExamAnySkill),
+                        decoration: InputDecoration(
+                          labelText: l10n.languageExamFocus,
+                        ),
+                        items: [
+                          DropdownMenuItem(
+                            child: Text(l10n.languageExamAnySkill),
+                          ),
+                          for (final skill in const [
+                            SentenceSkill.collocation,
+                            SentenceSkill.intention,
+                            SentenceSkill.reference,
+                          ])
+                            DropdownMenuItem(
+                              value: skill,
+                              child: Text(sentenceSkillLabel(l10n, skill)),
+                            ),
+                        ],
+                        onChanged: running == null
+                            ? (focus) => _focus = focus
+                            : null,
+                      ),
                       if (running != null) const LinearProgressIndicator(),
                       if (_error case final error?) Text(error),
                     ],
@@ -238,7 +285,14 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                     ),
                     Text(l10n.languageAiReviewNotice),
                     Text(proposal.provenance.model),
-                    for (final entry in proposal.entries) _candidate(entry),
+                    if (proposal.entries.length < (proposal.requested ?? 0))
+                      Text(
+                        l10n.languageSentencePartialBatch(
+                          proposal.entries.length,
+                          proposal.requested!,
+                        ),
+                      ),
+                    for (final entry in _entries) _candidate(entry),
                   ],
                 ),
         ),
@@ -262,32 +316,84 @@ class _ProposalDialogState extends State<_ProposalDialog> {
     );
   }
 
+  Future<void> _edit(VocabularyEntry entry) async {
+    final edited = await editVocabularyCandidate(context, entry);
+    if (!mounted || edited == null) return;
+    setState(() => _saving = true);
+    await act(context, () async {
+      final same = _entries.any(
+        (other) =>
+            !identical(other, entry) &&
+            other.type == edited.type &&
+            normalizeLanguageText(other.form) ==
+                normalizeLanguageText(edited.form) &&
+            normalizeLanguageText(other.meaning) ==
+                normalizeLanguageText(edited.meaning),
+      );
+      if (same) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.languageVocabularyDuplicateCandidate),
+          ),
+        );
+        return;
+      }
+      final matches = await widget.store.existingGroupsForEntries('en', [
+        edited,
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _entries[_entries.indexOf(entry)] = edited;
+        _matches.remove(entry);
+        _matches.addAll(matches);
+        if (_chosen.remove(entry) && !matches[edited]!.contains(_title)) {
+          _chosen.add(edited);
+        }
+      });
+    });
+    if (mounted) setState(() => _saving = false);
+  }
+
   Widget _candidate(VocabularyEntry entry) {
     final l10n = context.l10n;
     final groups = _matches[entry]!;
-    return CheckboxListTile(
-      contentPadding: EdgeInsets.zero,
-      value: _chosen.contains(entry),
-      onChanged: _saving || groups.contains(_title)
-          ? null
-          : (chosen) => setState(() {
-              if (chosen == true) {
-                _chosen.add(entry);
-              } else {
-                _chosen.remove(entry);
-              }
-            }),
-      title: Text('${entry.form} — ${entry.meaning}'),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(lexicalTypeLabel(l10n, entry.type)),
-          Text(entry.example!),
-          Text(entry.translation!),
-          if (groups.isNotEmpty)
-            Text(l10n.languageAiExistingGroups(groups.join(', '))),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(
+          child: CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _chosen.contains(entry),
+            onChanged: _saving || groups.contains(_title)
+                ? null
+                : (chosen) => setState(() {
+                    if (chosen == true) {
+                      _chosen.add(entry);
+                    } else {
+                      _chosen.remove(entry);
+                    }
+                  }),
+            title: Text('${entry.form} — ${entry.meaning}'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(lexicalTypeLabel(l10n, entry.type)),
+                if (entry.example case final example?) Text(example),
+                if (entry.translation case final translation?)
+                  Text(translation),
+                if (entry.application case final application?)
+                  Text('$application → ${entry.applicationAnswer}'),
+                if (groups.isNotEmpty)
+                  Text(l10n.languageAiExistingGroups(groups.join(', '))),
+              ],
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: _saving ? null : () => _edit(entry),
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: l10n.edit,
+        ),
+      ],
     );
   }
 }

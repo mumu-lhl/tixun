@@ -26628,6 +26628,658 @@ class LearningWritingNotesCompanion
   }
 }
 
+class $LearningWritingTasksTable extends LearningWritingTasks
+    with TableInfo<$LearningWritingTasksTable, LearningWritingTaskRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LearningWritingTasksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _profileMeta = const VerificationMeta(
+    'profile',
+  );
+  @override
+  late final GeneratedColumn<String> profile = GeneratedColumn<String>(
+    'profile',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<String> level = GeneratedColumn<String>(
+    'level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _topicMeta = const VerificationMeta('topic');
+  @override
+  late final GeneratedColumn<String> topic = GeneratedColumn<String>(
+    'topic',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _promptMeta = const VerificationMeta('prompt');
+  @override
+  late final GeneratedColumn<String> prompt = GeneratedColumn<String>(
+    'prompt',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _passageMeta = const VerificationMeta(
+    'passage',
+  );
+  @override
+  late final GeneratedColumn<String> passage = GeneratedColumn<String>(
+    'passage',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _promptVersionMeta = const VerificationMeta(
+    'promptVersion',
+  );
+  @override
+  late final GeneratedColumn<int> promptVersion = GeneratedColumn<int>(
+    'prompt_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    kind,
+    profile,
+    level,
+    topic,
+    title,
+    prompt,
+    passage,
+    model,
+    promptVersion,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'learning_writing_tasks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LearningWritingTaskRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('profile')) {
+      context.handle(
+        _profileMeta,
+        profile.isAcceptableOrUnknown(data['profile']!, _profileMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileMeta);
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_levelMeta);
+    }
+    if (data.containsKey('topic')) {
+      context.handle(
+        _topicMeta,
+        topic.isAcceptableOrUnknown(data['topic']!, _topicMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_topicMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('prompt')) {
+      context.handle(
+        _promptMeta,
+        prompt.isAcceptableOrUnknown(data['prompt']!, _promptMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_promptMeta);
+    }
+    if (data.containsKey('passage')) {
+      context.handle(
+        _passageMeta,
+        passage.isAcceptableOrUnknown(data['passage']!, _passageMeta),
+      );
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelMeta);
+    }
+    if (data.containsKey('prompt_version')) {
+      context.handle(
+        _promptVersionMeta,
+        promptVersion.isAcceptableOrUnknown(
+          data['prompt_version']!,
+          _promptVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_promptVersionMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LearningWritingTaskRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LearningWritingTaskRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      profile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level'],
+      )!,
+      topic: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}topic'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      prompt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt'],
+      )!,
+      passage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}passage'],
+      ),
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      )!,
+      promptVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}prompt_version'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LearningWritingTasksTable createAlias(String alias) {
+    return $LearningWritingTasksTable(attachedDatabase, alias);
+  }
+}
+
+class LearningWritingTaskRow extends DataClass
+    implements Insertable<LearningWritingTaskRow> {
+  final String id;
+  final String kind;
+  final String profile;
+  final String level;
+  final String topic;
+  final String title;
+  final String prompt;
+  final String? passage;
+  final String model;
+  final int promptVersion;
+  final DateTime createdAt;
+  const LearningWritingTaskRow({
+    required this.id,
+    required this.kind,
+    required this.profile,
+    required this.level,
+    required this.topic,
+    required this.title,
+    required this.prompt,
+    this.passage,
+    required this.model,
+    required this.promptVersion,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['kind'] = Variable<String>(kind);
+    map['profile'] = Variable<String>(profile);
+    map['level'] = Variable<String>(level);
+    map['topic'] = Variable<String>(topic);
+    map['title'] = Variable<String>(title);
+    map['prompt'] = Variable<String>(prompt);
+    if (!nullToAbsent || passage != null) {
+      map['passage'] = Variable<String>(passage);
+    }
+    map['model'] = Variable<String>(model);
+    map['prompt_version'] = Variable<int>(promptVersion);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LearningWritingTasksCompanion toCompanion(bool nullToAbsent) {
+    return LearningWritingTasksCompanion(
+      id: Value(id),
+      kind: Value(kind),
+      profile: Value(profile),
+      level: Value(level),
+      topic: Value(topic),
+      title: Value(title),
+      prompt: Value(prompt),
+      passage: passage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(passage),
+      model: Value(model),
+      promptVersion: Value(promptVersion),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LearningWritingTaskRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LearningWritingTaskRow(
+      id: serializer.fromJson<String>(json['id']),
+      kind: serializer.fromJson<String>(json['kind']),
+      profile: serializer.fromJson<String>(json['profile']),
+      level: serializer.fromJson<String>(json['level']),
+      topic: serializer.fromJson<String>(json['topic']),
+      title: serializer.fromJson<String>(json['title']),
+      prompt: serializer.fromJson<String>(json['prompt']),
+      passage: serializer.fromJson<String?>(json['passage']),
+      model: serializer.fromJson<String>(json['model']),
+      promptVersion: serializer.fromJson<int>(json['promptVersion']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'kind': serializer.toJson<String>(kind),
+      'profile': serializer.toJson<String>(profile),
+      'level': serializer.toJson<String>(level),
+      'topic': serializer.toJson<String>(topic),
+      'title': serializer.toJson<String>(title),
+      'prompt': serializer.toJson<String>(prompt),
+      'passage': serializer.toJson<String?>(passage),
+      'model': serializer.toJson<String>(model),
+      'promptVersion': serializer.toJson<int>(promptVersion),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LearningWritingTaskRow copyWith({
+    String? id,
+    String? kind,
+    String? profile,
+    String? level,
+    String? topic,
+    String? title,
+    String? prompt,
+    Value<String?> passage = const Value.absent(),
+    String? model,
+    int? promptVersion,
+    DateTime? createdAt,
+  }) => LearningWritingTaskRow(
+    id: id ?? this.id,
+    kind: kind ?? this.kind,
+    profile: profile ?? this.profile,
+    level: level ?? this.level,
+    topic: topic ?? this.topic,
+    title: title ?? this.title,
+    prompt: prompt ?? this.prompt,
+    passage: passage.present ? passage.value : this.passage,
+    model: model ?? this.model,
+    promptVersion: promptVersion ?? this.promptVersion,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  LearningWritingTaskRow copyWithCompanion(LearningWritingTasksCompanion data) {
+    return LearningWritingTaskRow(
+      id: data.id.present ? data.id.value : this.id,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      profile: data.profile.present ? data.profile.value : this.profile,
+      level: data.level.present ? data.level.value : this.level,
+      topic: data.topic.present ? data.topic.value : this.topic,
+      title: data.title.present ? data.title.value : this.title,
+      prompt: data.prompt.present ? data.prompt.value : this.prompt,
+      passage: data.passage.present ? data.passage.value : this.passage,
+      model: data.model.present ? data.model.value : this.model,
+      promptVersion: data.promptVersion.present
+          ? data.promptVersion.value
+          : this.promptVersion,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningWritingTaskRow(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('profile: $profile, ')
+          ..write('level: $level, ')
+          ..write('topic: $topic, ')
+          ..write('title: $title, ')
+          ..write('prompt: $prompt, ')
+          ..write('passage: $passage, ')
+          ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    kind,
+    profile,
+    level,
+    topic,
+    title,
+    prompt,
+    passage,
+    model,
+    promptVersion,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LearningWritingTaskRow &&
+          other.id == this.id &&
+          other.kind == this.kind &&
+          other.profile == this.profile &&
+          other.level == this.level &&
+          other.topic == this.topic &&
+          other.title == this.title &&
+          other.prompt == this.prompt &&
+          other.passage == this.passage &&
+          other.model == this.model &&
+          other.promptVersion == this.promptVersion &&
+          other.createdAt == this.createdAt);
+}
+
+class LearningWritingTasksCompanion
+    extends UpdateCompanion<LearningWritingTaskRow> {
+  final Value<String> id;
+  final Value<String> kind;
+  final Value<String> profile;
+  final Value<String> level;
+  final Value<String> topic;
+  final Value<String> title;
+  final Value<String> prompt;
+  final Value<String?> passage;
+  final Value<String> model;
+  final Value<int> promptVersion;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LearningWritingTasksCompanion({
+    this.id = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.profile = const Value.absent(),
+    this.level = const Value.absent(),
+    this.topic = const Value.absent(),
+    this.title = const Value.absent(),
+    this.prompt = const Value.absent(),
+    this.passage = const Value.absent(),
+    this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LearningWritingTasksCompanion.insert({
+    required String id,
+    required String kind,
+    required String profile,
+    required String level,
+    required String topic,
+    required String title,
+    required String prompt,
+    this.passage = const Value.absent(),
+    required String model,
+    required int promptVersion,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       kind = Value(kind),
+       profile = Value(profile),
+       level = Value(level),
+       topic = Value(topic),
+       title = Value(title),
+       prompt = Value(prompt),
+       model = Value(model),
+       promptVersion = Value(promptVersion),
+       createdAt = Value(createdAt);
+  static Insertable<LearningWritingTaskRow> custom({
+    Expression<String>? id,
+    Expression<String>? kind,
+    Expression<String>? profile,
+    Expression<String>? level,
+    Expression<String>? topic,
+    Expression<String>? title,
+    Expression<String>? prompt,
+    Expression<String>? passage,
+    Expression<String>? model,
+    Expression<int>? promptVersion,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (kind != null) 'kind': kind,
+      if (profile != null) 'profile': profile,
+      if (level != null) 'level': level,
+      if (topic != null) 'topic': topic,
+      if (title != null) 'title': title,
+      if (prompt != null) 'prompt': prompt,
+      if (passage != null) 'passage': passage,
+      if (model != null) 'model': model,
+      if (promptVersion != null) 'prompt_version': promptVersion,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LearningWritingTasksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? kind,
+    Value<String>? profile,
+    Value<String>? level,
+    Value<String>? topic,
+    Value<String>? title,
+    Value<String>? prompt,
+    Value<String?>? passage,
+    Value<String>? model,
+    Value<int>? promptVersion,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return LearningWritingTasksCompanion(
+      id: id ?? this.id,
+      kind: kind ?? this.kind,
+      profile: profile ?? this.profile,
+      level: level ?? this.level,
+      topic: topic ?? this.topic,
+      title: title ?? this.title,
+      prompt: prompt ?? this.prompt,
+      passage: passage ?? this.passage,
+      model: model ?? this.model,
+      promptVersion: promptVersion ?? this.promptVersion,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (profile.present) {
+      map['profile'] = Variable<String>(profile.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<String>(level.value);
+    }
+    if (topic.present) {
+      map['topic'] = Variable<String>(topic.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (prompt.present) {
+      map['prompt'] = Variable<String>(prompt.value);
+    }
+    if (passage.present) {
+      map['passage'] = Variable<String>(passage.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (promptVersion.present) {
+      map['prompt_version'] = Variable<int>(promptVersion.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningWritingTasksCompanion(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('profile: $profile, ')
+          ..write('level: $level, ')
+          ..write('topic: $topic, ')
+          ..write('title: $title, ')
+          ..write('prompt: $prompt, ')
+          ..write('passage: $passage, ')
+          ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $LearningExamMaterialsTable extends LearningExamMaterials
     with TableInfo<$LearningExamMaterialsTable, LearningExamMaterialRow> {
   @override
@@ -28281,6 +28933,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LearningWritingEvaluationsTable(this);
   late final $LearningWritingNotesTable learningWritingNotes =
       $LearningWritingNotesTable(this);
+  late final $LearningWritingTasksTable learningWritingTasks =
+      $LearningWritingTasksTable(this);
   late final $LearningExamMaterialsTable learningExamMaterials =
       $LearningExamMaterialsTable(this);
   late final $LearningExamAttemptsTable learningExamAttempts =
@@ -28347,6 +29001,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     learningWritingVersions,
     learningWritingEvaluations,
     learningWritingNotes,
+    learningWritingTasks,
     learningExamMaterials,
     learningExamAttempts,
   ];

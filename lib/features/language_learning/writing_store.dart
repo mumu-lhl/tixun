@@ -14,46 +14,77 @@ const writingTaskPrompt =
     'activity for the club. Aim for about 100 words. Use an appropriate email tone.';
 const writingMaxLength = 3000;
 
+class WritingTask {
+  const WritingTask(
+    this.id,
+    this.prompt, {
+    this.title,
+    this.passage,
+    this.rubric,
+  });
+  final String id, prompt;
+  final String? title, passage, rubric;
+}
+
+const applicationWritingTask = WritingTask(writingTaskId, writingTaskPrompt);
+
+const storyWritingTask = WritingTask(
+  'en-story-market-v1',
+  'Continue the story in about 150 words. Show how Maya finds the owner '
+      'of the sketchbook and what she learns about the sketches.',
+  passage:
+      'On the last morning of the outdoor market, Maya helped her aunt '
+      'pack away the unsold books. Beneath a pile of magazines she found '
+      'a sketchbook with a green cover. It held drawings of the market '
+      'at different times of day, including one of Maya carrying a box of '
+      'books. On the last page someone had written, “Back at noon.” It was '
+      'already a quarter past twelve, and the stalls were almost empty.',
+  rubric:
+      'Check whether the continuation follows the source events, preserves '
+      'the characters and perspective, makes meaningful use of the clue, '
+      'and provides a coherent ending. Consider the clarity of transitions.',
+);
+
 typedef WritingHistory = ({
   LearningWritingVersion version,
   LearningWritingEvaluation? evaluation,
 });
 
 extension WritingLearningStore on LanguageLearningStore {
-  Future<String> writingDraft() async {
+  Future<String> writingDraft({String taskId = writingTaskId}) async {
     final row = await (db.select(
       db.learningWritingDrafts,
-    )..where((row) => row.taskId.equals(writingTaskId))).getSingleOrNull();
+    )..where((row) => row.taskId.equals(taskId))).getSingleOrNull();
     return row?.content ?? '';
   }
 
-  Future<void> _saveWritingDraft(String text) => db
+  Future<void> _saveWritingDraft(String text, String taskId) => db
       .into(db.learningWritingDrafts)
       .insertOnConflictUpdate(
-        LearningWritingDraftsCompanion.insert(
-          taskId: writingTaskId,
-          content: text,
-        ),
+        LearningWritingDraftsCompanion.insert(taskId: taskId, content: text),
       );
 
-  Future<void> saveWritingDraft(String text) =>
-      runOperation(() => _saveWritingDraft(text));
+  Future<void> saveWritingDraft(String text, {String taskId = writingTaskId}) =>
+      runOperation(() => _saveWritingDraft(text, taskId));
 
-  Future<String> snapshotWriting(String text) => runOperation(() async {
+  Future<String> snapshotWriting(
+    String text, {
+    String taskId = writingTaskId,
+  }) => runOperation(() async {
     if (text.trim().isEmpty || text.length > writingMaxLength) {
       throw const FormatException('Invalid draft length');
     }
     final id = sha256
-        .convert(utf8.encode(jsonEncode([writingTaskId, text])))
+        .convert(utf8.encode(jsonEncode([taskId, text])))
         .toString();
     await db.transaction(() async {
-      await _saveWritingDraft(text);
+      await _saveWritingDraft(text, taskId);
       await db
           .into(db.learningWritingVersions)
           .insert(
             LearningWritingVersionsCompanion.insert(
               id: id,
-              taskId: writingTaskId,
+              taskId: taskId,
               content: text,
               createdAt: DateTime.now(),
             ),
@@ -63,7 +94,7 @@ extension WritingLearningStore on LanguageLearningStore {
     return id;
   });
 
-  Stream<List<WritingHistory>> writingHistory() {
+  Stream<List<WritingHistory>> writingHistory({String taskId = writingTaskId}) {
     final versions = db.learningWritingVersions;
     final evaluations = db.learningWritingEvaluations;
     return (db.select(versions).join([
@@ -72,7 +103,7 @@ extension WritingLearningStore on LanguageLearningStore {
               evaluations.versionId.equalsExp(versions.id),
             ),
           ])
-          ..where(versions.taskId.equals(writingTaskId))
+          ..where(versions.taskId.equals(taskId))
           ..orderBy([
             OrderingTerm.desc(versions.createdAt),
             OrderingTerm.desc(versions.rowId),

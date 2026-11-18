@@ -26,7 +26,7 @@ class WritingPractice extends StatefulWidget {
 
 class _WritingPracticeState extends State<WritingPractice> {
   final _controller = TextEditingController();
-  late final _history = widget.store.writingHistory();
+  late final _history = widget.store.writingHistory(taskId: widget.ai.task.id);
   String _saved = '';
   bool _loaded = false;
   bool _loadError = false;
@@ -46,7 +46,7 @@ class _WritingPracticeState extends State<WritingPractice> {
 
   Future<void> _load() async {
     try {
-      final text = await widget.store.writingDraft();
+      final text = await widget.store.writingDraft(taskId: widget.ai.task.id);
       if (!mounted) return;
       _controller.text = text;
       setState(() {
@@ -71,7 +71,11 @@ class _WritingPracticeState extends State<WritingPractice> {
     final draft = _controller.text;
     setState(() => _saving = true);
     await act(context, () async {
-      await widget.store.saveWritingDraft(draft);
+      if (draft.trim().isEmpty) {
+        await widget.store.saveWritingDraft(draft, taskId: widget.ai.task.id);
+      } else {
+        await widget.store.snapshotWriting(draft, taskId: widget.ai.task.id);
+      }
       if (mounted) _saved = draft;
     });
     if (mounted) setState(() => _saving = false);
@@ -87,7 +91,7 @@ class _WritingPracticeState extends State<WritingPractice> {
         widget.feedbackLanguage ?? Localizations.localeOf(context).languageCode;
     setState(() => _pending = cancel);
     try {
-      await widget.store.saveWritingDraft(draft);
+      await widget.store.saveWritingDraft(draft, taskId: widget.ai.task.id);
       if (!mounted) return;
       setState(() => _saved = draft);
       await widget.ai.evaluate(
@@ -149,7 +153,13 @@ class _WritingPracticeState extends State<WritingPractice> {
         if (!popped) _confirmExit();
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(l10n.languageWriting)),
+        appBar: AppBar(
+          title: Text(
+            widget.ai.task.passage == null
+                ? l10n.languageWriting
+                : l10n.languageContinuation,
+          ),
+        ),
         body: ListView(
           padding: const EdgeInsets.all(24),
           children: [
@@ -161,7 +171,13 @@ class _WritingPracticeState extends State<WritingPractice> {
                   children: [
                     Text(l10n.languageWritingTask, style: theme.headlineSmall),
                     const SizedBox(height: 8),
-                    const SelectableText(writingTaskPrompt),
+                    if (widget.ai.task.title case final title?)
+                      Text(title, style: theme.titleLarge),
+                    if (widget.ai.task.passage case final passage?) ...[
+                      SelectableText(passage),
+                      const SizedBox(height: 12),
+                    ],
+                    SelectableText(widget.ai.task.prompt),
                     const SizedBox(height: 12),
                     if (_loadError)
                       OutlinedButton(
