@@ -8,6 +8,10 @@ import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/backup/backup_service.dart';
 import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/features/library/study_store.dart';
+import 'package:tixun/features/language_learning/exam_bundled.dart';
+import 'package:tixun/features/language_learning/exam_material.dart';
+import 'package:tixun/features/language_learning/exam_store.dart';
+import 'package:tixun/features/language_learning/sentence_content.dart';
 import 'package:tixun/features/practice/question_spec.dart';
 
 void main() {
@@ -85,6 +89,24 @@ void main() {
     final note = await fixture();
     final context = await c.db.select(c.db.chatContextEvents).get();
     expect(context, hasLength(2));
+    final sample = bundledExamPapers(ExamKind.grammar).single;
+    final material = await c.language.saveExamMaterial(
+      target: const ExamTarget(
+        kind: ExamKind.grammar,
+        level: SentenceLevel.beginner,
+        count: 5,
+      ),
+      paper: sample.paper,
+      source: ExamSource.bundled,
+      id: sample.id,
+    );
+    await c.language.submitExam(
+      material: material,
+      attemptId: 'backup-language-exam',
+      responses: sample.paper.items.map((item) => item.answers.first).toList(),
+      confidence: ExamConfidence.unsure,
+      hintUsed: false,
+    );
     final backup = File('${parent.path}/complete.tixun-backup');
     final preview = await BackupService.export(c.db, c.files, backup);
     expect(preview.counts['attempts'], 1);
@@ -119,6 +141,14 @@ void main() {
     await BackupService.finish(activation);
     await prepared.discard();
     expect((await c.study.knowledge(note)).content, '恢复前的内容');
+    final savedExam = ExamMaterial(
+      await c.db.select(c.db.learningExamMaterials).getSingle(),
+    );
+    expect(savedExam.paper.fingerprint, sample.paper.fingerprint);
+    final savedAttempt =
+        (await c.language.examHistory(savedExam.row.id).first).single;
+    expect(savedAttempt.confidence, ExamConfidence.unsure);
+    expect(savedAttempt.matched, 5);
     final timeline = (await c.db.select(c.db.timelineEvents).get()).single;
     expect(timeline.title, '期中考');
     expect(timeline.notes, '带准考证');

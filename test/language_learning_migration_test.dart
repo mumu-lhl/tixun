@@ -2,6 +2,7 @@ import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/features/language_learning/language_store.dart';
+import 'package:tixun/features/language_learning/sentence_batch_store.dart';
 
 import 'generated_migrations/schema.dart';
 
@@ -19,7 +20,7 @@ void main() {
       await db.close();
     });
 
-    await verifier.migrateAndValidate(db, 22);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
     expect((await db.select(db.examEvents).get()).single.title, '期中');
     await store.saveEntries(
       language: 'en',
@@ -29,4 +30,39 @@ void main() {
     );
     expect(await store.dueCount('en').first, 1);
   });
+
+  test(
+    'v22 sentence cards reopen unchanged when exam tables are added',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(22);
+      schema.rawDatabase.execute(
+        'INSERT INTO learning_sentence_batches '
+        '(id, language, topic, style, gloss_language, model, prompt_version, is_mock, cards, generated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          'existing',
+          'en',
+          'dailyLife',
+          'written',
+          'zh',
+          'legacy-model',
+          1,
+          0,
+          '[{"id":"legacy","text":"It is raining.","hint":"Weather.",'
+              '"translation":"下雨了。","level":"beginner","revision":1}]',
+          1,
+        ],
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+      final saved = await db.select(db.learningSentenceBatches).getSingle();
+      final card = openSavedSentenceBatch(saved).cards.single;
+      expect(card.id, 'legacy');
+      expect(card.choices, isEmpty);
+      expect(await db.select(db.learningExamMaterials).get(), isEmpty);
+      expect(await db.select(db.learningExamAttempts).get(), isEmpty);
+    },
+  );
 }

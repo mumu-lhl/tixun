@@ -10,6 +10,7 @@ extension _DatabaseMigrations on AppDatabase {
       await _createPracticeLinkIndex();
       await _createModuleIndexes();
       await _createExamIndexes();
+      await _createLanguageExamIndexes();
       await _createTimelineIndex();
       await _createVisualIndexes();
       await customStatement(
@@ -41,6 +42,11 @@ extension _DatabaseMigrations on AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from < 23) {
+        await m.createTable(learningExamMaterials);
+        await m.createTable(learningExamAttempts);
+        await _createLanguageExamIndexes();
+      }
       if (from < 21) await m.createTable(chatContextEvents);
       if (from < 22) {
         for (final table in <TableInfo>[
@@ -295,6 +301,15 @@ extension _DatabaseMigrations on AppDatabase {
   Future<void> _createTimelineIndex() async {
     await customStatement(
       'CREATE INDEX timeline_event_start ON timeline_events(start_date)',
+    );
+  }
+
+  Future<void> _createLanguageExamIndexes() async {
+    await customStatement(
+      'CREATE INDEX language_exam_materials_lookup ON learning_exam_materials(kind, profile, level, created_at)',
+    );
+    await customStatement(
+      'CREATE INDEX language_exam_attempts_lookup ON learning_exam_attempts(material_id, submitted_at)',
     );
   }
 

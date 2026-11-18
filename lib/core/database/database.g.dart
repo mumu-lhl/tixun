@@ -26628,6 +26628,1555 @@ class LearningWritingNotesCompanion
   }
 }
 
+class $LearningExamMaterialsTable extends LearningExamMaterials
+    with TableInfo<$LearningExamMaterialsTable, LearningExamMaterialRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LearningExamMaterialsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fingerprintMeta = const VerificationMeta(
+    'fingerprint',
+  );
+  @override
+  late final GeneratedColumn<String> fingerprint = GeneratedColumn<String>(
+    'fingerprint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _languageMeta = const VerificationMeta(
+    'language',
+  );
+  @override
+  late final GeneratedColumn<String> language = GeneratedColumn<String>(
+    'language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _profileMeta = const VerificationMeta(
+    'profile',
+  );
+  @override
+  late final GeneratedColumn<String> profile = GeneratedColumn<String>(
+    'profile',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<String> level = GeneratedColumn<String>(
+    'level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _topicMeta = const VerificationMeta('topic');
+  @override
+  late final GeneratedColumn<String> topic = GeneratedColumn<String>(
+    'topic',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetSkillMeta = const VerificationMeta(
+    'targetSkill',
+  );
+  @override
+  late final GeneratedColumn<String> targetSkill = GeneratedColumn<String>(
+    'target_skill',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paragraphsMeta = const VerificationMeta(
+    'paragraphs',
+  );
+  @override
+  late final GeneratedColumn<String> paragraphs = GeneratedColumn<String>(
+    'paragraphs',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _candidatesMeta = const VerificationMeta(
+    'candidates',
+  );
+  @override
+  late final GeneratedColumn<String> candidates = GeneratedColumn<String>(
+    'candidates',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _itemsMeta = const VerificationMeta('items');
+  @override
+  late final GeneratedColumn<String> items = GeneratedColumn<String>(
+    'items',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _promptVersionMeta = const VerificationMeta(
+    'promptVersion',
+  );
+  @override
+  late final GeneratedColumn<int> promptVersion = GeneratedColumn<int>(
+    'prompt_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _verificationMeta = const VerificationMeta(
+    'verification',
+  );
+  @override
+  late final GeneratedColumn<String> verification = GeneratedColumn<String>(
+    'verification',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    fingerprint,
+    language,
+    profile,
+    kind,
+    level,
+    topic,
+    targetSkill,
+    title,
+    paragraphs,
+    candidates,
+    items,
+    source,
+    model,
+    promptVersion,
+    revision,
+    verification,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'learning_exam_materials';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LearningExamMaterialRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('fingerprint')) {
+      context.handle(
+        _fingerprintMeta,
+        fingerprint.isAcceptableOrUnknown(
+          data['fingerprint']!,
+          _fingerprintMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fingerprintMeta);
+    }
+    if (data.containsKey('language')) {
+      context.handle(
+        _languageMeta,
+        language.isAcceptableOrUnknown(data['language']!, _languageMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_languageMeta);
+    }
+    if (data.containsKey('profile')) {
+      context.handle(
+        _profileMeta,
+        profile.isAcceptableOrUnknown(data['profile']!, _profileMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_levelMeta);
+    }
+    if (data.containsKey('topic')) {
+      context.handle(
+        _topicMeta,
+        topic.isAcceptableOrUnknown(data['topic']!, _topicMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_topicMeta);
+    }
+    if (data.containsKey('target_skill')) {
+      context.handle(
+        _targetSkillMeta,
+        targetSkill.isAcceptableOrUnknown(
+          data['target_skill']!,
+          _targetSkillMeta,
+        ),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('paragraphs')) {
+      context.handle(
+        _paragraphsMeta,
+        paragraphs.isAcceptableOrUnknown(data['paragraphs']!, _paragraphsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_paragraphsMeta);
+    }
+    if (data.containsKey('candidates')) {
+      context.handle(
+        _candidatesMeta,
+        candidates.isAcceptableOrUnknown(data['candidates']!, _candidatesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_candidatesMeta);
+    }
+    if (data.containsKey('items')) {
+      context.handle(
+        _itemsMeta,
+        items.isAcceptableOrUnknown(data['items']!, _itemsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_itemsMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    }
+    if (data.containsKey('prompt_version')) {
+      context.handle(
+        _promptVersionMeta,
+        promptVersion.isAcceptableOrUnknown(
+          data['prompt_version']!,
+          _promptVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionMeta);
+    }
+    if (data.containsKey('verification')) {
+      context.handle(
+        _verificationMeta,
+        verification.isAcceptableOrUnknown(
+          data['verification']!,
+          _verificationMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_verificationMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LearningExamMaterialRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LearningExamMaterialRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      fingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fingerprint'],
+      )!,
+      language: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}language'],
+      )!,
+      profile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level'],
+      )!,
+      topic: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}topic'],
+      )!,
+      targetSkill: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_skill'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      paragraphs: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}paragraphs'],
+      )!,
+      candidates: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}candidates'],
+      )!,
+      items: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}items'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      ),
+      promptVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}prompt_version'],
+      ),
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+      verification: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}verification'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LearningExamMaterialsTable createAlias(String alias) {
+    return $LearningExamMaterialsTable(attachedDatabase, alias);
+  }
+}
+
+class LearningExamMaterialRow extends DataClass
+    implements Insertable<LearningExamMaterialRow> {
+  final String id;
+  final String fingerprint;
+  final String language;
+  final String profile;
+  final String kind;
+  final String level;
+  final String topic;
+  final String? targetSkill;
+  final String title;
+  final String paragraphs;
+  final String candidates;
+  final String items;
+  final String source;
+  final String? model;
+  final int? promptVersion;
+  final int revision;
+  final String verification;
+  final DateTime createdAt;
+  const LearningExamMaterialRow({
+    required this.id,
+    required this.fingerprint,
+    required this.language,
+    required this.profile,
+    required this.kind,
+    required this.level,
+    required this.topic,
+    this.targetSkill,
+    required this.title,
+    required this.paragraphs,
+    required this.candidates,
+    required this.items,
+    required this.source,
+    this.model,
+    this.promptVersion,
+    required this.revision,
+    required this.verification,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['fingerprint'] = Variable<String>(fingerprint);
+    map['language'] = Variable<String>(language);
+    map['profile'] = Variable<String>(profile);
+    map['kind'] = Variable<String>(kind);
+    map['level'] = Variable<String>(level);
+    map['topic'] = Variable<String>(topic);
+    if (!nullToAbsent || targetSkill != null) {
+      map['target_skill'] = Variable<String>(targetSkill);
+    }
+    map['title'] = Variable<String>(title);
+    map['paragraphs'] = Variable<String>(paragraphs);
+    map['candidates'] = Variable<String>(candidates);
+    map['items'] = Variable<String>(items);
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || model != null) {
+      map['model'] = Variable<String>(model);
+    }
+    if (!nullToAbsent || promptVersion != null) {
+      map['prompt_version'] = Variable<int>(promptVersion);
+    }
+    map['revision'] = Variable<int>(revision);
+    map['verification'] = Variable<String>(verification);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LearningExamMaterialsCompanion toCompanion(bool nullToAbsent) {
+    return LearningExamMaterialsCompanion(
+      id: Value(id),
+      fingerprint: Value(fingerprint),
+      language: Value(language),
+      profile: Value(profile),
+      kind: Value(kind),
+      level: Value(level),
+      topic: Value(topic),
+      targetSkill: targetSkill == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetSkill),
+      title: Value(title),
+      paragraphs: Value(paragraphs),
+      candidates: Value(candidates),
+      items: Value(items),
+      source: Value(source),
+      model: model == null && nullToAbsent
+          ? const Value.absent()
+          : Value(model),
+      promptVersion: promptVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptVersion),
+      revision: Value(revision),
+      verification: Value(verification),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LearningExamMaterialRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LearningExamMaterialRow(
+      id: serializer.fromJson<String>(json['id']),
+      fingerprint: serializer.fromJson<String>(json['fingerprint']),
+      language: serializer.fromJson<String>(json['language']),
+      profile: serializer.fromJson<String>(json['profile']),
+      kind: serializer.fromJson<String>(json['kind']),
+      level: serializer.fromJson<String>(json['level']),
+      topic: serializer.fromJson<String>(json['topic']),
+      targetSkill: serializer.fromJson<String?>(json['targetSkill']),
+      title: serializer.fromJson<String>(json['title']),
+      paragraphs: serializer.fromJson<String>(json['paragraphs']),
+      candidates: serializer.fromJson<String>(json['candidates']),
+      items: serializer.fromJson<String>(json['items']),
+      source: serializer.fromJson<String>(json['source']),
+      model: serializer.fromJson<String?>(json['model']),
+      promptVersion: serializer.fromJson<int?>(json['promptVersion']),
+      revision: serializer.fromJson<int>(json['revision']),
+      verification: serializer.fromJson<String>(json['verification']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'fingerprint': serializer.toJson<String>(fingerprint),
+      'language': serializer.toJson<String>(language),
+      'profile': serializer.toJson<String>(profile),
+      'kind': serializer.toJson<String>(kind),
+      'level': serializer.toJson<String>(level),
+      'topic': serializer.toJson<String>(topic),
+      'targetSkill': serializer.toJson<String?>(targetSkill),
+      'title': serializer.toJson<String>(title),
+      'paragraphs': serializer.toJson<String>(paragraphs),
+      'candidates': serializer.toJson<String>(candidates),
+      'items': serializer.toJson<String>(items),
+      'source': serializer.toJson<String>(source),
+      'model': serializer.toJson<String?>(model),
+      'promptVersion': serializer.toJson<int?>(promptVersion),
+      'revision': serializer.toJson<int>(revision),
+      'verification': serializer.toJson<String>(verification),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LearningExamMaterialRow copyWith({
+    String? id,
+    String? fingerprint,
+    String? language,
+    String? profile,
+    String? kind,
+    String? level,
+    String? topic,
+    Value<String?> targetSkill = const Value.absent(),
+    String? title,
+    String? paragraphs,
+    String? candidates,
+    String? items,
+    String? source,
+    Value<String?> model = const Value.absent(),
+    Value<int?> promptVersion = const Value.absent(),
+    int? revision,
+    String? verification,
+    DateTime? createdAt,
+  }) => LearningExamMaterialRow(
+    id: id ?? this.id,
+    fingerprint: fingerprint ?? this.fingerprint,
+    language: language ?? this.language,
+    profile: profile ?? this.profile,
+    kind: kind ?? this.kind,
+    level: level ?? this.level,
+    topic: topic ?? this.topic,
+    targetSkill: targetSkill.present ? targetSkill.value : this.targetSkill,
+    title: title ?? this.title,
+    paragraphs: paragraphs ?? this.paragraphs,
+    candidates: candidates ?? this.candidates,
+    items: items ?? this.items,
+    source: source ?? this.source,
+    model: model.present ? model.value : this.model,
+    promptVersion: promptVersion.present
+        ? promptVersion.value
+        : this.promptVersion,
+    revision: revision ?? this.revision,
+    verification: verification ?? this.verification,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  LearningExamMaterialRow copyWithCompanion(
+    LearningExamMaterialsCompanion data,
+  ) {
+    return LearningExamMaterialRow(
+      id: data.id.present ? data.id.value : this.id,
+      fingerprint: data.fingerprint.present
+          ? data.fingerprint.value
+          : this.fingerprint,
+      language: data.language.present ? data.language.value : this.language,
+      profile: data.profile.present ? data.profile.value : this.profile,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      level: data.level.present ? data.level.value : this.level,
+      topic: data.topic.present ? data.topic.value : this.topic,
+      targetSkill: data.targetSkill.present
+          ? data.targetSkill.value
+          : this.targetSkill,
+      title: data.title.present ? data.title.value : this.title,
+      paragraphs: data.paragraphs.present
+          ? data.paragraphs.value
+          : this.paragraphs,
+      candidates: data.candidates.present
+          ? data.candidates.value
+          : this.candidates,
+      items: data.items.present ? data.items.value : this.items,
+      source: data.source.present ? data.source.value : this.source,
+      model: data.model.present ? data.model.value : this.model,
+      promptVersion: data.promptVersion.present
+          ? data.promptVersion.value
+          : this.promptVersion,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      verification: data.verification.present
+          ? data.verification.value
+          : this.verification,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningExamMaterialRow(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('language: $language, ')
+          ..write('profile: $profile, ')
+          ..write('kind: $kind, ')
+          ..write('level: $level, ')
+          ..write('topic: $topic, ')
+          ..write('targetSkill: $targetSkill, ')
+          ..write('title: $title, ')
+          ..write('paragraphs: $paragraphs, ')
+          ..write('candidates: $candidates, ')
+          ..write('items: $items, ')
+          ..write('source: $source, ')
+          ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
+          ..write('revision: $revision, ')
+          ..write('verification: $verification, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    fingerprint,
+    language,
+    profile,
+    kind,
+    level,
+    topic,
+    targetSkill,
+    title,
+    paragraphs,
+    candidates,
+    items,
+    source,
+    model,
+    promptVersion,
+    revision,
+    verification,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LearningExamMaterialRow &&
+          other.id == this.id &&
+          other.fingerprint == this.fingerprint &&
+          other.language == this.language &&
+          other.profile == this.profile &&
+          other.kind == this.kind &&
+          other.level == this.level &&
+          other.topic == this.topic &&
+          other.targetSkill == this.targetSkill &&
+          other.title == this.title &&
+          other.paragraphs == this.paragraphs &&
+          other.candidates == this.candidates &&
+          other.items == this.items &&
+          other.source == this.source &&
+          other.model == this.model &&
+          other.promptVersion == this.promptVersion &&
+          other.revision == this.revision &&
+          other.verification == this.verification &&
+          other.createdAt == this.createdAt);
+}
+
+class LearningExamMaterialsCompanion
+    extends UpdateCompanion<LearningExamMaterialRow> {
+  final Value<String> id;
+  final Value<String> fingerprint;
+  final Value<String> language;
+  final Value<String> profile;
+  final Value<String> kind;
+  final Value<String> level;
+  final Value<String> topic;
+  final Value<String?> targetSkill;
+  final Value<String> title;
+  final Value<String> paragraphs;
+  final Value<String> candidates;
+  final Value<String> items;
+  final Value<String> source;
+  final Value<String?> model;
+  final Value<int?> promptVersion;
+  final Value<int> revision;
+  final Value<String> verification;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LearningExamMaterialsCompanion({
+    this.id = const Value.absent(),
+    this.fingerprint = const Value.absent(),
+    this.language = const Value.absent(),
+    this.profile = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.level = const Value.absent(),
+    this.topic = const Value.absent(),
+    this.targetSkill = const Value.absent(),
+    this.title = const Value.absent(),
+    this.paragraphs = const Value.absent(),
+    this.candidates = const Value.absent(),
+    this.items = const Value.absent(),
+    this.source = const Value.absent(),
+    this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.verification = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LearningExamMaterialsCompanion.insert({
+    required String id,
+    required String fingerprint,
+    required String language,
+    required String profile,
+    required String kind,
+    required String level,
+    required String topic,
+    this.targetSkill = const Value.absent(),
+    required String title,
+    required String paragraphs,
+    required String candidates,
+    required String items,
+    required String source,
+    this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
+    required int revision,
+    required String verification,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       fingerprint = Value(fingerprint),
+       language = Value(language),
+       profile = Value(profile),
+       kind = Value(kind),
+       level = Value(level),
+       topic = Value(topic),
+       title = Value(title),
+       paragraphs = Value(paragraphs),
+       candidates = Value(candidates),
+       items = Value(items),
+       source = Value(source),
+       revision = Value(revision),
+       verification = Value(verification),
+       createdAt = Value(createdAt);
+  static Insertable<LearningExamMaterialRow> custom({
+    Expression<String>? id,
+    Expression<String>? fingerprint,
+    Expression<String>? language,
+    Expression<String>? profile,
+    Expression<String>? kind,
+    Expression<String>? level,
+    Expression<String>? topic,
+    Expression<String>? targetSkill,
+    Expression<String>? title,
+    Expression<String>? paragraphs,
+    Expression<String>? candidates,
+    Expression<String>? items,
+    Expression<String>? source,
+    Expression<String>? model,
+    Expression<int>? promptVersion,
+    Expression<int>? revision,
+    Expression<String>? verification,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fingerprint != null) 'fingerprint': fingerprint,
+      if (language != null) 'language': language,
+      if (profile != null) 'profile': profile,
+      if (kind != null) 'kind': kind,
+      if (level != null) 'level': level,
+      if (topic != null) 'topic': topic,
+      if (targetSkill != null) 'target_skill': targetSkill,
+      if (title != null) 'title': title,
+      if (paragraphs != null) 'paragraphs': paragraphs,
+      if (candidates != null) 'candidates': candidates,
+      if (items != null) 'items': items,
+      if (source != null) 'source': source,
+      if (model != null) 'model': model,
+      if (promptVersion != null) 'prompt_version': promptVersion,
+      if (revision != null) 'revision': revision,
+      if (verification != null) 'verification': verification,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LearningExamMaterialsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? fingerprint,
+    Value<String>? language,
+    Value<String>? profile,
+    Value<String>? kind,
+    Value<String>? level,
+    Value<String>? topic,
+    Value<String?>? targetSkill,
+    Value<String>? title,
+    Value<String>? paragraphs,
+    Value<String>? candidates,
+    Value<String>? items,
+    Value<String>? source,
+    Value<String?>? model,
+    Value<int?>? promptVersion,
+    Value<int>? revision,
+    Value<String>? verification,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return LearningExamMaterialsCompanion(
+      id: id ?? this.id,
+      fingerprint: fingerprint ?? this.fingerprint,
+      language: language ?? this.language,
+      profile: profile ?? this.profile,
+      kind: kind ?? this.kind,
+      level: level ?? this.level,
+      topic: topic ?? this.topic,
+      targetSkill: targetSkill ?? this.targetSkill,
+      title: title ?? this.title,
+      paragraphs: paragraphs ?? this.paragraphs,
+      candidates: candidates ?? this.candidates,
+      items: items ?? this.items,
+      source: source ?? this.source,
+      model: model ?? this.model,
+      promptVersion: promptVersion ?? this.promptVersion,
+      revision: revision ?? this.revision,
+      verification: verification ?? this.verification,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (fingerprint.present) {
+      map['fingerprint'] = Variable<String>(fingerprint.value);
+    }
+    if (language.present) {
+      map['language'] = Variable<String>(language.value);
+    }
+    if (profile.present) {
+      map['profile'] = Variable<String>(profile.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<String>(level.value);
+    }
+    if (topic.present) {
+      map['topic'] = Variable<String>(topic.value);
+    }
+    if (targetSkill.present) {
+      map['target_skill'] = Variable<String>(targetSkill.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (paragraphs.present) {
+      map['paragraphs'] = Variable<String>(paragraphs.value);
+    }
+    if (candidates.present) {
+      map['candidates'] = Variable<String>(candidates.value);
+    }
+    if (items.present) {
+      map['items'] = Variable<String>(items.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (promptVersion.present) {
+      map['prompt_version'] = Variable<int>(promptVersion.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (verification.present) {
+      map['verification'] = Variable<String>(verification.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningExamMaterialsCompanion(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('language: $language, ')
+          ..write('profile: $profile, ')
+          ..write('kind: $kind, ')
+          ..write('level: $level, ')
+          ..write('topic: $topic, ')
+          ..write('targetSkill: $targetSkill, ')
+          ..write('title: $title, ')
+          ..write('paragraphs: $paragraphs, ')
+          ..write('candidates: $candidates, ')
+          ..write('items: $items, ')
+          ..write('source: $source, ')
+          ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
+          ..write('revision: $revision, ')
+          ..write('verification: $verification, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LearningExamAttemptsTable extends LearningExamAttempts
+    with TableInfo<$LearningExamAttemptsTable, LearningExamAttemptRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LearningExamAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _materialIdMeta = const VerificationMeta(
+    'materialId',
+  );
+  @override
+  late final GeneratedColumn<String> materialId = GeneratedColumn<String>(
+    'material_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_exam_materials (id)',
+    ),
+  );
+  static const VerificationMeta _responsesMeta = const VerificationMeta(
+    'responses',
+  );
+  @override
+  late final GeneratedColumn<String> responses = GeneratedColumn<String>(
+    'responses',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<String> confidence = GeneratedColumn<String>(
+    'confidence',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _disputedPositionsMeta = const VerificationMeta(
+    'disputedPositions',
+  );
+  @override
+  late final GeneratedColumn<String> disputedPositions =
+      GeneratedColumn<String>(
+        'disputed_positions',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
+  static const VerificationMeta _hintUsedMeta = const VerificationMeta(
+    'hintUsed',
+  );
+  @override
+  late final GeneratedColumn<bool> hintUsed = GeneratedColumn<bool>(
+    'hint_used',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("hint_used" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _matchedMeta = const VerificationMeta(
+    'matched',
+  );
+  @override
+  late final GeneratedColumn<int> matched = GeneratedColumn<int>(
+    'matched',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _submittedAtMeta = const VerificationMeta(
+    'submittedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> submittedAt = GeneratedColumn<DateTime>(
+    'submitted_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    materialId,
+    responses,
+    confidence,
+    disputedPositions,
+    hintUsed,
+    matched,
+    submittedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'learning_exam_attempts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LearningExamAttemptRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('material_id')) {
+      context.handle(
+        _materialIdMeta,
+        materialId.isAcceptableOrUnknown(data['material_id']!, _materialIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_materialIdMeta);
+    }
+    if (data.containsKey('responses')) {
+      context.handle(
+        _responsesMeta,
+        responses.isAcceptableOrUnknown(data['responses']!, _responsesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_responsesMeta);
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    }
+    if (data.containsKey('disputed_positions')) {
+      context.handle(
+        _disputedPositionsMeta,
+        disputedPositions.isAcceptableOrUnknown(
+          data['disputed_positions']!,
+          _disputedPositionsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('hint_used')) {
+      context.handle(
+        _hintUsedMeta,
+        hintUsed.isAcceptableOrUnknown(data['hint_used']!, _hintUsedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hintUsedMeta);
+    }
+    if (data.containsKey('matched')) {
+      context.handle(
+        _matchedMeta,
+        matched.isAcceptableOrUnknown(data['matched']!, _matchedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_matchedMeta);
+    }
+    if (data.containsKey('submitted_at')) {
+      context.handle(
+        _submittedAtMeta,
+        submittedAt.isAcceptableOrUnknown(
+          data['submitted_at']!,
+          _submittedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_submittedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LearningExamAttemptRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LearningExamAttemptRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      materialId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}material_id'],
+      )!,
+      responses: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}responses'],
+      )!,
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}confidence'],
+      ),
+      disputedPositions: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}disputed_positions'],
+      )!,
+      hintUsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}hint_used'],
+      )!,
+      matched: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}matched'],
+      )!,
+      submittedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}submitted_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LearningExamAttemptsTable createAlias(String alias) {
+    return $LearningExamAttemptsTable(attachedDatabase, alias);
+  }
+}
+
+class LearningExamAttemptRow extends DataClass
+    implements Insertable<LearningExamAttemptRow> {
+  final String id;
+  final String materialId;
+  final String responses;
+  final String? confidence;
+  final String disputedPositions;
+  final bool hintUsed;
+  final int matched;
+  final DateTime submittedAt;
+  const LearningExamAttemptRow({
+    required this.id,
+    required this.materialId,
+    required this.responses,
+    this.confidence,
+    required this.disputedPositions,
+    required this.hintUsed,
+    required this.matched,
+    required this.submittedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['material_id'] = Variable<String>(materialId);
+    map['responses'] = Variable<String>(responses);
+    if (!nullToAbsent || confidence != null) {
+      map['confidence'] = Variable<String>(confidence);
+    }
+    map['disputed_positions'] = Variable<String>(disputedPositions);
+    map['hint_used'] = Variable<bool>(hintUsed);
+    map['matched'] = Variable<int>(matched);
+    map['submitted_at'] = Variable<DateTime>(submittedAt);
+    return map;
+  }
+
+  LearningExamAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return LearningExamAttemptsCompanion(
+      id: Value(id),
+      materialId: Value(materialId),
+      responses: Value(responses),
+      confidence: confidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(confidence),
+      disputedPositions: Value(disputedPositions),
+      hintUsed: Value(hintUsed),
+      matched: Value(matched),
+      submittedAt: Value(submittedAt),
+    );
+  }
+
+  factory LearningExamAttemptRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LearningExamAttemptRow(
+      id: serializer.fromJson<String>(json['id']),
+      materialId: serializer.fromJson<String>(json['materialId']),
+      responses: serializer.fromJson<String>(json['responses']),
+      confidence: serializer.fromJson<String?>(json['confidence']),
+      disputedPositions: serializer.fromJson<String>(json['disputedPositions']),
+      hintUsed: serializer.fromJson<bool>(json['hintUsed']),
+      matched: serializer.fromJson<int>(json['matched']),
+      submittedAt: serializer.fromJson<DateTime>(json['submittedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'materialId': serializer.toJson<String>(materialId),
+      'responses': serializer.toJson<String>(responses),
+      'confidence': serializer.toJson<String?>(confidence),
+      'disputedPositions': serializer.toJson<String>(disputedPositions),
+      'hintUsed': serializer.toJson<bool>(hintUsed),
+      'matched': serializer.toJson<int>(matched),
+      'submittedAt': serializer.toJson<DateTime>(submittedAt),
+    };
+  }
+
+  LearningExamAttemptRow copyWith({
+    String? id,
+    String? materialId,
+    String? responses,
+    Value<String?> confidence = const Value.absent(),
+    String? disputedPositions,
+    bool? hintUsed,
+    int? matched,
+    DateTime? submittedAt,
+  }) => LearningExamAttemptRow(
+    id: id ?? this.id,
+    materialId: materialId ?? this.materialId,
+    responses: responses ?? this.responses,
+    confidence: confidence.present ? confidence.value : this.confidence,
+    disputedPositions: disputedPositions ?? this.disputedPositions,
+    hintUsed: hintUsed ?? this.hintUsed,
+    matched: matched ?? this.matched,
+    submittedAt: submittedAt ?? this.submittedAt,
+  );
+  LearningExamAttemptRow copyWithCompanion(LearningExamAttemptsCompanion data) {
+    return LearningExamAttemptRow(
+      id: data.id.present ? data.id.value : this.id,
+      materialId: data.materialId.present
+          ? data.materialId.value
+          : this.materialId,
+      responses: data.responses.present ? data.responses.value : this.responses,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      disputedPositions: data.disputedPositions.present
+          ? data.disputedPositions.value
+          : this.disputedPositions,
+      hintUsed: data.hintUsed.present ? data.hintUsed.value : this.hintUsed,
+      matched: data.matched.present ? data.matched.value : this.matched,
+      submittedAt: data.submittedAt.present
+          ? data.submittedAt.value
+          : this.submittedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningExamAttemptRow(')
+          ..write('id: $id, ')
+          ..write('materialId: $materialId, ')
+          ..write('responses: $responses, ')
+          ..write('confidence: $confidence, ')
+          ..write('disputedPositions: $disputedPositions, ')
+          ..write('hintUsed: $hintUsed, ')
+          ..write('matched: $matched, ')
+          ..write('submittedAt: $submittedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    materialId,
+    responses,
+    confidence,
+    disputedPositions,
+    hintUsed,
+    matched,
+    submittedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LearningExamAttemptRow &&
+          other.id == this.id &&
+          other.materialId == this.materialId &&
+          other.responses == this.responses &&
+          other.confidence == this.confidence &&
+          other.disputedPositions == this.disputedPositions &&
+          other.hintUsed == this.hintUsed &&
+          other.matched == this.matched &&
+          other.submittedAt == this.submittedAt);
+}
+
+class LearningExamAttemptsCompanion
+    extends UpdateCompanion<LearningExamAttemptRow> {
+  final Value<String> id;
+  final Value<String> materialId;
+  final Value<String> responses;
+  final Value<String?> confidence;
+  final Value<String> disputedPositions;
+  final Value<bool> hintUsed;
+  final Value<int> matched;
+  final Value<DateTime> submittedAt;
+  final Value<int> rowid;
+  const LearningExamAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.materialId = const Value.absent(),
+    this.responses = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.disputedPositions = const Value.absent(),
+    this.hintUsed = const Value.absent(),
+    this.matched = const Value.absent(),
+    this.submittedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LearningExamAttemptsCompanion.insert({
+    required String id,
+    required String materialId,
+    required String responses,
+    this.confidence = const Value.absent(),
+    this.disputedPositions = const Value.absent(),
+    required bool hintUsed,
+    required int matched,
+    required DateTime submittedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       materialId = Value(materialId),
+       responses = Value(responses),
+       hintUsed = Value(hintUsed),
+       matched = Value(matched),
+       submittedAt = Value(submittedAt);
+  static Insertable<LearningExamAttemptRow> custom({
+    Expression<String>? id,
+    Expression<String>? materialId,
+    Expression<String>? responses,
+    Expression<String>? confidence,
+    Expression<String>? disputedPositions,
+    Expression<bool>? hintUsed,
+    Expression<int>? matched,
+    Expression<DateTime>? submittedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (materialId != null) 'material_id': materialId,
+      if (responses != null) 'responses': responses,
+      if (confidence != null) 'confidence': confidence,
+      if (disputedPositions != null) 'disputed_positions': disputedPositions,
+      if (hintUsed != null) 'hint_used': hintUsed,
+      if (matched != null) 'matched': matched,
+      if (submittedAt != null) 'submitted_at': submittedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LearningExamAttemptsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? materialId,
+    Value<String>? responses,
+    Value<String?>? confidence,
+    Value<String>? disputedPositions,
+    Value<bool>? hintUsed,
+    Value<int>? matched,
+    Value<DateTime>? submittedAt,
+    Value<int>? rowid,
+  }) {
+    return LearningExamAttemptsCompanion(
+      id: id ?? this.id,
+      materialId: materialId ?? this.materialId,
+      responses: responses ?? this.responses,
+      confidence: confidence ?? this.confidence,
+      disputedPositions: disputedPositions ?? this.disputedPositions,
+      hintUsed: hintUsed ?? this.hintUsed,
+      matched: matched ?? this.matched,
+      submittedAt: submittedAt ?? this.submittedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (materialId.present) {
+      map['material_id'] = Variable<String>(materialId.value);
+    }
+    if (responses.present) {
+      map['responses'] = Variable<String>(responses.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<String>(confidence.value);
+    }
+    if (disputedPositions.present) {
+      map['disputed_positions'] = Variable<String>(disputedPositions.value);
+    }
+    if (hintUsed.present) {
+      map['hint_used'] = Variable<bool>(hintUsed.value);
+    }
+    if (matched.present) {
+      map['matched'] = Variable<int>(matched.value);
+    }
+    if (submittedAt.present) {
+      map['submitted_at'] = Variable<DateTime>(submittedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningExamAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('materialId: $materialId, ')
+          ..write('responses: $responses, ')
+          ..write('confidence: $confidence, ')
+          ..write('disputedPositions: $disputedPositions, ')
+          ..write('hintUsed: $hintUsed, ')
+          ..write('matched: $matched, ')
+          ..write('submittedAt: $submittedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -26732,6 +28281,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LearningWritingEvaluationsTable(this);
   late final $LearningWritingNotesTable learningWritingNotes =
       $LearningWritingNotesTable(this);
+  late final $LearningExamMaterialsTable learningExamMaterials =
+      $LearningExamMaterialsTable(this);
+  late final $LearningExamAttemptsTable learningExamAttempts =
+      $LearningExamAttemptsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -26794,6 +28347,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     learningWritingVersions,
     learningWritingEvaluations,
     learningWritingNotes,
+    learningExamMaterials,
+    learningExamAttempts,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([

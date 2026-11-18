@@ -6,7 +6,17 @@ enum SentenceTopic { travel, dailyLife }
 
 enum SentenceLevel { beginner, intermediate }
 
-enum SentenceSkill { detail, sequence, condition, intention }
+enum SentenceSkill {
+  detail,
+  sequence,
+  condition,
+  intention,
+  cause,
+  structure,
+  reference,
+  collocation,
+  discourse,
+}
 
 enum SentenceHelp {
   hint(1),
@@ -33,6 +43,7 @@ class SentenceCard {
     required this.correctIndex,
     required this.skill,
     required this.level,
+    this.checkExplanation = '',
     this.revision = 1,
     this.language = 'en',
   });
@@ -45,12 +56,19 @@ class SentenceCard {
     required this.level,
     this.revision = 1,
     this.language = 'en',
+    this.skill,
   }) : choices = const [],
        question = '',
-       skill = null,
+       checkExplanation = '',
        correctIndex = -1;
 
-  final String id, text, translation, hint, question, language;
+  final String id,
+      text,
+      translation,
+      hint,
+      question,
+      language,
+      checkExplanation;
   final int revision, correctIndex;
   final List<String> choices;
   final SentenceSkill? skill;
@@ -82,64 +100,6 @@ SentenceBatch localSentenceBatch({
   return SentenceBatch(candidates.take(count));
 }
 
-// Reserve new contexts for targeted follow-up rather than showing the same
-// question that led to the recommendation.
-const followUpSentences = [
-  SentenceCard(
-    id: 'follow-up-pool',
-    text: 'The smaller pool is open until nine, but the main pool closes at seven.',
-    translation: '小泳池开放到九点，不过主泳池七点关闭。',
-    hint: 'Match each closing time with the pool it describes.',
-    question: 'When does the main pool close?',
-    choices: ['At nine', 'At seven', 'At eight'],
-    correctIndex: 1,
-    skill: SentenceSkill.detail,
-    level: SentenceLevel.beginner,
-  ),
-  SentenceCard(
-    id: 'follow-up-workshop',
-    text: 'Collect your tools before entering the workshop, and return them after class.',
-    translation: '进工坊前先领工具，下课后再归还。',
-    hint: 'Read what comes before entering the workshop.',
-    question: 'What should you do first?',
-    choices: ['Enter the workshop.', 'Return the tools.', 'Collect the tools.'],
-    correctIndex: 2,
-    skill: SentenceSkill.sequence,
-    level: SentenceLevel.intermediate,
-  ),
-  SentenceCard(
-    id: 'follow-up-bicycle',
-    text: 'You can borrow a bicycle as long as you bring it back by five.',
-    translation: '只要你在五点前归还，就可以借自行车。',
-    hint: '“As long as” introduces the condition for borrowing.',
-    question: 'What condition do you need to meet?',
-    choices: [
-      'Return the bike by five.',
-      'Borrow it after five.',
-      'Bring your own bike.',
-    ],
-    correctIndex: 0,
-    skill: SentenceSkill.condition,
-    level: SentenceLevel.intermediate,
-  ),
-  SentenceCard(
-    id: 'follow-up-doorbell',
-    text: 'A: Should I ring the bell again?\nB: Give them a minute.',
-    translation: '甲：要不要再按一次门铃？\n乙：稍等一会儿吧。',
-    hint: 'Think about why B mentions waiting.',
-    question: 'What does B suggest?',
-    choices: [
-      'Leave straight away.',
-      'Wait before ringing again.',
-      'Ring again now.',
-    ],
-    correctIndex: 1,
-    skill: SentenceSkill.intention,
-    level: SentenceLevel.beginner,
-  ),
-];
-
-// These small, hand-authored packs are available on a fresh installation.
 const _travelWritten = [
   SentenceCard(
     id: 'travel-written-gate',

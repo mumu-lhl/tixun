@@ -12,7 +12,10 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
 import 'next_practice.dart';
-import 'reading_practice.dart';
+import 'exam_ai.dart';
+import 'exam_lab.dart';
+import 'exam_labels.dart';
+import 'exam_material.dart';
 import 'sentence_batch_ai.dart';
 import 'sentence_content.dart';
 import 'sentence_explanation.dart';
@@ -79,13 +82,13 @@ class _LanguageLearningScreenState
     if (mounted) _refreshDue();
   }
 
-  void _practiceSentences([SentenceBatch? batch]) {
+  void _practiceSentences([SentencePlan? plan]) {
     final controller = ref.read(appControllerProvider);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SentencePractice(
           store: _store,
-          initialBatch: batch,
+          recommendation: plan,
           initialLevel: switch (_preferences.languageStudy.level) {
             EnglishStudyLevel.mixed => null,
             EnglishStudyLevel.beginner => SentenceLevel.beginner,
@@ -108,11 +111,20 @@ class _LanguageLearningScreenState
     );
   }
 
-  void _practiceReading(EnglishReadingSkill skill) {
-    final practice = ref.read(appControllerProvider).practice;
+  void _practiceExam(ExamKind kind) {
+    final controller = ref.read(appControllerProvider);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ReadingPractice(store: practice, skill: skill),
+        builder: (_) => ExamLab(
+          ai: ExamAi(
+            provider: controller.provider,
+            config: controller.config,
+            store: _store,
+            usageStore: AiUsageStore(controller.db),
+          ),
+          kind: kind,
+          glossLanguage: _feedbackLanguage,
+        ),
       ),
     );
   }
@@ -160,8 +172,9 @@ class _LanguageLearningScreenState
     return StreamBuilder<List<LearningSentenceAttempt>>(
       stream: _sentenceEvidence,
       builder: (context, snapshot) {
-        final suggestion = suggestSentences(snapshot.data ?? const []);
-        if (suggestion == null) return const SizedBox.shrink();
+        final records = snapshot.data;
+        if (records == null) return const SizedBox.shrink();
+        final suggestion = suggestSentences(records);
         return Card(
           child: ListTile(
             leading: const Icon(Icons.tips_and_updates_outlined),
@@ -171,12 +184,14 @@ class _LanguageLearningScreenState
               ),
             ),
             subtitle: Text(
-              l10n.languageNextSkillReason(
-                suggestion.correct,
-                suggestion.checked,
-              ),
+              suggestion.diagnostic
+                  ? l10n.languageSentenceDiagnostic
+                  : l10n.languageNextSkillReason(
+                      suggestion.performance.correct,
+                      suggestion.performance.checked,
+                    ),
             ),
-            onTap: () => _practiceSentences(suggestion.batch),
+            onTap: () => _practiceSentences(suggestion),
           ),
         );
       },
@@ -261,10 +276,10 @@ class _LanguageLearningScreenState
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final skill in EnglishReadingSkill.values)
+                      for (final skill in ExamKind.values)
                         OutlinedButton(
-                          onPressed: () => _practiceReading(skill),
-                          child: Text(skill.label(l10n)),
+                          onPressed: () => _practiceExam(skill),
+                          child: Text(examKindLabel(l10n, skill)),
                         ),
                       OutlinedButton(
                         onPressed: _practiceWriting,

@@ -17,6 +17,7 @@ class SentenceBatchProposal {
     required this.isMock,
     required this.generatedAt,
     required this.cards,
+    this.requestedCount,
   });
 
   final String id, glossLanguage, model;
@@ -26,6 +27,7 @@ class SentenceBatchProposal {
   final bool isMock;
   final DateTime generatedAt;
   final List<SentenceCard> cards;
+  final int? requestedCount;
 }
 
 extension SentenceBatchStore on LanguageLearningStore {
@@ -43,6 +45,13 @@ extension SentenceBatchStore on LanguageLearningStore {
             'translation': card.translation,
             'level': card.level.name,
             'revision': card.revision,
+            if (card.skill != null) 'skill': card.skill!.name,
+            if (card.choices.isNotEmpty) ...{
+              'question': card.question,
+              'choices': card.choices,
+              'correctIndex': card.correctIndex,
+              'checkExplanation': card.checkExplanation,
+            },
           },
     ];
     if (cards.isEmpty) return;
@@ -66,13 +75,14 @@ extension SentenceBatchStore on LanguageLearningStore {
     changed();
   });
 
-  Future<List<LearningSentenceBatch>> savedSentenceBatches() =>
+  Future<List<LearningSentenceBatch>> savedSentenceBatches({int limit = 40}) =>
       (db.select(db.learningSentenceBatches)
             ..where((row) => row.language.equals('en'))
             ..orderBy([
               (row) => OrderingTerm.desc(row.generatedAt),
               (row) => OrderingTerm.desc(row.rowId),
-            ]))
+            ])
+            ..limit(limit))
           .get();
 }
 
@@ -82,7 +92,7 @@ SentenceBatch openSavedSentenceBatch(LearningSentenceBatch row) {
   return SentenceBatch(
     cards.map((value) {
       final card = value as Map<String, dynamic>;
-      return SentenceCard.study(
+      return SentenceCard(
         id: card['id'] as String,
         text: card['text'] as String,
         hint: card['hint'] as String,
@@ -90,6 +100,11 @@ SentenceBatch openSavedSentenceBatch(LearningSentenceBatch row) {
         level: SentenceLevel.values.byName(card['level'] as String),
         revision: card['revision'] as int,
         language: row.language,
+        skill: SentenceSkill.values.asNameMap()[card['skill']],
+        question: card['question'] as String? ?? '',
+        choices: (card['choices'] as List?)?.cast<String>() ?? const [],
+        correctIndex: card['correctIndex'] as int? ?? -1,
+        checkExplanation: card['checkExplanation'] as String? ?? '',
       );
     }),
     generatedBy: row.isMock ? 'Mock' : row.model,

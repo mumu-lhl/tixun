@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -27,6 +29,7 @@ const _config = ProviderConfig(
 
 class _Provider implements ChatProvider {
   int calls = 0;
+  AiRequest? lastRequest;
   bool complete = true;
   bool offline = false;
   String response = 'The library closes earlier on Saturdays.';
@@ -35,6 +38,7 @@ class _Provider implements ChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
         calls++;
+        lastRequest = request;
         if (offline) throw const AiFailure('Offline');
         yield AiChunk(text: response, completed: complete);
       });
@@ -135,23 +139,155 @@ void main() {
       await record('one', daily);
       await record('repeat', daily);
       await record('assisted', travel, helped: true);
-      expect(
-        suggestSentences(await store.sentenceEvidence('en').first),
-        isNull,
-      );
+      final prior = suggestSentences(await store.sentenceEvidence('en').first);
+      expect(prior.diagnostic, isTrue);
 
       await record('independent', travel);
       final suggestion = suggestSentences(
         await store.sentenceEvidence('en').first,
-      )!;
-      expect(suggestion.skill, SentenceSkill.detail);
-      expect(suggestion.checked, 2);
-      expect(suggestion.correct, 0);
-      expect(suggestion.batch.cards.single.skill, SentenceSkill.detail);
-      expect(
-        suggestion.batch.cards.single.id,
-        isNot(isIn([daily.id, travel.id])),
       );
+      expect(suggestion.skill, SentenceSkill.detail);
+      expect(suggestion.performance.checked, 2);
+      expect(suggestion.performance.correct, 0);
+      expect(suggestion.performance.assisted, 1);
+      expect(suggestion.exclusions, containsAll([daily.text, travel.text]));
+      expect(await store.savedForSentencePlan(suggestion), isEmpty);
+    },
+  );
+
+  test(
+    'a weak skill becomes a bounded request and valid checks are reusable',
+    () async {
+      for (final (i, topic) in SentenceTopic.values.indexed) {
+        final card = localSentenceBatch(
+          topic: topic,
+          style: SentenceStyle.written,
+          level: SentenceLevel.beginner,
+          count: 1,
+        ).cards.single;
+        await store.recordSentence(
+          batchId: 'short-$i',
+          card: card,
+          rating: SentenceRating.understood,
+          helpUsed: const {},
+          selectedIndex: (card.correctIndex + 1) % card.choices.length,
+        );
+      }
+      final plan = suggestSentences(await store.sentenceEvidence('en').first);
+      expect(plan.skill, SentenceSkill.detail);
+      expect(plan.diagnostic, isFalse);
+      expect(await store.savedForSentencePlan(plan), isEmpty);
+      provider.response = jsonEncode({
+        'language': 'en',
+        'sentences': [
+          for (final room in ['kitchen', 'hall', 'studio', 'cellar', 'garage'])
+            {
+              'text': 'The spare key is in the $room.',
+              'hint': 'Look for a place.',
+              'translation': 'Find the spare key in the $room.',
+              'level': plan.level.name,
+              'skill': plan.skill.name,
+              'check': {
+                'question': 'Where is the spare key?',
+                'choices': [room, 'bedroom', 'porch'],
+                'correctIndex': 0,
+                'explanation': 'The sentence names the $room.',
+              },
+            },
+        ],
+      });
+      final ai = SentenceBatchAi(provider: provider, config: _config);
+      final proposal = await ai.propose(
+        topic: SentenceTopic.dailyLife,
+        style: plan.style,
+        level: plan.level,
+        glossLanguage: 'en',
+        count: plan.count,
+        cancel: CancelToken(),
+        focus: plan.skill,
+        exclude: plan.exclusions,
+      );
+      expect(provider.calls, 1);
+      expect(provider.lastRequest!.tools, isEmpty);
+      expect(provider.lastRequest!.maxOutputTokens, 2050);
+      expect(
+        provider.lastRequest!.messages.single.text,
+        contains('"focus":"detail"'),
+      );
+      expect(provider.lastRequest!.messages.single.text, contains('"exclude"'));
+      expect(
+        proposal.cards.map((card) => card.choices.length),
+        everyElement(3),
+      );
+      await store.saveSentenceBatch(
+        proposal,
+        proposal.cards.map((card) => card.id).toSet(),
+      );
+      final saved = await store.savedForSentencePlan(plan);
+      expect(saved, hasLength(plan.count));
+      expect(saved.first.correctIndex, 0);
+      expect(saved.first.checkExplanation, contains('kitchen'));
+
+      await store.recordSentence(
+        batchId: 'targeted',
+        card: saved.first,
+        rating: SentenceRating.partial,
+        helpUsed: const {},
+        selectedIndex: 0,
+      );
+      final next = suggestSentences(await store.sentenceEvidence('en').first);
+      expect(next.skill, isNot(plan.skill));
+      expect(next.exclusions, contains(saved.first.text));
+      expect(await db.select(db.chatMessages).get(), isEmpty);
+    },
+  );
+
+  test(
+    'invalid generated check is rejected without changing saved batches',
+    () async {
+      final existing = SentenceBatchProposal(
+        id: 'saved',
+        topic: SentenceTopic.dailyLife,
+        style: SentenceStyle.written,
+        glossLanguage: 'en',
+        model: 'example',
+        promptVersion: 2,
+        isMock: false,
+        generatedAt: DateTime.now(),
+        cards: [_card()],
+      );
+      await store.saveSentenceBatch(existing, {'library'});
+      provider.response = jsonEncode({
+        'language': 'en',
+        'sentences': [
+          {
+            'text': 'She arrives on Sunday.',
+            'hint': 'Look for the day.',
+            'translation': 'She will be there Sunday.',
+            'level': 'beginner',
+            'skill': 'not_a_skill',
+            'check': {
+              'question': 'When?',
+              'choices': ['Sunday', 'Monday', 'Tuesday'],
+              'correctIndex': 0,
+              'explanation': 'The day is stated.',
+            },
+          },
+        ],
+      });
+      final ai = SentenceBatchAi(provider: provider, config: _config);
+      await expectLater(
+        ai.propose(
+          topic: SentenceTopic.dailyLife,
+          style: SentenceStyle.written,
+          level: SentenceLevel.beginner,
+          glossLanguage: 'en',
+          count: 1,
+          cancel: CancelToken(),
+        ),
+        throwsFormatException,
+      );
+      expect((await store.savedSentenceBatches()).single.id, 'saved');
     },
   );
 
@@ -188,7 +324,10 @@ void main() {
         final label = find.text(text).last;
         await tester.ensureVisible(label);
         await tester.pumpAndSettle();
-        await tester.tap(label);
+        await tester.runAsync(() async {
+          await tester.tap(label);
+          await Future<void>.delayed(const Duration(milliseconds: 40));
+        });
         await tester.pumpAndSettle();
       }
 

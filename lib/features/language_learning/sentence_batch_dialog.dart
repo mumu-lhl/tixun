@@ -34,6 +34,10 @@ class SentenceBatchDialog extends StatefulWidget {
     required this.style,
     required this.level,
     required this.glossLanguage,
+    this.focus,
+    this.suggestedCount,
+    this.exclusions = const [],
+    this.reused = const [],
   });
 
   final LanguageLearningStore store;
@@ -42,6 +46,10 @@ class SentenceBatchDialog extends StatefulWidget {
   final SentenceStyle style;
   final SentenceLevel? level;
   final String glossLanguage;
+  final SentenceSkill? focus;
+  final int? suggestedCount;
+  final List<String> exclusions;
+  final List<SentenceCard> reused;
 
   @override
   State<SentenceBatchDialog> createState() => _SentenceBatchDialogState();
@@ -49,7 +57,8 @@ class SentenceBatchDialog extends StatefulWidget {
 
 class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
   final _selected = <String>{};
-  int _count = 2;
+  late int _count = widget.suggestedCount ?? 2;
+  bool _customCount = false;
   SentenceBatchProposal? _proposal;
   CancelToken? _pending;
   String? _error;
@@ -74,6 +83,11 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
         level: widget.level,
         glossLanguage: widget.glossLanguage,
         count: _count,
+        focus: widget.focus,
+        exclude: [
+          ...widget.exclusions,
+          ...widget.reused.map((card) => card.text),
+        ],
         cancel: cancel,
       );
       if (!mounted || cancel.isCancelled) return;
@@ -99,10 +113,10 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
       await widget.store.saveSentenceBatch(proposal, _selected);
       if (!mounted) return;
       Navigator.of(context).pop(
-        SentenceBatch(
-          proposal.cards.where((card) => _selected.contains(card.id)),
-          generatedBy: proposal.model,
-        ),
+        SentenceBatch([
+          ...widget.reused,
+          ...proposal.cards.where((card) => _selected.contains(card.id)),
+        ], generatedBy: proposal.model),
       );
     });
     if (mounted) setState(() => _saving = false);
@@ -126,22 +140,60 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
               if (proposal == null) ...[
                 Text(l10n.languageSentenceGenerateNotice),
                 const SizedBox(height: 12),
+                if (widget.reused.isNotEmpty)
+                  Text(l10n.languageSentenceReused(widget.reused.length)),
                 DropdownButtonFormField<int>(
-                  initialValue: _count,
+                  initialValue: _customCount ? 0 : _count,
                   decoration: InputDecoration(
                     labelText: l10n.languageSentenceCount,
                   ),
                   items: [
-                    for (final count in [1, 2, 3, 4])
+                    for (final count in ({
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      10,
+                      15,
+                      20,
+                      if (_count > 0 && _count <= 20) _count,
+                    }.toList()..sort()))
                       DropdownMenuItem(value: count, child: Text('$count')),
+                    DropdownMenuItem(
+                      value: 0,
+                      child: Text(l10n.languageSentenceCustomCount),
+                    ),
                   ],
                   onChanged: _pending != null
                       ? null
-                      : (value) => _count = value!,
+                      : (value) => setState(() {
+                          _customCount = value == 0;
+                          if (!_customCount) _count = value!;
+                        }),
                 ),
+                if (_customCount)
+                  TextFormField(
+                    initialValue: '$_count',
+                    enabled: _pending == null,
+                    keyboardType: TextInputType.number,
+                    maxLength: 2,
+                    decoration: InputDecoration(
+                      labelText: l10n.languageSentenceCustomCount,
+                    ),
+                    onChanged: (value) =>
+                        setState(() => _count = int.tryParse(value) ?? -1),
+                  ),
               ] else ...[
                 Text(sentenceSource(l10n, proposal.model)),
                 Text(l10n.languageSentenceGeneratedNotice),
+                if (proposal.cards.length < (proposal.requestedCount ?? 0))
+                  Text(
+                    l10n.languageSentencePartialBatch(
+                      proposal.cards.length,
+                      proposal.requestedCount!,
+                    ),
+                  ),
                 for (final card in proposal.cards)
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
@@ -169,9 +221,22 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
             onPressed: _saving ? null : () => Navigator.of(context).pop(),
             child: Text(l10n.cancel),
           ),
+          if (proposal == null && widget.reused.isNotEmpty)
+            TextButton(
+              onPressed: _pending == null
+                  ? () =>
+                        Navigator.of(context).pop(SentenceBatch(widget.reused))
+                  : null,
+              child: Text(l10n.languageSentenceSavedOnly),
+            ),
           if (proposal == null)
             FilledButton(
-              onPressed: _pending != null ? null : _generate,
+              onPressed:
+                  _pending != null ||
+                      _count < 1 ||
+                      _count > SentenceBatchAi.maximumCount
+                  ? null
+                  : _generate,
               child: Text(l10n.languageSentenceGenerateAction),
             )
           else

@@ -7,6 +7,7 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
+import 'next_practice.dart';
 import 'sentence_batch_ai.dart';
 import 'sentence_batch_dialog.dart';
 import 'sentence_content.dart';
@@ -21,6 +22,7 @@ class SentencePractice extends StatefulWidget {
     this.batchAi,
     this.initialBatch,
     this.initialLevel,
+    this.recommendation,
     this.feedbackLanguage,
   });
 
@@ -29,6 +31,7 @@ class SentencePractice extends StatefulWidget {
   final SentenceBatchAi? batchAi;
   final SentenceBatch? initialBatch;
   final SentenceLevel? initialLevel;
+  final SentencePlan? recommendation;
   final String? feedbackLanguage;
 
   @override
@@ -36,9 +39,11 @@ class SentencePractice extends StatefulWidget {
 }
 
 class _SentencePracticeState extends State<SentencePractice> {
-  var _style = SentenceStyle.written;
+  late var _style = widget.recommendation?.style ?? SentenceStyle.written;
   var _topic = SentenceTopic.dailyLife;
-  late SentenceLevel? _level = widget.initialLevel;
+  late SentenceLevel? _level =
+      widget.recommendation?.level ?? widget.initialLevel;
+  bool _planning = false;
   int _count = 2;
   late SentenceBatch? _batch = widget.initialBatch;
   final _results = <(SentenceSkill?, bool?, bool, SentenceRating)>[];
@@ -51,15 +56,39 @@ class _SentencePracticeState extends State<SentencePractice> {
     });
   }
 
-  Future<void> _generate(SentenceBatchAi ai) async {
+  Future<void> _generate(SentenceBatchAi ai, {SentencePlan? plan}) async {
+    if (_planning) return;
+    final List<SentenceCard> saved;
+    if (plan == null) {
+      saved = const [];
+    } else {
+      setState(() => _planning = true);
+      List<SentenceCard> reusable = [];
+      await act(
+        context,
+        () async => reusable = await widget.store.savedForSentencePlan(plan),
+      );
+      if (!mounted) return;
+      setState(() => _planning = false);
+      saved = reusable;
+      if (saved.length >= plan.count) {
+        _start(SentenceBatch(saved));
+        return;
+      }
+    }
+    if (!mounted) return;
     final batch = await showDialog<SentenceBatch>(
       context: context,
       builder: (_) => SentenceBatchDialog(
         store: widget.store,
         ai: ai,
         topic: _topic,
-        style: _style,
-        level: _level,
+        style: plan?.style ?? _style,
+        level: plan?.level ?? _level,
+        focus: plan?.skill,
+        suggestedCount: plan == null ? null : plan.count - saved.length,
+        exclusions: plan?.exclusions ?? const [],
+        reused: saved,
         glossLanguage:
             widget.feedbackLanguage ??
             Localizations.localeOf(context).languageCode,
@@ -109,6 +138,24 @@ class _SentencePracticeState extends State<SentencePractice> {
   Widget _setup(AppLocalizations l10n) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      if (widget.recommendation case final plan?) ...[
+        Text(l10n.languageNextSkill(sentenceSkillLabel(l10n, plan.skill))),
+        Text(
+          plan.diagnostic
+              ? l10n.languageSentenceDiagnostic
+              : l10n.languageNextSkillReason(
+                  plan.performance.correct,
+                  plan.performance.checked,
+                ),
+        ),
+        if (widget.batchAi case final ai?)
+          FilledButton.icon(
+            onPressed: _planning ? null : () => _generate(ai, plan: plan),
+            icon: const Icon(Icons.auto_awesome_outlined),
+            label: Text(l10n.languageSentencePrepareRecommendation),
+          ),
+        const SizedBox(height: 12),
+      ],
       Text(l10n.languageSentenceOffline),
       const SizedBox(height: 12),
       DropdownButtonFormField<SentenceStyle>(
@@ -227,6 +274,25 @@ class _SentencePracticeState extends State<SentencePractice> {
       const SizedBox(height: 8),
       Text(l10n.languageSentenceSmallSample),
       const SizedBox(height: 16),
+      if (widget.batchAi case final ai?)
+        FilledButton(
+          onPressed: _planning
+              ? null
+              : () async {
+                  setState(() => _planning = true);
+                  SentencePlan? plan;
+                  await act(context, () async {
+                    final history = await widget.store
+                        .sentenceEvidence('en')
+                        .first;
+                    plan = suggestSentences(history);
+                  });
+                  if (!mounted) return;
+                  setState(() => _planning = false);
+                  if (plan != null) await _generate(ai, plan: plan);
+                },
+          child: Text(l10n.languageSentencePrepareRecommendation),
+        ),
       OutlinedButton(
         onPressed: () => setState(() => _batch = null),
         child: Text(l10n.languageSentenceAnother),
@@ -452,7 +518,7 @@ class _SentenceStepState extends State<_SentenceStep> {
                 child: Text(l10n.languageSentenceCheckAnswer),
               ),
             )
-          else
+          else ...[
             Text(
               _choice == card.correctIndex
                   ? l10n.languageSentenceCorrect
@@ -460,6 +526,8 @@ class _SentenceStepState extends State<_SentenceStep> {
                       card.choices[card.correctIndex],
                     ),
             ),
+            if (card.checkExplanation.isNotEmpty) Text(card.checkExplanation),
+          ],
         ] else if (card.choices.isNotEmpty)
           Align(
             alignment: AlignmentDirectional.centerStart,
@@ -500,4 +568,9 @@ String sentenceSkillLabel(AppLocalizations l10n, SentenceSkill skill) =>
       SentenceSkill.sequence => l10n.languageSentenceSequence,
       SentenceSkill.condition => l10n.languageSentenceCondition,
       SentenceSkill.intention => l10n.languageSentenceIntention,
+      SentenceSkill.cause => l10n.languageSkillCause,
+      SentenceSkill.structure => l10n.languageSkillStructure,
+      SentenceSkill.reference => l10n.languageSkillReference,
+      SentenceSkill.collocation => l10n.languageSkillCollocation,
+      SentenceSkill.discourse => l10n.languageSkillDiscourse,
     };

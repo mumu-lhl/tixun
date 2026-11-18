@@ -48,7 +48,7 @@ extension SentenceLearningStore on LanguageLearningStore {
               (row) => OrderingTerm.desc(row.occurredAt),
               (row) => OrderingTerm.desc(row.rowId),
             ])
-            ..limit(30))
+            ..limit(80))
           .watch();
 
   Future<String?> cachedExplanation(String key) async {

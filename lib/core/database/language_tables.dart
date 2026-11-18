@@ -207,3 +207,44 @@ class LearningWritingNotes extends Table {
   @override
   Set<Column> get primaryKey => {versionId, position};
 }
+
+@DataClassName('LearningExamMaterialRow')
+class LearningExamMaterials extends Table {
+  TextColumn get id => text()();
+  TextColumn get fingerprint => text().unique()();
+  TextColumn get language => text()();
+  TextColumn get profile => text()();
+  TextColumn get kind => text()();
+  TextColumn get level => text()();
+  TextColumn get topic => text()();
+  TextColumn get targetSkill => text().nullable()();
+  TextColumn get title => text()();
+  TextColumn get paragraphs => text()();
+  TextColumn get candidates => text()();
+  TextColumn get items => text()();
+  TextColumn get source => text()();
+  TextColumn get model => text().nullable()();
+  IntColumn get promptVersion => integer().nullable()();
+  IntColumn get revision => integer()();
+  TextColumn get verification => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('LearningExamAttemptRow')
+class LearningExamAttempts extends Table {
+  TextColumn get id => text()();
+  TextColumn get materialId => text().references(LearningExamMaterials, #id)();
+  TextColumn get responses => text()();
+  TextColumn get confidence => text().nullable()();
+  TextColumn get disputedPositions =>
+      text().withDefault(const Constant('[]'))();
+  BoolColumn get hintUsed => boolean()();
+  IntColumn get matched => integer()();
+  DateTimeColumn get submittedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
