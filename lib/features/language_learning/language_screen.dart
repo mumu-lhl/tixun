@@ -108,10 +108,12 @@ class _LanguageLearningScreenState
     );
   }
 
-  void _practiceReading() {
+  void _practiceReading(EnglishReadingSkill skill) {
     final practice = ref.read(appControllerProvider).practice;
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => ReadingPractice(store: practice)),
+      MaterialPageRoute<void>(
+        builder: (_) => ReadingPractice(store: practice, skill: skill),
+      ),
     );
   }
 
@@ -259,10 +261,11 @@ class _LanguageLearningScreenState
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      OutlinedButton(
-                        onPressed: _practiceReading,
-                        child: Text(l10n.languageReading),
-                      ),
+                      for (final skill in EnglishReadingSkill.values)
+                        OutlinedButton(
+                          onPressed: () => _practiceReading(skill),
+                          child: Text(skill.label(l10n)),
+                        ),
                       OutlinedButton(
                         onPressed: _practiceWriting,
                         child: Text(l10n.languageWriting),

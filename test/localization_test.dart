@@ -420,6 +420,7 @@ void main() {
         t.view.physicalSize = Size(width, 844);
         for (final path in [
           '/study',
+          '/language',
           '/settings',
           '/settings/prompts',
           '/settings/prompts/guided',
@@ -437,6 +438,11 @@ void main() {
           );
           await t.pumpAndSettle();
           expect(t.takeException(), isNull, reason: '$width $path');
+          if (path == '/language') {
+            expect(find.text('Sentence insertion'), findsOneWidget);
+            expect(find.text('Cloze'), findsOneWidget);
+            expect(find.text('Grammar gap-fill'), findsOneWidget);
+          }
         }
       }
       scope.read(routerProvider).go('/settings');
