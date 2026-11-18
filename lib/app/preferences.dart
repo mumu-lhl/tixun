@@ -19,6 +19,15 @@ import '../core/l10n/app_strings.dart';
 import '../core/l10n/generated/app_localizations.dart';
 import '../core/platform/key_store.dart';
 
+enum EnglishStudyLevel { mixed, beginner, intermediate }
+
+enum LanguageFeedbackLanguage { app, zh, en }
+
+typedef LanguageStudySettings = ({
+  EnglishStudyLevel level,
+  LanguageFeedbackLanguage feedbackLanguage,
+});
+
 /// Owns preference persistence and its shutdown barrier independently of study data.
 class AppPreferences extends DatabaseNotifier {
   AppPreferences(this.db, this.keys, {required this.demo});
@@ -40,6 +49,14 @@ class AppPreferences extends DatabaseNotifier {
   }
 
   set prompts(PromptSettings value) => _prompts = value;
+  static const _studyLevelKey = 'language_en_level';
+  static const _feedbackLanguageKey = 'language_feedback_language';
+  LanguageStudySettings _languageStudy = (
+    level: EnglishStudyLevel.mixed,
+    feedbackLanguage: LanguageFeedbackLanguage.app,
+  );
+  LanguageStudySettings get languageStudy => _languageStudy;
+
   String languageChoice = 'zh';
   bool dynamicColors = true;
   bool aiDrawingEnabled = false;
@@ -56,6 +73,18 @@ class AppPreferences extends DatabaseNotifier {
     maxToolCalls = await loadMaxToolCalls(db);
     aiDrawingEnabled = await db.preference(aiDrawingEnabledKey) == 'true';
     await loadSubjects();
+    final studyLevel = await db.preference(_studyLevelKey);
+    final feedbackLanguage = await db.preference(_feedbackLanguageKey);
+    _languageStudy = (
+      level: EnglishStudyLevel.values.firstWhere(
+        (value) => value.name == studyLevel,
+        orElse: () => EnglishStudyLevel.mixed,
+      ),
+      feedbackLanguage: LanguageFeedbackLanguage.values.firstWhere(
+        (value) => value.name == feedbackLanguage,
+        orElse: () => LanguageFeedbackLanguage.app,
+      ),
+    );
     final language = await db.preference('app_language') ?? 'zh';
     languageChoice = ['zh', 'en', 'system'].contains(language)
         ? language
@@ -138,6 +167,19 @@ class AppPreferences extends DatabaseNotifier {
     learningSubjects = values;
     changed();
   });
+
+  Future<void> saveLanguageStudy(LanguageStudySettings settings) =>
+      runOperation(() async {
+        await db.transaction(() async {
+          await db.setPreference(_studyLevelKey, settings.level.name);
+          await db.setPreference(
+            _feedbackLanguageKey,
+            settings.feedbackLanguage.name,
+          );
+        });
+        _languageStudy = settings;
+        changed();
+      });
 
   Future<void> setLanguage(String value) => runOperation(() async {
     if (!['zh', 'en', 'system'].contains(value)) {

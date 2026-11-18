@@ -1,0 +1,503 @@
+import 'package:dio/dio.dart';
+import 'package:material_ui/material_ui.dart';
+
+import '../../core/ai/chat_provider.dart';
+import '../../core/l10n/app_error_localization.dart';
+import '../../core/l10n/app_strings.dart';
+import '../../core/l10n/generated/app_localizations.dart';
+import '../../core/ui/actions.dart';
+import 'language_store.dart';
+import 'sentence_batch_ai.dart';
+import 'sentence_batch_dialog.dart';
+import 'sentence_content.dart';
+import 'sentence_explanation.dart';
+import 'sentence_store.dart';
+
+class SentencePractice extends StatefulWidget {
+  const SentencePractice({
+    super.key,
+    required this.store,
+    required this.explanation,
+    this.batchAi,
+    this.initialBatch,
+    this.initialLevel,
+    this.feedbackLanguage,
+  });
+
+  final LanguageLearningStore store;
+  final SentenceExplanation explanation;
+  final SentenceBatchAi? batchAi;
+  final SentenceBatch? initialBatch;
+  final SentenceLevel? initialLevel;
+  final String? feedbackLanguage;
+
+  @override
+  State<SentencePractice> createState() => _SentencePracticeState();
+}
+
+class _SentencePracticeState extends State<SentencePractice> {
+  var _style = SentenceStyle.written;
+  var _topic = SentenceTopic.dailyLife;
+  late SentenceLevel? _level = widget.initialLevel;
+  int _count = 2;
+  late SentenceBatch? _batch = widget.initialBatch;
+  final _results = <(SentenceSkill?, bool?, bool, SentenceRating)>[];
+
+  void _start(SentenceBatch? batch) {
+    if (!mounted || batch == null) return;
+    setState(() {
+      _results.clear();
+      _batch = batch;
+    });
+  }
+
+  Future<void> _generate(SentenceBatchAi ai) async {
+    final batch = await showDialog<SentenceBatch>(
+      context: context,
+      builder: (_) => SentenceBatchDialog(
+        store: widget.store,
+        ai: ai,
+        topic: _topic,
+        style: _style,
+        level: _level,
+        glossLanguage:
+            widget.feedbackLanguage ??
+            Localizations.localeOf(context).languageCode,
+      ),
+    );
+    _start(batch);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final batch = _batch;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.languageSentencePractice)),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 660),
+              child: batch == null
+                  ? _setup(l10n)
+                  : _results.length == batch.cards.length
+                  ? _summary(l10n)
+                  : _SentenceStep(
+                      key: ValueKey((batch.id, _results.length)),
+                      card: batch.cards[_results.length],
+                      position: _results.length + 1,
+                      batch: batch,
+                      store: widget.store,
+                      explanation: widget.explanation,
+                      feedbackLanguage: widget.feedbackLanguage,
+                      onFinished: (skill, correct, assisted, rating) {
+                        setState(
+                          () =>
+                              _results.add((skill, correct, assisted, rating)),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _setup(AppLocalizations l10n) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(l10n.languageSentenceOffline),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<SentenceStyle>(
+        initialValue: _style,
+        decoration: InputDecoration(labelText: l10n.languageSentenceStyle),
+        items: [
+          DropdownMenuItem(
+            value: SentenceStyle.written,
+            child: Text(l10n.languageSentenceWritten),
+          ),
+          DropdownMenuItem(
+            value: SentenceStyle.dialogue,
+            child: Text(l10n.languageSentenceDialogue),
+          ),
+        ],
+        onChanged: (value) => _style = value!,
+      ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<SentenceTopic>(
+        initialValue: _topic,
+        decoration: InputDecoration(labelText: l10n.languageSentenceTopic),
+        items: [
+          DropdownMenuItem(
+            value: SentenceTopic.dailyLife,
+            child: Text(l10n.languageSentenceDaily),
+          ),
+          DropdownMenuItem(
+            value: SentenceTopic.travel,
+            child: Text(l10n.languageSentenceTravel),
+          ),
+        ],
+        onChanged: (value) => _topic = value!,
+      ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<SentenceLevel?>(
+        initialValue: _level,
+        hint: Text(l10n.languageSentenceMixed),
+        decoration: InputDecoration(labelText: l10n.languageDifficulty),
+        items: [
+          DropdownMenuItem<SentenceLevel?>(
+            child: Text(l10n.languageSentenceMixed),
+          ),
+          DropdownMenuItem(
+            value: SentenceLevel.beginner,
+            child: Text(l10n.languageBeginner),
+          ),
+          DropdownMenuItem(
+            value: SentenceLevel.intermediate,
+            child: Text(l10n.languageIntermediate),
+          ),
+        ],
+        onChanged: (value) => setState(() => _level = value),
+      ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<int>(
+        key: ValueKey(_level),
+        initialValue: _level == null ? _count : 1,
+        decoration: InputDecoration(labelText: l10n.languageSentenceCount),
+        items: [
+          for (final n in [1, if (_level == null) 2])
+            DropdownMenuItem(value: n, child: Text('$n')),
+        ],
+        onChanged: _level == null ? (value) => _count = value! : null,
+      ),
+      const SizedBox(height: 16),
+      FilledButton(
+        onPressed: () => _start(
+          localSentenceBatch(
+            topic: _topic,
+            style: _style,
+            level: _level,
+            count: _level == null ? _count : 1,
+          ),
+        ),
+        child: Text(l10n.languageSentenceStart),
+      ),
+      if (widget.batchAi case final ai?)
+        OutlinedButton(
+          onPressed: () => _generate(ai),
+          child: Text(l10n.languageSentenceGenerate),
+        ),
+      OutlinedButton(
+        onPressed: () async =>
+            _start(await chooseSavedSentenceBatch(context, widget.store)),
+        child: Text(l10n.languageSentenceSaved),
+      ),
+    ],
+  );
+
+  Widget _summary(AppLocalizations l10n) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        l10n.languageSentenceDone,
+        style: Theme.of(context).textTheme.headlineSmall,
+      ),
+      Text(
+        l10n.languageSentenceSelfRated(
+          _results.where((r) => r.$4 == SentenceRating.understood).length,
+          _results.length,
+        ),
+      ),
+      for (final skill
+          in _results.map((r) => r.$1).whereType<SentenceSkill>().toSet()) ...[
+        const SizedBox(height: 12),
+        Text(
+          sentenceSkillLabel(l10n, skill),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        for (final assisted in [false, true])
+          if (_results.any(
+            (r) => r.$1 == skill && r.$2 != null && r.$3 == assisted,
+          ))
+            Text(_checkSummary(l10n, skill, assisted)),
+      ],
+      const SizedBox(height: 8),
+      Text(l10n.languageSentenceSmallSample),
+      const SizedBox(height: 16),
+      OutlinedButton(
+        onPressed: () => setState(() => _batch = null),
+        child: Text(l10n.languageSentenceAnother),
+      ),
+    ],
+  );
+
+  String _checkSummary(
+    AppLocalizations l10n,
+    SentenceSkill skill,
+    bool assisted,
+  ) {
+    final checks = _results.where(
+      (r) => r.$1 == skill && r.$2 != null && r.$3 == assisted,
+    );
+    final correct = checks.where((r) => r.$2!).length;
+    return assisted
+        ? l10n.languageSentenceAssisted(correct, checks.length)
+        : l10n.languageSentenceIndependent(correct, checks.length);
+  }
+}
+
+class _SentenceStep extends StatefulWidget {
+  const _SentenceStep({
+    super.key,
+    required this.batch,
+    required this.card,
+    required this.position,
+    required this.store,
+    required this.explanation,
+    required this.onFinished,
+    this.feedbackLanguage,
+  });
+
+  final SentenceBatch batch;
+  final SentenceCard card;
+  final int position;
+  final LanguageLearningStore store;
+  final SentenceExplanation explanation;
+  final String? feedbackLanguage;
+  final void Function(SentenceSkill?, bool?, bool, SentenceRating) onFinished;
+
+  @override
+  State<_SentenceStep> createState() => _SentenceStepState();
+}
+
+class _SentenceStepState extends State<_SentenceStep> {
+  final _help = <SentenceHelp>{};
+  final _helpWhenChecked = <SentenceHelp>{};
+  int? _choice;
+  bool _checked = false;
+  bool _saving = false;
+  bool _showCheck = false;
+  String? _explanation, _error;
+  CancelToken? _pending;
+
+  @override
+  void dispose() {
+    _pending?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _explain({required bool simpler}) async {
+    if (_saving || _pending != null) return;
+    final token = CancelToken();
+    setState(() {
+      _pending = token;
+      _error = null;
+    });
+    try {
+      final text = await widget.explanation.explain(
+        card: widget.card,
+        glossLanguage:
+            widget.feedbackLanguage ??
+            Localizations.localeOf(context).languageCode,
+        simpler: simpler,
+        cancel: token,
+      );
+      if (!mounted || token.isCancelled) return;
+      setState(() {
+        _help.add(SentenceHelp.explanation);
+        _explanation = text;
+      });
+    } catch (error) {
+      if (!mounted || token.isCancelled) return;
+      setState(() {
+        _error = error is AiFailure
+            ? failureText(context.l10n, error)
+            : context.l10n.languageSentenceExplainError;
+      });
+    } finally {
+      if (mounted) setState(() => _pending = null);
+    }
+  }
+
+  Future<void> _finish(SentenceRating rating) async {
+    if (_saving) return;
+    _pending?.cancel();
+    setState(() => _saving = true);
+    await act(context, () async {
+      await widget.store.recordSentence(
+        batchId: widget.batch.id,
+        card: widget.card,
+        rating: rating,
+        helpUsed: _help,
+        selectedIndex: _checked ? _choice : null,
+        helpBeforeAnswer: _helpWhenChecked,
+      );
+      if (mounted) {
+        widget.onFinished(
+          widget.card.skill,
+          _checked ? _choice == widget.card.correctIndex : null,
+          _helpWhenChecked.isNotEmpty,
+          rating,
+        );
+      }
+    });
+    if (mounted) setState(() => _saving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final style = Theme.of(context).textTheme;
+    final card = widget.card;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.languageSentenceProgress(
+            widget.position,
+            widget.batch.cards.length,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (widget.batch.generatedBy case final model?) ...[
+          Text(sentenceSource(l10n, model)),
+          Text(l10n.languageSentenceGeneratedNotice, style: style.bodySmall),
+        ],
+        SelectableText(card.text, style: style.headlineSmall),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton(
+              onPressed: _saving || _help.contains(SentenceHelp.hint)
+                  ? null
+                  : () => setState(() => _help.add(SentenceHelp.hint)),
+              child: Text(l10n.languageSentenceHint),
+            ),
+            OutlinedButton(
+              onPressed: _saving || _help.contains(SentenceHelp.translation)
+                  ? null
+                  : () => setState(() => _help.add(SentenceHelp.translation)),
+              child: Text(
+                widget.batch.generatedBy == null
+                    ? l10n.languageSentenceTranslation
+                    : l10n.languageSentenceMeaning,
+              ),
+            ),
+            OutlinedButton(
+              onPressed: _saving || _pending != null
+                  ? null
+                  : () => _explain(simpler: _explanation != null),
+              child: Text(
+                _explanation == null
+                    ? l10n.languageSentenceExplain
+                    : l10n.languageSentenceSimpler,
+              ),
+            ),
+            if (_pending case final pending?)
+              TextButton(
+                onPressed: pending.isCancelled
+                    ? null
+                    : () => setState(() => pending.cancel()),
+                child: Text(l10n.cancel),
+              ),
+          ],
+        ),
+        if (widget.explanation.provider is! MockChatProvider)
+          Text(l10n.languageSentenceExplainNotice, style: style.bodySmall),
+        if (_pending != null) const LinearProgressIndicator(),
+        if (_help.contains(SentenceHelp.hint)) ...[
+          const SizedBox(height: 8),
+          Text(card.hint),
+        ],
+        if (_help.contains(SentenceHelp.translation)) ...[
+          const SizedBox(height: 8),
+          SelectableText(card.translation),
+        ],
+        if (_explanation case final text?) ...[
+          const SizedBox(height: 8),
+          SelectableText(text),
+        ],
+        if (_error case final error?) Text(error),
+        const SizedBox(height: 16),
+        if (_showCheck) ...[
+          Text(card.question, style: style.titleMedium),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (var i = 0; i < card.choices.length; i++)
+                ChoiceChip(
+                  label: Text(card.choices[i]),
+                  selected: _choice == i,
+                  onSelected: _checked || _saving
+                      ? null
+                      : (_) => setState(() => _choice = i),
+                ),
+            ],
+          ),
+          if (!_checked)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: OutlinedButton(
+                onPressed: _choice == null || _saving
+                    ? null
+                    : () => setState(() {
+                        _checked = true;
+                        _helpWhenChecked.addAll(_help);
+                      }),
+                child: Text(l10n.languageSentenceCheckAnswer),
+              ),
+            )
+          else
+            Text(
+              _choice == card.correctIndex
+                  ? l10n.languageSentenceCorrect
+                  : l10n.languageSentenceAnswer(
+                      card.choices[card.correctIndex],
+                    ),
+            ),
+        ] else if (card.choices.isNotEmpty)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              onPressed: _saving
+                  ? null
+                  : () => setState(() => _showCheck = true),
+              child: Text(l10n.languageSentenceCheck),
+            ),
+          ),
+        const SizedBox(height: 16),
+        Text(l10n.languageSentenceRate, style: style.titleMedium),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final rating in SentenceRating.values)
+              OutlinedButton(
+                onPressed: _saving || (_choice != null && !_checked)
+                    ? null
+                    : () => _finish(rating),
+                child: Text(switch (rating) {
+                  SentenceRating.unclear => l10n.languageSentenceUnclear,
+                  SentenceRating.partial => l10n.languageSentencePartial,
+                  SentenceRating.understood => l10n.languageSentenceUnderstood,
+                }),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+String sentenceSkillLabel(AppLocalizations l10n, SentenceSkill skill) =>
+    switch (skill) {
+      SentenceSkill.detail => l10n.languageSentenceDetail,
+      SentenceSkill.sequence => l10n.languageSentenceSequence,
+      SentenceSkill.condition => l10n.languageSentenceCondition,
+      SentenceSkill.intention => l10n.languageSentenceIntention,
+    };

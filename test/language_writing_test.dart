@@ -1,0 +1,99 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tixun/core/ai/chat_provider.dart';
+import 'package:tixun/core/database/database.dart';
+import 'package:tixun/features/language_learning/language_store.dart';
+import 'package:tixun/features/language_learning/writing_ai.dart';
+import 'package:tixun/features/language_learning/writing_store.dart';
+
+class _WritingProvider implements ChatProvider {
+  int calls = 0;
+  bool complete = true;
+
+  @override
+  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
+      AiConversation((request, cancel) async* {
+        calls++;
+        yield AiChunk(
+          completed: complete,
+          text: jsonEncode({
+            'task': 3,
+            'organization': 3,
+            'language': 2,
+            'summary': 'Explain what you would like to read.',
+            'notes': [
+              {
+                'kind': 'issue',
+                'quote': 'want join',
+                'comment': 'Use to before join.',
+              },
+              {
+                'kind': 'issue',
+                'quote': 'Made-up sentence',
+                'comment': 'Not in this draft.',
+              },
+            ],
+          }),
+        );
+      });
+}
+
+void main() {
+  test('revision preserves the original with anchored feedback even if reassessment fails', () async {
+    final db = AppDatabase.memory();
+    final store = LanguageLearningStore(db);
+    addTearDown(() async {
+      store.dispose();
+      await db.close();
+    });
+    final provider = _WritingProvider();
+    final ai = WritingAi(
+      store: store,
+      provider: provider,
+      config: const ProviderConfig(
+        id: 1,
+        kind: 'openai',
+        baseUrl: 'https://example.com',
+        model: 'test-model',
+        vision: false,
+        supportsTools: false,
+        thinking: false,
+        supportsThinking: false,
+        effort: '',
+      ),
+    );
+    Future<String> evaluate(String draft) =>
+        ai.evaluate(text: draft, glossLanguage: 'en', cancel: CancelToken());
+
+    const initial = 'Hello, I want join the book club.';
+    const revision = 'Hello, I want to join the book club.';
+    await store.saveWritingDraft(initial);
+    expect(await store.writingDraft(), initial);
+    expect(provider.calls, 0);
+
+    final first = await evaluate(initial);
+    final note = (await store.writingNotes(first)).single;
+    expect(initial.substring(note.startOffset, note.endOffset), 'want join');
+    expect((await store.writingFeedback(first))?.languageScore, 2);
+
+    provider.complete = false;
+    await expectLater(evaluate(revision), throwsFormatException);
+    expect(await store.writingDraft(), revision);
+    final interruptedHistory = await store.writingHistory().first;
+    expect(interruptedHistory.map((row) => row.version.content), [
+      revision,
+      initial,
+    ]);
+    expect(interruptedHistory.first.evaluation, isNull);
+    expect(interruptedHistory.last.evaluation?.versionId, first);
+
+    provider.complete = true;
+    final second = await evaluate(revision);
+    expect(second, isNot(first));
+    expect(await store.writingNotes(second), isEmpty);
+    expect(await store.writingHistory().first, hasLength(2));
+    expect(await db.select(db.chatMessages).get(), isEmpty);
+  });
+}

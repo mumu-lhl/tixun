@@ -20,6 +20,7 @@ import 'package:tixun/features/update/update_localization.dart';
 import 'package:tixun/features/update/update_models.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/app/app_notice.dart';
+import 'package:tixun/app/preferences.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/ui/reasoning_labels.dart';
 import 'package:tixun/core/ai/prompt_settings.dart';
@@ -356,6 +357,11 @@ void main() {
       expect(c.l10n.newStudyConversation, 'New study conversation');
       expect(c.l10n.subjectWithName('数学 {1}'), 'Subject: 数学 {1}');
       await c.setDynamicColors(false);
+      const study = (
+        level: EnglishStudyLevel.intermediate,
+        feedbackLanguage: LanguageFeedbackLanguage.zh,
+      );
+      await c.preferences.saveLanguageStudy(study);
       await const LearningProfile(stage: '高三', region: '浙江').save(c.db);
       await c.savePrompt('guided', '请保留这段提示词。');
       await c.shutdown();
@@ -369,6 +375,7 @@ void main() {
       expect((await LearningProfile.load(c.db)).stage, '高三');
       expect(c.languageChoice, 'en');
       expect(c.dynamicColors, false);
+      expect(c.preferences.languageStudy, study);
       expect(c.prompts.text('guided'), '请保留这段提示词。');
       expect(c.prompts.text('global'), startsWith('You are TiXun'));
       await c.shutdown();
