@@ -7,6 +7,7 @@ import '../../core/ai/chat_provider.dart';
 import '../../core/ai/prompt_settings.dart';
 import '../../core/l10n/app_strings.dart';
 import 'prompt_localization.dart';
+import 'prompt_groups.dart';
 
 class PromptScreen extends ConsumerStatefulWidget {
   const PromptScreen({super.key});
@@ -19,12 +20,6 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
-    final rows = promptDefinitions.where(
-      (p) =>
-          '${promptTitle(context, p)}${promptDescription(context, p)}${c.prompts.text(p.id)}'
-              .toLowerCase()
-              .contains(query.toLowerCase()),
-    );
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -67,27 +62,11 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                   onChanged: (v) => setState(() => query = v.trim()),
                 ),
                 const SizedBox(height: 16),
-                if (rows.isEmpty)
-                  Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(context.l10n.noMatchingPrompts),
-                  ),
-                for (final p in rows) ...[
-                  ListTile(
-                    key: Key('prompt-${p.id}'),
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 16,
-                    ),
-                    title: Text(promptTitle(context, p)),
-                    subtitle: Text(
-                      '${c.prompts.overrides.containsKey(p.id) ? context.l10n.customized : context.l10n.defaultLabel} · ${promptDescription(context, p)}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/settings/prompts/${p.id}'),
-                  ),
-                  const Divider(),
-                ],
+                PromptGroups(
+                  settings: c.prompts,
+                  language: c.language,
+                  query: query,
+                ),
               ],
             ),
           ),
@@ -216,41 +195,16 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
           .read(appControllerProvider)
           .prompts
           .update(widget.id, input.text);
-      final mode = ['guided', 'direct', 'exam'].contains(widget.id)
-          ? widget.id
-          : ['knowledge_writing', 'knowledge_editing'].contains(widget.id)
-          ? 'direct'
-          : widget.id == 'quiz'
-          ? 'exam'
-          : 'guided';
-      final system = teachingPrompt(
-        mode,
-        prompts: settings,
-        toolsEnabled: [
-          'knowledge_writing',
-          'knowledge_editing',
-        ].contains(widget.id),
-      );
+      final prompt = definition!;
+      final previewText = prompt.requestContract != null
+          ? languagePromptInstructions(prompt, settings.text(widget.id))
+          : _chatPreview(settings);
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(context.l10n.promptPreview),
           scrollable: true,
-          content: SizedBox(
-            width: 700,
-            child: SelectableText(
-              context.l10n.actualRequestsAlsoIncludeThe(
-                l10nArgument((system)),
-                l10nArgument(
-                  (['global', 'guided', 'direct', 'exam'].contains(widget.id)
-                      ? ''
-                      : context.l10n.taskPrompt(
-                          l10nArgument((settings.text(widget.id))),
-                        )),
-                ),
-              ),
-            ),
-          ),
+          content: SizedBox(width: 700, child: SelectableText(previewText)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -270,6 +224,31 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
         );
       }
     }
+  }
+
+  String _chatPreview(PromptSettings settings) {
+    final mode = ['guided', 'direct', 'exam'].contains(widget.id)
+        ? widget.id
+        : ['knowledge_writing', 'knowledge_editing'].contains(widget.id)
+        ? 'direct'
+        : widget.id == 'quiz'
+        ? 'exam'
+        : 'guided';
+    final system = teachingPrompt(
+      mode,
+      prompts: settings,
+      toolsEnabled: [
+        'knowledge_writing',
+        'knowledge_editing',
+      ].contains(widget.id),
+    );
+    final task = ['global', 'guided', 'direct', 'exam'].contains(widget.id)
+        ? ''
+        : context.l10n.taskPrompt(l10nArgument(settings.text(widget.id)));
+    return context.l10n.actualRequestsAlsoIncludeThe(
+      l10nArgument(system),
+      l10nArgument(task),
+    );
   }
 
   @override
@@ -321,6 +300,13 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                     context.l10n.promptsAreSentToThe,
                     style: TextStyle(fontSize: 12),
                   ),
+                  if (p.requestContract != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      context.l10n.languagePromptContractNotice,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                   const SizedBox(height: 18),
                   TextField(
                     key: const Key('prompt-content'),
@@ -330,7 +316,9 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                     maxLines: 24,
                     maxLength: 6000,
                     decoration: InputDecoration(
-                      labelText: context.l10n.promptContent,
+                      labelText: p.requestContract == null
+                          ? context.l10n.promptContent
+                          : context.l10n.languagePromptPreferences,
                       alignLabelWithHint: true,
                     ),
                   ),

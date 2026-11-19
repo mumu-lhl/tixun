@@ -134,6 +134,7 @@ class _WrittenExamLabState extends State<WrittenExamLab> {
                 provider: widget.writing.provider,
                 config: widget.writing.config,
                 usageStore: widget.writing.usageStore,
+                prompts: widget.writing.prompts,
               ).evaluate(text: text, glossLanguage: gloss, cancel: cancel),
             ),
           ),

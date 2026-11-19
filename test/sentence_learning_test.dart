@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
+import 'package:tixun/core/ai/prompt_settings.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/l10n/generated/app_localizations.dart';
 import 'package:tixun/features/language_learning/language_store.dart';
@@ -107,6 +108,39 @@ void main() {
         await db.select(db.learningInlineExplanations).get(),
         hasLength(1),
       );
+    },
+  );
+
+  test(
+    'changing explanation preferences bypasses the previous cache',
+    () async {
+      final original = await explain();
+      final custom = SentenceExplanation(
+        store: store,
+        provider: provider,
+        config: _config,
+        prompts: PromptSettings().update(
+          LanguagePrompt.sentenceExplanation.id,
+          'Explain the contrasting phrase first.',
+        ),
+      );
+      Future<String> withPreference() => custom.explain(
+        card: _card(),
+        glossLanguage: 'en',
+        simpler: false,
+        cancel: CancelToken(),
+      );
+      provider.response = 'Rather than contrasts noon with six.';
+      expect(await withPreference(), provider.response);
+      final request = provider.lastRequest!;
+      expect(request.instructions, contains('contrasting phrase first'));
+      expect(request.instructions, contains('at most three short sentences'));
+      expect(request.tools, isEmpty);
+      expect(jsonDecode(request.messages.single.text)['glossLanguage'], 'en');
+      provider.offline = true;
+      expect(await withPreference(), provider.response);
+      expect(await explain(), original);
+      expect(provider.calls, 2);
     },
   );
 

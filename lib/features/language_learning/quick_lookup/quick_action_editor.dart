@@ -36,7 +36,13 @@ class QuickActionManager extends StatefulWidget {
 }
 
 class _QuickActionManagerState extends State<QuickActionManager> {
-  late var _actions = widget.store.quickActions();
+  late var _actions = _loadActions();
+
+  Future<List<LanguageQuickAction>> _loadActions() async {
+    await widget.store.ensureQuickActions();
+    return widget.store.quickActions();
+  }
+
   var _busy = false;
 
   Future<void> _change(Future<void> Function() operation) async {

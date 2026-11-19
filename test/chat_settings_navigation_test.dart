@@ -83,6 +83,84 @@ Future<void> pageBack(WidgetTester tester, String destination) async {
 }
 
 void main() {
+  testWidgets(
+    'prompt groups are collapsible and search opens matching language entries',
+    (tester) async {
+      final (controller, _) = await openApp(tester, route: '/settings/prompts');
+      final group = find.byKey(const PageStorageKey('prompt-group-language'));
+      final row = find.byKey(const Key('prompt-language_explanation'));
+      final search = find.byKey(const Key('prompt-search'));
+      expect(find.byKey(const Key('prompt-global')), findsOneWidget);
+      expect(row, findsNothing);
+      final header = find.descendant(of: group, matching: find.text('语言学习'));
+      await tester.ensureVisible(header);
+      await tester.pumpAndSettle();
+      await tester.tap(header.hitTestable());
+      await tester.pumpAndSettle();
+      expect(row, findsOneWidget);
+      expect(find.byKey(const Key('prompt-quick-actions')), findsOneWidget);
+      await tester.ensureVisible(search);
+      await tester.enterText(search, '句子原位解释');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('prompt-global')), findsNothing);
+      await tester.ensureVisible(row);
+      await tester.pumpAndSettle();
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+      final field = find.byKey(const Key('prompt-content'));
+      await tester.enterText(field, '突出句子中的固定搭配。');
+      final preview = find.text('预览效果');
+      await tester.ensureVisible(preview);
+      await tester.pumpAndSettle();
+      await tester.tap(preview);
+      await tester.pumpAndSettle();
+      final previewText = find.byWidgetPredicate(
+        (widget) =>
+            widget is SelectableText &&
+            (widget.data?.contains('at most three short sentences') ?? false) &&
+            (widget.data?.contains('突出句子中的固定搭配。') ?? false),
+      );
+      expect(previewText, findsOneWidget);
+      final close = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(close);
+      await tester.pumpAndSettle();
+      final save = find.byKey(const Key('save-prompt'));
+      await tester.ensureVisible(save);
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        await tester.tap(save);
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+      });
+      await tester.pumpAndSettle();
+      expect(controller.prompts.text('language_explanation'), '突出句子中的固定搭配。');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('language prompt group opens the original quick-task manager', (
+    tester,
+  ) async {
+    await openApp(tester, route: '/settings/prompts');
+    final search = find.byKey(const Key('prompt-search'));
+    await tester.enterText(search, '语言速查');
+    await tester.pumpAndSettle();
+    final link = find.byKey(const Key('prompt-quick-actions'));
+    await tester.tap(link);
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 70));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+    }
+    expect(find.byKey(const ValueKey('language_express')), findsOneWidget);
+    expect(find.byKey(const ValueKey('language_meaning')), findsOneWidget);
+    expect(find.byKey(const ValueKey('language_usage')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   // Pairwise coverage: both layouts × destinations, both destinations ×
   // back methods, and both layouts × back methods. Nested/deep-link/editor
   // regressions below remain independent.

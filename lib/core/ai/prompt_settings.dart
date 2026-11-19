@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+part 'language_prompt_definitions.dart';
+
 enum PromptError { invalidEntry, totalTooLong, invalidFormat, invalidValues }
 
 class PromptSettingsException extends FormatException {
@@ -7,9 +9,20 @@ class PromptSettingsException extends FormatException {
   final PromptError code;
 }
 
+enum PromptGroup { teaching, knowledge, practice, language }
+
 class PromptDefinition {
-  const PromptDefinition(this.id, this.title, this.description, this.content);
+  const PromptDefinition(
+    this.id,
+    this.title,
+    this.description,
+    this.content, {
+    this.group = PromptGroup.teaching,
+    this.requestContract,
+  });
   final String id, title, description, content;
+  final PromptGroup group;
+  final String? requestContract;
 }
 
 const promptDefinitions = [
@@ -18,11 +31,12 @@ const promptDefinitions = [
     '整理考试小分表',
     '根据所选试卷、答题卡和参考答案整理待核对的小分表。',
     '请准确抄录题号与小题层级，优先采用教师批阅分数。根据清晰的作答与参考答案辅助核对，缺少依据时留空并说明，不得编造得分或评分标准。',
+    group: PromptGroup.practice,
   ),
   PromptDefinition(
     'global',
     '通用教学风格',
-    '用于所有学习请求，可调整语气、详略和讲解方式。',
+    '用于聊天教学请求，可调整语气、详略和讲解方式。',
     '你是题训 TiXun 的学习助手。解释应准确、清晰、尊重学习者，结合其学习阶段，优先理解真实困难。按需使用例子、反例和类比。',
   ),
   PromptDefinition(
@@ -48,49 +62,58 @@ const promptDefinitions = [
     '知识讲解',
     '从知识详情进入对话时使用。',
     '请帮我理解这条知识，并用例子检验我的理解。',
+    group: PromptGroup.knowledge,
   ),
   PromptDefinition(
     'knowledge_writing',
     '知识生成与整理',
     '从知识页生成知识，或将 AI 回复整理为新知识时使用。',
     '按要求覆盖知识范围，按主题组织核心概念、公式及适用条件；例子和易错点按需补充。长解释用分段，表格只作简短对照。不确定处注明，不把来源回复当作已核实事实。',
+    group: PromptGroup.knowledge,
   ),
   PromptDefinition(
     'knowledge_editing',
     '知识编辑与合并',
     '用 AI 编辑现有知识，或将回复合并到所选知识时使用。',
     '按用户要求整理所选知识，保留有效内容，去除重复并统一符号与结构。检查新旧内容的冲突，缺少依据时标明，不静默覆盖有争议的结论。长解释用分段，表格只作简短对照。',
+    group: PromptGroup.knowledge,
   ),
   PromptDefinition(
     'mistake_analysis',
     '错题分析',
     '从错题详情请求完整解析时使用。',
     '请分析这道错题，给出答案、完整步骤和关键知识，不要出题。未提供我的作答时，不推断错误原因；图片条件看不清时先确认，不编造。',
+    group: PromptGroup.knowledge,
   ),
   PromptDefinition(
     'mistake',
     '错题讲解',
     '从错题详情发起引导讲解时使用。',
     '请引导我重新理解这道错题，先诊断我的困难，不要立即给出答案。',
+    group: PromptGroup.knowledge,
   ),
   PromptDefinition(
     'quiz',
     '生成练习',
     '快速出题和知识专项、综合训练的请求。',
     '请给我出一道符合当前学习阶段的检测题，让我直接作答。题目条件需完整，不要提前透露答案。',
+    group: PromptGroup.practice,
   ),
   PromptDefinition(
     'variant',
     '订正与变式',
     '从作答反馈发起同考点训练时使用。',
     '请针对以下题目引导我订正，再出一道可以直接作答的同考点变式题，不要提前给答案。新题条件需完整，不要引入未提供的图表。',
+    group: PromptGroup.practice,
   ),
   PromptDefinition(
     'split',
     '图片分题',
     '从图片发起分题建议时使用。',
     '请判断这张图片包含几道题，给出分题范围建议。我会逐一检查、修改后再保存。题目文字不清楚时请保留原图，不要编造。',
+    group: PromptGroup.practice,
   ),
+  ..._languagePromptDefinitions,
 ];
 
 const englishPromptContent = <String, String>{
@@ -107,6 +130,7 @@ const englishPromptContent = <String, String>{
   'quiz': 'Create one question appropriate for my learning stage that I can answer interactively. Include all necessary conditions and do not reveal the answer before I submit.',
   'variant': 'Guide me to correct the following question, then create an interactive variation testing the same ideas. Do not reveal the answer early. Include all conditions and do not refer to missing figures or tables.',
   'split': 'Identify the questions in this image and suggest their boundaries. I will check and adjust each region before saving. Preserve the image when text is unclear, and do not invent content.',
+  ..._englishLanguagePrompts,
 };
 
 class PromptSettings {

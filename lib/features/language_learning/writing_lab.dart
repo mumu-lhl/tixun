@@ -43,6 +43,7 @@ class _WritingLabState extends State<WritingLab> {
           provider: widget.ai.provider,
           config: widget.ai.config,
           usageStore: widget.ai.usageStore,
+          prompts: widget.ai.prompts,
           task: task,
         ),
       ),

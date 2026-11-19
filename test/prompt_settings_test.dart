@@ -71,6 +71,30 @@ void main() {
     },
   );
 
+  test('language prompts edit teaching preferences separately from request contracts', () {
+    final original = PromptSettings().withLanguage('en');
+    final tasks = promptDefinitions.where(
+      (p) => p.group == PromptGroup.language,
+    );
+    expect(
+      tasks.map((p) => p.id),
+      LanguagePrompt.values.map((task) => task.id),
+    );
+    for (final task in LanguagePrompt.values) {
+      final definition = tasks.singleWhere((p) => p.id == task.id);
+      final custom = original.update(task.id, 'Use a short dialogue.');
+      final restored = PromptSettings.decode(custom.encode())
+          .withLanguage('en');
+      final request = task.instructions(restored);
+      expect(request, startsWith(definition.requestContract!));
+      expect(request, endsWith('Use a short dialogue.'));
+      expect(
+        restored.update(task.id, original.text(task.id)).overrides,
+        isEmpty,
+      );
+    }
+  });
+
   test('Saved prompts reach real request payloads; reasoning overrides persist, branch, and respect tools', () async {
     final root = await Directory.systemTemp.createTemp('tixun-ai-preferences');
     final provider = PromptCaptureProvider(), keys = MemoryKeyStore();
@@ -90,6 +114,7 @@ void main() {
     await c.savePrompt('global', '请使用适合初学者的中文。');
     await c.savePrompt('guided', '每次只问一个诊断问题。');
     await c.savePrompt('quiz', '请给我出一道函数检测题。');
+    await c.savePrompt(LanguagePrompt.sentenceExplanation.id, '先解释句中的搭配。');
     await c.newSession();
     await c.setSessionReasoning('low');
     await c.send('请解释函数');
@@ -121,6 +146,7 @@ void main() {
     );
     expect(c.sessionReasoning, 'high');
     expect(c.prompts.text('guided'), '每次只问一个诊断问题。');
+    expect(c.prompts.text(LanguagePrompt.sentenceExplanation.id), '先解释句中的搭配。');
     expect(c.config.thinking, true);
     await c.prepareQuickQuiz();
     expect(c.selected!.draft, '请给我出一道函数检测题。');
