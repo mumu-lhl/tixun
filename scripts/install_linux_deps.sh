@@ -6,18 +6,49 @@ if [[ "$(id -u)" != 0 ]]; then
 fi
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
-# Use a reachable Ubuntu mirror on hosted runners. Keep Ubuntu's signed
-# indexes and normal APT verification; local machines retain their own mirror.
-if [[ "${1:-}" == --github-runner ]]; then
-  for mirror_list in /etc/apt/apt-mirrors.txt /etc/apt/apt-security-mirrors.txt; do
-    if [[ -f "$mirror_list" ]]; then
-      printf '%s\n' 'https://mirrors.edge.kernel.org/ubuntu' > "$mirror_list"
-    fi
-  done
-fi
 apt_options=(-o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=60)
-apt-get "${apt_options[@]}" update
-apt-get "${apt_options[@]}" install -y --no-install-recommends \
-  python3-pip bubblewrap ca-certificates curl git unzip xz-utils clang cmake ninja-build pkg-config \
-  libgtk-3-dev g++ libsecret-1-dev libjsoncpp-dev \
-  libgl1-mesa-dri mesa-utils xvfb xauth xdotool imagemagick ripgrep dbus-x11
+
+install_dependencies() {
+  apt-get "${apt_options[@]}" "$@" update &&
+    apt-get "${apt_options[@]}" "$@" install -y --no-install-recommends \
+      python3-pip bubblewrap ca-certificates curl git unzip xz-utils clang cmake ninja-build pkg-config \
+      libgtk-3-dev g++ libsecret-1-dev libjsoncpp-dev \
+      libgl1-mesa-dri mesa-utils xvfb xauth xdotool imagemagick ripgrep dbus-x11
+}
+
+if [[ "${1:-}" != --github-runner ]]; then
+  install_dependencies
+  exit
+fi
+
+# A mirror can serve its indexes and still fail to serve packages. Re-run both
+# steps with a fresh signed source list when either step fails on a runner.
+source /etc/os-release
+suite=${UBUNTU_CODENAME:-${VERSION_CODENAME:?Missing Ubuntu suite in os-release}}
+runner_sources=$(mktemp --suffix=.list)
+trap 'unlink "$runner_sources"' EXIT
+runner_options=(
+  -o "Dir::Etc::sourcelist=$runner_sources" -o Dir::Etc::sourceparts=-
+  -o APT::Update::Error-Mode=any -o Acquire::ForceIPv4=true
+  -o Acquire::Retries=0 -o Acquire::https::Timeout=10
+)
+kernel_mirror=https://mirrors.edge.kernel.org/ubuntu
+archive_mirror=https://archive.ubuntu.com/ubuntu
+keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg
+for mirror in "$kernel_mirror" "$archive_mirror"; do
+  security_mirror=$mirror
+  if [[ "$mirror" == "$archive_mirror" ]]; then
+    security_mirror=https://security.ubuntu.com/ubuntu
+  fi
+  printf 'deb [signed-by=%s] %s %s main universe\n' \
+    "$keyring" "$mirror" "$suite" \
+    "$keyring" "$mirror" "$suite-updates" \
+    "$keyring" "$security_mirror" "$suite-security" > "$runner_sources"
+  if install_dependencies "${runner_options[@]}"; then
+    exit 0
+  else
+    status=$?
+  fi
+  printf 'Ubuntu dependency setup failed using %s (exit %s).\n' "$mirror" "$status" >&2
+done
+exit "$status"
