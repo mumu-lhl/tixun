@@ -77,7 +77,9 @@ extension SentenceBatchStore on LanguageLearningStore {
 
   Future<List<LearningSentenceBatch>> savedSentenceBatches({int limit = 40}) =>
       (db.select(db.learningSentenceBatches)
-            ..where((row) => row.language.equals('en'))
+            ..where(
+              (row) => row.language.equals('en') & row.isMock.equals(false),
+            )
             ..orderBy([
               (row) => OrderingTerm.desc(row.generatedAt),
               (row) => OrderingTerm.desc(row.rowId),

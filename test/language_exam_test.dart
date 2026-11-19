@@ -8,12 +8,13 @@ import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/l10n/generated/app_localizations.dart';
 import 'package:tixun/features/language_learning/exam_ai.dart';
-import 'package:tixun/features/language_learning/exam_bundled.dart';
 import 'package:tixun/features/language_learning/exam_material.dart';
 import 'package:tixun/features/language_learning/exam_paper_screen.dart';
 import 'package:tixun/features/language_learning/exam_store.dart';
 import 'package:tixun/features/language_learning/language_store.dart';
 import 'package:tixun/features/language_learning/sentence_content.dart';
+
+import 'support/exam_bundled.dart';
 
 const _config = ProviderConfig(
   id: 1,
@@ -253,6 +254,29 @@ void main() {
       expect(provider.requests, hasLength(3));
     },
   );
+
+  test('old bundled papers are unavailable for new practice', () async {
+    final sample = bundledExamPapers(ExamKind.grammar).single;
+    final target = _target(ExamKind.grammar);
+    await store.saveExamMaterial(
+      target: target,
+      paper: sample.paper,
+      source: ExamSource.bundled,
+      id: sample.id,
+    );
+    expect(await store.examLibrary(target.kind).first, isEmpty);
+    expect(await store.reusableExam(target), isNull);
+    final demo = ExamAi(
+      provider: MockChatProvider(),
+      config: _config,
+      store: store,
+    );
+    await expectLater(
+      demo.acquire(target, glossLanguage: 'en', cancel: CancelToken()),
+      throwsFormatException,
+    );
+    expect(await db.select(db.learningExamMaterials).get(), hasLength(1));
+  });
 
   testWidgets(
     'shared options are disabled across gaps before paper submission',

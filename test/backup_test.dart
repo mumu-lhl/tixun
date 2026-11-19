@@ -2,20 +2,22 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
-import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/app/controller.dart';
 import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/backup/backup_service.dart';
+import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/features/library/study_store.dart';
-import 'package:tixun/features/language_learning/exam_bundled.dart';
 import 'package:tixun/features/language_learning/exam_material.dart';
 import 'package:tixun/features/language_learning/exam_store.dart';
 import 'package:tixun/features/language_learning/sentence_content.dart';
 import 'package:tixun/features/language_learning/writing_store.dart';
 import 'package:tixun/features/language_learning/writing_task_ai.dart';
 import 'package:tixun/features/practice/question_spec.dart';
+
+import 'support/exam_bundled.dart';
 
 void main() {
   late Directory parent, root;
@@ -110,17 +112,27 @@ void main() {
       confidence: ExamConfidence.unsure,
       hintUsed: false,
     );
-    final writing =
-        await WritingTaskAi(
-          store: c.language,
-          provider: MockChatProvider(),
-          config: c.config,
-        ).generate(
-          kind: WritingTaskKind.continuation,
-          level: SentenceLevel.beginner,
-          topic: 'Market',
-          cancel: CancelToken(),
-        );
+    final writing = openWritingTask(
+      await c.db
+          .into(c.db.learningWritingTasks)
+          .insertReturning(
+            LearningWritingTasksCompanion.insert(
+              id: 'backup-generated-writing',
+              kind: WritingTaskKind.continuation.name,
+              profile: ExamProfile.zhejiang2026.id,
+              level: SentenceLevel.beginner.name,
+              topic: 'Market',
+              title: 'A new market',
+              prompt: 'Continue the story.',
+              passage: const Value(
+                'Maya looked for the owner of a lost sketchbook.',
+              ),
+              model: 'test-model',
+              promptVersion: 1,
+              createdAt: DateTime.now(),
+            ),
+          ),
+    );
     await c.language.snapshotWriting(
       'Maya asked for directions.',
       taskId: writing.id,

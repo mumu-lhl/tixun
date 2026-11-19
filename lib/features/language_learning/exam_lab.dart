@@ -5,7 +5,6 @@ import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import 'exam_ai.dart';
-import 'exam_bundled.dart';
 import 'exam_labels.dart';
 import 'exam_material.dart';
 import 'exam_paper_screen.dart';
@@ -60,11 +59,7 @@ class _ExamLabState extends State<ExamLab> {
     if (!mounted) return;
     final options = await showDialog<({ExamTarget target, bool reuse})>(
       context: context,
-      builder: (_) => _ExamSettings(
-        kind: widget.kind,
-        mock: widget.ai.isMock,
-        focus: focus,
-      ),
+      builder: (_) => _ExamSettings(kind: widget.kind, focus: focus),
     );
     if (!mounted) return;
     setState(() => _opening = false);
@@ -88,24 +83,6 @@ class _ExamLabState extends State<ExamLab> {
     } finally {
       if (mounted) setState(() => _request = null);
     }
-  }
-
-  Future<void> _openBundled(String id, ExamPaper paper) async {
-    setState(() => _opening = true);
-    await act(context, () async {
-      final material = await widget.ai.store.saveExamMaterial(
-        target: ExamTarget(
-          kind: widget.kind,
-          level: SentenceLevel.beginner,
-          count: paper.items.length,
-        ),
-        paper: paper,
-        source: ExamSource.bundled,
-        id: id,
-      );
-      if (mounted) await _open(material);
-    });
-    if (mounted) setState(() => _opening = false);
   }
 
   @override
@@ -163,17 +140,6 @@ class _ExamLabState extends State<ExamLab> {
               );
             },
           ),
-          const SizedBox(height: 20),
-          Text(
-            l10n.languageExamBundled,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          for (final sample in bundledExamPapers(widget.kind))
-            ListTile(
-              title: Text(sample.paper.title),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: busy ? null : () => _openBundled(sample.id, sample.paper),
-            ),
         ],
       ),
     );
@@ -181,9 +147,8 @@ class _ExamLabState extends State<ExamLab> {
 }
 
 class _ExamSettings extends StatefulWidget {
-  const _ExamSettings({required this.kind, required this.mock, this.focus});
+  const _ExamSettings({required this.kind, this.focus});
   final ExamKind kind;
-  final bool mock;
   final SentenceSkill? focus;
 
   @override
@@ -194,9 +159,11 @@ class _ExamSettingsState extends State<_ExamSettings> {
   final _topic = TextEditingController();
   SentenceLevel _level = SentenceLevel.intermediate;
   late SentenceSkill? _skill = widget.focus;
-  late final _counts = widget.mock
-      ? [bundledExamPapers(widget.kind).first.paper.items.length]
-      : ExamTarget(kind: widget.kind, level: _level, count: 5).counts;
+  late final _counts = ExamTarget(
+    kind: widget.kind,
+    level: _level,
+    count: 5,
+  ).counts;
   late int _count = _counts.contains(5) ? 5 : _counts.first;
   bool _reuse = true;
 

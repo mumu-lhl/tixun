@@ -234,8 +234,6 @@ class VocabularyAi {
             'type': 'word',
             'meaning': zh ? '车票' : 'a pass for a journey',
             'example': 'I bought a ticket at the station.',
-            'application': 'Keep your ___ until you leave the museum.',
-            'applicationAnswer': 'ticket',
             'translation': zh
                 ? '我在车站买了一张车票。'
                 : 'I paid for my trip at the station.',

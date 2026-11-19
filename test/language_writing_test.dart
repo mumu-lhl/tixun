@@ -55,6 +55,8 @@ class _TaskProvider implements ChatProvider {
       });
 }
 
+const writingTaskId = 'test-writing-task';
+
 void main() {
   test('revision preserves the original with anchored feedback even if reassessment fails', () async {
     final db = AppDatabase.memory();
@@ -65,6 +67,10 @@ void main() {
     });
     final provider = _WritingProvider();
     final ai = WritingAi(
+      task: const WritingTask(
+        writingTaskId,
+        'Write a short email to join a book club.',
+      ),
       store: store,
       provider: provider,
       config: const ProviderConfig(
@@ -84,8 +90,8 @@ void main() {
 
     const initial = 'Hello, I want join the book club.';
     const revision = 'Hello, I want to join the book club.';
-    await store.saveWritingDraft(initial);
-    expect(await store.writingDraft(), initial);
+    await store.saveWritingDraft(initial, taskId: writingTaskId);
+    expect(await store.writingDraft(taskId: writingTaskId), initial);
     expect(provider.calls, 0);
 
     final first = await evaluate(initial);
@@ -95,8 +101,10 @@ void main() {
 
     provider.complete = false;
     await expectLater(evaluate(revision), throwsFormatException);
-    expect(await store.writingDraft(), revision);
-    final interruptedHistory = await store.writingHistory().first;
+    expect(await store.writingDraft(taskId: writingTaskId), revision);
+    final interruptedHistory = await store
+        .writingHistory(taskId: writingTaskId)
+        .first;
     expect(interruptedHistory.map((row) => row.version.content), [
       revision,
       initial,
@@ -108,91 +116,91 @@ void main() {
     final second = await evaluate(revision);
     expect(second, isNot(first));
     expect(await store.writingNotes(second), isEmpty);
-    expect(await store.writingHistory().first, hasLength(2));
+    expect(
+      await store.writingHistory(taskId: writingTaskId).first,
+      hasLength(2),
+    );
     expect(await db.select(db.chatMessages).get(), isEmpty);
   });
 
-  test(
-    'generated writing tasks persist and partition drafts and versions',
-    () async {
-      final db = AppDatabase.memory();
-      final store = LanguageLearningStore(db);
-      addTearDown(() async {
-        store.dispose();
-        await db.close();
-      });
-      final provider = _TaskProvider();
-      final ai = WritingTaskAi(
-        store: store,
-        provider: provider,
-        config: const ProviderConfig(
-          id: 1,
-          kind: 'openai',
-          baseUrl: 'https://example.com',
-          model: 'test-model',
-          vision: false,
-          supportsTools: true,
-          thinking: false,
-          supportsThinking: false,
-          effort: '',
-        ),
-      );
-      Future<WritingTask> generate(WritingTaskKind kind) => ai.generate(
-        kind: kind,
-        level: SentenceLevel.intermediate,
-        topic: 'Community',
-        cancel: CancelToken(),
-      );
-      provider.data = {
-        'title': 'A letter to the volunteer team',
-        'prompt': 'Write an email asking the volunteers for a weekend training session.',
-      };
-      final application = await generate(WritingTaskKind.application);
-      expect(application.passage, isNull);
-      expect(provider.requests.single.maxOutputTokens, 750);
-      final source =
-          '${storyWritingTask.passage!} '
-          'A shopkeeper pointed to a narrow lane where the artists usually waited '
-          'for a bus. Maya wondered if she still had time to reach them.';
-      provider.data = {
-        'title': 'An unfinished search',
-        'prompt': 'Continue the story and explain how Maya finds the owner.',
-        'passage': source,
-      };
-      final story = await generate(WritingTaskKind.continuation);
-      expect(story.passage, source);
-      expect(story.rubric, contains('source'));
-      expect(provider.requests.last.tools, isEmpty);
-      expect(provider.requests.last.maxOutputTokens, 1750);
-      final saved = await store.savedWritingTasks().first;
-      expect(
-        saved.map((row) => openWritingTask(row).id),
-        containsAll([application.id, story.id]),
-      );
-      final first = await store.snapshotWriting(
-        'Her search continued.',
-        taskId: application.id,
-      );
-      final second = await store.snapshotWriting(
-        'Her search continued.',
-        taskId: story.id,
-      );
-      expect(first, isNot(second));
-      expect(
-        (await store.writingHistory(taskId: application.id).first)
-            .single
-            .version
-            .id,
-        first,
-      );
-      expect(await store.writingDraft(), isEmpty);
-      provider.complete = false;
-      await expectLater(
-        generate(WritingTaskKind.continuation),
-        throwsFormatException,
-      );
-      expect(await store.savedWritingTasks().first, hasLength(2));
-      expect(await db.select(db.chatMessages).get(), isEmpty);
-    },
-  );
+  test('generated writing tasks persist and partition drafts and versions', () async {
+    final db = AppDatabase.memory();
+    final store = LanguageLearningStore(db);
+    addTearDown(() async {
+      store.dispose();
+      await db.close();
+    });
+    final provider = _TaskProvider();
+    final ai = WritingTaskAi(
+      store: store,
+      provider: provider,
+      config: const ProviderConfig(
+        id: 1,
+        kind: 'openai',
+        baseUrl: 'https://example.com',
+        model: 'test-model',
+        vision: false,
+        supportsTools: true,
+        thinking: false,
+        supportsThinking: false,
+        effort: '',
+      ),
+    );
+    Future<WritingTask> generate(WritingTaskKind kind) => ai.generate(
+      kind: kind,
+      level: SentenceLevel.intermediate,
+      topic: 'Community',
+      cancel: CancelToken(),
+    );
+    provider.data = {
+      'title': 'A letter to the volunteer team',
+      'prompt': 'Write an email asking the volunteers for a weekend training session.',
+    };
+    final application = await generate(WritingTaskKind.application);
+    expect(application.passage, isNull);
+    expect(provider.requests.single.maxOutputTokens, 750);
+    final source =
+        'Maya found a sketchbook with a green cover as the outdoor market was closing. It held pictures of the stalls and customers throughout the day. On the last page someone had left a note promising to return at noon. Maya looked around for the owner. '
+        'A shopkeeper pointed to a narrow lane where the artists usually waited '
+        'for a bus. Maya wondered if she still had time to reach them. The next bus was not due for another fifteen minutes.';
+    provider.data = {
+      'title': 'An unfinished search',
+      'prompt': 'Continue the story and explain how Maya finds the owner.',
+      'passage': source,
+    };
+    final story = await generate(WritingTaskKind.continuation);
+    expect(story.passage, source);
+    expect(story.rubric, contains('source'));
+    expect(provider.requests.last.tools, isEmpty);
+    expect(provider.requests.last.maxOutputTokens, 1750);
+    final saved = await store.savedWritingTasks().first;
+    expect(
+      saved.map((row) => openWritingTask(row).id),
+      containsAll([application.id, story.id]),
+    );
+    final first = await store.snapshotWriting(
+      'Her search continued.',
+      taskId: application.id,
+    );
+    final second = await store.snapshotWriting(
+      'Her search continued.',
+      taskId: story.id,
+    );
+    expect(first, isNot(second));
+    expect(
+      (await store.writingHistory(taskId: application.id).first)
+          .single
+          .version
+          .id,
+      first,
+    );
+    expect(await store.writingDraft(taskId: writingTaskId), isEmpty);
+    provider.complete = false;
+    await expectLater(
+      generate(WritingTaskKind.continuation),
+      throwsFormatException,
+    );
+    expect(await store.savedWritingTasks().first, hasLength(2));
+    expect(await db.select(db.chatMessages).get(), isEmpty);
+  });
 }

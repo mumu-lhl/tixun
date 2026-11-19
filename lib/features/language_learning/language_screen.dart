@@ -232,9 +232,7 @@ class _LanguageLearningScreenState
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) => LanguageCourse(
-                            practice: ref.read(appControllerProvider).practice,
-                          ),
+                          builder: (_) => const LanguageCourse(),
                         ),
                       ),
                       icon: const Icon(Icons.school_outlined),

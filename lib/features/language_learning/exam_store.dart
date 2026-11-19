@@ -70,7 +70,8 @@ extension ExamLearningStore on LanguageLearningStore {
             ..where(
               (row) =>
                   row.kind.equals(kind.name) &
-                  row.source.equals(ExamSource.bundled.name).not(),
+                  row.source.equals(ExamSource.bundled.name).not() &
+                  (row.model.isNull() | row.model.equals('Mock').not()),
             )
             ..orderBy([(row) => OrderingTerm.desc(row.createdAt)])
             ..limit(40))
@@ -83,6 +84,8 @@ extension ExamLearningStore on LanguageLearningStore {
                 (row) =>
                     row.kind.equals(target.kind.name) &
                     row.profile.equals(target.profile.id) &
+                    row.source.equals(ExamSource.bundled.name).not() &
+                    (row.model.isNull() | row.model.equals('Mock').not()) &
                     row.level.equals(target.level.name) &
                     row.topic.equals(target.topic.trim()) &
                     (target.skill == null
@@ -129,7 +132,9 @@ extension ExamLearningStore on LanguageLearningStore {
             innerJoin(material, material.id.equalsExp(attempt.materialId)),
           ])
           ..where(
-            material.kind.equals(kind.name) & attempt.hintUsed.equals(false),
+            material.kind.equals(kind.name) &
+                material.verification.equals(ExamVerification.aiReviewed.name) &
+                attempt.hintUsed.equals(false),
           )
           ..orderBy([
             OrderingTerm.desc(attempt.submittedAt),
@@ -140,7 +145,6 @@ extension ExamLearningStore on LanguageLearningStore {
     final scores = <SentenceSkill, ({int correct, int total})>{};
     for (final row in await query.get()) {
       final entry = ExamMaterial(row.readTable(material));
-      if (entry.verification == ExamVerification.structureChecked) continue;
       final result = ExamResult(row.readTable(attempt));
       for (final (position, item) in entry.paper.items.indexed) {
         if (result.disputed.contains(position) ||

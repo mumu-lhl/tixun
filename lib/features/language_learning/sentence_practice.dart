@@ -44,7 +44,6 @@ class _SentencePracticeState extends State<SentencePractice> {
   late SentenceLevel? _level =
       widget.recommendation?.level ?? widget.initialLevel;
   bool _planning = false;
-  int _count = 2;
   late SentenceBatch? _batch = widget.initialBatch;
   final _results = <(SentenceSkill?, bool?, bool, SentenceRating)>[];
 
@@ -156,7 +155,7 @@ class _SentencePracticeState extends State<SentencePractice> {
           ),
         const SizedBox(height: 12),
       ],
-      Text(l10n.languageSentenceOffline),
+      Text(l10n.languageSentencePracticeIntro),
       const SizedBox(height: 12),
       DropdownButtonFormField<SentenceStyle>(
         initialValue: _style,
@@ -210,30 +209,8 @@ class _SentencePracticeState extends State<SentencePractice> {
         onChanged: (value) => setState(() => _level = value),
       ),
       const SizedBox(height: 12),
-      DropdownButtonFormField<int>(
-        key: ValueKey(_level),
-        initialValue: _level == null ? _count : 1,
-        decoration: InputDecoration(labelText: l10n.languageSentenceCount),
-        items: [
-          for (final n in [1, if (_level == null) 2])
-            DropdownMenuItem(value: n, child: Text('$n')),
-        ],
-        onChanged: _level == null ? (value) => _count = value! : null,
-      ),
-      const SizedBox(height: 16),
-      FilledButton(
-        onPressed: () => _start(
-          localSentenceBatch(
-            topic: _topic,
-            style: _style,
-            level: _level,
-            count: _level == null ? _count : 1,
-          ),
-        ),
-        child: Text(l10n.languageSentenceStart),
-      ),
       if (widget.batchAi case final ai?)
-        OutlinedButton(
+        FilledButton(
           onPressed: () => _generate(ai),
           child: Text(l10n.languageSentenceGenerate),
         ),

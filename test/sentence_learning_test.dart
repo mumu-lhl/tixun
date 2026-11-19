@@ -44,9 +44,11 @@ class _Provider implements ChatProvider {
       });
 }
 
-SentenceCard _card({int revision = 1}) => SentenceCard(
-  id: 'library',
-  text: 'On Saturdays, the library closes at noon rather than at six.',
+SentenceCard _card({int revision = 1, bool travel = false}) => SentenceCard(
+  id: travel ? 'station' : 'library',
+  text: travel
+      ? 'The station shuts at noon.'
+      : 'On Saturdays, the library closes at noon rather than at six.',
   translation: '图书馆周六中午关门，不是六点。',
   hint: '“Rather than” contrasts two times.',
   question: 'When does it close?',
@@ -116,12 +118,8 @@ void main() {
   test(
     'follow-up uses distinct independent checks and a fresh context',
     () async {
-      SentenceCard detail(SentenceTopic topic) => localSentenceBatch(
-        topic: topic,
-        style: SentenceStyle.written,
-        level: SentenceLevel.beginner,
-        count: 1,
-      ).cards.single;
+      SentenceCard detail(SentenceTopic topic) =>
+          _card(travel: topic == SentenceTopic.travel);
       final daily = detail(SentenceTopic.dailyLife);
       final travel = detail(SentenceTopic.travel);
       Future<void> record(
@@ -159,12 +157,7 @@ void main() {
     'a weak skill becomes a bounded request and valid checks are reusable',
     () async {
       for (final (i, topic) in SentenceTopic.values.indexed) {
-        final card = localSentenceBatch(
-          topic: topic,
-          style: SentenceStyle.written,
-          level: SentenceLevel.beginner,
-          count: 1,
-        ).cards.single;
+        final card = _card(travel: topic == SentenceTopic.travel);
         await store.recordSentence(
           batchId: 'short-$i',
           card: card,
@@ -331,13 +324,15 @@ void main() {
         await tester.pumpAndSettle();
       }
 
+      expect(find.text('Start offline batch'), findsNothing);
+      expect(find.text('Saved sentence batches'), findsOneWidget);
       await tap('Generate an AI batch');
       expect(provider.calls, 0);
       await tap('Generate preview');
       expect(find.text('Save selected and practise'), findsNothing);
       expect(
         find.text(
-          'Could not generate a usable batch. You can retry or start offline.',
+          'Could not generate a usable batch. Try again or open a saved batch.',
         ),
         findsOneWidget,
       );
@@ -400,15 +395,13 @@ void main() {
           locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: SentencePractice(store: store, explanation: explanation),
+          home: SentencePractice(
+            store: store,
+            explanation: explanation,
+            initialBatch: SentenceBatch([_card()]),
+          ),
         ),
       );
-      await tester.tap(find.text('Mixed levels'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Beginner').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Start offline batch'));
-      await tester.pumpAndSettle();
       expect(find.text(_card().text), findsOneWidget);
       expect(find.text('At noon'), findsNothing);
       expect(

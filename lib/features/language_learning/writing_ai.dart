@@ -16,7 +16,7 @@ class WritingAi {
     required this.provider,
     required this.config,
     this.usageStore,
-    this.task = applicationWritingTask,
+    required this.task,
   });
 
   final LanguageLearningStore store;

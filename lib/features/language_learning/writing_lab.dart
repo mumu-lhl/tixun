@@ -128,21 +128,6 @@ class _WritingLabState extends State<WritingLab> {
               );
             },
           ),
-          const SizedBox(height: 20),
-          Text(
-            l10n.languageExamBundled,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          ListTile(
-            title: Text(l10n.languageApplicationWriting),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: busy ? null : () => _open(applicationWritingTask),
-          ),
-          ListTile(
-            title: Text(l10n.languageContinuation),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: busy ? null : () => _open(storyWritingTask),
-          ),
         ],
       ),
     );
