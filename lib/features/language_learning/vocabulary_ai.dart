@@ -99,7 +99,6 @@ class VocabularyAi {
                   }),
                 ),
               ],
-              maxOutputTokens: 300 + 350 * size,
             ),
             cancel: cancel,
             maxChars: 12000,

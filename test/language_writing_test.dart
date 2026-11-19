@@ -17,6 +17,10 @@ class _WritingProvider implements ChatProvider {
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
+        expect(
+          encodeCompletion(config, request).containsKey('max_tokens'),
+          isFalse,
+        );
         calls++;
         yield AiChunk(
           completed: complete,
@@ -50,6 +54,10 @@ class _TaskProvider implements ChatProvider {
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
+        expect(
+          encodeCompletion(config, request).containsKey('max_tokens'),
+          isFalse,
+        );
         requests.add(request);
         yield AiChunk(text: jsonEncode(data), completed: complete);
       });
@@ -158,7 +166,6 @@ void main() {
     };
     final application = await generate(WritingTaskKind.application);
     expect(application.passage, isNull);
-    expect(provider.requests.single.maxOutputTokens, 750);
     final source =
         'Maya found a sketchbook with a green cover as the outdoor market was closing. It held pictures of the stalls and customers throughout the day. On the last page someone had left a note promising to return at noon. Maya looked around for the owner. '
         'A shopkeeper pointed to a narrow lane where the artists usually waited '
@@ -172,7 +179,6 @@ void main() {
     expect(story.passage, source);
     expect(story.rubric, contains('source'));
     expect(provider.requests.last.tools, isEmpty);
-    expect(provider.requests.last.maxOutputTokens, 1750);
     final saved = await store.savedWritingTasks().first;
     expect(
       saved.map((row) => openWritingTask(row).id),

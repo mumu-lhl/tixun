@@ -31,6 +31,10 @@ class _VocabularyProvider implements ChatProvider {
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
+        expect(
+          encodeCompletion(config, request).containsKey('max_tokens'),
+          isFalse,
+        );
         requests++;
         yield AiChunk(
           completed: completed,
@@ -55,11 +59,14 @@ class _ChunkProvider implements ChatProvider {
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
+        expect(
+          encodeCompletion(config, request).containsKey('max_tokens'),
+          isFalse,
+        );
         final data = jsonDecode(request.messages.single.text) as Map;
         final count = data['count'] as int;
         counts.add(count);
         expect(request.tools, isEmpty);
-        expect(request.maxOutputTokens, 300 + count * 350);
         yield AiChunk(
           completed: !interruptSecond || counts.length == 1,
           text: jsonEncode({

@@ -65,7 +65,6 @@ class WritingAi {
           }),
         ),
       ],
-      maxOutputTokens: 2100,
     );
     final started = DateTime.now();
     final body = StringBuffer();

@@ -38,6 +38,10 @@ class _Provider implements ChatProvider {
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
+        expect(
+          encodeCompletion(config, request).containsKey('max_tokens'),
+          isFalse,
+        );
         requests.add(request);
         if (!available) throw const AiFailure('Offline');
         if (cancelReply) cancel.cancel();

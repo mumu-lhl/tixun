@@ -37,6 +37,10 @@ class _Provider implements ChatProvider {
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
+        expect(
+          encodeCompletion(config, request).containsKey('max_tokens'),
+          isFalse,
+        );
         calls++;
         lastRequest = request;
         if (offline) throw const AiFailure('Offline');
@@ -202,7 +206,6 @@ void main() {
       );
       expect(provider.calls, 1);
       expect(provider.lastRequest!.tools, isEmpty);
-      expect(provider.lastRequest!.maxOutputTokens, 2050);
       expect(
         provider.lastRequest!.messages.single.text,
         contains('"focus":"detail"'),

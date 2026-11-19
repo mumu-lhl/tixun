@@ -90,7 +90,6 @@ class WritingTaskAi {
             }),
           ),
         ],
-        maxOutputTokens: kind == WritingTaskKind.continuation ? 1750 : 750,
       ),
       cancel: cancel,
       maxChars: 6200,

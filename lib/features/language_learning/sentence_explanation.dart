@@ -74,7 +74,6 @@ class SentenceExplanation {
           }),
         ),
       ],
-      maxOutputTokens: 700,
     );
     final started = DateTime.now();
     final buffer = StringBuffer();

@@ -93,7 +93,6 @@ class SentenceBatchAi {
                 }),
               ),
             ],
-            maxOutputTokens: 350 + 340 * requested,
           ),
           cancel: cancel,
           maxChars: 13000,
