@@ -6,9 +6,11 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
+import 'lexical_form_screen.dart';
+import 'lexical_form_store.dart';
 import 'vocabulary_editor.dart';
 
-enum VocabularyMode { study, recall, context }
+enum VocabularyMode { study, recall, context, recognition }
 
 class VocabularyBatch extends StatefulWidget {
   const VocabularyBatch({
@@ -34,6 +36,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   static const _uuid = Uuid();
   final _answer = TextEditingController();
   late Future<List<LanguageCard>> _batch = _load();
+  bool? _recognized;
   int _current = 0;
   int _offset = 0;
   String _attemptId = _uuid.v4();
@@ -56,6 +59,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   );
 
   void _resetCard() {
+    _recognized = null;
     _attemptId = _uuid.v4();
     _answer.clear();
     _revealed = false;
@@ -139,7 +143,10 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.all(16),
-                          child: VocabularyDetails(card: card),
+                          child: VocabularyDetails(
+                            card: card,
+                            store: widget.store,
+                          ),
                         ),
                       ],
                     ),
@@ -156,6 +163,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                 const SizedBox(height: 12),
                 if (widget.mode == VocabularyMode.recall)
                   _recall(card)
+                else if (widget.mode == VocabularyMode.recognition)
+                  _recognition(card, cards)
                 else
                   _context(card),
                 const SizedBox(height: 12),
@@ -186,6 +195,47 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     );
   }
 
+  Widget _recognition(LanguageCard card, List<LanguageCard> pool) {
+    final l10n = context.l10n;
+    final others = pool
+        .where(
+          (entry) =>
+              entry.item.normalizedForm != card.item.normalizedForm &&
+              entry.sense.meaning != card.sense.meaning,
+        )
+        .map((entry) => entry.sense.meaning)
+        .toSet()
+        .take(3);
+    final choices = [card.sense.meaning, ...others]..sort();
+    if (choices.length < 2) return Text(l10n.languageNoRecognitionOptions);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(card.item.form, style: Theme.of(context).textTheme.headlineMedium),
+        if (_recognized case final correct?) ...[
+          Text(correct ? l10n.languageCorrect : card.sense.meaning),
+          TextButton(onPressed: _advance, child: Text(l10n.languageNext)),
+        ] else
+          for (final choice in choices)
+            OutlinedButton(
+              onPressed: _saving
+                  ? null
+                  : () => _save(() async {
+                      final result = await widget.store
+                          .recordMeaningRecognition(
+                            card,
+                            choice,
+                            attemptId: _attemptId,
+                            usedHelp: widget.group != null,
+                          );
+                      if (mounted) setState(() => _recognized = result);
+                    }),
+              child: Text(choice),
+            ),
+      ],
+    );
+  }
+
   Widget _recall(LanguageCard card) {
     final l10n = context.l10n;
     return Column(
@@ -198,7 +248,11 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
             card.sense.meaning,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          VocabularyDetails(key: ValueKey(_attemptId), card: card),
+          VocabularyDetails(
+            key: ValueKey(_attemptId),
+            card: card,
+            store: widget.store,
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -289,9 +343,10 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
 }
 
 class VocabularyDetails extends StatefulWidget {
-  const VocabularyDetails({super.key, required this.card});
+  const VocabularyDetails({super.key, required this.card, this.store});
 
   final LanguageCard card;
+  final LanguageLearningStore? store;
 
   @override
   State<VocabularyDetails> createState() => _VocabularyDetailsState();
@@ -316,6 +371,19 @@ class _VocabularyDetailsState extends State<VocabularyDetails> {
         if (card.sense.source == 'ai')
           Text(l10n.languageAiSource(card.sense.aiModel ?? '')),
         if (card.sense.source == 'mock') Text(l10n.languageAiMockSource),
+        if (widget.store case final store? when card.item.language == 'en')
+          TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => LexicalFormsScreen(
+                  store,
+                  language: card.item.language,
+                  card: card,
+                ),
+              ),
+            ),
+            child: Text(l10n.languageForms),
+          ),
         if (card.sense.example case final example?) Text(example),
         if (card.sense.exampleTranslation case final translation?)
           if (_translation)

@@ -21610,6 +21610,439 @@ class LearningLexicalSensesCompanion
   }
 }
 
+class $LearningLexicalFormsTable extends LearningLexicalForms
+    with TableInfo<$LearningLexicalFormsTable, LearningLexicalForm> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LearningLexicalFormsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _senseIdMeta = const VerificationMeta(
+    'senseId',
+  );
+  @override
+  late final GeneratedColumn<String> senseId = GeneratedColumn<String>(
+    'sense_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_lexical_senses (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _surfaceMeta = const VerificationMeta(
+    'surface',
+  );
+  @override
+  late final GeneratedColumn<String> surface = GeneratedColumn<String>(
+    'surface',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _normalizedSurfaceMeta = const VerificationMeta(
+    'normalizedSurface',
+  );
+  @override
+  late final GeneratedColumn<String> normalizedSurface =
+      GeneratedColumn<String>(
+        'normalized_surface',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _inflectionMeta = const VerificationMeta(
+    'inflection',
+  );
+  @override
+  late final GeneratedColumn<String> inflection = GeneratedColumn<String>(
+    'inflection',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    senseId,
+    surface,
+    normalizedSurface,
+    inflection,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'learning_lexical_forms';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LearningLexicalForm> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('sense_id')) {
+      context.handle(
+        _senseIdMeta,
+        senseId.isAcceptableOrUnknown(data['sense_id']!, _senseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_senseIdMeta);
+    }
+    if (data.containsKey('surface')) {
+      context.handle(
+        _surfaceMeta,
+        surface.isAcceptableOrUnknown(data['surface']!, _surfaceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_surfaceMeta);
+    }
+    if (data.containsKey('normalized_surface')) {
+      context.handle(
+        _normalizedSurfaceMeta,
+        normalizedSurface.isAcceptableOrUnknown(
+          data['normalized_surface']!,
+          _normalizedSurfaceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_normalizedSurfaceMeta);
+    }
+    if (data.containsKey('inflection')) {
+      context.handle(
+        _inflectionMeta,
+        inflection.isAcceptableOrUnknown(data['inflection']!, _inflectionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_inflectionMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {senseId, normalizedSurface, inflection},
+  ];
+  @override
+  LearningLexicalForm map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LearningLexicalForm(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      senseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sense_id'],
+      )!,
+      surface: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}surface'],
+      )!,
+      normalizedSurface: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_surface'],
+      )!,
+      inflection: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}inflection'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LearningLexicalFormsTable createAlias(String alias) {
+    return $LearningLexicalFormsTable(attachedDatabase, alias);
+  }
+}
+
+class LearningLexicalForm extends DataClass
+    implements Insertable<LearningLexicalForm> {
+  final String id;
+  final String senseId;
+  final String surface;
+  final String normalizedSurface;
+  final String inflection;
+  final DateTime createdAt;
+  const LearningLexicalForm({
+    required this.id,
+    required this.senseId,
+    required this.surface,
+    required this.normalizedSurface,
+    required this.inflection,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['sense_id'] = Variable<String>(senseId);
+    map['surface'] = Variable<String>(surface);
+    map['normalized_surface'] = Variable<String>(normalizedSurface);
+    map['inflection'] = Variable<String>(inflection);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LearningLexicalFormsCompanion toCompanion(bool nullToAbsent) {
+    return LearningLexicalFormsCompanion(
+      id: Value(id),
+      senseId: Value(senseId),
+      surface: Value(surface),
+      normalizedSurface: Value(normalizedSurface),
+      inflection: Value(inflection),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LearningLexicalForm.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LearningLexicalForm(
+      id: serializer.fromJson<String>(json['id']),
+      senseId: serializer.fromJson<String>(json['senseId']),
+      surface: serializer.fromJson<String>(json['surface']),
+      normalizedSurface: serializer.fromJson<String>(json['normalizedSurface']),
+      inflection: serializer.fromJson<String>(json['inflection']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'senseId': serializer.toJson<String>(senseId),
+      'surface': serializer.toJson<String>(surface),
+      'normalizedSurface': serializer.toJson<String>(normalizedSurface),
+      'inflection': serializer.toJson<String>(inflection),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LearningLexicalForm copyWith({
+    String? id,
+    String? senseId,
+    String? surface,
+    String? normalizedSurface,
+    String? inflection,
+    DateTime? createdAt,
+  }) => LearningLexicalForm(
+    id: id ?? this.id,
+    senseId: senseId ?? this.senseId,
+    surface: surface ?? this.surface,
+    normalizedSurface: normalizedSurface ?? this.normalizedSurface,
+    inflection: inflection ?? this.inflection,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  LearningLexicalForm copyWithCompanion(LearningLexicalFormsCompanion data) {
+    return LearningLexicalForm(
+      id: data.id.present ? data.id.value : this.id,
+      senseId: data.senseId.present ? data.senseId.value : this.senseId,
+      surface: data.surface.present ? data.surface.value : this.surface,
+      normalizedSurface: data.normalizedSurface.present
+          ? data.normalizedSurface.value
+          : this.normalizedSurface,
+      inflection: data.inflection.present
+          ? data.inflection.value
+          : this.inflection,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningLexicalForm(')
+          ..write('id: $id, ')
+          ..write('senseId: $senseId, ')
+          ..write('surface: $surface, ')
+          ..write('normalizedSurface: $normalizedSurface, ')
+          ..write('inflection: $inflection, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    senseId,
+    surface,
+    normalizedSurface,
+    inflection,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LearningLexicalForm &&
+          other.id == this.id &&
+          other.senseId == this.senseId &&
+          other.surface == this.surface &&
+          other.normalizedSurface == this.normalizedSurface &&
+          other.inflection == this.inflection &&
+          other.createdAt == this.createdAt);
+}
+
+class LearningLexicalFormsCompanion
+    extends UpdateCompanion<LearningLexicalForm> {
+  final Value<String> id;
+  final Value<String> senseId;
+  final Value<String> surface;
+  final Value<String> normalizedSurface;
+  final Value<String> inflection;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LearningLexicalFormsCompanion({
+    this.id = const Value.absent(),
+    this.senseId = const Value.absent(),
+    this.surface = const Value.absent(),
+    this.normalizedSurface = const Value.absent(),
+    this.inflection = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LearningLexicalFormsCompanion.insert({
+    required String id,
+    required String senseId,
+    required String surface,
+    required String normalizedSurface,
+    required String inflection,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       senseId = Value(senseId),
+       surface = Value(surface),
+       normalizedSurface = Value(normalizedSurface),
+       inflection = Value(inflection),
+       createdAt = Value(createdAt);
+  static Insertable<LearningLexicalForm> custom({
+    Expression<String>? id,
+    Expression<String>? senseId,
+    Expression<String>? surface,
+    Expression<String>? normalizedSurface,
+    Expression<String>? inflection,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (senseId != null) 'sense_id': senseId,
+      if (surface != null) 'surface': surface,
+      if (normalizedSurface != null) 'normalized_surface': normalizedSurface,
+      if (inflection != null) 'inflection': inflection,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LearningLexicalFormsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? senseId,
+    Value<String>? surface,
+    Value<String>? normalizedSurface,
+    Value<String>? inflection,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return LearningLexicalFormsCompanion(
+      id: id ?? this.id,
+      senseId: senseId ?? this.senseId,
+      surface: surface ?? this.surface,
+      normalizedSurface: normalizedSurface ?? this.normalizedSurface,
+      inflection: inflection ?? this.inflection,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (senseId.present) {
+      map['sense_id'] = Variable<String>(senseId.value);
+    }
+    if (surface.present) {
+      map['surface'] = Variable<String>(surface.value);
+    }
+    if (normalizedSurface.present) {
+      map['normalized_surface'] = Variable<String>(normalizedSurface.value);
+    }
+    if (inflection.present) {
+      map['inflection'] = Variable<String>(inflection.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningLexicalFormsCompanion(')
+          ..write('id: $id, ')
+          ..write('senseId: $senseId, ')
+          ..write('surface: $surface, ')
+          ..write('normalizedSurface: $normalizedSurface, ')
+          ..write('inflection: $inflection, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $LearningVocabularyGroupsTable extends LearningVocabularyGroups
     with TableInfo<$LearningVocabularyGroupsTable, LearningVocabularyGroup> {
   @override
@@ -22282,6 +22715,18 @@ class $LearningEvidenceTable extends LearningEvidence
       'REFERENCES learning_lexical_senses (id) ON DELETE CASCADE',
     ),
   );
+  static const VerificationMeta _formIdMeta = const VerificationMeta('formId');
+  @override
+  late final GeneratedColumn<String> formId = GeneratedColumn<String>(
+    'form_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_lexical_forms (id) ON DELETE SET NULL',
+    ),
+  );
   static const VerificationMeta _skillMeta = const VerificationMeta('skill');
   @override
   late final GeneratedColumn<String> skill = GeneratedColumn<String>(
@@ -22368,6 +22813,7 @@ class $LearningEvidenceTable extends LearningEvidence
   List<GeneratedColumn> get $columns => [
     id,
     senseId,
+    formId,
     skill,
     rating,
     answer,
@@ -22400,6 +22846,12 @@ class $LearningEvidenceTable extends LearningEvidence
       );
     } else if (isInserting) {
       context.missing(_senseIdMeta);
+    }
+    if (data.containsKey('form_id')) {
+      context.handle(
+        _formIdMeta,
+        formId.isAcceptableOrUnknown(data['form_id']!, _formIdMeta),
+      );
     }
     if (data.containsKey('skill')) {
       context.handle(
@@ -22470,6 +22922,10 @@ class $LearningEvidenceTable extends LearningEvidence
         DriftSqlType.string,
         data['${effectivePrefix}sense_id'],
       )!,
+      formId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}form_id'],
+      ),
       skill: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}skill'],
@@ -22511,6 +22967,7 @@ class LearningEvidenceData extends DataClass
     implements Insertable<LearningEvidenceData> {
   final String id;
   final String senseId;
+  final String? formId;
   final String skill;
   final String? rating;
   final String? answer;
@@ -22521,6 +22978,7 @@ class LearningEvidenceData extends DataClass
   const LearningEvidenceData({
     required this.id,
     required this.senseId,
+    this.formId,
     required this.skill,
     this.rating,
     this.answer,
@@ -22534,6 +22992,9 @@ class LearningEvidenceData extends DataClass
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['sense_id'] = Variable<String>(senseId);
+    if (!nullToAbsent || formId != null) {
+      map['form_id'] = Variable<String>(formId);
+    }
     map['skill'] = Variable<String>(skill);
     if (!nullToAbsent || rating != null) {
       map['rating'] = Variable<String>(rating);
@@ -22554,6 +23015,9 @@ class LearningEvidenceData extends DataClass
     return LearningEvidenceCompanion(
       id: Value(id),
       senseId: Value(senseId),
+      formId: formId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(formId),
       skill: Value(skill),
       rating: rating == null && nullToAbsent
           ? const Value.absent()
@@ -22578,6 +23042,7 @@ class LearningEvidenceData extends DataClass
     return LearningEvidenceData(
       id: serializer.fromJson<String>(json['id']),
       senseId: serializer.fromJson<String>(json['senseId']),
+      formId: serializer.fromJson<String?>(json['formId']),
       skill: serializer.fromJson<String>(json['skill']),
       rating: serializer.fromJson<String?>(json['rating']),
       answer: serializer.fromJson<String?>(json['answer']),
@@ -22593,6 +23058,7 @@ class LearningEvidenceData extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'senseId': serializer.toJson<String>(senseId),
+      'formId': serializer.toJson<String?>(formId),
       'skill': serializer.toJson<String>(skill),
       'rating': serializer.toJson<String?>(rating),
       'answer': serializer.toJson<String?>(answer),
@@ -22606,6 +23072,7 @@ class LearningEvidenceData extends DataClass
   LearningEvidenceData copyWith({
     String? id,
     String? senseId,
+    Value<String?> formId = const Value.absent(),
     String? skill,
     Value<String?> rating = const Value.absent(),
     Value<String?> answer = const Value.absent(),
@@ -22616,6 +23083,7 @@ class LearningEvidenceData extends DataClass
   }) => LearningEvidenceData(
     id: id ?? this.id,
     senseId: senseId ?? this.senseId,
+    formId: formId.present ? formId.value : this.formId,
     skill: skill ?? this.skill,
     rating: rating.present ? rating.value : this.rating,
     answer: answer.present ? answer.value : this.answer,
@@ -22628,6 +23096,7 @@ class LearningEvidenceData extends DataClass
     return LearningEvidenceData(
       id: data.id.present ? data.id.value : this.id,
       senseId: data.senseId.present ? data.senseId.value : this.senseId,
+      formId: data.formId.present ? data.formId.value : this.formId,
       skill: data.skill.present ? data.skill.value : this.skill,
       rating: data.rating.present ? data.rating.value : this.rating,
       answer: data.answer.present ? data.answer.value : this.answer,
@@ -22649,6 +23118,7 @@ class LearningEvidenceData extends DataClass
     return (StringBuffer('LearningEvidenceData(')
           ..write('id: $id, ')
           ..write('senseId: $senseId, ')
+          ..write('formId: $formId, ')
           ..write('skill: $skill, ')
           ..write('rating: $rating, ')
           ..write('answer: $answer, ')
@@ -22664,6 +23134,7 @@ class LearningEvidenceData extends DataClass
   int get hashCode => Object.hash(
     id,
     senseId,
+    formId,
     skill,
     rating,
     answer,
@@ -22678,6 +23149,7 @@ class LearningEvidenceData extends DataClass
       (other is LearningEvidenceData &&
           other.id == this.id &&
           other.senseId == this.senseId &&
+          other.formId == this.formId &&
           other.skill == this.skill &&
           other.rating == this.rating &&
           other.answer == this.answer &&
@@ -22690,6 +23162,7 @@ class LearningEvidenceData extends DataClass
 class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   final Value<String> id;
   final Value<String> senseId;
+  final Value<String?> formId;
   final Value<String> skill;
   final Value<String?> rating;
   final Value<String?> answer;
@@ -22701,6 +23174,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   const LearningEvidenceCompanion({
     this.id = const Value.absent(),
     this.senseId = const Value.absent(),
+    this.formId = const Value.absent(),
     this.skill = const Value.absent(),
     this.rating = const Value.absent(),
     this.answer = const Value.absent(),
@@ -22713,6 +23187,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   LearningEvidenceCompanion.insert({
     required String id,
     required String senseId,
+    this.formId = const Value.absent(),
     required String skill,
     this.rating = const Value.absent(),
     this.answer = const Value.absent(),
@@ -22728,6 +23203,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   static Insertable<LearningEvidenceData> custom({
     Expression<String>? id,
     Expression<String>? senseId,
+    Expression<String>? formId,
     Expression<String>? skill,
     Expression<String>? rating,
     Expression<String>? answer,
@@ -22740,6 +23216,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (senseId != null) 'sense_id': senseId,
+      if (formId != null) 'form_id': formId,
       if (skill != null) 'skill': skill,
       if (rating != null) 'rating': rating,
       if (answer != null) 'answer': answer,
@@ -22754,6 +23231,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   LearningEvidenceCompanion copyWith({
     Value<String>? id,
     Value<String>? senseId,
+    Value<String?>? formId,
     Value<String>? skill,
     Value<String?>? rating,
     Value<String?>? answer,
@@ -22766,6 +23244,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     return LearningEvidenceCompanion(
       id: id ?? this.id,
       senseId: senseId ?? this.senseId,
+      formId: formId ?? this.formId,
       skill: skill ?? this.skill,
       rating: rating ?? this.rating,
       answer: answer ?? this.answer,
@@ -22785,6 +23264,9 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     }
     if (senseId.present) {
       map['sense_id'] = Variable<String>(senseId.value);
+    }
+    if (formId.present) {
+      map['form_id'] = Variable<String>(formId.value);
     }
     if (skill.present) {
       map['skill'] = Variable<String>(skill.value);
@@ -22818,6 +23300,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     return (StringBuffer('LearningEvidenceCompanion(')
           ..write('id: $id, ')
           ..write('senseId: $senseId, ')
+          ..write('formId: $formId, ')
           ..write('skill: $skill, ')
           ..write('rating: $rating, ')
           ..write('answer: $answer, ')
@@ -31397,6 +31880,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LearningLexicalItemsTable(this);
   late final $LearningLexicalSensesTable learningLexicalSenses =
       $LearningLexicalSensesTable(this);
+  late final $LearningLexicalFormsTable learningLexicalForms =
+      $LearningLexicalFormsTable(this);
   late final $LearningVocabularyGroupsTable learningVocabularyGroups =
       $LearningVocabularyGroupsTable(this);
   late final $LearningGroupItemsTable learningGroupItems =
@@ -31483,6 +31968,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     visualStudyLinks,
     learningLexicalItems,
     learningLexicalSenses,
+    learningLexicalForms,
     learningVocabularyGroups,
     learningGroupItems,
     learningEvidence,
@@ -31912,6 +32398,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
+        'learning_lexical_senses',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('learning_lexical_forms', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
         'learning_vocabulary_groups',
         limitUpdateKind: UpdateKind.delete,
       ),
@@ -31930,6 +32423,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('learning_evidence', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'learning_lexical_forms',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('learning_evidence', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(

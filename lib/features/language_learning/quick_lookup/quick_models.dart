@@ -2,8 +2,9 @@ import 'dart:convert';
 
 import '../../../core/database/database.dart';
 import '../language_store.dart';
+import '../lexical_form.dart';
 
-const quickSchemaRevision = 1;
+const quickSchemaRevision = 2;
 const quickInputLimit = 3000;
 const quickSummaryLimit = 240;
 const quickContentLimit = 10000;
@@ -171,12 +172,33 @@ class QuickCandidates {
         'meaning',
         'example',
         'translation',
+        'forms',
       });
       final type = LexicalType.values.asNameMap()[row['type']];
       if (type == null) throw const FormatException('Invalid lexical type');
+      final lemma = _quickText(row['form'], 180);
+      final rawForms = row['forms'];
+      if (rawForms != null && (rawForms is! List || rawForms.length > 6)) {
+        throw const FormatException('Invalid lookup inflections');
+      }
+      final forms = <LexicalFormDraft>[];
+      for (final value in rawForms as List? ?? const []) {
+        final form = _quickObject(value, {'surface', 'inflection'});
+        final inflection = Inflection.values.asNameMap()[form['inflection']];
+        if (inflection == null) {
+          throw const FormatException('Invalid inflection tag');
+        }
+        final draft = LexicalFormDraft(
+          _quickText(form['surface'], 80),
+          inflection,
+        );
+        draft.validate(lemma);
+        forms.add(draft);
+      }
       vocabulary.add(
         VocabularyEntry(
-          form: _quickText(row['form'], 180),
+          form: lemma,
+          forms: List.unmodifiable(forms),
           type: type,
           meaning: _quickText(row['meaning'], 500),
           example: _quickText(row['example'], 500, optional: true),
@@ -213,6 +235,11 @@ class QuickCandidates {
             'meaning': entry.meaning,
             'example': entry.example,
             'translation': entry.translation,
+            if (entry.forms.isNotEmpty)
+              'forms': [
+                for (final form in entry.forms)
+                  {'surface': form.surface, 'inflection': form.inflection.name},
+              ],
           },
       ],
     if (sentence != null) 'sentence': sentence!.toJson(),

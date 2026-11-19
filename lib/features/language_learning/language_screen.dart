@@ -11,6 +11,9 @@ import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import 'language_course.dart';
+import 'language_profile_screen.dart';
+import 'language_recommendation.dart';
+import 'language_skills.dart';
 import 'language_store.dart';
 import 'next_practice.dart';
 import 'exam_ai.dart';
@@ -21,7 +24,6 @@ import 'sentence_batch_ai.dart';
 import 'sentence_content.dart';
 import 'sentence_explanation.dart';
 import 'sentence_practice.dart';
-import 'sentence_store.dart';
 import 'study_settings_dialog.dart';
 import 'vocabulary_ai.dart';
 import 'vocabulary_batch.dart';
@@ -52,7 +54,6 @@ class _LanguageLearningScreenState
 
   late final _groups = _store.groups(_language);
   late final _evidence = _store.recentEvidence(_language);
-  late final _sentenceEvidence = _store.sentenceEvidence(_language);
   late Stream<int> _due = _store.dueCount(_language);
   late final Timer _dueRefresh;
 
@@ -112,7 +113,7 @@ class _LanguageLearningScreenState
     );
   }
 
-  void _practiceExam(ExamKind kind) {
+  void _practiceExam(ExamKind kind, {ExamTarget? recommendation}) {
     final controller = ref.read(appControllerProvider);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -124,6 +125,7 @@ class _LanguageLearningScreenState
             usageStore: AiUsageStore(controller.db),
           ),
           kind: kind,
+          recommendation: recommendation,
           glossLanguage: _feedbackLanguage,
         ),
       ),
@@ -166,37 +168,35 @@ class _LanguageLearningScreenState
     );
   }
 
-  Widget _nextPractice(int due) {
-    final l10n = context.l10n;
-    if (due > 0) return Text(l10n.languageNextReview);
-    return StreamBuilder<List<LearningSentenceAttempt>>(
-      stream: _sentenceEvidence,
-      builder: (context, snapshot) {
-        final records = snapshot.data;
-        if (records == null) return const SizedBox.shrink();
-        final suggestion = suggestSentences(records);
-        return Card(
-          child: ListTile(
-            leading: const Icon(Icons.tips_and_updates_outlined),
-            title: Text(
-              l10n.languageNextSkill(
-                sentenceSkillLabel(l10n, suggestion.skill),
+  void _foundations() => Navigator.of(context)
+      .push(MaterialPageRoute<void>(builder: (_) => const LanguageCourse()));
+
+  void _openProfile([LanguageGoal goal = LanguageGoal.communication]) =>
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (profileContext) => LanguageProfileScreen(
+            store: _store,
+            language: _language,
+            goal: goal,
+            onReview: _review,
+            onPractice: (profile, plan, selectedGoal) => act(
+              profileContext,
+              () => openLanguageRecommendation(
+                profileContext,
+                _store,
+                profile,
+                plan,
+                selectedGoal,
+                foundations: _foundations,
+                writing: _practiceWriting,
+                exam: (target) =>
+                    _practiceExam(target.kind, recommendation: target),
+                sentences: _practiceSentences,
               ),
             ),
-            subtitle: Text(
-              suggestion.diagnostic
-                  ? l10n.languageSentenceDiagnostic
-                  : l10n.languageNextSkillReason(
-                      suggestion.performance.correct,
-                      suggestion.performance.checked,
-                    ),
-            ),
-            onTap: () => _practiceSentences(suggestion),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -238,13 +238,17 @@ class _LanguageLearningScreenState
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const LanguageCourse(),
-                        ),
-                      ),
+                      onPressed: _foundations,
                       icon: const Icon(Icons.school_outlined),
                       label: Text(l10n.languageFoundations),
+                    ),
+                  ),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: FilledButton.tonalIcon(
+                      onPressed: _openProfile,
+                      icon: const Icon(Icons.insights),
+                      label: Text(l10n.languageProfile),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -255,7 +259,6 @@ class _LanguageLearningScreenState
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (count != null) _nextPractice(count),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 12,
@@ -296,6 +299,10 @@ class _LanguageLearningScreenState
                     spacing: 8,
                     runSpacing: 8,
                     children: [
+                      OutlinedButton(
+                        onPressed: () => _openProfile(LanguageGoal.exam),
+                        child: Text(l10n.languageProfile),
+                      ),
                       for (final skill in ExamKind.values)
                         OutlinedButton(
                           onPressed: () => _practiceExam(skill),

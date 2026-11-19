@@ -112,6 +112,10 @@ fields only when useful:
   inflection), "type" (word, phrase, phrasalVerb, collocation, or idiom), "meaning"
   and optional "example" and "translation". Give separate entries for
   different senses or lemmas. Do not invent a single sense for ambiguous forms.
+  For English only, an entry may also contain "forms": up to six objects with
+  "surface" and "inflection" (past, pastParticiple, presentParticiple,
+  thirdPerson, plural, comparative or superlative). Only list inflections of
+  that lemma and sense, never derived words or phrases.
 - "sentence": an object with "text" (a complete target-language sentence),
   optional "gloss" and optional "hint".
 Use only these fields. Explain inflections and distinguish them from derivation:

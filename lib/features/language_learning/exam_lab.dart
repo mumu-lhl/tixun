@@ -18,11 +18,13 @@ class ExamLab extends StatefulWidget {
     required this.ai,
     required this.kind,
     this.glossLanguage,
+    this.recommendation,
   });
 
   final ExamAi ai;
   final ExamKind kind;
   final String? glossLanguage;
+  final ExamTarget? recommendation;
 
   @override
   State<ExamLab> createState() => _ExamLabState();
@@ -52,14 +54,18 @@ class _ExamLabState extends State<ExamLab> {
   Future<void> _generate() async {
     if (_request != null || _opening) return;
     setState(() => _opening = true);
-    SentenceSkill? focus;
+    SentenceSkill? focus = widget.recommendation?.skill;
     await act(context, () async {
-      focus = await widget.ai.store.recommendedExamSkill(widget.kind);
+      focus ??= await widget.ai.store.recommendedExamSkill(widget.kind);
     });
     if (!mounted) return;
     final options = await showDialog<({ExamTarget target, bool reuse})>(
       context: context,
-      builder: (_) => _ExamSettings(kind: widget.kind, focus: focus),
+      builder: (_) => _ExamSettings(
+        kind: widget.kind,
+        focus: focus,
+        recommendation: widget.recommendation,
+      ),
     );
     if (!mounted) return;
     setState(() => _opening = false);
@@ -147,9 +153,10 @@ class _ExamLabState extends State<ExamLab> {
 }
 
 class _ExamSettings extends StatefulWidget {
-  const _ExamSettings({required this.kind, this.focus});
+  const _ExamSettings({required this.kind, this.focus, this.recommendation});
   final ExamKind kind;
   final SentenceSkill? focus;
+  final ExamTarget? recommendation;
 
   @override
   State<_ExamSettings> createState() => _ExamSettingsState();
@@ -157,14 +164,16 @@ class _ExamSettings extends StatefulWidget {
 
 class _ExamSettingsState extends State<_ExamSettings> {
   final _topic = TextEditingController();
-  SentenceLevel _level = SentenceLevel.intermediate;
+  late SentenceLevel _level =
+      widget.recommendation?.level ?? SentenceLevel.intermediate;
   late SentenceSkill? _skill = widget.focus;
   late final _counts = ExamTarget(
     kind: widget.kind,
     level: _level,
     count: 5,
   ).counts;
-  late int _count = _counts.contains(5) ? 5 : _counts.first;
+  late int _count =
+      widget.recommendation?.count ?? (_counts.contains(5) ? 5 : _counts.first);
   bool _reuse = true;
 
   @override

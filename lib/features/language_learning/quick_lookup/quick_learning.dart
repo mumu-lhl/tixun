@@ -10,6 +10,8 @@ import '../../../app/controller.dart';
 import '../../../core/database/database.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../language_store.dart';
+import '../lexical_form.dart';
+import '../lexical_form_screen.dart';
 import '../sentence_batch_store.dart';
 import '../sentence_content.dart';
 import '../vocabulary_editor.dart';
@@ -86,6 +88,11 @@ Future<void> learnQuickVocabulary(
             _QuickVocabularyGroup(store, row.targetLanguage, edited, senses),
       );
   if (!context.mounted || group == null) return;
+  final forms =
+      row.targetLanguage == 'en' && edited.form.trim() == initial.form.trim()
+      ? await confirmLookupForms(context, edited.form, initial.forms)
+      : const <LexicalFormDraft>[];
+  if (!context.mounted) return;
   await store.saveEntries(
     language: row.targetLanguage,
     groupTitle: group.title,
@@ -95,6 +102,7 @@ Future<void> learnQuickVocabulary(
         form: edited.form,
         meaning: group.meaning,
         type: edited.type,
+        forms: forms,
         example: edited.example,
         translation: edited.translation,
         application: edited.application,

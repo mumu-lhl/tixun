@@ -12,6 +12,8 @@ import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/features/library/study_store.dart';
 import 'package:tixun/features/language_learning/exam_material.dart';
 import 'package:tixun/features/language_learning/exam_store.dart';
+import 'package:tixun/features/language_learning/language_store.dart';
+import 'package:tixun/features/language_learning/lexical_form.dart';
 import 'package:tixun/features/language_learning/quick_lookup/quick_learning.dart';
 import 'package:tixun/features/language_learning/quick_lookup/quick_models.dart';
 import 'package:tixun/features/language_learning/quick_lookup/quick_store.dart';
@@ -141,6 +143,18 @@ void main() {
       'Maya asked for directions.',
       taskId: writing.id,
     );
+    await c.language.saveEntries(
+      language: 'en',
+      groupTitle: 'Backup forms',
+      groupType: VocabularyGroupType.topic,
+      entries: const [
+        VocabularyEntry(
+          form: 'go',
+          meaning: '去',
+          forms: [LexicalFormDraft('went', Inflection.past)],
+        ),
+      ],
+    );
     await c.language.ensureQuickActions();
     final action = await c.language.saveQuickAction(
       quickActionDefaults(
@@ -211,6 +225,10 @@ void main() {
     expect(
       await c.language.writingDraft(taskId: savedWriting.id),
       'Maya asked for directions.',
+    );
+    expect(
+      (await c.db.select(c.db.learningLexicalForms).getSingle()).surface,
+      'went',
     );
     final restoredQuick = (await c.language.quickHistory(
       actionId: action.id,

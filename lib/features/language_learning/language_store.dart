@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/database/database.dart';
 import '../../core/database/database_notifier.dart';
+import 'lexical_form.dart';
 
 const languageBatchSize = 20;
 String normalizeLanguageText(String value) =>
@@ -23,10 +24,12 @@ class VocabularyEntry {
     this.translation,
     this.application,
     this.applicationAnswer,
+    this.forms = const [],
   });
 
   final String form, meaning;
   final LexicalType type;
+  final List<LexicalFormDraft> forms;
   final String? example, translation, application, applicationAnswer;
 
   (String, String, String) get _key =>
@@ -239,6 +242,9 @@ class LanguageLearningStore extends DatabaseNotifier {
           ),
           mode: InsertMode.insertOrIgnore,
         );
+    for (final form in entry.forms) {
+      await insertLexicalForm(db, senseId, entry.form, form);
+    }
     return senseId;
   }
 

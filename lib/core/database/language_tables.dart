@@ -43,6 +43,25 @@ class LearningLexicalSenses extends Table {
   ];
 }
 
+class LearningLexicalForms extends Table {
+  TextColumn get id => text()();
+  TextColumn get senseId => text().references(
+    LearningLexicalSenses,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  TextColumn get surface => text()();
+  TextColumn get normalizedSurface => text()();
+  TextColumn get inflection => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  @override
+  Set<Column> get primaryKey => {id};
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {senseId, normalizedSurface, inflection},
+  ];
+}
+
 class LearningVocabularyGroups extends Table {
   TextColumn get id => text()();
   TextColumn get language => text()();
@@ -79,6 +98,11 @@ class LearningEvidence extends Table {
     LearningLexicalSenses,
     #id,
     onDelete: KeyAction.cascade,
+  )();
+  TextColumn get formId => text().nullable().references(
+    LearningLexicalForms,
+    #id,
+    onDelete: KeyAction.setNull,
   )();
   TextColumn get skill => text()();
   TextColumn get rating => text().nullable()();

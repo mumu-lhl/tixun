@@ -116,4 +116,36 @@ void main() {
     expect(await db.select(db.learningLexicalSenses).get(), hasLength(1));
     expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
   });
+  test(
+    'v26 keeps vocabulary and review progress while adding word forms',
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(26);
+      schema.rawDatabase.execute(
+        "INSERT INTO learning_lexical_items(id,language,form,normalized_form,created_at) VALUES('go','en','go','go',1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO learning_lexical_senses(id,item_id,meaning,created_at) VALUES('sense','go','去',1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO learning_review_schedules(sense_id,due_at,interval_days,repetitions,updated_at) VALUES('sense',100,14,3,1)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO learning_evidence(id,sense_id,skill,occurred_at) VALUES('attempt','sense','meaningRecall',1)",
+      );
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+      expect(
+        (await db.select(db.learningLexicalSenses).getSingle()).meaning,
+        '去',
+      );
+      expect(
+        (await db.select(db.learningReviewSchedules).getSingle()).intervalDays,
+        14,
+      );
+      expect((await db.select(db.learningEvidence).getSingle()).formId, isNull);
+      expect(await db.select(db.learningLexicalForms).get(), isEmpty);
+    },
+  );
 }

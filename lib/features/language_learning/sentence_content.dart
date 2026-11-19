@@ -16,6 +16,8 @@ enum SentenceSkill {
   reference,
   collocation,
   discourse,
+  mainIdea,
+  inference,
 }
 
 enum SentenceHelp {

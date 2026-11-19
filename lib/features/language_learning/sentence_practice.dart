@@ -550,4 +550,6 @@ String sentenceSkillLabel(AppLocalizations l10n, SentenceSkill skill) =>
       SentenceSkill.reference => l10n.languageSkillReference,
       SentenceSkill.collocation => l10n.languageSkillCollocation,
       SentenceSkill.discourse => l10n.languageSkillDiscourse,
+      SentenceSkill.mainIdea => l10n.languageSkillMainIdea,
+      SentenceSkill.inference => l10n.languageSkillInference,
     };

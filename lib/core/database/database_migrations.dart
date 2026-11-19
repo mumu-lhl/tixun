@@ -65,6 +65,10 @@ extension _DatabaseMigrations on AppDatabase {
         );
       }
       if (from < 21) await m.createTable(chatContextEvents);
+      if (from < 27) await m.createTable(learningLexicalForms);
+      if (from >= 22 && from < 27) {
+        await m.addColumn(learningEvidence, learningEvidence.formId);
+      }
       if (from < 22) {
         for (final table in <TableInfo>[
           learningLexicalItems,
