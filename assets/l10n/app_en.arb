@@ -1,4 +1,6 @@
 {
+  "languageExamReviewCost": "An optional semantic review before answering makes one additional billable model request.",
+  "languageExamReviewRejected": "AI review flagged issues",
   "quickEnglishStudyOnly": "Adding to study is currently available for English lookups.",
   "quickUnavailable": "Could not look up this text. Check your connection and model settings, then try again.",
   "quickLookup": "Language quick lookup",

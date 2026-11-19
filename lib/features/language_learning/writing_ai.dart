@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/ai/ai_usage_store.dart';
 import '../../core/ai/chat_provider.dart';
 import '../../core/database/database.dart';
+import 'language_stream.dart';
 import 'language_store.dart';
 import 'writing_feedback.dart';
 import 'writing_store.dart';
@@ -72,6 +73,7 @@ class WritingAi {
     AiTokenUsage? usage;
     var completed = false;
     var status = 'error';
+    var breakdownComplete = true;
     final model = isMock ? 'Mock' : config.model;
     try {
       final stream = isMock
@@ -90,20 +92,24 @@ class WritingAi {
                 }),
               ),
             )
-          : provider.start(config).complete(request, cancel);
+          : boundedLanguageStream(
+              (transport) =>
+                  provider.start(config).complete(request, transport),
+              cancel,
+            );
       await for (final chunk in stream) {
         cancel.checkCancelled();
         usage = chunk.usage ?? usage;
         if (chunk.calls.isNotEmpty ||
             (completed &&
                 (chunk.text.isNotEmpty || chunk.reasoning.isNotEmpty)) ||
-            body.length + chunk.text.length > 8500 ||
-            reasoning.length + chunk.reasoning.length > 32000) {
+            body.length + chunk.text.length > 8500) {
           throw const FormatException('Invalid writing feedback reply');
         }
         completed |= chunk.completed;
         body.write(chunk.text);
-        reasoning.write(chunk.reasoning);
+        breakdownComplete &= reasoning.length + chunk.reasoning.length <= 32000;
+        if (breakdownComplete) reasoning.write(chunk.reasoning);
       }
       cancel.checkCancelled();
       if (!completed) {
@@ -117,9 +123,13 @@ class WritingAi {
         model: model,
         promptVersion: _promptVersion,
         isMock: isMock,
+        cancel: cancel,
       );
       status = 'complete';
       return version;
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) status = 'cancelled';
+      rethrow;
     } finally {
       final recorder = usageStore;
       if (!isMock && recorder != null) {
@@ -131,12 +141,12 @@ class WritingAi {
               endpoint: config.baseUrl,
               model: model,
               feature: 'language_writing',
-              status: cancel.isCancelled ? 'incomplete' : status,
+              status: cancel.isCancelled ? 'cancelled' : status,
               occurredAt: started,
               durationMs: DateTime.now().difference(started).inMilliseconds,
               usage: usage,
             ),
-            request: request,
+            request: breakdownComplete ? request : null,
             response: body.toString(),
             reasoning: reasoning.toString(),
           );

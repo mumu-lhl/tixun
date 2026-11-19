@@ -29833,6 +29833,17 @@ class $LearningExamMaterialsTable extends LearningExamMaterials
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _reviewIssueMeta = const VerificationMeta(
+    'reviewIssue',
+  );
+  @override
+  late final GeneratedColumn<String> reviewIssue = GeneratedColumn<String>(
+    'review_issue',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -29863,6 +29874,7 @@ class $LearningExamMaterialsTable extends LearningExamMaterials
     promptVersion,
     revision,
     verification,
+    reviewIssue,
     createdAt,
   ];
   @override
@@ -30016,6 +30028,15 @@ class $LearningExamMaterialsTable extends LearningExamMaterials
     } else if (isInserting) {
       context.missing(_verificationMeta);
     }
+    if (data.containsKey('review_issue')) {
+      context.handle(
+        _reviewIssueMeta,
+        reviewIssue.isAcceptableOrUnknown(
+          data['review_issue']!,
+          _reviewIssueMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -30104,6 +30125,10 @@ class $LearningExamMaterialsTable extends LearningExamMaterials
         DriftSqlType.string,
         data['${effectivePrefix}verification'],
       )!,
+      reviewIssue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}review_issue'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -30136,6 +30161,7 @@ class LearningExamMaterialRow extends DataClass
   final int? promptVersion;
   final int revision;
   final String verification;
+  final String? reviewIssue;
   final DateTime createdAt;
   const LearningExamMaterialRow({
     required this.id,
@@ -30155,6 +30181,7 @@ class LearningExamMaterialRow extends DataClass
     this.promptVersion,
     required this.revision,
     required this.verification,
+    this.reviewIssue,
     required this.createdAt,
   });
   @override
@@ -30183,6 +30210,9 @@ class LearningExamMaterialRow extends DataClass
     }
     map['revision'] = Variable<int>(revision);
     map['verification'] = Variable<String>(verification);
+    if (!nullToAbsent || reviewIssue != null) {
+      map['review_issue'] = Variable<String>(reviewIssue);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -30212,6 +30242,9 @@ class LearningExamMaterialRow extends DataClass
           : Value(promptVersion),
       revision: Value(revision),
       verification: Value(verification),
+      reviewIssue: reviewIssue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reviewIssue),
       createdAt: Value(createdAt),
     );
   }
@@ -30239,6 +30272,7 @@ class LearningExamMaterialRow extends DataClass
       promptVersion: serializer.fromJson<int?>(json['promptVersion']),
       revision: serializer.fromJson<int>(json['revision']),
       verification: serializer.fromJson<String>(json['verification']),
+      reviewIssue: serializer.fromJson<String?>(json['reviewIssue']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -30263,6 +30297,7 @@ class LearningExamMaterialRow extends DataClass
       'promptVersion': serializer.toJson<int?>(promptVersion),
       'revision': serializer.toJson<int>(revision),
       'verification': serializer.toJson<String>(verification),
+      'reviewIssue': serializer.toJson<String?>(reviewIssue),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -30285,6 +30320,7 @@ class LearningExamMaterialRow extends DataClass
     Value<int?> promptVersion = const Value.absent(),
     int? revision,
     String? verification,
+    Value<String?> reviewIssue = const Value.absent(),
     DateTime? createdAt,
   }) => LearningExamMaterialRow(
     id: id ?? this.id,
@@ -30306,6 +30342,7 @@ class LearningExamMaterialRow extends DataClass
         : this.promptVersion,
     revision: revision ?? this.revision,
     verification: verification ?? this.verification,
+    reviewIssue: reviewIssue.present ? reviewIssue.value : this.reviewIssue,
     createdAt: createdAt ?? this.createdAt,
   );
   LearningExamMaterialRow copyWithCompanion(
@@ -30341,6 +30378,9 @@ class LearningExamMaterialRow extends DataClass
       verification: data.verification.present
           ? data.verification.value
           : this.verification,
+      reviewIssue: data.reviewIssue.present
+          ? data.reviewIssue.value
+          : this.reviewIssue,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -30365,6 +30405,7 @@ class LearningExamMaterialRow extends DataClass
           ..write('promptVersion: $promptVersion, ')
           ..write('revision: $revision, ')
           ..write('verification: $verification, ')
+          ..write('reviewIssue: $reviewIssue, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -30389,6 +30430,7 @@ class LearningExamMaterialRow extends DataClass
     promptVersion,
     revision,
     verification,
+    reviewIssue,
     createdAt,
   );
   @override
@@ -30412,6 +30454,7 @@ class LearningExamMaterialRow extends DataClass
           other.promptVersion == this.promptVersion &&
           other.revision == this.revision &&
           other.verification == this.verification &&
+          other.reviewIssue == this.reviewIssue &&
           other.createdAt == this.createdAt);
 }
 
@@ -30434,6 +30477,7 @@ class LearningExamMaterialsCompanion
   final Value<int?> promptVersion;
   final Value<int> revision;
   final Value<String> verification;
+  final Value<String?> reviewIssue;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const LearningExamMaterialsCompanion({
@@ -30454,6 +30498,7 @@ class LearningExamMaterialsCompanion
     this.promptVersion = const Value.absent(),
     this.revision = const Value.absent(),
     this.verification = const Value.absent(),
+    this.reviewIssue = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -30475,6 +30520,7 @@ class LearningExamMaterialsCompanion
     this.promptVersion = const Value.absent(),
     required int revision,
     required String verification,
+    this.reviewIssue = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -30510,6 +30556,7 @@ class LearningExamMaterialsCompanion
     Expression<int>? promptVersion,
     Expression<int>? revision,
     Expression<String>? verification,
+    Expression<String>? reviewIssue,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -30531,6 +30578,7 @@ class LearningExamMaterialsCompanion
       if (promptVersion != null) 'prompt_version': promptVersion,
       if (revision != null) 'revision': revision,
       if (verification != null) 'verification': verification,
+      if (reviewIssue != null) 'review_issue': reviewIssue,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -30554,6 +30602,7 @@ class LearningExamMaterialsCompanion
     Value<int?>? promptVersion,
     Value<int>? revision,
     Value<String>? verification,
+    Value<String?>? reviewIssue,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -30575,6 +30624,7 @@ class LearningExamMaterialsCompanion
       promptVersion: promptVersion ?? this.promptVersion,
       revision: revision ?? this.revision,
       verification: verification ?? this.verification,
+      reviewIssue: reviewIssue ?? this.reviewIssue,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -30634,6 +30684,9 @@ class LearningExamMaterialsCompanion
     if (verification.present) {
       map['verification'] = Variable<String>(verification.value);
     }
+    if (reviewIssue.present) {
+      map['review_issue'] = Variable<String>(reviewIssue.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -30663,6 +30716,7 @@ class LearningExamMaterialsCompanion
           ..write('promptVersion: $promptVersion, ')
           ..write('revision: $revision, ')
           ..write('verification: $verification, ')
+          ..write('reviewIssue: $reviewIssue, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -30748,6 +30802,20 @@ class $LearningExamAttemptsTable extends LearningExamAttempts
       'CHECK ("hint_used" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _reviewedAtSubmissionMeta =
+      const VerificationMeta('reviewedAtSubmission');
+  @override
+  late final GeneratedColumn<bool> reviewedAtSubmission = GeneratedColumn<bool>(
+    'reviewed_at_submission',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("reviewed_at_submission" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _matchedMeta = const VerificationMeta(
     'matched',
   );
@@ -30778,6 +30846,7 @@ class $LearningExamAttemptsTable extends LearningExamAttempts
     confidence,
     disputedPositions,
     hintUsed,
+    reviewedAtSubmission,
     matched,
     submittedAt,
   ];
@@ -30837,6 +30906,15 @@ class $LearningExamAttemptsTable extends LearningExamAttempts
     } else if (isInserting) {
       context.missing(_hintUsedMeta);
     }
+    if (data.containsKey('reviewed_at_submission')) {
+      context.handle(
+        _reviewedAtSubmissionMeta,
+        reviewedAtSubmission.isAcceptableOrUnknown(
+          data['reviewed_at_submission']!,
+          _reviewedAtSubmissionMeta,
+        ),
+      );
+    }
     if (data.containsKey('matched')) {
       context.handle(
         _matchedMeta,
@@ -30889,6 +30967,10 @@ class $LearningExamAttemptsTable extends LearningExamAttempts
         DriftSqlType.bool,
         data['${effectivePrefix}hint_used'],
       )!,
+      reviewedAtSubmission: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}reviewed_at_submission'],
+      )!,
       matched: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}matched'],
@@ -30914,6 +30996,7 @@ class LearningExamAttemptRow extends DataClass
   final String? confidence;
   final String disputedPositions;
   final bool hintUsed;
+  final bool reviewedAtSubmission;
   final int matched;
   final DateTime submittedAt;
   const LearningExamAttemptRow({
@@ -30923,6 +31006,7 @@ class LearningExamAttemptRow extends DataClass
     this.confidence,
     required this.disputedPositions,
     required this.hintUsed,
+    required this.reviewedAtSubmission,
     required this.matched,
     required this.submittedAt,
   });
@@ -30937,6 +31021,7 @@ class LearningExamAttemptRow extends DataClass
     }
     map['disputed_positions'] = Variable<String>(disputedPositions);
     map['hint_used'] = Variable<bool>(hintUsed);
+    map['reviewed_at_submission'] = Variable<bool>(reviewedAtSubmission);
     map['matched'] = Variable<int>(matched);
     map['submitted_at'] = Variable<DateTime>(submittedAt);
     return map;
@@ -30952,6 +31037,7 @@ class LearningExamAttemptRow extends DataClass
           : Value(confidence),
       disputedPositions: Value(disputedPositions),
       hintUsed: Value(hintUsed),
+      reviewedAtSubmission: Value(reviewedAtSubmission),
       matched: Value(matched),
       submittedAt: Value(submittedAt),
     );
@@ -30969,6 +31055,9 @@ class LearningExamAttemptRow extends DataClass
       confidence: serializer.fromJson<String?>(json['confidence']),
       disputedPositions: serializer.fromJson<String>(json['disputedPositions']),
       hintUsed: serializer.fromJson<bool>(json['hintUsed']),
+      reviewedAtSubmission: serializer.fromJson<bool>(
+        json['reviewedAtSubmission'],
+      ),
       matched: serializer.fromJson<int>(json['matched']),
       submittedAt: serializer.fromJson<DateTime>(json['submittedAt']),
     );
@@ -30983,6 +31072,7 @@ class LearningExamAttemptRow extends DataClass
       'confidence': serializer.toJson<String?>(confidence),
       'disputedPositions': serializer.toJson<String>(disputedPositions),
       'hintUsed': serializer.toJson<bool>(hintUsed),
+      'reviewedAtSubmission': serializer.toJson<bool>(reviewedAtSubmission),
       'matched': serializer.toJson<int>(matched),
       'submittedAt': serializer.toJson<DateTime>(submittedAt),
     };
@@ -30995,6 +31085,7 @@ class LearningExamAttemptRow extends DataClass
     Value<String?> confidence = const Value.absent(),
     String? disputedPositions,
     bool? hintUsed,
+    bool? reviewedAtSubmission,
     int? matched,
     DateTime? submittedAt,
   }) => LearningExamAttemptRow(
@@ -31004,6 +31095,7 @@ class LearningExamAttemptRow extends DataClass
     confidence: confidence.present ? confidence.value : this.confidence,
     disputedPositions: disputedPositions ?? this.disputedPositions,
     hintUsed: hintUsed ?? this.hintUsed,
+    reviewedAtSubmission: reviewedAtSubmission ?? this.reviewedAtSubmission,
     matched: matched ?? this.matched,
     submittedAt: submittedAt ?? this.submittedAt,
   );
@@ -31021,6 +31113,9 @@ class LearningExamAttemptRow extends DataClass
           ? data.disputedPositions.value
           : this.disputedPositions,
       hintUsed: data.hintUsed.present ? data.hintUsed.value : this.hintUsed,
+      reviewedAtSubmission: data.reviewedAtSubmission.present
+          ? data.reviewedAtSubmission.value
+          : this.reviewedAtSubmission,
       matched: data.matched.present ? data.matched.value : this.matched,
       submittedAt: data.submittedAt.present
           ? data.submittedAt.value
@@ -31037,6 +31132,7 @@ class LearningExamAttemptRow extends DataClass
           ..write('confidence: $confidence, ')
           ..write('disputedPositions: $disputedPositions, ')
           ..write('hintUsed: $hintUsed, ')
+          ..write('reviewedAtSubmission: $reviewedAtSubmission, ')
           ..write('matched: $matched, ')
           ..write('submittedAt: $submittedAt')
           ..write(')'))
@@ -31051,6 +31147,7 @@ class LearningExamAttemptRow extends DataClass
     confidence,
     disputedPositions,
     hintUsed,
+    reviewedAtSubmission,
     matched,
     submittedAt,
   );
@@ -31064,6 +31161,7 @@ class LearningExamAttemptRow extends DataClass
           other.confidence == this.confidence &&
           other.disputedPositions == this.disputedPositions &&
           other.hintUsed == this.hintUsed &&
+          other.reviewedAtSubmission == this.reviewedAtSubmission &&
           other.matched == this.matched &&
           other.submittedAt == this.submittedAt);
 }
@@ -31076,6 +31174,7 @@ class LearningExamAttemptsCompanion
   final Value<String?> confidence;
   final Value<String> disputedPositions;
   final Value<bool> hintUsed;
+  final Value<bool> reviewedAtSubmission;
   final Value<int> matched;
   final Value<DateTime> submittedAt;
   final Value<int> rowid;
@@ -31086,6 +31185,7 @@ class LearningExamAttemptsCompanion
     this.confidence = const Value.absent(),
     this.disputedPositions = const Value.absent(),
     this.hintUsed = const Value.absent(),
+    this.reviewedAtSubmission = const Value.absent(),
     this.matched = const Value.absent(),
     this.submittedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -31097,6 +31197,7 @@ class LearningExamAttemptsCompanion
     this.confidence = const Value.absent(),
     this.disputedPositions = const Value.absent(),
     required bool hintUsed,
+    this.reviewedAtSubmission = const Value.absent(),
     required int matched,
     required DateTime submittedAt,
     this.rowid = const Value.absent(),
@@ -31113,6 +31214,7 @@ class LearningExamAttemptsCompanion
     Expression<String>? confidence,
     Expression<String>? disputedPositions,
     Expression<bool>? hintUsed,
+    Expression<bool>? reviewedAtSubmission,
     Expression<int>? matched,
     Expression<DateTime>? submittedAt,
     Expression<int>? rowid,
@@ -31124,6 +31226,8 @@ class LearningExamAttemptsCompanion
       if (confidence != null) 'confidence': confidence,
       if (disputedPositions != null) 'disputed_positions': disputedPositions,
       if (hintUsed != null) 'hint_used': hintUsed,
+      if (reviewedAtSubmission != null)
+        'reviewed_at_submission': reviewedAtSubmission,
       if (matched != null) 'matched': matched,
       if (submittedAt != null) 'submitted_at': submittedAt,
       if (rowid != null) 'rowid': rowid,
@@ -31137,6 +31241,7 @@ class LearningExamAttemptsCompanion
     Value<String?>? confidence,
     Value<String>? disputedPositions,
     Value<bool>? hintUsed,
+    Value<bool>? reviewedAtSubmission,
     Value<int>? matched,
     Value<DateTime>? submittedAt,
     Value<int>? rowid,
@@ -31148,6 +31253,7 @@ class LearningExamAttemptsCompanion
       confidence: confidence ?? this.confidence,
       disputedPositions: disputedPositions ?? this.disputedPositions,
       hintUsed: hintUsed ?? this.hintUsed,
+      reviewedAtSubmission: reviewedAtSubmission ?? this.reviewedAtSubmission,
       matched: matched ?? this.matched,
       submittedAt: submittedAt ?? this.submittedAt,
       rowid: rowid ?? this.rowid,
@@ -31175,6 +31281,11 @@ class LearningExamAttemptsCompanion
     if (hintUsed.present) {
       map['hint_used'] = Variable<bool>(hintUsed.value);
     }
+    if (reviewedAtSubmission.present) {
+      map['reviewed_at_submission'] = Variable<bool>(
+        reviewedAtSubmission.value,
+      );
+    }
     if (matched.present) {
       map['matched'] = Variable<int>(matched.value);
     }
@@ -31196,6 +31307,7 @@ class LearningExamAttemptsCompanion
           ..write('confidence: $confidence, ')
           ..write('disputedPositions: $disputedPositions, ')
           ..write('hintUsed: $hintUsed, ')
+          ..write('reviewedAtSubmission: $reviewedAtSubmission, ')
           ..write('matched: $matched, ')
           ..write('submittedAt: $submittedAt, ')
           ..write('rowid: $rowid')

@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/ai/ai_usage_store.dart';
 import '../../core/ai/chat_provider.dart';
 import '../../core/database/database.dart';
+import 'language_stream.dart';
 import 'language_store.dart';
 import 'sentence_content.dart';
 import 'sentence_store.dart';
@@ -80,6 +81,7 @@ class SentenceExplanation {
     final reasoning = StringBuffer();
     var complete = false;
     var status = 'error';
+    var breakdownComplete = true;
     AiTokenUsage? usage;
     try {
       final stream = isMock
@@ -89,19 +91,23 @@ class SentenceExplanation {
                 completed: true,
               ),
             )
-          : provider.start(config).complete(request, cancel);
+          : boundedLanguageStream(
+              (transport) =>
+                  provider.start(config).complete(request, transport),
+              cancel,
+            );
       await for (final chunk in stream) {
         cancel.checkCancelled();
         usage = chunk.usage ?? usage;
         if (chunk.calls.isNotEmpty ||
             (complete &&
                 (chunk.text.isNotEmpty || chunk.reasoning.isNotEmpty)) ||
-            buffer.length + chunk.text.length > 1600 ||
-            reasoning.length + chunk.reasoning.length > 16000) {
+            buffer.length + chunk.text.length > 1600) {
           throw const FormatException('Invalid explanation reply');
         }
         buffer.write(chunk.text);
-        reasoning.write(chunk.reasoning);
+        breakdownComplete &= reasoning.length + chunk.reasoning.length <= 32000;
+        if (breakdownComplete) reasoning.write(chunk.reasoning);
         complete |= chunk.completed;
       }
       cancel.checkCancelled();
@@ -117,9 +123,13 @@ class SentenceExplanation {
         model: model,
         promptVersion: _promptVersion,
         text: text,
+        cancel: cancel,
       );
       status = 'complete';
       return text;
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) status = 'cancelled';
+      rethrow;
     } finally {
       final recorder = usageStore;
       if (recorder != null && !isMock) {
@@ -131,12 +141,12 @@ class SentenceExplanation {
               endpoint: config.baseUrl,
               model: model,
               feature: 'language_explanation',
-              status: cancel.isCancelled ? 'incomplete' : status,
+              status: cancel.isCancelled ? 'cancelled' : status,
               occurredAt: started,
               durationMs: DateTime.now().difference(started).inMilliseconds,
               usage: usage,
             ),
-            request: request,
+            request: breakdownComplete ? request : null,
             response: buffer.toString(),
             reasoning: reasoning.toString(),
           );

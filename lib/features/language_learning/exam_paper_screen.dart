@@ -37,7 +37,6 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
   ExamResult? _result;
   CancelToken? _review;
   bool _saving = false;
-  String? _reviewIssue;
 
   String _confidenceLabel(AppLocalizations l10n, ExamConfidence confidence) =>
       switch (confidence) {
@@ -55,6 +54,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
   Future<void> _submit() async {
     if (_saving ||
         _result != null ||
+        _review != null ||
         _answers.any((answer) => answer.trim().isEmpty)) {
       return;
     }
@@ -83,13 +83,17 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
   }
 
   Future<void> _qualityReview() async {
+    if (_review != null ||
+        _saving ||
+        _result != null ||
+        _answers.any((answer) => answer.isNotEmpty) ||
+        _hints.isNotEmpty) {
+      return;
+    }
     final cancel = CancelToken();
     final gloss =
         widget.glossLanguage ?? Localizations.localeOf(context).languageCode;
-    setState(() {
-      _review = cancel;
-      _reviewIssue = null;
-    });
+    setState(() => _review = cancel);
     try {
       final review = await widget.ai.review(
         _material,
@@ -99,7 +103,6 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
       if (mounted && !cancel.isCancelled) {
         setState(() {
           _material = review.material;
-          _reviewIssue = review.issue.isEmpty ? null : review.issue;
         });
       }
     } catch (error) {
@@ -128,6 +131,14 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
     final result = _result;
     final theme = Theme.of(context);
     final insertion = _material.target.kind == ExamKind.sentenceInsertion;
+    final canReview =
+        result == null &&
+        _material.verification != ExamVerification.aiReviewed &&
+        _material.source == ExamSource.aiGenerated &&
+        _material.row.model != 'Mock' &&
+        !widget.ai.isMock &&
+        _answers.every((answer) => answer.isEmpty) &&
+        _hints.isEmpty;
     return Scaffold(
       appBar: AppBar(title: Text(examSourceLabel(l10n, _material))),
       body: ListView(
@@ -154,26 +165,25 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
                       ),
                     if (_material.source == ExamSource.aiGenerated)
                       Text(l10n.languageExamReferenceResult),
-                    if (_material.verification ==
-                            ExamVerification.structureChecked &&
-                        _material.source == ExamSource.aiGenerated &&
-                        _material.row.model != 'Mock')
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: TextButton(
-                          onPressed: _review == null
-                              ? _qualityReview
-                              : () => _review?.cancel(),
-                          child: Text(
-                            _review == null
-                                ? l10n.languageExamReviewAi
-                                : l10n.cancel,
-                          ),
+                  ],
+                  if (canReview || _review != null) ...[
+                    Text(l10n.languageExamReviewCost),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TextButton(
+                        onPressed: _review == null
+                            ? _qualityReview
+                            : () => _review?.cancel(),
+                        child: Text(
+                          _review == null
+                              ? l10n.languageExamReviewAi
+                              : l10n.cancel,
                         ),
                       ),
+                    ),
                     if (_review != null) const LinearProgressIndicator(),
-                    if (_reviewIssue case final issue?) Text(issue),
                   ],
+                  if (_material.row.reviewIssue case final issue?) Text(issue),
                   for (final paragraph in _paper.paragraphs)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
@@ -217,6 +227,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
                     FilledButton(
                       onPressed:
                           !_saving &&
+                              _review == null &&
                               _answers.every((value) => value.trim().isNotEmpty)
                           ? _submit
                           : null,
@@ -299,7 +310,9 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
           SelectableText(item.evidence)
         else
           TextButton(
-            onPressed: _saving ? null : () => setState(() => _hints.add(index)),
+            onPressed: _saving || _review != null
+                ? null
+                : () => setState(() => _hints.add(index)),
             child: Text(l10n.languageExamEvidenceHint),
           ),
       ],
@@ -342,7 +355,8 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
           Text('${entry.key}. ${entry.value}'),
         if (_material.target.kind == ExamKind.grammar && !correct)
           TextButton(
-            onPressed: _saving || result.disputed.contains(index)
+            onPressed:
+                _saving || _review != null || result.disputed.contains(index)
                 ? null
                 : () => _dispute(index),
             child: Text(
@@ -363,7 +377,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
       final history = snapshot.data;
       if (history == null || history.isEmpty) return const SizedBox.shrink();
       return TextButton(
-        onPressed: _saving
+        onPressed: _saving || _review != null
             ? null
             : () async {
                 final entry = await showDialog<ExamResult>(

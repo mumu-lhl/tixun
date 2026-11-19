@@ -1,4 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
+
+import '../../core/ai/chat_provider.dart' show CancelGuard;
 
 import '../../core/database/database.dart';
 import 'language_store.dart';
@@ -64,19 +67,24 @@ extension SentenceLearningStore on LanguageLearningStore {
     required String model,
     required int promptVersion,
     required String text,
-  }) => runOperation(() async {
-    await db
-        .into(db.learningInlineExplanations)
-        .insertOnConflictUpdate(
-          LearningInlineExplanationsCompanion.insert(
-            cacheKey: key,
-            contentId: card.id,
-            revision: card.revision,
-            model: model,
-            promptVersion: promptVersion,
-            explanation: text,
-            createdAt: DateTime.now(),
-          ),
-        );
-  });
+    CancelToken? cancel,
+  }) => runOperation(
+    () => db.transaction(() async {
+      cancel?.checkCancelled();
+      await db
+          .into(db.learningInlineExplanations)
+          .insertOnConflictUpdate(
+            LearningInlineExplanationsCompanion.insert(
+              cacheKey: key,
+              contentId: card.id,
+              revision: card.revision,
+              model: model,
+              promptVersion: promptVersion,
+              explanation: text,
+              createdAt: DateTime.now(),
+            ),
+          );
+      cancel?.checkCancelled();
+    }),
+  );
 }

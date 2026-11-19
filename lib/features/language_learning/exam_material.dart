@@ -11,7 +11,7 @@ enum ExamConfidence { certain, unsure, guess }
 
 enum ExamSource { bundled, userCreated, aiGenerated }
 
-enum ExamVerification { bundled, structureChecked, aiReviewed }
+enum ExamVerification { bundled, structureChecked, aiReviewed, reviewRejected }
 
 enum ExamProfile {
   zhejiang2026('zhejiang-gaokao-en-2026-v1');

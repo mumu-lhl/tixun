@@ -54,6 +54,16 @@ extension _DatabaseMigrations on AppDatabase {
         await m.createTable(learningExamAttempts);
         await _createLanguageExamIndexes();
       }
+      if (from >= 23 && from < 26) {
+        await m.addColumn(
+          learningExamMaterials,
+          learningExamMaterials.reviewIssue,
+        );
+        await m.addColumn(
+          learningExamAttempts,
+          learningExamAttempts.reviewedAtSubmission,
+        );
+      }
       if (from < 21) await m.createTable(chatContextEvents);
       if (from < 22) {
         for (final table in <TableInfo>[

@@ -240,7 +240,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 25;
+  static const latestSchemaVersion = 26;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override

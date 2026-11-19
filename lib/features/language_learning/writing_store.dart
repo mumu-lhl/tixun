@@ -1,7 +1,10 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
+
+import '../../core/ai/chat_provider.dart' show CancelGuard;
 
 import '../../core/database/database.dart';
 import 'language_store.dart';
@@ -117,8 +120,10 @@ extension WritingLearningStore on LanguageLearningStore {
     required String model,
     required int promptVersion,
     required bool isMock,
+    CancelToken? cancel,
   }) => runOperation(
     () => db.transaction(() async {
+      cancel?.checkCancelled();
       final existing = await writingFeedback(versionId);
       if (existing != null) {
         if (!existing.isMock || isMock) return;
@@ -154,6 +159,7 @@ extension WritingLearningStore on LanguageLearningStore {
             ),
         ]);
       });
+      cancel?.checkCancelled();
     }),
   );
 }

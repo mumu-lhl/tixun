@@ -1,4 +1,6 @@
 {
+  "languageExamReviewCost": "可在作答前请求一次独立语义复核，会额外调用一次模型并按服务商规则计费。",
+  "languageExamReviewRejected": "AI 复核发现问题",
   "quickEnglishStudyOnly": "目前可将英语速查结果加入学习。",
   "quickUnavailable": "暂时无法查询，请检查网络和模型设置后重试。",
   "quickLookup": "语言速查",

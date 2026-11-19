@@ -114,6 +114,7 @@ class ExamAi {
         material.row.model == 'Mock') {
       throw const FormatException('Unavailable exam review');
     }
+    cancel.checkCancelled();
     if (material.verification == ExamVerification.aiReviewed) {
       return (material: material, issue: '');
     }
@@ -143,6 +144,7 @@ class ExamAi {
       maxChars: 2000,
       parse: (value) {
         if (value is! Map ||
+            value.length != 2 ||
             value['approved'] is! bool ||
             value['issue'] is! String ||
             (value['issue'] as String).length > 600 ||
@@ -158,9 +160,11 @@ class ExamAi {
     );
     cancel.checkCancelled();
     return (
-      material: review.approved
-          ? await store.markExamAiReviewed(material, cancel: cancel)
-          : material,
+      material: await store.markExamAiReviewed(
+        material,
+        issue: review.issue,
+        cancel: cancel,
+      ),
       issue: review.issue,
     );
   }

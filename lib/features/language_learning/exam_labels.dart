@@ -14,9 +14,10 @@ String examSourceLabel(AppLocalizations l10n, ExamMaterial material) {
   return switch (material.source) {
     ExamSource.bundled => l10n.languageExamBundled,
     ExamSource.userCreated => l10n.languageExamUserCreated,
-    ExamSource.aiGenerated =>
-      material.verification == ExamVerification.aiReviewed
-          ? l10n.languageExamAiReviewed
-          : l10n.languageExamUnverified,
+    ExamSource.aiGenerated => switch (material.verification) {
+      ExamVerification.aiReviewed => l10n.languageExamAiReviewed,
+      ExamVerification.reviewRejected => l10n.languageExamReviewRejected,
+      _ => l10n.languageExamUnverified,
+    },
   };
 }

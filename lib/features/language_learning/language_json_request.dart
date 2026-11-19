@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/ai/ai_usage_store.dart';
 import '../../core/ai/chat_provider.dart';
 import '../../core/database/database.dart';
+import 'language_stream.dart';
 
 Object? decodeLanguageJson(String raw) {
   final trimmed = raw.trim();
@@ -26,33 +27,32 @@ Future<T> requestLanguageJson<T>({
   required CancelToken cancel,
   required T Function(Object?) parse,
   int maxChars = 28000,
-  String cancelledStatus = 'incomplete',
+  String cancelledStatus = 'cancelled',
   bool captureLocalBreakdown = true,
 }) async {
   cancel.checkCancelled();
   final started = DateTime.now();
   final body = StringBuffer(), reasoning = StringBuffer();
   var complete = false;
+  var breakdownComplete = captureLocalBreakdown;
   var status = 'error';
   AiTokenUsage? usage;
   try {
-    await for (final chunk
-        in provider
-            .start(config)
-            .complete(request, cancel)
-            .timeout(const Duration(minutes: 2))) {
+    await for (final chunk in boundedLanguageStream(
+      (transport) => provider.start(config).complete(request, transport),
+      cancel,
+    )) {
       cancel.checkCancelled();
       usage = chunk.usage ?? usage;
       if (chunk.calls.isNotEmpty ||
           (complete && (chunk.text.isNotEmpty || chunk.reasoning.isNotEmpty)) ||
-          body.length + chunk.text.length > maxChars ||
-          (captureLocalBreakdown &&
-              reasoning.length + chunk.reasoning.length > 32000)) {
+          body.length + chunk.text.length > maxChars) {
         throw const FormatException('Invalid language generation reply');
       }
       complete |= chunk.completed;
       body.write(chunk.text);
-      if (captureLocalBreakdown) reasoning.write(chunk.reasoning);
+      breakdownComplete &= reasoning.length + chunk.reasoning.length <= 32000;
+      if (breakdownComplete) reasoning.write(chunk.reasoning);
     }
     cancel.checkCancelled();
     if (!complete) {
@@ -62,6 +62,9 @@ Future<T> requestLanguageJson<T>({
     final value = parse(decodeLanguageJson(body.toString()));
     status = 'complete';
     return value;
+  } on DioException catch (error) {
+    if (CancelToken.isCancel(error)) status = 'cancelled';
+    rethrow;
   } finally {
     if (usageStore != null && provider is! MockChatProvider) {
       try {
@@ -77,7 +80,7 @@ Future<T> requestLanguageJson<T>({
             durationMs: DateTime.now().difference(started).inMilliseconds,
             usage: usage,
           ),
-          request: captureLocalBreakdown ? request : null,
+          request: breakdownComplete ? request : null,
           response: body.toString(),
           reasoning: reasoning.toString(),
         );

@@ -87,6 +87,9 @@ extension ExamLearningStore on LanguageLearningStore {
                     row.source.equals(ExamSource.bundled.name).not() &
                     (row.model.isNull() | row.model.equals('Mock').not()) &
                     row.level.equals(target.level.name) &
+                    row.verification
+                        .equals(ExamVerification.reviewRejected.name)
+                        .not() &
                     row.topic.equals(target.topic.trim()) &
                     (target.skill == null
                         ? const Constant(true)
@@ -127,6 +130,21 @@ extension ExamLearningStore on LanguageLearningStore {
   Future<SentenceSkill?> recommendedExamSkill(ExamKind kind) async {
     final material = db.learningExamMaterials;
     final attempt = db.learningExamAttempts;
+    final other = db.alias(attempt, 'other_exam_attempt');
+    final earlier = db.selectOnly(other)
+      ..addColumns([other.id])
+      ..where(
+        other.materialId.equalsExp(attempt.materialId) &
+            (other.submittedAt.isSmallerThan(attempt.submittedAt) |
+                (other.submittedAt.equalsExp(attempt.submittedAt) &
+                    other.rowId.isSmallerThan(attempt.rowId))),
+      );
+    final disputed = db.selectOnly(other)
+      ..addColumns([other.id])
+      ..where(
+        other.materialId.equalsExp(attempt.materialId) &
+            other.disputedPositions.equals('[]').not(),
+      );
     final query =
         db.select(attempt).join([
             innerJoin(material, material.id.equalsExp(attempt.materialId)),
@@ -134,7 +152,10 @@ extension ExamLearningStore on LanguageLearningStore {
           ..where(
             material.kind.equals(kind.name) &
                 material.verification.equals(ExamVerification.aiReviewed.name) &
-                attempt.hintUsed.equals(false),
+                attempt.reviewedAtSubmission.equals(true) &
+                attempt.hintUsed.equals(false) &
+                notExistsQuery(earlier) &
+                notExistsQuery(disputed),
           )
           ..orderBy([
             OrderingTerm.desc(attempt.submittedAt),
@@ -265,6 +286,7 @@ extension ExamLearningStore on LanguageLearningStore {
 
   Future<ExamMaterial> markExamAiReviewed(
     ExamMaterial material, {
+    String issue = '',
     CancelToken? cancel,
   }) => runOperation(
     () => db.transaction(() async {
@@ -283,7 +305,12 @@ extension ExamLearningStore on LanguageLearningStore {
         );
       final rows = await scope.writeReturning(
         LearningExamMaterialsCompanion(
-          verification: Value(ExamVerification.aiReviewed.name),
+          verification: Value(
+            issue.isEmpty
+                ? ExamVerification.aiReviewed.name
+                : ExamVerification.reviewRejected.name,
+          ),
+          reviewIssue: Value(issue.isEmpty ? null : issue),
         ),
       );
       cancel?.checkCancelled();
@@ -337,10 +364,20 @@ extension ExamLearningStore on LanguageLearningStore {
         }
         return ExamResult(old);
       }
+      final persisted = await (db.select(
+        db.learningExamMaterials,
+      )..where((row) => row.id.equals(material.row.id))).getSingle();
+      final reviewed =
+          material.verification == ExamVerification.aiReviewed &&
+          persisted.verification == ExamVerification.aiReviewed.name &&
+          persisted.revision == material.row.revision &&
+          persisted.fingerprint == material.row.fingerprint &&
+          persisted.model != 'Mock';
       final row = await db
           .into(table)
           .insertReturning(
             LearningExamAttemptsCompanion.insert(
+              reviewedAtSubmission: Value(reviewed),
               id: attemptId,
               materialId: material.row.id,
               responses: encoded,

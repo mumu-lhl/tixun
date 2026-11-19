@@ -227,6 +227,7 @@ class LearningExamMaterials extends Table {
   IntColumn get promptVersion => integer().nullable()();
   IntColumn get revision => integer()();
   TextColumn get verification => text()();
+  TextColumn get reviewIssue => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -242,6 +243,8 @@ class LearningExamAttempts extends Table {
   TextColumn get disputedPositions =>
       text().withDefault(const Constant('[]'))();
   BoolColumn get hintUsed => boolean()();
+  BoolColumn get reviewedAtSubmission =>
+      boolean().withDefault(const Constant(false))();
   IntColumn get matched => integer()();
   DateTimeColumn get submittedAt => dateTime()();
 

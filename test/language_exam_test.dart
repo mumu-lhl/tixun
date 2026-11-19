@@ -204,7 +204,7 @@ void main() {
       expect(events.map((event) => event.status), [
         'incomplete',
         'error',
-        'incomplete',
+        'cancelled',
       ]);
     },
   );
@@ -241,8 +241,10 @@ void main() {
         glossLanguage: 'en',
         cancel: CancelToken(),
       );
-      expect(declined.material.verification, ExamVerification.structureChecked);
+      expect(declined.material.verification, ExamVerification.reviewRejected);
       expect(declined.issue, isNotEmpty);
+      expect(declined.material.row.reviewIssue, declined.issue);
+      expect(await store.reusableExam(target), isNull);
       provider.response = '{"approved":true,"issue":""}';
       final approved = await ai.review(
         material,
@@ -251,9 +253,25 @@ void main() {
       );
       expect(approved.material.verification, ExamVerification.aiReviewed);
       expect(approved.material.row.revision, material.row.revision);
+      expect(await store.recommendedExamSkill(ExamKind.reading), isNull);
+      final repeated = await store.submitExam(
+        material: approved.material,
+        attemptId: 'reviewed-repeat',
+        responses: wrongAnswers,
+        confidence: ExamConfidence.certain,
+        hintUsed: false,
+      );
+      expect(await store.recommendedExamSkill(ExamKind.reading), isNull);
+      final saved = await db.select(db.learningExamAttempts).get();
       expect(
-        await store.recommendedExamSkill(ExamKind.reading),
-        SentenceSkill.detail,
+        saved.singleWhere((a) => a.id == repeated.id).reviewedAtSubmission,
+        isTrue,
+      );
+      expect(
+        saved
+            .singleWhere((a) => a.id == 'incorrect-reading')
+            .reviewedAtSubmission,
+        isFalse,
       );
       expect(provider.requests, hasLength(3));
     },
