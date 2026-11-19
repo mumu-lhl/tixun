@@ -2921,5 +2921,16 @@
   "toolActivityFallback": "调用工具",
   "chatStarterConcept": "二次函数的顶点公式，怎样理解而不是死记？",
   "chatStarterMethod": "我会做这道题，但不知道为什么要用这个方法。",
-  "chatCompactInputHint": "写下你的问题…"
+  "chatCompactInputHint": "写下你的问题…",
+  "chatA2uiLabel": "AI 生成的交互界面",
+  "chatA2uiUnavailable": "此交互界面暂不可用。",
+  "chatA2uiActionFailed": "界面操作未能完成。",
+  "chatA2uiStateFailed": "未能保存此界面的更改。",
+  "chatA2uiFlip": "翻转卡片",
+  "chatA2uiContinue": "继续对话",
+  "chatA2uiSend": "发送给 AI",
+  "chatA2uiConfirm": "以下文字将随本次对话发送，你可以先修改。",
+  "chatA2uiCopied": "已复制文字",
+  "chatA2uiOpenPractice": "打开关联练习",
+  "chatA2uiPracticeUnavailable": "此回复没有可单独打开的关联练习。"
 }

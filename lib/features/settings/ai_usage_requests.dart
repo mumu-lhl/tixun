@@ -212,6 +212,7 @@ String _featureLabel(BuildContext context, String feature) => switch (feature) {
   'language_writing_task' => context.l10n.usageFeatureLanguageWritingTask,
   'language_writing' => context.l10n.usageFeatureLanguageWriting,
   'connection_test' => context.l10n.usageFeatureConnectionTest,
+  'a2ui_create' => context.l10n.chatA2uiLabel,
   'visual_create' => context.l10n.usageFeatureVisualCreate,
   'visual_edit' => context.l10n.usageFeatureVisualEdit,
   'quiz_with_visual' => context.l10n.usageFeatureQuizWithVisual,

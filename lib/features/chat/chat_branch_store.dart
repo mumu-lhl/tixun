@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_error.dart';
 import '../practice/practice_store.dart';
+import '../a2ui/a2ui_store.dart';
 import 'chat_context_store.dart';
 
 /// Copies only the prefix ending at the chosen message. Original messages,
@@ -78,6 +79,7 @@ class ChatBranchStore {
     final visualLinks = await query.get();
     final messageIds = <String, String>{};
     final attachmentIds = <String, String>{};
+    final a2ui = ChatA2uiStore(db);
     for (final message in prefix) {
       final newId = const Uuid().v4();
       messageIds[message.id] = newId;
@@ -91,6 +93,12 @@ class ChatBranchStore {
           );
       if (message.role == 'assistant') {
         await practice.linkFork(message.id, newId);
+        await a2ui.copyMessage(
+          sourceSession: parent.id,
+          sourceMessage: message.id,
+          targetSession: branch.id,
+          targetMessage: newId,
+        );
       }
       for (final image in images.where((a) => a.messageId == message.id)) {
         final id = const Uuid().v4();

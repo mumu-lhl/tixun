@@ -35,6 +35,16 @@ class _Calculation implements ChatProvider {
       });
 }
 
+class _InferenceDeadline implements Timer {
+  @override
+  bool isActive = true;
+  @override
+  int get tick => 0;
+
+  @override
+  void cancel() => isActive = false;
+}
+
 void main() {
   test(
     'Reviewing code pauses the inference deadline without bypassing approval',
@@ -81,6 +91,7 @@ void main() {
         _Calculation(),
         pythonTool: python,
       );
+      final deadlines = <_InferenceDeadline>[];
       final result = await runZoned(
         () async => run.run(
           sessionId: session.id,
@@ -94,23 +105,25 @@ void main() {
           cancel: CancelToken(),
           confirm: (_, args, count) async {
             expect(executed, false);
-            await Future<void>.delayed(const Duration(milliseconds: 700));
+            expect(deadlines.single.isActive, false);
             return true;
           },
           onProgress: (_) async {},
         ),
         zoneSpecification: ZoneSpecification(
-          createTimer: (self, parent, zone, duration, callback) =>
-              parent.createTimer(
-                zone,
-                duration == const Duration(minutes: 3)
-                    ? const Duration(milliseconds: 300)
-                    : duration,
-                callback,
-              ),
+          createTimer: (self, parent, zone, duration, callback) {
+            if (duration != const Duration(minutes: 3)) {
+              return parent.createTimer(zone, duration, callback);
+            }
+            final deadline = _InferenceDeadline();
+            deadlines.add(deadline);
+            return deadline;
+          },
         ),
       );
       expect(executed, true);
+      expect(deadlines, hasLength(2));
+      expect(deadlines.every((timer) => !timer.isActive), isTrue);
       expect(result.text, contains('9'));
       study.dispose();
       practice.dispose();

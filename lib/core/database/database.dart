@@ -14,6 +14,7 @@ part 'review_tables.dart';
 part 'exam_tables.dart';
 part 'module_tables.dart';
 part 'visual_tables.dart';
+part 'a2ui_tables.dart';
 part 'language_tables.dart';
 part 'language_quick_tables.dart';
 part 'database_migrations.dart';
@@ -209,6 +210,8 @@ class AiModelPrices extends Table {
     SubjectModules,
     KnowledgeModuleLinks,
     MistakeModuleLinks,
+    ChatA2uiSurfaces,
+    ChatA2uiActions,
     VisualScenes,
     VisualSceneRevisions,
     VisualMessageLinks,
@@ -244,7 +247,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 28;
+  static const latestSchemaVersion = 29;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override

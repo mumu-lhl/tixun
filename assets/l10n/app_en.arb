@@ -2921,5 +2921,16 @@
   "toolActivityFallback": "Tool call",
   "chatStarterConcept": "How can I understand the vertex formula instead of memorizing it?",
   "chatStarterMethod": "I can solve this problem, but why does this method work?",
-  "chatCompactInputHint": "Ask a question…"
+  "chatCompactInputHint": "Ask a question…",
+  "chatA2uiLabel": "AI-generated interactive content",
+  "chatA2uiUnavailable": "This interactive content is unavailable.",
+  "chatA2uiActionFailed": "Could not complete the interface action.",
+  "chatA2uiStateFailed": "Could not save changes to this interface.",
+  "chatA2uiFlip": "Flip card",
+  "chatA2uiContinue": "Continue in chat",
+  "chatA2uiSend": "Send to AI",
+  "chatA2uiConfirm": "The text below will be sent with this conversation. You can edit it first.",
+  "chatA2uiCopied": "Text copied",
+  "chatA2uiOpenPractice": "Open linked practice",
+  "chatA2uiPracticeUnavailable": "There is no single linked exercise to open."
 }

@@ -18504,6 +18504,1159 @@ class MistakeModuleLinksCompanion extends UpdateCompanion<MistakeModuleLink> {
   }
 }
 
+class $ChatA2uiSurfacesTable extends ChatA2uiSurfaces
+    with TableInfo<$ChatA2uiSurfacesTable, ChatA2uiSurface> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChatA2uiSurfacesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_sessions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _messageIdMeta = const VerificationMeta(
+    'messageId',
+  );
+  @override
+  late final GeneratedColumn<String> messageId = GeneratedColumn<String>(
+    'message_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chat_messages (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _toolCallIdMeta = const VerificationMeta(
+    'toolCallId',
+  );
+  @override
+  late final GeneratedColumn<String> toolCallId = GeneratedColumn<String>(
+    'tool_call_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _protocolMeta = const VerificationMeta(
+    'protocol',
+  );
+  @override
+  late final GeneratedColumn<String> protocol = GeneratedColumn<String>(
+    'protocol',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _catalogMeta = const VerificationMeta(
+    'catalog',
+  );
+  @override
+  late final GeneratedColumn<String> catalog = GeneratedColumn<String>(
+    'catalog',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expressMeta = const VerificationMeta(
+    'express',
+  );
+  @override
+  late final GeneratedColumn<String> express = GeneratedColumn<String>(
+    'express',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _messagesJsonMeta = const VerificationMeta(
+    'messagesJson',
+  );
+  @override
+  late final GeneratedColumn<String> messagesJson = GeneratedColumn<String>(
+    'messages_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stateJsonMeta = const VerificationMeta(
+    'stateJson',
+  );
+  @override
+  late final GeneratedColumn<String> stateJson = GeneratedColumn<String>(
+    'state_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _autoOffsetMeta = const VerificationMeta(
+    'autoOffset',
+  );
+  @override
+  late final GeneratedColumn<int> autoOffset = GeneratedColumn<int>(
+    'auto_offset',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ordinalMeta = const VerificationMeta(
+    'ordinal',
+  );
+  @override
+  late final GeneratedColumn<int> ordinal = GeneratedColumn<int>(
+    'ordinal',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    sessionId,
+    id,
+    messageId,
+    toolCallId,
+    protocol,
+    catalog,
+    express,
+    messagesJson,
+    stateJson,
+    autoOffset,
+    ordinal,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chat_a2ui_surfaces';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ChatA2uiSurface> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('message_id')) {
+      context.handle(
+        _messageIdMeta,
+        messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_messageIdMeta);
+    }
+    if (data.containsKey('tool_call_id')) {
+      context.handle(
+        _toolCallIdMeta,
+        toolCallId.isAcceptableOrUnknown(
+          data['tool_call_id']!,
+          _toolCallIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_toolCallIdMeta);
+    }
+    if (data.containsKey('protocol')) {
+      context.handle(
+        _protocolMeta,
+        protocol.isAcceptableOrUnknown(data['protocol']!, _protocolMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_protocolMeta);
+    }
+    if (data.containsKey('catalog')) {
+      context.handle(
+        _catalogMeta,
+        catalog.isAcceptableOrUnknown(data['catalog']!, _catalogMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_catalogMeta);
+    }
+    if (data.containsKey('express')) {
+      context.handle(
+        _expressMeta,
+        express.isAcceptableOrUnknown(data['express']!, _expressMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expressMeta);
+    }
+    if (data.containsKey('messages_json')) {
+      context.handle(
+        _messagesJsonMeta,
+        messagesJson.isAcceptableOrUnknown(
+          data['messages_json']!,
+          _messagesJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_messagesJsonMeta);
+    }
+    if (data.containsKey('state_json')) {
+      context.handle(
+        _stateJsonMeta,
+        stateJson.isAcceptableOrUnknown(data['state_json']!, _stateJsonMeta),
+      );
+    }
+    if (data.containsKey('auto_offset')) {
+      context.handle(
+        _autoOffsetMeta,
+        autoOffset.isAcceptableOrUnknown(data['auto_offset']!, _autoOffsetMeta),
+      );
+    }
+    if (data.containsKey('ordinal')) {
+      context.handle(
+        _ordinalMeta,
+        ordinal.isAcceptableOrUnknown(data['ordinal']!, _ordinalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ordinalMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {sessionId, id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {messageId, toolCallId},
+    {messageId, ordinal},
+  ];
+  @override
+  ChatA2uiSurface map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChatA2uiSurface(
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      messageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_id'],
+      )!,
+      toolCallId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tool_call_id'],
+      )!,
+      protocol: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}protocol'],
+      )!,
+      catalog: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}catalog'],
+      )!,
+      express: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}express'],
+      )!,
+      messagesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}messages_json'],
+      )!,
+      stateJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state_json'],
+      ),
+      autoOffset: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}auto_offset'],
+      ),
+      ordinal: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ordinal'],
+      )!,
+    );
+  }
+
+  @override
+  $ChatA2uiSurfacesTable createAlias(String alias) {
+    return $ChatA2uiSurfacesTable(attachedDatabase, alias);
+  }
+}
+
+class ChatA2uiSurface extends DataClass implements Insertable<ChatA2uiSurface> {
+  final String sessionId;
+  final String id;
+  final String messageId;
+  final String toolCallId;
+  final String protocol;
+  final String catalog;
+  final String express;
+  final String messagesJson;
+  final String? stateJson;
+  final int? autoOffset;
+  final int ordinal;
+  const ChatA2uiSurface({
+    required this.sessionId,
+    required this.id,
+    required this.messageId,
+    required this.toolCallId,
+    required this.protocol,
+    required this.catalog,
+    required this.express,
+    required this.messagesJson,
+    this.stateJson,
+    this.autoOffset,
+    required this.ordinal,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['session_id'] = Variable<String>(sessionId);
+    map['id'] = Variable<String>(id);
+    map['message_id'] = Variable<String>(messageId);
+    map['tool_call_id'] = Variable<String>(toolCallId);
+    map['protocol'] = Variable<String>(protocol);
+    map['catalog'] = Variable<String>(catalog);
+    map['express'] = Variable<String>(express);
+    map['messages_json'] = Variable<String>(messagesJson);
+    if (!nullToAbsent || stateJson != null) {
+      map['state_json'] = Variable<String>(stateJson);
+    }
+    if (!nullToAbsent || autoOffset != null) {
+      map['auto_offset'] = Variable<int>(autoOffset);
+    }
+    map['ordinal'] = Variable<int>(ordinal);
+    return map;
+  }
+
+  ChatA2uiSurfacesCompanion toCompanion(bool nullToAbsent) {
+    return ChatA2uiSurfacesCompanion(
+      sessionId: Value(sessionId),
+      id: Value(id),
+      messageId: Value(messageId),
+      toolCallId: Value(toolCallId),
+      protocol: Value(protocol),
+      catalog: Value(catalog),
+      express: Value(express),
+      messagesJson: Value(messagesJson),
+      stateJson: stateJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stateJson),
+      autoOffset: autoOffset == null && nullToAbsent
+          ? const Value.absent()
+          : Value(autoOffset),
+      ordinal: Value(ordinal),
+    );
+  }
+
+  factory ChatA2uiSurface.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChatA2uiSurface(
+      sessionId: serializer.fromJson<String>(json['sessionId']),
+      id: serializer.fromJson<String>(json['id']),
+      messageId: serializer.fromJson<String>(json['messageId']),
+      toolCallId: serializer.fromJson<String>(json['toolCallId']),
+      protocol: serializer.fromJson<String>(json['protocol']),
+      catalog: serializer.fromJson<String>(json['catalog']),
+      express: serializer.fromJson<String>(json['express']),
+      messagesJson: serializer.fromJson<String>(json['messagesJson']),
+      stateJson: serializer.fromJson<String?>(json['stateJson']),
+      autoOffset: serializer.fromJson<int?>(json['autoOffset']),
+      ordinal: serializer.fromJson<int>(json['ordinal']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sessionId': serializer.toJson<String>(sessionId),
+      'id': serializer.toJson<String>(id),
+      'messageId': serializer.toJson<String>(messageId),
+      'toolCallId': serializer.toJson<String>(toolCallId),
+      'protocol': serializer.toJson<String>(protocol),
+      'catalog': serializer.toJson<String>(catalog),
+      'express': serializer.toJson<String>(express),
+      'messagesJson': serializer.toJson<String>(messagesJson),
+      'stateJson': serializer.toJson<String?>(stateJson),
+      'autoOffset': serializer.toJson<int?>(autoOffset),
+      'ordinal': serializer.toJson<int>(ordinal),
+    };
+  }
+
+  ChatA2uiSurface copyWith({
+    String? sessionId,
+    String? id,
+    String? messageId,
+    String? toolCallId,
+    String? protocol,
+    String? catalog,
+    String? express,
+    String? messagesJson,
+    Value<String?> stateJson = const Value.absent(),
+    Value<int?> autoOffset = const Value.absent(),
+    int? ordinal,
+  }) => ChatA2uiSurface(
+    sessionId: sessionId ?? this.sessionId,
+    id: id ?? this.id,
+    messageId: messageId ?? this.messageId,
+    toolCallId: toolCallId ?? this.toolCallId,
+    protocol: protocol ?? this.protocol,
+    catalog: catalog ?? this.catalog,
+    express: express ?? this.express,
+    messagesJson: messagesJson ?? this.messagesJson,
+    stateJson: stateJson.present ? stateJson.value : this.stateJson,
+    autoOffset: autoOffset.present ? autoOffset.value : this.autoOffset,
+    ordinal: ordinal ?? this.ordinal,
+  );
+  ChatA2uiSurface copyWithCompanion(ChatA2uiSurfacesCompanion data) {
+    return ChatA2uiSurface(
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      id: data.id.present ? data.id.value : this.id,
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+      toolCallId: data.toolCallId.present
+          ? data.toolCallId.value
+          : this.toolCallId,
+      protocol: data.protocol.present ? data.protocol.value : this.protocol,
+      catalog: data.catalog.present ? data.catalog.value : this.catalog,
+      express: data.express.present ? data.express.value : this.express,
+      messagesJson: data.messagesJson.present
+          ? data.messagesJson.value
+          : this.messagesJson,
+      stateJson: data.stateJson.present ? data.stateJson.value : this.stateJson,
+      autoOffset: data.autoOffset.present
+          ? data.autoOffset.value
+          : this.autoOffset,
+      ordinal: data.ordinal.present ? data.ordinal.value : this.ordinal,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatA2uiSurface(')
+          ..write('sessionId: $sessionId, ')
+          ..write('id: $id, ')
+          ..write('messageId: $messageId, ')
+          ..write('toolCallId: $toolCallId, ')
+          ..write('protocol: $protocol, ')
+          ..write('catalog: $catalog, ')
+          ..write('express: $express, ')
+          ..write('messagesJson: $messagesJson, ')
+          ..write('stateJson: $stateJson, ')
+          ..write('autoOffset: $autoOffset, ')
+          ..write('ordinal: $ordinal')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    sessionId,
+    id,
+    messageId,
+    toolCallId,
+    protocol,
+    catalog,
+    express,
+    messagesJson,
+    stateJson,
+    autoOffset,
+    ordinal,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChatA2uiSurface &&
+          other.sessionId == this.sessionId &&
+          other.id == this.id &&
+          other.messageId == this.messageId &&
+          other.toolCallId == this.toolCallId &&
+          other.protocol == this.protocol &&
+          other.catalog == this.catalog &&
+          other.express == this.express &&
+          other.messagesJson == this.messagesJson &&
+          other.stateJson == this.stateJson &&
+          other.autoOffset == this.autoOffset &&
+          other.ordinal == this.ordinal);
+}
+
+class ChatA2uiSurfacesCompanion extends UpdateCompanion<ChatA2uiSurface> {
+  final Value<String> sessionId;
+  final Value<String> id;
+  final Value<String> messageId;
+  final Value<String> toolCallId;
+  final Value<String> protocol;
+  final Value<String> catalog;
+  final Value<String> express;
+  final Value<String> messagesJson;
+  final Value<String?> stateJson;
+  final Value<int?> autoOffset;
+  final Value<int> ordinal;
+  final Value<int> rowid;
+  const ChatA2uiSurfacesCompanion({
+    this.sessionId = const Value.absent(),
+    this.id = const Value.absent(),
+    this.messageId = const Value.absent(),
+    this.toolCallId = const Value.absent(),
+    this.protocol = const Value.absent(),
+    this.catalog = const Value.absent(),
+    this.express = const Value.absent(),
+    this.messagesJson = const Value.absent(),
+    this.stateJson = const Value.absent(),
+    this.autoOffset = const Value.absent(),
+    this.ordinal = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChatA2uiSurfacesCompanion.insert({
+    required String sessionId,
+    required String id,
+    required String messageId,
+    required String toolCallId,
+    required String protocol,
+    required String catalog,
+    required String express,
+    required String messagesJson,
+    this.stateJson = const Value.absent(),
+    this.autoOffset = const Value.absent(),
+    required int ordinal,
+    this.rowid = const Value.absent(),
+  }) : sessionId = Value(sessionId),
+       id = Value(id),
+       messageId = Value(messageId),
+       toolCallId = Value(toolCallId),
+       protocol = Value(protocol),
+       catalog = Value(catalog),
+       express = Value(express),
+       messagesJson = Value(messagesJson),
+       ordinal = Value(ordinal);
+  static Insertable<ChatA2uiSurface> custom({
+    Expression<String>? sessionId,
+    Expression<String>? id,
+    Expression<String>? messageId,
+    Expression<String>? toolCallId,
+    Expression<String>? protocol,
+    Expression<String>? catalog,
+    Expression<String>? express,
+    Expression<String>? messagesJson,
+    Expression<String>? stateJson,
+    Expression<int>? autoOffset,
+    Expression<int>? ordinal,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (sessionId != null) 'session_id': sessionId,
+      if (id != null) 'id': id,
+      if (messageId != null) 'message_id': messageId,
+      if (toolCallId != null) 'tool_call_id': toolCallId,
+      if (protocol != null) 'protocol': protocol,
+      if (catalog != null) 'catalog': catalog,
+      if (express != null) 'express': express,
+      if (messagesJson != null) 'messages_json': messagesJson,
+      if (stateJson != null) 'state_json': stateJson,
+      if (autoOffset != null) 'auto_offset': autoOffset,
+      if (ordinal != null) 'ordinal': ordinal,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChatA2uiSurfacesCompanion copyWith({
+    Value<String>? sessionId,
+    Value<String>? id,
+    Value<String>? messageId,
+    Value<String>? toolCallId,
+    Value<String>? protocol,
+    Value<String>? catalog,
+    Value<String>? express,
+    Value<String>? messagesJson,
+    Value<String?>? stateJson,
+    Value<int?>? autoOffset,
+    Value<int>? ordinal,
+    Value<int>? rowid,
+  }) {
+    return ChatA2uiSurfacesCompanion(
+      sessionId: sessionId ?? this.sessionId,
+      id: id ?? this.id,
+      messageId: messageId ?? this.messageId,
+      toolCallId: toolCallId ?? this.toolCallId,
+      protocol: protocol ?? this.protocol,
+      catalog: catalog ?? this.catalog,
+      express: express ?? this.express,
+      messagesJson: messagesJson ?? this.messagesJson,
+      stateJson: stateJson ?? this.stateJson,
+      autoOffset: autoOffset ?? this.autoOffset,
+      ordinal: ordinal ?? this.ordinal,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (messageId.present) {
+      map['message_id'] = Variable<String>(messageId.value);
+    }
+    if (toolCallId.present) {
+      map['tool_call_id'] = Variable<String>(toolCallId.value);
+    }
+    if (protocol.present) {
+      map['protocol'] = Variable<String>(protocol.value);
+    }
+    if (catalog.present) {
+      map['catalog'] = Variable<String>(catalog.value);
+    }
+    if (express.present) {
+      map['express'] = Variable<String>(express.value);
+    }
+    if (messagesJson.present) {
+      map['messages_json'] = Variable<String>(messagesJson.value);
+    }
+    if (stateJson.present) {
+      map['state_json'] = Variable<String>(stateJson.value);
+    }
+    if (autoOffset.present) {
+      map['auto_offset'] = Variable<int>(autoOffset.value);
+    }
+    if (ordinal.present) {
+      map['ordinal'] = Variable<int>(ordinal.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatA2uiSurfacesCompanion(')
+          ..write('sessionId: $sessionId, ')
+          ..write('id: $id, ')
+          ..write('messageId: $messageId, ')
+          ..write('toolCallId: $toolCallId, ')
+          ..write('protocol: $protocol, ')
+          ..write('catalog: $catalog, ')
+          ..write('express: $express, ')
+          ..write('messagesJson: $messagesJson, ')
+          ..write('stateJson: $stateJson, ')
+          ..write('autoOffset: $autoOffset, ')
+          ..write('ordinal: $ordinal, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ChatA2uiActionsTable extends ChatA2uiActions
+    with TableInfo<$ChatA2uiActionsTable, ChatA2uiAction> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChatA2uiActionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _surfaceIdMeta = const VerificationMeta(
+    'surfaceId',
+  );
+  @override
+  late final GeneratedColumn<String> surfaceId = GeneratedColumn<String>(
+    'surface_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _componentIdMeta = const VerificationMeta(
+    'componentId',
+  );
+  @override
+  late final GeneratedColumn<String> componentId = GeneratedColumn<String>(
+    'component_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contextJsonMeta = const VerificationMeta(
+    'contextJson',
+  );
+  @override
+  late final GeneratedColumn<String> contextJson = GeneratedColumn<String>(
+    'context_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sessionId,
+    surfaceId,
+    componentId,
+    kind,
+    contextJson,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chat_a2ui_actions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ChatA2uiAction> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('surface_id')) {
+      context.handle(
+        _surfaceIdMeta,
+        surfaceId.isAcceptableOrUnknown(data['surface_id']!, _surfaceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_surfaceIdMeta);
+    }
+    if (data.containsKey('component_id')) {
+      context.handle(
+        _componentIdMeta,
+        componentId.isAcceptableOrUnknown(
+          data['component_id']!,
+          _componentIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_componentIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('context_json')) {
+      context.handle(
+        _contextJsonMeta,
+        contextJson.isAcceptableOrUnknown(
+          data['context_json']!,
+          _contextJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_contextJsonMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ChatA2uiAction map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChatA2uiAction(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      surfaceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}surface_id'],
+      )!,
+      componentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}component_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      contextJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}context_json'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ChatA2uiActionsTable createAlias(String alias) {
+    return $ChatA2uiActionsTable(attachedDatabase, alias);
+  }
+}
+
+class ChatA2uiAction extends DataClass implements Insertable<ChatA2uiAction> {
+  final String id;
+  final String sessionId;
+  final String surfaceId;
+  final String componentId;
+  final String kind;
+  final String contextJson;
+  final DateTime createdAt;
+  const ChatA2uiAction({
+    required this.id,
+    required this.sessionId,
+    required this.surfaceId,
+    required this.componentId,
+    required this.kind,
+    required this.contextJson,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['session_id'] = Variable<String>(sessionId);
+    map['surface_id'] = Variable<String>(surfaceId);
+    map['component_id'] = Variable<String>(componentId);
+    map['kind'] = Variable<String>(kind);
+    map['context_json'] = Variable<String>(contextJson);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ChatA2uiActionsCompanion toCompanion(bool nullToAbsent) {
+    return ChatA2uiActionsCompanion(
+      id: Value(id),
+      sessionId: Value(sessionId),
+      surfaceId: Value(surfaceId),
+      componentId: Value(componentId),
+      kind: Value(kind),
+      contextJson: Value(contextJson),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ChatA2uiAction.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChatA2uiAction(
+      id: serializer.fromJson<String>(json['id']),
+      sessionId: serializer.fromJson<String>(json['sessionId']),
+      surfaceId: serializer.fromJson<String>(json['surfaceId']),
+      componentId: serializer.fromJson<String>(json['componentId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      contextJson: serializer.fromJson<String>(json['contextJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sessionId': serializer.toJson<String>(sessionId),
+      'surfaceId': serializer.toJson<String>(surfaceId),
+      'componentId': serializer.toJson<String>(componentId),
+      'kind': serializer.toJson<String>(kind),
+      'contextJson': serializer.toJson<String>(contextJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ChatA2uiAction copyWith({
+    String? id,
+    String? sessionId,
+    String? surfaceId,
+    String? componentId,
+    String? kind,
+    String? contextJson,
+    DateTime? createdAt,
+  }) => ChatA2uiAction(
+    id: id ?? this.id,
+    sessionId: sessionId ?? this.sessionId,
+    surfaceId: surfaceId ?? this.surfaceId,
+    componentId: componentId ?? this.componentId,
+    kind: kind ?? this.kind,
+    contextJson: contextJson ?? this.contextJson,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ChatA2uiAction copyWithCompanion(ChatA2uiActionsCompanion data) {
+    return ChatA2uiAction(
+      id: data.id.present ? data.id.value : this.id,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      surfaceId: data.surfaceId.present ? data.surfaceId.value : this.surfaceId,
+      componentId: data.componentId.present
+          ? data.componentId.value
+          : this.componentId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      contextJson: data.contextJson.present
+          ? data.contextJson.value
+          : this.contextJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatA2uiAction(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('surfaceId: $surfaceId, ')
+          ..write('componentId: $componentId, ')
+          ..write('kind: $kind, ')
+          ..write('contextJson: $contextJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    surfaceId,
+    componentId,
+    kind,
+    contextJson,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChatA2uiAction &&
+          other.id == this.id &&
+          other.sessionId == this.sessionId &&
+          other.surfaceId == this.surfaceId &&
+          other.componentId == this.componentId &&
+          other.kind == this.kind &&
+          other.contextJson == this.contextJson &&
+          other.createdAt == this.createdAt);
+}
+
+class ChatA2uiActionsCompanion extends UpdateCompanion<ChatA2uiAction> {
+  final Value<String> id;
+  final Value<String> sessionId;
+  final Value<String> surfaceId;
+  final Value<String> componentId;
+  final Value<String> kind;
+  final Value<String> contextJson;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ChatA2uiActionsCompanion({
+    this.id = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.surfaceId = const Value.absent(),
+    this.componentId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.contextJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChatA2uiActionsCompanion.insert({
+    required String id,
+    required String sessionId,
+    required String surfaceId,
+    required String componentId,
+    required String kind,
+    required String contextJson,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       sessionId = Value(sessionId),
+       surfaceId = Value(surfaceId),
+       componentId = Value(componentId),
+       kind = Value(kind),
+       contextJson = Value(contextJson),
+       createdAt = Value(createdAt);
+  static Insertable<ChatA2uiAction> custom({
+    Expression<String>? id,
+    Expression<String>? sessionId,
+    Expression<String>? surfaceId,
+    Expression<String>? componentId,
+    Expression<String>? kind,
+    Expression<String>? contextJson,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sessionId != null) 'session_id': sessionId,
+      if (surfaceId != null) 'surface_id': surfaceId,
+      if (componentId != null) 'component_id': componentId,
+      if (kind != null) 'kind': kind,
+      if (contextJson != null) 'context_json': contextJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChatA2uiActionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sessionId,
+    Value<String>? surfaceId,
+    Value<String>? componentId,
+    Value<String>? kind,
+    Value<String>? contextJson,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ChatA2uiActionsCompanion(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      surfaceId: surfaceId ?? this.surfaceId,
+      componentId: componentId ?? this.componentId,
+      kind: kind ?? this.kind,
+      contextJson: contextJson ?? this.contextJson,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (surfaceId.present) {
+      map['surface_id'] = Variable<String>(surfaceId.value);
+    }
+    if (componentId.present) {
+      map['component_id'] = Variable<String>(componentId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (contextJson.present) {
+      map['context_json'] = Variable<String>(contextJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatA2uiActionsCompanion(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('surfaceId: $surfaceId, ')
+          ..write('componentId: $componentId, ')
+          ..write('kind: $kind, ')
+          ..write('contextJson: $contextJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $VisualScenesTable extends VisualScenes
     with TableInfo<$VisualScenesTable, StoredVisualScene> {
   @override
@@ -33428,6 +34581,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $KnowledgeModuleLinksTable(this);
   late final $MistakeModuleLinksTable mistakeModuleLinks =
       $MistakeModuleLinksTable(this);
+  late final $ChatA2uiSurfacesTable chatA2uiSurfaces = $ChatA2uiSurfacesTable(
+    this,
+  );
+  late final $ChatA2uiActionsTable chatA2uiActions = $ChatA2uiActionsTable(
+    this,
+  );
   late final $VisualScenesTable visualScenes = $VisualScenesTable(this);
   late final $VisualSceneRevisionsTable visualSceneRevisions =
       $VisualSceneRevisionsTable(this);
@@ -33529,6 +34688,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     subjectModules,
     knowledgeModuleLinks,
     mistakeModuleLinks,
+    chatA2uiSurfaces,
+    chatA2uiActions,
     visualScenes,
     visualSceneRevisions,
     visualMessageLinks,
@@ -33903,6 +35064,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('mistake_module_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('chat_a2ui_surfaces', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chat_messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('chat_a2ui_surfaces', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(

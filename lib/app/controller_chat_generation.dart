@@ -409,7 +409,8 @@ extension _ChatGeneration on AppController {
           quizCreated = progress.quizCreated;
           reasoning = progress.reasoning;
           trace = progress.reasoningTrace;
-          if (DateTime.now().difference(lastWrite).inMilliseconds >=
+          if (progress.surfaceInserted ||
+              DateTime.now().difference(lastWrite).inMilliseconds >=
                   _progressThrottleMs ||
               (!progressStarted &&
                   (text.isNotEmpty || (trace?.isNotEmpty ?? false)))) {

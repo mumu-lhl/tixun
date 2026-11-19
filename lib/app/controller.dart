@@ -41,6 +41,7 @@ import '../features/language_learning/language_store.dart';
 import '../features/library/study_store.dart';
 import '../features/practice/practice_store.dart';
 import '../features/chat/learning_run.dart';
+import '../features/a2ui/a2ui_store.dart';
 import '../features/chat/chat_branch_store.dart';
 import '../features/chat/chat_failure.dart';
 import '../features/progress/learning_profile.dart';
@@ -84,6 +85,7 @@ class AppController extends ChangeNotifier {
   late final ScratchStore scratch = ScratchStore(db);
   late final ReviewStore review = ReviewStore(db);
   late final VisualStore visual = VisualStore(db);
+  late final ChatA2uiStore a2ui = ChatA2uiStore(db);
   late final PracticeStore practice = PracticeStore(
     db,
     files: files,
@@ -97,6 +99,7 @@ class AppController extends ChangeNotifier {
     review,
     provider,
     visual: visual,
+    a2ui: a2ui,
   );
   ToolApproval? pendingTool;
   Completer<bool>? _toolDecision;

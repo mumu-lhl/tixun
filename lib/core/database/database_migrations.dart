@@ -1,6 +1,15 @@
 part of 'database.dart';
 
 extension _DatabaseMigrations on AppDatabase {
+  Future<void> _createA2uiIndexes() async {
+    await customStatement(
+      'CREATE INDEX chat_a2ui_message ON chat_a2ui_surfaces(message_id)',
+    );
+    await customStatement(
+      'CREATE INDEX chat_a2ui_action_revision ON chat_a2ui_actions(session_id, surface_id)',
+    );
+  }
+
   MigrationStrategy get _migrationStrategy => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
@@ -14,6 +23,7 @@ extension _DatabaseMigrations on AppDatabase {
       await _createLanguageQuickSearch();
       await _createTimelineIndex();
       await _createVisualIndexes();
+      await _createA2uiIndexes();
       await customStatement(
         'CREATE INDEX learning_due ON learning_review_schedules(due_at)',
       );
@@ -43,6 +53,11 @@ extension _DatabaseMigrations on AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from < 29) {
+        await m.createTable(chatA2uiSurfaces);
+        await m.createTable(chatA2uiActions);
+        await _createA2uiIndexes();
+      }
       if (from < 25) {
         await m.createTable(languageQuickActions);
         await m.createTable(languageQuickLookups);

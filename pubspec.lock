@@ -9,6 +9,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "111.0.0"
+  a2ui_agent:
+    dependency: "direct main"
+    description:
+      name: a2ui_agent
+      sha256: c4046bfc84265a6c93ab17b1cde2a2c0c1dfbbe647e41d06d5c0c5c7d6658314
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
+  a2ui_core:
+    dependency: "direct main"
+    description:
+      name: a2ui_core
+      sha256: d774a366d2e553809ff5f1168b84514312c3cd0bd9caf251b99ae8b94fde2ea1
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.0"
+  a2ui_flutter:
+    dependency: "direct main"
+    description:
+      name: a2ui_flutter
+      sha256: c6eae36082659eddb393a9b0c551c4636ef1b66ae78fefe3e83111b33801e394
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
   analyzer:
     dependency: "direct dev"
     description:
@@ -17,6 +41,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "14.7.0"
+  antlr4:
+    dependency: transitive
+    description:
+      name: antlr4
+      sha256: "752b4a6e4ad97953652a2b2bbf5377f46c94b579d3372b50080c7e5858234a05"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.13.2"
   archive:
     dependency: "direct main"
     description:
@@ -281,6 +313,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.14"
+  decimal:
+    dependency: transitive
+    description:
+      name: decimal
+      sha256: "2c3c8b74f2948066d3f42585477aec9cfc48fefd7a723a4d4274a6c71a5c0df7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.6"
   device_info_plus:
     dependency: "direct main"
     description:
@@ -337,6 +377,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
+  email_validator:
+    dependency: transitive
+    description:
+      name: email_validator
+      sha256: b19aa5d92fdd76fbc65112060c94d45ba855105a28bb6e462de7ff03b12fa1fb
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
   extended_image:
     dependency: "direct main"
     description:
@@ -796,6 +844,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.12.0"
+  json_schema_builder:
+    dependency: "direct main"
+    description:
+      name: json_schema_builder
+      sha256: "657db3229ba10305c48e8686e8b3aca16e12e639c3a7b96687a6eeb7836b6e1b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.7"
   leak_tracker:
     dependency: transitive
     description:
@@ -1076,6 +1132,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.5.4"
+  preact_signals:
+    dependency: transitive
+    description:
+      name: preact_signals
+      sha256: "18f45e7f91a4dfad8bd0138efa6b85770bb25e13278b863fdaafd28a56579b16"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.0"
   process:
     dependency: transitive
     description:
@@ -1124,6 +1188,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.2"
+  rational:
+    dependency: transitive
+    description:
+      name: rational
+      sha256: cb808fb6f1a839e6fc5f7d8cb3b0a10e1db48b3be102de73938c627f0b636336
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.3"
   recase:
     dependency: transitive
     description:
