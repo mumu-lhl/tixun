@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'language_layout.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/app_menu.dart';
 import '../../core/l10n/generated/app_localizations.dart';
 import 'language_profile_store.dart';
 import 'language_skills.dart';
@@ -90,44 +92,71 @@ class _LanguageProfileScreenState extends State<LanguageProfileScreen> {
             skip: _skip,
           );
           final evidence = profile.skills[plan.skill]!;
-          return ListView(
-            padding: const EdgeInsets.all(20),
+          final LanguageRecommendation? transfer =
+              _goal == LanguageGoal.communication &&
+                  profile.hasApplications &&
+                  plan.skill != LanguageSkill.wordApplication &&
+                  evidence.observations.isNotEmpty
+              ? (
+                  skill: LanguageSkill.wordApplication,
+                  level: plan.level,
+                  count: plan.count,
+                  diagnostic: false,
+                )
+              : null;
+          final practiced = profile.skills.values
+              .where((row) => row.independent > 0 || row.tentative > 0)
+              .length;
+          final challenge =
+              _goal == LanguageGoal.communication &&
+                  practiced >= 2 &&
+                  !plan.diagnostic
+              ? recommendLanguage(
+                  profile,
+                  LanguageGoal.communication,
+                  difficulty: _level,
+                  skip: {..._skip, plan.skill, LanguageSkill.wordApplication},
+                )
+              : null;
+
+          return languagePage(
             children: [
               Wrap(
                 runSpacing: 10,
                 spacing: 16,
                 children: [
-                  SizedBox(
-                    width: 290,
-                    child: DropdownButtonFormField<LanguageGoal>(
-                      initialValue: _goal,
-                      isExpanded: true,
-                      decoration: InputDecoration(labelText: l10n.languageGoal),
-                      items: [
-                        DropdownMenuItem(
-                          value: LanguageGoal.communication,
-                          child: Text(l10n.languageGoalCommunication),
+                  if (profile.language == 'en')
+                    SizedBox(
+                      width: 290,
+                      child: AppSelectField<LanguageGoal>(
+                        initialValue: _goal,
+                        decoration: InputDecoration(
+                          labelText: l10n.languageGoal,
                         ),
-                        DropdownMenuItem(
-                          value: LanguageGoal.exam,
-                          child: Text(l10n.languageExamSkills),
-                        ),
-                        DropdownMenuItem(
-                          value: LanguageGoal.foundations,
-                          child: Text(l10n.languageFoundations),
-                        ),
-                      ],
-                      onChanged: (value) => setState(() {
-                        _goal = value!;
-                        _skip.clear();
-                      }),
+                        items: [
+                          DropdownMenuItem(
+                            value: LanguageGoal.communication,
+                            child: Text(l10n.languageGoalCommunication),
+                          ),
+                          DropdownMenuItem(
+                            value: LanguageGoal.exam,
+                            child: Text(l10n.languageExamSkills),
+                          ),
+                          DropdownMenuItem(
+                            value: LanguageGoal.foundations,
+                            child: Text(l10n.languageFoundations),
+                          ),
+                        ],
+                        onChanged: (value) => setState(() {
+                          _goal = value!;
+                          _skip.clear();
+                        }),
+                      ),
                     ),
-                  ),
                   SizedBox(
                     width: 290,
-                    child: DropdownButtonFormField<SentenceLevel>(
+                    child: AppSelectField<SentenceLevel>(
                       initialValue: _level,
-                      isExpanded: true,
                       decoration: InputDecoration(
                         labelText: l10n.languageExamLevel,
                       ),
@@ -187,6 +216,22 @@ class _LanguageProfileScreenState extends State<LanguageProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              if (transfer != null)
+                ListTile(
+                  leading: const Icon(Icons.compare_arrows_outlined),
+                  title: Text(l10n.languageTransferPractice),
+                  subtitle: Text(l10n.languageNewContexts),
+                  onTap: () => widget.onPractice(profile, transfer, _goal),
+                ),
+              if (challenge != null &&
+                  challenge.skill != plan.skill &&
+                  challenge.skill != transfer?.skill)
+                ListTile(
+                  leading: const Icon(Icons.explore_outlined),
+                  title: Text(l10n.languageNewChallenge),
+                  subtitle: Text(languageSkillLabel(l10n, challenge.skill)),
+                  onTap: () => widget.onPractice(profile, challenge, _goal),
+                ),
               for (final row in profile.skills.values) _SkillEvidence(row: row),
             ],
           );

@@ -27,6 +27,7 @@ extension LanguageProfileStore on LanguageLearningStore {
           db.learningWritingEvaluations,
           db.learningWritingVersions,
           db.learningWritingTasks,
+          db.learningCourseAttempts,
         },
       )
       .watch()
@@ -58,6 +59,7 @@ extension LanguageProfileStore on LanguageLearningStore {
       evidence: [
         ...await _words(db, language),
         ...await _sentences(db, language),
+        ...await _course(db, language),
         ...await _exams(db, language, exam),
         if (language == 'en') ...await _writing(db, exam),
       ],
@@ -244,6 +246,7 @@ Future<List<LanguageObservation>> _exams(
     final disputed = row.read(disputedFlag) ?? true;
     final repeated = row.read(repeatedFlag) ?? true;
     for (final (i, item) in paper.paper.items.indexed) {
+      if (answers[i].trim().isEmpty) continue;
       for (final skill in {
         examAbility(paper.target.kind),
         sentenceAbility(item.skill),
@@ -318,5 +321,43 @@ Future<List<LanguageObservation>> _writing(
             _ => row.readTable(evaluation).languageScore >= 3,
           },
         ),
+  ];
+}
+
+Future<List<LanguageObservation>> _course(
+  AppDatabase db,
+  String language,
+) async {
+  final table = db.learningCourseAttempts;
+  final rows =
+      await (db.select(table)
+            ..where((row) => row.language.equals(language))
+            ..orderBy([
+              (row) => OrderingTerm.desc(row.occurredAt),
+              (row) => OrderingTerm.desc(row.rowId),
+            ])
+            ..limit(90))
+          .get();
+  final distinct = <(String, int)>{};
+  return [
+    for (final row in rows.reversed)
+      if (distinct.add((row.lesson, row.rotation))) ...[
+        LanguageObservation(
+          id: row.id,
+          skill: LanguageSkill.wordRecognition,
+          kind: EvidenceKind.independent,
+          at: row.occurredAt,
+          basis: row.lesson,
+          correct: row.recognized == 2,
+        ),
+        LanguageObservation(
+          id: row.id,
+          skill: LanguageSkill.wordRecall,
+          kind: EvidenceKind.independent,
+          at: row.occurredAt,
+          basis: row.lesson,
+          correct: row.produced == 1,
+        ),
+      ],
   ];
 }

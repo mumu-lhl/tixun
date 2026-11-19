@@ -32,10 +32,16 @@ class ExamAi {
     required String glossLanguage,
     required CancelToken cancel,
     bool reuse = true,
+    bool fresh = false,
+    Set<String> excludeIds = const {},
   }) async {
     target.validate();
     if (reuse) {
-      final existing = await store.reusableExam(target);
+      final existing = await store.reusableExam(
+        target,
+        excludeIds: excludeIds,
+        fresh: fresh,
+      );
       cancel.checkCancelled();
       if (existing != null) return existing;
     }

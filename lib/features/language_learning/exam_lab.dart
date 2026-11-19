@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'language_layout.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/app_menu.dart';
 import '../../core/ui/actions.dart';
 import 'exam_ai.dart';
 import 'exam_labels.dart';
@@ -97,11 +99,9 @@ class _ExamLabState extends State<ExamLab> {
     final busy = _request != null || _opening;
     return Scaffold(
       appBar: AppBar(title: Text(examKindLabel(l10n, widget.kind))),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
+      body: languagePage(
         children: [
           Text(l10n.languageExamPracticeIntro),
-          const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: busy ? null : _generate,
             icon: const Icon(Icons.auto_awesome_outlined),
@@ -114,7 +114,6 @@ class _ExamLabState extends State<ExamLab> {
               child: Text(l10n.cancel),
             ),
           ],
-          const SizedBox(height: 20),
           Text(
             l10n.languageExamLibrary,
             style: Theme.of(context).textTheme.titleLarge,
@@ -191,11 +190,12 @@ class _ExamSettingsState extends State<_ExamSettings> {
       content: SizedBox(
         width: 450,
         child: Column(
+          spacing: 12,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.languageExamProfile),
             Text(examKindLabel(l10n, widget.kind)),
-            DropdownButtonFormField<SentenceLevel>(
+            AppSelectField<SentenceLevel>(
               initialValue: _level,
               decoration: InputDecoration(labelText: l10n.languageExamLevel),
               items: [
@@ -210,7 +210,7 @@ class _ExamSettingsState extends State<_ExamSettings> {
               ],
               onChanged: (level) => setState(() => _level = level!),
             ),
-            DropdownButtonFormField<int>(
+            AppSelectField<int>(
               initialValue: _count,
               decoration: InputDecoration(labelText: l10n.languageExamCount),
               items: [
@@ -219,9 +219,8 @@ class _ExamSettingsState extends State<_ExamSettings> {
               ],
               onChanged: (value) => setState(() => _count = value!),
             ),
-            DropdownButtonFormField<SentenceSkill?>(
+            AppSelectField<SentenceSkill?>(
               initialValue: _skill,
-              isExpanded: true,
               decoration: InputDecoration(labelText: l10n.languageExamFocus),
               items: [
                 DropdownMenuItem<SentenceSkill?>(

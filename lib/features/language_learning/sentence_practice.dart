@@ -4,11 +4,14 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/ai/chat_provider.dart';
 import '../../core/l10n/app_error_localization.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/app_menu.dart';
 import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
 import 'next_practice.dart';
 import 'sentence_batch_ai.dart';
+import 'sentence_batch_store.dart';
+import 'quick_lookup/quick_selection.dart';
 import 'sentence_batch_dialog.dart';
 import 'sentence_content.dart';
 import 'sentence_explanation.dart';
@@ -119,6 +122,7 @@ class _SentencePracticeState extends State<SentencePractice> {
                       batch: batch,
                       store: widget.store,
                       explanation: widget.explanation,
+                      batchAi: widget.batchAi,
                       feedbackLanguage: widget.feedbackLanguage,
                       onFinished: (skill, correct, assisted, rating) {
                         setState(
@@ -157,7 +161,7 @@ class _SentencePracticeState extends State<SentencePractice> {
       ],
       Text(l10n.languageSentencePracticeIntro),
       const SizedBox(height: 12),
-      DropdownButtonFormField<SentenceStyle>(
+      AppSelectField<SentenceStyle>(
         initialValue: _style,
         decoration: InputDecoration(labelText: l10n.languageSentenceStyle),
         items: [
@@ -173,7 +177,7 @@ class _SentencePracticeState extends State<SentencePractice> {
         onChanged: (value) => _style = value!,
       ),
       const SizedBox(height: 12),
-      DropdownButtonFormField<SentenceTopic>(
+      AppSelectField<SentenceTopic>(
         initialValue: _topic,
         decoration: InputDecoration(labelText: l10n.languageSentenceTopic),
         items: [
@@ -189,10 +193,13 @@ class _SentencePracticeState extends State<SentencePractice> {
         onChanged: (value) => _topic = value!,
       ),
       const SizedBox(height: 12),
-      DropdownButtonFormField<SentenceLevel?>(
+      AppSelectField<SentenceLevel?>(
         initialValue: _level,
-        hint: Text(l10n.languageSentenceMixed),
-        decoration: InputDecoration(labelText: l10n.languageDifficulty),
+
+        decoration: InputDecoration(
+          labelText: l10n.languageDifficulty,
+          hintText: l10n.languageSentenceMixed,
+        ),
         items: [
           DropdownMenuItem<SentenceLevel?>(
             child: Text(l10n.languageSentenceMixed),
@@ -302,9 +309,11 @@ class _SentenceStep extends StatefulWidget {
     required this.explanation,
     required this.onFinished,
     this.feedbackLanguage,
+    this.batchAi,
   });
 
   final SentenceBatch batch;
+  final SentenceBatchAi? batchAi;
   final SentenceCard card;
   final int position;
   final LanguageLearningStore store;
@@ -317,6 +326,7 @@ class _SentenceStep extends StatefulWidget {
 }
 
 class _SentenceStepState extends State<_SentenceStep> {
+  late var _card = widget.card;
   final _help = <SentenceHelp>{};
   final _helpWhenChecked = <SentenceHelp>{};
   int? _choice;
@@ -341,7 +351,7 @@ class _SentenceStepState extends State<_SentenceStep> {
     });
     try {
       final text = await widget.explanation.explain(
-        card: widget.card,
+        card: _card,
         glossLanguage:
             widget.feedbackLanguage ??
             Localizations.localeOf(context).languageCode,
@@ -365,6 +375,46 @@ class _SentenceStepState extends State<_SentenceStep> {
     }
   }
 
+  Future<void> _prepareCheck() async {
+    final ai = widget.batchAi;
+    if (ai == null || _pending != null || _saving) return;
+    final token = CancelToken();
+    setState(() {
+      _pending = token;
+      _error = null;
+    });
+    try {
+      final candidate = await ai.checkSaved(
+        _card,
+        cancel: token,
+        glossLanguage:
+            widget.feedbackLanguage ??
+            Localizations.localeOf(context).languageCode,
+      );
+      if (!mounted || token.isCancelled) return;
+      final checked = await widget.store.attachQuickSentenceCheck(
+        candidate,
+        token,
+      );
+      if (mounted && !token.isCancelled) {
+        setState(() {
+          _card = checked;
+          _showCheck = true;
+        });
+      }
+    } catch (error) {
+      if (mounted && !token.isCancelled) {
+        setState(
+          () => _error = error is AiFailure
+              ? failureText(context.l10n, error)
+              : context.l10n.languageSentenceExplainError,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _pending = null);
+    }
+  }
+
   Future<void> _finish(SentenceRating rating) async {
     if (_saving) return;
     _pending?.cancel();
@@ -372,7 +422,7 @@ class _SentenceStepState extends State<_SentenceStep> {
     await act(context, () async {
       await widget.store.recordSentence(
         batchId: widget.batch.id,
-        card: widget.card,
+        card: _card,
         rating: rating,
         helpUsed: _help,
         selectedIndex: _checked ? _choice : null,
@@ -380,8 +430,8 @@ class _SentenceStepState extends State<_SentenceStep> {
       );
       if (mounted) {
         widget.onFinished(
-          widget.card.skill,
-          _checked ? _choice == widget.card.correctIndex : null,
+          _card.skill,
+          _checked ? _choice == _card.correctIndex : null,
           _helpWhenChecked.isNotEmpty,
           rating,
         );
@@ -394,7 +444,7 @@ class _SentenceStepState extends State<_SentenceStep> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final style = Theme.of(context).textTheme;
-    final card = widget.card;
+    final card = _card;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -409,7 +459,20 @@ class _SentenceStepState extends State<_SentenceStep> {
           Text(sentenceSource(l10n, model)),
           Text(l10n.languageSentenceGeneratedNotice, style: style.bodySmall),
         ],
-        SelectableText(card.text, style: style.headlineSmall),
+        quickSelectableText(
+          card.text,
+          style: style.headlineSmall,
+          onLookup: () => setState(() => _help.add(SentenceHelp.explanation)),
+        ),
+        if (card.id.startsWith('quick:') &&
+            card.choices.isEmpty &&
+            card.text.length <= 1200 &&
+            widget.batchAi != null &&
+            widget.explanation.provider is! MockChatProvider)
+          TextButton(
+            onPressed: _pending == null && !_saving ? _prepareCheck : null,
+            child: Text(l10n.languageSentenceGenerateCheck),
+          ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,

@@ -257,6 +257,11 @@ extension _DatabaseMigrations on AppDatabase {
         await _createExamIndexes();
       }
       if (from < 25) await m.createTable(languageQuickLearningLinks);
+      if (from < 28) {
+        await m.createTable(learningWrittenExams);
+        await m.createTable(learningWrittenExamSections);
+        await m.createTable(learningCourseAttempts);
+      }
       if (from < 8) {
         await m.addColumn(chatMessages, chatMessages.reasoningTrace);
         await m.createTable(scratchpads);

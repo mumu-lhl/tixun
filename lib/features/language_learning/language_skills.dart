@@ -94,17 +94,21 @@ class SkillPerformance {
       .where((row) => row.kind == EvidenceKind.independent && !row.verified)
       .length;
   bool get preliminaryWeak {
-    final sample = <String, bool>{};
+    final samples = <String, List<bool>>{};
     for (final row in observations) {
-      if (!row.verified &&
-          row.correct != null &&
-          (row.kind == EvidenceKind.independent ||
-              row.kind == EvidenceKind.unverified)) {
-        sample.putIfAbsent(row.id, () => row.correct!);
+      if (row.verified || row.correct == null) continue;
+      if (row.kind == EvidenceKind.independent) {
+        (samples[row.id] ??= []).add(row.correct!);
+      } else if (row.kind == EvidenceKind.unverified) {
+        samples.putIfAbsent(row.id, () => [row.correct!]);
       }
     }
-    return sample.length >= 2 &&
-        sample.values.where((value) => value).length * 2 <= sample.length;
+    final weak = samples.values
+        .where(
+          (group) => group.where((value) => value).length * 2 <= group.length,
+        )
+        .length;
+    return samples.length >= 2 && weak * 2 >= samples.length;
   }
 
   int get correct => observations
@@ -189,6 +193,7 @@ LanguageRecommendation recommendLanguage(
       LanguageSkill.detail,
       LanguageSkill.collocation,
       LanguageSkill.cohesion,
+      LanguageSkill.mainIdea,
       LanguageSkill.formRecognition,
       LanguageSkill.formProduction,
     ],
@@ -235,7 +240,16 @@ LanguageRecommendation recommendLanguage(
         : row.uncertain
         ? 2
         : 4;
-    return base + (repetition >= 2 ? 5 : repetition);
+    final needsContext =
+        goal == LanguageGoal.communication &&
+        {
+          LanguageSkill.cohesion,
+          LanguageSkill.mainIdea,
+          LanguageSkill.inference,
+        }.contains(skill) &&
+        profile.skills[LanguageSkill.structure]!.observations.isEmpty &&
+        profile.skills[LanguageSkill.detail]!.observations.isEmpty;
+    return base + (repetition >= 2 ? 5 : repetition) + (needsContext ? 2 : 0);
   }
 
   candidates.sort((a, b) {

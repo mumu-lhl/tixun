@@ -1,8 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:uuid/uuid.dart';
 
+import 'language_layout.dart';
 import '../../core/database/database.dart' show LearningLexicalForm;
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/app_menu.dart';
 import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
@@ -35,6 +37,7 @@ Future<List<LexicalFormDraft>> confirmLookupForms(
             title: Text(context.l10n.languageConfirmForms(lemma)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
+              spacing: 12,
               children: [
                 for (final form in forms)
                   CheckboxListTile(
@@ -120,6 +123,7 @@ class _LexicalFormsScreenState extends State<LexicalFormsScreen> {
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            spacing: 12,
             children: [
               TextFormField(
                 maxLength: 80,
@@ -139,8 +143,7 @@ class _LexicalFormsScreenState extends State<LexicalFormsScreen> {
                   }
                 },
               ),
-              DropdownButtonFormField<Inflection>(
-                isExpanded: true,
+              AppSelectFormField<Inflection>(
                 decoration: InputDecoration(
                   labelText: context.l10n.languageInflection,
                 ),
@@ -210,8 +213,7 @@ class _LexicalFormsScreenState extends State<LexicalFormsScreen> {
     final card = widget.card;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.languageForms)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: languagePage(
         children: [
           if (card != null)
             FutureBuilder(

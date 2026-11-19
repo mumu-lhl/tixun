@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'language_layout.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/app_menu.dart';
 import '../../core/ui/actions.dart';
 import 'sentence_content.dart';
 import 'writing_ai.dart';
@@ -82,8 +84,7 @@ class _WritingLabState extends State<WritingLab> {
     final busy = _choosing || _pending != null;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.languageWriting)),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
+      body: languagePage(
         children: [
           FilledButton.icon(
             onPressed: busy ? null : _generate,
@@ -97,7 +98,6 @@ class _WritingLabState extends State<WritingLab> {
               child: Text(l10n.cancel),
             ),
           ],
-          const SizedBox(height: 20),
           Text(
             l10n.languageWritingTasksSaved,
             style: Theme.of(context).textTheme.titleLarge,
@@ -161,10 +161,11 @@ class _WritingTaskOptionsState extends State<_WritingTaskOptions> {
       content: SizedBox(
         width: 420,
         child: Column(
+          spacing: 12,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.languageExamProfile),
-            DropdownButtonFormField<WritingTaskKind>(
+            AppSelectField<WritingTaskKind>(
               initialValue: _kind,
               items: [
                 DropdownMenuItem(
@@ -178,9 +179,12 @@ class _WritingTaskOptionsState extends State<_WritingTaskOptions> {
               ],
               onChanged: (kind) => _kind = kind!,
             ),
-            DropdownButtonFormField<SentenceLevel>(
+            AppSelectField<SentenceLevel>(
               initialValue: _level,
-              decoration: InputDecoration(labelText: l10n.languageDifficulty),
+              decoration: InputDecoration(
+                labelText: l10n.languageDifficulty,
+                hintText: l10n.languageSentenceMixed,
+              ),
               items: [
                 DropdownMenuItem(
                   value: SentenceLevel.beginner,

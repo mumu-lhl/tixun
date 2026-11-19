@@ -107,7 +107,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           _materialRoute(
             path: '/language/quick',
-            builder: (_, _) => const QuickLookupScreen(),
+            builder: (_, state) => QuickLookupScreen(
+              initialInput: state.extra is String ? state.extra as String : '',
+            ),
           ),
           _materialRoute(
             path: '/study',

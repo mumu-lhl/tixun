@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/app_menu.dart';
 import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
@@ -149,12 +150,12 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
             key: _form,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              spacing: 12,
               children: [
                 if (widget.initial == null && widget.group == null) ...[
                   field(_title, l10n.languageGroupTitle, requiredText),
-                  DropdownButtonFormField<VocabularyGroupType>(
+                  AppSelectField<VocabularyGroupType>(
                     initialValue: _groupType,
-                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: l10n.languageGroupType,
                     ),
@@ -171,9 +172,8 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
                   Text(group.title),
                 field(_expression, l10n.languageExpression, requiredText),
                 field(_meaning, l10n.languageMeaning, requiredText),
-                DropdownButtonFormField<LexicalType>(
+                AppSelectField<LexicalType>(
                   initialValue: _lexicalType,
-                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.languageLexicalType,
                   ),

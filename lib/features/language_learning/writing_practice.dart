@@ -6,6 +6,7 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
 import 'writing_ai.dart';
+import 'quick_lookup/quick_selection.dart';
 import 'writing_store.dart';
 
 class WritingPractice extends StatefulWidget {
@@ -309,9 +310,10 @@ class _WritingVersionDialogState extends State<_WritingVersionDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (note == null)
-              SelectableText(content)
+              quickSelectableText(content)
             else
               SelectableText.rich(
+                contextMenuBuilder: quickSelectionToolbar,
                 TextSpan(
                   children: [
                     TextSpan(text: content.substring(0, note.startOffset)),
@@ -345,7 +347,7 @@ class _WritingVersionDialogState extends State<_WritingVersionDialog> {
                 ),
               Text(l10n.languageWritingReference),
               const SizedBox(height: 8),
-              SelectableText(evaluation.summary),
+              quickSelectableText(evaluation.summary),
               FutureBuilder<List<LearningWritingNote>>(
                 future: _annotations,
                 builder: (context, snapshot) {

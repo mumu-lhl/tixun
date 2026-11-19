@@ -8,6 +8,7 @@ import 'exam_ai.dart';
 import 'exam_labels.dart';
 import 'exam_material.dart';
 import 'exam_store.dart';
+import 'quick_lookup/quick_selection.dart';
 import 'sentence_practice.dart' show sentenceSkillLabel;
 
 class ExamPaperScreen extends StatefulWidget {
@@ -37,6 +38,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
   ExamResult? _result;
   CancelToken? _review;
   bool _saving = false;
+  bool _lookedUp = false;
 
   String _confidenceLabel(AppLocalizations l10n, ExamConfidence confidence) =>
       switch (confidence) {
@@ -65,7 +67,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
         attemptId: _attempt,
         responses: List.of(_answers),
         confidence: _confidence,
-        hintUsed: _hints.isNotEmpty,
+        hintUsed: _hints.isNotEmpty || _lookedUp,
       );
       if (mounted) setState(() => _result = result);
     });
@@ -77,6 +79,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
       _result = null;
       _confidence = null;
       _hints.clear();
+      _lookedUp = false;
       _answers.fillRange(0, _answers.length, '');
       _attempt = widget.ai.store.newExamAttemptId();
     });
@@ -87,7 +90,8 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
         _saving ||
         _result != null ||
         _answers.any((answer) => answer.isNotEmpty) ||
-        _hints.isNotEmpty) {
+        _hints.isNotEmpty ||
+        _lookedUp) {
       return;
     }
     final cancel = CancelToken();
@@ -138,7 +142,8 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
         _material.row.model != 'Mock' &&
         !widget.ai.isMock &&
         _answers.every((answer) => answer.isEmpty) &&
-        _hints.isEmpty;
+        _hints.isEmpty &&
+        !_lookedUp;
     return Scaffold(
       appBar: AppBar(title: Text(examSourceLabel(l10n, _material))),
       body: ListView(
@@ -187,9 +192,12 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
                   for (final paragraph in _paper.paragraphs)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
-                      child: SelectableText(
-                        result == null ? paragraph : _filled(paragraph),
-                      ),
+                      child: _review == null
+                          ? quickSelectableText(
+                              result == null ? paragraph : _filled(paragraph),
+                              onLookup: () => setState(() => _lookedUp = true),
+                            )
+                          : SelectableText(paragraph),
                     ),
                   if (insertion) ...[
                     const Divider(height: 28),

@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/database.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/ui/app_menu.dart';
 import '../../../core/ui/actions.dart';
 import '../language_store.dart';
 import 'quick_labels.dart';
@@ -220,9 +221,8 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
       String initial,
       List<String> values,
       ValueChanged<String> update,
-    ) => DropdownButtonFormField<String>(
+    ) => AppSelectField<String>(
       initialValue: initial,
-      isExpanded: true,
       decoration: InputDecoration(labelText: label),
       items: [
         for (final code in values)
@@ -245,6 +245,7 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
           key: _form,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            spacing: 12,
             children: [
               field(
                 l10n.quickActionName,
@@ -257,7 +258,7 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                     ? l10n.languageRequired
                     : null,
               ),
-              DropdownButtonFormField<String>(
+              AppSelectField<String>(
                 initialValue: _icon,
                 decoration: InputDecoration(labelText: l10n.quickActionIcon),
                 items: [

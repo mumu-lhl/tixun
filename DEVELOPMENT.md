@@ -8,6 +8,8 @@
 
 UI 使用 Flutter 官方独立的 `material_ui` 包。微信图片选择器、Markdown 等依赖仍使用旧 Material 类型，应用通过官方 `MaterialUiCompatibilityBridge` 保留主题和中英文翻译；待这些依赖迁移后移除兼容代码。
 
+界面中的单选下拉优先复用设置页的 AppSelectField。表单需要校验时使用 AppSelectFormField，两者共用菜单外观、动画和键盘交互。
+
 直接 Dart 依赖已更新至当前最新稳定版；间接依赖遵循 Flutter SDK 和上游约束，不使用 `dependency_overrides` 强行越过兼容范围。可用 `flutter pub outdated` 检查后续更新。
 
 仓库提供 `.githooks/pre-commit`，拦截暂存区中超过 20 KiB（20480 字节）的代码文件；lockfile、生成代码、构建产物及依赖目录不参与检查。Git 默认不会启用仓库内 hook，克隆后需执行一次：

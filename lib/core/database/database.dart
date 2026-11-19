@@ -234,6 +234,9 @@ class AiModelPrices extends Table {
     LanguageQuickLearningLinks,
     LearningExamMaterials,
     LearningExamAttempts,
+    LearningWrittenExams,
+    LearningWrittenExamSections,
+    LearningCourseAttempts,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -241,7 +244,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 27;
+  static const latestSchemaVersion = 28;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override

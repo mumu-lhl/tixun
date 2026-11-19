@@ -11,6 +11,9 @@ import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/features/library/study_store.dart';
 import 'package:tixun/features/language_learning/exam_material.dart';
+import 'package:tixun/features/language_learning/course_progress.dart';
+import 'package:tixun/features/language_learning/written_exam_profile.dart';
+import 'package:tixun/features/language_learning/written_exam_store.dart';
 import 'package:tixun/features/language_learning/exam_store.dart';
 import 'package:tixun/features/language_learning/language_store.dart';
 import 'package:tixun/features/language_learning/lexical_form.dart';
@@ -176,6 +179,32 @@ void main() {
       SentenceLevel.beginner,
     );
     await c.language.deleteQuickAction(action.id);
+    final timed = await c.language.startWrittenExam(
+      profile: const WrittenExamProfile(
+        id: 'backup-v1',
+        region: 'Zhejiang',
+        year: 2026,
+        exam: ExamProfile.zhejiang2026,
+        duration: Duration(minutes: 10),
+        sections: [
+          WrittenSectionSpec.writing(WritingTaskKind.continuation, 50),
+        ],
+      ),
+      objectives: [],
+      essays: [await c.language.mockEssayRow(writing.id)],
+    );
+    await c.language.editWrittenSection(
+      id: timed.row.id,
+      position: 0,
+      answers: ['Timed draft'],
+    );
+    await c.language.recordCourseCheck(
+      language: 'ja',
+      lesson: 0,
+      rotation: 1,
+      recognized: 2,
+      produced: 1,
+    );
     final backup = File('${parent.path}/complete.tixun-backup');
     final preview = await BackupService.export(c.db, c.files, backup);
     expect(preview.counts['attempts'], 1);
@@ -229,6 +258,15 @@ void main() {
     expect(
       (await c.db.select(c.db.learningLexicalForms).getSingle()).surface,
       'went',
+    );
+    final restoredTimed = await c.language.writtenExam(timed.row.id);
+    expect(restoredTimed.sections.single.answers, ['Timed draft']);
+    expect(
+      (await c.language.courseProgress('ja').first)
+          .values
+          .single
+          .passedRotations,
+      {1},
     );
     final restoredQuick = (await c.language.quickHistory(
       actionId: action.id,

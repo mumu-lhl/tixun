@@ -31799,6 +31799,1568 @@ class LearningExamAttemptsCompanion
   }
 }
 
+class $LearningWrittenExamsTable extends LearningWrittenExams
+    with TableInfo<$LearningWrittenExamsTable, LearningWrittenExam> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LearningWrittenExamsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _profileMeta = const VerificationMeta(
+    'profile',
+  );
+  @override
+  late final GeneratedColumn<String> profile = GeneratedColumn<String>(
+    'profile',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deadlineMeta = const VerificationMeta(
+    'deadline',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deadline = GeneratedColumn<DateTime>(
+    'deadline',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _submittedAtMeta = const VerificationMeta(
+    'submittedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> submittedAt = GeneratedColumn<DateTime>(
+    'submitted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _currentSectionMeta = const VerificationMeta(
+    'currentSection',
+  );
+  @override
+  late final GeneratedColumn<int> currentSection = GeneratedColumn<int>(
+    'current_section',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _sectionStartedAtMeta = const VerificationMeta(
+    'sectionStartedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> sectionStartedAt =
+      GeneratedColumn<DateTime>(
+        'section_started_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profile,
+    startedAt,
+    deadline,
+    submittedAt,
+    currentSection,
+    sectionStartedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'learning_written_exams';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LearningWrittenExam> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('profile')) {
+      context.handle(
+        _profileMeta,
+        profile.isAcceptableOrUnknown(data['profile']!, _profileMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileMeta);
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startedAtMeta);
+    }
+    if (data.containsKey('deadline')) {
+      context.handle(
+        _deadlineMeta,
+        deadline.isAcceptableOrUnknown(data['deadline']!, _deadlineMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deadlineMeta);
+    }
+    if (data.containsKey('submitted_at')) {
+      context.handle(
+        _submittedAtMeta,
+        submittedAt.isAcceptableOrUnknown(
+          data['submitted_at']!,
+          _submittedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('current_section')) {
+      context.handle(
+        _currentSectionMeta,
+        currentSection.isAcceptableOrUnknown(
+          data['current_section']!,
+          _currentSectionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('section_started_at')) {
+      context.handle(
+        _sectionStartedAtMeta,
+        sectionStartedAt.isAcceptableOrUnknown(
+          data['section_started_at']!,
+          _sectionStartedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sectionStartedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LearningWrittenExam map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LearningWrittenExam(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      profile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      deadline: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deadline'],
+      )!,
+      submittedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}submitted_at'],
+      ),
+      currentSection: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_section'],
+      )!,
+      sectionStartedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}section_started_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LearningWrittenExamsTable createAlias(String alias) {
+    return $LearningWrittenExamsTable(attachedDatabase, alias);
+  }
+}
+
+class LearningWrittenExam extends DataClass
+    implements Insertable<LearningWrittenExam> {
+  final String id;
+  final String profile;
+  final DateTime startedAt;
+  final DateTime deadline;
+  final DateTime? submittedAt;
+  final int currentSection;
+  final DateTime sectionStartedAt;
+  const LearningWrittenExam({
+    required this.id,
+    required this.profile,
+    required this.startedAt,
+    required this.deadline,
+    this.submittedAt,
+    required this.currentSection,
+    required this.sectionStartedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['profile'] = Variable<String>(profile);
+    map['started_at'] = Variable<DateTime>(startedAt);
+    map['deadline'] = Variable<DateTime>(deadline);
+    if (!nullToAbsent || submittedAt != null) {
+      map['submitted_at'] = Variable<DateTime>(submittedAt);
+    }
+    map['current_section'] = Variable<int>(currentSection);
+    map['section_started_at'] = Variable<DateTime>(sectionStartedAt);
+    return map;
+  }
+
+  LearningWrittenExamsCompanion toCompanion(bool nullToAbsent) {
+    return LearningWrittenExamsCompanion(
+      id: Value(id),
+      profile: Value(profile),
+      startedAt: Value(startedAt),
+      deadline: Value(deadline),
+      submittedAt: submittedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(submittedAt),
+      currentSection: Value(currentSection),
+      sectionStartedAt: Value(sectionStartedAt),
+    );
+  }
+
+  factory LearningWrittenExam.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LearningWrittenExam(
+      id: serializer.fromJson<String>(json['id']),
+      profile: serializer.fromJson<String>(json['profile']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      deadline: serializer.fromJson<DateTime>(json['deadline']),
+      submittedAt: serializer.fromJson<DateTime?>(json['submittedAt']),
+      currentSection: serializer.fromJson<int>(json['currentSection']),
+      sectionStartedAt: serializer.fromJson<DateTime>(json['sectionStartedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'profile': serializer.toJson<String>(profile),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'deadline': serializer.toJson<DateTime>(deadline),
+      'submittedAt': serializer.toJson<DateTime?>(submittedAt),
+      'currentSection': serializer.toJson<int>(currentSection),
+      'sectionStartedAt': serializer.toJson<DateTime>(sectionStartedAt),
+    };
+  }
+
+  LearningWrittenExam copyWith({
+    String? id,
+    String? profile,
+    DateTime? startedAt,
+    DateTime? deadline,
+    Value<DateTime?> submittedAt = const Value.absent(),
+    int? currentSection,
+    DateTime? sectionStartedAt,
+  }) => LearningWrittenExam(
+    id: id ?? this.id,
+    profile: profile ?? this.profile,
+    startedAt: startedAt ?? this.startedAt,
+    deadline: deadline ?? this.deadline,
+    submittedAt: submittedAt.present ? submittedAt.value : this.submittedAt,
+    currentSection: currentSection ?? this.currentSection,
+    sectionStartedAt: sectionStartedAt ?? this.sectionStartedAt,
+  );
+  LearningWrittenExam copyWithCompanion(LearningWrittenExamsCompanion data) {
+    return LearningWrittenExam(
+      id: data.id.present ? data.id.value : this.id,
+      profile: data.profile.present ? data.profile.value : this.profile,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      deadline: data.deadline.present ? data.deadline.value : this.deadline,
+      submittedAt: data.submittedAt.present
+          ? data.submittedAt.value
+          : this.submittedAt,
+      currentSection: data.currentSection.present
+          ? data.currentSection.value
+          : this.currentSection,
+      sectionStartedAt: data.sectionStartedAt.present
+          ? data.sectionStartedAt.value
+          : this.sectionStartedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningWrittenExam(')
+          ..write('id: $id, ')
+          ..write('profile: $profile, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('deadline: $deadline, ')
+          ..write('submittedAt: $submittedAt, ')
+          ..write('currentSection: $currentSection, ')
+          ..write('sectionStartedAt: $sectionStartedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    profile,
+    startedAt,
+    deadline,
+    submittedAt,
+    currentSection,
+    sectionStartedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LearningWrittenExam &&
+          other.id == this.id &&
+          other.profile == this.profile &&
+          other.startedAt == this.startedAt &&
+          other.deadline == this.deadline &&
+          other.submittedAt == this.submittedAt &&
+          other.currentSection == this.currentSection &&
+          other.sectionStartedAt == this.sectionStartedAt);
+}
+
+class LearningWrittenExamsCompanion
+    extends UpdateCompanion<LearningWrittenExam> {
+  final Value<String> id;
+  final Value<String> profile;
+  final Value<DateTime> startedAt;
+  final Value<DateTime> deadline;
+  final Value<DateTime?> submittedAt;
+  final Value<int> currentSection;
+  final Value<DateTime> sectionStartedAt;
+  final Value<int> rowid;
+  const LearningWrittenExamsCompanion({
+    this.id = const Value.absent(),
+    this.profile = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.deadline = const Value.absent(),
+    this.submittedAt = const Value.absent(),
+    this.currentSection = const Value.absent(),
+    this.sectionStartedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LearningWrittenExamsCompanion.insert({
+    required String id,
+    required String profile,
+    required DateTime startedAt,
+    required DateTime deadline,
+    this.submittedAt = const Value.absent(),
+    this.currentSection = const Value.absent(),
+    required DateTime sectionStartedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       profile = Value(profile),
+       startedAt = Value(startedAt),
+       deadline = Value(deadline),
+       sectionStartedAt = Value(sectionStartedAt);
+  static Insertable<LearningWrittenExam> custom({
+    Expression<String>? id,
+    Expression<String>? profile,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? deadline,
+    Expression<DateTime>? submittedAt,
+    Expression<int>? currentSection,
+    Expression<DateTime>? sectionStartedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profile != null) 'profile': profile,
+      if (startedAt != null) 'started_at': startedAt,
+      if (deadline != null) 'deadline': deadline,
+      if (submittedAt != null) 'submitted_at': submittedAt,
+      if (currentSection != null) 'current_section': currentSection,
+      if (sectionStartedAt != null) 'section_started_at': sectionStartedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LearningWrittenExamsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? profile,
+    Value<DateTime>? startedAt,
+    Value<DateTime>? deadline,
+    Value<DateTime?>? submittedAt,
+    Value<int>? currentSection,
+    Value<DateTime>? sectionStartedAt,
+    Value<int>? rowid,
+  }) {
+    return LearningWrittenExamsCompanion(
+      id: id ?? this.id,
+      profile: profile ?? this.profile,
+      startedAt: startedAt ?? this.startedAt,
+      deadline: deadline ?? this.deadline,
+      submittedAt: submittedAt ?? this.submittedAt,
+      currentSection: currentSection ?? this.currentSection,
+      sectionStartedAt: sectionStartedAt ?? this.sectionStartedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (profile.present) {
+      map['profile'] = Variable<String>(profile.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (deadline.present) {
+      map['deadline'] = Variable<DateTime>(deadline.value);
+    }
+    if (submittedAt.present) {
+      map['submitted_at'] = Variable<DateTime>(submittedAt.value);
+    }
+    if (currentSection.present) {
+      map['current_section'] = Variable<int>(currentSection.value);
+    }
+    if (sectionStartedAt.present) {
+      map['section_started_at'] = Variable<DateTime>(sectionStartedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningWrittenExamsCompanion(')
+          ..write('id: $id, ')
+          ..write('profile: $profile, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('deadline: $deadline, ')
+          ..write('submittedAt: $submittedAt, ')
+          ..write('currentSection: $currentSection, ')
+          ..write('sectionStartedAt: $sectionStartedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LearningWrittenExamSectionsTable extends LearningWrittenExamSections
+    with
+        TableInfo<
+          $LearningWrittenExamSectionsTable,
+          LearningWrittenExamSection
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LearningWrittenExamSectionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _examIdMeta = const VerificationMeta('examId');
+  @override
+  late final GeneratedColumn<String> examId = GeneratedColumn<String>(
+    'exam_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_written_exams (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _materialIdMeta = const VerificationMeta(
+    'materialId',
+  );
+  @override
+  late final GeneratedColumn<String> materialId = GeneratedColumn<String>(
+    'material_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_exam_materials (id)',
+    ),
+  );
+  static const VerificationMeta _writingTaskIdMeta = const VerificationMeta(
+    'writingTaskId',
+  );
+  @override
+  late final GeneratedColumn<String> writingTaskId = GeneratedColumn<String>(
+    'writing_task_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_writing_tasks (id)',
+    ),
+  );
+  static const VerificationMeta _writingVersionIdMeta = const VerificationMeta(
+    'writingVersionId',
+  );
+  @override
+  late final GeneratedColumn<String> writingVersionId = GeneratedColumn<String>(
+    'writing_version_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_writing_versions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _answersMeta = const VerificationMeta(
+    'answers',
+  );
+  @override
+  late final GeneratedColumn<String> answers = GeneratedColumn<String>(
+    'answers',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _halfPointsMeta = const VerificationMeta(
+    'halfPoints',
+  );
+  @override
+  late final GeneratedColumn<int> halfPoints = GeneratedColumn<int>(
+    'half_points',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _secondsMeta = const VerificationMeta(
+    'seconds',
+  );
+  @override
+  late final GeneratedColumn<int> seconds = GeneratedColumn<int>(
+    'seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _reviewedAtStartMeta = const VerificationMeta(
+    'reviewedAtStart',
+  );
+  @override
+  late final GeneratedColumn<bool> reviewedAtStart = GeneratedColumn<bool>(
+    'reviewed_at_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("reviewed_at_start" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    examId,
+    position,
+    materialId,
+    writingTaskId,
+    writingVersionId,
+    answers,
+    halfPoints,
+    seconds,
+    reviewedAtStart,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'learning_written_exam_sections';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LearningWrittenExamSection> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('exam_id')) {
+      context.handle(
+        _examIdMeta,
+        examId.isAcceptableOrUnknown(data['exam_id']!, _examIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_examIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('material_id')) {
+      context.handle(
+        _materialIdMeta,
+        materialId.isAcceptableOrUnknown(data['material_id']!, _materialIdMeta),
+      );
+    }
+    if (data.containsKey('writing_task_id')) {
+      context.handle(
+        _writingTaskIdMeta,
+        writingTaskId.isAcceptableOrUnknown(
+          data['writing_task_id']!,
+          _writingTaskIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('writing_version_id')) {
+      context.handle(
+        _writingVersionIdMeta,
+        writingVersionId.isAcceptableOrUnknown(
+          data['writing_version_id']!,
+          _writingVersionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('answers')) {
+      context.handle(
+        _answersMeta,
+        answers.isAcceptableOrUnknown(data['answers']!, _answersMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answersMeta);
+    }
+    if (data.containsKey('half_points')) {
+      context.handle(
+        _halfPointsMeta,
+        halfPoints.isAcceptableOrUnknown(data['half_points']!, _halfPointsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_halfPointsMeta);
+    }
+    if (data.containsKey('seconds')) {
+      context.handle(
+        _secondsMeta,
+        seconds.isAcceptableOrUnknown(data['seconds']!, _secondsMeta),
+      );
+    }
+    if (data.containsKey('reviewed_at_start')) {
+      context.handle(
+        _reviewedAtStartMeta,
+        reviewedAtStart.isAcceptableOrUnknown(
+          data['reviewed_at_start']!,
+          _reviewedAtStartMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {examId, position};
+  @override
+  LearningWrittenExamSection map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LearningWrittenExamSection(
+      examId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exam_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      materialId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}material_id'],
+      ),
+      writingTaskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}writing_task_id'],
+      ),
+      writingVersionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}writing_version_id'],
+      ),
+      answers: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}answers'],
+      )!,
+      halfPoints: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}half_points'],
+      )!,
+      seconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seconds'],
+      )!,
+      reviewedAtStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}reviewed_at_start'],
+      )!,
+    );
+  }
+
+  @override
+  $LearningWrittenExamSectionsTable createAlias(String alias) {
+    return $LearningWrittenExamSectionsTable(attachedDatabase, alias);
+  }
+}
+
+class LearningWrittenExamSection extends DataClass
+    implements Insertable<LearningWrittenExamSection> {
+  final String examId;
+  final int position;
+  final String? materialId;
+  final String? writingTaskId;
+  final String? writingVersionId;
+  final String answers;
+  final int halfPoints;
+  final int seconds;
+  final bool reviewedAtStart;
+  const LearningWrittenExamSection({
+    required this.examId,
+    required this.position,
+    this.materialId,
+    this.writingTaskId,
+    this.writingVersionId,
+    required this.answers,
+    required this.halfPoints,
+    required this.seconds,
+    required this.reviewedAtStart,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['exam_id'] = Variable<String>(examId);
+    map['position'] = Variable<int>(position);
+    if (!nullToAbsent || materialId != null) {
+      map['material_id'] = Variable<String>(materialId);
+    }
+    if (!nullToAbsent || writingTaskId != null) {
+      map['writing_task_id'] = Variable<String>(writingTaskId);
+    }
+    if (!nullToAbsent || writingVersionId != null) {
+      map['writing_version_id'] = Variable<String>(writingVersionId);
+    }
+    map['answers'] = Variable<String>(answers);
+    map['half_points'] = Variable<int>(halfPoints);
+    map['seconds'] = Variable<int>(seconds);
+    map['reviewed_at_start'] = Variable<bool>(reviewedAtStart);
+    return map;
+  }
+
+  LearningWrittenExamSectionsCompanion toCompanion(bool nullToAbsent) {
+    return LearningWrittenExamSectionsCompanion(
+      examId: Value(examId),
+      position: Value(position),
+      materialId: materialId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(materialId),
+      writingTaskId: writingTaskId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(writingTaskId),
+      writingVersionId: writingVersionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(writingVersionId),
+      answers: Value(answers),
+      halfPoints: Value(halfPoints),
+      seconds: Value(seconds),
+      reviewedAtStart: Value(reviewedAtStart),
+    );
+  }
+
+  factory LearningWrittenExamSection.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LearningWrittenExamSection(
+      examId: serializer.fromJson<String>(json['examId']),
+      position: serializer.fromJson<int>(json['position']),
+      materialId: serializer.fromJson<String?>(json['materialId']),
+      writingTaskId: serializer.fromJson<String?>(json['writingTaskId']),
+      writingVersionId: serializer.fromJson<String?>(json['writingVersionId']),
+      answers: serializer.fromJson<String>(json['answers']),
+      halfPoints: serializer.fromJson<int>(json['halfPoints']),
+      seconds: serializer.fromJson<int>(json['seconds']),
+      reviewedAtStart: serializer.fromJson<bool>(json['reviewedAtStart']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'examId': serializer.toJson<String>(examId),
+      'position': serializer.toJson<int>(position),
+      'materialId': serializer.toJson<String?>(materialId),
+      'writingTaskId': serializer.toJson<String?>(writingTaskId),
+      'writingVersionId': serializer.toJson<String?>(writingVersionId),
+      'answers': serializer.toJson<String>(answers),
+      'halfPoints': serializer.toJson<int>(halfPoints),
+      'seconds': serializer.toJson<int>(seconds),
+      'reviewedAtStart': serializer.toJson<bool>(reviewedAtStart),
+    };
+  }
+
+  LearningWrittenExamSection copyWith({
+    String? examId,
+    int? position,
+    Value<String?> materialId = const Value.absent(),
+    Value<String?> writingTaskId = const Value.absent(),
+    Value<String?> writingVersionId = const Value.absent(),
+    String? answers,
+    int? halfPoints,
+    int? seconds,
+    bool? reviewedAtStart,
+  }) => LearningWrittenExamSection(
+    examId: examId ?? this.examId,
+    position: position ?? this.position,
+    materialId: materialId.present ? materialId.value : this.materialId,
+    writingTaskId: writingTaskId.present
+        ? writingTaskId.value
+        : this.writingTaskId,
+    writingVersionId: writingVersionId.present
+        ? writingVersionId.value
+        : this.writingVersionId,
+    answers: answers ?? this.answers,
+    halfPoints: halfPoints ?? this.halfPoints,
+    seconds: seconds ?? this.seconds,
+    reviewedAtStart: reviewedAtStart ?? this.reviewedAtStart,
+  );
+  LearningWrittenExamSection copyWithCompanion(
+    LearningWrittenExamSectionsCompanion data,
+  ) {
+    return LearningWrittenExamSection(
+      examId: data.examId.present ? data.examId.value : this.examId,
+      position: data.position.present ? data.position.value : this.position,
+      materialId: data.materialId.present
+          ? data.materialId.value
+          : this.materialId,
+      writingTaskId: data.writingTaskId.present
+          ? data.writingTaskId.value
+          : this.writingTaskId,
+      writingVersionId: data.writingVersionId.present
+          ? data.writingVersionId.value
+          : this.writingVersionId,
+      answers: data.answers.present ? data.answers.value : this.answers,
+      halfPoints: data.halfPoints.present
+          ? data.halfPoints.value
+          : this.halfPoints,
+      seconds: data.seconds.present ? data.seconds.value : this.seconds,
+      reviewedAtStart: data.reviewedAtStart.present
+          ? data.reviewedAtStart.value
+          : this.reviewedAtStart,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningWrittenExamSection(')
+          ..write('examId: $examId, ')
+          ..write('position: $position, ')
+          ..write('materialId: $materialId, ')
+          ..write('writingTaskId: $writingTaskId, ')
+          ..write('writingVersionId: $writingVersionId, ')
+          ..write('answers: $answers, ')
+          ..write('halfPoints: $halfPoints, ')
+          ..write('seconds: $seconds, ')
+          ..write('reviewedAtStart: $reviewedAtStart')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    examId,
+    position,
+    materialId,
+    writingTaskId,
+    writingVersionId,
+    answers,
+    halfPoints,
+    seconds,
+    reviewedAtStart,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LearningWrittenExamSection &&
+          other.examId == this.examId &&
+          other.position == this.position &&
+          other.materialId == this.materialId &&
+          other.writingTaskId == this.writingTaskId &&
+          other.writingVersionId == this.writingVersionId &&
+          other.answers == this.answers &&
+          other.halfPoints == this.halfPoints &&
+          other.seconds == this.seconds &&
+          other.reviewedAtStart == this.reviewedAtStart);
+}
+
+class LearningWrittenExamSectionsCompanion
+    extends UpdateCompanion<LearningWrittenExamSection> {
+  final Value<String> examId;
+  final Value<int> position;
+  final Value<String?> materialId;
+  final Value<String?> writingTaskId;
+  final Value<String?> writingVersionId;
+  final Value<String> answers;
+  final Value<int> halfPoints;
+  final Value<int> seconds;
+  final Value<bool> reviewedAtStart;
+  final Value<int> rowid;
+  const LearningWrittenExamSectionsCompanion({
+    this.examId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.materialId = const Value.absent(),
+    this.writingTaskId = const Value.absent(),
+    this.writingVersionId = const Value.absent(),
+    this.answers = const Value.absent(),
+    this.halfPoints = const Value.absent(),
+    this.seconds = const Value.absent(),
+    this.reviewedAtStart = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LearningWrittenExamSectionsCompanion.insert({
+    required String examId,
+    required int position,
+    this.materialId = const Value.absent(),
+    this.writingTaskId = const Value.absent(),
+    this.writingVersionId = const Value.absent(),
+    required String answers,
+    required int halfPoints,
+    this.seconds = const Value.absent(),
+    this.reviewedAtStart = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : examId = Value(examId),
+       position = Value(position),
+       answers = Value(answers),
+       halfPoints = Value(halfPoints);
+  static Insertable<LearningWrittenExamSection> custom({
+    Expression<String>? examId,
+    Expression<int>? position,
+    Expression<String>? materialId,
+    Expression<String>? writingTaskId,
+    Expression<String>? writingVersionId,
+    Expression<String>? answers,
+    Expression<int>? halfPoints,
+    Expression<int>? seconds,
+    Expression<bool>? reviewedAtStart,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (examId != null) 'exam_id': examId,
+      if (position != null) 'position': position,
+      if (materialId != null) 'material_id': materialId,
+      if (writingTaskId != null) 'writing_task_id': writingTaskId,
+      if (writingVersionId != null) 'writing_version_id': writingVersionId,
+      if (answers != null) 'answers': answers,
+      if (halfPoints != null) 'half_points': halfPoints,
+      if (seconds != null) 'seconds': seconds,
+      if (reviewedAtStart != null) 'reviewed_at_start': reviewedAtStart,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LearningWrittenExamSectionsCompanion copyWith({
+    Value<String>? examId,
+    Value<int>? position,
+    Value<String?>? materialId,
+    Value<String?>? writingTaskId,
+    Value<String?>? writingVersionId,
+    Value<String>? answers,
+    Value<int>? halfPoints,
+    Value<int>? seconds,
+    Value<bool>? reviewedAtStart,
+    Value<int>? rowid,
+  }) {
+    return LearningWrittenExamSectionsCompanion(
+      examId: examId ?? this.examId,
+      position: position ?? this.position,
+      materialId: materialId ?? this.materialId,
+      writingTaskId: writingTaskId ?? this.writingTaskId,
+      writingVersionId: writingVersionId ?? this.writingVersionId,
+      answers: answers ?? this.answers,
+      halfPoints: halfPoints ?? this.halfPoints,
+      seconds: seconds ?? this.seconds,
+      reviewedAtStart: reviewedAtStart ?? this.reviewedAtStart,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (examId.present) {
+      map['exam_id'] = Variable<String>(examId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (materialId.present) {
+      map['material_id'] = Variable<String>(materialId.value);
+    }
+    if (writingTaskId.present) {
+      map['writing_task_id'] = Variable<String>(writingTaskId.value);
+    }
+    if (writingVersionId.present) {
+      map['writing_version_id'] = Variable<String>(writingVersionId.value);
+    }
+    if (answers.present) {
+      map['answers'] = Variable<String>(answers.value);
+    }
+    if (halfPoints.present) {
+      map['half_points'] = Variable<int>(halfPoints.value);
+    }
+    if (seconds.present) {
+      map['seconds'] = Variable<int>(seconds.value);
+    }
+    if (reviewedAtStart.present) {
+      map['reviewed_at_start'] = Variable<bool>(reviewedAtStart.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningWrittenExamSectionsCompanion(')
+          ..write('examId: $examId, ')
+          ..write('position: $position, ')
+          ..write('materialId: $materialId, ')
+          ..write('writingTaskId: $writingTaskId, ')
+          ..write('writingVersionId: $writingVersionId, ')
+          ..write('answers: $answers, ')
+          ..write('halfPoints: $halfPoints, ')
+          ..write('seconds: $seconds, ')
+          ..write('reviewedAtStart: $reviewedAtStart, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LearningCourseAttemptsTable extends LearningCourseAttempts
+    with TableInfo<$LearningCourseAttemptsTable, LearningCourseAttempt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LearningCourseAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _languageMeta = const VerificationMeta(
+    'language',
+  );
+  @override
+  late final GeneratedColumn<String> language = GeneratedColumn<String>(
+    'language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lessonMeta = const VerificationMeta('lesson');
+  @override
+  late final GeneratedColumn<String> lesson = GeneratedColumn<String>(
+    'lesson',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rotationMeta = const VerificationMeta(
+    'rotation',
+  );
+  @override
+  late final GeneratedColumn<int> rotation = GeneratedColumn<int>(
+    'rotation',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recognizedMeta = const VerificationMeta(
+    'recognized',
+  );
+  @override
+  late final GeneratedColumn<int> recognized = GeneratedColumn<int>(
+    'recognized',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _producedMeta = const VerificationMeta(
+    'produced',
+  );
+  @override
+  late final GeneratedColumn<int> produced = GeneratedColumn<int>(
+    'produced',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _occurredAtMeta = const VerificationMeta(
+    'occurredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> occurredAt = GeneratedColumn<DateTime>(
+    'occurred_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    language,
+    lesson,
+    rotation,
+    recognized,
+    produced,
+    occurredAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'learning_course_attempts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LearningCourseAttempt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('language')) {
+      context.handle(
+        _languageMeta,
+        language.isAcceptableOrUnknown(data['language']!, _languageMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_languageMeta);
+    }
+    if (data.containsKey('lesson')) {
+      context.handle(
+        _lessonMeta,
+        lesson.isAcceptableOrUnknown(data['lesson']!, _lessonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lessonMeta);
+    }
+    if (data.containsKey('rotation')) {
+      context.handle(
+        _rotationMeta,
+        rotation.isAcceptableOrUnknown(data['rotation']!, _rotationMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rotationMeta);
+    }
+    if (data.containsKey('recognized')) {
+      context.handle(
+        _recognizedMeta,
+        recognized.isAcceptableOrUnknown(data['recognized']!, _recognizedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recognizedMeta);
+    }
+    if (data.containsKey('produced')) {
+      context.handle(
+        _producedMeta,
+        produced.isAcceptableOrUnknown(data['produced']!, _producedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_producedMeta);
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+        _occurredAtMeta,
+        occurredAt.isAcceptableOrUnknown(data['occurred_at']!, _occurredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_occurredAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LearningCourseAttempt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LearningCourseAttempt(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      language: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}language'],
+      )!,
+      lesson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lesson'],
+      )!,
+      rotation: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rotation'],
+      )!,
+      recognized: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recognized'],
+      )!,
+      produced: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}produced'],
+      )!,
+      occurredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}occurred_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LearningCourseAttemptsTable createAlias(String alias) {
+    return $LearningCourseAttemptsTable(attachedDatabase, alias);
+  }
+}
+
+class LearningCourseAttempt extends DataClass
+    implements Insertable<LearningCourseAttempt> {
+  final String id;
+  final String language;
+  final String lesson;
+  final int rotation;
+  final int recognized;
+  final int produced;
+  final DateTime occurredAt;
+  const LearningCourseAttempt({
+    required this.id,
+    required this.language,
+    required this.lesson,
+    required this.rotation,
+    required this.recognized,
+    required this.produced,
+    required this.occurredAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['language'] = Variable<String>(language);
+    map['lesson'] = Variable<String>(lesson);
+    map['rotation'] = Variable<int>(rotation);
+    map['recognized'] = Variable<int>(recognized);
+    map['produced'] = Variable<int>(produced);
+    map['occurred_at'] = Variable<DateTime>(occurredAt);
+    return map;
+  }
+
+  LearningCourseAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return LearningCourseAttemptsCompanion(
+      id: Value(id),
+      language: Value(language),
+      lesson: Value(lesson),
+      rotation: Value(rotation),
+      recognized: Value(recognized),
+      produced: Value(produced),
+      occurredAt: Value(occurredAt),
+    );
+  }
+
+  factory LearningCourseAttempt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LearningCourseAttempt(
+      id: serializer.fromJson<String>(json['id']),
+      language: serializer.fromJson<String>(json['language']),
+      lesson: serializer.fromJson<String>(json['lesson']),
+      rotation: serializer.fromJson<int>(json['rotation']),
+      recognized: serializer.fromJson<int>(json['recognized']),
+      produced: serializer.fromJson<int>(json['produced']),
+      occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'language': serializer.toJson<String>(language),
+      'lesson': serializer.toJson<String>(lesson),
+      'rotation': serializer.toJson<int>(rotation),
+      'recognized': serializer.toJson<int>(recognized),
+      'produced': serializer.toJson<int>(produced),
+      'occurredAt': serializer.toJson<DateTime>(occurredAt),
+    };
+  }
+
+  LearningCourseAttempt copyWith({
+    String? id,
+    String? language,
+    String? lesson,
+    int? rotation,
+    int? recognized,
+    int? produced,
+    DateTime? occurredAt,
+  }) => LearningCourseAttempt(
+    id: id ?? this.id,
+    language: language ?? this.language,
+    lesson: lesson ?? this.lesson,
+    rotation: rotation ?? this.rotation,
+    recognized: recognized ?? this.recognized,
+    produced: produced ?? this.produced,
+    occurredAt: occurredAt ?? this.occurredAt,
+  );
+  LearningCourseAttempt copyWithCompanion(
+    LearningCourseAttemptsCompanion data,
+  ) {
+    return LearningCourseAttempt(
+      id: data.id.present ? data.id.value : this.id,
+      language: data.language.present ? data.language.value : this.language,
+      lesson: data.lesson.present ? data.lesson.value : this.lesson,
+      rotation: data.rotation.present ? data.rotation.value : this.rotation,
+      recognized: data.recognized.present
+          ? data.recognized.value
+          : this.recognized,
+      produced: data.produced.present ? data.produced.value : this.produced,
+      occurredAt: data.occurredAt.present
+          ? data.occurredAt.value
+          : this.occurredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningCourseAttempt(')
+          ..write('id: $id, ')
+          ..write('language: $language, ')
+          ..write('lesson: $lesson, ')
+          ..write('rotation: $rotation, ')
+          ..write('recognized: $recognized, ')
+          ..write('produced: $produced, ')
+          ..write('occurredAt: $occurredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    language,
+    lesson,
+    rotation,
+    recognized,
+    produced,
+    occurredAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LearningCourseAttempt &&
+          other.id == this.id &&
+          other.language == this.language &&
+          other.lesson == this.lesson &&
+          other.rotation == this.rotation &&
+          other.recognized == this.recognized &&
+          other.produced == this.produced &&
+          other.occurredAt == this.occurredAt);
+}
+
+class LearningCourseAttemptsCompanion
+    extends UpdateCompanion<LearningCourseAttempt> {
+  final Value<String> id;
+  final Value<String> language;
+  final Value<String> lesson;
+  final Value<int> rotation;
+  final Value<int> recognized;
+  final Value<int> produced;
+  final Value<DateTime> occurredAt;
+  final Value<int> rowid;
+  const LearningCourseAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.language = const Value.absent(),
+    this.lesson = const Value.absent(),
+    this.rotation = const Value.absent(),
+    this.recognized = const Value.absent(),
+    this.produced = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LearningCourseAttemptsCompanion.insert({
+    required String id,
+    required String language,
+    required String lesson,
+    required int rotation,
+    required int recognized,
+    required int produced,
+    required DateTime occurredAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       language = Value(language),
+       lesson = Value(lesson),
+       rotation = Value(rotation),
+       recognized = Value(recognized),
+       produced = Value(produced),
+       occurredAt = Value(occurredAt);
+  static Insertable<LearningCourseAttempt> custom({
+    Expression<String>? id,
+    Expression<String>? language,
+    Expression<String>? lesson,
+    Expression<int>? rotation,
+    Expression<int>? recognized,
+    Expression<int>? produced,
+    Expression<DateTime>? occurredAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (language != null) 'language': language,
+      if (lesson != null) 'lesson': lesson,
+      if (rotation != null) 'rotation': rotation,
+      if (recognized != null) 'recognized': recognized,
+      if (produced != null) 'produced': produced,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LearningCourseAttemptsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? language,
+    Value<String>? lesson,
+    Value<int>? rotation,
+    Value<int>? recognized,
+    Value<int>? produced,
+    Value<DateTime>? occurredAt,
+    Value<int>? rowid,
+  }) {
+    return LearningCourseAttemptsCompanion(
+      id: id ?? this.id,
+      language: language ?? this.language,
+      lesson: lesson ?? this.lesson,
+      rotation: rotation ?? this.rotation,
+      recognized: recognized ?? this.recognized,
+      produced: produced ?? this.produced,
+      occurredAt: occurredAt ?? this.occurredAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (language.present) {
+      map['language'] = Variable<String>(language.value);
+    }
+    if (lesson.present) {
+      map['lesson'] = Variable<String>(lesson.value);
+    }
+    if (rotation.present) {
+      map['rotation'] = Variable<int>(rotation.value);
+    }
+    if (recognized.present) {
+      map['recognized'] = Variable<int>(recognized.value);
+    }
+    if (produced.present) {
+      map['produced'] = Variable<int>(produced.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearningCourseAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('language: $language, ')
+          ..write('lesson: $lesson, ')
+          ..write('rotation: $rotation, ')
+          ..write('recognized: $recognized, ')
+          ..write('produced: $produced, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -31917,6 +33479,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LearningExamMaterialsTable(this);
   late final $LearningExamAttemptsTable learningExamAttempts =
       $LearningExamAttemptsTable(this);
+  late final $LearningWrittenExamsTable learningWrittenExams =
+      $LearningWrittenExamsTable(this);
+  late final $LearningWrittenExamSectionsTable learningWrittenExamSections =
+      $LearningWrittenExamSectionsTable(this);
+  late final $LearningCourseAttemptsTable learningCourseAttempts =
+      $LearningCourseAttemptsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -31986,6 +33554,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     languageQuickLearningLinks,
     learningExamMaterials,
     learningExamAttempts,
+    learningWrittenExams,
+    learningWrittenExamSections,
+    learningCourseAttempts,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -32481,6 +34052,24 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       ),
       result: [
         TableUpdate('language_quick_learning_links', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'learning_written_exams',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('learning_written_exam_sections', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'learning_writing_versions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('learning_written_exam_sections', kind: UpdateKind.update),
       ],
     ),
   ]);

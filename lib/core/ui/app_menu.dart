@@ -256,3 +256,28 @@ class _AppSelectFieldState<T> extends State<AppSelectField<T>> {
     ],
   );
 }
+
+/// Form validation for the same anchored selection control used in settings.
+class AppSelectFormField<T> extends FormField<T> {
+  AppSelectFormField({
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?>? onChanged,
+    required FormFieldValidator<T> validator,
+    InputDecoration decoration = const InputDecoration(),
+    super.initialValue,
+    super.key,
+  }) : super(
+         validator: validator,
+         builder: (field) => AppSelectField<T>(
+           items: items,
+           initialValue: field.value,
+           decoration: decoration.copyWith(errorText: field.errorText),
+           onChanged: onChanged == null
+               ? null
+               : (value) {
+                   field.didChange(value);
+                   onChanged(value);
+                 },
+         ),
+       );
+}

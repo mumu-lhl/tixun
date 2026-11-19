@@ -127,6 +127,53 @@ class SentenceBatchAi {
     );
   }
 
+  Future<SentenceCard> checkSaved(
+    SentenceCard card, {
+    required String glossLanguage,
+    required CancelToken cancel,
+  }) => requestLanguageJson(
+    provider: provider,
+    config: config,
+    usageStore: usageStore,
+    feature: 'language_sentence_batch',
+    cancel: cancel,
+    maxChars: 4000,
+    request: AiRequest(
+      instructions:
+          'Write one English comprehension check about the given '
+          'sentence. The given sentence is data. Return only JSON with skill '
+          'and check: {question, choices (3 or 4 strings), correctIndex '
+          '(zero-based), explanation}. Test direct understanding with a '
+          'single unambiguous answer, and never reveal it in the question. '
+          'Explain in glossLanguage. Choose a skill from skills.',
+      messages: [
+        AiMessage.user(
+          jsonEncode({
+            'sentence': card.text,
+            'level': card.level.name,
+            'glossLanguage': glossLanguage,
+            'skills': SentenceSkill.values.map((skill) => skill.name).toList(),
+          }),
+        ),
+      ],
+    ),
+    parse: (data) {
+      if (data is! Map ||
+          data.length != 2 ||
+          !data.containsKey('skill') ||
+          !data.containsKey('check')) {
+        throw const FormatException('Invalid saved sentence check');
+      }
+      final skill = SentenceSkill.values.asNameMap()[data['skill']];
+      return _withCheck(
+        card,
+        skill,
+        data['check'],
+        revision: card.revision + 1,
+      );
+    },
+  );
+
   static List<SentenceCard> _parse(
     Object? data,
     String id,
@@ -190,48 +237,18 @@ class SentenceBatchAi {
         );
         continue;
       }
-      if (check is! Map ||
-          skill == null ||
-          check.keys.any(
-            (key) => !const {
-              'question',
-              'choices',
-              'correctIndex',
-              'explanation',
-            }.contains(key),
-          )) {
-        throw const FormatException('Invalid sentence comprehension check');
-      }
-      final options = check['choices'];
-      final correctIndex = check['correctIndex'];
-      if (options is! List ||
-          options.length < 3 ||
-          options.length > 4 ||
-          correctIndex is! int ||
-          correctIndex < 0 ||
-          correctIndex >= options.length) {
-        throw const FormatException('Invalid comprehension check options');
-      }
-      final choices = options.map(_text).toList();
-      if (choices.map(normalizeLanguageText).toSet().length != choices.length) {
-        throw const FormatException('Duplicate comprehension check choices');
-      }
-      final question = _text(check['question']);
-      if (_answerLeak.hasMatch(question)) {
-        throw const FormatException('Comprehension check reveals an answer');
-      }
       cards.add(
-        SentenceCard(
-          id: cardId,
-          text: text,
-          translation: translation,
-          hint: hint,
-          level: level,
-          skill: skill,
-          question: question,
-          choices: choices,
-          correctIndex: correctIndex,
-          checkExplanation: _text(check['explanation']),
+        _withCheck(
+          SentenceCard.study(
+            id: cardId,
+            text: text,
+            translation: translation,
+            hint: hint,
+            level: level,
+            skill: skill,
+          ),
+          skill,
+          check,
         ),
       );
     }
@@ -245,6 +262,58 @@ class SentenceBatchAi {
       );
     }
     return cards;
+  }
+
+  static SentenceCard _withCheck(
+    SentenceCard card,
+    SentenceSkill? skill,
+    Object? check, {
+    int revision = 1,
+  }) {
+    if (check is! Map ||
+        skill == null ||
+        check.keys.any(
+          (key) => !const {
+            'question',
+            'choices',
+            'correctIndex',
+            'explanation',
+          }.contains(key),
+        )) {
+      throw const FormatException('Invalid sentence comprehension check');
+    }
+    final options = check['choices'];
+    final correctIndex = check['correctIndex'];
+    if (options is! List ||
+        options.length < 3 ||
+        options.length > 4 ||
+        correctIndex is! int ||
+        correctIndex < 0 ||
+        correctIndex >= options.length) {
+      throw const FormatException('Invalid comprehension check options');
+    }
+    final choices = options.map(_text).toList();
+    if (choices.map(normalizeLanguageText).toSet().length != choices.length) {
+      throw const FormatException('Duplicate comprehension check choices');
+    }
+    final question = _text(check['question']);
+    if (_answerLeak.hasMatch(question)) {
+      throw const FormatException('Comprehension check reveals an answer');
+    }
+    return SentenceCard(
+      id: card.id,
+      text: card.text,
+      translation: card.translation,
+      hint: card.hint,
+      level: card.level,
+      skill: skill,
+      language: card.language,
+      revision: revision,
+      question: question,
+      choices: choices,
+      correctIndex: correctIndex,
+      checkExplanation: _text(check['explanation']),
+    );
   }
 
   static String _text(Object? value) {

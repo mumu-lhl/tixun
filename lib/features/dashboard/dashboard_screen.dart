@@ -8,6 +8,7 @@ import '../../core/ui/actions.dart';
 import '../../core/ui/app_menu.dart';
 import '../library/library_providers.dart';
 import 'daily_learning.dart';
+import 'language_subject_action.dart';
 
 part 'dashboard_counts.dart';
 
@@ -154,13 +155,9 @@ class DashboardScreen extends ConsumerWidget {
                             icon: const Icon(Icons.calendar_month_outlined),
                             label: Text(context.l10n.examRecords),
                           ),
-                          OutlinedButton.icon(
-                            onPressed: () => context.push('/language'),
-                            icon: const Icon(Icons.translate),
-                            label: Text(context.l10n.languageLearning),
-                          ),
                         ],
                       ),
+                      LanguageSubjectAction(subject: c.subjectFilter),
                       const SizedBox(height: 12),
                       const DailyLearning(),
                       const SizedBox(height: 24),

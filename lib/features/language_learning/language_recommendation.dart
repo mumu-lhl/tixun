@@ -21,6 +21,10 @@ Future<void> openLanguageRecommendation(
   required void Function(ExamTarget) exam,
   required void Function(SentencePlan) sentences,
 }) async {
+  if (profile.language != 'en') {
+    foundations();
+    return;
+  }
   final skill = plan.skill;
   final sentenceSkill = sentenceSkillForAbility(skill);
   if (goal == LanguageGoal.exam) {

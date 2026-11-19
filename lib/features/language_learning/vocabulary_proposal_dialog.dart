@@ -5,6 +5,7 @@ import '../../core/ai/chat_provider.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_error_localization.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/app_menu.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
 import 'sentence_content.dart';
@@ -168,6 +169,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                   key: _form,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    spacing: 12,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
@@ -189,9 +191,8 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                             labelText: l10n.languageGroupTitle,
                           ),
                         ),
-                        DropdownButtonFormField<VocabularyGroupType>(
+                        AppSelectField<VocabularyGroupType>(
                           initialValue: _kind,
-                          isExpanded: true,
                           decoration: InputDecoration(
                             labelText: l10n.languageGroupType,
                           ),
@@ -208,7 +209,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                         ),
                       ] else
                         Text(_title),
-                      DropdownButtonFormField<VocabularyLevel>(
+                      AppSelectField<VocabularyLevel>(
                         initialValue: _level,
                         decoration: InputDecoration(
                           labelText: l10n.languageDifficulty,
@@ -231,7 +232,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                             ? null
                             : (level) => _level = level!,
                       ),
-                      DropdownButtonFormField<int>(
+                      AppSelectField<int>(
                         initialValue: _count,
                         decoration: InputDecoration(
                           labelText: l10n.languageVocabularyCount,
@@ -247,8 +248,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                             ? (count) => _count = count!
                             : null,
                       ),
-                      DropdownButtonFormField<SentenceSkill>(
-                        hint: Text(l10n.languageExamAnySkill),
+                      AppSelectField<SentenceSkill>(
                         decoration: InputDecoration(
                           labelText: l10n.languageExamFocus,
                         ),
@@ -277,6 +277,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                 )
               : Column(
                   mainAxisSize: MainAxisSize.min,
+                  spacing: 12,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(

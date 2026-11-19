@@ -9,6 +9,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../app/controller.dart';
 import '../../../core/database/database.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/ui/app_menu.dart';
 import '../language_store.dart';
 import '../lexical_form.dart';
 import '../lexical_form_screen.dart';
@@ -256,11 +257,11 @@ class _QuickVocabularyGroupState extends State<_QuickVocabularyGroup> {
                     key: _form,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      spacing: 12,
                       children: [
                         if (widget.senses.isNotEmpty)
-                          DropdownButtonFormField<String>(
+                          AppSelectField<String>(
                             initialValue: widget.entry.meaning.trim(),
-                            isExpanded: true,
                             decoration: InputDecoration(
                               labelText: l10n.quickChooseSense,
                             ),
@@ -279,9 +280,8 @@ class _QuickVocabularyGroupState extends State<_QuickVocabularyGroup> {
                             ],
                             onChanged: (value) => _meaning = value!,
                           ),
-                        DropdownButtonFormField<String>(
+                        AppSelectField<String>(
                           initialValue: '',
-                          isExpanded: true,
                           decoration: InputDecoration(
                             labelText: l10n.languageGroups,
                           ),
@@ -317,9 +317,8 @@ class _QuickVocabularyGroupState extends State<_QuickVocabularyGroup> {
                                 ? l10n.languageRequired
                                 : null,
                           ),
-                          DropdownButtonFormField<VocabularyGroupType>(
+                          AppSelectField<VocabularyGroupType>(
                             initialValue: _type,
-                            isExpanded: true,
                             decoration: InputDecoration(
                               labelText: l10n.languageGroupType,
                             ),
@@ -393,6 +392,7 @@ class _QuickSentenceEditorState extends State<_QuickSentenceEditor> {
           key: _form,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            spacing: 12,
             children: [
               for (final (label, initial, update)
                   in <(String, String, ValueChanged<String>)>[
@@ -420,9 +420,8 @@ class _QuickSentenceEditorState extends State<_QuickSentenceEditor> {
                       : null,
                   onChanged: update,
                 ),
-              DropdownButtonFormField<SentenceLevel>(
+              AppSelectField<SentenceLevel>(
                 initialValue: _level,
-                isExpanded: true,
                 items: [
                   DropdownMenuItem(
                     value: SentenceLevel.beginner,

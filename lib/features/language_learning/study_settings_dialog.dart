@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/preferences.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/app_menu.dart';
 import '../../core/ui/actions.dart';
 
 Future<void> editLanguageStudy(
@@ -17,13 +18,17 @@ Future<void> editLanguageStudy(
       title: Text(l10n.languageStudySettings),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        spacing: 12,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(l10n.languageStudySettingsIntro),
           const SizedBox(height: 16),
-          DropdownButtonFormField<EnglishStudyLevel>(
+          AppSelectField<EnglishStudyLevel>(
             initialValue: settings.level,
-            decoration: InputDecoration(labelText: l10n.languageDifficulty),
+            decoration: InputDecoration(
+              labelText: l10n.languageDifficulty,
+              hintText: l10n.languageSentenceMixed,
+            ),
             items: [
               for (final value in EnglishStudyLevel.values)
                 DropdownMenuItem(
@@ -45,7 +50,7 @@ Future<void> editLanguageStudy(
             },
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<LanguageFeedbackLanguage>(
+          AppSelectField<LanguageFeedbackLanguage>(
             initialValue: settings.feedbackLanguage,
             decoration: InputDecoration(
               labelText: l10n.languageFeedbackLanguage,

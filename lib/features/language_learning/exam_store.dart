@@ -77,12 +77,19 @@ extension ExamLearningStore on LanguageLearningStore {
             ..limit(40))
           .watch();
 
-  Future<ExamMaterial?> reusableExam(ExamTarget target) async {
+  Future<ExamMaterial?> reusableExam(
+    ExamTarget target, {
+    Set<String> excludeIds = const {},
+    bool fresh = false,
+  }) async {
     final rows =
         await (db.select(db.learningExamMaterials)
               ..where(
                 (row) =>
                     row.kind.equals(target.kind.name) &
+                    (excludeIds.isEmpty
+                        ? const Constant(true)
+                        : row.id.isNotIn(excludeIds)) &
                     row.profile.equals(target.profile.id) &
                     row.source.equals(ExamSource.bundled.name).not() &
                     (row.model.isNull() | row.model.equals('Mock').not()) &
@@ -108,7 +115,9 @@ extension ExamLearningStore on LanguageLearningStore {
                 ..addColumns([attempts.id])
                 ..where(
                   attempts.materialId.equals(row.id) &
-                      attempts.submittedAt.isBiggerOrEqualValue(cutoff),
+                      (fresh
+                          ? const Constant(true)
+                          : attempts.submittedAt.isBiggerOrEqualValue(cutoff)),
                 )
                 ..limit(1))
               .getSingleOrNull();
@@ -154,6 +163,10 @@ extension ExamLearningStore on LanguageLearningStore {
                 material.verification.equals(ExamVerification.aiReviewed.name) &
                 attempt.reviewedAtSubmission.equals(true) &
                 attempt.hintUsed.equals(false) &
+                (attempt.confidence.isNull() |
+                    attempt.confidence
+                        .equals(ExamConfidence.guess.name)
+                        .not()) &
                 notExistsQuery(earlier) &
                 notExistsQuery(disputed),
           )
@@ -335,19 +348,23 @@ extension ExamLearningStore on LanguageLearningStore {
     required List<String> responses,
     required ExamConfidence? confidence,
     required bool hintUsed,
+    bool allowBlank = false,
+    bool? reviewedAtStart,
   }) => runOperation(
     () => db.transaction(() async {
       final paper = material.paper;
       if (responses.length != paper.items.length ||
           responses.indexed.any(
             (entry) =>
-                entry.$2.trim().isEmpty ||
+                (!allowBlank && entry.$2.trim().isEmpty) ||
                 entry.$2.length > 100 ||
-                paper.optionsFor(entry.$1).isNotEmpty &&
+                entry.$2.isNotEmpty &&
+                    paper.optionsFor(entry.$1).isNotEmpty &&
                     !paper.optionsFor(entry.$1).containsKey(entry.$2),
           ) ||
           (material.target.kind == ExamKind.sentenceInsertion &&
-              responses.toSet().length != responses.length)) {
+              responses.where((s) => s.isNotEmpty).toSet().length !=
+                  responses.where((s) => s.isNotEmpty).length)) {
         throw const FormatException('Invalid exam submission');
       }
       final table = db.learningExamAttempts;
@@ -368,6 +385,7 @@ extension ExamLearningStore on LanguageLearningStore {
         db.learningExamMaterials,
       )..where((row) => row.id.equals(material.row.id))).getSingle();
       final reviewed =
+          (reviewedAtStart ?? true) &&
           material.verification == ExamVerification.aiReviewed &&
           persisted.verification == ExamVerification.aiReviewed.name &&
           persisted.revision == material.row.revision &&

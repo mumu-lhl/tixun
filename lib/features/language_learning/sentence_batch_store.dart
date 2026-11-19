@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
+
+import '../../core/ai/chat_provider.dart' show CancelGuard;
 
 import '../../core/database/database.dart';
 import 'language_store.dart';
@@ -88,6 +91,39 @@ extension SentenceBatchStore on LanguageLearningStore {
     });
     changed();
   });
+
+  Future<SentenceCard> attachQuickSentenceCheck(
+    SentenceCard card,
+    CancelToken cancel,
+  ) => runOperation(
+    () => db.transaction(() async {
+      cancel.checkCancelled();
+      final table = db.learningSentenceBatches;
+      final query = db.select(table)..where((row) => row.id.equals(card.id));
+      final row = await query.getSingle();
+      final existing = openSavedSentenceBatch(row).cards.single;
+      if (!row.id.startsWith('quick:') || existing.text != card.text) {
+        throw const FormatException('Invalid saved quick sentence');
+      }
+      if (existing.choices.isNotEmpty) return existing;
+      final data =
+          (jsonDecode(row.cards) as List).single as Map<String, dynamic>;
+      data.addAll({
+        'revision': card.revision,
+        'skill': card.skill!.name,
+        'question': card.question,
+        'choices': card.choices,
+        'correctIndex': card.correctIndex,
+        'checkExplanation': card.checkExplanation,
+      });
+      final write = db.update(table)..where((item) => item.id.equals(card.id));
+      await write.write(
+        LearningSentenceBatchesCompanion(cards: Value(jsonEncode([data]))),
+      );
+      cancel.checkCancelled();
+      return card;
+    }),
+  );
 
   Future<List<LearningSentenceBatch>> savedSentenceBatches({int limit = 40}) =>
       (db.select(db.learningSentenceBatches)

@@ -293,3 +293,59 @@ class LearningWritingTasks extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class LearningWrittenExams extends Table {
+  TextColumn get id => text()();
+  TextColumn get profile => text()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get deadline => dateTime()();
+  DateTimeColumn get submittedAt => dateTime().nullable()();
+  IntColumn get currentSection => integer().withDefault(const Constant(0))();
+  DateTimeColumn get sectionStartedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class LearningWrittenExamSections extends Table {
+  TextColumn get examId => text().references(
+    LearningWrittenExams,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get position => integer()();
+  TextColumn get materialId =>
+      text().nullable().references(LearningExamMaterials, #id)();
+  TextColumn get writingTaskId =>
+      text().nullable().references(LearningWritingTasks, #id)();
+  TextColumn get writingVersionId => text().nullable().references(
+    LearningWritingVersions,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get answers => text()();
+  IntColumn get halfPoints => integer()();
+  IntColumn get seconds => integer().withDefault(const Constant(0))();
+  BoolColumn get reviewedAtStart =>
+      boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {examId, position};
+  @override
+  List<String> get customConstraints => [
+    'CHECK ((material_id IS NULL) <> (writing_task_id IS NULL))',
+  ];
+}
+
+class LearningCourseAttempts extends Table {
+  TextColumn get id => text()();
+  TextColumn get language => text()();
+  TextColumn get lesson => text()();
+  IntColumn get rotation => integer()();
+  IntColumn get recognized => integer()();
+  IntColumn get produced => integer()();
+  DateTimeColumn get occurredAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

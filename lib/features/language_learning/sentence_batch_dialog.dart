@@ -5,6 +5,7 @@ import '../../core/ai/chat_provider.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_error_localization.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/ui/app_menu.dart';
 import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/ui/actions.dart';
 import 'language_store.dart';
@@ -135,6 +136,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
           width: 480,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            spacing: 12,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (proposal == null) ...[
@@ -142,7 +144,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                 const SizedBox(height: 12),
                 if (widget.reused.isNotEmpty)
                   Text(l10n.languageSentenceReused(widget.reused.length)),
-                DropdownButtonFormField<int>(
+                AppSelectField<int>(
                   initialValue: _customCount ? 0 : _count,
                   decoration: InputDecoration(
                     labelText: l10n.languageSentenceCount,

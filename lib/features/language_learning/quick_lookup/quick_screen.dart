@@ -13,6 +13,7 @@ import '../../../core/l10n/app_error.dart';
 import '../../../core/database/database.dart';
 import '../../../core/l10n/app_error_localization.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/ui/app_menu.dart';
 import '../../../core/ui/actions.dart';
 import 'quick_action_editor.dart';
 import 'quick_ai.dart';
@@ -23,7 +24,9 @@ import 'quick_result.dart';
 import 'quick_store.dart';
 
 class QuickLookupScreen extends ConsumerStatefulWidget {
-  const QuickLookupScreen({super.key});
+  const QuickLookupScreen({super.key, this.initialInput = ''});
+
+  final String initialInput;
 
   @override
   ConsumerState<QuickLookupScreen> createState() => _QuickLookupScreenState();
@@ -32,7 +35,7 @@ class QuickLookupScreen extends ConsumerStatefulWidget {
 class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   late final _controller = ref.read(appControllerProvider);
   late final _store = _controller.language;
-  final _input = TextEditingController();
+  late final _input = TextEditingController(text: widget.initialInput);
   final _scroll = ScrollController();
   final _search = TextEditingController();
   final _searchFocus = FocusNode();
@@ -41,7 +44,10 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   final _rows = <QuickHistoryRow>[];
   List<LanguageQuickAction>? _actions;
   Map<String, String> _deletedLabels = {};
-  String? _actionId, _filterId;
+  late String? _actionId = widget.initialInput.isEmpty
+      ? null
+      : 'language_meaning';
+  String? _filterId;
   String _keyword = '';
   var _searchOpen = false;
   var _loadingHistory = false;
@@ -301,8 +307,8 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Wrap(
-          spacing: 8,
-          runSpacing: 4,
+          spacing: 10,
+          runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             for (final action in enabled)
@@ -417,7 +423,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         Row(
           children: [
             Expanded(
@@ -454,16 +460,20 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 8),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: SizedBox(
             width: 340,
             child: Semantics(
               label: l10n.quickHistoryFilter,
-              child: DropdownButton<String>(
+              child: AppSelectField<String>(
                 key: const ValueKey('quick-filter'),
-                isExpanded: true,
-                value: labels.containsKey(_filterId) ? _filterId : '',
+                decoration: const InputDecoration(
+                  isDense: true,
+                  prefixIcon: Icon(Icons.filter_list_rounded),
+                ),
+                initialValue: labels.containsKey(_filterId) ? _filterId : '',
                 items: [
                   DropdownMenuItem(
                     value: '',
@@ -487,6 +497,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -542,9 +553,9 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
               slivers: [
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(
-                    sides.clamp(16, double.infinity),
+                    sides.clamp(18, double.infinity),
                     12,
-                    sides.clamp(16, double.infinity),
+                    sides.clamp(18, double.infinity),
                     24,
                   ),
                   sliver: SliverMainAxisGroup(
