@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -47,7 +48,10 @@ void main() {
         find.byKey(const Key('chat-input')),
         'Create native controls',
       );
-      await t.tap(find.byKey(const Key('send-message')));
+      await t.pumpAndSettle();
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.enter);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       for (
         var i = 0;
         i < 100 && find.byType(ChatA2uiSurfaceCard).evaluate().length < 3;
