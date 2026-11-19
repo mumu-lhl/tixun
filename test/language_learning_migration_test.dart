@@ -1,10 +1,15 @@
+import 'dart:convert';
+
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/features/language_learning/language_store.dart';
 import 'package:tixun/features/language_learning/sentence_batch_store.dart';
+import 'package:tixun/features/language_learning/quick_lookup/quick_models.dart';
+import 'package:tixun/features/language_learning/quick_lookup/quick_store.dart';
 
 import 'generated_migrations/schema.dart';
+import 'support/quick_lookup.dart';
 
 void main() {
   test('v21 upgrade preserves study data and enables offline vocabulary', () async {
@@ -65,4 +70,50 @@ void main() {
       expect(await db.select(db.learningExamAttempts).get(), isEmpty);
     },
   );
+
+  test('v24 upgrade preserves writing tasks and adds indexed, linked lookup history', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(24);
+    schema.rawDatabase.execute(
+      "INSERT INTO learning_writing_tasks "
+      "(id,kind,profile,level,topic,title,prompt,model,prompt_version,created_at) "
+      "VALUES ('old','continuation','profile','beginner','topic','Older task','prompt','model',1,1)",
+    );
+    final db = AppDatabase(schema.newConnection());
+    final store = LanguageLearningStore(db);
+    addTearDown(() async {
+      store.dispose();
+      await db.close();
+    });
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+    expect(
+      (await db.select(db.learningWritingTasks).getSingle()).title,
+      'Older task',
+    );
+    await store.ensureQuickActions();
+    final lookup = await store.saveQuickLookup(
+      quickTestQuery((await store.quickActions())[1]),
+      QuickAnswer.parse(jsonDecode(validQuickReply)),
+      config: quickTestConfig,
+      key: 'migrated',
+    );
+    expect(
+      (await store.quickHistory(search: 'MY PLEASURE')).single.id,
+      lookup.id,
+    );
+    expect((await store.quickHistory(search: '快乐')).single.id, lookup.id);
+    await store.saveEntries(
+      language: 'en',
+      groupTitle: 'Migrated',
+      groupType: VocabularyGroupType.topic,
+      quickLookupId: lookup.id,
+      entries: const [VocabularyEntry(form: 'pleasure', meaning: '愉悦')],
+    );
+    expect(await db.select(db.languageQuickLearningLinks).get(), hasLength(1));
+    await store.deleteQuickLookup(lookup.id);
+    expect(await store.quickHistory(search: 'MY PLEASURE'), isEmpty);
+    expect(await db.select(db.languageQuickLearningLinks).get(), isEmpty);
+    expect(await db.select(db.learningLexicalSenses).get(), hasLength(1));
+    expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+  });
 }

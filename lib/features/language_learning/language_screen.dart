@@ -229,6 +229,14 @@ class _LanguageLearningScreenState
                   Text(l10n.languageEnglish, style: theme.headlineMedium),
                   Align(
                     alignment: AlignmentDirectional.centerStart,
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => context.push('/language/quick'),
+                      icon: const Icon(Icons.manage_search),
+                      label: Text(l10n.quickLookup),
+                    ),
+                  ),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(

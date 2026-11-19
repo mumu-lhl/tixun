@@ -11,6 +11,7 @@ extension _DatabaseMigrations on AppDatabase {
       await _createModuleIndexes();
       await _createExamIndexes();
       await _createLanguageExamIndexes();
+      await _createLanguageQuickSearch();
       await _createTimelineIndex();
       await _createVisualIndexes();
       await customStatement(
@@ -42,6 +43,11 @@ extension _DatabaseMigrations on AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from < 25) {
+        await m.createTable(languageQuickActions);
+        await m.createTable(languageQuickLookups);
+        await _createLanguageQuickSearch();
+      }
       if (from < 24) await m.createTable(learningWritingTasks);
       if (from < 23) {
         await m.createTable(learningExamMaterials);
@@ -236,6 +242,7 @@ extension _DatabaseMigrations on AppDatabase {
         }
         await _createExamIndexes();
       }
+      if (from < 25) await m.createTable(languageQuickLearningLinks);
       if (from < 8) {
         await m.addColumn(chatMessages, chatMessages.reasoningTrace);
         await m.createTable(scratchpads);
@@ -397,5 +404,32 @@ extension _DatabaseMigrations on AppDatabase {
         "CREATE TRIGGER ${fts}_au AFTER UPDATE ON $table BEGIN INSERT INTO $fts($fts, rowid, $content) VALUES('delete', old.rowid, $oldValues); INSERT INTO $fts(rowid, $content) VALUES(new.rowid, $newValues); END",
       );
     }
+  }
+}
+
+extension _LanguageQuickMigration on AppDatabase {
+  Future<void> _createLanguageQuickSearch() async {
+    await customStatement(
+      'CREATE INDEX language_quick_time ON language_quick_lookups(created_at)',
+    );
+    await customStatement(
+      'CREATE INDEX language_quick_action_time ON language_quick_lookups(action_id, created_at)',
+    );
+    await customStatement(
+      'CREATE INDEX language_quick_cache ON language_quick_lookups(cache_key, created_at)',
+    );
+    await customStatement(
+      "CREATE VIRTUAL TABLE language_quick_search USING fts5(input, summary, content, content='language_quick_lookups', content_rowid='rowid', tokenize='trigram')",
+    );
+    await customStatement(
+      'CREATE TRIGGER language_quick_insert AFTER INSERT ON language_quick_lookups BEGIN '
+      'INSERT INTO language_quick_search(rowid, input, summary, content) '
+      'VALUES(new.rowid, new.input, new.summary, new.content); END',
+    );
+    await customStatement(
+      "CREATE TRIGGER language_quick_delete AFTER DELETE ON language_quick_lookups BEGIN "
+      "INSERT INTO language_quick_search(language_quick_search, rowid, input, summary, content) "
+      "VALUES('delete', old.rowid, old.input, old.summary, old.content); END",
+    );
   }
 }

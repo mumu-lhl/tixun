@@ -106,6 +106,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const LanguageLearningScreen(),
           ),
           _materialRoute(
+            path: '/language/quick',
+            builder: (_, _) => const QuickLookupScreen(),
+          ),
+          _materialRoute(
             path: '/study',
             builder: (_, _) => const DashboardScreen(),
           ),

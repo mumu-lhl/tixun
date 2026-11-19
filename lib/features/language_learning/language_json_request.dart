@@ -26,6 +26,8 @@ Future<T> requestLanguageJson<T>({
   required CancelToken cancel,
   required T Function(Object?) parse,
   int maxChars = 28000,
+  String cancelledStatus = 'incomplete',
+  bool captureLocalBreakdown = true,
 }) async {
   cancel.checkCancelled();
   final started = DateTime.now();
@@ -44,12 +46,13 @@ Future<T> requestLanguageJson<T>({
       if (chunk.calls.isNotEmpty ||
           (complete && (chunk.text.isNotEmpty || chunk.reasoning.isNotEmpty)) ||
           body.length + chunk.text.length > maxChars ||
-          reasoning.length + chunk.reasoning.length > 32000) {
+          (captureLocalBreakdown &&
+              reasoning.length + chunk.reasoning.length > 32000)) {
         throw const FormatException('Invalid language generation reply');
       }
       complete |= chunk.completed;
       body.write(chunk.text);
-      reasoning.write(chunk.reasoning);
+      if (captureLocalBreakdown) reasoning.write(chunk.reasoning);
     }
     cancel.checkCancelled();
     if (!complete) {
@@ -69,12 +72,12 @@ Future<T> requestLanguageJson<T>({
             endpoint: config.baseUrl,
             model: config.model,
             feature: feature,
-            status: cancel.isCancelled ? 'incomplete' : status,
+            status: cancel.isCancelled ? cancelledStatus : status,
             occurredAt: started,
             durationMs: DateTime.now().difference(started).inMilliseconds,
             usage: usage,
           ),
-          request: request,
+          request: captureLocalBreakdown ? request : null,
           response: body.toString(),
           reasoning: reasoning.toString(),
         );

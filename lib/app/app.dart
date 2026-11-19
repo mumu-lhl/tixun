@@ -19,6 +19,7 @@ import '../core/ui/actions.dart';
 import '../features/chat/chat_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/language_learning/language_screen.dart';
+import '../features/language_learning/quick_lookup/quick_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/library/study_detail_screen.dart';
 import '../features/practice/practice_history_screen.dart';

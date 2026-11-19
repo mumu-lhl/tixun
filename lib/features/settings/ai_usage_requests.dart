@@ -149,7 +149,7 @@ class _UsageRequestTile extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final (icon, color) = switch (row.status) {
       'complete' => (Icons.check_circle_outline, colors.primary),
-      'incomplete' => (Icons.pending_outlined, colors.tertiary),
+      'cancelled' || 'incomplete' => (Icons.pending_outlined, colors.tertiary),
       _ => (Icons.error_outline, colors.error),
     };
     final details = [
@@ -203,6 +203,7 @@ String _featureLabel(BuildContext context, String feature) => switch (feature) {
   'chat' => context.l10n.usageFeatureChat,
   'context_compaction' => context.l10n.usageFeatureContextCompaction,
   'exam_scores' => context.l10n.usageFeatureExamScores,
+  'language_quick_lookup' => context.l10n.quickLookup,
   'language_vocabulary' => context.l10n.usageFeatureLanguageVocabulary,
   'language_explanation' => context.l10n.usageFeatureLanguageExplanation,
   'language_sentence_batch' => context.l10n.usageFeatureLanguageSentenceBatch,
@@ -221,6 +222,7 @@ String _statusLabel(BuildContext context, String status) => switch (status) {
   'complete' => context.l10n.usageStatusComplete,
   'error' => context.l10n.usageStatusError,
   'incomplete' => context.l10n.usageStatusIncomplete,
+  'cancelled' => context.l10n.quickUsageStatusCancelled,
   _ => status,
 };
 

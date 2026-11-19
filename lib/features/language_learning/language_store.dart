@@ -66,6 +66,7 @@ class LanguageLearningStore extends DatabaseNotifier {
     required VocabularyGroupType groupType,
     required List<VocabularyEntry> entries,
     VocabularyProvenance? provenance,
+    String? quickLookupId,
     DateTime? now,
   }) => runOperation(() async {
     final time = now ?? DateTime.now();
@@ -99,13 +100,30 @@ class LanguageLearningStore extends DatabaseNotifier {
             );
       }
       for (final entry in entries) {
-        await _saveEntry(language, groupId, entry, provenance, time);
+        final senseId = await _saveEntry(
+          language,
+          groupId,
+          entry,
+          provenance,
+          time,
+        );
+        if (quickLookupId != null) {
+          await db
+              .into(db.languageQuickLearningLinks)
+              .insert(
+                LanguageQuickLearningLinksCompanion.insert(
+                  lookupId: quickLookupId,
+                  senseId: Value(senseId),
+                ),
+                mode: InsertMode.insertOrIgnore,
+              );
+        }
       }
     });
     changed();
   });
 
-  Future<void> _saveEntry(
+  Future<String> _saveEntry(
     String language,
     String groupId,
     VocabularyEntry entry,
@@ -221,6 +239,7 @@ class LanguageLearningStore extends DatabaseNotifier {
           ),
           mode: InsertMode.insertOrIgnore,
         );
+    return senseId;
   }
 
   /// Exact matches are scoped to the language, expression type and sense.

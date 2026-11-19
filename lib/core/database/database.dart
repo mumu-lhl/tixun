@@ -15,6 +15,7 @@ part 'exam_tables.dart';
 part 'module_tables.dart';
 part 'visual_tables.dart';
 part 'language_tables.dart';
+part 'language_quick_tables.dart';
 part 'database_migrations.dart';
 
 class ChatSessions extends Table {
@@ -227,6 +228,9 @@ class AiModelPrices extends Table {
     LearningWritingEvaluations,
     LearningWritingNotes,
     LearningWritingTasks,
+    LanguageQuickActions,
+    LanguageQuickLookups,
+    LanguageQuickLearningLinks,
     LearningExamMaterials,
     LearningExamAttempts,
   ],
@@ -236,7 +240,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.file(File file) =>
       AppDatabase(NativeDatabase.createInBackground(file));
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
-  static const latestSchemaVersion = 24;
+  static const latestSchemaVersion = 25;
   @override
   int get schemaVersion => latestSchemaVersion;
   @override

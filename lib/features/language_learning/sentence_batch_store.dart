@@ -33,8 +33,9 @@ class SentenceBatchProposal {
 extension SentenceBatchStore on LanguageLearningStore {
   Future<void> saveSentenceBatch(
     SentenceBatchProposal proposal,
-    Set<String> selected,
-  ) => runOperation(() async {
+    Set<String> selected, {
+    String? quickLookupId,
+  }) => runOperation(() async {
     final cards = [
       for (final card in proposal.cards)
         if (selected.contains(card.id))
@@ -55,23 +56,36 @@ extension SentenceBatchStore on LanguageLearningStore {
           },
     ];
     if (cards.isEmpty) return;
-    await db
-        .into(db.learningSentenceBatches)
-        .insert(
-          LearningSentenceBatchesCompanion.insert(
-            id: proposal.id,
-            language: 'en',
-            topic: proposal.topic.name,
-            style: proposal.style.name,
-            glossLanguage: proposal.glossLanguage,
-            model: proposal.model,
-            promptVersion: proposal.promptVersion,
-            isMock: proposal.isMock,
-            cards: jsonEncode(cards),
-            generatedAt: proposal.generatedAt,
-          ),
-          mode: InsertMode.insertOrIgnore,
-        );
+    await db.transaction(() async {
+      await db
+          .into(db.learningSentenceBatches)
+          .insert(
+            LearningSentenceBatchesCompanion.insert(
+              id: proposal.id,
+              language: 'en',
+              topic: proposal.topic.name,
+              style: proposal.style.name,
+              glossLanguage: proposal.glossLanguage,
+              model: proposal.model,
+              promptVersion: proposal.promptVersion,
+              isMock: proposal.isMock,
+              cards: jsonEncode(cards),
+              generatedAt: proposal.generatedAt,
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+      if (quickLookupId != null) {
+        await db
+            .into(db.languageQuickLearningLinks)
+            .insert(
+              LanguageQuickLearningLinksCompanion.insert(
+                lookupId: quickLookupId,
+                sentenceBatchId: Value(proposal.id),
+              ),
+              mode: InsertMode.insertOrIgnore,
+            );
+      }
+    });
     changed();
   });
 

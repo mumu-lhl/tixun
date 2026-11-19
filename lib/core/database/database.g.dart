@@ -27280,6 +27280,2381 @@ class LearningWritingTasksCompanion
   }
 }
 
+class $LanguageQuickActionsTable extends LanguageQuickActions
+    with TableInfo<$LanguageQuickActionsTable, LanguageQuickAction> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LanguageQuickActionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _inputHintMeta = const VerificationMeta(
+    'inputHint',
+  );
+  @override
+  late final GeneratedColumn<String> inputHint = GeneratedColumn<String>(
+    'input_hint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _promptMeta = const VerificationMeta('prompt');
+  @override
+  late final GeneratedColumn<String> prompt = GeneratedColumn<String>(
+    'prompt',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceLanguageMeta = const VerificationMeta(
+    'sourceLanguage',
+  );
+  @override
+  late final GeneratedColumn<String> sourceLanguage = GeneratedColumn<String>(
+    'source_language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetLanguageMeta = const VerificationMeta(
+    'targetLanguage',
+  );
+  @override
+  late final GeneratedColumn<String> targetLanguage = GeneratedColumn<String>(
+    'target_language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _glossLanguageMeta = const VerificationMeta(
+    'glossLanguage',
+  );
+  @override
+  late final GeneratedColumn<String> glossLanguage = GeneratedColumn<String>(
+    'gloss_language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _detailedMeta = const VerificationMeta(
+    'detailed',
+  );
+  @override
+  late final GeneratedColumn<bool> detailed = GeneratedColumn<bool>(
+    'detailed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("detailed" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _builtInMeta = const VerificationMeta(
+    'builtIn',
+  );
+  @override
+  late final GeneratedColumn<bool> builtIn = GeneratedColumn<bool>(
+    'built_in',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("built_in" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    icon,
+    description,
+    inputHint,
+    prompt,
+    sourceLanguage,
+    targetLanguage,
+    glossLanguage,
+    detailed,
+    position,
+    builtIn,
+    enabled,
+    deleted,
+    revision,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'language_quick_actions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LanguageQuickAction> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descriptionMeta);
+    }
+    if (data.containsKey('input_hint')) {
+      context.handle(
+        _inputHintMeta,
+        inputHint.isAcceptableOrUnknown(data['input_hint']!, _inputHintMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_inputHintMeta);
+    }
+    if (data.containsKey('prompt')) {
+      context.handle(
+        _promptMeta,
+        prompt.isAcceptableOrUnknown(data['prompt']!, _promptMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_promptMeta);
+    }
+    if (data.containsKey('source_language')) {
+      context.handle(
+        _sourceLanguageMeta,
+        sourceLanguage.isAcceptableOrUnknown(
+          data['source_language']!,
+          _sourceLanguageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceLanguageMeta);
+    }
+    if (data.containsKey('target_language')) {
+      context.handle(
+        _targetLanguageMeta,
+        targetLanguage.isAcceptableOrUnknown(
+          data['target_language']!,
+          _targetLanguageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetLanguageMeta);
+    }
+    if (data.containsKey('gloss_language')) {
+      context.handle(
+        _glossLanguageMeta,
+        glossLanguage.isAcceptableOrUnknown(
+          data['gloss_language']!,
+          _glossLanguageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_glossLanguageMeta);
+    }
+    if (data.containsKey('detailed')) {
+      context.handle(
+        _detailedMeta,
+        detailed.isAcceptableOrUnknown(data['detailed']!, _detailedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_detailedMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('built_in')) {
+      context.handle(
+        _builtInMeta,
+        builtIn.isAcceptableOrUnknown(data['built_in']!, _builtInMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_builtInMeta);
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_enabledMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LanguageQuickAction map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LanguageQuickAction(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      inputHint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}input_hint'],
+      )!,
+      prompt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt'],
+      )!,
+      sourceLanguage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_language'],
+      )!,
+      targetLanguage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_language'],
+      )!,
+      glossLanguage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}gloss_language'],
+      )!,
+      detailed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}detailed'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      builtIn: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}built_in'],
+      )!,
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LanguageQuickActionsTable createAlias(String alias) {
+    return $LanguageQuickActionsTable(attachedDatabase, alias);
+  }
+}
+
+class LanguageQuickAction extends DataClass
+    implements Insertable<LanguageQuickAction> {
+  final String id;
+  final String name;
+  final String icon;
+  final String description;
+  final String inputHint;
+  final String prompt;
+  final String sourceLanguage;
+  final String targetLanguage;
+  final String glossLanguage;
+  final bool detailed;
+  final int position;
+  final bool builtIn;
+  final bool enabled;
+  final bool deleted;
+  final int revision;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LanguageQuickAction({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.description,
+    required this.inputHint,
+    required this.prompt,
+    required this.sourceLanguage,
+    required this.targetLanguage,
+    required this.glossLanguage,
+    required this.detailed,
+    required this.position,
+    required this.builtIn,
+    required this.enabled,
+    required this.deleted,
+    required this.revision,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['icon'] = Variable<String>(icon);
+    map['description'] = Variable<String>(description);
+    map['input_hint'] = Variable<String>(inputHint);
+    map['prompt'] = Variable<String>(prompt);
+    map['source_language'] = Variable<String>(sourceLanguage);
+    map['target_language'] = Variable<String>(targetLanguage);
+    map['gloss_language'] = Variable<String>(glossLanguage);
+    map['detailed'] = Variable<bool>(detailed);
+    map['position'] = Variable<int>(position);
+    map['built_in'] = Variable<bool>(builtIn);
+    map['enabled'] = Variable<bool>(enabled);
+    map['deleted'] = Variable<bool>(deleted);
+    map['revision'] = Variable<int>(revision);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LanguageQuickActionsCompanion toCompanion(bool nullToAbsent) {
+    return LanguageQuickActionsCompanion(
+      id: Value(id),
+      name: Value(name),
+      icon: Value(icon),
+      description: Value(description),
+      inputHint: Value(inputHint),
+      prompt: Value(prompt),
+      sourceLanguage: Value(sourceLanguage),
+      targetLanguage: Value(targetLanguage),
+      glossLanguage: Value(glossLanguage),
+      detailed: Value(detailed),
+      position: Value(position),
+      builtIn: Value(builtIn),
+      enabled: Value(enabled),
+      deleted: Value(deleted),
+      revision: Value(revision),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LanguageQuickAction.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LanguageQuickAction(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      icon: serializer.fromJson<String>(json['icon']),
+      description: serializer.fromJson<String>(json['description']),
+      inputHint: serializer.fromJson<String>(json['inputHint']),
+      prompt: serializer.fromJson<String>(json['prompt']),
+      sourceLanguage: serializer.fromJson<String>(json['sourceLanguage']),
+      targetLanguage: serializer.fromJson<String>(json['targetLanguage']),
+      glossLanguage: serializer.fromJson<String>(json['glossLanguage']),
+      detailed: serializer.fromJson<bool>(json['detailed']),
+      position: serializer.fromJson<int>(json['position']),
+      builtIn: serializer.fromJson<bool>(json['builtIn']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      revision: serializer.fromJson<int>(json['revision']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'icon': serializer.toJson<String>(icon),
+      'description': serializer.toJson<String>(description),
+      'inputHint': serializer.toJson<String>(inputHint),
+      'prompt': serializer.toJson<String>(prompt),
+      'sourceLanguage': serializer.toJson<String>(sourceLanguage),
+      'targetLanguage': serializer.toJson<String>(targetLanguage),
+      'glossLanguage': serializer.toJson<String>(glossLanguage),
+      'detailed': serializer.toJson<bool>(detailed),
+      'position': serializer.toJson<int>(position),
+      'builtIn': serializer.toJson<bool>(builtIn),
+      'enabled': serializer.toJson<bool>(enabled),
+      'deleted': serializer.toJson<bool>(deleted),
+      'revision': serializer.toJson<int>(revision),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LanguageQuickAction copyWith({
+    String? id,
+    String? name,
+    String? icon,
+    String? description,
+    String? inputHint,
+    String? prompt,
+    String? sourceLanguage,
+    String? targetLanguage,
+    String? glossLanguage,
+    bool? detailed,
+    int? position,
+    bool? builtIn,
+    bool? enabled,
+    bool? deleted,
+    int? revision,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => LanguageQuickAction(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    icon: icon ?? this.icon,
+    description: description ?? this.description,
+    inputHint: inputHint ?? this.inputHint,
+    prompt: prompt ?? this.prompt,
+    sourceLanguage: sourceLanguage ?? this.sourceLanguage,
+    targetLanguage: targetLanguage ?? this.targetLanguage,
+    glossLanguage: glossLanguage ?? this.glossLanguage,
+    detailed: detailed ?? this.detailed,
+    position: position ?? this.position,
+    builtIn: builtIn ?? this.builtIn,
+    enabled: enabled ?? this.enabled,
+    deleted: deleted ?? this.deleted,
+    revision: revision ?? this.revision,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  LanguageQuickAction copyWithCompanion(LanguageQuickActionsCompanion data) {
+    return LanguageQuickAction(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      inputHint: data.inputHint.present ? data.inputHint.value : this.inputHint,
+      prompt: data.prompt.present ? data.prompt.value : this.prompt,
+      sourceLanguage: data.sourceLanguage.present
+          ? data.sourceLanguage.value
+          : this.sourceLanguage,
+      targetLanguage: data.targetLanguage.present
+          ? data.targetLanguage.value
+          : this.targetLanguage,
+      glossLanguage: data.glossLanguage.present
+          ? data.glossLanguage.value
+          : this.glossLanguage,
+      detailed: data.detailed.present ? data.detailed.value : this.detailed,
+      position: data.position.present ? data.position.value : this.position,
+      builtIn: data.builtIn.present ? data.builtIn.value : this.builtIn,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageQuickAction(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('icon: $icon, ')
+          ..write('description: $description, ')
+          ..write('inputHint: $inputHint, ')
+          ..write('prompt: $prompt, ')
+          ..write('sourceLanguage: $sourceLanguage, ')
+          ..write('targetLanguage: $targetLanguage, ')
+          ..write('glossLanguage: $glossLanguage, ')
+          ..write('detailed: $detailed, ')
+          ..write('position: $position, ')
+          ..write('builtIn: $builtIn, ')
+          ..write('enabled: $enabled, ')
+          ..write('deleted: $deleted, ')
+          ..write('revision: $revision, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    icon,
+    description,
+    inputHint,
+    prompt,
+    sourceLanguage,
+    targetLanguage,
+    glossLanguage,
+    detailed,
+    position,
+    builtIn,
+    enabled,
+    deleted,
+    revision,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LanguageQuickAction &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.icon == this.icon &&
+          other.description == this.description &&
+          other.inputHint == this.inputHint &&
+          other.prompt == this.prompt &&
+          other.sourceLanguage == this.sourceLanguage &&
+          other.targetLanguage == this.targetLanguage &&
+          other.glossLanguage == this.glossLanguage &&
+          other.detailed == this.detailed &&
+          other.position == this.position &&
+          other.builtIn == this.builtIn &&
+          other.enabled == this.enabled &&
+          other.deleted == this.deleted &&
+          other.revision == this.revision &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LanguageQuickActionsCompanion
+    extends UpdateCompanion<LanguageQuickAction> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> icon;
+  final Value<String> description;
+  final Value<String> inputHint;
+  final Value<String> prompt;
+  final Value<String> sourceLanguage;
+  final Value<String> targetLanguage;
+  final Value<String> glossLanguage;
+  final Value<bool> detailed;
+  final Value<int> position;
+  final Value<bool> builtIn;
+  final Value<bool> enabled;
+  final Value<bool> deleted;
+  final Value<int> revision;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const LanguageQuickActionsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.description = const Value.absent(),
+    this.inputHint = const Value.absent(),
+    this.prompt = const Value.absent(),
+    this.sourceLanguage = const Value.absent(),
+    this.targetLanguage = const Value.absent(),
+    this.glossLanguage = const Value.absent(),
+    this.detailed = const Value.absent(),
+    this.position = const Value.absent(),
+    this.builtIn = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LanguageQuickActionsCompanion.insert({
+    required String id,
+    required String name,
+    required String icon,
+    required String description,
+    required String inputHint,
+    required String prompt,
+    required String sourceLanguage,
+    required String targetLanguage,
+    required String glossLanguage,
+    required bool detailed,
+    required int position,
+    required bool builtIn,
+    required bool enabled,
+    this.deleted = const Value.absent(),
+    required int revision,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       icon = Value(icon),
+       description = Value(description),
+       inputHint = Value(inputHint),
+       prompt = Value(prompt),
+       sourceLanguage = Value(sourceLanguage),
+       targetLanguage = Value(targetLanguage),
+       glossLanguage = Value(glossLanguage),
+       detailed = Value(detailed),
+       position = Value(position),
+       builtIn = Value(builtIn),
+       enabled = Value(enabled),
+       revision = Value(revision),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<LanguageQuickAction> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? icon,
+    Expression<String>? description,
+    Expression<String>? inputHint,
+    Expression<String>? prompt,
+    Expression<String>? sourceLanguage,
+    Expression<String>? targetLanguage,
+    Expression<String>? glossLanguage,
+    Expression<bool>? detailed,
+    Expression<int>? position,
+    Expression<bool>? builtIn,
+    Expression<bool>? enabled,
+    Expression<bool>? deleted,
+    Expression<int>? revision,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (icon != null) 'icon': icon,
+      if (description != null) 'description': description,
+      if (inputHint != null) 'input_hint': inputHint,
+      if (prompt != null) 'prompt': prompt,
+      if (sourceLanguage != null) 'source_language': sourceLanguage,
+      if (targetLanguage != null) 'target_language': targetLanguage,
+      if (glossLanguage != null) 'gloss_language': glossLanguage,
+      if (detailed != null) 'detailed': detailed,
+      if (position != null) 'position': position,
+      if (builtIn != null) 'built_in': builtIn,
+      if (enabled != null) 'enabled': enabled,
+      if (deleted != null) 'deleted': deleted,
+      if (revision != null) 'revision': revision,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LanguageQuickActionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? icon,
+    Value<String>? description,
+    Value<String>? inputHint,
+    Value<String>? prompt,
+    Value<String>? sourceLanguage,
+    Value<String>? targetLanguage,
+    Value<String>? glossLanguage,
+    Value<bool>? detailed,
+    Value<int>? position,
+    Value<bool>? builtIn,
+    Value<bool>? enabled,
+    Value<bool>? deleted,
+    Value<int>? revision,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return LanguageQuickActionsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      icon: icon ?? this.icon,
+      description: description ?? this.description,
+      inputHint: inputHint ?? this.inputHint,
+      prompt: prompt ?? this.prompt,
+      sourceLanguage: sourceLanguage ?? this.sourceLanguage,
+      targetLanguage: targetLanguage ?? this.targetLanguage,
+      glossLanguage: glossLanguage ?? this.glossLanguage,
+      detailed: detailed ?? this.detailed,
+      position: position ?? this.position,
+      builtIn: builtIn ?? this.builtIn,
+      enabled: enabled ?? this.enabled,
+      deleted: deleted ?? this.deleted,
+      revision: revision ?? this.revision,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (inputHint.present) {
+      map['input_hint'] = Variable<String>(inputHint.value);
+    }
+    if (prompt.present) {
+      map['prompt'] = Variable<String>(prompt.value);
+    }
+    if (sourceLanguage.present) {
+      map['source_language'] = Variable<String>(sourceLanguage.value);
+    }
+    if (targetLanguage.present) {
+      map['target_language'] = Variable<String>(targetLanguage.value);
+    }
+    if (glossLanguage.present) {
+      map['gloss_language'] = Variable<String>(glossLanguage.value);
+    }
+    if (detailed.present) {
+      map['detailed'] = Variable<bool>(detailed.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (builtIn.present) {
+      map['built_in'] = Variable<bool>(builtIn.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageQuickActionsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('icon: $icon, ')
+          ..write('description: $description, ')
+          ..write('inputHint: $inputHint, ')
+          ..write('prompt: $prompt, ')
+          ..write('sourceLanguage: $sourceLanguage, ')
+          ..write('targetLanguage: $targetLanguage, ')
+          ..write('glossLanguage: $glossLanguage, ')
+          ..write('detailed: $detailed, ')
+          ..write('position: $position, ')
+          ..write('builtIn: $builtIn, ')
+          ..write('enabled: $enabled, ')
+          ..write('deleted: $deleted, ')
+          ..write('revision: $revision, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LanguageQuickLookupsTable extends LanguageQuickLookups
+    with TableInfo<$LanguageQuickLookupsTable, LanguageQuickLookup> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LanguageQuickLookupsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionIdMeta = const VerificationMeta(
+    'actionId',
+  );
+  @override
+  late final GeneratedColumn<String> actionId = GeneratedColumn<String>(
+    'action_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_quick_actions (id)',
+    ),
+  );
+  static const VerificationMeta _actionNameMeta = const VerificationMeta(
+    'actionName',
+  );
+  @override
+  late final GeneratedColumn<String> actionName = GeneratedColumn<String>(
+    'action_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _promptMeta = const VerificationMeta('prompt');
+  @override
+  late final GeneratedColumn<String> prompt = GeneratedColumn<String>(
+    'prompt',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionRevisionMeta = const VerificationMeta(
+    'actionRevision',
+  );
+  @override
+  late final GeneratedColumn<int> actionRevision = GeneratedColumn<int>(
+    'action_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _schemaRevisionMeta = const VerificationMeta(
+    'schemaRevision',
+  );
+  @override
+  late final GeneratedColumn<int> schemaRevision = GeneratedColumn<int>(
+    'schema_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _inputMeta = const VerificationMeta('input');
+  @override
+  late final GeneratedColumn<String> input = GeneratedColumn<String>(
+    'input',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceLanguageMeta = const VerificationMeta(
+    'sourceLanguage',
+  );
+  @override
+  late final GeneratedColumn<String> sourceLanguage = GeneratedColumn<String>(
+    'source_language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetLanguageMeta = const VerificationMeta(
+    'targetLanguage',
+  );
+  @override
+  late final GeneratedColumn<String> targetLanguage = GeneratedColumn<String>(
+    'target_language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _glossLanguageMeta = const VerificationMeta(
+    'glossLanguage',
+  );
+  @override
+  late final GeneratedColumn<String> glossLanguage = GeneratedColumn<String>(
+    'gloss_language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<String> level = GeneratedColumn<String>(
+    'level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _detailedMeta = const VerificationMeta(
+    'detailed',
+  );
+  @override
+  late final GeneratedColumn<bool> detailed = GeneratedColumn<bool>(
+    'detailed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("detailed" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _summaryMeta = const VerificationMeta(
+    'summary',
+  );
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+    'summary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _candidatesMeta = const VerificationMeta(
+    'candidates',
+  );
+  @override
+  late final GeneratedColumn<String> candidates = GeneratedColumn<String>(
+    'candidates',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _providerMeta = const VerificationMeta(
+    'provider',
+  );
+  @override
+  late final GeneratedColumn<String> provider = GeneratedColumn<String>(
+    'provider',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cacheKeyMeta = const VerificationMeta(
+    'cacheKey',
+  );
+  @override
+  late final GeneratedColumn<String> cacheKey = GeneratedColumn<String>(
+    'cache_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    actionId,
+    actionName,
+    prompt,
+    actionRevision,
+    schemaRevision,
+    input,
+    sourceLanguage,
+    targetLanguage,
+    glossLanguage,
+    level,
+    detailed,
+    summary,
+    content,
+    candidates,
+    provider,
+    model,
+    cacheKey,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'language_quick_lookups';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LanguageQuickLookup> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('action_id')) {
+      context.handle(
+        _actionIdMeta,
+        actionId.isAcceptableOrUnknown(data['action_id']!, _actionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_actionIdMeta);
+    }
+    if (data.containsKey('action_name')) {
+      context.handle(
+        _actionNameMeta,
+        actionName.isAcceptableOrUnknown(data['action_name']!, _actionNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_actionNameMeta);
+    }
+    if (data.containsKey('prompt')) {
+      context.handle(
+        _promptMeta,
+        prompt.isAcceptableOrUnknown(data['prompt']!, _promptMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_promptMeta);
+    }
+    if (data.containsKey('action_revision')) {
+      context.handle(
+        _actionRevisionMeta,
+        actionRevision.isAcceptableOrUnknown(
+          data['action_revision']!,
+          _actionRevisionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_actionRevisionMeta);
+    }
+    if (data.containsKey('schema_revision')) {
+      context.handle(
+        _schemaRevisionMeta,
+        schemaRevision.isAcceptableOrUnknown(
+          data['schema_revision']!,
+          _schemaRevisionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_schemaRevisionMeta);
+    }
+    if (data.containsKey('input')) {
+      context.handle(
+        _inputMeta,
+        input.isAcceptableOrUnknown(data['input']!, _inputMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_inputMeta);
+    }
+    if (data.containsKey('source_language')) {
+      context.handle(
+        _sourceLanguageMeta,
+        sourceLanguage.isAcceptableOrUnknown(
+          data['source_language']!,
+          _sourceLanguageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceLanguageMeta);
+    }
+    if (data.containsKey('target_language')) {
+      context.handle(
+        _targetLanguageMeta,
+        targetLanguage.isAcceptableOrUnknown(
+          data['target_language']!,
+          _targetLanguageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetLanguageMeta);
+    }
+    if (data.containsKey('gloss_language')) {
+      context.handle(
+        _glossLanguageMeta,
+        glossLanguage.isAcceptableOrUnknown(
+          data['gloss_language']!,
+          _glossLanguageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_glossLanguageMeta);
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_levelMeta);
+    }
+    if (data.containsKey('detailed')) {
+      context.handle(
+        _detailedMeta,
+        detailed.isAcceptableOrUnknown(data['detailed']!, _detailedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_detailedMeta);
+    }
+    if (data.containsKey('summary')) {
+      context.handle(
+        _summaryMeta,
+        summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_summaryMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('candidates')) {
+      context.handle(
+        _candidatesMeta,
+        candidates.isAcceptableOrUnknown(data['candidates']!, _candidatesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_candidatesMeta);
+    }
+    if (data.containsKey('provider')) {
+      context.handle(
+        _providerMeta,
+        provider.isAcceptableOrUnknown(data['provider']!, _providerMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_providerMeta);
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelMeta);
+    }
+    if (data.containsKey('cache_key')) {
+      context.handle(
+        _cacheKeyMeta,
+        cacheKey.isAcceptableOrUnknown(data['cache_key']!, _cacheKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cacheKeyMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LanguageQuickLookup map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LanguageQuickLookup(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      actionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action_id'],
+      )!,
+      actionName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action_name'],
+      )!,
+      prompt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt'],
+      )!,
+      actionRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}action_revision'],
+      )!,
+      schemaRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}schema_revision'],
+      )!,
+      input: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}input'],
+      )!,
+      sourceLanguage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_language'],
+      )!,
+      targetLanguage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_language'],
+      )!,
+      glossLanguage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}gloss_language'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level'],
+      )!,
+      detailed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}detailed'],
+      )!,
+      summary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}summary'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      candidates: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}candidates'],
+      )!,
+      provider: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider'],
+      )!,
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      )!,
+      cacheKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cache_key'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LanguageQuickLookupsTable createAlias(String alias) {
+    return $LanguageQuickLookupsTable(attachedDatabase, alias);
+  }
+}
+
+class LanguageQuickLookup extends DataClass
+    implements Insertable<LanguageQuickLookup> {
+  final String id;
+  final String actionId;
+  final String actionName;
+  final String prompt;
+  final int actionRevision;
+  final int schemaRevision;
+  final String input;
+  final String sourceLanguage;
+  final String targetLanguage;
+  final String glossLanguage;
+  final String level;
+  final bool detailed;
+  final String summary;
+  final String content;
+  final String candidates;
+  final String provider;
+  final String model;
+  final String cacheKey;
+  final DateTime createdAt;
+  const LanguageQuickLookup({
+    required this.id,
+    required this.actionId,
+    required this.actionName,
+    required this.prompt,
+    required this.actionRevision,
+    required this.schemaRevision,
+    required this.input,
+    required this.sourceLanguage,
+    required this.targetLanguage,
+    required this.glossLanguage,
+    required this.level,
+    required this.detailed,
+    required this.summary,
+    required this.content,
+    required this.candidates,
+    required this.provider,
+    required this.model,
+    required this.cacheKey,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['action_id'] = Variable<String>(actionId);
+    map['action_name'] = Variable<String>(actionName);
+    map['prompt'] = Variable<String>(prompt);
+    map['action_revision'] = Variable<int>(actionRevision);
+    map['schema_revision'] = Variable<int>(schemaRevision);
+    map['input'] = Variable<String>(input);
+    map['source_language'] = Variable<String>(sourceLanguage);
+    map['target_language'] = Variable<String>(targetLanguage);
+    map['gloss_language'] = Variable<String>(glossLanguage);
+    map['level'] = Variable<String>(level);
+    map['detailed'] = Variable<bool>(detailed);
+    map['summary'] = Variable<String>(summary);
+    map['content'] = Variable<String>(content);
+    map['candidates'] = Variable<String>(candidates);
+    map['provider'] = Variable<String>(provider);
+    map['model'] = Variable<String>(model);
+    map['cache_key'] = Variable<String>(cacheKey);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LanguageQuickLookupsCompanion toCompanion(bool nullToAbsent) {
+    return LanguageQuickLookupsCompanion(
+      id: Value(id),
+      actionId: Value(actionId),
+      actionName: Value(actionName),
+      prompt: Value(prompt),
+      actionRevision: Value(actionRevision),
+      schemaRevision: Value(schemaRevision),
+      input: Value(input),
+      sourceLanguage: Value(sourceLanguage),
+      targetLanguage: Value(targetLanguage),
+      glossLanguage: Value(glossLanguage),
+      level: Value(level),
+      detailed: Value(detailed),
+      summary: Value(summary),
+      content: Value(content),
+      candidates: Value(candidates),
+      provider: Value(provider),
+      model: Value(model),
+      cacheKey: Value(cacheKey),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LanguageQuickLookup.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LanguageQuickLookup(
+      id: serializer.fromJson<String>(json['id']),
+      actionId: serializer.fromJson<String>(json['actionId']),
+      actionName: serializer.fromJson<String>(json['actionName']),
+      prompt: serializer.fromJson<String>(json['prompt']),
+      actionRevision: serializer.fromJson<int>(json['actionRevision']),
+      schemaRevision: serializer.fromJson<int>(json['schemaRevision']),
+      input: serializer.fromJson<String>(json['input']),
+      sourceLanguage: serializer.fromJson<String>(json['sourceLanguage']),
+      targetLanguage: serializer.fromJson<String>(json['targetLanguage']),
+      glossLanguage: serializer.fromJson<String>(json['glossLanguage']),
+      level: serializer.fromJson<String>(json['level']),
+      detailed: serializer.fromJson<bool>(json['detailed']),
+      summary: serializer.fromJson<String>(json['summary']),
+      content: serializer.fromJson<String>(json['content']),
+      candidates: serializer.fromJson<String>(json['candidates']),
+      provider: serializer.fromJson<String>(json['provider']),
+      model: serializer.fromJson<String>(json['model']),
+      cacheKey: serializer.fromJson<String>(json['cacheKey']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'actionId': serializer.toJson<String>(actionId),
+      'actionName': serializer.toJson<String>(actionName),
+      'prompt': serializer.toJson<String>(prompt),
+      'actionRevision': serializer.toJson<int>(actionRevision),
+      'schemaRevision': serializer.toJson<int>(schemaRevision),
+      'input': serializer.toJson<String>(input),
+      'sourceLanguage': serializer.toJson<String>(sourceLanguage),
+      'targetLanguage': serializer.toJson<String>(targetLanguage),
+      'glossLanguage': serializer.toJson<String>(glossLanguage),
+      'level': serializer.toJson<String>(level),
+      'detailed': serializer.toJson<bool>(detailed),
+      'summary': serializer.toJson<String>(summary),
+      'content': serializer.toJson<String>(content),
+      'candidates': serializer.toJson<String>(candidates),
+      'provider': serializer.toJson<String>(provider),
+      'model': serializer.toJson<String>(model),
+      'cacheKey': serializer.toJson<String>(cacheKey),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LanguageQuickLookup copyWith({
+    String? id,
+    String? actionId,
+    String? actionName,
+    String? prompt,
+    int? actionRevision,
+    int? schemaRevision,
+    String? input,
+    String? sourceLanguage,
+    String? targetLanguage,
+    String? glossLanguage,
+    String? level,
+    bool? detailed,
+    String? summary,
+    String? content,
+    String? candidates,
+    String? provider,
+    String? model,
+    String? cacheKey,
+    DateTime? createdAt,
+  }) => LanguageQuickLookup(
+    id: id ?? this.id,
+    actionId: actionId ?? this.actionId,
+    actionName: actionName ?? this.actionName,
+    prompt: prompt ?? this.prompt,
+    actionRevision: actionRevision ?? this.actionRevision,
+    schemaRevision: schemaRevision ?? this.schemaRevision,
+    input: input ?? this.input,
+    sourceLanguage: sourceLanguage ?? this.sourceLanguage,
+    targetLanguage: targetLanguage ?? this.targetLanguage,
+    glossLanguage: glossLanguage ?? this.glossLanguage,
+    level: level ?? this.level,
+    detailed: detailed ?? this.detailed,
+    summary: summary ?? this.summary,
+    content: content ?? this.content,
+    candidates: candidates ?? this.candidates,
+    provider: provider ?? this.provider,
+    model: model ?? this.model,
+    cacheKey: cacheKey ?? this.cacheKey,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  LanguageQuickLookup copyWithCompanion(LanguageQuickLookupsCompanion data) {
+    return LanguageQuickLookup(
+      id: data.id.present ? data.id.value : this.id,
+      actionId: data.actionId.present ? data.actionId.value : this.actionId,
+      actionName: data.actionName.present
+          ? data.actionName.value
+          : this.actionName,
+      prompt: data.prompt.present ? data.prompt.value : this.prompt,
+      actionRevision: data.actionRevision.present
+          ? data.actionRevision.value
+          : this.actionRevision,
+      schemaRevision: data.schemaRevision.present
+          ? data.schemaRevision.value
+          : this.schemaRevision,
+      input: data.input.present ? data.input.value : this.input,
+      sourceLanguage: data.sourceLanguage.present
+          ? data.sourceLanguage.value
+          : this.sourceLanguage,
+      targetLanguage: data.targetLanguage.present
+          ? data.targetLanguage.value
+          : this.targetLanguage,
+      glossLanguage: data.glossLanguage.present
+          ? data.glossLanguage.value
+          : this.glossLanguage,
+      level: data.level.present ? data.level.value : this.level,
+      detailed: data.detailed.present ? data.detailed.value : this.detailed,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      content: data.content.present ? data.content.value : this.content,
+      candidates: data.candidates.present
+          ? data.candidates.value
+          : this.candidates,
+      provider: data.provider.present ? data.provider.value : this.provider,
+      model: data.model.present ? data.model.value : this.model,
+      cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageQuickLookup(')
+          ..write('id: $id, ')
+          ..write('actionId: $actionId, ')
+          ..write('actionName: $actionName, ')
+          ..write('prompt: $prompt, ')
+          ..write('actionRevision: $actionRevision, ')
+          ..write('schemaRevision: $schemaRevision, ')
+          ..write('input: $input, ')
+          ..write('sourceLanguage: $sourceLanguage, ')
+          ..write('targetLanguage: $targetLanguage, ')
+          ..write('glossLanguage: $glossLanguage, ')
+          ..write('level: $level, ')
+          ..write('detailed: $detailed, ')
+          ..write('summary: $summary, ')
+          ..write('content: $content, ')
+          ..write('candidates: $candidates, ')
+          ..write('provider: $provider, ')
+          ..write('model: $model, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    actionId,
+    actionName,
+    prompt,
+    actionRevision,
+    schemaRevision,
+    input,
+    sourceLanguage,
+    targetLanguage,
+    glossLanguage,
+    level,
+    detailed,
+    summary,
+    content,
+    candidates,
+    provider,
+    model,
+    cacheKey,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LanguageQuickLookup &&
+          other.id == this.id &&
+          other.actionId == this.actionId &&
+          other.actionName == this.actionName &&
+          other.prompt == this.prompt &&
+          other.actionRevision == this.actionRevision &&
+          other.schemaRevision == this.schemaRevision &&
+          other.input == this.input &&
+          other.sourceLanguage == this.sourceLanguage &&
+          other.targetLanguage == this.targetLanguage &&
+          other.glossLanguage == this.glossLanguage &&
+          other.level == this.level &&
+          other.detailed == this.detailed &&
+          other.summary == this.summary &&
+          other.content == this.content &&
+          other.candidates == this.candidates &&
+          other.provider == this.provider &&
+          other.model == this.model &&
+          other.cacheKey == this.cacheKey &&
+          other.createdAt == this.createdAt);
+}
+
+class LanguageQuickLookupsCompanion
+    extends UpdateCompanion<LanguageQuickLookup> {
+  final Value<String> id;
+  final Value<String> actionId;
+  final Value<String> actionName;
+  final Value<String> prompt;
+  final Value<int> actionRevision;
+  final Value<int> schemaRevision;
+  final Value<String> input;
+  final Value<String> sourceLanguage;
+  final Value<String> targetLanguage;
+  final Value<String> glossLanguage;
+  final Value<String> level;
+  final Value<bool> detailed;
+  final Value<String> summary;
+  final Value<String> content;
+  final Value<String> candidates;
+  final Value<String> provider;
+  final Value<String> model;
+  final Value<String> cacheKey;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LanguageQuickLookupsCompanion({
+    this.id = const Value.absent(),
+    this.actionId = const Value.absent(),
+    this.actionName = const Value.absent(),
+    this.prompt = const Value.absent(),
+    this.actionRevision = const Value.absent(),
+    this.schemaRevision = const Value.absent(),
+    this.input = const Value.absent(),
+    this.sourceLanguage = const Value.absent(),
+    this.targetLanguage = const Value.absent(),
+    this.glossLanguage = const Value.absent(),
+    this.level = const Value.absent(),
+    this.detailed = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.content = const Value.absent(),
+    this.candidates = const Value.absent(),
+    this.provider = const Value.absent(),
+    this.model = const Value.absent(),
+    this.cacheKey = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LanguageQuickLookupsCompanion.insert({
+    required String id,
+    required String actionId,
+    required String actionName,
+    required String prompt,
+    required int actionRevision,
+    required int schemaRevision,
+    required String input,
+    required String sourceLanguage,
+    required String targetLanguage,
+    required String glossLanguage,
+    required String level,
+    required bool detailed,
+    required String summary,
+    required String content,
+    required String candidates,
+    required String provider,
+    required String model,
+    required String cacheKey,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       actionId = Value(actionId),
+       actionName = Value(actionName),
+       prompt = Value(prompt),
+       actionRevision = Value(actionRevision),
+       schemaRevision = Value(schemaRevision),
+       input = Value(input),
+       sourceLanguage = Value(sourceLanguage),
+       targetLanguage = Value(targetLanguage),
+       glossLanguage = Value(glossLanguage),
+       level = Value(level),
+       detailed = Value(detailed),
+       summary = Value(summary),
+       content = Value(content),
+       candidates = Value(candidates),
+       provider = Value(provider),
+       model = Value(model),
+       cacheKey = Value(cacheKey),
+       createdAt = Value(createdAt);
+  static Insertable<LanguageQuickLookup> custom({
+    Expression<String>? id,
+    Expression<String>? actionId,
+    Expression<String>? actionName,
+    Expression<String>? prompt,
+    Expression<int>? actionRevision,
+    Expression<int>? schemaRevision,
+    Expression<String>? input,
+    Expression<String>? sourceLanguage,
+    Expression<String>? targetLanguage,
+    Expression<String>? glossLanguage,
+    Expression<String>? level,
+    Expression<bool>? detailed,
+    Expression<String>? summary,
+    Expression<String>? content,
+    Expression<String>? candidates,
+    Expression<String>? provider,
+    Expression<String>? model,
+    Expression<String>? cacheKey,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (actionId != null) 'action_id': actionId,
+      if (actionName != null) 'action_name': actionName,
+      if (prompt != null) 'prompt': prompt,
+      if (actionRevision != null) 'action_revision': actionRevision,
+      if (schemaRevision != null) 'schema_revision': schemaRevision,
+      if (input != null) 'input': input,
+      if (sourceLanguage != null) 'source_language': sourceLanguage,
+      if (targetLanguage != null) 'target_language': targetLanguage,
+      if (glossLanguage != null) 'gloss_language': glossLanguage,
+      if (level != null) 'level': level,
+      if (detailed != null) 'detailed': detailed,
+      if (summary != null) 'summary': summary,
+      if (content != null) 'content': content,
+      if (candidates != null) 'candidates': candidates,
+      if (provider != null) 'provider': provider,
+      if (model != null) 'model': model,
+      if (cacheKey != null) 'cache_key': cacheKey,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LanguageQuickLookupsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? actionId,
+    Value<String>? actionName,
+    Value<String>? prompt,
+    Value<int>? actionRevision,
+    Value<int>? schemaRevision,
+    Value<String>? input,
+    Value<String>? sourceLanguage,
+    Value<String>? targetLanguage,
+    Value<String>? glossLanguage,
+    Value<String>? level,
+    Value<bool>? detailed,
+    Value<String>? summary,
+    Value<String>? content,
+    Value<String>? candidates,
+    Value<String>? provider,
+    Value<String>? model,
+    Value<String>? cacheKey,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return LanguageQuickLookupsCompanion(
+      id: id ?? this.id,
+      actionId: actionId ?? this.actionId,
+      actionName: actionName ?? this.actionName,
+      prompt: prompt ?? this.prompt,
+      actionRevision: actionRevision ?? this.actionRevision,
+      schemaRevision: schemaRevision ?? this.schemaRevision,
+      input: input ?? this.input,
+      sourceLanguage: sourceLanguage ?? this.sourceLanguage,
+      targetLanguage: targetLanguage ?? this.targetLanguage,
+      glossLanguage: glossLanguage ?? this.glossLanguage,
+      level: level ?? this.level,
+      detailed: detailed ?? this.detailed,
+      summary: summary ?? this.summary,
+      content: content ?? this.content,
+      candidates: candidates ?? this.candidates,
+      provider: provider ?? this.provider,
+      model: model ?? this.model,
+      cacheKey: cacheKey ?? this.cacheKey,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (actionId.present) {
+      map['action_id'] = Variable<String>(actionId.value);
+    }
+    if (actionName.present) {
+      map['action_name'] = Variable<String>(actionName.value);
+    }
+    if (prompt.present) {
+      map['prompt'] = Variable<String>(prompt.value);
+    }
+    if (actionRevision.present) {
+      map['action_revision'] = Variable<int>(actionRevision.value);
+    }
+    if (schemaRevision.present) {
+      map['schema_revision'] = Variable<int>(schemaRevision.value);
+    }
+    if (input.present) {
+      map['input'] = Variable<String>(input.value);
+    }
+    if (sourceLanguage.present) {
+      map['source_language'] = Variable<String>(sourceLanguage.value);
+    }
+    if (targetLanguage.present) {
+      map['target_language'] = Variable<String>(targetLanguage.value);
+    }
+    if (glossLanguage.present) {
+      map['gloss_language'] = Variable<String>(glossLanguage.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<String>(level.value);
+    }
+    if (detailed.present) {
+      map['detailed'] = Variable<bool>(detailed.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (candidates.present) {
+      map['candidates'] = Variable<String>(candidates.value);
+    }
+    if (provider.present) {
+      map['provider'] = Variable<String>(provider.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (cacheKey.present) {
+      map['cache_key'] = Variable<String>(cacheKey.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageQuickLookupsCompanion(')
+          ..write('id: $id, ')
+          ..write('actionId: $actionId, ')
+          ..write('actionName: $actionName, ')
+          ..write('prompt: $prompt, ')
+          ..write('actionRevision: $actionRevision, ')
+          ..write('schemaRevision: $schemaRevision, ')
+          ..write('input: $input, ')
+          ..write('sourceLanguage: $sourceLanguage, ')
+          ..write('targetLanguage: $targetLanguage, ')
+          ..write('glossLanguage: $glossLanguage, ')
+          ..write('level: $level, ')
+          ..write('detailed: $detailed, ')
+          ..write('summary: $summary, ')
+          ..write('content: $content, ')
+          ..write('candidates: $candidates, ')
+          ..write('provider: $provider, ')
+          ..write('model: $model, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LanguageQuickLearningLinksTable extends LanguageQuickLearningLinks
+    with
+        TableInfo<$LanguageQuickLearningLinksTable, LanguageQuickLearningLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LanguageQuickLearningLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _lookupIdMeta = const VerificationMeta(
+    'lookupId',
+  );
+  @override
+  late final GeneratedColumn<String> lookupId = GeneratedColumn<String>(
+    'lookup_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_quick_lookups (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _senseIdMeta = const VerificationMeta(
+    'senseId',
+  );
+  @override
+  late final GeneratedColumn<String> senseId = GeneratedColumn<String>(
+    'sense_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_lexical_senses (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _sentenceBatchIdMeta = const VerificationMeta(
+    'sentenceBatchId',
+  );
+  @override
+  late final GeneratedColumn<String> sentenceBatchId = GeneratedColumn<String>(
+    'sentence_batch_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES learning_sentence_batches (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    lookupId,
+    senseId,
+    sentenceBatchId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'language_quick_learning_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LanguageQuickLearningLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('lookup_id')) {
+      context.handle(
+        _lookupIdMeta,
+        lookupId.isAcceptableOrUnknown(data['lookup_id']!, _lookupIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lookupIdMeta);
+    }
+    if (data.containsKey('sense_id')) {
+      context.handle(
+        _senseIdMeta,
+        senseId.isAcceptableOrUnknown(data['sense_id']!, _senseIdMeta),
+      );
+    }
+    if (data.containsKey('sentence_batch_id')) {
+      context.handle(
+        _sentenceBatchIdMeta,
+        sentenceBatchId.isAcceptableOrUnknown(
+          data['sentence_batch_id']!,
+          _sentenceBatchIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {lookupId, senseId},
+    {lookupId, sentenceBatchId},
+  ];
+  @override
+  LanguageQuickLearningLink map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LanguageQuickLearningLink(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      lookupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lookup_id'],
+      )!,
+      senseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sense_id'],
+      ),
+      sentenceBatchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sentence_batch_id'],
+      ),
+    );
+  }
+
+  @override
+  $LanguageQuickLearningLinksTable createAlias(String alias) {
+    return $LanguageQuickLearningLinksTable(attachedDatabase, alias);
+  }
+}
+
+class LanguageQuickLearningLink extends DataClass
+    implements Insertable<LanguageQuickLearningLink> {
+  final int id;
+  final String lookupId;
+  final String? senseId;
+  final String? sentenceBatchId;
+  const LanguageQuickLearningLink({
+    required this.id,
+    required this.lookupId,
+    this.senseId,
+    this.sentenceBatchId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['lookup_id'] = Variable<String>(lookupId);
+    if (!nullToAbsent || senseId != null) {
+      map['sense_id'] = Variable<String>(senseId);
+    }
+    if (!nullToAbsent || sentenceBatchId != null) {
+      map['sentence_batch_id'] = Variable<String>(sentenceBatchId);
+    }
+    return map;
+  }
+
+  LanguageQuickLearningLinksCompanion toCompanion(bool nullToAbsent) {
+    return LanguageQuickLearningLinksCompanion(
+      id: Value(id),
+      lookupId: Value(lookupId),
+      senseId: senseId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(senseId),
+      sentenceBatchId: sentenceBatchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sentenceBatchId),
+    );
+  }
+
+  factory LanguageQuickLearningLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LanguageQuickLearningLink(
+      id: serializer.fromJson<int>(json['id']),
+      lookupId: serializer.fromJson<String>(json['lookupId']),
+      senseId: serializer.fromJson<String?>(json['senseId']),
+      sentenceBatchId: serializer.fromJson<String?>(json['sentenceBatchId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'lookupId': serializer.toJson<String>(lookupId),
+      'senseId': serializer.toJson<String?>(senseId),
+      'sentenceBatchId': serializer.toJson<String?>(sentenceBatchId),
+    };
+  }
+
+  LanguageQuickLearningLink copyWith({
+    int? id,
+    String? lookupId,
+    Value<String?> senseId = const Value.absent(),
+    Value<String?> sentenceBatchId = const Value.absent(),
+  }) => LanguageQuickLearningLink(
+    id: id ?? this.id,
+    lookupId: lookupId ?? this.lookupId,
+    senseId: senseId.present ? senseId.value : this.senseId,
+    sentenceBatchId: sentenceBatchId.present
+        ? sentenceBatchId.value
+        : this.sentenceBatchId,
+  );
+  LanguageQuickLearningLink copyWithCompanion(
+    LanguageQuickLearningLinksCompanion data,
+  ) {
+    return LanguageQuickLearningLink(
+      id: data.id.present ? data.id.value : this.id,
+      lookupId: data.lookupId.present ? data.lookupId.value : this.lookupId,
+      senseId: data.senseId.present ? data.senseId.value : this.senseId,
+      sentenceBatchId: data.sentenceBatchId.present
+          ? data.sentenceBatchId.value
+          : this.sentenceBatchId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageQuickLearningLink(')
+          ..write('id: $id, ')
+          ..write('lookupId: $lookupId, ')
+          ..write('senseId: $senseId, ')
+          ..write('sentenceBatchId: $sentenceBatchId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, lookupId, senseId, sentenceBatchId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LanguageQuickLearningLink &&
+          other.id == this.id &&
+          other.lookupId == this.lookupId &&
+          other.senseId == this.senseId &&
+          other.sentenceBatchId == this.sentenceBatchId);
+}
+
+class LanguageQuickLearningLinksCompanion
+    extends UpdateCompanion<LanguageQuickLearningLink> {
+  final Value<int> id;
+  final Value<String> lookupId;
+  final Value<String?> senseId;
+  final Value<String?> sentenceBatchId;
+  const LanguageQuickLearningLinksCompanion({
+    this.id = const Value.absent(),
+    this.lookupId = const Value.absent(),
+    this.senseId = const Value.absent(),
+    this.sentenceBatchId = const Value.absent(),
+  });
+  LanguageQuickLearningLinksCompanion.insert({
+    this.id = const Value.absent(),
+    required String lookupId,
+    this.senseId = const Value.absent(),
+    this.sentenceBatchId = const Value.absent(),
+  }) : lookupId = Value(lookupId);
+  static Insertable<LanguageQuickLearningLink> custom({
+    Expression<int>? id,
+    Expression<String>? lookupId,
+    Expression<String>? senseId,
+    Expression<String>? sentenceBatchId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (lookupId != null) 'lookup_id': lookupId,
+      if (senseId != null) 'sense_id': senseId,
+      if (sentenceBatchId != null) 'sentence_batch_id': sentenceBatchId,
+    });
+  }
+
+  LanguageQuickLearningLinksCompanion copyWith({
+    Value<int>? id,
+    Value<String>? lookupId,
+    Value<String?>? senseId,
+    Value<String?>? sentenceBatchId,
+  }) {
+    return LanguageQuickLearningLinksCompanion(
+      id: id ?? this.id,
+      lookupId: lookupId ?? this.lookupId,
+      senseId: senseId ?? this.senseId,
+      sentenceBatchId: sentenceBatchId ?? this.sentenceBatchId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (lookupId.present) {
+      map['lookup_id'] = Variable<String>(lookupId.value);
+    }
+    if (senseId.present) {
+      map['sense_id'] = Variable<String>(senseId.value);
+    }
+    if (sentenceBatchId.present) {
+      map['sentence_batch_id'] = Variable<String>(sentenceBatchId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageQuickLearningLinksCompanion(')
+          ..write('id: $id, ')
+          ..write('lookupId: $lookupId, ')
+          ..write('senseId: $senseId, ')
+          ..write('sentenceBatchId: $sentenceBatchId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $LearningExamMaterialsTable extends LearningExamMaterials
     with TableInfo<$LearningExamMaterialsTable, LearningExamMaterialRow> {
   @override
@@ -28935,6 +31310,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LearningWritingNotesTable(this);
   late final $LearningWritingTasksTable learningWritingTasks =
       $LearningWritingTasksTable(this);
+  late final $LanguageQuickActionsTable languageQuickActions =
+      $LanguageQuickActionsTable(this);
+  late final $LanguageQuickLookupsTable languageQuickLookups =
+      $LanguageQuickLookupsTable(this);
+  late final $LanguageQuickLearningLinksTable languageQuickLearningLinks =
+      $LanguageQuickLearningLinksTable(this);
   late final $LearningExamMaterialsTable learningExamMaterials =
       $LearningExamMaterialsTable(this);
   late final $LearningExamAttemptsTable learningExamAttempts =
@@ -29002,6 +31383,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     learningWritingEvaluations,
     learningWritingNotes,
     learningWritingTasks,
+    languageQuickActions,
+    languageQuickLookups,
+    languageQuickLearningLinks,
     learningExamMaterials,
     learningExamAttempts,
   ];
@@ -29459,6 +31843,33 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('learning_writing_notes', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'language_quick_lookups',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('language_quick_learning_links', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'learning_lexical_senses',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('language_quick_learning_links', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'learning_sentence_batches',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('language_quick_learning_links', kind: UpdateKind.delete),
+      ],
     ),
   ]);
 }

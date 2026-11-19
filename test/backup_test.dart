@@ -12,12 +12,16 @@ import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/features/library/study_store.dart';
 import 'package:tixun/features/language_learning/exam_material.dart';
 import 'package:tixun/features/language_learning/exam_store.dart';
+import 'package:tixun/features/language_learning/quick_lookup/quick_learning.dart';
+import 'package:tixun/features/language_learning/quick_lookup/quick_models.dart';
+import 'package:tixun/features/language_learning/quick_lookup/quick_store.dart';
 import 'package:tixun/features/language_learning/sentence_content.dart';
 import 'package:tixun/features/language_learning/writing_store.dart';
 import 'package:tixun/features/language_learning/writing_task_ai.dart';
 import 'package:tixun/features/practice/question_spec.dart';
 
 import 'support/exam_bundled.dart';
+import 'support/quick_lookup.dart';
 
 void main() {
   late Directory parent, root;
@@ -137,6 +141,27 @@ void main() {
       'Maya asked for directions.',
       taskId: writing.id,
     );
+    await c.language.ensureQuickActions();
+    final action = await c.language.saveQuickAction(
+      quickActionDefaults(
+        'backup-action',
+        0,
+        DateTime.now(),
+      ).copyWith(name: 'Backup lookup', prompt: 'Explain {input}'),
+    );
+    final answer = QuickAnswer.parse(jsonDecode(validQuickReply));
+    final quick = await c.language.saveQuickLookup(
+      quickTestQuery(action),
+      answer,
+      config: quickTestConfig,
+      key: 'backup-lookup',
+    );
+    await c.language.saveQuickSentence(
+      quick,
+      answer.candidates.sentence!,
+      SentenceLevel.beginner,
+    );
+    await c.language.deleteQuickAction(action.id);
     final backup = File('${parent.path}/complete.tixun-backup');
     final preview = await BackupService.export(c.db, c.files, backup);
     expect(preview.counts['attempts'], 1);
@@ -187,6 +212,20 @@ void main() {
       await c.language.writingDraft(taskId: savedWriting.id),
       'Maya asked for directions.',
     );
+    final restoredQuick = (await c.language.quickHistory(
+      actionId: action.id,
+      search: 'pleasure',
+    )).single;
+    expect(restoredQuick.id, quick.id);
+    expect(restoredQuick.summary, answer.summary);
+    expect(await c.language.deletedQuickActionLabels(), {
+      action.id: 'Backup lookup',
+    });
+    expect(
+      (await c.db.select(c.db.languageQuickLearningLinks).getSingle()).lookupId,
+      quick.id,
+    );
+    expect(await c.db.select(c.db.learningSentenceBatches).get(), hasLength(1));
     final timeline = (await c.db.select(c.db.timelineEvents).get()).single;
     expect(timeline.title, '期中考');
     expect(timeline.notes, '带准考证');
