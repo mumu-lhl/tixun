@@ -92,6 +92,9 @@ class _LanguageProfileScreenState extends State<LanguageProfileScreen> {
             skip: _skip,
           );
           final evidence = profile.skills[plan.skill]!;
+          final fieldWidth = MediaQuery.sizeOf(context).width < 570
+              ? double.infinity
+              : 290.0;
           final LanguageRecommendation? transfer =
               _goal == LanguageGoal.communication &&
                   profile.hasApplications &&
@@ -127,7 +130,7 @@ class _LanguageProfileScreenState extends State<LanguageProfileScreen> {
                 children: [
                   if (profile.language == 'en')
                     SizedBox(
-                      width: 290,
+                      width: fieldWidth,
                       child: AppSelectField<LanguageGoal>(
                         initialValue: _goal,
                         decoration: InputDecoration(
@@ -154,7 +157,7 @@ class _LanguageProfileScreenState extends State<LanguageProfileScreen> {
                       ),
                     ),
                   SizedBox(
-                    width: 290,
+                    width: fieldWidth,
                     child: AppSelectField<SentenceLevel>(
                       initialValue: _level,
                       decoration: InputDecoration(

@@ -67,7 +67,7 @@ Flutter 单元和 Widget 测试统一使用 `flutter test -j 4`，按四个并�
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。启动冒烟截图保存在 `artifacts/gui/`，集成场景截图在 `artifacts/gui-*/`，各入口日志由 `TIXUN_GUI_LOG_DIR` 指定（默认当前目录）；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
-不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。当前数据库为 schema v19，迁移测试使用 `test/fixtures/` 中的历史快照验证保留旧数据；新增字段和表时必须继续提供显式迁移。
+不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。当前数据库为 schema v28，迁移测试使用 `test/fixtures/` 中的历史快照验证保留旧数据；新增字段和表时必须继续提供显式迁移。
 
 ```bash
 dart run build_runner build

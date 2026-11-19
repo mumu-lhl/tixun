@@ -239,6 +239,21 @@ class _LanguageLearningScreenState
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context).textTheme;
+    final actions = [
+      FilledButton.tonalIcon(
+        onPressed: () => context.push('/language/quick'),
+        icon: const Icon(Icons.manage_search),
+        label: Text(l10n.quickLookup),
+      ),
+      OutlinedButton(
+        onPressed: _openProfile,
+        child: Text(l10n.languageProfile, textAlign: TextAlign.center),
+      ),
+      OutlinedButton(
+        onPressed: _foundations,
+        child: Text(l10n.languageFoundations, textAlign: TextAlign.center),
+      ),
+    ];
     return Scaffold(
       appBar: AppBar(
         leading: BackButton(
@@ -265,27 +280,24 @@ class _LanguageLearningScreenState
                 children: [
                   Text(l10n.languageEnglish, style: theme.headlineMedium),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 10,
-                    children: [
-                      FilledButton.tonalIcon(
-                        onPressed: () => context.push('/language/quick'),
-                        icon: const Icon(Icons.manage_search),
-                        label: Text(l10n.quickLookup),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _openProfile,
-                        icon: const Icon(Icons.insights_outlined),
-                        label: Text(l10n.languageProfile),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _foundations,
-                        icon: const Icon(Icons.school_outlined),
-                        label: Text(l10n.languageFoundations),
-                      ),
-                    ],
-                  ),
+                  if (MediaQuery.sizeOf(context).width < 460)
+                    Column(
+                      spacing: 10,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        actions.first,
+                        Row(
+                          spacing: 10,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: actions[1]),
+                            Expanded(child: actions[2]),
+                          ],
+                        ),
+                      ],
+                    )
+                  else
+                    Wrap(spacing: 12, runSpacing: 10, children: actions),
                   const SizedBox(height: 20),
                   StreamBuilder<int>(
                     stream: _due,
@@ -337,7 +349,7 @@ class _LanguageLearningScreenState
                     children: [
                       OutlinedButton(
                         onPressed: () => _openProfile(LanguageGoal.exam),
-                        child: Text(l10n.languageProfile),
+                        child: Text(l10n.languageExamRecommendations),
                       ),
                       OutlinedButton(
                         onPressed: _writtenMock,
@@ -374,6 +386,7 @@ class _LanguageLearningScreenState
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
                   StreamBuilder<List<LearningVocabularyGroup>>(
                     stream: _groups,
                     builder: (context, snapshot) {
