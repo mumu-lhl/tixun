@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
@@ -9,6 +10,7 @@ import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/features/a2ui/a2ui_catalog.dart';
+import 'package:tixun/features/a2ui/a2ui_diagrams.dart';
 import 'package:tixun/features/a2ui/a2ui_markdown.dart';
 import 'package:tixun/features/a2ui/a2ui_store.dart';
 import 'package:tixun/features/chat/chat_branch_store.dart';
@@ -29,12 +31,6 @@ void main() {
       snapshot.components!.map((c) => c['component']),
       containsAll(['FlipCard', 'TextField', 'Slider', 'Markdown', 'Button']),
     );
-    expect(
-      chatA2uiSkill,
-      allOf(contains('FlipCard'), contains('VisualSceneRef')),
-    );
-    expect(chatA2uiSkill, isNot(contains('openUrl(')));
-
     for (final source in [
       'broken',
       'root = Image("https://example.com")',
@@ -80,18 +76,15 @@ void main() {
       await c.setAiA2uiEnabled(false);
       await c.send('Create native controls');
       expect(
-        provider.requests.single.tools.map((t) => t.name),
-        isNot(contains('enable_a2ui')),
+        provider.requests.single.instructions,
+        isNot(contains('raw <a2ui>')),
       );
       expect(c.messages.last.content, 'Plain reply');
 
       await c.setSessionA2uiEnabled(true);
       await c.send('Create native controls');
       final session = c.selected!;
-      expect(
-        provider.requests[1].tools.map((t) => t.name),
-        contains('enable_a2ui'),
-      );
+      expect(provider.requests[1].instructions, contains('raw <a2ui>'));
 
       await c.newSession();
       expect(c.sessionA2uiEnabled, false);
@@ -101,72 +94,142 @@ void main() {
       await c.setSessionA2uiEnabled(false);
       await c.send('Create native controls');
       expect(
-        provider.requests.last.tools.map((t) => t.name),
-        isNot(contains('enable_a2ui')),
+        provider.requests.last.instructions,
+        isNot(contains('raw <a2ui>')),
       );
       await c.setSessionA2uiEnabled(null);
       expect(c.sessionA2uiEnabled, true);
     });
 
-    test('Lazy tools, deterministic mixed placements, failed call, dedup and scoped follow-up', () async {
+    test('One response renders ordered blocks, skips invalid blocks and scopes follow-ups', () async {
       await c.send('Create native controls');
       final reply = c.messages.last;
       expect(reply.status, 'complete', reason: reply.error);
-      expect(provider.requests, hasLength(3));
-      expect(provider.requests.first.instructions, isNot(contains('FlipCard')));
-      expect(provider.requests[1].instructions, contains('FlipCard'));
-      for (final request in provider.requests) {
-        expect(
-          request.tools.map((tool) => tool.name),
-          isNot(contains('get_a2ui')),
-        );
-        expect(
-          request.tools.map((tool) => tool.name),
-          isNot(contains('update_a2ui')),
-        );
-      }
-      expect(provider.results[0], containsPair('inserted', true));
-      expect(provider.results[1], containsPair('ok', false));
-      expect(provider.results[2], containsPair('inserted', false));
-      expect(provider.results[3], containsPair('inserted', true));
+      expect(provider.requests, hasLength(1));
+      expect(
+        provider.requests.single.tools.map((t) => t.name),
+        isNot(contains(anyOf('create_a2ui', 'enable_a2ui'))),
+      );
+      expect(
+        provider.requests.single.instructions,
+        isNot(contains('FunctionPlot')),
+      );
       final rows = await a2uiRows(c.db, reply.id);
-      final first = provider.results[0]['surface_id'];
-      final ref = provider.results[2]['surface_id'];
-      final second = provider.results[3]['surface_id'];
       expect(rows, hasLength(3));
       final parts = chatA2uiMarkdown(
         reply.content,
         rows.reversed.toList(),
         interrupted: false,
       );
-      expect(parts.map((p) => p.surfaceId), [null, first, second, null]);
+      expect(
+        parts.where((p) => p.surfaceId != null).map((p) => p.surfaceId),
+        rows.map((r) => r.id),
+      );
       expect(parts.first.markdown, contains('Before the interface'));
-      final tail = parts.last.markdown!;
-      expect(tail, contains('After the interface'));
-      expect(tail, contains('Final prose'));
-      expect(tail, contains('![example](a2ui:$ref)'));
-      expect(tail, contains('![form](a2ui:$ref)'));
-      expect(tail, isNot(contains('duplicate')));
+      expect(parts.last.markdown, contains('After the interface'));
+      expect(reply.content, contains('Final prose'));
+      expect(reply.content, contains('<a2ui>root = Text("Sample")</a2ui>'));
+      expect(reply.content, isNot(contains('example.com')));
+      expect(rows.map((r) => r.toolCallId), [
+        'inline:0',
+        'inline:2',
+        'inline:3',
+      ]);
       expect(await c.db.select(c.db.practiceQuestions).get(), isEmpty);
 
-      provider.results.clear();
-      final previousRequests = provider.requests.length;
       await c.send('Update that interface');
-      final followUp = provider.requests[previousRequests];
+      final followUp = provider.requests.last;
       expect(
         followUp.instructions,
         contains('Relevant saved interface metadata'),
       );
       expect(followUp.instructions, contains('FlipCard'));
+      expect(followUp.instructions, isNot(contains(rows.first.id)));
       expect(followUp.instructions, isNot(contains(r'$/word')));
       expect(followUp.messages.every((m) => m.calls.isEmpty), isTrue);
+    });
+
+    test('Ordinary drawing takes a single response and explicit formal context is scoped', () async {
+      await c.setAiDrawingEnabled(true);
+      await c.saveSettings(
+        c.config.copyWith(
+          kind: 'compatible',
+          supportsTools: false,
+          baseUrl: 'https://api.example.test/v1',
+        ),
+        null,
+      );
+      await c.send('Draw a parabola and label the coefficient');
+      final reply = c.messages.last;
+      expect(reply.status, 'complete');
+      expect(provider.requests.single.tools, isEmpty);
+      expect(provider.requests.single.instructions, contains('FunctionPlot'));
+      expect(
+        provider.requests.single.instructions,
+        isNot(contains('TiXun Visual DSL v1 contract')),
+      );
+      final plot = (await a2uiRows(c.db, reply.id)).first;
+      final snapshot = readChatA2ui(plot.messagesJson, plot.id);
+      final scene = readDiagramSnapshots(snapshot)['curve']!;
+      final serialized = jsonEncode(scene.toJson());
+      final id = await c.visual.create(
+        sceneJson: serialized,
+        messageId: reply.id,
+        source: 'a2ui_promotion',
+        promotionKey: '${plot.id}/curve',
+      );
+      final again = await c.visual.create(
+        sceneJson: serialized,
+        messageId: reply.id,
+        source: 'a2ui_promotion',
+        promotionKey: '${plot.id}/curve',
+      );
+      expect(again, id);
+      expect((await c.visual.listBySession(reply.sessionId)).map((s) => s.id), [
+        id,
+      ]);
+      expect(
+        (await a2uiRows(c.db, reply.id)).first.messagesJson,
+        plot.messagesJson,
+      );
+
+      await c.send('Read visual:$id');
+      expect(
+        provider.requests.last.instructions,
+        contains('Explicitly referenced figure'),
+      );
+      expect(provider.requests.last.instructions, contains('a*x^2'));
+      await c.newSession();
+      await c.send('Read visual:$id');
+      expect(
+        provider.requests.last.instructions,
+        isNot(contains('Explicitly referenced figure')),
+      );
     });
 
     test('An automatic insertion cannot activate a fenced reference', () async {
       await c.send('Create native controls');
       final rows = await a2uiRows(c.db, c.messages.last.id);
       final here = rows.firstWhere((row) => row.autoOffset != null);
-      final reference = rows.singleWhere((row) => row.autoOffset == null);
+      final reference = rows[1].copyWith(
+        autoOffset: const Value(null),
+        toolCallId: 'legacy-reference',
+      );
+      final link = '![old card](a2ui:${reference.id})';
+      final legacy = chatA2uiMarkdown(
+        '$link\n\n$link',
+        [reference],
+        interrupted: false,
+        renderScheme: 'tixun-a2ui-inline',
+      );
+      expect(
+        legacy.single.markdown,
+        contains('tixun-a2ui-inline:${reference.id}'),
+      );
+      expect(
+        'tixun-a2ui-inline:'.allMatches(legacy.single.markdown!),
+        hasLength(1),
+      );
       const opening = '```md\n';
       final body = '$opening![example](a2ui:${reference.id})\n```';
       final parts = chatA2uiMarkdown(
@@ -181,14 +244,14 @@ void main() {
     });
 
     test('Committed automatic surfaces survive cancellation before the next text chunk', () async {
-      provider.pauseAfterTools = true;
+      provider.pauseAfterBlocks = true;
       final sending = c.send('Create interactive controls');
       await provider.arrived.future.timeout(const Duration(seconds: 10));
       final pending = c.messages.last;
       expect(pending.content, contains('Before'));
       expect(
         (await a2uiRows(c.db, pending.id)).where((s) => s.autoOffset != null),
-        hasLength(2),
+        hasLength(3),
       );
       await c.stop();
       await sending;
@@ -204,8 +267,7 @@ void main() {
         hasLength(3),
       );
 
-      provider.pauseAfterTools = false;
-      provider.results.clear();
+      provider.pauseAfterBlocks = false;
       await c.regenerate();
       final next = c.messages.last;
       expect(next.status, 'complete');
@@ -222,66 +284,65 @@ void main() {
       expect(await a2uiRows(c.db, reply.id), rows);
     });
 
-    test(
-      'An identical tool retry is idempotent and forks isolate editable state',
-      () async {
-        final sessionId = c.selected!.id;
-        await c.db
-            .into(c.db.chatMessages)
-            .insert(
-              ChatMessagesCompanion.insert(
-                id: 'assistant',
-                sessionId: sessionId,
-                role: 'assistant',
-                content: '',
-                status: const Value('generating'),
-                createdAt: DateTime.now(),
-              ),
-            );
-        Future<ChatA2uiSurface> create(String body) => c.a2ui.create(
-          sessionId: sessionId,
-          messageId: 'assistant',
-          callId: 'same-tool',
-          express: expressForm,
-          bodyAtInsertion: body,
-          cancel: CancelToken(),
-        );
-        final row = await create('durable prefix');
-        final repeat = await create('a later reply prefix');
-        expect(repeat.id, row.id);
-        expect(repeat.autoOffset, 'durable prefix'.length);
-        final parent = (await c.db.messages(sessionId)).single;
-        expect(parent.content, 'durable prefix');
-        await c.db
-            .update(c.db.chatMessages)
-            .replace(parent.copyWith(status: 'complete'));
-        await c.a2ui.saveState(row, '{"word":"before fork"}');
-        await c.a2ui.recordAction(row, componentId: 'button', kind: 'ask_chat');
-        final branch = await ChatBranchStore(
-          c.db,
-          c.practice,
-          copySettings: (_, _) async {},
-        ).fork(through: parent, title: 'Branch');
-        final clone = (await a2uiRows(
-          c.db,
-          (await c.db.messages(branch.id)).single.id,
-        )).single;
-        expect(clone.id, row.id);
-        expect(clone.sessionId, branch.id);
-        expect(clone.stateJson, '{"word":"before fork"}');
-        await c.a2ui.saveState(clone, '{"word":"branch change"}');
-        expect(
-          (await a2uiRows(c.db, parent.id)).single.stateJson,
-          '{"word":"before fork"}',
-        );
-        expect(await c.db.select(c.db.chatA2uiActions).get(), hasLength(2));
-        await (c.db.delete(
-          c.db.chatSessions,
-        )..where((s) => s.id.equals(branch.id))).go();
-        expect(await c.db.select(c.db.chatA2uiActions).get(), hasLength(1));
-        expect(await c.db.select(c.db.chatA2uiSurfaces).get(), hasLength(1));
-      },
-    );
+    test('An identical inline retry is idempotent and forks isolate editable state', () async {
+      final sessionId = c.selected!.id;
+      await c.db
+          .into(c.db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: 'assistant',
+              sessionId: sessionId,
+              role: 'assistant',
+              content: '',
+              status: const Value('generating'),
+              createdAt: DateTime.now(),
+            ),
+          );
+      Future<ChatA2uiSurface> create(String body) => c.a2ui.saveInline(
+        sessionId: sessionId,
+        messageId: 'assistant',
+        blockIndex: 0,
+        drawingEnabled: true,
+        express: expressForm,
+        bodyAtInsertion: body,
+        cancel: CancelToken(),
+      );
+      final row = await create('durable prefix');
+      final repeat = await create('durable prefix');
+      await expectLater(create('a different prefix'), throwsFormatException);
+      expect(repeat.id, row.id);
+      expect(repeat.autoOffset, 'durable prefix'.length);
+      final parent = (await c.db.messages(sessionId)).single;
+      expect(parent.content, 'durable prefix');
+      await c.db
+          .update(c.db.chatMessages)
+          .replace(parent.copyWith(status: 'complete'));
+      await c.a2ui.saveState(row, '{"word":"before fork"}');
+      await c.a2ui.recordAction(row, componentId: 'button', kind: 'ask_chat');
+      final branch = await ChatBranchStore(
+        c.db,
+        c.practice,
+        copySettings: (_, _) async {},
+      ).fork(through: parent, title: 'Branch');
+      final clone = (await a2uiRows(
+        c.db,
+        (await c.db.messages(branch.id)).single.id,
+      )).single;
+      expect(clone.id, row.id);
+      expect(clone.sessionId, branch.id);
+      expect(clone.stateJson, '{"word":"before fork"}');
+      await c.a2ui.saveState(clone, '{"word":"branch change"}');
+      expect(
+        (await a2uiRows(c.db, parent.id)).single.stateJson,
+        '{"word":"before fork"}',
+      );
+      expect(await c.db.select(c.db.chatA2uiActions).get(), hasLength(2));
+      await (c.db.delete(
+        c.db.chatSessions,
+      )..where((s) => s.id.equals(branch.id))).go();
+      expect(await c.db.select(c.db.chatA2uiActions).get(), hasLength(1));
+      expect(await c.db.select(c.db.chatA2uiSurfaces).get(), hasLength(1));
+    });
   });
 
   test('Full backup restores compiled surface, offset and interaction state offline', () async {
@@ -303,10 +364,11 @@ void main() {
           ),
         );
     final store = ChatA2uiStore(db);
-    final row = await store.create(
+    final row = await store.saveInline(
       sessionId: session.id,
       messageId: 'saved',
-      callId: 'call',
+      blockIndex: 0,
+      drawingEnabled: true,
       express: expressForm,
       bodyAtInsertion: 'prefix',
       cancel: CancelToken(),

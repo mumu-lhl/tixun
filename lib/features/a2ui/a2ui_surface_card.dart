@@ -14,6 +14,8 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/controller.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/visual/model/visual_scene.dart';
+import 'a2ui_diagrams.dart';
 import 'a2ui_catalog.dart';
 import 'a2ui_store.dart';
 
@@ -39,6 +41,8 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
   MessageProcessor<ComponentImplementation>? _processor;
   SurfaceModel<ComponentImplementation>? _surface;
   bool _actionPending = false;
+  bool _promoting = false;
+  Map<String, VisualScene> _diagrams = const {};
   bool _saveFailed = false;
 
   @override
@@ -54,6 +58,7 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
     );
     try {
       final snapshot = readChatA2ui(row.messagesJson, row.id);
+      _diagrams = readDiagramSnapshots(snapshot);
       processor.processMessages([snapshot.toJson()]);
       final surface = processor.model.getSurface(row.id)!;
       if (row.stateJson case final String state) {
@@ -195,6 +200,53 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
     }
   }
 
+  Future<void> _promote(String componentId, VisualScene scene) async {
+    if (!mounted || _promoting) return;
+    _promoting = true;
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(context.l10n.a2uiSaveDiagram),
+          content: Text(context.l10n.a2uiSaveDiagramHelp),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(context.l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(context.l10n.save),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+      final c = ref.read(appControllerProvider);
+      if (c.selected?.id != widget.row.sessionId) return;
+      await c.visual.create(
+        sceneJson: jsonEncode(scene.toJson()),
+        title: scene.title,
+        messageId: widget.row.messageId,
+        source: 'a2ui_promotion',
+        promotionKey: '${widget.row.id}/$componentId',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.l10n.a2uiDiagramSaved)));
+      }
+    } on Exception {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.chatA2uiActionFailed)),
+        );
+      }
+    } finally {
+      _promoting = false;
+    }
+  }
+
   Future<void> _record(ChatA2uiSurface row, A2uiRendererAction action) =>
       _store.recordAction(
         row,
@@ -232,7 +284,11 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
             type: legacy.MaterialType.transparency,
             child: A2uiVisualScope(
               builder: widget.visualBuilder,
-              child: A2uiSurface(surface: surface),
+              child: A2uiDiagramScope(
+                scenes: _diagrams,
+                promote: _promote,
+                child: A2uiSurface(surface: surface),
+              ),
             ),
           ),
           if (_saveFailed)

@@ -21,10 +21,15 @@ const enableVisualToolsSchema = AiTool(
 /// A per-run, model-selected capability. Ordinary text requests carry no
 /// scene DSL; loading preserves the complete field contracts, not loose objects.
 class VisualToolset {
-  VisualToolset({required this.exam, this.includeQuiz = true});
+  VisualToolset({
+    required this.exam,
+    this.includeQuiz = true,
+    this.inlineDrawing = false,
+  });
 
   final bool exam;
   final bool includeQuiz;
+  final bool inlineDrawing;
   bool _enabled = false;
   bool get enabled => _enabled;
 
@@ -40,7 +45,18 @@ class VisualToolset {
         ]
       : [
           if (includeQuiz) textQuizToolSchema(exam: exam),
-          enableVisualToolsSchema,
+          if (inlineDrawing)
+            const AiTool(
+              name: enableVisualToolsName,
+              description: 'Load formal Visual DSL tools only for independent assets, knowledge links, complex revisions, or figure-backed quizzes. Ordinary diagrams go directly in <a2ui> blocks. Call with {}.',
+              parameters: {
+                'type': 'object',
+                'properties': <String, dynamic>{},
+                'additionalProperties': false,
+              },
+            )
+          else
+            enableVisualToolsSchema,
         ];
 
   String get instructions => !_enabled

@@ -6,6 +6,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/database/database.dart';
 import '../../core/database/database_notifier.dart';
+import '../../core/visual/model/visual_scene.dart';
+import '../../core/visual/validation/visual_quality.dart';
 import '../../core/visual/validation/visual_validator.dart';
 
 /// Persistent storage for Visual DSL scenes and their links to chat
@@ -89,11 +91,45 @@ class VisualStore extends DatabaseNotifier {
     String? title,
     String source = 'ai',
     String verification = 'unverified',
+    String? promotionKey,
   }) => runOperation(() async {
-    _decodeAndValidateSceneJson(sceneJson);
+    final decoded = _decodeAndValidateSceneJson(sceneJson);
+    if (promotionKey != null &&
+        checkVisualQuality(VisualScene.fromJson(decoded.json)).isNotEmpty) {
+      throw const FormatException(
+        'The diagram did not pass visual quality checks.',
+      );
+    }
     final now = DateTime.now();
-    final id = const Uuid().v4();
+    final id = promotionKey == null
+        ? const Uuid().v4()
+        : const Uuid().v5(
+            Namespace.url.value,
+            'https://tixun.app/visual/$promotionKey',
+          );
     await db.transaction(() async {
+      if (promotionKey != null) {
+        final existing = await (db.select(
+          db.visualScenes,
+        )..where((row) => row.id.equals(id))).getSingleOrNull();
+        if (existing != null) {
+          if (existing.deleted) {
+            throw const FormatException('The promoted figure was deleted.');
+          }
+          if (messageId != null) {
+            await db
+                .into(db.visualMessageLinks)
+                .insert(
+                  VisualMessageLinksCompanion.insert(
+                    visualId: id,
+                    messageId: messageId,
+                  ),
+                  mode: InsertMode.insertOrIgnore,
+                );
+          }
+          return;
+        }
+      }
       await db
           .into(db.visualScenes)
           .insert(
@@ -131,6 +167,30 @@ class VisualStore extends DatabaseNotifier {
     changed();
     return id;
   });
+
+  Future<StoredVisualScene?> publicSceneInChat(
+    String sessionId,
+    String id,
+  ) async {
+    final scenes = db.visualScenes;
+    final links = db.visualMessageLinks;
+    final messages = db.chatMessages;
+    final sessions = db.chatSessions;
+    final query =
+        db.select(scenes).join([
+            innerJoin(links, links.visualId.equalsExp(scenes.id)),
+            innerJoin(messages, messages.id.equalsExp(links.messageId)),
+            innerJoin(sessions, sessions.id.equalsExp(messages.sessionId)),
+          ])
+          ..where(
+            scenes.id.equals(id) &
+                scenes.deleted.equals(false) &
+                sessions.id.equals(sessionId) &
+                sessions.deleted.equals(false),
+          )
+          ..limit(1);
+    return (await query.getSingleOrNull())?.readTable(scenes);
+  }
 
   /// Only public message-linked scenes, never private quiz snapshots.
   Future<List<StoredVisualScene>> listBySession(String sessionId) async {

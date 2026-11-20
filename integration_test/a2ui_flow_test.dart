@@ -11,6 +11,7 @@ import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/features/a2ui/a2ui_surface_card.dart';
+import 'package:tixun/features/visual/visual_card.dart';
 
 import '../test/support/chat_a2ui.dart';
 import 'support/gui_capture.dart';
@@ -32,6 +33,7 @@ void main() {
       );
       await c.initialize();
       await c.setLanguage('en');
+      await c.setAiDrawingEnabled(true);
       final container = ProviderContainer(
         overrides: [appControllerProvider.overrideWith((ref) => c)],
       );
@@ -46,7 +48,7 @@ void main() {
       await t.pumpAndSettle();
       await t.enterText(
         find.byKey(const Key('chat-input')),
-        'Create native controls',
+        'Draw a parabola and create native controls',
       );
       await t.pumpAndSettle();
       await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -62,12 +64,14 @@ void main() {
       await t.pumpAndSettle();
       expect(c.messages.last.status, 'complete');
       expect(find.byType(ChatA2uiSurfaceCard), findsNWidgets(3));
+      expect(find.byType(VisualCard), findsOneWidget);
+      expect(find.text('A parabola'), findsOneWidget);
       final flip = find.text('Flip card');
       await t.ensureVisible(flip);
       await t.tap(flip);
       await t.pumpAndSettle();
       expect(find.text('Back of card', findRichText: true), findsOneWidget);
-      expect(provider.requests, hasLength(3));
+      expect(provider.requests, hasLength(1));
       expect(t.takeException(), isNull);
       await guiCapture('a2ui', 'native-flashcard');
       await t.pumpWidget(const SizedBox.shrink());

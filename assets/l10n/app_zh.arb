@@ -2946,5 +2946,8 @@
   "usageLanguageOnly": "语言学习",
   "usageInputCacheUnknown": "输入缓存状态未知",
   "usageUncachedInput": "未缓存输入",
-  "usageOutputReasoningUnknown": "输出（思考拆分不可用）"
+  "usageOutputReasoningUnknown": "输出（思考拆分不可用）",
+  "a2uiSaveDiagram": "保存为可复用图形",
+  "a2uiSaveDiagramHelp": "保存一份独立图形并关联此回复。原图仍保留在对话中。",
+  "a2uiDiagramSaved": "已保存为可复用图形。"
 }

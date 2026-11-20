@@ -2946,5 +2946,8 @@
   "usageLanguageOnly": "Language learning",
   "usageInputCacheUnknown": "Input cache status unknown",
   "usageUncachedInput": "Uncached input",
-  "usageOutputReasoningUnknown": "Output (reasoning split unavailable)"
+  "usageOutputReasoningUnknown": "Output (reasoning split unavailable)",
+  "a2uiSaveDiagram": "Save as a reusable figure",
+  "a2uiSaveDiagramHelp": "Save an independent figure linked to this reply. The original diagram stays in the conversation.",
+  "a2uiDiagramSaved": "Saved as a reusable figure."
 }

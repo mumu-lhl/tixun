@@ -45,6 +45,9 @@ class VisualMarkdown extends ConsumerWidget {
         : ref.watch(_a2uiByMessage((sessionId!, messageId!))).value ??
               const <ChatA2uiSurface>[];
     final surfaceIndex = {for (final row in surfaces) row.id: row};
+    final usesSavedVisual = surfaces.any(
+      (row) => row.messagesJson.contains('"component":"VisualSceneRef"'),
+    );
     final status = surfaces.isEmpty || streaming
         ? null
         : ref.watch(
@@ -78,7 +81,7 @@ class VisualMarkdown extends ConsumerWidget {
                   )
                   .value ??
               <StoredVisualScene>[]
-        : references.isEmpty && surfaces.isEmpty
+        : references.isEmpty && !usesSavedVisual
         ? <StoredVisualScene>[]
         : ref.watch(visualsBySessionProvider(sessionId!)).value ??
               <StoredVisualScene>[];
@@ -154,7 +157,9 @@ class VisualMarkdown extends ConsumerWidget {
             // in the body; earlier figures are not repeated below every message.
             if (owner == null)
               for (final row in attached)
-                if (!references.contains(row.id) && scenes[row.id] != null)
+                if (row.source != 'a2ui_promotion' &&
+                    !references.contains(row.id) &&
+                    scenes[row.id] != null)
                   Padding(
                     key: ValueKey('fallback-${row.id}'),
                     padding: const EdgeInsets.only(top: 16),

@@ -7,67 +7,81 @@ import 'package:uuid/uuid.dart';
 import '../../core/ai/ai_types.dart';
 import '../../core/database/database.dart';
 import 'a2ui_catalog.dart';
+import 'a2ui_compile_worker.dart';
+import 'a2ui_tools.dart' show a2uiActionMarker;
 
 class ChatA2uiStore {
   ChatA2uiStore(this.db);
   final AppDatabase db;
 
-  Future<ChatA2uiSurface> create({
+  Future<ChatA2uiSurface> saveInline({
     required String sessionId,
     required String messageId,
-    required String callId,
+    required int blockIndex,
     required String express,
-    required String? bodyAtInsertion,
+    required String bodyAtInsertion,
+    required bool drawingEnabled,
     required CancelToken cancel,
-  }) => db.transaction(() async {
+  }) async {
     cancel.checkCancelled();
-    final owner = await _owner(sessionId, messageId).getSingleOrNull();
-    if (owner?.role != 'assistant' || owner?.status != 'generating') {
-      throw const FormatException(
-        'No active assistant message for this surface.',
-      );
-    }
-    final siblings = _byMessage(sessionId, messageId);
-    final existing =
-        await (siblings..where((row) => row.toolCallId.equals(callId)))
-            .getSingleOrNull();
-    if (existing != null) {
-      if (existing.express != express ||
-          (existing.autoOffset == null) != (bodyAtInsertion == null)) {
-        throw const FormatException(
-          'This tool call ID already has a different surface.',
-        );
-      }
-      return existing;
-    }
-    final count = (await _byMessage(sessionId, messageId).get()).length;
-    if (count >= 6) {
-      throw const FormatException('At most six surfaces per message.');
+    if (blockIndex < 0 || blockIndex >= 6) {
+      throw const FormatException('At most six blocks per message.');
     }
     final id = const Uuid().v4();
-    final compiled = compileChatA2ui(express, id);
-    cancel.checkCancelled();
-    final surface = ChatA2uiSurfacesCompanion.insert(
-      sessionId: sessionId,
-      id: id,
-      messageId: messageId,
-      toolCallId: callId,
-      protocol: chatA2uiProtocol,
-      catalog: chatA2uiCatalogId,
-      express: express,
-      messagesJson: compiled,
-      autoOffset: Value(bodyAtInsertion?.length),
-      ordinal: count,
+    final compiled = await compileInlineSurface(
+      express,
+      id,
+      drawingEnabled: drawingEnabled,
+      cancel: cancel,
     );
-    final created = await db.into(db.chatA2uiSurfaces).insertReturning(surface);
-    if (bodyAtInsertion != null) {
-      // Keep the prefix and its offset in one commit, even before the next
-      // throttled streaming write or when the provider stops after the tool.
+    return db.transaction(() async {
+      cancel.checkCancelled();
+      final owner = await _owner(sessionId, messageId).getSingleOrNull();
+      if (owner?.role != 'assistant' || owner?.status != 'generating') {
+        throw const FormatException(
+          'No active assistant message for this surface.',
+        );
+      }
+      final callId = 'inline:$blockIndex';
+      final siblings = _byMessage(sessionId, messageId);
+      final existing =
+          await (siblings..where((row) => row.toolCallId.equals(callId)))
+              .getSingleOrNull();
+      if (existing != null) {
+        if (existing.express != express ||
+            existing.autoOffset != bodyAtInsertion.length) {
+          throw const FormatException(
+            'This block position already has a different surface.',
+          );
+        }
+        return existing;
+      }
+      final count = (await _byMessage(sessionId, messageId).get()).length;
+      if (count >= 6) {
+        throw const FormatException('At most six surfaces per message.');
+      }
+      cancel.checkCancelled();
+      final surface = ChatA2uiSurfacesCompanion.insert(
+        sessionId: sessionId,
+        id: id,
+        messageId: messageId,
+        toolCallId: callId,
+        protocol: chatA2uiProtocol,
+        catalog: chatA2uiCatalogId,
+        express: express,
+        messagesJson: compiled,
+        autoOffset: Value(bodyAtInsertion.length),
+        ordinal: count,
+      );
+      final created = await db
+          .into(db.chatA2uiSurfaces)
+          .insertReturning(surface);
+      // Commit the prefix with its anchor before letting the next chunk render.
       await (db.update(db.chatMessages)..where((m) => m.id.equals(messageId)))
           .write(ChatMessagesCompanion(content: Value(bodyAtInsertion)));
-    }
-    return created;
-  });
+      return created;
+    });
+  }
 
   SimpleSelectStatement<ChatMessages, ChatMessage> _owner(
     String sessionId,
@@ -167,8 +181,7 @@ class ChatA2uiStore {
     List<ChatMessage> history,
     String user,
   ) async {
-    final explicitId = RegExp(r'^\[TiXun A2UI ([0-9a-f-]{36})\]')
-        .firstMatch(user)?[1];
+    final explicitId = a2uiActionMarker.firstMatch(user)?[1];
     if (explicitId != null) {
       final surface =
           await (db.select(db.chatA2uiSurfaces)..where(
@@ -189,10 +202,7 @@ class ChatA2uiStore {
 
   String _outline(Iterable<ChatA2uiSurface> surfaces) => jsonEncode([
     for (final surface in surfaces)
-      {
-        'id': surface.id,
-        'components': chatA2uiOutline(surface.messagesJson, surface.id),
-      },
+      {'components': chatA2uiOutline(surface.messagesJson, surface.id)},
   ]);
 }
 

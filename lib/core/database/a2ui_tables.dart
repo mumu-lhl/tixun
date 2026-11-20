@@ -9,6 +9,7 @@ class ChatA2uiSurfaces extends Table {
   TextColumn get id => text()();
   TextColumn get messageId =>
       text().references(ChatMessages, #id, onDelete: KeyAction.cascade)();
+  // Keeps the v29 column name. Inline blocks use a host-owned ordinal key.
   TextColumn get toolCallId => text()();
   TextColumn get protocol => text()();
   TextColumn get catalog => text()();

@@ -38,10 +38,11 @@ void main() {
     await db
         .update(db.chatMessages)
         .replace(record.copyWith(status: 'generating'));
-    final row = await ChatA2uiStore(db).create(
+    final row = await ChatA2uiStore(db).saveInline(
       sessionId: 's',
       messageId: 'n',
-      callId: 'c',
+      blockIndex: 0,
+      drawingEnabled: true,
       express: 'root = Text("New")',
       bodyAtInsertion: '',
       cancel: CancelToken(),

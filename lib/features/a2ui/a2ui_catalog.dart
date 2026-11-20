@@ -1,11 +1,7 @@
 import 'dart:convert';
 
 import 'package:a2ui_agent/a2ui_agent.dart'
-    show
-        A2uiRequestProcessor,
-        ExpressCompiler,
-        ExpressFormatFactory,
-        validatePayload;
+    show ExpressCompiler, validatePayload;
 import 'package:a2ui_core/a2ui_core.dart';
 import 'package:a2ui_flutter/a2ui_flutter.dart';
 import 'package:a2ui_flutter/basic_catalog.dart';
@@ -14,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/l10n/app_strings.dart';
 import '../../core/ui/learning_markdown.dart';
+import 'a2ui_diagrams.dart';
 
 const chatA2uiProtocol = '1.0';
 const chatA2uiCatalogId = 'https://tixun.app/catalogs/chat/v1';
@@ -26,6 +23,7 @@ final chatA2uiCatalog = CatalogImplementation(
   protocolVersion: A2uiProtocolVersion.v1_0,
   title: 'TiXun chat',
   components: [
+    ...a2uiDiagramComponents,
     BasicComponents.text,
     BasicComponents.column,
     BasicComponents.row,
@@ -113,20 +111,9 @@ class A2uiVisualScope extends InheritedWidget {
 }
 
 final _catalogs = <CatalogApi>[chatA2uiCatalog];
+final _compiler = ExpressCompiler(_catalogs);
 
-final chatA2uiSkill = A2uiRequestProcessor(
-  activeCatalogs: _catalogs,
-  formatFactory: const ExpressFormatFactory(allowedMessages: ['createSurface']),
-  examples: [
-    [
-      ExpressCompiler(_catalogs)
-          .compile('root = Text("A small native surface")')
-          .single,
-    ],
-  ],
-).promptSnippet;
-
-String compileChatA2ui(String source, String id) {
+String compileChatA2ui(String source, String id, {bool drawingEnabled = true}) {
   if (source.trim().isEmpty || source.length > chatA2uiMaxSource) {
     throw const FormatException(
       'Express is empty or exceeds 12000 characters.',
@@ -135,7 +122,7 @@ String compileChatA2ui(String source, String id) {
   _checkSourceDepth(source);
   final List<AgentToRendererMessage> messages;
   try {
-    messages = ExpressCompiler(_catalogs).compile(source);
+    messages = _compiler.compile(source);
   } on StackOverflowError {
     throw const FormatException('Express exceeds the compiler nesting limit.');
   }
@@ -147,12 +134,25 @@ String compileChatA2ui(String source, String id) {
       'Provide exactly one complete surface and no protocol actions.',
     );
   }
+  _checkSurface(original);
+  if (!drawingEnabled &&
+      (original.components ?? const []).any(
+        (node) => diagramTypes.contains(node['component']),
+      )) {
+    throw const FormatException('Drawing is disabled in this conversation.');
+  }
+  final diagrams = compileDiagramSnapshots(original);
   final message = CreateSurfaceMessage(
     version: chatA2uiProtocol,
     surfaceId: id,
     catalogId: chatA2uiCatalogId,
     components: original.components,
     dataModel: original.dataModel,
+    metadata: diagrams.isEmpty
+        ? null
+        : {
+            'extensions': {diagramExtension: diagrams},
+          },
   );
   _checkSurface(message);
   validatePayload(_catalogs, [message]);
@@ -300,8 +300,7 @@ CreateSurfaceMessage readChatA2ui(String json, String id) {
       message.version != chatA2uiProtocol ||
       message.surfaceId != id ||
       message.catalogId != chatA2uiCatalogId ||
-      message.sendDataModel ||
-      message.metadata != null) {
+      message.sendDataModel) {
     throw const FormatException('Invalid stored surface.');
   }
   _checkSurface(message);
@@ -315,9 +314,26 @@ List<Map<String, String>> chatA2uiOutline(String json, String id) {
       for (final node in (message.components ?? const []).take(8))
         {
           'type': node['component'] as String,
-          for (final field in ['text', 'label', 'front'])
+          for (final field in [
+            'text',
+            'label',
+            'front',
+            'title',
+            'expressions',
+            'points',
+            'vectors',
+            'marks',
+            'interval',
+            'domain',
+            'closed',
+            'a',
+          ])
             if (node[field] case final String value)
-              field: value.length > 100 ? value.substring(0, 100) : value,
+              field: value.length > 100 ? value.substring(0, 100) : value
+            else if (node[field] case final Object value)
+              if (value is List || value is num || value is bool)
+                field: jsonEncode(value)
+                    .substring(0, jsonEncode(value).length.clamp(0, 200)),
         },
     ];
   } on Exception {

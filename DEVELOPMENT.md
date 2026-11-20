@@ -84,7 +84,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 组件白名单、工具及交互权限见 [聊天 A2UI](docs/CHAT_A2UI.md)。对 Catalog 或渲染进行改动时，运行：
 
 ```bash
-flutter test -j 4 test/chat_a2ui_test.dart test/chat_a2ui_widget_test.dart test/a2ui_migration_test.dart
+flutter test -j 4 test/a2ui_diagram_test.dart test/a2ui_drawing_cost_test.dart test/chat_a2ui_test.dart test/chat_a2ui_widget_test.dart test/a2ui_migration_test.dart
 ```
 
 原生 Mock 场景 `integration_test/a2ui_flow_test.dart` 由 GUI 回归脚本执行。

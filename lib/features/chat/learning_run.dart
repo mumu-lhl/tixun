@@ -26,6 +26,8 @@ import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/platform/attachment_store.dart';
 import '../library/study_store.dart';
 import '../a2ui/a2ui_store.dart';
+import '../a2ui/a2ui_stream.dart';
+
 import '../a2ui/a2ui_tools.dart';
 import '../library/subject_scope.dart';
 import '../practice/practice_store.dart';
@@ -147,7 +149,7 @@ class LearningRun {
         enableConversationTitle && requestConfig.kind == 'deepseek';
     var activeReasoning = '', trace = '';
     var exam = mode == 'exam';
-    var surfaceCreated = false, surfaceInsertedEver = false;
+    var surfaceCreated = false, nextBlock = 0;
     Future<void> publish({bool surfaceInserted = false}) => onProgress(
       LearningRunResult(
         text: exam ? (quizCreated ? '先独立尝试下面的题目。提交后查看参考答案与解析。' : '') : text,
@@ -198,34 +200,48 @@ class LearningRun {
       while (true) {
         cancel.checkCancelled();
         final calls = <ToolCall>[];
-        // Rounds that called create_visual are accounted under
-        // 'visual_create' and rounds that called update_visual under
-        // 'visual_edit' instead of the default 'chat' category.
-        // get_visual is read-only and stays under 'chat'. A round that
-        // created a quiz with a visual attached is 'quiz_with_visual':
-        // the args are machine-generated JSON, so parse them and check
-        // for a non-empty 'visual_id' — a substring match would also
-        // fire on '"visual_id": null'.
-        String usageFeature() => calls.any((c) => c.name == createA2uiName)
-            ? 'a2ui_create'
-            : calls.any((c) => c.name == 'update_visual')
-            ? 'visual_edit'
-            : calls.any((c) => c.name == 'create_visual')
-            ? 'visual_create'
-            : calls.any((c) {
-                if (c.name != 'create_quiz') return false;
-                try {
-                  final args = jsonDecode(c.arguments) as Map;
-                  final visualId = args['visual_id'];
-                  return (visualId is String && visualId.isNotEmpty) ||
-                      args['question_scene'] is Map;
-                } catch (_) {
-                  return false;
-                }
-              })
-            ? 'quiz_with_visual'
-            : 'chat';
-        var roundText = '';
+        var inlineAttempted = false;
+        var roundText = '', rawRoundText = '';
+        final inline = a2uiEnabled ? InlineA2uiStream() : null;
+        Future<void> receive(String chunk, {bool done = false}) async {
+          if (inline == null) {
+            text += chunk;
+            roundText += chunk;
+            return;
+          }
+          for (final part in inline.feed(chunk, done: done)) {
+            if (part.kind == InlineA2uiKind.prose) {
+              text += part.text;
+              roundText += part.text;
+              continue;
+            }
+            inlineAttempted = true;
+            final index = nextBlock++;
+            if (part.kind == InlineA2uiKind.surface && !cancel.isCancelled) {
+              try {
+                await a2ui!.saveInline(
+                  sessionId: sessionId,
+                  messageId: runId,
+                  blockIndex: index,
+                  express: part.text,
+                  bodyAtInsertion: text,
+                  drawingEnabled: drawingEnabled,
+                  cancel: cancel,
+                );
+                surfaceCreated = true;
+                await publish(surfaceInserted: true);
+                continue;
+              } on FormatException {
+                // A rejected block does not discard later prose or surfaces.
+              }
+            }
+            final unavailable = lookupAppLocalizations(
+              Locale(requestPrompts.language == 'en' ? 'en' : 'zh'),
+            ).chatA2uiUnavailable;
+            text += '\n\n$unavailable\n\n';
+          }
+        }
+
         var roundReasoning = '';
         activeReasoning = '';
         var traceStarted = false;
@@ -251,8 +267,7 @@ class LearningRun {
             final title = chunk.title?.trim();
             if (title != null && title.isNotEmpty) generatedTitle = title;
             if (chunk.usage != null) roundUsage = chunk.usage;
-            text += chunk.text;
-            roundText += chunk.text;
+            rawRoundText += chunk.text;
             if (chunk.reasoning.isNotEmpty) {
               if (!traceStarted && trace.isNotEmpty) trace += '\n\n---\n\n';
               traceStarted = true;
@@ -291,40 +306,49 @@ class LearningRun {
             }
             calls.addAll(chunk.calls);
             completed = completed || chunk.completed;
+            await receive(chunk.text, done: chunk.completed);
             await publish();
           }
         } catch (_) {
+          final before = text;
+          await receive('', done: true);
+          if (text != before) await publish();
           await _recordUsage(
             actionId: runId,
             sessionId: sessionId,
             messageId: runId,
             config: requestConfig,
-            feature: usageFeature(),
+            feature: _roundUsageFeature(calls, inlineAttempted),
             status: 'error',
             startedAt: requestStartedAt,
             imageCount: requestImageCount,
             toolCallCount: calls.length,
             usage: roundUsage,
             request: roundRequest,
-            response: roundText,
+            response: rawRoundText,
             reasoning: roundReasoning,
             calls: calls,
           );
           rethrow;
+        }
+        if (!completed) {
+          final before = text;
+          await receive('', done: true);
+          if (text != before) await publish();
         }
         await _recordUsage(
           actionId: runId,
           sessionId: sessionId,
           messageId: runId,
           config: requestConfig,
-          feature: usageFeature(),
+          feature: _roundUsageFeature(calls, inlineAttempted),
           status: completed ? 'complete' : 'incomplete',
           startedAt: requestStartedAt,
           imageCount: requestImageCount,
           toolCallCount: calls.length,
           usage: roundUsage,
           request: roundRequest,
-          response: roundText,
+          response: rawRoundText,
           reasoning: roundReasoning,
           calls: calls,
         );
@@ -338,11 +362,7 @@ class LearningRun {
           );
         }
         validateToolCalls(calls);
-        await contextRun?.output(
-          roundText,
-          roundReasoning,
-          compactA2uiTranscript(calls),
-        );
+        await contextRun?.output(roundText, roundReasoning, calls);
         if (calls.isEmpty) break;
         if (!quizEnabled ||
             calls.any(
@@ -426,35 +446,17 @@ class LearningRun {
             );
             continue;
           }
-          if (call.name == enableA2uiName && a2uiEnabled) {
-            request = enableA2ui(request, call);
-            continue;
-          }
-          final result = call.name == createA2uiName && a2uiEnabled
-              ? await createA2ui(
-                  a2ui!,
-                  call,
-                  sessionId: sessionId,
-                  messageId: runId,
-                  body: text,
-                  cancel: cancel,
-                )
-              : await _executeTool(
-                  call,
-                  sessionId: sessionId,
-                  runId: runId,
-                  sourceImages: sourceImages,
-                  cancel: cancel,
-                  exam: exam,
-                  drawingEnabled: drawingEnabled,
-                  runner: runner,
-                  approve: approve,
-                );
-          final createdSurface =
-              call.name == createA2uiName && result['ok'] == true;
-          if (createdSurface) surfaceCreated = true;
-          final inserted = createdSurface && result['inserted'] == true;
-          if (inserted) surfaceInsertedEver = true;
+          final result = await _executeTool(
+            call,
+            sessionId: sessionId,
+            runId: runId,
+            sourceImages: sourceImages,
+            cancel: cancel,
+            exam: exam,
+            drawingEnabled: drawingEnabled,
+            runner: runner,
+            approve: approve,
+          );
           if (studyTask?.operation == 'update_knowledge' &&
               call.name == 'get_knowledge') {
             selectedKnowledgeRead =
@@ -484,9 +486,8 @@ class LearningRun {
               isWriteStudyTool(call.name)) {
             studyChanged = true;
           }
-          if (inserted) await publish(surfaceInserted: true);
           cancel.checkCancelled();
-          if (!inserted) await publish();
+          await publish();
           request = request.copyWith(
             messages: [
               ...request.messages,
@@ -512,7 +513,7 @@ class LearningRun {
       if (exam && !quizCreated) {
         text = '考试模式需要结构化题目，当前模型未成功创建。请重试，或切换教学模式查看文字讲解。';
       }
-      if (text.trim().isEmpty && !surfaceInsertedEver) {
+      if (text.trim().isEmpty && !surfaceCreated) {
         if (visualCreated) {
           text = lookupAppLocalizations(
             requestPrompts.language == 'en'

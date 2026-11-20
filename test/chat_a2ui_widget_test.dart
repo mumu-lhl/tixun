@@ -14,12 +14,13 @@ import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
 import 'package:tixun/features/a2ui/a2ui_surface_card.dart';
 import 'package:tixun/features/visual/visual_markdown.dart';
+import 'package:tixun/features/visual/visual_card.dart';
 
 import 'support/chat_a2ui.dart';
 
 void main() {
   testWidgets(
-    'Mixed placements render native controls once and restore offline',
+    'Inline diagrams and forms render once and restore local controls',
     (t) async {
       t.view.physicalSize = const Size(320, 900);
       t.view.devicePixelRatio = 1;
@@ -46,7 +47,8 @@ void main() {
       await t.runAsync(() async {
         await c.initialize();
         await c.newSession();
-        await c.send('Create native controls');
+        await c.setAiDrawingEnabled(true);
+        await c.send('Draw a parabola and create native controls');
       });
       final reply = c.messages.last;
       expect(reply.status, 'complete', reason: reply.error);
@@ -89,10 +91,32 @@ void main() {
       }
 
       await pumpSurface();
-      expect(find.text('First'), findsOneWidget);
+      expect(find.text('A parabola'), findsOneWidget);
       expect(find.text('Second'), findsOneWidget);
       expect(find.text('Back of card'), findsNothing);
-      expect(find.byType(legacy.Slider), findsOneWidget);
+      expect(find.byType(legacy.Slider), findsNWidgets(2));
+      final plot = find.byType(VisualCard);
+      expect(t.widget<VisualCard>(plot).scene.model!.parameters['a'], 1);
+      await t.runAsync(() async {
+        t.widget<legacy.Slider>(find.byType(legacy.Slider).first).onChanged!(2);
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+      });
+      await t.pumpAndSettle();
+      expect(t.widget<VisualCard>(plot).scene.model!.parameters['a'], 2);
+      final promote = find.text('Save as a reusable figure');
+      await t.ensureVisible(promote);
+      await t.tap(promote);
+      await t.pumpAndSettle();
+      await t.runAsync(() async {
+        await t.tap(find.text('Save').last);
+        await Future<void>.delayed(const Duration(milliseconds: 35));
+      });
+      await t.pumpAndSettle();
+      final promoted = await t.runAsync(
+        () => c.visual.listBySession(reply.sessionId),
+      );
+      expect(promoted, hasLength(1));
+      expect(find.byType(VisualCard), findsOneWidget);
       expect(find.byType(legacy.TextField), findsOneWidget);
       final flip = find.text('Flip card');
       await t.ensureVisible(flip);
@@ -114,37 +138,38 @@ void main() {
       await t.tap(action);
       await t.pumpAndSettle();
       expect(find.text('Continue in chat'), findsOneWidget);
-      expect(provider.requests, hasLength(3));
+      expect(provider.requests, hasLength(1));
       await t.tap(find.text('Cancel'));
       await t.pumpAndSettle();
-      expect(provider.requests, hasLength(3));
+      expect(provider.requests, hasLength(1));
       await t.tap(action);
       await t.pumpAndSettle();
       await t.runAsync(() async {
         await t.tap(find.text('Send to AI'));
-        await Future<void>.delayed(const Duration(milliseconds: 85));
+        for (
+          var i = 0;
+          i < 150 && (c.busy || provider.requests.length < 2);
+          i++
+        ) {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
       });
       await t.pumpAndSettle();
-      for (var i = 0; i < 12 && c.busy; i++) {
-        await t.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 15)),
-        );
-        await t.pump();
-      }
-      expect(provider.requests.length, greaterThan(3));
+      expect(c.busy, false);
+      expect(provider.requests.length, greaterThan(1));
       expect(
         c.messages.where((m) => m.role == 'user').last.content,
         contains('edited expression'),
       );
       expect(
-        provider.requests[3].instructions,
+        provider.requests[1].instructions,
         contains('Relevant saved interface metadata'),
       );
       final state = await t.runAsync(() async {
         final rows = await a2uiRows(c.db, reply.id);
         expect(await c.db.select(c.db.chatA2uiActions).get(), hasLength(1));
         return jsonDecode(
-          rows.singleWhere((r) => r.autoOffset == null).stateJson!,
+          rows.singleWhere((r) => r.express == expressForm).stateJson!,
         ) as Map;
       });
       expect(state, containsPair('flipped', true));
@@ -162,6 +187,7 @@ void main() {
             .text,
         'edited expression',
       );
+      expect(t.widget<VisualCard>(plot).scene.model!.parameters['a'], 2);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox.shrink());
     },

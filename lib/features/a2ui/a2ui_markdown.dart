@@ -33,10 +33,16 @@ List<A2uiMarkdownPart> chatA2uiMarkdown(
       return offset == 0 ? a.ordinal.compareTo(b.ordinal) : offset;
     });
   final seen = {for (final row in automatic) row.id};
-  final matches = _image
-      .allMatches(body)
-      .where((m) => _surfaceId.hasMatch(m[1]!))
-      .toList();
+  final legacy = {
+    for (final surface in surfaces)
+      if (!surface.toolCallId.startsWith('inline:')) surface.id,
+  };
+  final matches = legacy.isEmpty
+      ? <RegExpMatch>[]
+      : _image
+            .allMatches(body)
+            .where((m) => _surfaceId.hasMatch(m[1]!))
+            .toList();
   final real = <int>{};
   if (matches.isNotEmpty) {
     var occurrence = 0;
@@ -74,7 +80,7 @@ List<A2uiMarkdownPart> chatA2uiMarkdown(
 
   final changes = <({int start, int end, String? id, String? replacement})>[
     for (final (i, match) in matches.indexed)
-      if (real.contains(i))
+      if (real.contains(i) && legacy.contains(match[1]!))
         (
           start: match.start,
           end: match.end,
