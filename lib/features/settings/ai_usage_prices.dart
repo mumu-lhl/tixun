@@ -287,7 +287,7 @@ extension _UsagePrices on _AiUsageScreenState {
                       '${_usdRate(price.inputRateNanoUsdPerMillion)} / '
                       '${_usdRate(price.cachedInputRateNanoUsdPerMillion)} / '
                       '${_usdRate(price.outputRateNanoUsdPerMillion)}'
-                      '${price.offPeakDiscountPercent > 0 ? ' · ${l10n.usageOffPeakDiscount(l10nArgument(_int(price.offPeakDiscountPercent)))}' : ''}',
+                      '${price.offPeakDiscountPercent > 0 ? ' · ${l10n.usageOffPeakDiscount(l10nArgument(usageInteger(price.offPeakDiscountPercent)))}' : ''}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),

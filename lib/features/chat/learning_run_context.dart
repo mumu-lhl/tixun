@@ -25,6 +25,7 @@ extension _LearningRunContext on LearningRun {
     required String mode,
     required bool authorized,
     required bool? drawingOverride,
+    required bool? a2uiOverride,
     required CancelToken cancel,
     required Future<bool> Function(String, Map<String, dynamic>, int) approve,
   }) async {
@@ -53,7 +54,16 @@ extension _LearningRunContext on LearningRun {
     final quizEnabled = AiOptions(requestConfig).toolsAvailable;
     final toolsEnabled = authorized;
     final a2uiEnabled =
-        a2ui != null && quizEnabled && !exam && studyTask == null;
+        a2ui != null &&
+        quizEnabled &&
+        !exam &&
+        studyTask == null &&
+        (a2uiOverride ??
+            readA2uiOverride(
+              await db.preference(chatA2uiPreference(sessionId)),
+            ) ??
+            readA2uiOverride(await db.preference(aiA2uiEnabledKey)) ??
+            true);
     if (toolsEnabled && !quizEnabled) {
       throw requestConfig.supportsTools
           ? const AiFailure.localized(

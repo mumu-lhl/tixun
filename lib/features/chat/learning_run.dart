@@ -107,6 +107,7 @@ class LearningRun {
     required bool authorized,
     bool enableConversationTitle = false,
     bool? drawingOverride,
+    bool? a2uiOverride,
     required CancelToken cancel,
     required Future<bool> Function(
       String name,
@@ -170,6 +171,7 @@ class LearningRun {
         mode: mode,
         authorized: authorized,
         drawingOverride: drawingOverride,
+        a2uiOverride: a2uiOverride,
         cancel: cancel,
         approve: approve,
       );

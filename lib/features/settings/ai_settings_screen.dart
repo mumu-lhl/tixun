@@ -19,8 +19,13 @@ import '../../core/ui/actions.dart';
 import '../../core/ui/reasoning_labels.dart';
 import 'provider_balance_panel.dart';
 
+import 'chatgpt_screen.dart';
+
+part 'api_settings_fields.dart';
+
 class AiSettingsScreen extends ConsumerStatefulWidget {
-  const AiSettingsScreen({super.key});
+  const AiSettingsScreen({super.key, this.showSubscription = false});
+  final bool showSubscription;
   @override
   ConsumerState<AiSettingsScreen> createState() => _AiSettingsScreenState();
 }
@@ -37,7 +42,7 @@ enum _AiSettingsStatus {
 class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   late TextEditingController _base, _model, _maxContext;
   final _key = TextEditingController();
-  late String _kind, _effort;
+  late String _kind, _effort, _provider;
   late bool _vision, _thinking, _supportsThinking, _supportsTools;
   bool _working = false;
   Timer? _saveTimer;
@@ -103,10 +108,12 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       text: ref.read(appControllerProvider).maxContextTokens.toString(),
     );
     _applyConfig(c);
+    _provider = widget.showSubscription ? 'chatgpt' : _kind;
     _refreshKeyStatus();
   }
 
   Future<void> _refreshKeyStatus() async {
+    if (_kind == 'chatgpt') return;
     try {
       final controller = ref.read(appControllerProvider);
       final candidate = _candidate();
@@ -246,6 +253,62 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     }
   }
 
+  void _mutate(VoidCallback callback) => setState(callback);
+
+  Future<void> _selectProvider(String kind) async {
+    if (kind == _provider || _working) return;
+    if (_saveTimer?.isActive == true) {
+      _saveTimer!.cancel();
+      await _perform();
+      if (!mounted) return;
+    }
+    if (kind == 'chatgpt') {
+      setState(() => _provider = kind);
+      return;
+    }
+    final c = ref.read(appControllerProvider);
+    ProviderConfig? previous;
+    if (c.config.kind == 'chatgpt' && _kind != kind) {
+      setState(() => _working = true);
+      try {
+        previous = await c.preferences.previousApiProvider();
+      } on FormatException {
+        // A stale backup setting can be replaced by the selected API defaults.
+      } finally {
+        if (mounted) setState(() => _working = false);
+      }
+      if (!mounted) return;
+    }
+    setState(() {
+      _provider = kind;
+      if (_kind == kind) return;
+      _key.clear();
+      _hasSavedKey = null;
+      _status = null;
+      _resetBalance();
+      if (previous?.kind == kind) {
+        _applyConfig(previous!);
+      } else {
+        _kind = kind;
+        _reasoningLevels = null;
+        _base.text = kind == 'deepseek'
+            ? 'https://api.deepseek.com'
+            : 'https://api.openai.com/v1';
+        _model.text = kind == 'deepseek' ? 'deepseek-flash' : '';
+        _vision = kind == 'deepseek';
+        _supportsThinking = kind == 'deepseek';
+        _supportsTools = kind == 'deepseek';
+        _thinking = false;
+        _effort = AiOptions(_candidate()).preferredEffort;
+      }
+    });
+    if (c.config != _candidate() && _model.text.isNotEmpty) {
+      await _perform();
+    } else {
+      await _refreshKeyStatus();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
@@ -253,7 +316,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       previous,
       next,
     ) {
-      if (previous == next) return;
+      if (previous == next || next.kind == 'chatgpt' || _kind != next.kind) {
+        return;
+      }
       setState(() {
         _applyConfig(next);
         _key.clear();
@@ -298,402 +363,37 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  title: Text(context.l10n.chatGPTPlan),
-                  subtitle: Text(context.l10n.signInThroughYourBrowser),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/settings/chatgpt'),
-                ),
-                const SizedBox(height: 12),
-                // ChatGPT is managed from the subscription tile above; the
-                // dropdown only switches between API providers in place.
-                // It is hidden while a ChatGPT subscription is active, so
-                // its value is always one of the items below.
-                if (_kind != 'chatgpt')
-                  AppSelectField<String>(
-                    key: const Key('provider-selector'),
-
-                    initialValue: _kind == 'compatible'
-                        ? 'compatible'
-                        : 'deepseek',
-                    decoration: InputDecoration(
-                      labelText: context.l10n.provider,
+                AppSelectField<String>(
+                  key: const Key('provider-selector'),
+                  initialValue: _provider,
+                  decoration: InputDecoration(labelText: context.l10n.provider),
+                  items: [
+                    const DropdownMenuItem(
+                      value: 'deepseek',
+                      child: Text('DeepSeek'),
                     ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'deepseek',
-                        child: Text('DeepSeek'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'compatible',
-                        child: Text('OpenAI-compatible'),
-                      ),
-                    ],
-                    onChanged: _working
-                        ? null
-                        : (kind) {
-                            setState(() {
-                              _kind = kind!;
-                              _reasoningLevels = null;
-                              _base.text = kind == 'deepseek'
-                                  ? 'https://api.deepseek.com'
-                                  : 'https://api.openai.com/v1';
-                              _model.text = kind == 'deepseek'
-                                  ? 'deepseek-flash'
-                                  : '';
-                              _vision = kind == 'deepseek';
-                              _supportsThinking = kind == 'deepseek';
-                              _supportsTools = kind == 'deepseek';
-                              _thinking = false;
-                              _effort = AiOptions(_candidate()).preferredEffort;
-                              _hasSavedKey = null;
-                              _resetBalance();
-                            });
-                            _refreshKeyStatus();
-                            _scheduleSave();
-                          },
-                  ),
-                if (_kind == 'chatgpt')
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(context.l10n.usingChatGPTPlanManageYour),
-                      const SizedBox(height: 8),
-                      OutlinedButton(
-                        onPressed: _working
-                            ? null
-                            : () => act(context, () async {
-                                await c.restoreApiProvider();
-                                if (!mounted) return;
-                                setState(() => _applyConfig(c.config));
-                              }),
-                        child: Text(context.l10n.restorePreviousAPISettings),
-                      ),
-                    ],
-                  )
-                else ...[
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _base,
-                    onChanged: (_) {
-                      setState(() {
-                        _hasSavedKey = null;
-                        _resetBalance();
-                      });
-                      _refreshKeyStatus();
-                      _scheduleSave();
-                    },
-                    enabled: !_working,
-                    autocorrect: false,
-                    decoration: InputDecoration(
-                      labelText: 'API Base URL',
-                      helperText: context.l10n.enterTheAPIPrefixChat,
+                    const DropdownMenuItem(
+                      value: 'compatible',
+                      child: Text('OpenAI-compatible'),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_kind == 'deepseek')
-                    AppSelectField<String>(
-                      key: const Key('model-selector'),
-                      initialValue: _deepseekModels.contains(_model.text)
-                          ? _model.text
-                          : 'deepseek-flash',
-                      decoration: InputDecoration(
-                        labelText: context.l10n.model,
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: 'deepseek-flash',
-                          child: Text(
-                            context.l10n.deepSeekFlashSupportsImages,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: 'deepseek-v4-pro',
-                          child: Text(
-                            context.l10n.deepSeekV4ProTextOnly,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                      onChanged: _working
-                          ? null
-                          : (model) {
-                              setState(() {
-                                _model.text = model!;
-                                _vision = model == 'deepseek-flash';
-                              });
-                              _scheduleSave();
-                            },
-                    )
-                  else
-                    TextField(
-                      controller: _model,
-                      onChanged: (_) {
-                        setState(() {
-                          _reasoningLevels = null;
-                          _effort = AiOptions(_candidate()).preferredEffort;
-                        });
-                        _scheduleSave();
-                      },
-                      enabled: !_working,
-                      autocorrect: false,
-                      decoration: InputDecoration(
-                        labelText: context.l10n.modelID,
-                        hintText: context.l10n.enterTheFullModelID,
-                      ),
+                    DropdownMenuItem(
+                      value: 'chatgpt',
+                      child: Text(context.l10n.chatGPTPlan),
                     ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    key: const Key('api-key'),
-                    controller: _key,
-                    onChanged: (_) {
-                      setState(_resetBalance);
-                      _scheduleSave();
-                    },
-                    obscureText: !_keyVisible,
-                    enableSuggestions: false,
-                    autocorrect: false,
-                    enabled: !_working && !c.demo,
-                    decoration: InputDecoration(
-                      labelText: 'API Key',
-                      hintText: context.l10n.leaveBlankToKeepThe,
-                      helperText: c.demo
-                          ? context.l10n.noKeyNeededInMock
-                          : context.l10n.androidSystemEncryptedStorageLinux,
-                      helperMaxLines: 2,
-                      suffixIcon: IconButton(
-                        tooltip: (_keyVisible
-                            ? context.l10n.hideKey
-                            : context.l10n.showKey),
-                        onPressed: () =>
-                            setState(() => _keyVisible = !_keyVisible),
-                        icon: Icon(
-                          _keyVisible
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (!c.demo)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        _hasSavedKey == null
-                            ? context.l10n.apiKeyStatusUnknown
-                            : _hasSavedKey!
-                            ? context.l10n.apiKeyAlreadySaved
-                            : context.l10n.apiKeyNotSaved,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _hasSavedKey == true
-                              ? colors.primary
-                              : colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  if (!c.demo && _kind == 'deepseek')
-                    ProviderBalancePanel(
-                      balance: _balance,
-                      loading: _balanceLoading,
-                      failure: _balanceFailure,
-                      onRefresh: _working || _balanceLoading
-                          ? null
-                          : _loadBalance,
-                    ),
-                  const SizedBox(height: 16),
-                  if (_kind == 'compatible')
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(context.l10n.supportsToolCalls),
-                      subtitle: Text(
-                        context.l10n.enableAfterCheckingTheProvider,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      value: _supportsTools,
-                      onChanged: _working
-                          ? null
-                          : (v) {
-                              setState(() => _supportsTools = v);
-                              _scheduleSave();
-                            },
-                    ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(context.l10n.supportsImageInput),
-                    subtitle: Text(
-                      // DeepSeek derives vision from the model (Flash yes,
-                      // V4 Pro no), so the switch is fixed here.
-                      _kind == 'deepseek'
-                          ? context.l10n.decidedByTheModelFlash
-                          : context.l10n.enableOnlyIfTheProvider,
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    value: _vision,
-                    onChanged: _working || (_kind == 'deepseek')
-                        ? null
-                        : (v) {
-                            setState(() => _vision = v);
-                            _scheduleSave();
-                          },
-                  ),
-                  if (_kind == 'compatible')
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(context.l10n.supportsReasoningEffort),
-                      subtitle: Text(
-                        context.l10n.enableAfterConsultingYourProvider,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      value: _supportsThinking,
-                      onChanged: _working
-                          ? null
-                          : (v) {
-                              setState(() {
-                                _supportsThinking = v;
-                                if (!v) _thinking = false;
-                              });
-                              _scheduleSave();
-                            },
-                    ),
-                  if (_supportsThinking) ...[
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        _kind == 'deepseek'
-                            ? context.l10n.deepThinking
-                            : context.l10n.sendReasoningEffortParameter,
-                      ),
-                      subtitle: Text(
-                        context.l10n.defaultForConversationsWithoutAn,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      value: _thinking,
-                      onChanged: _working
-                          ? null
-                          : (v) {
-                              setState(() => _thinking = v);
-                              _scheduleSave();
-                            },
-                    ),
-                    if (_thinking)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: AppSelectField<String>(
-                          key: const Key('api-effort-selector'),
-                          initialValue: _efforts.contains(_effort)
-                              ? _effort
-                              : _efforts.firstOrNull,
-                          decoration: InputDecoration(
-                            labelText: context.l10n.defaultReasoningEffort,
-                          ),
-                          items: [
-                            for (final level in _efforts)
-                              DropdownMenuItem(
-                                value: level,
-                                child: Text(
-                                  reasoningEffortLabel(
-                                    context,
-                                    AiOptions(_candidate()),
-                                    level,
-                                  ),
-                                ),
-                              ),
-                          ],
-                          onChanged: _working
-                              ? null
-                              : (v) {
-                                  setState(() => _effort = v!);
-                                  _scheduleSave();
-                                },
-                        ),
-                      ),
                   ],
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _maxContext,
-                    onChanged: (_) => _scheduleSave(),
-                    enabled: !_working,
-                    autocorrect: false,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: context.l10n.maxContextTokens,
-                      helperText: context.l10n.whenTheLimitIsExceeded,
-                      helperMaxLines: 3,
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      context.l10n.enableMaterialToolsPerConversation,
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  if (_status != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        _statusText(_status!),
-                        style: TextStyle(
-                          color: _failure ? colors.error : colors.primary,
-                        ),
-                      ),
-                    ),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      OutlinedButton(
-                        onPressed: _working ? null : () => _perform(test: true),
-                        child: Text(context.l10n.testConnection),
-                      ),
-                      TextButton(
-                        onPressed: _working || c.demo
-                            ? null
-                            : () async {
-                                final ok = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: Text(context.l10n.deleteTheSavedKey),
-                                    content: Text(
-                                      context.l10n.thisDeletesTheKeySaved,
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx, false),
-                                        child: Text(context.l10n.cancel),
-                                      ),
-                                      FilledButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx, true),
-                                        child: Text(context.l10n.deleteKey),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (ok == true) await _perform(remove: true);
-                              },
-                        child: Text(context.l10n.deleteSavedKey),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    context.l10n.testingSendsAShortMessage,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                  onChanged: _working
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            act(context, () => _selectProvider(value));
+                          }
+                        },
+                ),
+                if (_provider == 'chatgpt') ...[
+                  const SizedBox(height: 24),
+                  const ChatGptSettings(),
+                ] else
+                  ..._apiFields(c, colors),
                 const SizedBox(height: 24),
                 Text(
                   context.l10n.keysAreKeptInSystem,

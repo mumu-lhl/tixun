@@ -55,6 +55,19 @@ List<PopupMenuEntry<String>> drawingMenuItems(
       checked: override == false,
       child: Text(context.l10n.disableDrawingForThisChat),
     ),
+    const PopupMenuDivider(),
+    for (final (suffix, setting, label) in [
+      ('default', null, context.l10n.a2uiUseDefault),
+      ('on', true, context.l10n.enableA2uiForChat),
+      ('off', false, context.l10n.disableA2uiForChat),
+    ])
+      CheckedPopupMenuItem(
+        key: Key('chat-a2ui-$suffix'),
+        value: 'a2ui-$suffix',
+        enabled: canChange,
+        checked: controller.sessionA2uiOverride == setting,
+        child: Text(label),
+      ),
   ];
 }
 
@@ -71,6 +84,12 @@ bool handleDrawingMenuSelection(
       act(context, () => controller.setSessionDrawingEnabled(true));
     case 'drawing-off':
       act(context, () => controller.setSessionDrawingEnabled(false));
+    case 'a2ui-default':
+      act(context, () => controller.setSessionA2uiEnabled(null));
+    case 'a2ui-on':
+      act(context, () => controller.setSessionA2uiEnabled(true));
+    case 'a2ui-off':
+      act(context, () => controller.setSessionA2uiEnabled(false));
     default:
       return false;
   }

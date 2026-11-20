@@ -42,6 +42,7 @@ import '../features/library/study_store.dart';
 import '../features/practice/practice_store.dart';
 import '../features/chat/learning_run.dart';
 import '../features/a2ui/a2ui_store.dart';
+import '../features/a2ui/a2ui_tools.dart';
 import '../features/chat/chat_branch_store.dart';
 import '../features/chat/chat_failure.dart';
 import '../features/progress/learning_profile.dart';
@@ -127,6 +128,20 @@ class AppController extends ChangeNotifier {
     return preferences.runOperation(
       () => db.setPreference('ai_drawing:$id', value?.toString() ?? ''),
     );
+  }
+
+  bool get aiA2uiEnabled => preferences.aiA2uiEnabled;
+  Future<void> setAiA2uiEnabled(bool value) =>
+      preferences.setAiA2uiEnabled(value);
+  bool? sessionA2uiOverride;
+  bool get sessionA2uiEnabled => sessionA2uiOverride ?? aiA2uiEnabled;
+  Future<void> setSessionA2uiEnabled(bool? value) async {
+    final id = selected?.id;
+    if (_disposed || busy || id == null) return;
+    await preferences.saveChatA2uiOverride(id, value);
+    if (_disposed || selected?.id != id) return;
+    sessionA2uiOverride = value;
+    changed();
   }
 
   int get maxToolCalls => preferences.maxToolCalls;

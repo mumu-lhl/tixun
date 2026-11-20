@@ -3,19 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/controller.dart';
 import '../../core/l10n/app_strings.dart';
-import '../../core/python/python_tool.dart';
+import 'tool_call_limit_setting.dart';
 import '../../core/python/python_runtime.dart';
 import '../../core/python/python_workspace_store.dart';
 import '../../core/ui/actions.dart';
 import '../../core/ui/app_menu.dart';
 
-class PythonSettings extends ConsumerStatefulWidget {
-  const PythonSettings({super.key});
+class AiToolsSettings extends ConsumerStatefulWidget {
+  const AiToolsSettings({super.key});
   @override
-  ConsumerState<PythonSettings> createState() => _PythonSettingsState();
+  ConsumerState<AiToolsSettings> createState() => _AiToolsSettingsState();
 }
 
-class _PythonSettingsState extends ConsumerState<PythonSettings> {
+class _AiToolsSettingsState extends ConsumerState<AiToolsSettings> {
   String? policy;
   bool loadError = false;
   bool saving = false;
@@ -32,14 +32,10 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
     workspaceFuture = workspaceStore.list();
     ref
         .read(appControllerProvider)
-        .db
-        .preference(pythonPolicyKey)
-        .then((v) {
-          if (mounted) {
-            setState(
-              () => policy = ['ask', 'auto', 'off'].contains(v) ? v : 'ask',
-            );
-          }
+        .preferences
+        .pythonExecutionPolicy()
+        .then((value) {
+          if (mounted) setState(() => policy = value);
         })
         .onError((error, stack) {
           if (mounted) setState(() => loadError = true);
@@ -75,8 +71,8 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
     try {
       await ref
           .read(appControllerProvider)
-          .db
-          .setPreference(pythonPolicyKey, next);
+          .preferences
+          .setPythonExecutionPolicy(next);
       if (mounted) setState(() => policy = next);
     } finally {
       if (mounted) setState(() => saving = false);
@@ -149,13 +145,20 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(context.l10n.pythonExecution)),
+    appBar: AppBar(title: Text(context.l10n.aiToolsSettings)),
     body: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 760),
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            _GlobalToolPreferences(),
+            const SizedBox(height: 24),
+            Text(
+              context.l10n.pythonExecution,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
             Text(context.l10n.aiPythonCapabilities),
             const SizedBox(height: 20),
             if (!PythonRuntime.isSupportedPlatform)
@@ -282,4 +285,43 @@ class _PythonSettingsState extends ConsumerState<PythonSettings> {
       ),
     ),
   );
+}
+
+class _GlobalToolPreferences extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = ref.watch(appControllerProvider);
+    return Card(
+      child: Column(
+        children: [
+          SwitchListTile(
+            key: const Key('settings-ai-drawing'),
+            secondary: const Icon(Icons.draw_outlined),
+            title: Text(context.l10n.aiDrawing),
+            subtitle: Text(context.l10n.aiDrawingHelp),
+            value: c.aiDrawingEnabled,
+            onChanged: (value) =>
+                act(context, () => c.setAiDrawingEnabled(value)),
+          ),
+          SwitchListTile(
+            key: const Key('settings-ai-a2ui'),
+            secondary: const Icon(Icons.widgets_outlined),
+            title: Text(context.l10n.aiA2ui),
+            subtitle: Text(context.l10n.aiA2uiHelp),
+            value: c.aiA2uiEnabled,
+            onChanged: (value) => act(context, () => c.setAiA2uiEnabled(value)),
+          ),
+          ListTile(
+            key: const Key('settings-tool-call-limit'),
+            leading: const Icon(Icons.tune),
+            title: Text(context.l10n.maxToolCalls),
+            subtitle: Text(
+              '${c.maxToolCalls == 0 ? context.l10n.toolCallsUnlimited : c.maxToolCalls}\n${context.l10n.maxToolCallsHelp}',
+            ),
+            onTap: () => editToolCallLimit(context, c),
+          ),
+        ],
+      ),
+    );
+  }
 }

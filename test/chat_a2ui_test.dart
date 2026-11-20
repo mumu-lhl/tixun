@@ -76,6 +76,38 @@ void main() {
       await c.files.root.delete(recursive: true);
     });
 
+    test('global and per-chat A2UI switches gate provider discovery', () async {
+      await c.setAiA2uiEnabled(false);
+      await c.send('Create native controls');
+      expect(
+        provider.requests.single.tools.map((t) => t.name),
+        isNot(contains('enable_a2ui')),
+      );
+      expect(c.messages.last.content, 'Plain reply');
+
+      await c.setSessionA2uiEnabled(true);
+      await c.send('Create native controls');
+      final session = c.selected!;
+      expect(
+        provider.requests[1].tools.map((t) => t.name),
+        contains('enable_a2ui'),
+      );
+
+      await c.newSession();
+      expect(c.sessionA2uiEnabled, false);
+      await c.selectSession(session);
+      expect(c.sessionA2uiEnabled, true);
+      await c.setAiA2uiEnabled(true);
+      await c.setSessionA2uiEnabled(false);
+      await c.send('Create native controls');
+      expect(
+        provider.requests.last.tools.map((t) => t.name),
+        isNot(contains('enable_a2ui')),
+      );
+      await c.setSessionA2uiEnabled(null);
+      expect(c.sessionA2uiEnabled, true);
+    });
+
     test('Lazy tools, deterministic mixed placements, failed call, dedup and scoped follow-up', () async {
       await c.send('Create native controls');
       final reply = c.messages.last;

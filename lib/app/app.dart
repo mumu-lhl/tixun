@@ -1,7 +1,7 @@
 import '../features/timeline/timeline_screen.dart';
 import '../features/settings/ai_settings_screen.dart';
 import '../features/settings/ai_usage_screen.dart';
-import '../features/settings/python_settings.dart';
+import '../features/settings/ai_tools_settings.dart';
 import '../features/settings/subjects_screen.dart';
 import '../features/exams/exam_calendar.dart';
 import '../features/exams/exam_detail.dart';
@@ -28,7 +28,6 @@ import '../features/practice/practice_screen.dart';
 import '../features/progress/progress_screen.dart';
 import '../features/review/review_screen.dart';
 import '../features/settings/prompt_screen.dart';
-import '../features/settings/chatgpt_screen.dart';
 import '../features/settings/settings_screen.dart';
 import 'controller.dart';
 import 'main_navigation_page.dart';
@@ -334,7 +333,7 @@ class AppShell extends ConsumerWidget {
                 child:
                     path == '/chat' ||
                         MediaQuery.viewInsetsOf(context).bottom > 0 ||
-                        index < 0
+                        !paths.contains(path)
                     ? const SizedBox.shrink(
                         key: ValueKey('hidden-navigation-bar'),
                       )

@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:math' as math;
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,6 +8,8 @@ import '../../core/ai/ai_usage_summary.dart';
 import '../../core/database/database.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/platform/usage_file_picker.dart';
+import '../../core/ui/usage_token_breakdown.dart';
+import '../../core/ui/app_menu.dart';
 
 part 'ai_usage_charts.dart';
 part 'ai_usage_prices.dart';
@@ -24,6 +23,7 @@ class AiUsageScreen extends ConsumerStatefulWidget {
 
 class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
   String range = '30d';
+  AiUsageScope scope = AiUsageScope.all;
   bool exporting = false;
   DateTime? customFrom;
   DateTime? customThrough;
@@ -55,6 +55,9 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
         )
       : null;
 
+  Future<List<AiUsageEvent>> _queryEvents() =>
+      _store.events(from: _from, through: _through, scope: scope);
+
   Future<void> _pickRange() async {
     final now = DateTime.now();
     final start = await showDatePicker(
@@ -76,24 +79,23 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
       customFrom = start;
       customThrough = end;
       range = 'custom';
-      events = _store.events(from: _from, through: _through);
+      events = _queryEvents();
     });
   }
 
   @override
   void initState() {
     super.initState();
-    events = _store.events(from: _from, through: _through);
+    events = _queryEvents();
     prices = _store.prices();
   }
 
-  void _reloadEvents() =>
-      setState(() => events = _store.events(from: _from, through: _through));
+  void _reloadEvents() => setState(() => events = _queryEvents());
 
   void _reloadPrices() => setState(() => prices = _store.prices());
 
   void _reloadAll() => setState(() {
-    events = _store.events(from: _from, through: _through);
+    events = _queryEvents();
     prices = _store.prices();
   });
 
@@ -101,7 +103,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     if (value == range) return;
     setState(() {
       range = value;
-      events = _store.events(from: _from, through: _through);
+      events = _queryEvents();
     });
   }
 
@@ -109,7 +111,11 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     setState(() => exporting = true);
     try {
       final store = _store;
-      final rows = await store.events(from: _from, through: _through);
+      final rows = await store.events(
+        from: _from,
+        through: _through,
+        scope: scope,
+      );
       final contents = extension == 'csv'
           ? store.toCsv(rows)
           : store.toJsonLines(rows);
@@ -181,6 +187,35 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                 children: [
                   Text(context.l10n.aiUsageHelp),
                   const SizedBox(height: 12),
+                  AppSelectField<AiUsageScope>(
+                    key: const Key('ai-usage-scope'),
+                    initialValue: scope,
+                    decoration: InputDecoration(
+                      labelText: context.l10n.usageScope,
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: AiUsageScope.all,
+                        child: Text(context.l10n.usageAllSources),
+                      ),
+                      DropdownMenuItem(
+                        value: AiUsageScope.chats,
+                        child: Text(context.l10n.usageChatOnly),
+                      ),
+                      DropdownMenuItem(
+                        value: AiUsageScope.language,
+                        child: Text(context.l10n.usageLanguageOnly),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null || scope == value) return;
+                      setState(() {
+                        scope = value;
+                        events = _queryEvents();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   SegmentedButton<String>(
                     segments: [
                       ButtonSegment(
@@ -227,7 +262,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                         child: Text(context.l10n.retry),
                       ),
                     ),
-                  ] else if (snapshot.hasData) ...[
+                  ] else if (!waiting && snapshot.hasData) ...[
                     if (rows.isEmpty) ...[
                       Text(context.l10n.noAiUsageYet),
                       const SizedBox(height: 16),
@@ -238,8 +273,8 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            '${context.l10n.imageInputs}: ${_int(summary.imageInputs)}'
-                            ' · ${context.l10n.toolCalls}: ${_int(summary.toolCalls)}',
+                            '${context.l10n.imageInputs}: ${usageInteger(summary.imageInputs)}'
+                            ' · ${context.l10n.toolCalls}: ${usageInteger(summary.toolCalls)}',
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(context)
@@ -251,7 +286,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                       const SizedBox(height: 10),
                       _notes(context, summary),
                       const SizedBox(height: 20),
-                      _TokenBreakdown(rows: rows),
+                      UsageTokenBreakdown(rows: rows),
                       const SizedBox(height: 20),
                       _SessionUsage(rows: rows),
                       if (summary.days.any((day) => day.tokens > 0)) ...[
@@ -297,9 +332,11 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     final cards = <_StatData>[
       _StatData(
         l10n.requestCount,
-        _int(summary.requests),
+        usageInteger(summary.requests),
         summary.legacyRows > 0
-            ? l10n.usageLegacyRows(l10nArgument(_int(summary.legacyRows)))
+            ? l10n.usageLegacyRows(
+                l10nArgument(usageInteger(summary.legacyRows)),
+              )
             : null,
       ),
       _StatData(l10n.tokenTotal, _sumText(summary.total), null),
@@ -312,7 +349,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
             : '${summary.cacheHitRate!.toStringAsFixed(1)}%',
         summary.cacheHitRate == null
             ? null
-            : '${l10n.cachedInputTokens}: ${_token(summary.cachedInput.value)}',
+            : '${l10n.cachedInputTokens}: ${usageTokenCount(summary.cachedInput.value)}',
       ),
       _StatData(
         l10n.averageLatency,
@@ -321,15 +358,15 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
             : _duration(summary.averageLatencyMs!),
         null,
       ),
-      _StatData(l10n.requestErrors, _int(summary.errors), null),
+      _StatData(l10n.requestErrors, usageInteger(summary.errors), null),
       _StatData(
         l10n.estimatedCost,
         summary.estimatedRows == 0 ? '—' : _usd(summary.estimatedCostNanoUsd),
         summary.priceableRows == 0
             ? null
             : l10n.usageCostCoverage(
-                l10nArgument(_int(summary.estimatedRows)),
-                l10nArgument(_int(summary.priceableRows)),
+                l10nArgument(usageInteger(summary.estimatedRows)),
+                l10nArgument(usageInteger(summary.priceableRows)),
               ),
       ),
     ];
@@ -368,14 +405,16 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     final lines = <String>[
       if (summary.estimatedRows > 0) l10n.costEstimateOnly,
       if (summary.missingPrice > 0)
-        l10n.usageCostNoPrice(l10nArgument(_int(summary.missingPrice))),
+        l10n.usageCostNoPrice(l10nArgument(usageInteger(summary.missingPrice))),
       if (summary.missingUsage > 0)
-        l10n.usageCostNoUsage(l10nArgument(_int(summary.missingUsage))),
+        l10n.usageCostNoUsage(l10nArgument(usageInteger(summary.missingUsage))),
       if (summary.missingDetail > 0)
-        l10n.usageCostNoDetail(l10nArgument(_int(summary.missingDetail))),
+        l10n.usageCostNoDetail(
+          l10nArgument(usageInteger(summary.missingDetail)),
+        ),
       if (summary.subscriptionRows > 0) l10n.subscriptionUsage,
       if (summary.legacyRows > 0)
-        l10n.usageLegacyRows(l10nArgument(_int(summary.legacyRows))),
+        l10n.usageLegacyRows(l10nArgument(usageInteger(summary.legacyRows))),
       if (summary.hasPartialSums) l10n.usagePartialSum,
     ];
     return Column(
@@ -411,14 +450,14 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
             contentPadding: EdgeInsets.zero,
             dense: true,
             title: Text(
-              localize ? _featureLabel(context, slice.label) : slice.label,
+              localize ? usageFeatureLabel(context, slice.label) : slice.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
             subtitle: Text(
               [
-                '${context.l10n.requestCount}: ${_int(slice.requests)}',
+                '${context.l10n.requestCount}: ${usageInteger(slice.requests)}',
                 '${context.l10n.tokenTotal}: ${_sumText(slice.tokens)}',
                 if (!localize && slice.detail != null) slice.detail!,
               ].join(' · '),

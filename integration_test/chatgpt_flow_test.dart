@@ -128,7 +128,8 @@ void main() {
       scope.read(routerProvider).go('/settings/ai');
       await t.pumpAndSettle();
       expect(find.byKey(const Key('api-key')), findsNothing);
-      await click(t, find.text('Restore previous API settings'));
+      await click(t, find.byKey(const Key('provider-selector')));
+      await click(t, find.text('DeepSeek').last);
       await ready(t, () => c.config.kind == 'deepseek');
       expect(find.byKey(const Key('api-key')), findsOneWidget);
       expect(t.takeException(), isNull);

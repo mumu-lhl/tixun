@@ -63,6 +63,7 @@ extension _ChatSessions on AppController {
           .preference(studyToolCategoriesKey(session.id))
           .then((v) => readStudyToolCategories(v)),
       db.preference('ai_drawing:${session.id}').then((v) => v ?? ''),
+      db.preference(chatA2uiPreference(session.id)).then((v) => v ?? ''),
     ]);
     if (_epoch != current) return;
     final row = await (db.select(
@@ -81,6 +82,7 @@ extension _ChatSessions on AppController {
       'false' => false,
       _ => null,
     };
+    sessionA2uiOverride = readA2uiOverride(loaded[5] as String);
     sessionReasoning = AiOptions(config).supportsOverride(override)
         ? override
         : '';

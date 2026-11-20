@@ -121,6 +121,17 @@ void main() {
       await tester.tap(find.byKey(const Key('chat-drawing-default')));
       await tester.pumpAndSettle();
       expect(c.sessionDrawingOverride, isNull);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      final disable = find.byKey(const Key('chat-a2ui-off'));
+      await tester.ensureVisible(disable);
+      await tester.runAsync(() async {
+        await tester.tap(disable);
+        await c.preferences.whenIdle;
+      });
+      await tester.pumpAndSettle();
+      expect(c.sessionA2uiEnabled, false);
+      expect(c.aiA2uiEnabled, true);
       c.busy = true;
       c.changed();
       await tester.pump();

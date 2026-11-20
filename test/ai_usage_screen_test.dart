@@ -10,6 +10,7 @@ import 'package:tixun/core/ai/chat_provider.dart';
 import 'package:tixun/core/database/database.dart';
 import 'package:tixun/core/platform/attachment_store.dart';
 import 'package:tixun/core/platform/key_store.dart';
+import 'package:tixun/core/ui/usage_token_breakdown.dart';
 
 void main() {
   testWidgets('usage screen shows summary, trend, and request details', (
@@ -27,9 +28,13 @@ void main() {
         demo: true,
       );
       await controller.initialize(seed: false);
+      await controller.newSession();
+      await controller.send('Explain the example');
       await AiUsageStore(controller.db).record(
         AiUsageCapture(
-          actionId: 'action-1',
+          actionId: controller.messages.last.id,
+          sessionId: controller.selected!.id,
+          messageId: controller.messages.last.id,
           providerKind: 'deepseek',
           endpoint: 'https://api.deepseek.com',
           model: 'deepseek-flash',
@@ -73,9 +78,10 @@ void main() {
     expect(find.text('20.0%'), findsOneWidget);
     expect(find.textContaining('1.3K'), findsWidgets);
     await tester.scrollUntilVisible(find.text('Token 类型占比'), 250);
-    expect(find.text('76.9% · 1K (1,000)'), findsOneWidget);
+    expect(find.text('15.4% · 200 (200)'), findsOneWidget);
+    expect(find.text('61.5% · 800 (800)'), findsOneWidget);
     expect(find.text('3.8% · 50 (50)'), findsOneWidget);
-    expect(find.textContaining('服务商不提供'), findsOneWidget);
+    expect(find.textContaining('分别显示缓存命中和思考用量'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('本地文本 Token 分类'), 250);
     expect(find.text('25.0% · 25 (25)'), findsOneWidget);
     expect(find.text('75.0% · 75 (75)'), findsOneWidget);
@@ -104,6 +110,53 @@ void main() {
     await tester.tap(find.text('请求明细'));
     await tester.pumpAndSettle();
     expect(find.textContaining('1.2 s'), findsOneWidget);
+    await tester.runAsync(() async {
+      await AiUsageStore(controller.db).record(
+        AiUsageCapture(
+          actionId: 'lookup',
+          providerKind: 'deepseek',
+          endpoint: 'https://api.deepseek.com',
+          model: 'language-model',
+          feature: 'language_quick_lookup',
+          status: 'complete',
+          occurredAt: DateTime.now(),
+          usage: const AiTokenUsage(
+            inputTokens: 500,
+            outputTokens: 100,
+            reasoningTokens: 20,
+            reportedTotalTokens: 600,
+          ),
+        ),
+      );
+    });
+    final source = find.byKey(const Key('ai-usage-scope'));
+    await tester.scrollUntilVisible(source, -250);
+    Future<void> selectScope(String label) async {
+      await tester.ensureVisible(source);
+      await tester.tap(source);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    await selectScope('语言学习');
+    expect(find.textContaining('1.3K'), findsNothing);
+    expect(find.text('600'), findsWidgets);
+    await selectScope('会话');
+    expect(find.textContaining('1.3K'), findsWidgets);
+    await selectScope('全部来源');
+    expect(find.textContaining('1.9K'), findsWidgets);
+
+    scope.read(routerProvider).go('/chat');
+    await tester.pumpAndSettle();
+    final messageUsage = find.byKey(
+      ValueKey('message-usage-${controller.messages.last.id}'),
+    );
+    await tester.ensureVisible(messageUsage);
+    await tester.tap(messageUsage);
+    await tester.pumpAndSettle();
+    expect(find.byType(UsageTokenBreakdown), findsOneWidget);
+    expect(find.text('思考 Token · 50'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

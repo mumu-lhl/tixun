@@ -50,6 +50,8 @@ class AiUsageCapture {
 }
 
 /// Local request-level AI usage history, pricing snapshots, and export.
+enum AiUsageScope { all, chats, language }
+
 class AiUsageStore {
   const AiUsageStore(this.db);
   final AppDatabase db;
@@ -164,7 +166,11 @@ class AiUsageStore {
         );
   }
 
-  Future<List<AiUsageEvent>> events({DateTime? from, DateTime? through}) =>
+  Future<List<AiUsageEvent>> events({
+    DateTime? from,
+    DateTime? through,
+    AiUsageScope scope = AiUsageScope.all,
+  }) =>
       (db.select(db.aiUsageEvents)
             ..where((e) {
               Expression<bool> filter = const Constant(true);
@@ -174,6 +180,24 @@ class AiUsageStore {
               if (through != null) {
                 filter = filter & e.occurredAt.isSmallerOrEqualValue(through);
               }
+              final language = e.feature.substr(1, 9).equals('language_');
+              filter =
+                  filter &
+                  switch (scope) {
+                    AiUsageScope.all => const Constant(true),
+                    AiUsageScope.chats =>
+                      (e.sessionId.isNotNull() |
+                              e.feature.isIn(const [
+                                'chat',
+                                'a2ui_create',
+                                'context_compaction',
+                                'visual_create',
+                                'visual_edit',
+                                'quiz_with_visual',
+                              ])) &
+                          language.not(),
+                    AiUsageScope.language => language,
+                  };
               return filter;
             })
             ..orderBy([(e) => OrderingTerm.desc(e.occurredAt)]))

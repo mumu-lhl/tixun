@@ -64,6 +64,8 @@ class PromptGroups extends StatelessWidget {
           child: keyword.isEmpty
               ? ExpansionTile(
                   key: PageStorageKey('prompt-group-${group.name}'),
+                  shape: const Border(),
+                  collapsedShape: const Border(),
                   initiallyExpanded: group == PromptGroup.teaching,
                   leading: Icon(icon),
                   title: Text(title),

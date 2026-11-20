@@ -1,6 +1,7 @@
 import 'package:tixun/core/l10n/app_error.dart';
 
 import 'app_notice.dart';
+import '../features/a2ui/a2ui_tools.dart';
 
 import 'dart:convert';
 import 'dart:ui' show PlatformDispatcher;
@@ -18,6 +19,7 @@ import '../core/database/database_notifier.dart';
 import '../core/l10n/app_strings.dart';
 import '../core/l10n/generated/app_localizations.dart';
 import '../core/platform/key_store.dart';
+import '../core/python/python_tool.dart' show pythonPolicyKey;
 
 enum EnglishStudyLevel { mixed, beginner, intermediate }
 
@@ -60,6 +62,7 @@ class AppPreferences extends DatabaseNotifier {
   String languageChoice = 'zh';
   bool dynamicColors = true;
   bool aiDrawingEnabled = false;
+  bool aiA2uiEnabled = true;
   Locale? get appLocale =>
       languageChoice == 'system' ? null : Locale(languageChoice);
   String get promptLanguage => languageChoice == 'system'
@@ -72,6 +75,8 @@ class AppPreferences extends DatabaseNotifier {
     maxContextTokens = await loadMaxContextTokens(db);
     maxToolCalls = await loadMaxToolCalls(db);
     aiDrawingEnabled = await db.preference(aiDrawingEnabledKey) == 'true';
+    aiA2uiEnabled =
+        readA2uiOverride(await db.preference(aiA2uiEnabledKey)) ?? true;
     await loadSubjects();
     final studyLevel = await db.preference(_studyLevelKey);
     final feedbackLanguage = await db.preference(_feedbackLanguageKey);
@@ -202,6 +207,7 @@ class AppPreferences extends DatabaseNotifier {
         for (final (oldKey, newKey) in [
           ('ai_reasoning:$source', 'ai_reasoning:$target'),
           ('ai_drawing:$source', 'ai_drawing:$target'),
+          (chatA2uiPreference(source), chatA2uiPreference(target)),
           (studyToolCategoriesKey(source), studyToolCategoriesKey(target)),
         ]) {
           final value = await db.preference(oldKey);
@@ -214,6 +220,24 @@ class AppPreferences extends DatabaseNotifier {
     aiDrawingEnabled = value;
     changed();
   });
+
+  Future<String> pythonExecutionPolicy() async {
+    final value = await db.preference(pythonPolicyKey);
+    return ['ask', 'auto', 'off'].contains(value) ? value! : 'ask';
+  }
+
+  Future<void> setPythonExecutionPolicy(String value) =>
+      runOperation(() => db.setPreference(pythonPolicyKey, value));
+
+  Future<void> setAiA2uiEnabled(bool value) => runOperation(() async {
+    await db.setPreference(aiA2uiEnabledKey, value.toString());
+    aiA2uiEnabled = value;
+    changed();
+  });
+
+  Future<void> saveChatA2uiOverride(String id, bool? value) => runOperation(
+    () => db.setPreference(chatA2uiPreference(id), value?.toString() ?? ''),
+  );
 
   Future<void> setMaxToolCalls(int value) => runOperation(() async {
     if (value < 0) {
@@ -312,6 +336,15 @@ class AppPreferences extends DatabaseNotifier {
         config = next;
         changed();
       });
+
+  Future<ProviderConfig?> previousApiProvider() async {
+    final raw = await db.preference('previous_api_provider');
+    if (raw == null || raw.isEmpty) return null;
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map<String, dynamic>) return null;
+    final previous = ProviderConfig.fromJson(decoded);
+    return previous.kind == 'chatgpt' ? null : previous;
+  }
 
   Future<void> restoreApiProvider() => runOperation(() async {
     final raw = await db.preference('previous_api_provider');

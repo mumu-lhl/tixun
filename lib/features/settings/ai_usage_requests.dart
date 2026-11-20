@@ -48,7 +48,7 @@ class _SessionUsage extends ConsumerWidget {
                         ),
                         child: Text(context.l10n.usageFullSession),
                       ),
-                      _TokenBreakdown(rows: entry.value),
+                      UsageTokenBreakdown(rows: entry.value),
                       ListTile(
                         title: Text(
                           '${context.l10n.inputTokens}: ${_sumText(summary.input)} · ${context.l10n.outputTokens}: ${_sumText(summary.output)}',
@@ -125,7 +125,7 @@ class _SessionUsagePageState extends ConsumerState<_SessionUsagePage> {
                 '${context.l10n.cachedInputTokens}: ${_sumText(summary.cachedInput)} · ${context.l10n.reasoningTokens}: ${_sumText(summary.reasoning)}',
               ),
             ),
-            _TokenBreakdown(rows: rows),
+            UsageTokenBreakdown(rows: rows),
             Text(
               context.l10n.requestDetails,
               style: Theme.of(context).textTheme.titleMedium,
@@ -154,11 +154,11 @@ class _UsageRequestTile extends StatelessWidget {
     };
     final details = [
       _statusLabel(context, row.status),
-      _featureLabel(context, row.feature),
+      usageFeatureLabel(context, row.feature),
       _dateTime(row.occurredAt.toLocal()),
       row.totalTokens == null
           ? l10n.providerUsageUnavailable
-          : '${l10n.tokenTotal}: ${_token(row.totalTokens!)}',
+          : '${l10n.tokenTotal}: ${usageTokenCount(row.totalTokens!)}',
       if (row.rateSource?.endsWith('_off_peak') ?? false)
         l10n.usageOffPeakShort,
       if (row.durationMs != null) _duration(row.durationMs!),
@@ -199,26 +199,6 @@ class _UsageRequestTile extends StatelessWidget {
   }
 }
 
-String _featureLabel(BuildContext context, String feature) => switch (feature) {
-  'chat' => context.l10n.usageFeatureChat,
-  'context_compaction' => context.l10n.usageFeatureContextCompaction,
-  'exam_scores' => context.l10n.usageFeatureExamScores,
-  'language_quick_lookup' => context.l10n.quickLookup,
-  'language_vocabulary' => context.l10n.usageFeatureLanguageVocabulary,
-  'language_explanation' => context.l10n.usageFeatureLanguageExplanation,
-  'language_sentence_batch' => context.l10n.usageFeatureLanguageSentenceBatch,
-  'language_exam_generation' => context.l10n.usageFeatureLanguageExamGeneration,
-  'language_exam_review' => context.l10n.usageFeatureLanguageExamReview,
-  'language_writing_task' => context.l10n.usageFeatureLanguageWritingTask,
-  'language_writing' => context.l10n.usageFeatureLanguageWriting,
-  'connection_test' => context.l10n.usageFeatureConnectionTest,
-  'a2ui_create' => context.l10n.chatA2uiLabel,
-  'visual_create' => context.l10n.usageFeatureVisualCreate,
-  'visual_edit' => context.l10n.usageFeatureVisualEdit,
-  'quiz_with_visual' => context.l10n.usageFeatureQuizWithVisual,
-  _ => feature,
-};
-
 String _statusLabel(BuildContext context, String status) => switch (status) {
   'complete' => context.l10n.usageStatusComplete,
   'error' => context.l10n.usageStatusError,
@@ -227,26 +207,9 @@ String _statusLabel(BuildContext context, String status) => switch (status) {
   _ => status,
 };
 
-String _int(int value) => value.toString().replaceAllMapped(
-  RegExp(r'\B(?=(\d{3})+(?!\d))'),
-  (_) => ',',
-);
-
-String _token(int value) {
-  final (divisor, suffix) = value >= 1000000000
-      ? (1000000000, 'B')
-      : value >= 1000000
-      ? (1000000, 'M')
-      : value >= 1000
-      ? (1000, 'K')
-      : (1, '');
-  if (divisor == 1) return '$value';
-  final formatted = (value / divisor).toStringAsFixed(2);
-  return '${formatted.replaceFirst(RegExp(r"0+$"), "").replaceFirst(RegExp(r"\.$"), "")}$suffix';
-}
-
-String _sumText(UsageSum sum) =>
-    sum.isEmpty ? '—' : '${_token(sum.value)}${sum.isPartial ? '*' : ''}';
+String _sumText(UsageSum sum) => sum.isEmpty
+    ? '—'
+    : '${usageTokenCount(sum.value)}${sum.isPartial ? '*' : ''}';
 
 String _usd(int nanoUsd) {
   final usd = nanoUsd / 1000000000;

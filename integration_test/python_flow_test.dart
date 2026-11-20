@@ -118,7 +118,9 @@ void main() {
       await t.tap(find.byKey(const Key('chat-back')));
       await t.pumpAndSettle();
       expect(find.byType(NavigationBar), findsOneWidget);
-      scope.read(routerProvider).go('/settings/python');
+      scope.read(routerProvider).go('/settings/tools');
+      await t.pumpAndSettle();
+      await t.scrollUntilVisible(find.byKey(const Key('python-policy')), 180);
       await t.pumpAndSettle();
       await guiCapture('python', 'execution-settings-phone');
       await t.tap(find.byKey(const Key('python-policy')));

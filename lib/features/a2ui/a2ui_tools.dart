@@ -7,6 +7,14 @@ import '../../core/ai/ai_types.dart';
 import 'a2ui_catalog.dart';
 import 'a2ui_store.dart';
 
+const aiA2uiEnabledKey = 'ai_a2ui_enabled';
+String chatA2uiPreference(String id) => '$aiA2uiEnabledKey:$id';
+bool? readA2uiOverride(String? value) => switch (value) {
+  'true' => true,
+  'false' => false,
+  _ => null,
+};
+
 const enableA2uiName = 'enable_a2ui';
 const createA2uiName = 'create_a2ui';
 

@@ -166,11 +166,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               _materialRoute(
                 path: 'chatgpt',
-                builder: (_, _) => const ChatGptScreen(),
+                builder: (_, _) =>
+                    const AiSettingsScreen(showSubscription: true),
+              ),
+              _materialRoute(
+                path: 'tools',
+                builder: (_, _) => const AiToolsSettings(),
               ),
               _materialRoute(
                 path: 'python',
-                builder: (_, _) => const PythonSettings(),
+                builder: (_, _) => const AiToolsSettings(),
               ),
               _materialRoute(
                 path: 'prompts',

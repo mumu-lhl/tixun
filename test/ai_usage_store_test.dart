@@ -15,6 +15,51 @@ void main() {
   tearDown(() => db.close());
 
   test(
+    'usage source filters include language and chat without mixing them',
+    () async {
+      final time = DateTime.utc(2026, 1, 4);
+      for (final (feature, session) in [
+        ('language_quick_lookup', null),
+        ('language_exam_review', null),
+        ('chat', null),
+        ('a2ui_create', 'chat-session'),
+        ('connection_test', null),
+      ]) {
+        await store.record(
+          AiUsageCapture(
+            actionId: feature,
+            sessionId: session,
+            providerKind: 'compatible',
+            endpoint: '',
+            model: 'fixture',
+            feature: feature,
+            status: 'complete',
+            occurredAt: time,
+            usage: const AiTokenUsage(inputTokens: 10, outputTokens: 5),
+          ),
+        );
+      }
+      expect(await store.events(), hasLength(5));
+      expect(
+        (await store.events(scope: AiUsageScope.language))
+            .map((e) => e.feature),
+        unorderedEquals(['language_quick_lookup', 'language_exam_review']),
+      );
+      expect(
+        (await store.events(scope: AiUsageScope.chats)).map((e) => e.feature),
+        unorderedEquals(['chat', 'a2ui_create']),
+      );
+      expect(
+        await store.events(
+          scope: AiUsageScope.language,
+          from: time.add(const Duration(days: 1)),
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  test(
     'stores request breakdown and snapshots estimated model pricing',
     () async {
       await store.savePrice(

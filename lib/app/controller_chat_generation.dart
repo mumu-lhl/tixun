@@ -365,6 +365,7 @@ extension _ChatGeneration on AppController {
     final requestConfig = sessionConfig;
     final requestPrompts = prompts;
     final requestDrawingEnabled = sessionDrawingEnabled;
+    final requestA2uiEnabled = sessionA2uiEnabled;
     var text = '';
     var status = 'complete';
     String? failure;
@@ -400,6 +401,7 @@ extension _ChatGeneration on AppController {
         authorized: selected!.toolsEnabled,
         enableConversationTitle: enableConversationTitle,
         drawingOverride: requestDrawingEnabled,
+        a2uiOverride: requestA2uiEnabled,
         cancel: cancel,
         confirm: (name, args, count) =>
             _confirmTool(name, args, cancel, imageCount: count),

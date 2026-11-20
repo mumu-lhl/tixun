@@ -5,7 +5,6 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/controller.dart';
@@ -18,10 +17,10 @@ import '../../core/l10n/app_error_localization.dart';
 import '../../core/ui/reasoning_labels.dart';
 import 'chatgpt_quota_panel.dart';
 
-class ChatGptScreen extends ConsumerStatefulWidget {
-  const ChatGptScreen({super.key});
+class ChatGptSettings extends ConsumerStatefulWidget {
+  const ChatGptSettings({super.key});
   @override
-  ConsumerState<ChatGptScreen> createState() => _ChatGptScreenState();
+  ConsumerState<ChatGptSettings> createState() => _ChatGptSettingsState();
 }
 
 enum _ChatGptStatus {
@@ -34,7 +33,7 @@ enum _ChatGptStatus {
   browserFailed,
 }
 
-class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
+class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
   List<ChatGptAccount> accounts = [];
   List<ChatGptModel> models = [];
   String? active, model;
@@ -200,343 +199,295 @@ class _ChatGptScreenState extends ConsumerState<ChatGptScreen> {
     final c = ref.watch(appControllerProvider), auth = c.chatGpt;
     final account = accounts.where((a) => a.id == active).firstOrNull;
     final connected = account?.connected == true;
-    return ListView(
-      padding: const EdgeInsets.all(20),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 780),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      tooltip: context.l10n.back,
-                      onPressed: () => context.canPop()
-                          ? context.pop()
-                          : context.go('/settings'),
-                      icon: const Icon(Icons.arrow_back),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        context.l10n.chatGPTPlan,
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(context.l10n.useTheChatGPTPlanAllowance),
-                const SizedBox(height: 12),
-                Text(context.l10n.signInUsesYourSystem),
-                if (c.demo)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Text(context.l10n.mockModeDoesNotSign),
-                  ),
-                const SizedBox(height: 20),
-                if (accounts.isNotEmpty)
-                  AppSelectField<String>(
-                    key: const Key('chatgpt-account-selector'),
+        Text(context.l10n.useTheChatGPTPlanAllowance),
+        const SizedBox(height: 12),
+        Text(context.l10n.signInUsesYourSystem),
+        if (c.demo)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(context.l10n.mockModeDoesNotSign),
+          ),
+        const SizedBox(height: 20),
+        if (accounts.isNotEmpty)
+          AppSelectField<String>(
+            key: const Key('chatgpt-account-selector'),
 
-                    initialValue: active,
-                    decoration: InputDecoration(
-                      labelText: context.l10n.chatGPTAccountWorkspace,
-                    ),
-                    items: [
-                      for (final a in accounts)
-                        DropdownMenuItem(
-                          value: a.id,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  a.label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Tooltip(
-                                message: a.clientId,
-                                child: Text(
-                                  a.clientId.length > 8
-                                      ? a.clientId.substring(
-                                          a.clientId.length - 8,
-                                        )
-                                      : a.clientId,
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                    onChanged: working
-                        ? null
-                        : (id) => perform(() async {
-                            await c.stop();
-                            await auth.select(id!);
-                            if (mounted) {
-                              setState(() {
-                                models = [];
-                                model = null;
-                                vision = false;
-                              });
-                            }
-                          }),
-                  ),
-                if (account != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Text(
-                      (connected
-                          ? context.l10n.accountConnected
-                          : context.l10n.signedOutSignInAgain),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton(
-                      key: const Key('chatgpt-sign-in'),
-                      onPressed: working || c.demo
-                          ? null
-                          : () => perform(() async {
-                              await c.stop();
-                              if (!mounted) return;
-                              final login = auth.signIn();
-                              setState(() {});
-                              await login;
-                              if (mounted) {
-                                setState(() {
-                                  model = null;
-                                  models = [];
-                                  vision = false;
-                                });
-                              }
-                            }),
-                      child: const Text('Continue with ChatGPT'),
-                    ),
-                    if (account != null)
-                      OutlinedButton(
-                        onPressed: working || c.demo
-                            ? null
-                            : () => perform(() async {
-                                await c.stop();
-                                if (!mounted) return;
-                                final login = auth.signIn(
-                                  accountId: account.id,
-                                );
-                                setState(() {});
-                                await login;
-                              }),
-                        child: Text(context.l10n.authorizeThisAccountAgain),
-                      ),
-                    if (connected)
-                      TextButton(
-                        onPressed: working
-                            ? null
-                            : () => perform(() async {
-                                await c.stop();
-                                final revoked = await auth.signOut(account!.id);
-                                if (mounted) {
-                                  setState(() {
-                                    models = [];
-                                    message = revoked
-                                        ? _ChatGptStatus.signedOut
-                                        : _ChatGptStatus.revocationUnconfirmed;
-                                  });
-                                }
-                              }),
-                        child: Text(context.l10n.signOut),
-                      ),
-                    if (connectionCancel != null)
-                      TextButton(
-                        onPressed: () => connectionCancel?.cancel('user'),
-                        child: Text(context.l10n.cancelConnectionTest),
-                      ),
-                    if (auth.signingIn)
-                      TextButton(
-                        onPressed: auth.cancelLogin,
-                        child: Text(context.l10n.cancelSignIn),
-                      ),
-                  ],
-                ),
-                if (working)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: LinearProgressIndicator(),
-                  ),
-                if (connected) ...[
-                  const SizedBox(height: 24),
-                  Row(
+            initialValue: active,
+            decoration: InputDecoration(
+              labelText: context.l10n.chatGPTAccountWorkspace,
+            ),
+            items: [
+              for (final a in accounts)
+                DropdownMenuItem(
+                  value: a.id,
+                  child: Row(
                     children: [
                       Expanded(
                         child: Text(
-                          context.l10n.availableModels,
-                          style: Theme.of(context).textTheme.titleMedium,
+                          a.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      TextButton(
-                        onPressed: working ? null : () => perform(() async {}),
-                        child: Text(context.l10n.refreshList),
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: a.clientId,
+                        child: Text(
+                          a.clientId.length > 8
+                              ? a.clientId.substring(a.clientId.length - 8)
+                              : a.clientId,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       ),
                     ],
                   ),
-                  if (models.isEmpty)
-                    Text(context.l10n.noAvailableModelsRefreshThe),
-                  if (models.isNotEmpty)
-                    AppSelectField<String>(
-                      key: const Key('chatgpt-model-selector'),
-
-                      initialValue: models.any((m) => m.id == model)
-                          ? model
-                          : null,
-                      decoration: InputDecoration(
-                        labelText: context.l10n.model,
-                      ),
-                      items: [
-                        for (final m in models)
-                          DropdownMenuItem(
-                            value: m.id,
-                            child: Text(
-                              m.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                      onChanged: working
-                          ? null
-                          : (value) => setState(() {
-                              model = value;
-                              vision = models
-                                  .firstWhere((m) => m.id == value)
-                                  .vision;
-                            }),
-                    ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(context.l10n.supportsImageInput),
-                    subtitle: Text(context.l10n.enableOnlyIfTheModel),
-                    value: vision,
-                    onChanged: working
-                        ? null
-                        : (v) => setState(() => vision = v),
-                  ),
-                  const SizedBox(height: 12),
-                  AppSelectField<String>(
-                    key: const Key('chatgpt-effort-selector'),
-                    initialValue: selectedEffort,
-
-                    decoration: InputDecoration(
-                      labelText: context.l10n.defaultReasoningEffort,
-                    ),
-                    items: [
-                      for (final e in {
-                        'default': context.l10n.modelDefault,
-                        for (final level in availableEfforts)
-                          level: reasoningEffortLabel(
-                            context,
-                            AiOptions(modelConfiguration()),
-                            level,
-                          ),
-                      }.entries)
-                        DropdownMenuItem(value: e.key, child: Text(e.value)),
-                    ],
-                    onChanged: working
-                        ? null
-                        : (v) => setState(() => effort = v!),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    context.l10n.levelsFollowTheModelS,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 16),
-                  ChatGptQuotaPanel(
-                    quota: quota,
-                    loading: quotaLoading,
-                    failure: quotaFailure,
-                    onRefresh: working || quotaLoading ? null : loadQuota,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton(
-                        key: const Key('use-chatgpt'),
-                        onPressed: working || !models.any((m) => m.id == model)
-                            ? null
-                            : () => perform(() async {
-                                await c.stop();
-                                await c.saveSettings(candidate(), null);
-                                if (mounted) {
-                                  setState(
-                                    () => message = _ChatGptStatus.enabled,
-                                  );
-                                }
-                              }),
-                        child: Text(context.l10n.useThisAccountAndModel),
-                      ),
-                      OutlinedButton(
-                        onPressed: working || !models.any((m) => m.id == model)
-                            ? null
-                            : () => perform(() async {
-                                final cancel = CancelToken();
-                                setState(() => connectionCancel = cancel);
-                                try {
-                                  await c.testConnection(
-                                    candidate(),
-                                    null,
-                                    cancellation: cancel,
-                                  );
-                                } finally {
-                                  connectionCancel = null;
-                                }
-                                if (mounted) {
-                                  setState(
-                                    () => message = _ChatGptStatus.connected,
-                                  );
-                                }
-                              }),
-                        child: Text(context.l10n.testConnection),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 16),
-                if (message != null) SelectableText(_messageText(message!)),
-                TextButton(
-                  onPressed: () async {
-                    if (!await launchUrl(
-                          Uri.parse('https://chatgpt.com/settings/usage'),
-                          mode: LaunchMode.externalApplication,
-                        ) &&
-                        mounted) {
-                      setState(() => message = _ChatGptStatus.browserFailed);
+                ),
+            ],
+            onChanged: working
+                ? null
+                : (id) => perform(() async {
+                    await c.stop();
+                    await auth.select(id!);
+                    if (mounted) {
+                      setState(() {
+                        models = [];
+                        model = null;
+                        vision = false;
+                      });
                     }
-                  },
-                  child: Text(context.l10n.manageUsageAndPermissionsIn),
-                ),
-                Text(
-                  context.l10n.chatGptSubscriptionHasNoBalance,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                Text(
-                  context.l10n.connectionTestsAndLearningRequests,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
+                  }),
+          ),
+        if (account != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              (connected
+                  ? context.l10n.accountConnected
+                  : context.l10n.signedOutSignInAgain),
             ),
           ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
+          children: [
+            FilledButton(
+              key: const Key('chatgpt-sign-in'),
+              onPressed: working || c.demo
+                  ? null
+                  : () => perform(() async {
+                      await c.stop();
+                      if (!mounted) return;
+                      final login = auth.signIn();
+                      setState(() {});
+                      await login;
+                      if (mounted) {
+                        setState(() {
+                          model = null;
+                          models = [];
+                          vision = false;
+                        });
+                      }
+                    }),
+              child: const Text('Continue with ChatGPT'),
+            ),
+            if (account != null)
+              OutlinedButton(
+                onPressed: working || c.demo
+                    ? null
+                    : () => perform(() async {
+                        await c.stop();
+                        if (!mounted) return;
+                        final login = auth.signIn(accountId: account.id);
+                        setState(() {});
+                        await login;
+                      }),
+                child: Text(context.l10n.authorizeThisAccountAgain),
+              ),
+            if (connected)
+              TextButton(
+                onPressed: working
+                    ? null
+                    : () => perform(() async {
+                        await c.stop();
+                        final revoked = await auth.signOut(account!.id);
+                        if (mounted) {
+                          setState(() {
+                            models = [];
+                            message = revoked
+                                ? _ChatGptStatus.signedOut
+                                : _ChatGptStatus.revocationUnconfirmed;
+                          });
+                        }
+                      }),
+                child: Text(context.l10n.signOut),
+              ),
+            if (connectionCancel != null)
+              TextButton(
+                onPressed: () => connectionCancel?.cancel('user'),
+                child: Text(context.l10n.cancelConnectionTest),
+              ),
+            if (auth.signingIn)
+              TextButton(
+                onPressed: auth.cancelLogin,
+                child: Text(context.l10n.cancelSignIn),
+              ),
+          ],
+        ),
+        if (working)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: LinearProgressIndicator(),
+          ),
+        if (connected) ...[
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  context.l10n.availableModels,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              TextButton(
+                onPressed: working ? null : () => perform(() async {}),
+                child: Text(context.l10n.refreshList),
+              ),
+            ],
+          ),
+          if (models.isEmpty) Text(context.l10n.noAvailableModelsRefreshThe),
+          if (models.isNotEmpty)
+            AppSelectField<String>(
+              key: const Key('chatgpt-model-selector'),
+
+              initialValue: models.any((m) => m.id == model) ? model : null,
+              decoration: InputDecoration(labelText: context.l10n.model),
+              items: [
+                for (final m in models)
+                  DropdownMenuItem(
+                    value: m.id,
+                    child: Text(
+                      m.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: working
+                  ? null
+                  : (value) => setState(() {
+                      model = value;
+                      vision = models.firstWhere((m) => m.id == value).vision;
+                    }),
+            ),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.l10n.supportsImageInput),
+            subtitle: Text(context.l10n.enableOnlyIfTheModel),
+            value: vision,
+            onChanged: working ? null : (v) => setState(() => vision = v),
+          ),
+          const SizedBox(height: 12),
+          AppSelectField<String>(
+            key: const Key('chatgpt-effort-selector'),
+            initialValue: selectedEffort,
+
+            decoration: InputDecoration(
+              labelText: context.l10n.defaultReasoningEffort,
+            ),
+            items: [
+              for (final e in {
+                'default': context.l10n.modelDefault,
+                for (final level in availableEfforts)
+                  level: reasoningEffortLabel(
+                    context,
+                    AiOptions(modelConfiguration()),
+                    level,
+                  ),
+              }.entries)
+                DropdownMenuItem(value: e.key, child: Text(e.value)),
+            ],
+            onChanged: working ? null : (v) => setState(() => effort = v!),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.l10n.levelsFollowTheModelS,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 16),
+          ChatGptQuotaPanel(
+            quota: quota,
+            loading: quotaLoading,
+            failure: quotaFailure,
+            onRefresh: working || quotaLoading ? null : loadQuota,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              FilledButton(
+                key: const Key('use-chatgpt'),
+                onPressed: working || !models.any((m) => m.id == model)
+                    ? null
+                    : () => perform(() async {
+                        await c.stop();
+                        await c.saveSettings(candidate(), null);
+                        if (mounted) {
+                          setState(() => message = _ChatGptStatus.enabled);
+                        }
+                      }),
+                child: Text(context.l10n.useThisAccountAndModel),
+              ),
+              OutlinedButton(
+                onPressed: working || !models.any((m) => m.id == model)
+                    ? null
+                    : () => perform(() async {
+                        final cancel = CancelToken();
+                        setState(() => connectionCancel = cancel);
+                        try {
+                          await c.testConnection(
+                            candidate(),
+                            null,
+                            cancellation: cancel,
+                          );
+                        } finally {
+                          connectionCancel = null;
+                        }
+                        if (mounted) {
+                          setState(() => message = _ChatGptStatus.connected);
+                        }
+                      }),
+                child: Text(context.l10n.testConnection),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 16),
+        if (message != null) SelectableText(_messageText(message!)),
+        TextButton(
+          onPressed: () async {
+            if (!await launchUrl(
+                  Uri.parse('https://chatgpt.com/settings/usage'),
+                  mode: LaunchMode.externalApplication,
+                ) &&
+                mounted) {
+              setState(() => message = _ChatGptStatus.browserFailed);
+            }
+          },
+          child: Text(context.l10n.manageUsageAndPermissionsIn),
+        ),
+        Text(
+          context.l10n.chatGptSubscriptionHasNoBalance,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        Text(
+          context.l10n.connectionTestsAndLearningRequests,
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );

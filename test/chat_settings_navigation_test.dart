@@ -83,6 +83,46 @@ Future<void> pageBack(WidgetTester tester, String destination) async {
 }
 
 void main() {
+  testWidgets('mobile settings subpages hide and restore bottom navigation', (
+    tester,
+  ) async {
+    final (_, router) = await openApp(tester, route: '/settings');
+    final bar = find.byKey(const ValueKey('main-navigation-bar'));
+    expect(bar, findsOneWidget);
+    router.push('/settings/ai');
+    await tester.pumpAndSettle();
+    expect(bar, findsNothing);
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(bar, findsOneWidget);
+  });
+
+  testWidgets(
+    'small dashboard groups secondary actions below the filled action',
+    (tester) async {
+      await openApp(tester, route: '/study', width: 320);
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pumpAndSettle();
+      final primary = find.byKey(const Key('today-review'));
+      final schedule = find.byKey(const Key('today-review-schedule'));
+      final diagnosis = find.byKey(const Key('today-learning-insights'));
+      await tester.ensureVisible(diagnosis);
+      await tester.pumpAndSettle();
+      expect(tester.getCenter(schedule).dy, tester.getCenter(diagnosis).dy);
+      expect(
+        tester.getBottomLeft(primary).dy,
+        lessThan(tester.getTopLeft(diagnosis).dy),
+      );
+      expect(
+        tester.getSize(primary).width,
+        greaterThan(tester.getSize(diagnosis).width),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'prompt groups are collapsible and search opens matching language entries',
     (tester) async {
@@ -214,28 +254,72 @@ void main() {
 
   for (final systemBack in [false, true]) {
     testWidgets(
-      'nested ChatGPT ${systemBack ? 'system' : 'page'} back retains chat origin',
+      'switching to ChatGPT keeps one model page and ${systemBack ? 'system' : 'page'} back returns to chat',
       (tester) async {
         final (_, router) = await openApp(tester);
         await openFromChat(tester, 'ai');
-        final subscription = find.widgetWithText(ListTile, 'ChatGPT 订阅');
-        await tester.ensureVisible(subscription);
-        await tester.tap(subscription);
+        final picker = find.byKey(const Key('provider-selector'));
+        await tester.ensureVisible(picker);
+        await tester.tap(picker);
         await tester.pumpAndSettle();
-        expect(router.state.uri.path, '/settings/chatgpt');
-        if (systemBack) {
-          await tester.binding.handlePopRoute();
-        } else {
-          await tester.tap(find.byTooltip('返回'));
-        }
+        await tester.tap(find.text('ChatGPT 订阅').last);
         await tester.pumpAndSettle();
         expect(router.state.uri.path, '/settings/ai');
-        await pageBack(tester, 'ai');
+        expect(find.byKey(const Key('api-key')), findsNothing);
+        expect(find.byKey(const Key('provider-selector')), findsOneWidget);
+        if (systemBack) {
+          await tester.binding.handlePopRoute();
+          await tester.pumpAndSettle();
+        } else {
+          await pageBack(tester, 'ai');
+        }
         expect(router.state.uri.path, '/chat');
         expect(tester.takeException(), isNull);
       },
     );
   }
+
+  testWidgets('model dropdown restores the saved API endpoint and model', (
+    tester,
+  ) async {
+    final (controller, router) = await openApp(tester, route: '/settings');
+    const endpoint = 'https://example.test/v1';
+    await tester.runAsync(() async {
+      await controller.saveSettings(
+        controller.config.copyWith(
+          kind: 'compatible',
+          baseUrl: endpoint,
+          model: 'saved-model',
+        ),
+        null,
+      );
+      await controller.saveSettings(
+        controller.config.copyWith(
+          kind: 'chatgpt',
+          baseUrl: 'https://api.openai.com/v1',
+          model: 'gpt-5.4',
+        ),
+        null,
+      );
+    });
+    router.push('/settings/ai');
+    await tester.pumpAndSettle();
+    final picker = find.byKey(const Key('provider-selector'));
+    await tester.tap(picker);
+    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      await tester.tap(find.text('OpenAI-compatible').last);
+      for (var i = 0; i < 20 && controller.config.kind != 'compatible'; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    });
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, '/settings/ai');
+    expect(controller.config.kind, 'compatible');
+    expect(controller.config.baseUrl, endpoint);
+    expect(controller.config.model, 'saved-model');
+    expect(find.byKey(const Key('api-key')), findsOneWidget);
+  });
 
   for (final action in ['clean', 'discard', 'save']) {
     testWidgets('prompt editor $action preserves manager and chat origin', (

@@ -2,8 +2,6 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 
-import 'tool_call_limit_setting.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -134,30 +132,12 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () => context.push('/settings/prompts'),
                     ),
                     ListTile(
-                      key: const Key('settings-tool-call-limit'),
+                      key: const Key('settings-ai-tools'),
                       leading: const _SettingsIcon(Icons.tune),
-                      title: Text(context.l10n.maxToolCalls),
-                      subtitle: Text(
-                        '${c.maxToolCalls == 0 ? context.l10n.toolCallsUnlimited : c.maxToolCalls}\n${context.l10n.maxToolCallsHelp}',
-                      ),
-                      onTap: () => editToolCallLimit(context, c),
-                    ),
-                    SwitchListTile(
-                      key: const Key('settings-ai-drawing'),
-                      secondary: const _SettingsIcon(Icons.draw_outlined),
-                      title: Text(context.l10n.aiDrawing),
-                      subtitle: Text(context.l10n.aiDrawingHelp),
-                      value: c.aiDrawingEnabled,
-                      onChanged: (value) =>
-                          act(context, () => c.setAiDrawingEnabled(value)),
-                    ),
-                    ListTile(
-                      key: const Key('settings-python'),
-                      leading: const _SettingsIcon(Icons.code),
-                      title: Text(context.l10n.pythonExecution),
-                      subtitle: Text(context.l10n.reviewAICodeOrConfigure),
+                      title: Text(context.l10n.aiToolsSettings),
+                      subtitle: Text(context.l10n.aiToolsSettingsHelp),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/settings/python'),
+                      onTap: () => context.push('/settings/tools'),
                     ),
                   ],
                 ),
