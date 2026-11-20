@@ -29,7 +29,7 @@ void main() {
       final root = (await t.runAsync(
         () => Directory.systemTemp.createTemp('tixun-a2ui-widget'),
       ))!;
-      final provider = A2uiTestProvider();
+      final provider = A2uiTestProvider(plainFollowUp: true);
       final c = AppController(
         AppDatabase.memory(),
         AttachmentStore(root),
@@ -144,16 +144,17 @@ void main() {
       expect(provider.requests, hasLength(1));
       await t.tap(action);
       await t.pumpAndSettle();
-      await t.runAsync(() async {
-        await t.tap(find.text('Send to AI'));
-        for (
-          var i = 0;
-          i < 150 && (c.busy || provider.requests.length < 2);
-          i++
-        ) {
-          await Future<void>.delayed(const Duration(milliseconds: 20));
-        }
-      });
+      await t.runAsync(() => t.tap(find.text('Send to AI')));
+      for (
+        var i = 0;
+        i < 150 && (c.busy || provider.requests.length < 2);
+        i++
+      ) {
+        await t.pump(const Duration(milliseconds: 20));
+        await t.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+      }
       await t.pumpAndSettle();
       expect(c.busy, false);
       expect(provider.requests.length, greaterThan(1));

@@ -26,6 +26,9 @@ control = Slider(label="Coefficient", value=$/coefficient, min=0.5, max=3)
 ''';
 
 class A2uiTestProvider extends MockChatProvider {
+  A2uiTestProvider({this.plainFollowUp = false});
+
+  final bool plainFollowUp;
   final requests = <AiRequest>[];
   final arrived = Completer<void>();
   final resume = Completer<void>();
@@ -35,7 +38,8 @@ class A2uiTestProvider extends MockChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
         requests.add(request);
-        if (!request.instructions.contains('raw <a2ui>')) {
+        if (!request.instructions.contains('raw <a2ui>') ||
+            (plainFollowUp && requests.length > 1)) {
           yield const AiChunk(text: 'Plain reply', completed: true);
           return;
         }
