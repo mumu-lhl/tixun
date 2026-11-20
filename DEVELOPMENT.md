@@ -12,7 +12,7 @@ UI 使用 Flutter 官方独立的 `material_ui` 包。微信图片选择器、Ma
 
 直接 Dart 依赖已更新至当前最新稳定版；间接依赖遵循 Flutter SDK 和上游约束，不使用 `dependency_overrides` 强行越过兼容范围。可用 `flutter pub outdated` 检查后续更新。
 
-仓库提供 `.githooks/pre-commit`，拦截暂存区中超过 20 KiB（20480 字节）的代码文件；lockfile、生成代码、构建产物及依赖目录不参与检查。Git 默认不会启用仓库内 hook，克隆后需执行一次：
+仓库提供 `.githooks/pre-commit`，对暂存区代码文件增长给出非阻断式提示：普通代码文件超过 20 KiB 警告、达到 40 KiB 提高警告级别；测试文件分别为 40/80 KiB。已超限的文件仅在增长至少 2 KiB 或跨越更高阈值时再次提示；缩小文件不提示。lockfile、生成代码、构建产物及依赖目录不参与检查。不要仅为满足体积阈值拆分文件。Git 默认不会启用仓库内 hook，克隆后需执行一次：
 
 ```bash
 git config core.hooksPath .githooks
