@@ -1,8 +1,8 @@
-part of 'database.dart';
+part of "database.dart";
 
 /// An immutable layout revision. Branches copy the revision and keep its URL,
 /// but each branch maintains its own renderer state.
-@DataClassName('ChatA2uiSurface')
+@DataClassName("ChatA2uiSurface")
 class ChatA2uiSurfaces extends Table {
   TextColumn get sessionId =>
       text().references(ChatSessions, #id, onDelete: KeyAction.cascade)();
@@ -29,7 +29,7 @@ class ChatA2uiSurfaces extends Table {
   ];
 }
 
-@DataClassName('ChatA2uiAction')
+@DataClassName("ChatA2uiAction")
 class ChatA2uiActions extends Table {
   TextColumn get id => text()();
   TextColumn get sessionId => text()();
@@ -44,6 +44,6 @@ class ChatA2uiActions extends Table {
 
   @override
   List<String> get customConstraints => [
-    'FOREIGN KEY (session_id, surface_id) REFERENCES chat_a2ui_surfaces(session_id, id) ON DELETE CASCADE',
+    "FOREIGN KEY (session_id, surface_id) REFERENCES chat_a2ui_surfaces(session_id, id) ON DELETE CASCADE",
   ];
 }

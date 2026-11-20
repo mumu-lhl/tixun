@@ -1,21 +1,21 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../app/controller.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../progress/profile_editor.dart';
-import '../review/review_providers.dart';
-import '../update/android_install.dart';
-import '../update/update_models.dart';
-import '../update/update_localization.dart';
-import '../update/update_providers.dart';
-import 'backup_panel.dart';
-import 'language_color_settings.dart';
+import "../../app/controller.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../progress/profile_editor.dart";
+import "../review/review_providers.dart";
+import "../update/android_install.dart";
+import "../update/update_models.dart";
+import "../update/update_localization.dart";
+import "../update/update_providers.dart";
+import "backup_panel.dart";
+import "language_color_settings.dart";
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -50,16 +50,16 @@ class SettingsScreen extends ConsumerWidget {
                 _SettingsGroup(
                   children: [
                     ListTile(
-                      key: const Key('settings-subjects'),
+                      key: const Key("settings-subjects"),
                       leading: const _SettingsIcon(Icons.school_outlined),
                       title: Text(context.l10n.studySubjects),
                       subtitle: Text(
-                        c.learningSubjects.map(context.subjectName).join(' · '),
+                        c.learningSubjects.map(context.subjectName).join(" · "),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/settings/subjects'),
+                      onTap: () => context.push("/settings/subjects"),
                     ),
                     ref
                         .watch(learningProfileProvider)
@@ -101,15 +101,15 @@ class SettingsScreen extends ConsumerWidget {
                 _SettingsGroup(
                   children: [
                     ListTile(
-                      key: const Key('settings-ai-usage'),
+                      key: const Key("settings-ai-usage"),
                       leading: const _SettingsIcon(Icons.analytics_outlined),
                       title: Text(context.l10n.aiUsage),
                       subtitle: Text(context.l10n.aiUsageHelp),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/settings/ai-usage'),
+                      onTap: () => context.push("/settings/ai-usage"),
                     ),
                     ListTile(
-                      key: const Key('settings-ai'),
+                      key: const Key("settings-ai"),
                       leading: const _SettingsIcon(Icons.hub_outlined),
                       title: Text(context.l10n.modelsAndConnections),
                       subtitle: Text(
@@ -122,22 +122,22 @@ class SettingsScreen extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/settings/ai'),
+                      onTap: () => context.push("/settings/ai"),
                     ),
                     ListTile(
                       leading: const _SettingsIcon(Icons.edit_note_outlined),
                       title: Text(context.l10n.promptManager),
                       subtitle: Text(context.l10n.teachingStyleAndStudyTask),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/settings/prompts'),
+                      onTap: () => context.push("/settings/prompts"),
                     ),
                     ListTile(
-                      key: const Key('settings-ai-tools'),
+                      key: const Key("settings-ai-tools"),
                       leading: const _SettingsIcon(Icons.tune),
                       title: Text(context.l10n.aiToolsSettings),
                       subtitle: Text(context.l10n.aiToolsSettingsHelp),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/settings/tools'),
+                      onTap: () => context.push("/settings/tools"),
                     ),
                   ],
                 ),
@@ -181,8 +181,6 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-/// In-app update section: current version, channel selector, manual check,
-/// status, download progress and the install / apply actions.
 class _UpdateSettings extends ConsumerWidget {
   const _UpdateSettings();
 
@@ -217,8 +215,8 @@ class _UpdateSettings extends ConsumerWidget {
           subtitle: Text(
             version.when(
               data: (v) => v,
-              loading: () => '…',
-              error: (_, _) => '…',
+              loading: () => "…",
+              error: (_, _) => "…",
             ),
           ),
         ),

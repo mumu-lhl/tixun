@@ -6,15 +6,15 @@
 /// resolution; ordinary text stays selectable.
 library;
 
-import 'dart:math' as math;
-import 'dart:typed_data';
+import "dart:math" as math;
+import "dart:typed_data";
 
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
+import "package:pdf/pdf.dart";
+import "package:pdf/widgets.dart" as pw;
 
-import 'markdown_blocks.dart';
-import 'pdf_math.dart';
-import 'study_export.dart';
+import "markdown_blocks.dart";
+import "pdf_math.dart";
+import "study_export.dart";
 
 const _pageMargin = pw.EdgeInsets.fromLTRB(44, 52, 44, 48);
 
@@ -80,8 +80,8 @@ Future<Uint8List> buildStudyPdf({
 
   final document = pw.Document(
     title: chrome.title,
-    author: '题训',
-    creator: '题训',
+    author: "题训",
+    creator: "题训",
   );
 
   document.addPage(

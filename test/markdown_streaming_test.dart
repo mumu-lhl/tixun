@@ -1,13 +1,13 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:gpt_markdown/custom_widgets/bidi_rich_text.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:tixun/core/ui/learning_markdown.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:gpt_markdown/custom_widgets/bidi_rich_text.dart";
+import "package:material_ui/material_ui.dart";
+import "package:tixun/core/ui/learning_markdown.dart";
 
 void main() {
   testWidgets(
-    'streaming reveals new text and completed messages appear immediately',
+    "streaming reveals new text and completed messages appear immediately",
     (tester) async {
-      const full = 'Begin 12345678901234567890';
+      const full = "Begin 12345678901234567890";
       Widget app(String text, bool streaming) => MaterialApp(
         home: Scaffold(body: LearningMarkdown(text, streaming: streaming)),
       );
@@ -19,9 +19,9 @@ void main() {
             .widgetList<BidiText>(find.byType(BidiText))
             .map((w) => w.textSpan.toPlainText()),
       ].join();
-      await tester.pumpWidget(app('Begin', true));
+      await tester.pumpWidget(app("Begin", true));
       await tester.pumpWidget(app(full, true));
-      expect(visible(), 'Begin');
+      expect(visible(), "Begin");
       await tester.pump(const Duration(milliseconds: 150));
       expect(visible().length, greaterThan(5));
       expect(visible().length, lessThan(full.length));
@@ -34,10 +34,10 @@ void main() {
     },
   );
   testWidgets(
-    'Chinese streaming text has a brief visible entrance and respects reduced motion',
+    "Chinese streaming text has a brief visible entrance and respects reduced motion",
     (tester) async {
-      const initial = '正在';
-      const full = '正在逐字解释二次函数的顶点和配方过程以及如何检查答案是否正确。';
+      const initial = "正在";
+      const full = "正在逐字解释二次函数的顶点和配方过程以及如何检查答案是否正确。";
       Widget app(String text, {bool reduced = false}) => MaterialApp(
         home: MediaQuery(
           data: MediaQueryData(disableAnimations: reduced),

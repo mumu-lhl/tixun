@@ -1,25 +1,25 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/ai/ai_usage_store.dart';
-import '../../core/ai/chat_provider.dart';
-import '../../core/ai/prompt_settings.dart';
-import '../../core/database/database.dart';
-import 'exam_material.dart';
-import 'language_json_request.dart';
-import 'language_store.dart';
-import 'sentence_content.dart';
-import 'writing_store.dart';
+import "../../core/ai/ai_usage_store.dart";
+import "../../core/ai/chat_provider.dart";
+import "../../core/ai/prompt_settings.dart";
+import "../../core/database/database.dart";
+import "exam_material.dart";
+import "language_json_request.dart";
+import "language_store.dart";
+import "sentence_content.dart";
+import "writing_store.dart";
 
 enum WritingTaskKind { application, continuation }
 
 extension WritingTaskLibrary on LanguageLearningStore {
   Stream<List<LearningWritingTaskRow>> savedWritingTasks() =>
       (db.select(db.learningWritingTasks)
-            ..where((row) => row.model.equals('Mock').not())
+            ..where((row) => row.model.equals("Mock").not())
             ..orderBy([
               (row) => OrderingTerm.desc(row.createdAt),
               (row) => OrderingTerm.desc(row.rowId),
@@ -62,26 +62,26 @@ class WritingTaskAi {
     ExamProfile profile = ExamProfile.zhejiang2026,
   }) async {
     if (topic.length > 100) {
-      throw const FormatException('Oversized writing topic');
+      throw const FormatException("Oversized writing topic");
     }
     cancel.checkCancelled();
     if (provider is MockChatProvider) {
-      throw const FormatException('Writing generation requires an AI provider');
+      throw const FormatException("Writing generation requires an AI provider");
     }
     final task = await requestLanguageJson(
       provider: provider,
       config: config,
       usageStore: usageStore,
-      feature: 'language_writing_task',
+      feature: "language_writing_task",
       request: AiRequest(
         instructions: LanguagePrompt.writingTask.instructions(prompts),
         messages: [
           AiMessage.user(
             jsonEncode({
-              'profile': profile.id,
-              'kind': kind.name,
-              'level': level.name,
-              if (topic.trim().isNotEmpty) 'topic': topic.trim(),
+              "profile": profile.id,
+              "kind": kind.name,
+              "level": level.name,
+              if (topic.trim().isNotEmpty) "topic": topic.trim(),
             }),
           ),
         ],
@@ -114,7 +114,7 @@ class WritingTaskAi {
             .into(table)
             .insertReturning(
               LearningWritingTasksCompanion.insert(
-                id: 'generated:${const Uuid().v4()}',
+                id: "generated:${const Uuid().v4()}",
                 kind: kind.name,
                 profile: profile.id,
                 level: level.name,
@@ -140,9 +140,9 @@ class WritingTaskAi {
 ) {
   if (json is! Map ||
       json.keys.any(
-        (key) => !const {'title', 'prompt', 'passage'}.contains(key),
+        (key) => !const {"title", "prompt", "passage"}.contains(key),
       )) {
-    throw const FormatException('Invalid writing task');
+    throw const FormatException("Invalid writing task");
   }
   String text(Object? value, int max) {
     if (value is! String ||
@@ -151,33 +151,33 @@ class WritingTaskAi {
         !_latin.hasMatch(value) ||
         !_englishText.hasMatch(value) ||
         _key.hasMatch(value)) {
-      throw const FormatException('Invalid writing task text');
+      throw const FormatException("Invalid writing task text");
     }
     return value.trim();
   }
 
-  final rawPassage = json['passage'];
+  final rawPassage = json["passage"];
   if (kind == WritingTaskKind.continuation
       ? rawPassage == null
       : rawPassage != null) {
-    throw const FormatException('Unexpected writing task passage');
+    throw const FormatException("Unexpected writing task passage");
   }
   final passage = rawPassage == null ? null : text(rawPassage, 2600);
   if (passage != null &&
-      (passage.split(RegExp(r'\s+')).length < 75 ||
-          passage.split(RegExp(r'\s+')).length > 260)) {
-    throw const FormatException('Invalid continuation length');
+      (passage.split(RegExp(r"\s+")).length < 75 ||
+          passage.split(RegExp(r"\s+")).length > 260)) {
+    throw const FormatException("Invalid continuation length");
   }
   return (
-    title: text(json['title'], 120),
-    prompt: text(json['prompt'], 900),
+    title: text(json["title"], 120),
+    prompt: text(json["prompt"], 900),
     passage: passage,
   );
 }
 
-final _latin = RegExp(r'\p{Script=Latin}', unicode: true);
+final _latin = RegExp(r"\p{Script=Latin}", unicode: true);
 final _englishText = RegExp(
-  r'^[\p{Script=Latin}\p{M}\p{N}\p{P}\p{Zs}\r\n]+$',
+  r"^[\p{Script=Latin}\p{M}\p{N}\p{P}\p{Zs}\r\n]+$",
   unicode: true,
 );
-final _key = RegExp(r'(?:model|sample)\s*answer\s*:', caseSensitive: false);
+final _key = RegExp(r"(?:model|sample)\s*answer\s*:", caseSensitive: false);

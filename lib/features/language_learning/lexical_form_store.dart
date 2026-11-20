@@ -1,9 +1,9 @@
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import 'language_store.dart';
-import 'lexical_form.dart';
+import "../../core/database/database.dart";
+import "language_store.dart";
+import "lexical_form.dart";
 
 typedef FormPractice = ({
   LearningLexicalForm form,
@@ -29,7 +29,7 @@ extension LexicalFormStore on LanguageLearningStore {
               ])
               ..where(
                 items.language.equals(language) &
-                    senses.source.equals('mock').not(),
+                    senses.source.equals("mock").not(),
               )
               ..orderBy([
                 OrderingTerm.desc(forms.createdAt),
@@ -66,7 +66,7 @@ extension LexicalFormStore on LanguageLearningStore {
         clean.length > 80 ||
         exercise.sense.itemId != exercise.item.id ||
         exercise.form.senseId != exercise.sense.id) {
-      throw const FormatException('Invalid word form attempt');
+      throw const FormatException("Invalid word form attempt");
     }
     final accepted = production
         ? (await lexicalForms(exercise.sense.id))
@@ -111,7 +111,7 @@ extension LexicalFormStore on LanguageLearningStore {
           LearningEvidenceCompanion.insert(
             id: attemptId ?? const Uuid().v4(),
             senseId: card.sense.id,
-            skill: 'meaningRecognition',
+            skill: "meaningRecognition",
             answer: Value(answer),
             correct: Value(correct),
             answerRevealed: Value(usedHelp),

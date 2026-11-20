@@ -1,15 +1,15 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/features/library/study_editor.dart';
-import 'package:tixun/features/practice/practice_screen.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:material_ui/material_ui.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/library/study_editor.dart";
+import "package:tixun/features/practice/practice_screen.dart";
 
 void main() {
   for (final isMistake in [false, true]) {
@@ -19,7 +19,7 @@ void main() {
         late Directory root;
         late AppController c;
         await tester.runAsync(() async {
-          root = await Directory.systemTemp.createTemp('markdown-study');
+          root = await Directory.systemTemp.createTemp("markdown-study");
           c = AppController(
             AppDatabase.memory(),
             AttachmentStore(root),
@@ -50,44 +50,44 @@ void main() {
                       context: ctx,
                       builder: (_) => StudyEditor(isMistake: isMistake),
                     ),
-                    child: const Text('open'),
+                    child: const Text("open"),
                   ),
                 ),
               ),
             ),
           ),
         );
-        await tester.tap(find.text('open'));
+        await tester.tap(find.text("open"));
         await tester.pumpAndSettle();
-        final name = isMistake ? 'question' : 'content';
-        final button = find.byKey(ValueKey('study-markdown-$name'));
+        final name = isMistake ? "question" : "content";
+        final button = find.byKey(ValueKey("study-markdown-$name"));
         await tester.ensureVisible(button);
         await tester.pumpAndSettle();
         await tester.tap(button);
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const Key('markdown-done')));
+        await tester.tap(find.byKey(const Key("markdown-done")));
         await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip('关闭编辑'));
+        await tester.tap(find.byTooltip("关闭编辑"));
         await tester.pumpAndSettle();
-        expect(find.text('放弃未保存的修改？'), findsNothing);
-        await tester.tap(find.text('open'));
+        expect(find.text("放弃未保存的修改？"), findsNothing);
+        await tester.tap(find.text("open"));
         await tester.pumpAndSettle();
         await tester.ensureVisible(button);
         await tester.pumpAndSettle();
         await tester.tap(button);
         await tester.pumpAndSettle();
         await tester.enterText(
-          find.byKey(const Key('markdown-source')),
-          r'推导 \(x^2\)',
+          find.byKey(const Key("markdown-source")),
+          r"推导 \(x^2\)",
         );
-        await tester.tap(find.byKey(const Key('markdown-done')));
+        await tester.tap(find.byKey(const Key("markdown-done")));
         await tester.pumpAndSettle();
         expect(
           tester
-              .widget<TextField>(find.byKey(const Key('study-content')))
+              .widget<TextField>(find.byKey(const Key("study-content")))
               .controller!
               .text,
-          r'推导 \(x^2\)',
+          r"推导 \(x^2\)",
         );
         await tester.pumpWidget(const SizedBox());
         await tester.pumpAndSettle();
@@ -96,12 +96,12 @@ void main() {
   }
 
   testWidgets(
-    'practice question editor applies the Markdown draft to the stem',
+    "practice question editor applies the Markdown draft to the stem",
     (tester) async {
       late Directory root;
       late AppController c;
       await tester.runAsync(() async {
-        root = await Directory.systemTemp.createTemp('markdown-practice');
+        root = await Directory.systemTemp.createTemp("markdown-practice");
         c = AppController(
           AppDatabase.memory(),
           AttachmentStore(root),
@@ -132,29 +132,29 @@ void main() {
                     context: ctx,
                     builder: (_) => const QuestionEditor(),
                   ),
-                  child: const Text('open'),
+                  child: const Text("open"),
                 ),
               ),
             ),
           ),
         ),
       );
-      await tester.tap(find.text('open'));
+      await tester.tap(find.text("open"));
       await tester.pumpAndSettle();
-      final button = find.byKey(const Key('practice-markdown-stem'));
+      final button = find.byKey(const Key("practice-markdown-stem"));
       await tester.ensureVisible(button);
       await tester.pumpAndSettle();
       await tester.tap(button);
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('markdown-source')), '## 题目');
-      await tester.tap(find.byKey(const Key('markdown-done')));
+      await tester.enterText(find.byKey(const Key("markdown-source")), "## 题目");
+      await tester.tap(find.byKey(const Key("markdown-done")));
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<TextField>(find.byKey(const Key('question-stem')))
+            .widget<TextField>(find.byKey(const Key("question-stem")))
             .controller!
             .text,
-        '## 题目',
+        "## 题目",
       );
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

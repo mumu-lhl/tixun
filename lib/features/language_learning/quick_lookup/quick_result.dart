@@ -1,12 +1,12 @@
-import 'package:flutter/services.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:flutter/services.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../../core/database/database.dart';
-import '../../../core/l10n/app_strings.dart';
-import '../../../core/ui/learning_markdown.dart';
-import '../language_store.dart';
-import 'quick_models.dart';
-import 'quick_store.dart';
+import "../../../core/database/database.dart";
+import "../../../core/l10n/app_strings.dart";
+import "../../../core/ui/learning_markdown.dart";
+import "../language_store.dart";
+import "quick_models.dart";
+import "quick_store.dart";
 
 class QuickResult extends StatelessWidget {
   const QuickResult({
@@ -35,24 +35,24 @@ class QuickResult extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            [row.actionName, row.provider, row.model].join(' · '),
+            [row.actionName, row.provider, row.model].join(" · "),
             style: Theme.of(context).textTheme.labelMedium,
           ),
           const SizedBox(height: 6),
           LearningMarkdown(row.content),
           const SizedBox(height: 8),
-          if (row.targetLanguage != 'en') Text(l10n.quickEnglishStudyOnly),
+          if (row.targetLanguage != "en") Text(l10n.quickEnglishStudyOnly),
           Wrap(
             spacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (candidates.vocabulary.isNotEmpty &&
-                  row.targetLanguage == 'en')
+                  row.targetLanguage == "en")
                 TextButton(
                   onPressed: () => onVocabulary(candidates.vocabulary),
                   child: Text(l10n.quickAddVocabulary),
                 ),
-              if (candidates.sentence != null && row.targetLanguage == 'en')
+              if (candidates.sentence != null && row.targetLanguage == "en")
                 TextButton(
                   onPressed: () => onSentence(candidates.sentence),
                   child: Text(l10n.quickAddSentence),
@@ -61,42 +61,42 @@ class QuickResult extends StatelessWidget {
               PopupMenuButton<String>(
                 onSelected: (value) async {
                   switch (value) {
-                    case 'copy':
+                    case "copy":
                       await Clipboard.setData(ClipboardData(text: row.content));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text(l10n.quickCopied)),
                         );
                       }
-                    case 'vocabulary':
+                    case "vocabulary":
                       onVocabulary(candidates.vocabulary);
-                    case 'sentence':
+                    case "sentence":
                       onSentence(candidates.sentence);
-                    case 'retry':
+                    case "retry":
                       onRegenerate?.call();
-                    case 'delete':
+                    case "delete":
                       onDelete();
                   }
                 },
                 itemBuilder: (context) => [
-                  PopupMenuItem(value: 'copy', child: Text(l10n.quickCopy)),
+                  PopupMenuItem(value: "copy", child: Text(l10n.quickCopy)),
                   if (candidates.vocabulary.isEmpty &&
-                      row.targetLanguage == 'en')
+                      row.targetLanguage == "en")
                     PopupMenuItem(
-                      value: 'vocabulary',
+                      value: "vocabulary",
                       child: Text(l10n.quickAddVocabulary),
                     ),
-                  if (candidates.sentence == null && row.targetLanguage == 'en')
+                  if (candidates.sentence == null && row.targetLanguage == "en")
                     PopupMenuItem(
-                      value: 'sentence',
+                      value: "sentence",
                       child: Text(l10n.quickAddSentence),
                     ),
                   PopupMenuItem(
-                    value: 'retry',
+                    value: "retry",
                     enabled: onRegenerate != null,
                     child: Text(l10n.quickRegenerate),
                   ),
-                  PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
+                  PopupMenuItem(value: "delete", child: Text(l10n.delete)),
                 ],
               ),
             ],

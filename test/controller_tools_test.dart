@@ -1,19 +1,19 @@
-import 'dart:convert';
-import 'dart:io';
+import "dart:convert";
+import "dart:io";
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/ai/study_tools.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/ai/study_tools.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
 
 Future<void> waitFor(bool Function() predicate) async {
   final deadline = DateTime.now().add(const Duration(seconds: 5));
   while (!predicate()) {
     if (DateTime.now().isAfter(deadline)) {
-      throw StateError('condition timed out');
+      throw StateError("condition timed out");
     }
     await Future<void>.delayed(const Duration(milliseconds: 5));
   }
@@ -25,7 +25,7 @@ void main() {
     c = AppController(
       AppDatabase.memory(),
       AttachmentStore(
-        await Directory.systemTemp.createTemp('tixun-chat-tools'),
+        await Directory.systemTemp.createTemp("tixun-chat-tools"),
       ),
       MemoryKeyStore(),
       MockChatProvider(),
@@ -39,7 +39,7 @@ void main() {
     await c.files.root.delete(recursive: true);
   });
   test(
-    'Category permissions persist and reject unadvertised model calls',
+    "Category permissions persist and reject unadvertised model calls",
     () async {
       final scoped = await openWithToolArgs(
         '{"question_id":"private-question"}',
@@ -53,25 +53,25 @@ void main() {
       await scoped.newSession();
       await scoped.selectSession(session);
       expect(scoped.studyToolCategories, {StudyToolCategory.knowledge});
-      await scoped.send('请查找知识');
+      await scoped.send("请查找知识");
       final sent = (scoped.provider as ScriptedToolProvider)
           .requests
           .first
           .tools
           .map((t) => t.name)
           .toSet();
-      expect(sent, contains('search_knowledge'));
+      expect(sent, contains("search_knowledge"));
       expect(
         sent.intersection({
-          'search_mistakes',
-          'schedule_review',
-          'link_mistake_to_knowledge',
+          "search_mistakes",
+          "schedule_review",
+          "link_mistake_to_knowledge",
         }),
         isEmpty,
       );
       expect(await scoped.db.select(scoped.db.aiToolOperations).get(), isEmpty);
       expect(scoped.pendingTool, isNull);
-      await scoped.editAndResend(scoped.messages.first, '重新查找知识');
+      await scoped.editAndResend(scoped.messages.first, "重新查找知识");
       expect(scoped.studyToolCategories, {StudyToolCategory.knowledge});
       await scoped.setTools(false);
       expect(scoped.selected!.toolsEnabled, isFalse);
@@ -79,14 +79,14 @@ void main() {
       expect(scoped.studyToolCategories, allStudyToolCategories);
     },
   );
-  test('Chat completes multi-round tool execution only after approval and preserves provenance', () async {
-    final pending = c.send('请保存知识');
+  test("Chat completes multi-round tool execution only after approval and preserves provenance", () async {
+    final pending = c.send("请保存知识");
     await waitFor(() => c.pendingTool != null);
     expect(await c.study.searchKnowledge(), isEmpty);
     c.decideTool(true);
     await pending;
-    expect(c.messages.last.status, 'complete');
-    expect(c.messages.last.content, contains('保存成功'));
+    expect(c.messages.last.status, "complete");
+    expect(c.messages.last.content, contains("保存成功"));
     final item = (await c.study.searchKnowledge()).single;
     final originalSession = c.selected!.id;
     expect(item.sourceMessageId, c.messages.last.id);
@@ -99,23 +99,23 @@ void main() {
       item.sourceMessageId,
     );
   });
-  test('Rejecting or cancelling a proposal never writes study data', () async {
-    var pending = c.send('请保存知识');
+  test("Rejecting or cancelling a proposal never writes study data", () async {
+    var pending = c.send("请保存知识");
     await waitFor(() => c.pendingTool != null);
     c.decideTool(false);
     await pending;
-    expect(c.messages.last.content, contains('没有保存'));
+    expect(c.messages.last.content, contains("没有保存"));
     expect(await c.study.searchKnowledge(), isEmpty);
-    pending = c.send('再次保存知识');
+    pending = c.send("再次保存知识");
     await waitFor(() => c.pendingTool != null);
     await c.stop();
     await pending;
-    expect(c.messages.last.status, 'stopped');
+    expect(c.messages.last.status, "stopped");
     expect(c.pendingTool, isNull);
     expect(await c.study.searchKnowledge(), isEmpty);
   });
   test(
-    'A tool call naming a missing question reports the missing record',
+    "A tool call naming a missing question reports the missing record",
     () async {
       final toolController = await openWithToolArgs(
         '{"question_id":"no-such-question"}',
@@ -124,52 +124,50 @@ void main() {
         await toolController.shutdown();
         await toolController.files.root.delete(recursive: true);
       });
-      await toolController.send('安排复习');
-      expect(toolController.messages.last.content, '收到');
+      await toolController.send("安排复习");
+      expect(toolController.messages.last.content, "收到");
       final ops = await toolController.db
           .select(toolController.db.aiToolOperations)
           .get();
-      expect(ops.single.name, 'schedule_review');
-      expect(ops.single.result, contains('题目不存在'));
+      expect(ops.single.name, "schedule_review");
+      expect(ops.single.result, contains("题目不存在"));
     },
   );
 
-  test('Exam mode never offers the visual tools', () async {
+  test("Exam mode never offers the visual tools", () async {
     final examController = await openExamWithVisualCall(
-      jsonEncode({'scene': _examPlotScene()}),
+      jsonEncode({"scene": _examPlotScene()}),
     );
     addTearDown(() async {
       await examController.shutdown();
       await examController.files.root.delete(recursive: true);
     });
-    await examController.send('画一个二次函数图像');
+    await examController.send("画一个二次函数图像");
     final sent = (examController.provider as ForgedVisualCallProvider)
         .requests
         .first
         .tools
         .map((t) => t.name)
         .toSet();
-    expect(sent, contains('create_quiz'));
+    expect(sent, contains("create_quiz"));
     expect(
-      sent.intersection({'create_visual', 'update_visual', 'get_visual'}),
+      sent.intersection({"create_visual", "update_visual", "get_visual"}),
       isEmpty,
     );
   });
 
-  test('A forged create_visual call in exam mode is rejected', () async {
+  test("A forged create_visual call in exam mode is rejected", () async {
     final examController = await openExamWithVisualCall(
-      jsonEncode({'scene': _examPlotScene()}),
+      jsonEncode({"scene": _examPlotScene()}),
     );
     addTearDown(() async {
       await examController.shutdown();
       await examController.files.root.delete(recursive: true);
     });
-    await examController.send('画一个二次函数图像');
+    await examController.send("画一个二次函数图像");
     final message = examController.messages.last;
-    expect(message.status, 'error');
-    // The stored failure is the encoded code, not the localized text.
-    expect(message.error, contains('anUnavailableToolCallWas'));
-    // Nothing was created and no tool operation was recorded.
+    expect(message.status, "error");
+    expect(message.error, contains("anUnavailableToolCallWas"));
     expect(
       await examController.db.select(examController.db.visualScenes).get(),
       isEmpty,
@@ -180,7 +178,7 @@ void main() {
     );
   });
 
-  test('A quiz call with a null visual_id is not quiz_with_visual', () async {
+  test("A quiz call with a null visual_id is not quiz_with_visual", () async {
     final quizController = await openWithQuizCall(
       jsonEncode(_quizArgs(nullVisualId: true)),
     );
@@ -188,28 +186,27 @@ void main() {
       await quizController.shutdown();
       await quizController.files.root.delete(recursive: true);
     });
-    await quizController.send('请出题');
+    await quizController.send("请出题");
     final features =
         (await quizController.db.select(quizController.db.aiUsageEvents).get())
             .map((r) => r.feature);
     expect(features, isNotEmpty);
-    // The old substring check matched '"visual_id": null' too.
-    expect(features, everyElement(isNot('quiz_with_visual')));
+    expect(features, everyElement(isNot("quiz_with_visual")));
   });
 
-  test('A quiz call with a visual_id is counted as quiz_with_visual', () async {
+  test("A quiz call with a visual_id is counted as quiz_with_visual", () async {
     final quizController = await openWithQuizCall(
-      jsonEncode(_quizArgs(visualId: 'no-such-visual')),
+      jsonEncode(_quizArgs(visualId: "no-such-visual")),
     );
     addTearDown(() async {
       await quizController.shutdown();
       await quizController.files.root.delete(recursive: true);
     });
-    await quizController.send('请出题');
+    await quizController.send("请出题");
     final features =
         (await quizController.db.select(quizController.db.aiUsageEvents).get())
             .map((r) => r.feature);
-    expect(features, contains('quiz_with_visual'));
+    expect(features, contains("quiz_with_visual"));
   });
 }
 
@@ -226,10 +223,10 @@ class ScriptedToolProvider implements ChatProvider {
         if (turns == 1) {
           yield AiChunk(
             completed: true,
-            calls: [ToolCall('bad-1', 'schedule_review', args)],
+            calls: [ToolCall("bad-1", "schedule_review", args)],
           );
         } else {
-          yield const AiChunk(text: '收到', completed: true);
+          yield const AiChunk(text: "收到", completed: true);
         }
       });
 }
@@ -238,7 +235,7 @@ Future<AppController> openWithToolArgs(String args) async {
   final controller = AppController(
     AppDatabase.memory(),
     AttachmentStore(
-      await Directory.systemTemp.createTemp('tixun-confirm-tools'),
+      await Directory.systemTemp.createTemp("tixun-confirm-tools"),
     ),
     MemoryKeyStore(),
     ScriptedToolProvider(args),
@@ -250,15 +247,15 @@ Future<AppController> openWithToolArgs(String args) async {
 }
 
 Map<String, dynamic> _examPlotScene() => {
-  'v': 1,
-  'kind': 'plot2d',
-  'title': '二次函数',
-  'model': {'expression': 'x^2-4'},
-  'view': {
-    'x': [-3, 3],
-    'y': [-5, 6],
+  "v": 1,
+  "kind": "plot2d",
+  "title": "二次函数",
+  "model": {"expression": "x^2-4"},
+  "view": {
+    "x": [-3, 3],
+    "y": [-5, 6],
   },
-  'meta': {'alt': '抛物线'},
+  "meta": {"alt": "抛物线"},
 };
 
 /// Yields a forged `create_visual` call on the first turn: the model
@@ -277,10 +274,10 @@ class ForgedVisualCallProvider implements ChatProvider {
         if (turns == 1) {
           yield AiChunk(
             completed: true,
-            calls: [ToolCall('visual-1', 'create_visual', args)],
+            calls: [ToolCall("visual-1", "create_visual", args)],
           );
         } else {
-          yield const AiChunk(text: '收到', completed: true);
+          yield const AiChunk(text: "收到", completed: true);
         }
       });
 }
@@ -289,7 +286,7 @@ Future<AppController> openExamWithVisualCall(String args) async {
   final controller = AppController(
     AppDatabase.memory(),
     AttachmentStore(
-      await Directory.systemTemp.createTemp('tixun-exam-visual-tools'),
+      await Directory.systemTemp.createTemp("tixun-exam-visual-tools"),
     ),
     MemoryKeyStore(),
     ForgedVisualCallProvider(args),
@@ -297,11 +294,10 @@ Future<AppController> openExamWithVisualCall(String args) async {
   await controller.initialize();
   await controller.newSession();
   await controller.setTools(true);
-  await controller.mode('exam');
+  await controller.mode("exam");
   return controller;
 }
 
-/// Yields a forged `create_quiz` call on the first turn.
 class ForgedQuizCallProvider implements ChatProvider {
   ForgedQuizCallProvider(this.args);
   final String args;
@@ -313,10 +309,10 @@ class ForgedQuizCallProvider implements ChatProvider {
         if (turns == 1) {
           yield AiChunk(
             completed: true,
-            calls: [ToolCall('quiz-1', 'create_quiz', args)],
+            calls: [ToolCall("quiz-1", "create_quiz", args)],
           );
         } else {
-          yield const AiChunk(text: '收到', completed: true);
+          yield const AiChunk(text: "收到", completed: true);
         }
       });
 }
@@ -325,7 +321,7 @@ Future<AppController> openWithQuizCall(String args) async {
   final controller = AppController(
     AppDatabase.memory(),
     AttachmentStore(
-      await Directory.systemTemp.createTemp('tixun-quiz-visual-tools'),
+      await Directory.systemTemp.createTemp("tixun-quiz-visual-tools"),
     ),
     MemoryKeyStore(),
     ForgedQuizCallProvider(args),
@@ -338,26 +334,26 @@ Future<AppController> openWithQuizCall(String args) async {
 
 Map<String, dynamic> _quizArgs({bool nullVisualId = false, String? visualId}) {
   final args = <String, dynamic>{
-    'kind': 'single_choice',
-    'stem': r'函数 $y=x^2-4x+3$ 的顶点坐标是？',
-    'subject': '数学',
-    'options': {
-      'A': r'$(2,-1)$',
-      'B': r'$(-2,-1)$',
-      'C': r'$(2,3)$',
-      'D': r'$(-2,3)$',
+    "kind": "single_choice",
+    "stem": r"函数 $y=x^2-4x+3$ 的顶点坐标是？",
+    "subject": "数学",
+    "options": {
+      "A": r"$(2,-1)$",
+      "B": r"$(-2,-1)$",
+      "C": r"$(2,3)$",
+      "D": r"$(-2,3)$",
     },
-    'answers': [
-      ['A'],
+    "answers": [
+      ["A"],
     ],
-    'explanation': r'配方得 $y=(x-2)^2-1$，顶点为 $(2,-1)$。',
-    'hint': '试着把二次式写成完全平方加常数。',
-    'topics': ['二次函数', '配方'],
+    "explanation": r"配方得 $y=(x-2)^2-1$，顶点为 $(2,-1)$。",
+    "hint": "试着把二次式写成完全平方加常数。",
+    "topics": ["二次函数", "配方"],
   };
   if (nullVisualId) {
-    args['visual_id'] = null;
+    args["visual_id"] = null;
   } else if (visualId != null) {
-    args['visual_id'] = visualId;
+    args["visual_id"] = visualId;
   }
   return args;
 }

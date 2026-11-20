@@ -1,23 +1,23 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import '../../app/app_notice.dart';
+import "../../app/app_notice.dart";
 
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:image_picker/image_picker.dart';
-import 'package:drift/drift.dart' show BooleanExpressionOperators;
-import 'package:material_ui/material_ui.dart';
+import "package:image_picker/image_picker.dart";
+import "package:drift/drift.dart" show BooleanExpressionOperators;
+import "package:material_ui/material_ui.dart";
 
-import '../../core/platform/photo_picker.dart';
-import '../../core/database/database.dart';
-import '../../core/database/attachment_cleanup.dart';
-import 'exam_image_editor.dart';
+import "../../core/platform/photo_picker.dart";
+import "../../core/database/database.dart";
+import "../../core/database/attachment_cleanup.dart";
+import "exam_image_editor.dart";
 
-import '../../app/controller.dart';
-import 'exam_store.dart';
+import "../../app/controller.dart";
+import "exam_store.dart";
 
 class ExamPhotoIntake {
-  static const preference = 'pending_exam_photo_target';
+  static const preference = "pending_exam_photo_target";
   static Future<void> pick(
     AppController c,
     String subject,
@@ -27,7 +27,7 @@ class ExamPhotoIntake {
   }) async {
     await c.db.setPreference(
       preference,
-      jsonEncode({'subject': subject, 'role': role}),
+      jsonEncode({"subject": subject, "role": role}),
     );
     try {
       if (!context.mounted) return;
@@ -41,7 +41,7 @@ class ExamPhotoIntake {
         await editExamPhoto(context, c, image);
       }
     } finally {
-      await c.db.setPreference(preference, '');
+      await c.db.setPreference(preference, "");
     }
   }
 
@@ -59,37 +59,37 @@ class ExamPhotoIntake {
     try {
       final decoded = jsonDecode(value);
       if (decoded is! Map<String, dynamic> ||
-          decoded['subject'] is! String ||
-          !examImageRoles.containsKey(decoded['role']) ||
-          (decoded['chatSession'] != null &&
-              decoded['chatSession'] is! String) ||
-          (decoded['files'] != null &&
-              (decoded['files'] is! List ||
-                  (decoded['files'] as List).any((p) => p is! String)))) {
+          decoded["subject"] is! String ||
+          !examImageRoles.containsKey(decoded["role"]) ||
+          (decoded["chatSession"] != null &&
+              decoded["chatSession"] is! String) ||
+          (decoded["files"] != null &&
+              (decoded["files"] is! List ||
+                  (decoded["files"] as List).any((p) => p is! String)))) {
         throw const AppFormatException(
           AppErrorCode.errorInvalidPhotoRecoveryDestination,
-          '照片恢复目标无效。',
+          "照片恢复目标无效。",
         );
       }
       target = decoded;
     } on FormatException {
-      await c.db.setPreference(preference, '');
+      await c.db.setPreference(preference, "");
       rethrow;
     }
-    final subject = target['subject'] as String;
-    final role = target['role'] as String;
-    final pending = target['files'] is List
-        ? (target['files'] as List).cast<String>().map(XFile.new).toList()
+    final subject = target["subject"] as String;
+    final role = target["role"] as String;
+    final pending = target["files"] is List
+        ? (target["files"] as List).cast<String>().map(XFile.new).toList()
         : files;
     if (pending.isEmpty) {
-      await c.db.setPreference(preference, '');
+      await c.db.setPreference(preference, "");
       return false;
     }
     final owner = await (c.db.select(
       c.db.examSubjects,
     )..where((t) => t.id.equals(subject))).getSingleOrNull();
     if (owner == null) {
-      final chatId = target['chatSession'] as String?;
+      final chatId = target["chatSession"] as String?;
       final session = chatId == null
           ? null
           : await (c.db.select(c.db.chatSessions)
@@ -100,7 +100,7 @@ class ExamPhotoIntake {
       } else {
         await c.selectSession(session);
       }
-      target['chatSession'] = c.selected!.id;
+      target["chatSession"] = c.selected!.id;
     }
     await _retainRemaining(c, target, pending, 0);
     final importedPaths = <String>[];
@@ -135,7 +135,7 @@ class ExamPhotoIntake {
         : const AppNotice(AppNoticeKind.examPhotosRecovered);
     // Any failure above rethrows before this line, so the preference — the
     // only pointer to this batch — survives for the next launch.
-    await c.db.setPreference(preference, '');
+    await c.db.setPreference(preference, "");
     return true;
   }
 
@@ -149,7 +149,7 @@ class ExamPhotoIntake {
       preference,
       jsonEncode({
         ...target,
-        'files': pending.sublist(failedIndex).map((f) => f.path).toList(),
+        "files": pending.sublist(failedIndex).map((f) => f.path).toList(),
       }),
     );
   }

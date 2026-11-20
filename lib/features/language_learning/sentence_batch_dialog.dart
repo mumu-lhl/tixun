@@ -1,20 +1,20 @@
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../core/ai/chat_provider.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_error_localization.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/l10n/generated/app_localizations.dart';
-import '../../core/ui/actions.dart';
-import 'language_store.dart';
-import 'sentence_batch_ai.dart';
-import 'sentence_batch_store.dart';
-import 'sentence_content.dart';
+import "../../core/ai/chat_provider.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_error_localization.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/l10n/generated/app_localizations.dart";
+import "../../core/ui/actions.dart";
+import "language_store.dart";
+import "sentence_batch_ai.dart";
+import "sentence_batch_store.dart";
+import "sentence_content.dart";
 
 String sentenceSource(AppLocalizations l10n, String model) =>
-    model == 'Mock' ? l10n.languageAiMockSource : l10n.languageAiSource(model);
+    model == "Mock" ? l10n.languageAiMockSource : l10n.languageAiSource(model);
 
 String sentenceTopicLabel(AppLocalizations l10n, SentenceTopic topic) =>
     topic == SentenceTopic.dailyLife
@@ -161,7 +161,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                       20,
                       if (_count > 0 && _count <= 20) _count,
                     }.toList()..sort()))
-                      DropdownMenuItem(value: count, child: Text('$count')),
+                      DropdownMenuItem(value: count, child: Text("$count")),
                     DropdownMenuItem(
                       value: 0,
                       child: Text(l10n.languageSentenceCustomCount),
@@ -176,7 +176,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                 ),
                 if (_customCount)
                   TextFormField(
-                    initialValue: '$_count',
+                    initialValue: "$_count",
                     enabled: _pending == null,
                     keyboardType: TextInputType.number,
                     maxLength: 2,
@@ -200,7 +200,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(card.text),
-                    subtitle: Text('${card.hint}\n${card.translation}'),
+                    subtitle: Text("${card.hint}\n${card.translation}"),
                     value: _selected.contains(card.id),
                     onChanged: _saving
                         ? null
@@ -294,9 +294,9 @@ Future<SentenceBatch?> chooseSavedSentenceBatch(
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(
-                      '${sentenceTopicLabel(l10n, topic)} · '
-                      '${sentenceStyleLabel(l10n, style)}\n'
-                      '${sentenceSource(l10n, batch.generatedBy!)}',
+                      "${sentenceTopicLabel(l10n, topic)} · "
+                      "${sentenceStyleLabel(l10n, style)}\n"
+                      "${sentenceSource(l10n, batch.generatedBy!)}",
                     ),
                     onTap: () => Navigator.of(context).pop(batch),
                   );

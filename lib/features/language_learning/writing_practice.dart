@@ -1,13 +1,15 @@
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
+import "dart:async";
 
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import 'language_store.dart';
-import 'writing_ai.dart';
-import 'quick_lookup/quick_selection.dart';
-import 'writing_store.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
+
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "language_store.dart";
+import "writing_ai.dart";
+import "quick_lookup/quick_selection.dart";
+import "writing_store.dart";
 
 class WritingPractice extends StatefulWidget {
   const WritingPractice({
@@ -28,7 +30,7 @@ class WritingPractice extends StatefulWidget {
 class _WritingPracticeState extends State<WritingPractice> {
   final _controller = TextEditingController();
   late final _history = widget.store.writingHistory(taskId: widget.ai.task.id);
-  String _saved = '';
+  String _saved = "";
   bool _loaded = false;
   bool _loadError = false;
   bool _saving = false;
@@ -42,7 +44,7 @@ class _WritingPracticeState extends State<WritingPractice> {
   @override
   void initState() {
     super.initState();
-    _load();
+    unawaited(_load());
   }
 
   Future<void> _load() async {
@@ -151,7 +153,7 @@ class _WritingPracticeState extends State<WritingPractice> {
     return PopScope(
       canPop: _leaving || !_dirty || _pending != null,
       onPopInvokedWithResult: (popped, _) {
-        if (!popped) _confirmExit();
+        if (!popped) unawaited(_confirmExit());
       },
       child: Scaffold(
         appBar: AppBar(
@@ -364,12 +366,12 @@ class _WritingVersionDialogState extends State<_WritingVersionDialog> {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(
-                              item.kind == 'issue'
+                              item.kind == "issue"
                                   ? l10n.languageWritingIssue
                                   : l10n.languageWritingSuggestion,
                             ),
                             subtitle: Text(
-                              '${content.substring(item.startOffset, item.endOffset)}\n${item.comment}',
+                              "${content.substring(item.startOffset, item.endOffset)}\n${item.comment}",
                             ),
                             selected: item == note,
                             onTap: () => setState(() => _active = item),

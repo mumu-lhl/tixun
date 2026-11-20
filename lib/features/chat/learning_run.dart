@@ -1,44 +1,44 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'dart:async';
-import 'dart:convert';
-import 'dart:ui';
+import "dart:async";
+import "dart:convert";
+import "dart:ui";
 
-import '../../core/python/python_tool.dart';
-import '../../core/python/python_runtime.dart';
+import "../../core/python/python_tool.dart";
+import "../../core/python/python_runtime.dart";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
 
-import '../../core/ai/chat_provider.dart';
-import '../../core/ai/ai_usage_store.dart';
-import '../../core/ai/context_compactor.dart';
-import '../../core/ai/tool_limits.dart';
-import '../../core/ai/token_estimator.dart';
-import 'chat_context_store.dart';
-import '../../core/ai/study_tools.dart';
-import '../../core/ai/quiz_tool.dart';
-import '../../core/ai/region_tool.dart';
-import '../../core/ai/visual_tool.dart';
-import '../../core/ai/visual_toolset.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/generated/app_localizations.dart';
-import '../../core/platform/attachment_store.dart';
-import '../library/study_store.dart';
-import '../a2ui/a2ui_store.dart';
-import '../a2ui/a2ui_stream.dart';
+import "../../core/ai/chat_provider.dart";
+import "../../core/ai/ai_usage_store.dart";
+import "../../core/ai/context_compactor.dart";
+import "../../core/ai/tool_limits.dart";
+import "../../core/ai/token_estimator.dart";
+import "chat_context_store.dart";
+import "../../core/ai/study_tools.dart";
+import "../../core/ai/quiz_tool.dart";
+import "../../core/ai/region_tool.dart";
+import "../../core/ai/visual_tool.dart";
+import "../../core/ai/visual_toolset.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/generated/app_localizations.dart";
+import "../../core/platform/attachment_store.dart";
+import "../library/study_store.dart";
+import "../a2ui/a2ui_store.dart";
+import "../a2ui/a2ui_stream.dart";
 
-import '../a2ui/a2ui_tools.dart';
-import '../library/subject_scope.dart';
-import '../practice/practice_store.dart';
-import '../review/review_store.dart';
-import '../visual/visual_store.dart';
-import '../progress/learning_profile.dart';
-import '../../core/ai/prompt_settings.dart';
-import '../../core/ai/study_write_task.dart';
+import "../a2ui/a2ui_tools.dart";
+import "../library/subject_scope.dart";
+import "../practice/practice_store.dart";
+import "../review/review_store.dart";
+import "../visual/visual_store.dart";
+import "../progress/learning_profile.dart";
+import "../../core/ai/prompt_settings.dart";
+import "../../core/ai/study_write_task.dart";
 
-part 'learning_run_context.dart';
-part 'learning_run_tools.dart';
+part "learning_run_context.dart";
+part "learning_run_tools.dart";
 
 class LearningRunResult {
   const LearningRunResult({
@@ -120,7 +120,7 @@ class LearningRun {
     required Future<void> Function(LearningRunResult progress) onProgress,
   }) async {
     Timer deadline() =>
-        Timer(const Duration(minutes: 3), () => cancel.cancel('timeout'));
+        Timer(const Duration(minutes: 3), () => cancel.cancel("timeout"));
     var timer = deadline();
     Future<bool> approve(
       String name,
@@ -136,7 +136,7 @@ class LearningRun {
       }
     }
 
-    var text = '';
+    var text = "";
     int? tokens;
     var quizCreated = false,
         visualCreated = false,
@@ -146,13 +146,13 @@ class LearningRun {
     String? lastRoundReasoning;
     String? generatedTitle;
     var titleRequestPending =
-        enableConversationTitle && requestConfig.kind == 'deepseek';
-    var activeReasoning = '', trace = '';
-    var exam = mode == 'exam';
+        enableConversationTitle && requestConfig.kind == "deepseek";
+    var activeReasoning = "", trace = "";
+    var exam = mode == "exam";
     var surfaceCreated = false, nextBlock = 0;
     Future<void> publish({bool surfaceInserted = false}) => onProgress(
       LearningRunResult(
-        text: exam ? (quizCreated ? '先独立尝试下面的题目。提交后查看参考答案与解析。' : '') : text,
+        text: exam ? (quizCreated ? "先独立尝试下面的题目。提交后查看参考答案与解析。" : "") : text,
         tokens: tokens,
         quizCreated: quizCreated,
         visualCreated: visualCreated,
@@ -201,7 +201,7 @@ class LearningRun {
         cancel.checkCancelled();
         final calls = <ToolCall>[];
         var inlineAttempted = false;
-        var roundText = '', rawRoundText = '';
+        var roundText = "", rawRoundText = "";
         final inline = a2uiEnabled ? InlineA2uiStream() : null;
         Future<void> receive(String chunk, {bool done = false}) async {
           if (inline == null) {
@@ -236,14 +236,14 @@ class LearningRun {
               }
             }
             final unavailable = lookupAppLocalizations(
-              Locale(requestPrompts.language == 'en' ? 'en' : 'zh'),
+              Locale(requestPrompts.language == "en" ? "en" : "zh"),
             ).chatA2uiUnavailable;
-            text += '\n\n$unavailable\n\n';
+            text += "\n\n$unavailable\n\n";
           }
         }
 
-        var roundReasoning = '';
-        activeReasoning = '';
+        var roundReasoning = "";
+        activeReasoning = "";
         var traceStarted = false;
         var roundTokens = 0;
         var completed = false;
@@ -269,7 +269,7 @@ class LearningRun {
             if (chunk.usage != null) roundUsage = chunk.usage;
             rawRoundText += chunk.text;
             if (chunk.reasoning.isNotEmpty) {
-              if (!traceStarted && trace.isNotEmpty) trace += '\n\n---\n\n';
+              if (!traceStarted && trace.isNotEmpty) trace += "\n\n---\n\n";
               traceStarted = true;
               trace += chunk.reasoning;
             }
@@ -295,13 +295,13 @@ class LearningRun {
                     chunk.reasoning.isNotEmpty)) {
               throw const AiFailure.localized(
                 AppErrorCode.theServiceReturnedAnError,
-                '服务返回错误，请检查模型配置后重试。',
+                "服务返回错误，请检查模型配置后重试。",
               );
             }
             if (chunk.calls.isNotEmpty && !chunk.completed) {
               throw const AiFailure.localized(
                 AppErrorCode.theToolResponseDidNot,
-                '工具响应未正常结束，未执行本轮资料修改。',
+                "工具响应未正常结束，未执行本轮资料修改。",
               );
             }
             calls.addAll(chunk.calls);
@@ -311,7 +311,7 @@ class LearningRun {
           }
         } catch (_) {
           final before = text;
-          await receive('', done: true);
+          await receive("", done: true);
           if (text != before) await publish();
           await _recordUsage(
             actionId: runId,
@@ -319,7 +319,7 @@ class LearningRun {
             messageId: runId,
             config: requestConfig,
             feature: _roundUsageFeature(calls, inlineAttempted),
-            status: 'error',
+            status: "error",
             startedAt: requestStartedAt,
             imageCount: requestImageCount,
             toolCallCount: calls.length,
@@ -333,7 +333,7 @@ class LearningRun {
         }
         if (!completed) {
           final before = text;
-          await receive('', done: true);
+          await receive("", done: true);
           if (text != before) await publish();
         }
         await _recordUsage(
@@ -342,7 +342,7 @@ class LearningRun {
           messageId: runId,
           config: requestConfig,
           feature: _roundUsageFeature(calls, inlineAttempted),
-          status: completed ? 'complete' : 'incomplete',
+          status: completed ? "complete" : "incomplete",
           startedAt: requestStartedAt,
           imageCount: requestImageCount,
           toolCallCount: calls.length,
@@ -358,7 +358,7 @@ class LearningRun {
         if (!completed) {
           throw const AiFailure.localized(
             AppErrorCode.theConnectionEndedEarlyReceived,
-            '连接提前断开，已保留收到的内容。请重新生成。',
+            "连接提前断开，已保留收到的内容。请重新生成。",
           );
         }
         validateToolCalls(calls);
@@ -370,33 +370,33 @@ class LearningRun {
             )) {
           throw const AiFailure.localized(
             AppErrorCode.anUnavailableToolCallWas,
-            '模型尝试调用未开放的工具，已阻止。',
+            "模型尝试调用未开放的工具，已阻止。",
           );
         }
         if (studyTask != null &&
             calls.any(
               (call) =>
-                  call.name != 'run_python' &&
+                  call.name != "run_python" &&
                   !(!exam &&
                       visualTools != null &&
                       {
                         enableVisualToolsName,
-                        'create_visual',
-                        'get_visual',
-                        'update_visual',
+                        "create_visual",
+                        "get_visual",
+                        "update_visual",
                       }.contains(call.name)) &&
                   !studyTask.allows(call),
             )) {
           throw const AiFailure.localized(
             AppErrorCode.editingAnUnselectedItemWas,
-            '已阻止修改未选中的资料，请重新发起整理。',
+            "已阻止修改未选中的资料，请重新发起整理。",
           );
         }
         callsUsed += calls.length;
         if (maxToolCalls > 0 && callsUsed > maxToolCalls) {
           throw AiFailure.localized(
             AppErrorCode.toolCallLimitReached,
-            '已达到本次工具调用次数上限。',
+            "已达到本次工具调用次数上限。",
             [maxToolCalls.toString()],
           );
         }
@@ -412,12 +412,12 @@ class LearningRun {
         );
         for (final call in calls) {
           cancel.checkCancelled();
-          if (studyTask?.operation == 'update_knowledge' &&
-              call.name == 'update_knowledge' &&
+          if (studyTask?.operation == "update_knowledge" &&
+              call.name == "update_knowledge" &&
               !selectedKnowledgeRead) {
             throw const AiFailure.localized(
               AppErrorCode.theSelectedKnowledgeMustBe,
-              '修改前必须完整读取所选知识；正文过长时请先手动拆分，避免覆盖未读取的内容。',
+              "修改前必须完整读取所选知识；正文过长时请先手动拆分，避免覆盖未读取的内容。",
             );
           }
           // Loading is read-only protocol discovery, not a study-data write.
@@ -431,11 +431,11 @@ class LearningRun {
                   for (final tool in request.tools)
                     if (tool.name == enableVisualToolsName)
                       ...visualTools.tools
-                    else if (tool.name != 'create_quiz')
+                    else if (tool.name != "create_quiz")
                       tool,
                 ],
                 instructions:
-                    '${request.instructions}\n${visualTools.instructions}',
+                    "${request.instructions}\n${visualTools.instructions}",
               );
             }
             request = request.copyWith(
@@ -457,32 +457,32 @@ class LearningRun {
             runner: runner,
             approve: approve,
           );
-          if (studyTask?.operation == 'update_knowledge' &&
-              call.name == 'get_knowledge') {
+          if (studyTask?.operation == "update_knowledge" &&
+              call.name == "get_knowledge") {
             selectedKnowledgeRead =
-                result['ok'] == true &&
-                result['id'] == studyTask!.knowledgeId &&
-                result['truncated'] == false;
+                result["ok"] == true &&
+                result["id"] == studyTask!.knowledgeId &&
+                result["truncated"] == false;
           }
-          if (call.name == 'run_python' && result['ok'] == true) {
+          if (call.name == "run_python" && result["ok"] == true) {
             pythonExecuted = true;
           }
-          if (call.name == 'suggest_question_regions' && result['ok'] == true) {
+          if (call.name == "suggest_question_regions" && result["ok"] == true) {
             regionsCreated = true;
           }
-          if (call.name == 'create_quiz' && result['ok'] == true) {
+          if (call.name == "create_quiz" && result["ok"] == true) {
             quizCreated = true;
           }
-          if (call.name == 'create_visual' && result['ok'] == true) {
+          if (call.name == "create_visual" && result["ok"] == true) {
             visualCreated = true;
           }
           // A successful study write already landed: remember it so an
           // empty final text does not report the round as failed (which
           // would invite a retry that re-executes the same write).
-          if (result['ok'] == true &&
-              call.name != 'suggest_question_regions' &&
-              call.name != 'create_quiz' &&
-              call.name != 'run_python' &&
+          if (result["ok"] == true &&
+              call.name != "suggest_question_regions" &&
+              call.name != "create_quiz" &&
+              call.name != "run_python" &&
               isWriteStudyTool(call.name)) {
             studyChanged = true;
           }
@@ -500,36 +500,36 @@ class LearningRun {
         );
         if (quizCreated || regionsCreated) {
           final notice = quizCreated
-              ? '先独立尝试下面的题目。提交后查看参考答案与解析。'
-              : '下面是图片分题建议。请检查每个范围，必要时调整后保存；原图会保留。';
+              ? "先独立尝试下面的题目。提交后查看参考答案与解析。"
+              : "下面是图片分题建议。请检查每个范围，必要时调整后保存；原图会保留。";
           text = surfaceCreated && text.isNotEmpty
-              ? '$text\n\n$notice'
+              ? "$text\n\n$notice"
               : notice;
           if (regionsCreated) study.changed();
           break;
         }
-        if (text.isNotEmpty) text += '\n\n';
+        if (text.isNotEmpty) text += "\n\n";
       }
       if (exam && !quizCreated) {
-        text = '考试模式需要结构化题目，当前模型未成功创建。请重试，或切换教学模式查看文字讲解。';
+        text = "考试模式需要结构化题目，当前模型未成功创建。请重试，或切换教学模式查看文字讲解。";
       }
       if (text.trim().isEmpty && !surfaceCreated) {
         if (visualCreated) {
           text = lookupAppLocalizations(
-            requestPrompts.language == 'en'
-                ? const Locale('en')
-                : const Locale('zh'),
+            requestPrompts.language == "en"
+                ? const Locale("en")
+                : const Locale("zh"),
           ).visualCreatedMessage;
         } else if (studyChanged) {
           // The write already landed; report success with a placeholder
           // instead of an error that would invite a duplicate retry.
-          text = '已保存，可在知识库查看。';
+          text = "已保存，可在知识库查看。";
         } else if (pythonExecuted) {
-          text = 'Python 执行完成，可展开查看代码和结果。';
+          text = "Python 执行完成，可展开查看代码和结果。";
         } else {
           throw const AiFailure.localized(
             AppErrorCode.theModelReturnedNoDisplayable,
-            '模型没有返回可显示的正文，请重试。',
+            "模型没有返回可显示的正文，请重试。",
           );
         }
       }

@@ -1,11 +1,13 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "dart:async";
 
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import 'practice_providers.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
+
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "practice_providers.dart";
 
 class PracticeHistoryScreen extends ConsumerStatefulWidget {
   const PracticeHistoryScreen(this.id, {super.key});
@@ -22,7 +24,7 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    unawaited(_load());
   }
 
   Future<void> _load() async {
@@ -55,7 +57,7 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
           children: [
             IconButton(
               tooltip: context.l10n.backToQuestion,
-              onPressed: () => context.go('/practice/${widget.id}'),
+              onPressed: () => context.go("/practice/${widget.id}"),
               icon: const Icon(Icons.arrow_back),
             ),
             Expanded(
@@ -100,9 +102,9 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
                 horizontal: 0,
               ),
               title: Text(
-                a.status == 'draft'
+                a.status == "draft"
                     ? context.l10n.unfinishedAttempt
-                    : a.status == 'awaiting_self_grade'
+                    : a.status == "awaiting_self_grade"
                     ? context.l10n.awaitingSelfAssessment
                     : a.correct == true
                     ? context.l10n.answerCorrect
@@ -118,7 +120,7 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
                     : context.l10n.draft)}${l10nArgument(a.hintUsed ? context.l10n.hintUsedSuffix : '')}',
               ),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/practice/${widget.id}?attempt=${a.id}'),
+              onTap: () => context.go("/practice/${widget.id}?attempt=${a.id}"),
             );
           },
         ),

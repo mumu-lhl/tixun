@@ -1,16 +1,16 @@
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
 
-import 'language_layout.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/ui/actions.dart';
-import 'sentence_content.dart';
-import 'writing_ai.dart';
-import 'writing_practice.dart';
-import 'writing_store.dart';
-import 'writing_task_ai.dart';
+import "language_layout.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/ui/actions.dart";
+import "sentence_content.dart";
+import "writing_ai.dart";
+import "writing_practice.dart";
+import "writing_store.dart";
+import "writing_task_ai.dart";
 
 class WritingLab extends StatefulWidget {
   const WritingLab({super.key, required this.ai, this.glossLanguage});
@@ -118,7 +118,7 @@ class _WritingLabState extends State<WritingLab> {
                     ListTile(
                       title: Text(row.title),
                       subtitle: Text(
-                        row.model == 'Mock'
+                        row.model == "Mock"
                             ? l10n.languageExamMock
                             : l10n.languageAiSource(row.model),
                       ),

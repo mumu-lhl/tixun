@@ -1,10 +1,10 @@
-import 'dart:ui' as ui;
+import "dart:ui" as ui;
 
-import '../../core/l10n/app_error.dart';
-import '../../core/visual/model/visual_scene.dart';
-import '../../core/visual/render/visual_animator.dart';
-import '../../core/visual/render/visual_painter.dart';
-import 'question_spec.dart';
+import "../../core/l10n/app_error.dart";
+import "../../core/visual/model/visual_scene.dart";
+import "../../core/visual/render/visual_animator.dart";
+import "../../core/visual/render/visual_painter.dart";
+import "question_spec.dart";
 
 /// Dedicated assessment prompts contain only their static question surface.
 /// Content can still imply an answer: this is not a semantic secrecy proof.
@@ -20,7 +20,7 @@ void validateAssessmentScene(VisualScene scene) {
       hidden(scene.elements)) {
     throw const AppFormatException(
       AppErrorCode.errorAssessmentFigureMustBeStatic,
-      '题面图不能包含动画、参数控件或隐藏图元。',
+      "题面图不能包含动画、参数控件或隐藏图元。",
     );
   }
 }
@@ -29,15 +29,15 @@ void validateAssessmentScene(VisualScene scene) {
 /// Used by the question Store for every write, including manual revisions.
 void validateQuestionVisual(QuestionSpec spec, VisualScene scene) {
   if (!const {
-    'point_select',
-    'drag_to_target',
-    'region_select',
+    "point_select",
+    "drag_to_target",
+    "region_select",
   }.contains(spec.kind)) {
     return;
   }
   Never invalid() => throw const AppFormatException(
     AppErrorCode.errorVisualQuestionNotAnswerable,
-    '图形缺少可见、可操作的作答目标，或区域选项与图形不一致。',
+    "图形缺少可见、可操作的作答目标，或区域选项与图形不一致。",
   );
   final frame = resolveVisualFrame(scene, 0);
   final mapper = VisualCoordinateMapper.fromScene(
@@ -55,10 +55,10 @@ void validateQuestionVisual(QuestionSpec spec, VisualScene scene) {
     frame.toggles,
     frame.hiddenElementIds,
   );
-  if (spec.kind == 'point_select' || spec.kind == 'drag_to_target') {
+  if (spec.kind == "point_select" || spec.kind == "drag_to_target") {
     final answer = parseVisualPoint(spec.answers.single.single);
     if (answer == null || !inView(ui.Offset(answer.$1, answer.$2))) invalid();
-    if (spec.kind == 'drag_to_target' &&
+    if (spec.kind == "drag_to_target" &&
         !visible.whereType<PointElement>().any((p) {
           final at = resolvePoint(p.at, frame.parameters);
           return p.draggable && p.at.isLiteral && at != null && inView(at);

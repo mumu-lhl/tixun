@@ -1,21 +1,21 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/features/exams/exam_calendar.dart';
-import 'package:tixun/features/exams/exam_detail.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/exams/exam_calendar.dart";
+import "package:tixun/features/exams/exam_detail.dart";
 
 Future<AppController> _controller(WidgetTester tester) async {
   late AppController c;
   late Directory root;
   await tester.runAsync(() async {
-    root = await Directory.systemTemp.createTemp('tixun-exam-calendar');
+    root = await Directory.systemTemp.createTemp("tixun-exam-calendar");
     c = AppController(
       AppDatabase.memory(),
       AttachmentStore(root),
@@ -56,60 +56,60 @@ Future<void> _unmountCalendar(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('Moving months keeps the selected day', (tester) async {
+  testWidgets("Moving months keeps the selected day", (tester) async {
     final c = await _controller(tester);
     await _pumpCalendar(tester, c);
-    await tester.ensureVisible(find.text('15'));
+    await tester.ensureVisible(find.text("15"));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('15'));
+    await tester.tap(find.text("15"));
     await tester.pumpAndSettle();
     final now = DateTime.now();
     final picked = '${now.year}-${now.month.toString().padLeft(2, '0')}-15';
     expect(find.text(picked), findsOneWidget);
-    await tester.ensureVisible(find.byTooltip('下个月'));
+    await tester.ensureVisible(find.byTooltip("下个月"));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('下个月'));
+    await tester.tap(find.byTooltip("下个月"));
     await tester.pumpAndSettle();
     expect(
       find.text(picked),
       findsOneWidget,
-      reason: 'Turning the page must not move the selection to the 1st',
+      reason: "Turning the page must not move the selection to the 1st",
     );
     final next = DateTime(now.year, now.month + 1);
-    expect(find.text('${next.year} / ${next.month}'), findsOneWidget);
+    expect(find.text("${next.year} / ${next.month}"), findsOneWidget);
     await _unmountCalendar(tester);
   });
 
-  testWidgets('Creating an exam with an empty title keeps the dialog open', (
+  testWidgets("Creating an exam with an empty title keeps the dialog open", (
     tester,
   ) async {
     final c = await _controller(tester);
     await _pumpCalendar(tester, c);
-    await tester.tap(find.byKey(const Key('exam-add')));
+    await tester.tap(find.byKey(const Key("exam-add")));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, '创建'));
+    await tester.tap(find.widgetWithText(FilledButton, "创建"));
     await tester.pumpAndSettle();
-    expect(find.text('考试名称需为 1–120 字。'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, '创建'), findsOneWidget);
-    await tester.enterText(find.byType(TextField).last, '期中考试');
-    await tester.tap(find.widgetWithText(FilledButton, '创建'));
+    expect(find.text("考试名称需为 1–120 字。"), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, "创建"), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, "期中考试");
+    await tester.tap(find.widgetWithText(FilledButton, "创建"));
     await tester.pumpAndSettle();
-    expect(find.text('考试名称需为 1–120 字。'), findsNothing);
+    expect(find.text("考试名称需为 1–120 字。"), findsNothing);
     late List<ExamEvent> events;
     await tester.runAsync(
       () async => events = await c.db.select(c.db.examEvents).get(),
     );
-    expect(events.single.title, '期中考试');
+    expect(events.single.title, "期中考试");
     await _unmountCalendar(tester);
   });
 
-  testWidgets('Editing an exam with an empty title keeps the dialog open', (
+  testWidgets("Editing an exam with an empty title keeps the dialog open", (
     tester,
   ) async {
     final c = await _controller(tester);
     late String id;
     await tester.runAsync(() async {
-      id = await c.exams.saveEvent(title: '期中', date: DateTime.now());
+      id = await c.exams.saveEvent(title: "期中", date: DateTime.now());
     });
     late ExamEvent event;
     await tester.runAsync(
@@ -128,9 +128,9 @@ void main() {
           home: Scaffold(
             body: Builder(
               builder: (ctx) => FilledButton(
-                key: const Key('edit-exam'),
+                key: const Key("edit-exam"),
                 onPressed: () => editExam(ctx, c, event),
-                child: const Text('edit'),
+                child: const Text("edit"),
               ),
             ),
           ),
@@ -138,23 +138,23 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('edit-exam')));
+    await tester.tap(find.byKey(const Key("edit-exam")));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, '');
-    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.enterText(find.byType(TextField).first, "");
+    await tester.tap(find.widgetWithText(FilledButton, "保存"));
     await tester.pumpAndSettle();
-    expect(find.text('考试名称需为 1–120 字。'), findsOneWidget);
-    expect(find.text('编辑考试'), findsOneWidget);
-    await tester.enterText(find.byType(TextField).first, '期末');
-    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    expect(find.text("考试名称需为 1–120 字。"), findsOneWidget);
+    expect(find.text("编辑考试"), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, "期末");
+    await tester.tap(find.widgetWithText(FilledButton, "保存"));
     await tester.pumpAndSettle();
-    expect(find.text('编辑考试'), findsNothing);
+    expect(find.text("编辑考试"), findsNothing);
     late ExamEvent saved;
     await tester.runAsync(
       () async => saved = await (c.db.select(
         c.db.examEvents,
       )..where((t) => t.id.equals(id))).getSingle(),
     );
-    expect(saved.title, '期末');
+    expect(saved.title, "期末");
   });
 }

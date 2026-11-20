@@ -1,32 +1,32 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:drift/native.dart";
+import "package:uuid/uuid.dart";
 
-import '../l10n/app_error.dart';
-import 'search_terms.dart';
+import "../l10n/app_error.dart";
+import "search_terms.dart";
 
-part 'database.g.dart';
-part 'study_tables.dart';
-part 'practice_tables.dart';
-part 'review_tables.dart';
-part 'exam_tables.dart';
-part 'module_tables.dart';
-part 'visual_tables.dart';
-part 'a2ui_tables.dart';
-part 'language_tables.dart';
-part 'language_quick_tables.dart';
-part 'database_migrations.dart';
+part "database.g.dart";
+part "study_tables.dart";
+part "practice_tables.dart";
+part "review_tables.dart";
+part "exam_tables.dart";
+part "module_tables.dart";
+part "visual_tables.dart";
+part "a2ui_tables.dart";
+part "language_tables.dart";
+part "language_quick_tables.dart";
+part "database_migrations.dart";
 
 class ChatSessions extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
   TextColumn get subject => text().nullable()();
-  TextColumn get mode => text().withDefault(const Constant('guided'))();
-  TextColumn get stage => text().withDefault(const Constant('diagnosing'))();
+  TextColumn get mode => text().withDefault(const Constant("guided"))();
+  TextColumn get stage => text().withDefault(const Constant("diagnosing"))();
   BoolColumn get toolsEnabled => boolean().withDefault(const Constant(false))();
-  TextColumn get draft => text().withDefault(const Constant(''))();
+  TextColumn get draft => text().withDefault(const Constant(""))();
   // Context compression state: the summary of older turns (persisted so
   // later sends reuse it) and the id of the last message it covers.
   TextColumn get contextSummary => text().nullable()();
@@ -46,7 +46,7 @@ class ChatMessages extends Table {
     "NOT NULL CHECK (role IN ('user','assistant'))",
   )();
   TextColumn get content => text()();
-  TextColumn get status => text().withDefault(const Constant('complete'))();
+  TextColumn get status => text().withDefault(const Constant("complete"))();
   TextColumn get error => text().nullable()();
   TextColumn get model => text().nullable()();
   TextColumn get reasoningContent => text().nullable()();
@@ -99,17 +99,17 @@ class Attachments extends Table {
 
 class ProviderConfigs extends Table {
   IntColumn get id => integer().withDefault(const Constant(1))();
-  TextColumn get kind => text().withDefault(const Constant('deepseek'))();
+  TextColumn get kind => text().withDefault(const Constant("deepseek"))();
   TextColumn get baseUrl =>
-      text().withDefault(const Constant('https://api.deepseek.com'))();
+      text().withDefault(const Constant("https://api.deepseek.com"))();
   TextColumn get model =>
-      text().withDefault(const Constant('deepseek-flash'))();
+      text().withDefault(const Constant("deepseek-flash"))();
   BoolColumn get vision => boolean().withDefault(const Constant(true))();
   BoolColumn get supportsTools => boolean().withDefault(const Constant(true))();
   BoolColumn get thinking => boolean().withDefault(const Constant(false))();
   BoolColumn get supportsThinking =>
       boolean().withDefault(const Constant(true))();
-  TextColumn get effort => text().withDefault(const Constant('high'))();
+  TextColumn get effort => text().withDefault(const Constant("high"))();
   TextColumn get reasoningLevels => text().nullable()();
   @override
   Set<Column> get primaryKey => {id};
@@ -128,11 +128,11 @@ class AiUsageEvents extends Table {
   TextColumn get sessionId => text().nullable()();
   TextColumn get messageId => text().nullable()();
   TextColumn get providerKind => text()();
-  TextColumn get endpoint => text().withDefault(const Constant(''))();
+  TextColumn get endpoint => text().withDefault(const Constant(""))();
   TextColumn get model => text()();
   TextColumn get feature => text()();
   TextColumn get status => text()();
-  TextColumn get usageSource => text().withDefault(const Constant('unknown'))();
+  TextColumn get usageSource => text().withDefault(const Constant("unknown"))();
   DateTimeColumn get occurredAt => dateTime()();
   IntColumn get durationMs => integer().nullable()();
   IntColumn get imageCount => integer().withDefault(const Constant(0))();
@@ -144,7 +144,7 @@ class AiUsageEvents extends Table {
   IntColumn get totalTokens => integer().nullable()();
   TextColumn get tokenBreakdownJson => text().nullable()();
   IntColumn get costNanoUsd => integer().nullable()();
-  TextColumn get costBasis => text().withDefault(const Constant('unknown'))();
+  TextColumn get costBasis => text().withDefault(const Constant("unknown"))();
   IntColumn get inputRateNanoUsdPerMillion => integer().nullable()();
   IntColumn get cachedInputRateNanoUsdPerMillion => integer().nullable()();
   IntColumn get outputRateNanoUsdPerMillion => integer().nullable()();
@@ -156,14 +156,14 @@ class AiUsageEvents extends Table {
 
 class AiModelPrices extends Table {
   TextColumn get providerKind => text()();
-  TextColumn get endpoint => text().withDefault(const Constant(''))();
+  TextColumn get endpoint => text().withDefault(const Constant(""))();
   TextColumn get model => text()();
   IntColumn get inputRateNanoUsdPerMillion => integer()();
   IntColumn get cachedInputRateNanoUsdPerMillion => integer()();
   IntColumn get outputRateNanoUsdPerMillion => integer()();
   IntColumn get offPeakDiscountPercent =>
       integer().withDefault(const Constant(0))();
-  TextColumn get source => text().withDefault(const Constant('user'))();
+  TextColumn get source => text().withDefault(const Constant("user"))();
   DateTimeColumn get updatedAt => dateTime()();
   @override
   Set<Column> get primaryKey => {providerKind, endpoint, model};
@@ -254,22 +254,22 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => _migrationStrategy;
 
   Future<List<ChatSession>> sessions([
-    String query = '',
-    String subject = '',
+    String query = "",
+    String subject = "",
   ]) async {
     final term = query.trim();
     final variables = <Variable>[];
-    var where = 's.deleted = 0';
+    var where = "s.deleted = 0";
     if (subject.isNotEmpty) {
-      where += ' AND s.subject = ?';
+      where += " AND s.subject = ?";
       variables.add(Variable(subject));
     }
     for (final keyword in searchTerms(term)) {
       final messageMatch = keyword.runes.length >= 3
-          ? 'SELECT session_id FROM message_search WHERE message_search MATCH ?'
-          : 'SELECT session_id FROM chat_messages WHERE instr(lower(content), lower(?)) > 0';
+          ? "SELECT session_id FROM message_search WHERE message_search MATCH ?"
+          : "SELECT session_id FROM chat_messages WHERE instr(lower(content), lower(?)) > 0";
       where +=
-          ' AND (instr(lower(s.title), lower(?)) > 0 OR s.id IN ($messageMatch))';
+          " AND (instr(lower(s.title), lower(?)) > 0 OR s.id IN ($messageMatch))";
       variables.add(Variable(keyword));
       variables.add(
         Variable(
@@ -283,13 +283,13 @@ class AppDatabase extends _$AppDatabase {
     // same second tie. Break the tie with the latest message's rowid, which
     // grows with every insert and therefore tracks the newest activity.
     const activityTieBreak =
-        '(SELECT MAX(rowid) FROM chat_messages WHERE session_id = s.id) DESC';
+        "(SELECT MAX(rowid) FROM chat_messages WHERE session_id = s.id) DESC";
     final order = term.isEmpty
-        ? 's.updated_at DESC, $activityTieBreak, s.id'
-        : 'CASE WHEN instr(lower(s.title), lower(?)) > 0 THEN 0 ELSE 1 END, s.updated_at DESC, $activityTieBreak, s.id';
-    if (term.isNotEmpty) variables.add(Variable(searchTerms(term).join(' ')));
+        ? "s.updated_at DESC, $activityTieBreak, s.id"
+        : "CASE WHEN instr(lower(s.title), lower(?)) > 0 THEN 0 ELSE 1 END, s.updated_at DESC, $activityTieBreak, s.id";
+    if (term.isNotEmpty) variables.add(Variable(searchTerms(term).join(" ")));
     final rows = await customSelect(
-      'SELECT s.* FROM chat_sessions s WHERE $where ORDER BY $order',
+      "SELECT s.* FROM chat_sessions s WHERE $where ORDER BY $order",
       variables: variables,
       readsFrom: {chatSessions, chatMessages},
     ).get();
@@ -314,14 +314,14 @@ class AppDatabase extends _$AppDatabase {
   Future<List<ChatSession>> trash() =>
       (select(chatSessions)..where((s) => s.deleted.equals(true))).get();
   Future<ChatSession> createSession({
-    String title = '新的学习对话',
-    String mode = 'guided',
+    String title = "新的学习对话",
+    String mode = "guided",
     String? subject,
   }) async {
-    if (!['guided', 'direct', 'exam'].contains(mode)) {
+    if (!["guided", "direct", "exam"].contains(mode)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidTeachingMode,
-        '教学模式无效。',
+        "教学模式无效。",
       );
     }
     final id = const Uuid().v4();
@@ -357,7 +357,7 @@ class AppDatabase extends _$AppDatabase {
     if (title.trim().isEmpty) {
       throw const AppFormatException(
         AppErrorCode.errorTheConversationNameCannotBeEmpty,
-        '会话名称不能为空',
+        "会话名称不能为空",
       );
     }
     await (update(chatSessions)..where((s) => s.id.equals(id))).write(

@@ -1,10 +1,10 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../app/controller.dart';
-import '../../core/l10n/app_strings.dart';
-import '../library/study_store.dart';
+import "../../app/controller.dart";
+import "../../core/l10n/app_strings.dart";
+import "../library/study_store.dart";
 
 class SubjectsScreen extends ConsumerStatefulWidget {
   const SubjectsScreen({super.key});
@@ -18,9 +18,9 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
     ref.read(appControllerProvider).learningSubjects,
   );
   late final available = {
-    '语文',
-    '数学',
-    '英语',
+    "语文",
+    "数学",
+    "英语",
     ...schoolSubjects,
     ...selected,
   }.toList();
@@ -68,12 +68,11 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
     }
     // Use an explicit route because this page can be the app's deep-link
     // entry point; popping could exit instead of returning to Settings.
-    context.go('/settings');
+    context.go("/settings");
   }
 
   @override
   Widget build(BuildContext context) => PopScope(
-    // Never pop directly: this route can be the app's deep-link entry point.
     canPop: false,
     onPopInvokedWithResult: (popped, _) async {
       if (popped) return;
@@ -122,7 +121,7 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                   itemBuilder: (context, index) {
                     final subject = selected[index];
                     return Card(
-                      key: ValueKey('selected-study-subject-$subject'),
+                      key: ValueKey("selected-study-subject-$subject"),
                       margin: const EdgeInsets.symmetric(vertical: 3),
                       child: ListTile(
                         dense: true,
@@ -132,7 +131,7 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                         ),
                         title: Text(context.subjectName(subject)),
                         trailing: IconButton(
-                          key: ValueKey('remove-study-subject-$subject'),
+                          key: ValueKey("remove-study-subject-$subject"),
                           tooltip: context.l10n.removeSubject,
                           onPressed: selected.length <= 1
                               ? null
@@ -160,7 +159,7 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                     (subject) => !selected.contains(subject),
                   ))
                     FilterChip(
-                      key: ValueKey('study-subject-$subject'),
+                      key: ValueKey("study-subject-$subject"),
                       label: Text(context.subjectName(subject)),
                       selected: false,
                       onSelected: (_) {
@@ -181,7 +180,7 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
               ),
               const Divider(height: 24),
               TextField(
-                key: const Key('custom-subject'),
+                key: const Key("custom-subject"),
                 controller: custom,
                 maxLength: 40,
                 decoration: InputDecoration(
@@ -225,7 +224,7 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
   );
   void add() {
     final name = custom.text.trim();
-    if (name.isEmpty || name.contains('\n') || name.length > 40) {
+    if (name.isEmpty || name.contains("\n") || name.length > 40) {
       setState(() => error = context.l10n.subjectNamesMustContain1);
       return;
     }

@@ -1,4 +1,4 @@
-part of 'database.dart';
+part of "database.dart";
 
 /// A saved Visual DSL scene (see `tixun-visual-dsl-v1.md`).
 ///
@@ -11,16 +11,16 @@ part of 'database.dart';
 /// The row class is [StoredVisualScene], not `VisualScene`: that name is
 /// the DSL model type in `lib/core/visual/model/visual_scene.dart`, and
 /// the tool/UI slices need both without import aliases.
-@DataClassName('StoredVisualScene')
+@DataClassName("StoredVisualScene")
 class VisualScenes extends Table {
   TextColumn get id => text()();
   TextColumn get sceneJson => text()();
   TextColumn get title => text().nullable()();
   IntColumn get dslVersion => integer().withDefault(const Constant(1))();
   TextColumn get verificationStatus =>
-      text().withDefault(const Constant('unverified'))();
+      text().withDefault(const Constant("unverified"))();
   IntColumn get revision => integer().withDefault(const Constant(1))();
-  TextColumn get source => text().withDefault(const Constant('ai'))();
+  TextColumn get source => text().withDefault(const Constant("ai"))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
@@ -60,7 +60,7 @@ class VisualQuestionLinks extends Table {
   /// here (see `VisualStore.snapshotForQuestion`).
   IntColumn get revision => integer().withDefault(const Constant(1))();
   TextColumn get role => text()
-      .withDefault(const Constant('question'))
+      .withDefault(const Constant("question"))
       .check(const CustomExpression("role IN ('question', 'solution')"))();
   @override
   Set<Column> get primaryKey => {visualId, questionId};
@@ -85,6 +85,6 @@ class VisualStudyLinks extends Table {
   Set<Column> get primaryKey => {visualId, knowledgeId, mistakeId};
   @override
   List<String> get customConstraints => [
-    'CHECK ((knowledge_id IS NULL) <> (mistake_id IS NULL))',
+    "CHECK ((knowledge_id IS NULL) <> (mistake_id IS NULL))",
   ];
 }

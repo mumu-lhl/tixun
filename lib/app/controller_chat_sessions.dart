@@ -1,4 +1,4 @@
-part of 'controller.dart';
+part of "controller.dart";
 
 extension _ChatSessions on AppController {
   Future<void> _reloadImpl() async {
@@ -42,7 +42,7 @@ extension _ChatSessions on AppController {
       final subject = subjectFilter;
       if (subject.isEmpty || selected?.subject == subject) return;
       // Search text only filters the history list, never the candidate session.
-      final candidates = await db.sessions('', subject);
+      final candidates = await db.sessions("", subject);
       if (_disposed) return;
       if (subject != subjectFilter) continue;
       if (candidates.isEmpty) {
@@ -58,12 +58,12 @@ extension _ChatSessions on AppController {
     final loaded = await Future.wait<Object>([
       db.messages(session.id),
       db.images(session.id),
-      db.preference('ai_reasoning:${session.id}').then((v) => v ?? ''),
+      db.preference("ai_reasoning:${session.id}").then((v) => v ?? ""),
       db
           .preference(studyToolCategoriesKey(session.id))
           .then((v) => readStudyToolCategories(v)),
-      db.preference('ai_drawing:${session.id}').then((v) => v ?? ''),
-      db.preference(chatA2uiPreference(session.id)).then((v) => v ?? ''),
+      db.preference("ai_drawing:${session.id}").then((v) => v ?? ""),
+      db.preference(chatA2uiPreference(session.id)).then((v) => v ?? ""),
     ]);
     if (_epoch != current) return;
     final row = await (db.select(
@@ -78,16 +78,16 @@ extension _ChatSessions on AppController {
     final override = loaded[2] as String;
     studyToolCategories = loaded[3] as Set<StudyToolCategory>;
     sessionDrawingOverride = switch (loaded[4]) {
-      'true' => true,
-      'false' => false,
+      "true" => true,
+      "false" => false,
       _ => null,
     };
     sessionA2uiOverride = readA2uiOverride(loaded[5] as String);
     sessionReasoning = AiOptions(config).supportsOverride(override)
         ? override
-        : '';
+        : "";
     error = null;
-    await db.setPreference('selected_session', session.id);
+    await db.setPreference("selected_session", session.id);
     changed();
   }
 
@@ -101,7 +101,7 @@ extension _ChatSessions on AppController {
         subject: subjectFilter.isEmpty ? null : subjectFilter,
       ),
     );
-    search = '';
+    search = "";
     await reload();
   }
 
@@ -121,7 +121,7 @@ extension _ChatSessions on AppController {
   ) async {
     if (expectedTitle == null) return;
     final title = generatedTitle
-        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r"\s+"), " ")
         .trim()
         .characters
         .take(30)
@@ -178,7 +178,7 @@ extension _ChatSessions on AppController {
       if (session == null || !session.deleted) {
         throw const AppFormatException(
           AppErrorCode.onlyConversationsInTheTrash,
-          '只能永久删除回收区中的会话。',
+          "只能永久删除回收区中的会话。",
         );
       }
       for (final image in await db.images(id)) {
@@ -189,7 +189,7 @@ extension _ChatSessions on AppController {
         db.aiToolOperations,
       )..where((o) => o.sessionId.equals(id))).go();
       await (db.delete(db.chatSessions)..where((s) => s.id.equals(id))).go();
-      await db.setPreference('practice_parent:$id', '');
+      await db.setPreference("practice_parent:$id", "");
     });
 
     final failed = await cleanupPurgedAttachments(db, files, paths);
@@ -203,7 +203,7 @@ extension _ChatSessions on AppController {
     final s = selected;
     if (s == null) return;
     if (demo && s.draft.isEmpty && value.isNotEmpty) {
-      debugPrint('TIXUN_DRAFT_READY');
+      debugPrint("TIXUN_DRAFT_READY");
     }
     selected = s.copyWith(draft: value);
     try {
@@ -216,7 +216,7 @@ extension _ChatSessions on AppController {
 
   Future<void> _modeImpl(String value) async {
     if (selected == null || busy) return;
-    final s = selected!.copyWith(mode: value, stage: 'diagnosing');
+    final s = selected!.copyWith(mode: value, stage: "diagnosing");
     await db.update(db.chatSessions).replace(s);
     selected = s;
     changed();
@@ -226,7 +226,7 @@ extension _ChatSessions on AppController {
     if (busy) {
       throw const AppFormatException(
         AppErrorCode.stopTheReplyBeforeAdding,
-        '请先停止生成，再添加图片。',
+        "请先停止生成，再添加图片。",
       );
     }
     if (selected == null) await newSession();
@@ -263,17 +263,17 @@ extension _ChatSessions on AppController {
         if (busy || selected == null) {
           throw const AppFormatException(
             AppErrorCode.stopGenerationBeforeEditingDraft,
-            '请先停止生成，再编辑草稿图片。',
+            "请先停止生成，再编辑草稿图片。",
           );
         }
         if (bytes.length > 8 * 1024 * 1024) {
           throw const AppFormatException(
             AppErrorCode.theEditedImageExceeds8,
-            '编辑副本超过 8 MB。',
+            "编辑副本超过 8 MB。",
           );
         }
         final (mime, extension) = AttachmentStore.identify(bytes);
-        final path = 'attachments/${const Uuid().v4()}.$extension';
+        final path = "attachments/${const Uuid().v4()}.$extension";
         String? discard;
         try {
           await db.transaction(() async {
@@ -288,7 +288,7 @@ extension _ChatSessions on AppController {
             if (row == null) {
               throw const AppFormatException(
                 AppErrorCode.theImageWasSentOr,
-                '图片已发送或草稿已切换，请重新打开编辑。',
+                "图片已发送或草稿已切换，请重新打开编辑。",
               );
             }
             final file = files.resolve(path);
@@ -399,7 +399,7 @@ extension _ChatSessions on AppController {
           inheritStudyLinks: inheritStudyLinks,
         );
     await _loadSession(branch);
-    search = '';
+    search = "";
     await reload();
     return branch;
   }
@@ -407,7 +407,7 @@ extension _ChatSessions on AppController {
   Future<void> _editAndResendImpl(ChatMessage message, String text) async {
     if (busy || text.trim().isEmpty || selected == null) return;
     final index = messages.indexWhere((m) => m.id == message.id);
-    if (index < 0 || message.role != 'user') return;
+    if (index < 0 || message.role != "user") return;
     await _startRequest(() async {
       final branch = await _forkSession(message, editedText: text);
       return (sessionId: branch.id, enableConversationTitle: false);

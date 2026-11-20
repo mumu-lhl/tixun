@@ -1,19 +1,20 @@
-import 'dart:convert';
-import 'dart:io';
-import 'dart:math' as math;
+import "dart:async";
+import "dart:convert";
+import "dart:io";
+import "dart:math" as math;
 
-import 'package:drift/drift.dart' hide Column;
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:drift/drift.dart" hide Column;
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../app/controller.dart';
-import '../../core/ai/region_tool.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import 'image_editor.dart';
-import 'study_store.dart';
+import "../../app/controller.dart";
+import "../../core/ai/region_tool.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "image_editor.dart";
+import "study_store.dart";
 
 Future<String> saveSplitSuggestion(
   StudyStore store,
@@ -243,7 +244,7 @@ class _RegionOverlayPainter extends CustomPainter {
       );
       final label = TextPainter(
         text: TextSpan(
-          text: '${i + 1}',
+          text: "${i + 1}",
           style: TextStyle(
             color: badgeText,
             fontSize: 12,
@@ -276,13 +277,13 @@ class SplitSuggestionCard extends ConsumerWidget {
     try {
       final data = (jsonDecode(operation.result!) as Map)
           .cast<String, dynamic>();
-      final regions = (data['regions'] as List)
+      final regions = (data["regions"] as List)
           .map(
             (r) => QuestionRegion.fromJson((r as Map).cast<String, dynamic>()),
           )
           .toList();
-      final accepted = (data['accepted'] as Map? ?? {}).cast<String, dynamic>();
-      final imageId = data['image_id'] as String;
+      final accepted = (data["accepted"] as Map? ?? {}).cast<String, dynamic>();
+      final imageId = data["image_id"] as String;
       return ref
           .watch(_splitImageProvider(imageId))
           .when(
@@ -341,11 +342,11 @@ class SplitSuggestionCard extends ConsumerWidget {
                         title: Text(regions[i].label),
                         subtitle: Text(context.subjectName(regions[i].subject)),
                         trailing: TextButton(
-                          key: Key('check-region-$i'),
+                          key: Key("check-region-$i"),
                           onPressed: () => act(context, () async {
-                            final prior = accepted['$i'];
+                            final prior = accepted["$i"];
                             if (prior is String) {
-                              context.push('/mistakes/$prior');
+                              unawaited(context.push("/mistakes/$prior"));
                               return;
                             }
                             final region = regions[i];
@@ -361,7 +362,7 @@ class SplitSuggestionCard extends ConsumerWidget {
                                   mime: image.mime,
                                   byteLength: image.byteLength,
                                   parentId: null,
-                                  role: 'original',
+                                  role: "original",
                                   deleted: false,
                                 ),
                                 isMistake: true,
@@ -393,14 +394,14 @@ class SplitSuggestionCard extends ConsumerWidget {
                                   action: SnackBarAction(
                                     label: context.l10n.view,
                                     onPressed: () =>
-                                        context.push('/mistakes/$selected'),
+                                        context.push("/mistakes/$selected"),
                                   ),
                                 ),
                               );
                             }
                           }),
                           child: Text(
-                            accepted['$i'] is String
+                            accepted["$i"] is String
                                 ? context.l10n.viewMistakes
                                 : context.l10n.checkAndSave,
                           ),

@@ -1,86 +1,37 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart' hide isNull, isNotNull;
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/ai/ai_types.dart';
-import 'package:tixun/core/ai/visual_tool.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/features/visual/visual_store.dart';
+import "package:dio/dio.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/ai/ai_types.dart";
+import "package:tixun/core/ai/visual_tool.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/features/visual/visual_store.dart";
+
+import "support/visual_fixtures.dart";
+
+part "visual_edit_tool_schema_cases.dart";
 
 Map<String, dynamic> _plotScene({
-  String expression = 'x^2-4',
-  String title = '二次函数',
+  String expression = "x^2-4",
+  String title = "二次函数",
 }) => {
-  'v': 1,
-  'kind': 'plot2d',
-  'title': title,
-  'model': {'expression': expression},
-  'view': {
-    'x': [-3, 3],
-    'y': [-5, 6],
+  "v": 1,
+  "kind": "plot2d",
+  "title": title,
+  "model": {"expression": expression},
+  "view": {
+    "x": [-3, 3],
+    "y": [-5, 6],
   },
-  'meta': {'alt': '抛物线的图像'},
+  "meta": {"alt": "抛物线的图像"},
 };
-
-Future<void> _seedMessage(
-  AppDatabase db,
-  String sessionId,
-  String messageId,
-) async {
-  final now = DateTime.now();
-  await db
-      .into(db.chatSessions)
-      .insert(
-        ChatSessionsCompanion.insert(
-          id: sessionId,
-          title: '会话',
-          createdAt: now,
-          updatedAt: now,
-        ),
-        mode: InsertMode.insertOrIgnore,
-      );
-  await db
-      .into(db.chatMessages)
-      .insert(
-        ChatMessagesCompanion.insert(
-          id: messageId,
-          sessionId: sessionId,
-          role: 'assistant',
-          content: '请看图',
-          createdAt: now,
-        ),
-      );
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('updateVisualToolSchema and getVisualToolSchema are strict', () {
-    expect(updateVisualToolSchema.name, 'update_visual');
-    expect(updateVisualToolSchema.parameters['additionalProperties'], isFalse);
-    // scene OR ops: the executor enforces exactly one, so the schema
-    // only requires the id.
-    expect((updateVisualToolSchema.parameters['required'] as List), [
-      'visual_id',
-    ]);
-    expect(
-      (updateVisualToolSchema.parameters['properties'] as Map).keys,
-      containsAll(['visual_id', 'scene', 'ops', 'title']),
-    );
-    expect(getVisualToolSchema.name, 'get_visual');
-    expect(getVisualToolSchema.parameters['additionalProperties'], isFalse);
-    expect(
-      (getVisualToolSchema.parameters['required'] as List),
-      contains('visual_id'),
-    );
-    expect(
-      (getVisualToolSchema.parameters['properties'] as Map).keys,
-      containsAll(['visual_id', 'revision']),
-    );
-  });
+  _visualEditSchemaCases();
 
-  group('executeUpdateVisualTool / executeGetVisualTool', () {
+  group("executeUpdateVisualTool / executeGetVisualTool", () {
     late AppDatabase db;
     late VisualStore store;
 
@@ -96,11 +47,11 @@ void main() {
     Future<Map<String, dynamic>> runCreate(
       String callId,
       Map<String, dynamic> args, {
-      String runId = 'run-1',
+      String runId = "run-1",
     }) => executeVisualTool(
       store,
-      ToolCall(callId, 'create_visual', jsonEncode(args)),
-      sessionId: 'session-1',
+      ToolCall(callId, "create_visual", jsonEncode(args)),
+      sessionId: "session-1",
       runId: runId,
       cancel: CancelToken(),
     );
@@ -108,11 +59,11 @@ void main() {
     Future<Map<String, dynamic>> runUpdate(
       String callId,
       Map<String, dynamic> args, {
-      String runId = 'run-1',
+      String runId = "run-1",
     }) => executeUpdateVisualTool(
       store,
-      ToolCall(callId, 'update_visual', jsonEncode(args)),
-      sessionId: 'session-1',
+      ToolCall(callId, "update_visual", jsonEncode(args)),
+      sessionId: "session-1",
       runId: runId,
       cancel: CancelToken(),
     );
@@ -120,381 +71,379 @@ void main() {
     Future<Map<String, dynamic>> runGet(
       String callId,
       Map<String, dynamic> args, {
-      String runId = 'run-1',
+      String runId = "run-1",
     }) => executeGetVisualTool(
       store,
-      ToolCall(callId, 'get_visual', jsonEncode(args)),
-      sessionId: 'session-1',
+      ToolCall(callId, "get_visual", jsonEncode(args)),
+      sessionId: "session-1",
       runId: runId,
       cancel: CancelToken(),
     );
 
     Future<String> createScene() async {
-      await _seedMessage(db, 'session-1', 'run-1');
-      final created = await runCreate('call-create', {'scene': _plotScene()});
-      expect(created['ok'], isTrue);
-      return created['visual_id'] as String;
+      await seedVisualMessage(db, "session-1", "run-1");
+      final created = await runCreate("call-create", {"scene": _plotScene()});
+      expect(created["ok"], isTrue);
+      return created["visual_id"] as String;
     }
 
     test(
-      'update happy path bumps revision and keeps the old snapshot',
+      "update happy path bumps revision and keeps the old snapshot",
       () async {
         final id = await createScene();
-        final updated = await runUpdate('call-update', {
-          'visual_id': id,
-          'scene': _plotScene(expression: 'x^2', title: '更新后的图'),
+        final updated = await runUpdate("call-update", {
+          "visual_id": id,
+          "scene": _plotScene(expression: "x^2", title: "更新后的图"),
         });
-        expect(updated['ok'], isTrue);
-        expect(updated['visual_id'], id);
-        expect(updated['revision'], 2);
-        expect(updated['verification'], 'verified');
+        expect(updated["ok"], isTrue);
+        expect(updated["visual_id"], id);
+        expect(updated["revision"], 2);
+        expect(updated["verification"], "verified");
         final row = (await db.select(db.visualScenes).get()).single;
         expect(row.revision, 2);
         final stored = jsonDecode(row.sceneJson) as Map;
-        expect((stored['model'] as Map)['expression'], 'x^2');
-        expect(stored['title'], '更新后的图');
-        // Revision 1 still holds the ORIGINAL scene JSON.
+        expect((stored["model"] as Map)["expression"], "x^2");
+        expect(stored["title"], "更新后的图");
         final original = await store.getRevisionSceneJson(id, 1);
         expect(original, isNotNull);
         final originalScene = jsonDecode(original!) as Map;
-        expect((originalScene['model'] as Map)['expression'], 'x^2-4');
-        expect(originalScene['title'], '二次函数');
+        expect((originalScene["model"] as Map)["expression"], "x^2-4");
+        expect(originalScene["title"], "二次函数");
         final revised = await store.getRevisionSceneJson(id, 2);
         expect(revised, isNotNull);
-        expect((jsonDecode(revised!) as Map)['title'], '更新后的图');
+        expect((jsonDecode(revised!) as Map)["title"], "更新后的图");
       },
     );
 
-    test('update of an unknown id returns ok:false', () async {
-      await _seedMessage(db, 'session-1', 'run-1');
-      final result = await runUpdate('call-1', {
-        'visual_id': 'no-such-id',
-        'scene': _plotScene(),
+    test("update of an unknown id returns ok:false", () async {
+      await seedVisualMessage(db, "session-1", "run-1");
+      final result = await runUpdate("call-1", {
+        "visual_id": "no-such-id",
+        "scene": _plotScene(),
       });
-      expect(result['ok'], isFalse);
-      expect(result['error'], contains('不存在'));
+      expect(result["ok"], isFalse);
+      expect(result["error"], contains("不存在"));
       expect(await db.select(db.visualScenes).get(), isEmpty);
       expect(await db.select(db.aiToolOperations).get(), isEmpty);
     });
 
     test(
-      'update with an invalid scene returns ok:false and keeps revision 1',
+      "update with an invalid scene returns ok:false and keeps revision 1",
       () async {
         final id = await createScene();
-        final result = await runUpdate('call-1', {
-          'visual_id': id,
-          'scene': _plotScene(expression: 'z^2'),
+        final result = await runUpdate("call-1", {
+          "visual_id": id,
+          "scene": _plotScene(expression: "z^2"),
         });
-        expect(result['ok'], isFalse);
-        expect(result['error'], isA<String>());
+        expect(result["ok"], isFalse);
+        expect(result["error"], isA<String>());
         final row = (await db.select(db.visualScenes).get()).single;
         expect(row.revision, 1);
         final stored = jsonDecode(row.sceneJson) as Map;
-        expect((stored['model'] as Map)['expression'], 'x^2-4');
+        expect((stored["model"] as Map)["expression"], "x^2-4");
         expect(await db.select(db.visualSceneRevisions).get(), hasLength(1));
       },
     );
 
     Map<String, dynamic> geometryScene() => {
-      'v': 1,
-      'kind': 'geometry',
-      'title': '三角形',
-      'elements': [
+      "v": 1,
+      "kind": "geometry",
+      "title": "三角形",
+      "elements": [
         {
-          'id': 'p1',
-          'type': 'point',
-          'at': [0, 0],
-          'label': 'A',
+          "id": "p1",
+          "type": "point",
+          "at": [0, 0],
+          "label": "A",
         },
         {
-          'id': 'p2',
-          'type': 'point',
-          'at': [3, 0],
-          'label': 'B',
+          "id": "p2",
+          "type": "point",
+          "at": [3, 0],
+          "label": "B",
         },
       ],
-      'meta': {'alt': '两个点'},
+      "meta": {"alt": "两个点"},
     };
 
     /// Same two points, but with an explicit view so the quality check
     /// can flag points that fall outside it.
     Map<String, dynamic> viewedGeometryScene() => {
-      'v': 1,
-      'kind': 'geometry',
-      'title': '三角形',
-      'view': {
-        'x': [-3, 3],
-        'y': [-3, 3],
+      "v": 1,
+      "kind": "geometry",
+      "title": "三角形",
+      "view": {
+        "x": [-3, 3],
+        "y": [-3, 3],
       },
-      'elements': [
+      "elements": [
         {
-          'id': 'p1',
-          'type': 'point',
-          'at': [0, 0],
-          'label': 'A',
+          "id": "p1",
+          "type": "point",
+          "at": [0, 0],
+          "label": "A",
         },
         {
-          'id': 'p2',
-          'type': 'point',
-          'at': [3, 0],
-          'label': 'B',
+          "id": "p2",
+          "type": "point",
+          "at": [3, 0],
+          "label": "B",
         },
       ],
-      'meta': {'alt': '两个点'},
+      "meta": {"alt": "两个点"},
     };
 
     Future<String> createGeometryScene() async {
-      await _seedMessage(db, 'session-1', 'run-1');
-      final created = await runCreate('call-create', {
-        'scene': geometryScene(),
+      await seedVisualMessage(db, "session-1", "run-1");
+      final created = await runCreate("call-create", {
+        "scene": geometryScene(),
       });
-      expect(created['ok'], isTrue);
-      return created['visual_id'] as String;
+      expect(created["ok"], isTrue);
+      return created["visual_id"] as String;
     }
 
     Future<String> createViewedGeometryScene() async {
-      await _seedMessage(db, 'session-1', 'run-1');
-      final created = await runCreate('call-create', {
-        'scene': viewedGeometryScene(),
+      await seedVisualMessage(db, "session-1", "run-1");
+      final created = await runCreate("call-create", {
+        "scene": viewedGeometryScene(),
       });
-      expect(created['ok'], isTrue);
-      return created['visual_id'] as String;
+      expect(created["ok"], isTrue);
+      return created["visual_id"] as String;
     }
 
-    test('update with ops patches elements by id', () async {
+    test("update with ops patches elements by id", () async {
       final id = await createGeometryScene();
-      final updated = await runUpdate('call-patch', {
-        'visual_id': id,
-        'ops': [
+      final updated = await runUpdate("call-patch", {
+        "visual_id": id,
+        "ops": [
           {
-            'op': 'replace_element',
-            'id': 'p1',
-            'element': {
-              'id': 'p1',
-              'type': 'point',
-              'at': [1, 1],
-              'label': 'P',
+            "op": "replace_element",
+            "id": "p1",
+            "element": {
+              "id": "p1",
+              "type": "point",
+              "at": [1, 1],
+              "label": "P",
             },
           },
           {
-            'op': 'add_element',
-            'element': {
-              'id': 'p3',
-              'type': 'point',
-              'at': [2, 2],
+            "op": "add_element",
+            "element": {
+              "id": "p3",
+              "type": "point",
+              "at": [2, 2],
             },
           },
-          {'op': 'remove_element', 'id': 'p2'},
-          {'op': 'set_title', 'title': '改过的标题'},
+          {"op": "remove_element", "id": "p2"},
+          {"op": "set_title", "title": "改过的标题"},
         ],
       });
-      expect(updated['ok'], isTrue);
-      expect(updated['visual_id'], id);
-      expect(updated['revision'], 2);
+      expect(updated["ok"], isTrue);
+      expect(updated["visual_id"], id);
+      expect(updated["revision"], 2);
       final scene = jsonDecode((await store.get(id))!.sceneJson) as Map;
-      expect(scene['title'], '改过的标题');
-      final elements = scene['elements'] as List;
-      expect(elements.map((e) => (e as Map)['id']), ['p1', 'p3']);
-      expect((elements[0] as Map)['at'], [1, 1]);
-      // Revision 1 still holds the original two points.
+      expect(scene["title"], "改过的标题");
+      final elements = scene["elements"] as List;
+      expect(elements.map((e) => (e as Map)["id"]), ["p1", "p3"]);
+      expect((elements[0] as Map)["at"], [1, 1]);
       final original =
           jsonDecode((await store.getRevisionSceneJson(id, 1))!) as Map;
-      expect((original['elements'] as List).map((e) => (e as Map)['id']), [
-        'p1',
-        'p2',
+      expect((original["elements"] as List).map((e) => (e as Map)["id"]), [
+        "p1",
+        "p2",
       ]);
-      expect(original['title'], '三角形');
+      expect(original["title"], "三角形");
     });
 
-    test('update with ops patches an element inside a group', () async {
-      await _seedMessage(db, 'session-1', 'run-1');
-      final created = await runCreate('call-create', {
-        'scene': {
-          'v': 1,
-          'kind': 'geometry',
-          'title': '分组',
-          'elements': [
+    test("update with ops patches an element inside a group", () async {
+      await seedVisualMessage(db, "session-1", "run-1");
+      final created = await runCreate("call-create", {
+        "scene": {
+          "v": 1,
+          "kind": "geometry",
+          "title": "分组",
+          "elements": [
             {
-              'id': 'g1',
-              'type': 'group',
-              'children': [
+              "id": "g1",
+              "type": "group",
+              "children": [
                 {
-                  'id': 'p1',
-                  'type': 'point',
-                  'at': [0, 0],
+                  "id": "p1",
+                  "type": "point",
+                  "at": [0, 0],
                 },
                 {
-                  'id': 'p2',
-                  'type': 'point',
-                  'at': [1, 1],
+                  "id": "p2",
+                  "type": "point",
+                  "at": [1, 1],
                 },
               ],
             },
             {
-              'id': 'p3',
-              'type': 'point',
-              'at': [2, 2],
+              "id": "p3",
+              "type": "point",
+              "at": [2, 2],
             },
           ],
-          'meta': {'alt': '分组场景'},
+          "meta": {"alt": "分组场景"},
         },
       });
-      expect(created['ok'], isTrue);
-      final id = created['visual_id'] as String;
-      final updated = await runUpdate('call-patch', {
-        'visual_id': id,
-        'ops': [
+      expect(created["ok"], isTrue);
+      final id = created["visual_id"] as String;
+      final updated = await runUpdate("call-patch", {
+        "visual_id": id,
+        "ops": [
           {
-            'op': 'replace_element',
-            'id': 'p1',
-            'element': {
-              'id': 'p1',
-              'type': 'point',
-              'at': [1, 1],
+            "op": "replace_element",
+            "id": "p1",
+            "element": {
+              "id": "p1",
+              "type": "point",
+              "at": [1, 1],
             },
           },
-          {'op': 'remove_element', 'id': 'p2'},
+          {"op": "remove_element", "id": "p2"},
         ],
       });
-      expect(updated['ok'], isTrue);
-      expect(updated['revision'], 2);
+      expect(updated["ok"], isTrue);
+      expect(updated["revision"], 2);
       final scene = jsonDecode((await store.get(id))!.sceneJson) as Map;
-      final g1 = (scene['elements'] as List)[0] as Map;
-      expect((g1['children'] as List).map((e) => (e as Map)['id']).toList(), [
-        'p1',
+      final g1 = (scene["elements"] as List)[0] as Map;
+      expect((g1["children"] as List).map((e) => (e as Map)["id"]).toList(), [
+        "p1",
       ]);
-      expect(((g1['children'] as List)[0] as Map)['at'], [1, 1]);
-      expect((scene['elements'] as List).length, 2);
+      expect(((g1["children"] as List)[0] as Map)["at"], [1, 1]);
+      expect((scene["elements"] as List).length, 2);
     });
 
     test(
-      'update reports quality_issues when a patch moves a point out of view',
+      "update reports quality_issues when a patch moves a point out of view",
       () async {
         final id = await createViewedGeometryScene();
-        final updated = await runUpdate('call-patch', {
-          'visual_id': id,
-          'ops': [
+        final updated = await runUpdate("call-patch", {
+          "visual_id": id,
+          "ops": [
             {
-              'op': 'replace_element',
-              'id': 'p1',
-              'element': {
-                'id': 'p1',
-                'type': 'point',
-                'at': [5, 5],
-                'label': 'A',
+              "op": "replace_element",
+              "id": "p1",
+              "element": {
+                "id": "p1",
+                "type": "point",
+                "at": [5, 5],
+                "label": "A",
               },
             },
           ],
         });
-        expect(updated['ok'], isTrue);
-        expect(updated['revision'], 2);
-        final issues = updated['quality_issues'] as List;
+        expect(updated["ok"], isTrue);
+        expect(updated["revision"], 2);
+        final issues = updated["quality_issues"] as List;
         expect(
-          issues.map((i) => (i as Map)['code']),
-          contains('point_outside_view'),
+          issues.map((i) => (i as Map)["code"]),
+          contains("point_outside_view"),
         );
         final outside = issues.firstWhere(
-          (i) => (i as Map)['code'] == 'point_outside_view',
+          (i) => (i as Map)["code"] == "point_outside_view",
         ) as Map;
-        expect(outside['path'], 'p1');
+        expect(outside["path"], "p1");
       },
     );
 
     test(
-      'update without quality issues omits the quality_issues key',
+      "update without quality issues omits the quality_issues key",
       () async {
         final id = await createViewedGeometryScene();
-        final updated = await runUpdate('call-patch', {
-          'visual_id': id,
-          'ops': [
+        final updated = await runUpdate("call-patch", {
+          "visual_id": id,
+          "ops": [
             {
-              'op': 'replace_element',
-              'id': 'p1',
-              'element': {
-                'id': 'p1',
-                'type': 'point',
-                'at': [1, 1],
-                'label': 'A',
+              "op": "replace_element",
+              "id": "p1",
+              "element": {
+                "id": "p1",
+                "type": "point",
+                "at": [1, 1],
+                "label": "A",
               },
             },
           ],
         });
-        expect(updated['ok'], isTrue);
-        expect(updated['revision'], 2);
-        expect(updated.containsKey('quality_issues'), isFalse);
+        expect(updated["ok"], isTrue);
+        expect(updated["revision"], 2);
+        expect(updated.containsKey("quality_issues"), isFalse);
       },
     );
 
-    test('update with bad ops returns ok:false and keeps revision 1', () async {
+    test("update with bad ops returns ok:false and keeps revision 1", () async {
       final id = await createGeometryScene();
       final badCalls = [
         {
-          'visual_id': id,
-          'ops': [
-            {'op': 'explode'},
+          "visual_id": id,
+          "ops": [
+            {"op": "explode"},
           ],
         },
         {
-          'visual_id': id,
-          'ops': [
+          "visual_id": id,
+          "ops": [
             {
-              'op': 'replace_element',
-              'id': 'no-such',
-              'element': {
-                'id': 'no-such',
-                'type': 'point',
-                'at': [0, 0],
+              "op": "replace_element",
+              "id": "no-such",
+              "element": {
+                "id": "no-such",
+                "type": "point",
+                "at": [0, 0],
               },
             },
           ],
         },
         {
-          'visual_id': id,
-          'ops': [
+          "visual_id": id,
+          "ops": [
             {
-              'op': 'replace_element',
-              'id': 'p1',
-              'element': {
-                'id': 'other',
-                'type': 'point',
-                'at': [0, 0],
+              "op": "replace_element",
+              "id": "p1",
+              "element": {
+                "id": "other",
+                "type": "point",
+                "at": [0, 0],
               },
             },
           ],
         },
         {
-          'visual_id': id,
-          'ops': [
+          "visual_id": id,
+          "ops": [
             {
-              'op': 'add_element',
-              'element': {
-                'id': 'p1',
-                'type': 'point',
-                'at': [0, 0],
+              "op": "add_element",
+              "element": {
+                "id": "p1",
+                "type": "point",
+                "at": [0, 0],
               },
             },
           ],
         },
         {
-          'visual_id': id,
-          'ops': [
-            {'op': 'remove_element', 'id': 'no-such'},
+          "visual_id": id,
+          "ops": [
+            {"op": "remove_element", "id": "no-such"},
           ],
         },
-        {'visual_id': id, 'ops': []},
+        {"visual_id": id, "ops": []},
         {
-          'visual_id': id,
-          'scene': _plotScene(),
-          'ops': [
-            {'op': 'set_title', 'title': 'x'},
+          "visual_id": id,
+          "scene": _plotScene(),
+          "ops": [
+            {"op": "set_title", "title": "x"},
           ],
         },
-        {'visual_id': id},
+        {"visual_id": id},
       ];
       for (var i = 0; i < badCalls.length; i++) {
-        final result = await runUpdate('call-bad-$i', badCalls[i]);
-        expect(result['ok'], isFalse, reason: 'call $i: $result');
-        expect(result['error'], isA<String>());
+        final result = await runUpdate("call-bad-$i", badCalls[i]);
+        expect(result["ok"], isFalse, reason: "call $i: $result");
+        expect(result["error"], isA<String>());
       }
       final row = (await db.select(db.visualScenes).get()).single;
       expect(row.revision, 1);
@@ -502,161 +451,157 @@ void main() {
     });
 
     test(
-      'patch replay returns the cached result, no second revision',
+      "patch replay returns the cached result, no second revision",
       () async {
         final id = await createGeometryScene();
         final args = {
-          'visual_id': id,
-          'ops': [
-            {'op': 'set_title', 'title': '补丁标题'},
+          "visual_id": id,
+          "ops": [
+            {"op": "set_title", "title": "补丁标题"},
           ],
         };
-        final first = await runUpdate('call-patch', args);
-        expect(first['ok'], isTrue);
-        expect(first['revision'], 2);
-        final replay = await runUpdate('call-patch', args);
-        expect(replay['ok'], isTrue);
-        expect(replay['revision'], 2);
+        final first = await runUpdate("call-patch", args);
+        expect(first["ok"], isTrue);
+        expect(first["revision"], 2);
+        final replay = await runUpdate("call-patch", args);
+        expect(replay["ok"], isTrue);
+        expect(replay["revision"], 2);
         final row = (await db.select(db.visualScenes).get()).single;
         expect(row.revision, 2);
         expect(await db.select(db.visualSceneRevisions).get(), hasLength(2));
       },
     );
 
-    test('get current returns the updated scene at revision 2', () async {
+    test("get current returns the updated scene at revision 2", () async {
       final id = await createScene();
-      await runUpdate('call-update', {
-        'visual_id': id,
-        'scene': _plotScene(expression: 'x^2', title: '更新后的图'),
+      await runUpdate("call-update", {
+        "visual_id": id,
+        "scene": _plotScene(expression: "x^2", title: "更新后的图"),
       });
-      final result = await runGet('call-get', {'visual_id': id});
-      expect(result['ok'], isTrue);
-      expect(result['visual_id'], id);
-      expect(result['revision'], 2);
-      expect(result['title'], '更新后的图');
-      expect(result['verification_status'], 'verified');
-      final scene = result['scene'] as Map;
-      expect((scene['model'] as Map)['expression'], 'x^2');
-      expect(scene['title'], '更新后的图');
+      final result = await runGet("call-get", {"visual_id": id});
+      expect(result["ok"], isTrue);
+      expect(result["visual_id"], id);
+      expect(result["revision"], 2);
+      expect(result["title"], "更新后的图");
+      expect(result["verification_status"], "verified");
+      final scene = result["scene"] as Map;
+      expect((scene["model"] as Map)["expression"], "x^2");
+      expect(scene["title"], "更新后的图");
     });
 
-    test('get revision 1 returns the original scene', () async {
+    test("get revision 1 returns the original scene", () async {
       final id = await createScene();
-      await runUpdate('call-update', {
-        'visual_id': id,
-        'scene': _plotScene(expression: 'x^2', title: '更新后的图'),
+      await runUpdate("call-update", {
+        "visual_id": id,
+        "scene": _plotScene(expression: "x^2", title: "更新后的图"),
       });
-      final result = await runGet('call-get', {'visual_id': id, 'revision': 1});
-      expect(result['ok'], isTrue);
-      expect(result['revision'], 1);
-      final scene = result['scene'] as Map;
-      expect((scene['model'] as Map)['expression'], 'x^2-4');
-      expect(scene['title'], '二次函数');
+      final result = await runGet("call-get", {"visual_id": id, "revision": 1});
+      expect(result["ok"], isTrue);
+      expect(result["revision"], 1);
+      final scene = result["scene"] as Map;
+      expect((scene["model"] as Map)["expression"], "x^2-4");
+      expect(scene["title"], "二次函数");
     });
 
     test(
-      'get of an old revision reports that revision\'s title and verification',
+      "get of an old revision reports that revision's title and verification",
       () async {
         final id = await createScene();
         // The update turns the scene schematic, so the live row's
         // verification no longer matches revision 1: a snapshot read
         // must re-derive both values from the snapshot JSON, not the row.
-        final updated = await runUpdate('call-update', {
-          'visual_id': id,
-          'scene': {
-            ..._plotScene(expression: 'x^2', title: '更新后的图'),
-            'meta': {'schematic': true, 'alt': '抛物线的图像'},
+        final updated = await runUpdate("call-update", {
+          "visual_id": id,
+          "scene": {
+            ..._plotScene(expression: "x^2", title: "更新后的图"),
+            "meta": {"schematic": true, "alt": "抛物线的图像"},
           },
         });
-        expect(updated['ok'], isTrue);
-        expect(updated['verification'], 'schematic');
-        final old = await runGet('call-get-old', {
-          'visual_id': id,
-          'revision': 1,
+        expect(updated["ok"], isTrue);
+        expect(updated["verification"], "schematic");
+        final old = await runGet("call-get-old", {
+          "visual_id": id,
+          "revision": 1,
         });
-        expect(old['ok'], isTrue);
-        expect(old['title'], '二次函数');
-        expect(old['verification_status'], 'verified');
-        final current = await runGet('call-get-now', {'visual_id': id});
-        expect(current['title'], '更新后的图');
-        expect(current['verification_status'], 'schematic');
+        expect(old["ok"], isTrue);
+        expect(old["title"], "二次函数");
+        expect(old["verification_status"], "verified");
+        final current = await runGet("call-get-now", {"visual_id": id});
+        expect(current["title"], "更新后的图");
+        expect(current["verification_status"], "schematic");
       },
     );
 
-    test('replaying an ops update after the scene was deleted returns the cached result', () async {
+    test("replaying an ops update after the scene was deleted returns the cached result", () async {
       final id = await createScene();
       final args = {
-        'visual_id': id,
-        'ops': [
-          {'op': 'set_title', 'title': '改名后的图'},
+        "visual_id": id,
+        "ops": [
+          {"op": "set_title", "title": "改名后的图"},
         ],
       };
-      final first = await runUpdate('call-ops', args);
-      expect(first['ok'], isTrue);
-      expect(first['revision'], 2);
-      // The scene row is gone (deleted out of band); the replay must
-      // still answer from the idempotency cache instead of failing on
-      // the read that used to happen before the transaction.
+      final first = await runUpdate("call-ops", args);
+      expect(first["ok"], isTrue);
+      expect(first["revision"], 2);
+      // Delete the scene out of band so this replay can only succeed from the operation cache.
       await (db.delete(db.visualScenes)..where((s) => s.id.equals(id))).go();
-      final replay = await runUpdate('call-ops', args);
-      expect(replay['ok'], isTrue);
-      expect(replay['visual_id'], id);
-      expect(replay['revision'], 2);
+      final replay = await runUpdate("call-ops", args);
+      expect(replay["ok"], isTrue);
+      expect(replay["visual_id"], id);
+      expect(replay["revision"], 2);
     });
 
-    test('get of an unknown id returns ok:false', () async {
-      await _seedMessage(db, 'session-1', 'run-1');
-      final result = await runGet('call-1', {'visual_id': 'no-such-id'});
-      expect(result['ok'], isFalse);
-      expect(result['error'], contains('不存在'));
+    test("get of an unknown id returns ok:false", () async {
+      await seedVisualMessage(db, "session-1", "run-1");
+      final result = await runGet("call-1", {"visual_id": "no-such-id"});
+      expect(result["ok"], isFalse);
+      expect(result["error"], contains("不存在"));
     });
 
-    test('get of an unknown revision returns ok:false', () async {
+    test("get of an unknown revision returns ok:false", () async {
       final id = await createScene();
-      final result = await runGet('call-1', {'visual_id': id, 'revision': 99});
-      expect(result['ok'], isFalse);
-      expect(result['error'], contains('修订不存在'));
+      final result = await runGet("call-1", {"visual_id": id, "revision": 99});
+      expect(result["ok"], isFalse);
+      expect(result["error"], contains("修订不存在"));
     });
 
-    test('get writes no aiToolOperations row', () async {
+    test("get writes no aiToolOperations row", () async {
       final id = await createScene();
-      final result = await runGet('call-1', {'visual_id': id});
-      expect(result['ok'], isTrue);
-      // Only the create call left an operations row.
+      final result = await runGet("call-1", {"visual_id": id});
+      expect(result["ok"], isTrue);
       final ops = await db.select(db.aiToolOperations).get();
       expect(ops, hasLength(1));
-      expect(ops.single.name, 'create_visual');
+      expect(ops.single.name, "create_visual");
     });
 
-    test('replayed update bumps the revision exactly once', () async {
+    test("replayed update bumps the revision exactly once", () async {
       final id = await createScene();
       final args = {
-        'visual_id': id,
-        'scene': _plotScene(expression: 'x^2', title: '更新后的图'),
+        "visual_id": id,
+        "scene": _plotScene(expression: "x^2", title: "更新后的图"),
       };
-      final first = await runUpdate('call-update', args);
-      expect(first['ok'], isTrue);
-      expect(first['revision'], 2);
-      final second = await runUpdate('call-update', args);
-      expect(second['ok'], isTrue);
-      expect(second['visual_id'], first['visual_id']);
-      expect(second['revision'], 2);
+      final first = await runUpdate("call-update", args);
+      expect(first["ok"], isTrue);
+      expect(first["revision"], 2);
+      final second = await runUpdate("call-update", args);
+      expect(second["ok"], isTrue);
+      expect(second["visual_id"], first["visual_id"]);
+      expect(second["revision"], 2);
       expect(await db.select(db.visualSceneRevisions).get(), hasLength(2));
       final row = (await db.select(db.visualScenes).get()).single;
       expect(row.revision, 2);
-      // Same call id with different arguments is an error.
-      final conflict = await runUpdate('call-update', {
-        'visual_id': id,
-        'scene': _plotScene(expression: 'x^2 + 1', title: '又改了'),
+      final conflict = await runUpdate("call-update", {
+        "visual_id": id,
+        "scene": _plotScene(expression: "x^2 + 1", title: "又改了"),
       });
-      expect(conflict['ok'], isFalse);
+      expect(conflict["ok"], isFalse);
       expect(await db.select(db.visualSceneRevisions).get(), hasLength(2));
     });
 
-    test('getRevisionSceneJson returns null for a missing revision', () async {
+    test("getRevisionSceneJson returns null for a missing revision", () async {
       final id = await createScene();
       expect(await store.getRevisionSceneJson(id, 99), isNull);
-      expect(await store.getRevisionSceneJson('no-such-id', 1), isNull);
+      expect(await store.getRevisionSceneJson("no-such-id", 1), isNull);
     });
   });
 }

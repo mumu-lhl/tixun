@@ -1,11 +1,11 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/app/preferences.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/features/library/study_store.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/app/preferences.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/library/study_store.dart";
 
 void main() {
   late Directory root;
@@ -18,53 +18,53 @@ void main() {
     chatProvider: MockChatProvider(),
   );
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('tixun-subjects');
+    root = await Directory.systemTemp.createTemp("tixun-subjects");
     c = await open();
   });
   tearDown(() async {
     await c.shutdown();
     await root.delete(recursive: true);
   });
-  test('Fresh subject choices are compact and existing users retain recorded subjects', () async {
-    expect(c.learningSubjects, ['语文', '数学', '英语']);
-    await c.study.saveMistake(const MistakeDraft(title: '既有错题', subject: '物理'));
+  test("Fresh subject choices are compact and existing users retain recorded subjects", () async {
+    expect(c.learningSubjects, ["语文", "数学", "英语"]);
+    await c.study.saveMistake(const MistakeDraft(title: "既有错题", subject: "物理"));
     await c.study.saveKnowledge(
-      const KnowledgeDraft(title: '语言学习', content: '正文', subject: '日语'),
+      const KnowledgeDraft(title: "语言学习", content: "正文", subject: "日语"),
     );
     await c.shutdown();
     c = await open();
-    expect(c.learningSubjects, containsAll(['语文', '数学', '英语', '物理', '日语']));
-    expect(c.learningSubjects, isNot(contains('政治')));
+    expect(c.learningSubjects, containsAll(["语文", "数学", "英语", "物理", "日语"]));
+    expect(c.learningSubjects, isNot(contains("政治")));
   });
-  test('Saved selections and custom filters survive restart; removing a subject keeps material and resets its filter', () async {
+  test("Saved selections and custom filters survive restart; removing a subject keeps material and resets its filter", () async {
     final item = await c.study.saveMistake(
-      const MistakeDraft(title: '受力分析', subject: '物理'),
+      const MistakeDraft(title: "受力分析", subject: "物理"),
     );
-    await c.setLearningSubjects(['语文', '数学', '英语', '物理', '化学', '生物', '日语']);
-    await c.setSubjectFilter('物理');
-    await c.setLearningSubjects(['语文', '数学', '英语', '日语']);
-    expect(c.subjectFilter, '');
-    expect(await c.db.preference('subject_filter'), '');
-    expect((await c.study.mistake(item.id)).subject, '物理');
+    await c.setLearningSubjects(["语文", "数学", "英语", "物理", "化学", "生物", "日语"]);
+    await c.setSubjectFilter("物理");
+    await c.setLearningSubjects(["语文", "数学", "英语", "日语"]);
+    expect(c.subjectFilter, "");
+    expect(await c.db.preference("subject_filter"), "");
+    expect((await c.study.mistake(item.id)).subject, "物理");
     await c.shutdown();
     c = await open();
-    expect(c.learningSubjects, ['语文', '数学', '英语', '日语']);
-    expect(c.learningSubjects, isNot(contains('物理')));
-    await c.setSubjectFilter('日语');
+    expect(c.learningSubjects, ["语文", "数学", "英语", "日语"]);
+    expect(c.learningSubjects, isNot(contains("物理")));
+    await c.setSubjectFilter("日语");
     await c.newSession();
-    expect(c.selected!.subject, '日语');
+    expect(c.selected!.subject, "日语");
     await c.prepareQuickQuiz();
-    expect(c.selected!.subject, '日语');
-    expect(c.selected!.mode, 'exam');
+    expect(c.selected!.subject, "日语");
+    expect(c.selected!.mode, "exam");
   });
-  test('Invalid selections cannot overwrite saved preferences and malformed stored data is recoverable', () async {
-    await c.setLearningSubjects(['数学', '日语']);
+  test("Invalid selections cannot overwrite saved preferences and malformed stored data is recoverable", () async {
+    await c.setLearningSubjects(["数学", "日语"]);
     final before = await c.db.preference(AppPreferences.subjectsPreference);
     for (final invalid in <List<String>>[
       [],
-      [''],
-      List.generate(21, (i) => '科目$i'),
-      ['a\nb'],
+      [""],
+      List.generate(21, (i) => "科目$i"),
+      ["a\nb"],
     ]) {
       await expectLater(c.setLearningSubjects(invalid), throwsFormatException);
       expect(await c.db.preference(AppPreferences.subjectsPreference), before);
@@ -74,9 +74,9 @@ void main() {
       '{"invalid":true}',
     );
     await c.preferences.loadSubjects();
-    expect(c.learningSubjects, contains('数学'));
+    expect(c.learningSubjects, contains("数学"));
     expect(c.preferences.loadNotice, isNotNull);
-    await c.setLearningSubjects(['数学']);
-    expect(c.learningSubjects, ['数学']);
+    await c.setLearningSubjects(["数学"]);
+    expect(c.learningSubjects, ["数学"]);
   });
 }

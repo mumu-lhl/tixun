@@ -4,7 +4,7 @@
 /// without decoding the full image.
 library;
 
-import 'dart:typed_data';
+import "dart:typed_data";
 
 /// Returns `(width, height)` in pixels, or null for a format we cannot read.
 (int, int)? imagePixelSize(Uint8List bytes) {

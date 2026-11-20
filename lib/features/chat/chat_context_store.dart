@@ -1,11 +1,11 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:crypto/crypto.dart';
-import 'package:drift/drift.dart';
-import 'package:dio/dio.dart';
+import "package:crypto/crypto.dart";
+import "package:drift/drift.dart";
+import "package:dio/dio.dart";
 
-import '../../core/ai/ai_types.dart';
-import '../../core/database/database.dart';
+import "../../core/ai/ai_types.dart";
+import "../../core/database/database.dart";
 
 /// Current policy for replaying application-enriched history. A saved scope
 /// records past authorization; it can never grant any new capabilities.
@@ -20,20 +20,20 @@ class ChatContextScope {
   }) : _effort = config.thinking ? config.effort : null,
        _data = {
          // Do not store endpoint userinfo, query strings, or credentials.
-         'transport':
-             '${config.kind}:${sha256.convert(utf8.encode(config.baseUrl))}',
-         'model': config.model,
-         'thinking': config.thinking,
-         'mode': mode,
-         'subject': subject,
-         'studyAuthorized': studyAuthorized,
-         'drawingEnabled': drawingEnabled,
-         'writingScope': writingScope,
+         "transport":
+             "${config.kind}:${sha256.convert(utf8.encode(config.baseUrl))}",
+         "model": config.model,
+         "thinking": config.thinking,
+         "mode": mode,
+         "subject": subject,
+         "studyAuthorized": studyAuthorized,
+         "drawingEnabled": drawingEnabled,
+         "writingScope": writingScope,
        };
 
   final Map<String, Object?> _data;
   final String? _effort;
-  bool get isExam => _data['mode'] == 'exam';
+  bool get isExam => _data["mode"] == "exam";
   bool matches(Object? recorded) =>
       recorded is Map &&
       _data.entries.every((entry) => recorded[entry.key] == entry.value);
@@ -88,11 +88,11 @@ class ChatContextStore {
     if (owner == null) return null;
     final inputId = input?.sessionId == sessionId ? input?.id : null;
     final context = ChatContextRun._(this, runId, inputId, {
-      'scope': scope._data,
-      if (scope._effort != null) 'effort': scope._effort,
-      'first': selected.firstOrNull?.id,
-      'last': selected.lastOrNull?.id,
-      'summaryThrough': summaryThrough,
+      "scope": scope._data,
+      if (scope._effort != null) "effort": scope._effort,
+      "first": selected.firstOrNull?.id,
+      "last": selected.lastOrNull?.id,
+      "summaryThrough": summaryThrough,
     }, scope.isExam);
     cancel.checkCancelled();
     if (inputId != null && sentInput != null) {
@@ -103,9 +103,9 @@ class ChatContextStore {
               messageId: inputId,
               sequence: _input,
               payload: jsonEncode({
-                'scope': scope._data,
-                'text': sentInput.text,
-                'attachments': attachmentIds,
+                "scope": scope._data,
+                "text": sentInput.text,
+                "attachments": attachmentIds,
               }),
             ),
             mode: InsertMode.insertOrIgnore,
@@ -128,7 +128,7 @@ class ChatContextStore {
                 ChatContextEventsCompanion.insert(
                   messageId: through,
                   sequence: _checkpoint,
-                  payload: jsonEncode({'summary': summary}),
+                  payload: jsonEncode({"summary": summary}),
                 ),
               );
         }
@@ -150,12 +150,12 @@ class ChatContextStore {
         final value = _decode(payload);
         if (value == null) continue;
         if (event.sequence == _input) {
-          final ids = _ids(value['attachments']);
-          value['attachments'] = [for (final id in ids) ?attachments[id]];
+          final ids = _ids(value["attachments"]);
+          value["attachments"] = [for (final id in ids) ?attachments[id]];
           payload = jsonEncode(value);
         } else if (event.sequence > _input) {
-          if (value['run'] case final Map<String, dynamic> run) {
-            for (final key in ['first', 'last', 'summaryThrough']) {
+          if (value["run"] case final Map<String, dynamic> run) {
+            for (final key in ["first", "last", "summaryThrough"]) {
               run[key] = messages[run[key]];
             }
             payload = jsonEncode(value);
@@ -188,9 +188,9 @@ class ChatContextHistory {
         ?.where((e) => e.sequence == ChatContextStore._input)
         .firstOrNull;
     final value = _decode(row?.payload);
-    if (value == null || !scope.matches(value['scope'])) return null;
-    if (value['text'] case final String text) {
-      return (text, _ids(value['attachments']));
+    if (value == null || !scope.matches(value["scope"])) return null;
+    if (value["text"] case final String text) {
+      return (text, _ids(value["attachments"]));
     }
     return null;
   }
@@ -200,7 +200,7 @@ class ChatContextHistory {
       final row = _events[id]
           ?.where((e) => e.sequence == ChatContextStore._checkpoint)
           .firstOrNull;
-      if (_decode(row?.payload)?['summary'] case final String summary) {
+      if (_decode(row?.payload)?["summary"] case final String summary) {
         return (id, summary);
       }
     }
@@ -222,30 +222,30 @@ class ChatContextHistory {
     final ids = <String>{};
     String? inputId;
     for (final message in history) {
-      if (message.role == 'user') {
+      if (message.role == "user") {
         inputId = message.id;
         continue;
       }
-      if (message.status != 'complete') continue;
+      if (message.status != "complete") continue;
       final events = _events[message.id]?.where(
         (e) =>
             e.sequence > ChatContextStore._input && e.inputMessageId == inputId,
       );
       if (events == null || events.isEmpty) continue;
       final rounds = events.map((e) => _decode(e.payload)).toList();
-      final run = rounds.first?['run'];
-      if (run is! Map || scope.isExam || !scope.matches(run['scope'])) {
+      final run = rounds.first?["run"];
+      if (run is! Map || scope.isExam || !scope.matches(run["scope"])) {
         continue;
       }
       final messages = <AiMessage>[];
       final turnIds = <String>{};
       var valid = true;
       for (final round in rounds) {
-        if (round?['output'] case {
-          'text': final String text,
-          'calls': final List rawCalls,
+        if (round?["output"] case {
+          "text": final String text,
+          "calls": final List rawCalls,
         }) {
-          final reasoning = (round!['output'] as Map)['reasoning'] as String?;
+          final reasoning = (round!["output"] as Map)["reasoning"] as String?;
           if (rawCalls.isEmpty) {
             if (text.isNotEmpty) {
               messages.add(
@@ -254,7 +254,7 @@ class ChatContextHistory {
             }
             continue;
           }
-          final results = round['results'];
+          final results = round["results"];
           if (results is! List || results.length != rawCalls.length) {
             valid = false;
             break;
@@ -265,17 +265,17 @@ class ChatContextHistory {
             final result = results[i];
             if (rawCalls[i]
                 case {
-                  'id': final String originalId,
-                  'name': final String name,
-                  'arguments': final String arguments,
+                  "id": final String originalId,
+                  "name": final String name,
+                  "arguments": final String arguments,
                 }
-                when name != 'create_quiz' &&
+                when name != "create_quiz" &&
                     allowedTools.contains(name) &&
                     result is String) {
               var id = originalId;
               var suffix = 0;
               while (ids.contains(id) || turnIds.contains(id)) {
-                id = 'history_${message.id}_${turnIds.length}_${suffix++}';
+                id = "history_${message.id}_${turnIds.length}_${suffix++}";
               }
               turnIds.add(id);
               calls.add(ToolCall(id, name, arguments));
@@ -328,20 +328,20 @@ class ChatContextRun {
     final tools = [
       for (final tool in request.tools)
         {
-          'name': tool.name,
-          'description': tool.description,
-          'parameters': tool.parameters,
+          "name": tool.name,
+          "description": tool.description,
+          "parameters": tool.parameters,
         },
     ];
     final toolState = jsonEncode(tools);
     _round = {
-      if (_sequence == 0) 'run': _metadata,
+      if (_sequence == 0) "run": _metadata,
       if (_instructions != request.instructions)
-        'instructions': request.instructions,
-      if (_tools != toolState) 'tools': tools,
-      if (request.enableConversationTitle) 'title': true,
+        "instructions": request.instructions,
+      if (_tools != toolState) "tools": tools,
+      if (request.enableConversationTitle) "title": true,
       if (request.maxOutputTokens != null)
-        'maxOutputTokens': request.maxOutputTokens,
+        "maxOutputTokens": request.maxOutputTokens,
     };
     _sequence++;
     _instructions = request.instructions;
@@ -356,25 +356,25 @@ class ChatContextRun {
   ) async {
     // Do not duplicate hidden answer keys, solution scenes, or exam output in
     // the transcript. Their owning practice records enforce access rules.
-    if (_isExam || calls.any((call) => call.name == 'create_quiz')) {
-      _round['outputOmitted'] = true;
+    if (_isExam || calls.any((call) => call.name == "create_quiz")) {
+      _round["outputOmitted"] = true;
       await _save();
       return;
     }
-    _round['output'] = {
-      'text': text,
-      if (reasoning.isNotEmpty) 'reasoning': reasoning,
-      'calls': [
+    _round["output"] = {
+      "text": text,
+      if (reasoning.isNotEmpty) "reasoning": reasoning,
+      "calls": [
         for (final call in calls)
-          {'id': call.id, 'name': call.name, 'arguments': call.arguments},
+          {"id": call.id, "name": call.name, "arguments": call.arguments},
       ],
     };
     await _save();
   }
 
   Future<void> results(Iterable<AiMessage> outputs) async {
-    if (_round['outputOmitted'] == true) return;
-    _round['results'] = [for (final output in outputs) output.text];
+    if (_round["outputOmitted"] == true) return;
+    _round["results"] = [for (final output in outputs) output.text];
     await _save();
   }
 

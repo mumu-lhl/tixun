@@ -1,15 +1,15 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
-import 'package:tixun/app/app.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/python/python_runtime.dart';
-import 'package:dio/dio.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:integration_test/integration_test.dart";
+import "package:tixun/app/app.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/python/python_runtime.dart";
+import "package:dio/dio.dart";
 
-import 'dart:io';
+import "dart:io";
 
-import 'support/gui_capture.dart';
+import "support/gui_capture.dart";
 
 Future<void> until(WidgetTester t, bool Function() ready) async {
   for (var i = 0; i < 600 && !ready(); i++) {
@@ -22,7 +22,7 @@ Future<void> until(WidgetTester t, bool Function() ready) async {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
-    'Real bundled CPython: review code, run SymPy, inspect output and full-screen Chat',
+    "Real bundled CPython: review code, run SymPy, inspect output and full-screen Chat",
     (t) async {
       final c = await AppController.open(demo: true);
       await c.newSession();
@@ -34,45 +34,44 @@ void main() {
       );
       await t.pumpAndSettle();
       await resizeGui(t, 390, 844);
-      scope.read(routerProvider).go('/chat');
+      scope.read(routerProvider).go("/chat");
       await t.pumpAndSettle();
       expect(find.byType(NavigationBar), findsNothing);
-      final pending = c.send('请用 Python 核对 x² 从0到3的积分');
+      final pending = c.send("请用 Python 核对 x² 从0到3的积分");
       await until(t, () => c.pendingTool != null);
-      await t.ensureVisible(find.byKey(const Key('approve-tool')));
+      await t.ensureVisible(find.byKey(const Key("approve-tool")));
       await t.pumpAndSettle();
-      await guiCapture('python', 'review-code-phone');
-      await t.tap(find.byKey(const Key('approve-tool')));
+      await guiCapture("python", "review-code-phone");
+      await t.tap(find.byKey(const Key("approve-tool")));
       await until(t, () => !c.busy);
       await pending;
-      expect(c.messages.last.status, 'complete', reason: c.error?.name);
+      expect(c.messages.last.status, "complete", reason: c.error?.name);
       final operation = (await c.db.select(c.db.aiToolOperations).get())
-          .singleWhere((op) => op.name == 'run_python');
-      expect(operation.status, 'succeeded', reason: operation.result);
-      expect(c.messages.last.content, contains('9'), reason: operation.result);
-      expect(operation.result, contains('9'));
+          .singleWhere((op) => op.name == "run_python");
+      expect(operation.status, "succeeded", reason: operation.result);
+      expect(c.messages.last.content, contains("9"), reason: operation.result);
+      expect(operation.result, contains("9"));
       final toolHistory = find.byKey(
-        PageStorageKey('tool-history-${c.messages.last.id}'),
+        PageStorageKey("tool-history-${c.messages.last.id}"),
       );
       await until(t, () => toolHistory.evaluate().isNotEmpty);
       await t.ensureVisible(toolHistory);
       await t.pumpAndSettle();
       await t.tap(toolHistory);
       await t.pumpAndSettle();
-      await until(t, () => find.text('Python · 执行完成').evaluate().isNotEmpty);
+      await until(t, () => find.text("Python · 执行完成").evaluate().isNotEmpty);
       final history = find.byKey(
-        PageStorageKey('python-history-${operation.id}'),
+        PageStorageKey("python-history-${operation.id}"),
       );
       await t.ensureVisible(history);
       await t.pumpAndSettle();
       await t.tap(history);
       await t.pumpAndSettle();
-      await guiCapture('python', 'execution-result-phone');
-      // Real execution is not constrained to predefined mathematics functions.
+      await guiCapture("python", "execution-result-phone");
       final pythonWorkspace = Directory(
-        '${c.files.root.path}/python-workspaces/python-check',
+        "${c.files.root.path}/python-workspaces/python-check",
       );
-      final outsideWrite = File('${c.files.root.path}/blocked.txt');
+      final outsideWrite = File("${c.files.root.path}/blocked.txt");
       final result = await PythonRuntime.instance.execute(
         code:
             "from pathlib import Path\nprint(sum(i*i for i in range(10)))\nPath('generated.txt').write_text('Python file output')\ntry:\n Path(r'${outsideWrite.path}').write_text('escape')\nexcept OSError as exc:\n print('outside write blocked', type(exc).__name__)",
@@ -80,32 +79,32 @@ void main() {
         timeoutSeconds: 10,
         cancel: CancelToken(),
       );
-      expect(result['ok'], true, reason: result.toString());
-      expect(result['stdout'], contains('285\n'));
-      expect(result['stdout'], contains('outside write blocked'));
+      expect(result["ok"], true, reason: result.toString());
+      expect(result["stdout"], contains("285\n"));
+      expect(result["stdout"], contains("outside write blocked"));
       expect(await outsideWrite.exists(), isFalse);
       final numeric = await PythonRuntime.instance.execute(
-        code: 'import numpy as np\nprint(np.__version__)\nprint((np.array([1, 2, 3]) ** 2).tolist())\nprint(np.linalg.solve([[2, 0], [0, 4]], [6, 8]).tolist())',
+        code: "import numpy as np\nprint(np.__version__)\nprint((np.array([1, 2, 3]) ** 2).tolist())\nprint(np.linalg.solve([[2, 0], [0, 4]], [6, 8]).tolist())",
         workspace: pythonWorkspace,
         timeoutSeconds: 20,
         cancel: CancelToken(),
       );
-      expect(numeric['ok'], true, reason: numeric.toString());
-      expect(numeric['stdout'], '2.4.6\n[1, 4, 9]\n[3.0, 2.0]\n');
+      expect(numeric["ok"], true, reason: numeric.toString());
+      expect(numeric["stdout"], "2.4.6\n[1, 4, 9]\n[3.0, 2.0]\n");
       expect(
-        await File('${pythonWorkspace.path}/generated.txt').readAsString(),
-        'Python file output',
+        await File("${pythonWorkspace.path}/generated.txt").readAsString(),
+        "Python file output",
       );
       final timedOut = await PythonRuntime.instance.execute(
-        code: 'while True: pass',
+        code: "while True: pass",
         workspace: pythonWorkspace,
         timeoutSeconds: 1,
         cancel: CancelToken(),
       );
-      expect(timedOut['error'], contains('超时'));
+      expect(timedOut["error"], contains("超时"));
       final stopToken = CancelToken();
       final stopped = PythonRuntime.instance.execute(
-        code: 'while True: pass',
+        code: "while True: pass",
         workspace: pythonWorkspace,
         timeoutSeconds: 30,
         cancel: stopToken,
@@ -113,34 +112,34 @@ void main() {
       await t.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 250)),
       );
-      stopToken.cancel('test stop');
+      stopToken.cancel("test stop");
       await expectLater(stopped, throwsA(isA<DioException>()));
-      await t.tap(find.byKey(const Key('chat-back')));
+      await t.tap(find.byKey(const Key("chat-back")));
       await t.pumpAndSettle();
       expect(find.byType(NavigationBar), findsOneWidget);
-      scope.read(routerProvider).go('/settings/tools');
+      scope.read(routerProvider).go("/settings/tools");
       await t.pumpAndSettle();
-      await t.scrollUntilVisible(find.byKey(const Key('python-policy')), 180);
+      await t.scrollUntilVisible(find.byKey(const Key("python-policy")), 180);
       await t.pumpAndSettle();
-      await guiCapture('python', 'execution-settings-phone');
-      await t.tap(find.byKey(const Key('python-policy')));
+      await guiCapture("python", "execution-settings-phone");
+      await t.tap(find.byKey(const Key("python-policy")));
       await t.pumpAndSettle();
-      await t.tap(find.text('自动允许任意代码').last);
+      await t.tap(find.text("自动允许任意代码").last);
       await t.pumpAndSettle();
-      expect(await c.db.preference('python_execution_policy'), isNull);
-      await t.tap(find.text('取消').last);
+      expect(await c.db.preference("python_execution_policy"), isNull);
+      await t.tap(find.text("取消").last);
       await t.pumpAndSettle();
-      expect(find.text('每次审查代码'), findsOneWidget);
-      expect(await c.db.preference('python_execution_policy'), isNull);
-      await t.tap(find.byKey(const Key('python-policy')));
+      expect(find.text("每次审查代码"), findsOneWidget);
+      expect(await c.db.preference("python_execution_policy"), isNull);
+      await t.tap(find.byKey(const Key("python-policy")));
       await t.pumpAndSettle();
-      await t.tap(find.text('自动允许任意代码').last);
+      await t.tap(find.text("自动允许任意代码").last);
       await t.pumpAndSettle();
-      await guiCapture('python', 'auto-permission-phone');
-      await t.tap(find.byKey(const Key('confirm-python-auto')));
+      await guiCapture("python", "auto-permission-phone");
+      await t.tap(find.byKey(const Key("confirm-python-auto")));
       await until(t, () => find.byType(AlertDialog).evaluate().isEmpty);
-      expect(await c.db.preference('python_execution_policy'), 'auto');
-      scope.read(routerProvider).go('/chat');
+      expect(await c.db.preference("python_execution_policy"), "auto");
+      scope.read(routerProvider).go("/chat");
       await t.pumpAndSettle();
       var asked = false;
       void observed() {
@@ -148,13 +147,13 @@ void main() {
       }
 
       c.addListener(observed);
-      final automatic = c.send('再次用 Python 核对积分');
+      final automatic = c.send("再次用 Python 核对积分");
       await until(t, () => !c.busy);
       await automatic;
       c.removeListener(observed);
       expect(asked, false);
-      expect(c.messages.last.content, contains('9'));
-      expect(c.messages.last.status, 'complete');
+      expect(c.messages.last.content, contains("9"));
+      expect(c.messages.last.status, "complete");
 
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox.shrink());

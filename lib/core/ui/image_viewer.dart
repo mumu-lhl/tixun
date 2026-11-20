@@ -1,11 +1,10 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:extended_image/extended_image.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:extended_image/extended_image.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../l10n/app_strings.dart';
+import "../l10n/app_strings.dart";
 
-/// One image shown by [showImageViewer].
 class ImageViewerItem {
   const ImageViewerItem({
     required this.file,
@@ -166,7 +165,7 @@ class _ImageViewerPageState extends State<_ImageViewerPage> {
                         child: Text(
                           widget.images.length > 1
                               ? '${widget.title ?? ''}  ${_index + 1} / ${widget.images.length}'
-                              : (widget.title ?? ''),
+                              : (widget.title ?? ""),
                           style: theme.textTheme.titleMedium,
                           overflow: TextOverflow.ellipsis,
                         ),

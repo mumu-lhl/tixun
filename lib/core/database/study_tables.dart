@@ -1,12 +1,12 @@
-part of 'database.dart';
+part of "database.dart";
 
 class KnowledgeItems extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
   TextColumn get content => text()();
   TextColumn get subject => text()();
-  TextColumn get kind => text().withDefault(const Constant('个人笔记'))();
-  TextColumn get chapter => text().withDefault(const Constant(''))();
+  TextColumn get kind => text().withDefault(const Constant("个人笔记"))();
+  TextColumn get chapter => text().withDefault(const Constant(""))();
   IntColumn get revision => integer().withDefault(const Constant(1))();
   TextColumn get sourceSessionId => text().nullable().references(
     ChatSessions,
@@ -43,15 +43,15 @@ class KnowledgeRevisions extends Table {
 class Mistakes extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
-  TextColumn get question => text().withDefault(const Constant(''))();
+  TextColumn get question => text().withDefault(const Constant(""))();
   TextColumn get subject => text()();
-  TextColumn get chapter => text().withDefault(const Constant(''))();
-  TextColumn get correctAnswer => text().withDefault(const Constant(''))();
-  TextColumn get originalAnswer => text().withDefault(const Constant(''))();
-  TextColumn get ownAnalysis => text().withDefault(const Constant(''))();
-  TextColumn get aiAnalysis => text().withDefault(const Constant(''))();
-  TextColumn get errorReason => text().withDefault(const Constant('暂未确定'))();
-  TextColumn get suggestedReason => text().withDefault(const Constant(''))();
+  TextColumn get chapter => text().withDefault(const Constant(""))();
+  TextColumn get correctAnswer => text().withDefault(const Constant(""))();
+  TextColumn get originalAnswer => text().withDefault(const Constant(""))();
+  TextColumn get ownAnalysis => text().withDefault(const Constant(""))();
+  TextColumn get aiAnalysis => text().withDefault(const Constant(""))();
+  TextColumn get errorReason => text().withDefault(const Constant("暂未确定"))();
+  TextColumn get suggestedReason => text().withDefault(const Constant(""))();
   IntColumn get revision => integer().withDefault(const Constant(1))();
   TextColumn get sourceSessionId => text().nullable().references(
     ChatSessions,
@@ -87,16 +87,16 @@ class MistakeTags extends Table {
 }
 
 class KnowledgeRelations extends Table {
-  @ReferenceName('outgoingKnowledgeRelations')
+  @ReferenceName("outgoingKnowledgeRelations")
   TextColumn get sourceId =>
       text().references(KnowledgeItems, #id, onDelete: KeyAction.cascade)();
-  @ReferenceName('incomingKnowledgeRelations')
+  @ReferenceName("incomingKnowledgeRelations")
   TextColumn get targetId =>
       text().references(KnowledgeItems, #id, onDelete: KeyAction.cascade)();
   @override
   Set<Column> get primaryKey => {sourceId, targetId};
   @override
-  List<String> get customConstraints => ['CHECK (source_id <> target_id)'];
+  List<String> get customConstraints => ["CHECK (source_id <> target_id)"];
 }
 
 class MistakeKnowledgeLinks extends Table {
@@ -125,13 +125,13 @@ class StudyAttachments extends Table {
   IntColumn get byteLength => integer()();
   TextColumn get parentId =>
       text().nullable().references(StudyAttachments, #id)();
-  TextColumn get role => text().withDefault(const Constant('original'))();
+  TextColumn get role => text().withDefault(const Constant("original"))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   @override
   Set<Column> get primaryKey => {id};
   @override
   List<String> get customConstraints => [
-    'CHECK ((knowledge_id IS NULL) <> (mistake_id IS NULL))',
+    "CHECK ((knowledge_id IS NULL) <> (mistake_id IS NULL))",
   ];
 }
 
@@ -171,6 +171,6 @@ class StudyChatLinks extends Table {
   ];
   @override
   List<String> get customConstraints => [
-    'CHECK ((knowledge_id IS NULL) <> (mistake_id IS NULL))',
+    "CHECK ((knowledge_id IS NULL) <> (mistake_id IS NULL))",
   ];
 }

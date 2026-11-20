@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
 // Short, bounded snapshots make route re-entry immediate. Streams remain the
 // source of truth and are subscribed again on each visit.

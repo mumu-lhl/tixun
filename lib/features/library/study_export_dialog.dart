@@ -1,8 +1,8 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../../core/export/study_export.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/l10n/generated/app_localizations.dart';
+import "../../core/export/study_export.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/l10n/generated/app_localizations.dart";
 
 class StudyExportChoice {
   const StudyExportChoice({required this.format, required this.includeImages});
@@ -56,7 +56,7 @@ class _StudyExportDialogState extends State<StudyExportDialog> {
               children: [
                 for (final format in StudyExportFormat.values)
                   ChoiceChip(
-                    key: Key('export-format-${format.name}'),
+                    key: Key("export-format-${format.name}"),
                     label: Text(_label(l10n, format)),
                     selected: _format == format,
                     onSelected: (_) => setState(() => _format = format),
@@ -65,7 +65,7 @@ class _StudyExportDialogState extends State<StudyExportDialog> {
             ),
             const SizedBox(height: 8),
             SwitchListTile(
-              key: const Key('export-include-images'),
+              key: const Key("export-include-images"),
               value: canIncludeImages && _includeImages,
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.exportIncludeImages),
@@ -88,7 +88,7 @@ class _StudyExportDialogState extends State<StudyExportDialog> {
           child: Text(l10n.cancel),
         ),
         FilledButton(
-          key: const Key('export-confirm'),
+          key: const Key("export-confirm"),
           onPressed: () => Navigator.of(context).pop(
             StudyExportChoice(
               format: _format,

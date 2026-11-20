@@ -1,26 +1,30 @@
-import '../../core/ui/app_menu.dart';
+import "dart:async";
 
-import 'package:drift/drift.dart' hide Column;
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
-import 'package:go_router/go_router.dart';
+import "../../core/ui/app_menu.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import 'study_store.dart';
-import 'module_store.dart';
+import "package:drift/drift.dart" hide Column;
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_riverpod/legacy.dart";
+import "package:go_router/go_router.dart";
+
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "study_store.dart";
+import "module_store.dart";
+
+part "module_assignment.dart";
 
 final libraryModuleFilterProvider = StateProvider.family<String, bool>(
-  (ref, mistake) => '',
+  (ref, mistake) => "",
 );
 
 Future<String?> moduleNameDialog(
   BuildContext context,
   String title, [
-  String initial = '',
+  String initial = "",
 ]) async {
   final text = TextEditingController(text: initial);
   final route = DialogRoute<String>(
@@ -56,7 +60,7 @@ Future<String?> moduleNameDialog(
 }
 
 class ModuleManager extends ConsumerStatefulWidget {
-  const ModuleManager({this.initialSubject = '数学', super.key});
+  const ModuleManager({this.initialSubject = "数学", super.key});
   final String initialSubject;
   @override
   ConsumerState<ModuleManager> createState() => _ManagerState();
@@ -132,7 +136,7 @@ class _ManagerState extends ConsumerState<ModuleManager> {
               ),
               const SizedBox(height: 12),
               FilledButton.icon(
-                key: const Key('module-add-root'),
+                key: const Key("module-add-root"),
                 onPressed: discipline.isEmpty ? null : () => create(),
                 icon: const Icon(Icons.create_new_folder_outlined),
                 label: Text(context.l10n.addModule),
@@ -166,14 +170,14 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                     ),
                     trailing: PopupMenuButton<String>(
                       popUpAnimationStyle: menuAnimation(context),
-                      key: ValueKey('module-menu-${module.id}'),
+                      key: ValueKey("module-menu-${module.id}"),
                       tooltip: ctx.l10n.directoryActions,
                       onSelected: (action) async {
-                        if (action == 'child') {
+                        if (action == "child") {
                           await create(module.id);
                           return;
                         }
-                        if (action == 'rename') {
+                        if (action == "rename") {
                           final name = await moduleNameDialog(
                             ctx,
                             ctx.l10n.renameDirectoryEntry,
@@ -184,15 +188,15 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                           }
                           return;
                         }
-                        if (action == 'up' || action == 'down') {
+                        if (action == "up" || action == "down") {
                           await act(
                             ctx,
                             () =>
-                                store.move(module.id, action == 'up' ? -1 : 1),
+                                store.move(module.id, action == "up" ? -1 : 1),
                           );
                           return;
                         }
-                        if (action == 'delete') {
+                        if (action == "delete") {
                           final yes = await showDialog<bool>(
                             context: ctx,
                             builder: (d) => AlertDialog(
@@ -225,25 +229,25 @@ class _ManagerState extends ConsumerState<ModuleManager> {
                         return [
                           if (module.parentId == null)
                             PopupMenuItem(
-                              value: 'child',
+                              value: "child",
                               child: Text(ctx.l10n.addSubmodule),
                             ),
                           PopupMenuItem(
-                            value: 'rename',
+                            value: "rename",
                             child: Text(ctx.l10n.renameDirectoryEntry),
                           ),
                           PopupMenuItem(
-                            value: 'up',
+                            value: "up",
                             enabled: index > 0,
                             child: Text(ctx.l10n.moveUp),
                           ),
                           PopupMenuItem(
-                            value: 'down',
+                            value: "down",
                             enabled: index >= 0 && index < siblings.length - 1,
                             child: Text(ctx.l10n.moveDown),
                           ),
                           PopupMenuItem(
-                            value: 'delete',
+                            value: "delete",
                             child: Text(ctx.l10n.deleteDirectoryEntry),
                           ),
                         ];
@@ -273,200 +277,6 @@ class _ManagerState extends ConsumerState<ModuleManager> {
   }
 }
 
-class ModuleAssignment extends ConsumerWidget {
-  const ModuleAssignment({
-    required this.id,
-    required this.subject,
-    required this.mistake,
-    this.editable = true,
-    super.key,
-  });
-  final String id, subject;
-  final bool mistake, editable;
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final store = ref.read(appControllerProvider).study.modules;
-    final linkTable = mistake
-        ? 'mistake_module_links'
-        : 'knowledge_module_links';
-    final column = mistake ? 'mistake_id' : 'knowledge_id';
-    return StreamBuilder<List<SubjectModule>>(
-      stream: store.watch(subject),
-      builder: (ctx, modules) => StreamBuilder<List<QueryRow>>(
-        stream: store.db
-            .customSelect(
-              'SELECT module_id FROM $linkTable WHERE $column=?',
-              variables: [Variable(id)],
-              readsFrom: {
-                store.db.mistakeModuleLinks,
-                store.db.knowledgeModuleLinks,
-              },
-            )
-            .watch(),
-        builder: (ctx, links) {
-          final all = modules.data ?? [];
-          final ids = (links.data ?? [])
-              .map((r) => r.read<String>('module_id'))
-              .toSet();
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      ctx.l10n.modules,
-                      style: Theme.of(ctx).textTheme.titleSmall,
-                    ),
-                    if (modules.hasError || links.hasError)
-                      Text(ctx.l10n.couldNotLoadTheDirectory),
-                    for (final module in all.where((m) => ids.contains(m.id)))
-                      ActionChip(
-                        label: Text(modulePath(module, all)),
-                        onPressed: () => act(ctx, () async {
-                          final c = ref.read(appControllerProvider);
-                          await c.setSubjectFilter(
-                            schoolSubjects.contains(subject) ||
-                                    c.learningSubjects.contains(subject)
-                                ? subject
-                                : '',
-                          );
-                          if (ctx.mounted) {
-                            ctx.push(
-                              '${mistake ? '/mistakes' : '/knowledge'}?module=${module.id}',
-                            );
-                          }
-                        }),
-                      ),
-                    if (ids.isEmpty && links.hasData)
-                      Text(ctx.l10n.unclassified),
-                    if (editable)
-                      TextButton.icon(
-                        key: const Key('assign-modules'),
-                        onPressed: modules.hasData && links.hasData
-                            ? () => _pick(ctx, ref, all, ids.toList())
-                            : null,
-                        icon: const Icon(Icons.folder_copy_outlined, size: 18),
-                        label: Text(ctx.l10n.chooseModules),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _pick(
-    BuildContext context,
-    WidgetRef ref,
-    List<SubjectModule> all,
-    List<String> before,
-  ) async {
-    final selected = before.toSet();
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) => AlertDialog(
-          title: Text(ctx.l10n.chooseModules),
-          content: SizedBox(
-            width: 500,
-            height: 400,
-            child: ListView(
-              children: [
-                Text(ctx.l10n.selectMultipleEntriesIfNeeded),
-                Text(
-                  ctx.l10n.selectedEntriesOutOf20(
-                    l10nArgument((selected.length)),
-                  ),
-                ),
-                if (all.isEmpty) Text(ctx.l10n.thisSubjectHasNoModules),
-                for (final root in all.where((m) => m.parentId == null)) ...[
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(root.name),
-                    value: selected.contains(root.id),
-                    onChanged: (v) => set(() {
-                      v == true
-                          ? selected.add(root.id)
-                          : selected.remove(root.id);
-                    }),
-                  ),
-                  for (final child in all.where((m) => m.parentId == root.id))
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20),
-                      child: CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(child.name),
-                        value: selected.contains(child.id),
-                        onChanged: (v) => set(() {
-                          v == true
-                              ? selected.add(child.id)
-                              : selected.remove(child.id);
-                        }),
-                      ),
-                    ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(ctx.l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(ctx.l10n.manageDirectory),
-            ),
-            FilledButton(
-              onPressed: selected.length > 20
-                  ? null
-                  : () => Navigator.pop(ctx, true),
-              child: Text(ctx.l10n.save),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (!context.mounted) return;
-    if (yes == false) {
-      await Navigator.of(context, rootNavigator: true).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ModuleManager(initialSubject: subject),
-        ),
-      );
-      if (context.mounted) {
-        final store = ref.read(appControllerProvider).study.modules;
-        final updated = await store.list(subject);
-        // Only reopen the picker when the directory set actually changed;
-        // if the user just looked, land back on the detail page.
-        if (_moduleSignature(updated) != _moduleSignature(all)) {
-          final current = await store.ids(id, mistake);
-          if (context.mounted) await _pick(context, ref, updated, current);
-        }
-      }
-      return;
-    }
-    if (yes == true) {
-      await act(
-        context,
-        () => ref
-            .read(appControllerProvider)
-            .study
-            .modules
-            .assign(id, mistake, selected.toList(), expected: before),
-      );
-    }
-  }
-}
-
 class ModuleFilter extends ConsumerWidget {
   const ModuleFilter({
     required this.value,
@@ -488,10 +298,10 @@ class ModuleFilter extends ConsumerWidget {
         final selected = all.where((m) => m.id == value).firstOrNull;
         if (snap.hasData &&
             value.isNotEmpty &&
-            value != 'unclassified' &&
+            value != "unclassified" &&
             selected == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (ctx.mounted) onChanged('');
+            if (ctx.mounted) onChanged("");
           });
         }
         return Wrap(
@@ -500,10 +310,10 @@ class ModuleFilter extends ConsumerWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             OutlinedButton.icon(
-              key: const Key('module-filter'),
+              key: const Key("module-filter"),
               icon: const Icon(Icons.folder_outlined),
               label: Text(
-                value == 'unclassified'
+                value == "unclassified"
                     ? ctx.l10n.unclassified
                     : selected == null
                     ? ctx.l10n.allModules
@@ -517,11 +327,11 @@ class ModuleFilter extends ConsumerWidget {
                           title: Text(d.l10n.filterByDirectory),
                           children: [
                             SimpleDialogOption(
-                              onPressed: () => Navigator.pop(d, ''),
+                              onPressed: () => Navigator.pop(d, ""),
                               child: Text(d.l10n.allModules),
                             ),
                             SimpleDialogOption(
-                              onPressed: () => Navigator.pop(d, 'unclassified'),
+                              onPressed: () => Navigator.pop(d, "unclassified"),
                               child: Text(d.l10n.unclassified),
                             ),
                             for (final root in all.where(
@@ -558,8 +368,8 @@ class ModuleFilter extends ConsumerWidget {
                     builder: (_) => ModuleManager(
                       initialSubject: subject.isEmpty
                           ? selected?.subject ??
-                                (c.learningSubjects.contains('数学')
-                                    ? '数学'
+                                (c.learningSubjects.contains("数学")
+                                    ? "数学"
                                     : c.learningSubjects.first)
                           : subject,
                     ),
@@ -577,7 +387,7 @@ class ModuleFilter extends ConsumerWidget {
                     ? null
                     : () => act(ctx, () async {
                         await c.prepareModulePractice(value, mistake: mistake);
-                        if (ctx.mounted) ctx.go('/chat');
+                        if (ctx.mounted) ctx.go("/chat");
                       }),
                 icon: const Icon(Icons.quiz_outlined, size: 18),
                 label: Text(ctx.l10n.practiceThisModule),
@@ -592,4 +402,4 @@ class ModuleFilter extends ConsumerWidget {
 /// Identity of a directory set for change detection after managing
 /// directories: id, name and parent of every module, in list order.
 String _moduleSignature(List<SubjectModule> modules) =>
-    modules.map((m) => '${m.id}:${m.name}:${m.parentId}').join('|');
+    modules.map((m) => "${m.id}:${m.name}:${m.parentId}").join("|");

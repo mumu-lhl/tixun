@@ -1,4 +1,4 @@
-part of 'chat_screen.dart';
+part of "chat_screen.dart";
 
 void _showMessageUsage(
   BuildContext context,
@@ -35,7 +35,7 @@ void _showMessageUsage(
                   Text(
                     message.totalTokens == null
                         ? context.l10n.providerUsageUnavailable
-                        : '${context.l10n.tokenTotal}: ${usageInteger(message.totalTokens!)}',
+                        : "${context.l10n.tokenTotal}: ${usageInteger(message.totalTokens!)}",
                   )
                 else ...[
                   _MessageUsageTotals(rows),
@@ -46,7 +46,7 @@ void _showMessageUsage(
                     ListTile(
                       dense: true,
                       title: Text(
-                        '${usageFeatureLabel(context, row.feature)} · ${row.model}',
+                        "${usageFeatureLabel(context, row.feature)} · ${row.model}",
                       ),
                       subtitle: Text(
                         [
@@ -55,14 +55,14 @@ void _showMessageUsage(
                           '${context.l10n.outputTokens}: ${row.outputTokens ?? '—'}',
                           '${context.l10n.reasoningTokens}: ${row.reasoningTokens ?? '—'}',
                           '${context.l10n.tokenTotal}: ${row.totalTokens ?? '—'}',
-                          if (row.usageSource == 'legacy_total')
+                          if (row.usageSource == "legacy_total")
                             context.l10n.legacyUsageTotalOnly,
-                        ].join(' · '),
+                        ].join(" · "),
                       ),
                       trailing: Text(switch (row.costBasis) {
-                        'estimate' when row.costNanoUsd != null =>
-                          '\$${(row.costNanoUsd! / 1000000000).toStringAsFixed(6)}',
-                        'subscription' => context.l10n.subscriptionUsage,
+                        "estimate" when row.costNanoUsd != null =>
+                          "\$${(row.costNanoUsd! / 1000000000).toStringAsFixed(6)}",
+                        "subscription" => context.l10n.subscriptionUsage,
                         _ => context.l10n.unknownCost,
                       }),
                     ),
@@ -85,7 +85,7 @@ class _MessageUsageTotals extends StatelessWidget {
     final summary = AiUsageSummary.fromRows(rows);
     final l10n = context.l10n;
     final cost = rows
-        .where((row) => row.costBasis == 'estimate')
+        .where((row) => row.costBasis == "estimate")
         .map((row) => row.costNanoUsd)
         .nonNulls
         .toList();
@@ -103,11 +103,11 @@ class _MessageUsageTotals extends StatelessWidget {
           Text('$label · ${value.isEmpty ? '—' : usageInteger(value.value)}'),
         if (cost.isNotEmpty)
           Text(
-            '${l10n.estimatedCost} · \$${(cost.reduce((a, b) => a + b) / 1000000000).toStringAsFixed(6)}',
+            "${l10n.estimatedCost} · \$${(cost.reduce((a, b) => a + b) / 1000000000).toStringAsFixed(6)}",
           ),
-        if (rows.any((row) => row.costBasis == 'subscription'))
+        if (rows.any((row) => row.costBasis == "subscription"))
           Text(l10n.subscriptionUsage),
-        if (rows.any((row) => row.costBasis == 'unknown'))
+        if (rows.any((row) => row.costBasis == "unknown"))
           Text(l10n.unknownCost),
       ],
     );

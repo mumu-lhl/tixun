@@ -1,12 +1,12 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'dart:io';
+import "dart:io";
 
-import 'package:drift/drift.dart';
-import 'package:path/path.dart' as p;
+import "package:drift/drift.dart";
+import "package:path/path.dart" as p;
 
-import '../platform/attachment_store.dart';
-import 'database.dart';
+import "../platform/attachment_store.dart";
+import "database.dart";
 
 /// Delete files under attachments/ that no database row references anymore.
 ///
@@ -21,15 +21,15 @@ Future<int> cleanupOrphanAttachments(
   AttachmentStore files, {
   Duration olderThan = const Duration(minutes: 10),
 }) async {
-  final dir = Directory(p.join(files.root.path, 'attachments'));
+  final dir = Directory(p.join(files.root.path, "attachments"));
   if (!await dir.exists()) return 0;
   final referenced = <String>{};
   try {
     for (final (table, columns) in [
-      ('attachments', ['relative_path', 'original_path']),
-      ('study_attachments', ['relative_path']),
-      ('practice_images', ['relative_path']),
-      ('exam_attachments', ['relative_path', 'original_path']),
+      ("attachments", ["relative_path", "original_path"]),
+      ("study_attachments", ["relative_path"]),
+      ("practice_images", ["relative_path"]),
+      ("exam_attachments", ["relative_path", "original_path"]),
     ]) {
       final rows = await db
           .customSelect(
@@ -57,7 +57,7 @@ Future<int> cleanupOrphanAttachments(
   try {
     await for (final entity in dir.list()) {
       if (entity is! File) continue;
-      final relative = 'attachments/${p.basename(entity.path)}';
+      final relative = "attachments/${p.basename(entity.path)}";
       if (referenced.contains(relative)) continue;
       try {
         if ((await entity.stat()).modified.isAfter(cutoff)) continue;
@@ -80,10 +80,10 @@ Future<int> cleanupPurgedAttachments(
   var failed = 0;
   for (final path in candidates.toSet()) {
     try {
-      if (p.dirname(path) != 'attachments') {
+      if (p.dirname(path) != "attachments") {
         throw const AppFormatException(
           AppErrorCode.errorInvalidAttachmentDirectory,
-          '附件目录无效。',
+          "附件目录无效。",
         );
       }
       // A missing parent directory means the file is necessarily gone too;
@@ -98,11 +98,11 @@ Future<int> cleanupPurgedAttachments(
       await db.transaction(() async {
         final refs = await db
             .customSelect(
-              '''SELECT
+              """SELECT
           EXISTS(SELECT 1 FROM attachments WHERE relative_path=? OR original_path=?) +
           EXISTS(SELECT 1 FROM study_attachments WHERE relative_path=?) +
           EXISTS(SELECT 1 FROM practice_images WHERE relative_path=?) +
-          EXISTS(SELECT 1 FROM exam_attachments WHERE relative_path=? OR original_path=?) n''',
+          EXISTS(SELECT 1 FROM exam_attachments WHERE relative_path=? OR original_path=?) n""",
               variables: [
                 Variable(path),
                 Variable(path),
@@ -113,7 +113,7 @@ Future<int> cleanupPurgedAttachments(
               ],
             )
             .getSingle();
-        if (refs.read<int>('n') != 0) return;
+        if (refs.read<int>("n") != 0) return;
         final file = files.resolve(path);
         if (await file.exists()) await file.delete();
       });

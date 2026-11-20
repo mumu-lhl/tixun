@@ -1,11 +1,11 @@
-import 'package:drift/drift.dart' show Variable;
+import "package:drift/drift.dart" show Variable;
 
-import 'dart:async';
+import "dart:async";
 
-import '../../core/database/database.dart';
-import '../../core/database/database_notifier.dart';
-import 'scratch_document.dart';
-import 'scratchpad_exception.dart';
+import "../../core/database/database.dart";
+import "../../core/database/database_notifier.dart";
+import "scratch_document.dart";
+import "scratchpad_exception.dart";
 
 /// Coalesced snapshots have a bounded save interval and a shutdown/backup barrier.
 class ScratchStore extends DatabaseNotifier {
@@ -26,11 +26,11 @@ class ScratchStore extends DatabaseNotifier {
   }
 
   void stage(String key, ScratchDocument document) {
-    if (isDisposed) throw StateError('草稿已关闭。');
-    if (!RegExp(r'^(chat|mistake|practice):[^\s]{1,200}$').hasMatch(key)) {
+    if (isDisposed) throw StateError("草稿已关闭。");
+    if (!RegExp(r"^(chat|mistake|practice):[^\s]{1,200}$").hasMatch(key)) {
       throw const ScratchpadException(
         ScratchpadError.invalidContext,
-        '草稿关联无效。',
+        "草稿关联无效。",
       );
     }
     final encoded = document.encode();
@@ -56,16 +56,16 @@ class ScratchStore extends DatabaseNotifier {
         if (batch.isNotEmpty) {
           await db.transaction(() async {
             for (final e in batch.entries) {
-              final split = e.key.indexOf(':');
+              final split = e.key.indexOf(":");
               final table = {
-                'chat': 'chat_sessions',
-                'mistake': 'mistakes',
-                'practice': 'practice_questions',
+                "chat": "chat_sessions",
+                "mistake": "mistakes",
+                "practice": "practice_questions",
               }[e.key.substring(0, split)]!;
               // A queued autosave must never recreate data after its owner was permanently deleted.
               final owner = await db
                   .customSelect(
-                    'SELECT 1 FROM $table WHERE id = ?',
+                    "SELECT 1 FROM $table WHERE id = ?",
                     variables: [Variable(e.key.substring(split + 1))],
                   )
                   .get();

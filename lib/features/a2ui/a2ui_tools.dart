@@ -1,31 +1,31 @@
-const aiA2uiEnabledKey = 'ai_a2ui_enabled';
-String chatA2uiPreference(String id) => '$aiA2uiEnabledKey:$id';
+const aiA2uiEnabledKey = "ai_a2ui_enabled";
+String chatA2uiPreference(String id) => "$aiA2uiEnabledKey:$id";
 bool? readA2uiOverride(String? value) => switch (value) {
-  'true' => true,
-  'false' => false,
+  "true" => true,
+  "false" => false,
   _ => null,
 };
 
 final a2uiFollowUp = RegExp(
-  r'刚才.{0,8}(界面|卡片|表单|滑杆|控件|选择器|图)|(?:这个|那个|上个|之前的|上面的).{0,8}(界面|卡片|表单|滑杆|控件|选择器|图)|\[TiXun A2UI [0-9a-f-]+\]|\b(?:previous|last|earlier|that|this|above)\s+(?:interactive\s+)?(?:surface|interface|card|form|slider|widget|plot|diagram|graph)\b',
+  r"刚才.{0,8}(界面|卡片|表单|滑杆|控件|选择器|图)|(?:这个|那个|上个|之前的|上面的).{0,8}(界面|卡片|表单|滑杆|控件|选择器|图)|\[TiXun A2UI [0-9a-f-]+\]|\b(?:previous|last|earlier|that|this|above)\s+(?:interactive\s+)?(?:surface|interface|card|form|slider|widget|plot|diagram|graph)\b",
   caseSensitive: false,
 );
 
 final interactiveA2uiIntent = RegExp(
-  r'交互|表单|卡片|滑杆|控件|选择器|interactive|flashcards?|controls?|sliders?|form\b',
+  r"交互|表单|卡片|滑杆|控件|选择器|interactive|flashcards?|controls?|sliders?|form\b",
   caseSensitive: false,
 );
 final drawingA2uiIntent = RegExp(
-  r'画|图|函数|数轴|几何|坐标|向量|不等式|\b(?:draw|plot|graph|diagram|visualize|geometry|vector|number line|inequality|function)\b',
+  r"画|图|函数|数轴|几何|坐标|向量|不等式|\b(?:draw|plot|graph|diagram|visualize|geometry|vector|number line|inequality|function)\b",
   caseSensitive: false,
 );
 
 const inlineA2uiPrelude =
-    'For interactive teaching UI use raw <a2ui> blocks '
-    'with one Express root component, outside Markdown code. The app owns '
-    'surface IDs. Use prose around the block.';
+    "For interactive teaching UI use raw <a2ui> blocks "
+    "with one Express root component, outside Markdown code. The app owns "
+    "surface IDs. Use prose around the block.";
 
-final a2uiActionMarker = RegExp(r'^\[TiXun A2UI ([0-9a-f-]{36})\]\s*');
+final a2uiActionMarker = RegExp(r"^\[TiXun A2UI ([0-9a-f-]{36})\]\s*");
 
 const inlineA2uiInstructions = r'''
 For an interactive interface, write raw <a2ui> ... </a2ui> in your reply, without Markdown fences or IDs. One root component per block. Put prose and other blocks before or after it. Express uses assignments, literal arguments, named arguments and data paths such as $/value. Example:

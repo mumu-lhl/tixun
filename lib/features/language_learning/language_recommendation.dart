@@ -1,14 +1,14 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import 'exam_material.dart';
-import 'language_profile_screen.dart';
-import 'language_skills.dart';
-import 'language_store.dart';
-import 'lexical_form_screen.dart';
-import 'next_practice.dart';
-import 'sentence_content.dart';
-import 'sentence_store.dart';
-import 'vocabulary_batch.dart';
+import "exam_material.dart";
+import "language_profile_screen.dart";
+import "language_skills.dart";
+import "language_store.dart";
+import "lexical_form_screen.dart";
+import "next_practice.dart";
+import "sentence_content.dart";
+import "sentence_store.dart";
+import "vocabulary_batch.dart";
 
 Future<void> openLanguageRecommendation(
   BuildContext context,
@@ -21,7 +21,7 @@ Future<void> openLanguageRecommendation(
   required void Function(ExamTarget) exam,
   required void Function(SentencePlan) sentences,
 }) async {
-  if (profile.language != 'en') {
+  if (profile.language != "en") {
     foundations();
     return;
   }

@@ -1,14 +1,14 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/ai/chat_provider.dart' show CancelGuard;
-import '../../core/database/database.dart';
-import 'exam_material.dart';
-import 'language_store.dart';
-import 'sentence_content.dart';
+import "../../core/ai/chat_provider.dart" show CancelGuard;
+import "../../core/database/database.dart";
+import "exam_material.dart";
+import "language_store.dart";
+import "sentence_content.dart";
 
 class ExamMaterial {
   ExamMaterial(this.row)
@@ -26,15 +26,15 @@ class ExamMaterial {
       verification = ExamVerification.values.byName(row.verification) {
     paper = ExamPaper.parse(
       {
-        'title': row.title,
-        'paragraphs': jsonDecode(row.paragraphs),
+        "title": row.title,
+        "paragraphs": jsonDecode(row.paragraphs),
         if (target.kind == ExamKind.sentenceInsertion)
-          'candidates': jsonDecode(row.candidates),
-        'items': jsonDecode(row.items),
+          "candidates": jsonDecode(row.candidates),
+        "items": jsonDecode(row.items),
       },
       target,
       requireDistractors:
-          source == ExamSource.aiGenerated && row.model != 'Mock',
+          source == ExamSource.aiGenerated && row.model != "Mock",
     );
   }
 
@@ -71,7 +71,7 @@ extension ExamLearningStore on LanguageLearningStore {
               (row) =>
                   row.kind.equals(kind.name) &
                   row.source.equals(ExamSource.bundled.name).not() &
-                  (row.model.isNull() | row.model.equals('Mock').not()),
+                  (row.model.isNull() | row.model.equals("Mock").not()),
             )
             ..orderBy([(row) => OrderingTerm.desc(row.createdAt)])
             ..limit(40))
@@ -92,7 +92,7 @@ extension ExamLearningStore on LanguageLearningStore {
                         : row.id.isNotIn(excludeIds)) &
                     row.profile.equals(target.profile.id) &
                     row.source.equals(ExamSource.bundled.name).not() &
-                    (row.model.isNull() | row.model.equals('Mock').not()) &
+                    (row.model.isNull() | row.model.equals("Mock").not()) &
                     row.level.equals(target.level.name) &
                     row.verification
                         .equals(ExamVerification.reviewRejected.name)
@@ -139,7 +139,7 @@ extension ExamLearningStore on LanguageLearningStore {
   Future<SentenceSkill?> recommendedExamSkill(ExamKind kind) async {
     final material = db.learningExamMaterials;
     final attempt = db.learningExamAttempts;
-    final other = db.alias(attempt, 'other_exam_attempt');
+    final other = db.alias(attempt, "other_exam_attempt");
     final earlier = db.selectOnly(other)
       ..addColumns([other.id])
       ..where(
@@ -152,7 +152,7 @@ extension ExamLearningStore on LanguageLearningStore {
       ..addColumns([other.id])
       ..where(
         other.materialId.equalsExp(attempt.materialId) &
-            other.disputedPositions.equals('[]').not(),
+            other.disputedPositions.equals("[]").not(),
       );
     final query =
         db.select(attempt).join([
@@ -226,12 +226,12 @@ extension ExamLearningStore on LanguageLearningStore {
               model.isEmpty ||
               promptVersion == null ||
               promptVersion < 1)) {
-        throw const FormatException('Missing exam generation provenance');
+        throw const FormatException("Missing exam generation provenance");
       }
       final validated = ExamPaper.parse(
         paper.toJson(),
         target,
-        requireDistractors: source == ExamSource.aiGenerated && model != 'Mock',
+        requireDistractors: source == ExamSource.aiGenerated && model != "Mock",
       );
       final paragraphs = jsonEncode(validated.paragraphs);
       final candidates = jsonEncode(validated.candidates);
@@ -251,7 +251,7 @@ extension ExamLearningStore on LanguageLearningStore {
             existing.profile != target.profile.id ||
             existing.kind != target.kind.name ||
             existing.source != source.name) {
-          throw const FormatException('Exam revision identifier conflict');
+          throw const FormatException("Exam revision identifier conflict");
         }
         return ExamMaterial(existing);
       }
@@ -261,7 +261,7 @@ extension ExamLearningStore on LanguageLearningStore {
                 ..where(table.fingerprint.equals(validated.fingerprint)))
               .getSingleOrNull();
       if (duplicate != null) {
-        throw const FormatException('Duplicate exam passage');
+        throw const FormatException("Duplicate exam passage");
       }
       cancel?.checkCancelled();
       final row = await db
@@ -270,7 +270,7 @@ extension ExamLearningStore on LanguageLearningStore {
             LearningExamMaterialsCompanion.insert(
               id: id,
               fingerprint: validated.fingerprint,
-              language: 'en',
+              language: "en",
               profile: target.profile.id,
               kind: target.kind.name,
               level: target.level.name,
@@ -299,14 +299,14 @@ extension ExamLearningStore on LanguageLearningStore {
 
   Future<ExamMaterial> markExamAiReviewed(
     ExamMaterial material, {
-    String issue = '',
+    String issue = "",
     CancelToken? cancel,
   }) => runOperation(
     () => db.transaction(() async {
       cancel?.checkCancelled();
       if (material.source != ExamSource.aiGenerated ||
-          material.row.model == 'Mock') {
-        throw const FormatException('Only AI exam material can be AI reviewed');
+          material.row.model == "Mock") {
+        throw const FormatException("Only AI exam material can be AI reviewed");
       }
       final table = db.learningExamMaterials;
       final scope = db.update(table)
@@ -365,7 +365,7 @@ extension ExamLearningStore on LanguageLearningStore {
           (material.target.kind == ExamKind.sentenceInsertion &&
               responses.where((s) => s.isNotEmpty).toSet().length !=
                   responses.where((s) => s.isNotEmpty).length)) {
-        throw const FormatException('Invalid exam submission');
+        throw const FormatException("Invalid exam submission");
       }
       final table = db.learningExamAttempts;
       final old = await (db.select(
@@ -377,7 +377,7 @@ extension ExamLearningStore on LanguageLearningStore {
             old.responses != encoded ||
             old.confidence != confidence?.name ||
             old.hintUsed != hintUsed) {
-          throw const FormatException('Exam submission identifier conflict');
+          throw const FormatException("Exam submission identifier conflict");
         }
         return ExamResult(old);
       }
@@ -390,7 +390,7 @@ extension ExamLearningStore on LanguageLearningStore {
           persisted.verification == ExamVerification.aiReviewed.name &&
           persisted.revision == material.row.revision &&
           persisted.fingerprint == material.row.fingerprint &&
-          persisted.model != 'Mock';
+          persisted.model != "Mock";
       final row = await db
           .into(table)
           .insertReturning(
@@ -420,7 +420,7 @@ extension ExamLearningStore on LanguageLearningStore {
           )..where((row) => row.id.equals(result.id))).getSingle();
           final current = ExamResult(row);
           if (position < 0 || position >= current.responses.length) {
-            throw const FormatException('Invalid disputed position');
+            throw const FormatException("Invalid disputed position");
           }
           final positions = {...current.disputed, position}.toList()..sort();
           final updated =

@@ -1,21 +1,21 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/theme.dart';
-import 'package:tixun/core/ui/learning_markdown.dart';
-import 'package:val_latex_flutter/val_latex_flutter.dart' as latex;
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/theme.dart";
+import "package:tixun/core/ui/learning_markdown.dart";
+import "package:val_latex_flutter/val_latex_flutter.dart" as latex;
 
 void main() {
-  testWidgets('Chemical formulas render and invalid formulas retain source', (
+  testWidgets("Chemical formulas render and invalid formulas retain source", (
     tester,
   ) async {
-    const chemical = r'\ce{2H2 + O2 -> 2H2O}';
-    const invalid = r'\unknowncommand{x}';
+    const chemical = r"\ce{2H2 + O2 -> 2H2O}";
+    const invalid = r"\unknowncommand{x}";
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
-            child: LearningMarkdown('\$$chemical\$\n\n\$$invalid\$'),
+            child: LearningMarkdown("\$$chemical\$\n\n\$$invalid\$"),
           ),
         ),
       ),
@@ -27,15 +27,15 @@ void main() {
     expect(find.text(invalid), findsOneWidget);
   });
   testWidgets(
-    'Wide tables keep long cells readable and scroll to the last column',
+    "Wide tables keep long cells readable and scroll to the last column",
     (tester) async {
       tester.view.physicalSize = const Size(390, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      final explanation = '这里需要解释公式的适用条件与推导步骤，避免把长段文字挤成一条很细的竖列。' * 5;
+      final explanation = "这里需要解释公式的适用条件与推导步骤，避免把长段文字挤成一条很细的竖列。" * 5;
       final content =
-          '| 考点 | 公式 | 条件 | 详细解释 | 例子 | 补充 |\n| --- | --- | --- | --- | --- | --- |\n| 顶点 | x² | a≠0 | $explanation | 配方 | 最后一列的完整内容 |';
+          "| 考点 | 公式 | 条件 | 详细解释 | 例子 | 补充 |\n| --- | --- | --- | --- | --- | --- |\n| 顶点 | x² | a≠0 | $explanation | 配方 | 最后一列的完整内容 |";
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -53,19 +53,19 @@ void main() {
       expect(horizontal, findsOneWidget);
       await tester.dragFrom(const Offset(180, 25), const Offset(-1500, 0));
       await tester.pumpAndSettle();
-      final last = find.text('最后一列的完整内容', findRichText: true);
+      final last = find.text("最后一列的完整内容", findRichText: true);
       expect(tester.getCenter(last).dx, inInclusiveRange(0, 390));
       expect(tester.takeException(), isNull);
     },
   );
   testWidgets(
-    'Inline code renders as a chip; fenced blocks keep block rendering',
+    "Inline code renders as a chip; fenced blocks keep block rendering",
     (tester) async {
       tester.view.physicalSize = const Size(390, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      const content = 'Use `foo()` here.\n\n```dart\nint x = 1;\n```\n';
+      const content = "Use `foo()` here.\n\n```dart\nint x = 1;\n```\n";
       await tester.pumpWidget(
         MaterialApp(
           theme: appTheme(Brightness.light),
@@ -77,7 +77,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
-      final inline = find.text('foo()');
+      final inline = find.text("foo()");
       expect(inline, findsOneWidget);
       expect(
         find.ancestor(
@@ -93,13 +93,13 @@ void main() {
         findsWidgets,
       );
       expect(
-        find.textContaining('int x = 1;', findRichText: true),
+        find.textContaining("int x = 1;", findRichText: true),
         findsWidgets,
       );
     },
   );
 
-  testWidgets('Dollar amounts stay literal text, formulas still render', (
+  testWidgets("Dollar amounts stay literal text, formulas still render", (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 1000);
@@ -107,7 +107,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     const content =
-        r'价格是 $5 and $10，总计 $15。点 $(2,-1)$ 与 $x$、$x^2$、$-1$、$0$、$3.14$。';
+        r"价格是 $5 and $10，总计 $15。点 $(2,-1)$ 与 $x$、$x^2$、$-1$、$0$、$3.14$。";
     await tester.pumpWidget(
       MaterialApp(
         theme: appTheme(Brightness.light),
@@ -120,21 +120,20 @@ void main() {
     expect(tester.takeException(), isNull);
     // The amounts survive with their `$` signs instead of being parsed
     // as a formula and dropped by the fallback.
-    expect(find.textContaining('\$5'), findsWidgets);
-    expect(find.textContaining('\$10'), findsWidgets);
-    // Formulas and explicitly delimited numbers render as math, not currency.
+    expect(find.textContaining("\$5"), findsWidgets);
+    expect(find.textContaining("\$10"), findsWidgets);
     expect(
-      find.byWidgetPredicate((w) => w is Tooltip && w.message == '长按复制 LaTeX'),
+      find.byWidgetPredicate((w) => w is Tooltip && w.message == "长按复制 LaTeX"),
       findsNWidgets(6),
     );
   });
-  testWidgets('Math and images respect Markdown context', (tester) async {
+  testWidgets("Math and images respect Markdown context", (tester) async {
     String? copied;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
       (call) async {
-        if (call.method == 'Clipboard.setData') {
-          copied = (call.arguments as Map)['text'] as String?;
+        if (call.method == "Clipboard.setData") {
+          copied = (call.arguments as Map)["text"] as String?;
         }
         return null;
       },
@@ -145,23 +144,23 @@ void main() {
         null,
       ),
     );
-    const id = '12345678-1234-1234-1234-123456789abc';
+    const id = "12345678-1234-1234-1234-123456789abc";
     const content =
-        r'Inline $x$ and \(y+1\).'
-        '\n\n'
-        r'$$\frac{1}{2}$$'
-        '\n\n'
-        r'\['
-        '\n'
-        r'z^2'
-        '\n'
-        r'\]'
-        '\n\n'
-        r'`$notMath$`'
-        '\n\n'
-        '```text\n\$notMath\$\n```\n\n'
-        '![local](visual:$id)\n\n'
-        '![external](https://example.invalid/image.png)';
+        r"Inline $x$ and \(y+1\)."
+        "\n\n"
+        r"$$\frac{1}{2}$$"
+        "\n\n"
+        r"\["
+        "\n"
+        r"z^2"
+        "\n"
+        r"\]"
+        "\n\n"
+        r"`$notMath$`"
+        "\n\n"
+        "```text\n\$notMath\$\n```\n\n"
+        "![local](visual:$id)\n\n"
+        "![external](https://example.invalid/image.png)";
     final visited = <Uri>[];
     await tester.pumpWidget(
       MaterialApp(
@@ -171,8 +170,8 @@ void main() {
               content,
               visualBuilder: (uri) {
                 visited.add(uri);
-                return uri.scheme == 'visual'
-                    ? const Text('local scene')
+                return uri.scheme == "visual"
+                    ? const Text("local scene")
                     : null;
               },
             ),
@@ -183,29 +182,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(
-      find.byWidgetPredicate((w) => w is Tooltip && w.message == '长按复制 LaTeX'),
+      find.byWidgetPredicate((w) => w is Tooltip && w.message == "长按复制 LaTeX"),
       findsNWidgets(4),
     );
-    expect(find.text('local scene'), findsOneWidget);
-    expect(visited.map((uri) => uri.scheme), containsAll(['visual', 'https']));
-    expect(find.text('[外部图片未自动加载]'), findsOneWidget);
+    expect(find.text("local scene"), findsOneWidget);
+    expect(visited.map((uri) => uri.scheme), containsAll(["visual", "https"]));
+    expect(find.text("[外部图片未自动加载]"), findsOneWidget);
     await tester.longPress(
       find
-          .byWidgetPredicate((w) => w is Tooltip && w.message == '长按复制 LaTeX')
+          .byWidgetPredicate((w) => w is Tooltip && w.message == "长按复制 LaTeX")
           .first,
     );
-    expect(copied, 'x');
+    expect(copied, "x");
   });
-  testWidgets('Escaped dollars and formulas in links keep their meaning', (
+  testWidgets("Escaped dollars and formulas in links keep their meaning", (
     tester,
   ) async {
     const cases = <(String, int)>[
-      (r'\$x$ and $y$', 1),
-      (r'\\$x$', 1),
-      (r'\\\$x$', 0),
-      (r'\\\\$x$', 1),
-      (r'[$x$](https://example.org)', 1),
-      (r'[`$x$`](https://example.org)', 0),
+      (r"\$x$ and $y$", 1),
+      (r"\\$x$", 1),
+      (r"\\\$x$", 0),
+      (r"\\\\$x$", 1),
+      (r"[$x$](https://example.org)", 1),
+      (r"[`$x$`](https://example.org)", 0),
     ];
     for (final (content, expected) in cases) {
       await tester.pumpWidget(
@@ -218,7 +217,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.byWidgetPredicate(
-          (w) => w is Tooltip && w.message == '长按复制 LaTeX',
+          (w) => w is Tooltip && w.message == "长按复制 LaTeX",
         ),
         findsNWidgets(expected),
         reason: content,

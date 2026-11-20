@@ -1,7 +1,3 @@
-// Pure version-tag parsing and comparison for the in-app update feature.
-//
-// No Flutter imports here, so these functions are unit-testable in isolation.
-
 /// Parses a version tag such as `v0.6.0-beta.1` or `0.5.2`.
 ///
 /// A leading `v` is stripped, everything from the first `-` on is treated
@@ -11,16 +7,16 @@
   String tag,
 ) {
   final cleaned = tag.trim();
-  final withoutPrefix = cleaned.startsWith('v') || cleaned.startsWith('V')
+  final withoutPrefix = cleaned.startsWith("v") || cleaned.startsWith("V")
       ? cleaned.substring(1)
       : cleaned;
-  final dashIndex = withoutPrefix.indexOf('-');
+  final dashIndex = withoutPrefix.indexOf("-");
   final numericPart = dashIndex >= 0
       ? withoutPrefix.substring(0, dashIndex)
       : withoutPrefix;
   // Tolerate build metadata such as `1.2.3+build.4`.
-  final core = numericPart.split('+').first;
-  final parts = core.split('.');
+  final core = numericPart.split("+").first;
+  final parts = core.split(".");
   int at(int index) {
     if (index >= parts.length) return 0;
     return int.tryParse(parts[index]) ?? 0;
@@ -41,7 +37,6 @@ int compareVersionTriples(
   if (a.minor != b.minor) return a.minor < b.minor ? -1 : 1;
   if (a.patch != b.patch) return a.patch < b.patch ? -1 : 1;
   if (a.prerelease == b.prerelease) return 0;
-  // A plain release is newer than a prerelease of the same triple.
   return a.prerelease ? -1 : 1;
 }
 

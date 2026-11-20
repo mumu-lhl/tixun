@@ -1,10 +1,10 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/ui/app_menu.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/ui/app_menu.dart";
 
 void main() {
-  testWidgets('selection fields support intrinsic dialog layout', (t) async {
+  testWidgets("selection fields support intrinsic dialog layout", (t) async {
     await t.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -17,25 +17,25 @@ void main() {
                   content: SizedBox(
                     width: 520,
                     child: AppSelectField<String>(
-                      initialValue: 'A',
+                      initialValue: "A",
                       decoration: const InputDecoration(
-                        labelText: 'Teaching mode',
+                        labelText: "Teaching mode",
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'A', child: Text('Guided')),
+                        DropdownMenuItem(value: "A", child: Text("Guided")),
                       ],
                       onChanged: (_) {},
                     ),
                   ),
                 ),
               ),
-              child: const Text('Open'),
+              child: const Text("Open"),
             ),
           ),
         ),
       ),
     );
-    await t.tap(find.text('Open'));
+    await t.tap(find.text("Open"));
     await t.pumpAndSettle();
     expect(t.takeException(), isNull);
     await t.tap(find.byType(AppSelectField<String>));
@@ -43,15 +43,15 @@ void main() {
     expect(find.byType(MenuItemButton), findsOneWidget);
   });
 
-  testWidgets('outside dismissal clears the expanded field highlight', (
+  testWidgets("outside dismissal clears the expanded field highlight", (
     t,
   ) async {
     await t.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: AppSelectField<String>(
-            initialValue: 'A',
-            items: const [DropdownMenuItem(value: 'A', child: Text('Alpha'))],
+            initialValue: "A",
+            items: const [DropdownMenuItem(value: "A", child: Text("Alpha"))],
             onChanged: (_) {},
           ),
         ),
@@ -72,10 +72,10 @@ void main() {
     );
   });
 
-  testWidgets('selection commits after closing and follows external changes', (
+  testWidgets("selection commits after closing and follows external changes", (
     t,
   ) async {
-    String? value = 'A';
+    String? value = "A";
     var callbacks = 0;
     late StateSetter rebuild;
     await t.pumpWidget(
@@ -87,8 +87,8 @@ void main() {
               return AppSelectField<String>(
                 initialValue: value,
                 items: const [
-                  DropdownMenuItem(value: 'A', child: Text('Alpha')),
-                  DropdownMenuItem(value: 'B', child: Text('Beta')),
+                  DropdownMenuItem(value: "A", child: Text("Alpha")),
+                  DropdownMenuItem(value: "B", child: Text("Beta")),
                 ],
                 onChanged: (v) => set(() {
                   value = v;
@@ -102,14 +102,14 @@ void main() {
     );
     await t.tap(find.byType(AppSelectField<String>));
     await t.pumpAndSettle();
-    await t.tap(find.text('Beta'));
+    await t.tap(find.text("Beta"));
     await t.pumpAndSettle();
-    expect(value, 'B');
+    expect(value, "B");
     expect(callbacks, 1);
     expect(find.byType(MenuItemButton), findsNothing);
-    rebuild(() => value = 'A');
+    rebuild(() => value = "A");
     await t.pumpAndSettle();
-    expect(find.text('Alpha'), findsOneWidget);
+    expect(find.text("Alpha"), findsOneWidget);
     await t.tap(find.byType(AppSelectField<String>));
     await t.pumpAndSettle();
     await t.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -117,7 +117,7 @@ void main() {
     expect(callbacks, 1);
     expect(find.byType(MenuItemButton), findsNothing);
   });
-  testWidgets('reduced motion and disabled items retain selection rules', (
+  testWidgets("reduced motion and disabled items retain selection rules", (
     t,
   ) async {
     var calls = 0;
@@ -130,13 +130,13 @@ void main() {
           ),
           child: Scaffold(
             body: AppSelectField<String>(
-              initialValue: 'A',
+              initialValue: "A",
               items: const [
-                DropdownMenuItem(value: 'A', child: Text('Alpha')),
+                DropdownMenuItem(value: "A", child: Text("Alpha")),
                 DropdownMenuItem(
-                  value: 'B',
+                  value: "B",
                   enabled: false,
-                  child: Text('Beta'),
+                  child: Text("Beta"),
                 ),
               ],
               onChanged: (_) => calls++,
@@ -148,7 +148,7 @@ void main() {
     await t.tap(find.byType(AppSelectField<String>));
     await t.pumpAndSettle();
     expect(t.widget<MenuAnchor>(find.byType(MenuAnchor)).animated, false);
-    await t.tap(find.text('Beta'));
+    await t.tap(find.text("Beta"));
     await t.pumpAndSettle();
     expect(calls, 0);
   });

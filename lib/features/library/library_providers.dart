@@ -1,10 +1,10 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
-import 'package:drift/drift.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_riverpod/legacy.dart";
+import "package:drift/drift.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import 'study_store.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "study_store.dart";
 
 final studyStoreProvider = ChangeNotifierProvider<StudyStore>((ref) {
   final c = ref.read(appControllerProvider);
@@ -40,16 +40,16 @@ final studyCountsProvider = FutureProvider<({int knowledge, int mistakes})>((
   final knowledge =
       (await db
               .customSelect(
-                'SELECT count(*) AS n FROM knowledge_items WHERE deleted = 0',
+                "SELECT count(*) AS n FROM knowledge_items WHERE deleted = 0",
               )
               .getSingle())
-          .read<int>('n');
+          .read<int>("n");
   final mistakes =
       (await db
               .customSelect(
-                'SELECT count(*) AS n FROM mistakes WHERE deleted = 0',
+                "SELECT count(*) AS n FROM mistakes WHERE deleted = 0",
               )
               .getSingle())
-          .read<int>('n');
+          .read<int>("n");
   return (knowledge: knowledge, mistakes: mistakes);
 });

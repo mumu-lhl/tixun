@@ -1,7 +1,7 @@
-import 'dart:collection';
-import 'dart:convert';
+import "dart:collection";
+import "dart:convert";
 
-import 'package:flutter/services.dart';
+import "package:flutter/services.dart";
 
 /// Tokenizes ordinary text, not provider-specific message framing or images.
 /// The caller must select only known model/encoding combinations.
@@ -14,7 +14,7 @@ class ModelTokenizer {
     this._specials,
   ) : _specialPattern = _specials.isEmpty
           ? null
-          : RegExp(_specials.keys.map(RegExp.escape).join('|'));
+          : RegExp(_specials.keys.map(RegExp.escape).join("|"));
 
   final String name;
   final Map<String, int> _vocab;
@@ -30,43 +30,43 @@ class ModelTokenizer {
     String? endpoint,
   }) {
     final m = model.trim().toLowerCase();
-    if (provider == 'deepseek' &&
-        (m.startsWith('deepseek-v4') ||
-            m == 'deepseek-flash' ||
-            m == 'deepseek-pro')) {
-      return 'deepseek_v4';
+    if (provider == "deepseek" &&
+        (m.startsWith("deepseek-v4") ||
+            m == "deepseek-flash" ||
+            m == "deepseek-pro")) {
+      return "deepseek_v4";
     }
-    final uri = Uri.tryParse(endpoint ?? '');
-    if (provider != 'chatgpt' &&
-        provider != 'openai' &&
-        !(provider == 'compatible' &&
-            uri?.scheme == 'https' &&
-            uri?.host == 'api.openai.com')) {
+    final uri = Uri.tryParse(endpoint ?? "");
+    if (provider != "chatgpt" &&
+        provider != "openai" &&
+        !(provider == "compatible" &&
+            uri?.scheme == "https" &&
+            uri?.host == "api.openai.com")) {
       return null;
     }
-    bool family(String prefix) => m == prefix || m.startsWith('$prefix-');
+    bool family(String prefix) => m == prefix || m.startsWith("$prefix-");
     // GPT-6 uses o200k_base for local estimates; its official encoding is unconfirmed.
-    if (RegExp(r'^gpt-[56](?:\.\d+)?(?:-|$)').hasMatch(m) ||
+    if (RegExp(r"^gpt-[56](?:\.\d+)?(?:-|$)").hasMatch(m) ||
         const [
-          'gpt-4o',
-          'gpt-4.1',
-          'gpt-4.5',
-          'o1',
-          'o3',
-          'o4-mini',
-          'chatgpt-4o',
+          "gpt-4o",
+          "gpt-4.1",
+          "gpt-4.5",
+          "o1",
+          "o3",
+          "o4-mini",
+          "chatgpt-4o",
         ].any(family)) {
-      return 'o200k_base';
+      return "o200k_base";
     }
-    if (family('gpt-4') || family('gpt-3.5-turbo') || family('gpt-35-turbo')) {
-      return 'cl100k_base';
+    if (family("gpt-4") || family("gpt-3.5-turbo") || family("gpt-35-turbo")) {
+      return "cl100k_base";
     }
     return null;
   }
 
   static String assetFor(String name) => switch (name) {
-    'deepseek_v4' => 'assets/tokenizers/deepseek_v4.json',
-    'cl100k_base' || 'o200k_base' => 'assets/tokenizers/$name.tiktoken',
+    "deepseek_v4" => "assets/tokenizers/deepseek_v4.json",
+    "cl100k_base" || "o200k_base" => "assets/tokenizers/$name.tiktoken",
     _ => throw ArgumentError.value(name),
   };
 
@@ -79,39 +79,39 @@ class ModelTokenizer {
       });
 
   static ModelTokenizer fromAsset(String name, String data) {
-    if (name == 'deepseek_v4') {
+    if (name == "deepseek_v4") {
       final json = jsonDecode(data) as Map<String, dynamic>;
-      final model = json['model'] as Map<String, dynamic>;
-      final vocab = (model['vocab'] as Map<String, dynamic>).map(
+      final model = json["model"] as Map<String, dynamic>;
+      final vocab = (model["vocab"] as Map<String, dynamic>).map(
         (k, v) => MapEntry(k, v as int),
       );
       final merges = <String, Map<String, int>>{};
-      final raw = model['merges'] as List;
+      final raw = model["merges"] as List;
       for (var i = 0; i < raw.length; i++) {
         final pair = raw[i] is String
-            ? (raw[i] as String).split(' ')
+            ? (raw[i] as String).split(" ")
             : (raw[i] as List).cast<String>();
         merges.putIfAbsent(pair[0], () => {})[pair[1]] = i;
       }
       final specials = <String, int>{};
-      for (final token in json['added_tokens'] as List) {
-        specials[token['content'] as String] = token['id'] as int;
+      for (final token in json["added_tokens"] as List) {
+        specials[token["content"] as String] = token["id"] as int;
       }
       return ModelTokenizer._(name, vocab, _deepPatterns, merges, specials);
     }
-    if (name != 'cl100k_base' && name != 'o200k_base') {
+    if (name != "cl100k_base" && name != "o200k_base") {
       throw ArgumentError.value(name);
     }
     final vocab = <String, int>{};
     for (final line in const LineSplitter().convert(data)) {
       if (line.isEmpty) continue;
-      final parts = line.split(' ');
+      final parts = line.split(" ");
       vocab[_bytesToString(base64Decode(parts[0]))] = int.parse(parts[1]);
     }
     return ModelTokenizer._(
       name,
       vocab,
-      [name == 'cl100k_base' ? _clPattern : _oPattern],
+      [name == "cl100k_base" ? _clPattern : _oPattern],
       null,
       {},
     );
@@ -216,7 +216,7 @@ final List<String> _byteAlphabet = () {
     for (var i = 161; i <= 172; i++) i,
     for (var i = 174; i <= 255; i++) i,
   ];
-  final map = List<String>.filled(256, '');
+  final map = List<String>.filled(256, "");
   for (final b in direct) {
     map[b] = String.fromCharCode(b);
   }
@@ -236,8 +236,8 @@ final _oPattern = RegExp(
   unicode: true,
 );
 final _deepPatterns = [
-  RegExp(r'\p{N}{1,3}', unicode: true),
-  RegExp(r'[一-龥぀-ゟ゠-ヿ]+', unicode: true),
+  RegExp(r"\p{N}{1,3}", unicode: true),
+  RegExp(r"[一-龥぀-ゟ゠-ヿ]+", unicode: true),
   RegExp(
     r'''[!"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~][A-Za-z]+|[^\r\n\p{L}\p{P}\p{S}]?[\p{L}\p{M}]+| ?[\p{P}\p{S}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+''',
     unicode: true,

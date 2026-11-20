@@ -1,10 +1,10 @@
-import 'dart:convert';
-import 'dart:isolate';
+import "dart:convert";
+import "dart:isolate";
 
-import 'package:flutter/services.dart';
+import "package:flutter/services.dart";
 
-import 'ai_types.dart';
-import 'model_tokenizer.dart';
+import "ai_types.dart";
+import "model_tokenizer.dart";
 
 /// Counts only text visible to the app, separately from provider usage.
 /// Each field is tokenized independently; wire framing and images are excluded.
@@ -25,28 +25,28 @@ Future<String?> countRequestBreakdown({
   if (encoding == null || RootIsolateToken.instance == null) return null;
   // Image data is deliberately not passed to the worker or persisted.
   final fragments = <String, List<String>>{
-    'system': [request.instructions],
-    'user': [],
-    'toolDefinitions': [
+    "system": [request.instructions],
+    "user": [],
+    "toolDefinitions": [
       for (final tool in request.tools)
         jsonEncode({
-          'name': tool.name,
-          'description': tool.description,
-          'parameters': tool.parameters,
+          "name": tool.name,
+          "description": tool.description,
+          "parameters": tool.parameters,
         }),
     ],
-    'toolCalls': [],
-    'toolResults': [],
-    'reasoning': [reasoning],
-    'reply': [response],
+    "toolCalls": [],
+    "toolResults": [],
+    "reasoning": [reasoning],
+    "reply": [response],
   };
   void addCalls(List<ToolCall> calls) {
     for (final call in calls) {
-      fragments['toolCalls']!.add(
+      fragments["toolCalls"]!.add(
         jsonEncode({
-          'id': call.id,
-          'name': call.name,
-          'arguments': call.arguments,
+          "id": call.id,
+          "name": call.name,
+          "arguments": call.arguments,
         }),
       );
     }
@@ -54,13 +54,13 @@ Future<String?> countRequestBreakdown({
 
   for (final message in request.messages) {
     final key = switch (message.role) {
-      AiRole.user => 'user',
-      AiRole.assistant => 'reply',
-      AiRole.tool => 'toolResults',
+      AiRole.user => "user",
+      AiRole.assistant => "reply",
+      AiRole.tool => "toolResults",
     };
     fragments[key]!.add(message.text);
     if (message.reasoningContent != null) {
-      fragments['reasoning']!.add(message.reasoningContent!);
+      fragments["reasoning"]!.add(message.reasoningContent!);
     }
     addCalls(message.calls);
   }
@@ -84,7 +84,7 @@ final _loaded = <String, Future<void>>{};
 Future<SendPort> _startWorker() async {
   final ready = ReceivePort();
   try {
-    await Isolate.spawn(_serve, ready.sendPort, debugName: 'text-tokenizer');
+    await Isolate.spawn(_serve, ready.sendPort, debugName: "text-tokenizer");
     return await ready.first as SendPort;
   } finally {
     ready.close();
@@ -96,7 +96,7 @@ Future<Object?> _ask(SendPort worker, String encoding, Object data) async {
   try {
     worker.send((encoding, data, result.sendPort));
     final value = await result.first;
-    if (value == false) throw StateError('Local tokenization failed');
+    if (value == false) throw StateError("Local tokenization failed");
     return value;
   } finally {
     result.close();
@@ -118,8 +118,8 @@ void _serve(SendPort parent) {
         final fragments = data as Map<String, List<String>>;
         reply.send(
           jsonEncode({
-            'encoding': encoding,
-            'counts': fragments.map(
+            "encoding": encoding,
+            "counts": fragments.map(
               (key, value) => MapEntry(
                 key,
                 value.fold<int>(0, (sum, text) => sum + tokenizer.count(text)),

@@ -1,17 +1,17 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
-import 'package:uuid/uuid.dart';
+import "package:crypto/crypto.dart";
+import "package:dio/dio.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/ai/ai_usage_store.dart';
-import '../../core/ai/chat_provider.dart';
-import '../../core/ai/prompt_settings.dart';
-import '../../core/database/database.dart';
-import 'language_stream.dart';
-import 'language_store.dart';
-import 'sentence_content.dart';
-import 'sentence_store.dart';
+import "../../core/ai/ai_usage_store.dart";
+import "../../core/ai/chat_provider.dart";
+import "../../core/ai/prompt_settings.dart";
+import "../../core/database/database.dart";
+import "language_stream.dart";
+import "language_store.dart";
+import "sentence_content.dart";
+import "sentence_store.dart";
 
 class SentenceExplanation {
   const SentenceExplanation({
@@ -36,7 +36,7 @@ class SentenceExplanation {
     required CancelToken cancel,
   }) async {
     final isMock = provider is MockChatProvider;
-    final model = isMock ? 'Mock' : config.model;
+    final model = isMock ? "Mock" : config.model;
     final key = sha256
         .convert(
           utf8.encode(
@@ -47,8 +47,8 @@ class SentenceExplanation {
               card.language,
               glossLanguage,
               simpler,
-              isMock ? 'mock' : config.kind,
-              isMock ? '' : config.baseUrl,
+              isMock ? "mock" : config.kind,
+              isMock ? "" : config.baseUrl,
               model,
               _promptVersion,
               ?prompts?.overrides[LanguagePrompt.sentenceExplanation.id],
@@ -66,10 +66,10 @@ class SentenceExplanation {
       messages: [
         AiMessage.user(
           jsonEncode({
-            'sentence': card.text,
-            'language': card.language,
-            'glossLanguage': glossLanguage,
-            'simpler': simpler,
+            "sentence": card.text,
+            "language": card.language,
+            "glossLanguage": glossLanguage,
+            "simpler": simpler,
           }),
         ),
       ],
@@ -78,14 +78,14 @@ class SentenceExplanation {
     final buffer = StringBuffer();
     final reasoning = StringBuffer();
     var complete = false;
-    var status = 'error';
+    var status = "error";
     var breakdownComplete = true;
     AiTokenUsage? usage;
     try {
       final stream = isMock
           ? Stream.value(
               AiChunk(
-                text: glossLanguage == 'zh' ? card.translation : card.hint,
+                text: glossLanguage == "zh" ? card.translation : card.hint,
                 completed: true,
               ),
             )
@@ -101,7 +101,7 @@ class SentenceExplanation {
             (complete &&
                 (chunk.text.isNotEmpty || chunk.reasoning.isNotEmpty)) ||
             buffer.length + chunk.text.length > 1600) {
-          throw const FormatException('Invalid explanation reply');
+          throw const FormatException("Invalid explanation reply");
         }
         buffer.write(chunk.text);
         breakdownComplete &= reasoning.length + chunk.reasoning.length <= 32000;
@@ -110,11 +110,11 @@ class SentenceExplanation {
       }
       cancel.checkCancelled();
       if (!complete) {
-        status = 'incomplete';
-        throw const FormatException('Incomplete explanation reply');
+        status = "incomplete";
+        throw const FormatException("Incomplete explanation reply");
       }
       final text = buffer.toString().trim();
-      if (text.isEmpty) throw const FormatException('Empty explanation reply');
+      if (text.isEmpty) throw const FormatException("Empty explanation reply");
       await store.cacheExplanation(
         key: key,
         card: card,
@@ -123,10 +123,10 @@ class SentenceExplanation {
         text: text,
         cancel: cancel,
       );
-      status = 'complete';
+      status = "complete";
       return text;
     } on DioException catch (error) {
-      if (CancelToken.isCancel(error)) status = 'cancelled';
+      if (CancelToken.isCancel(error)) status = "cancelled";
       rethrow;
     } finally {
       final recorder = usageStore;
@@ -138,8 +138,8 @@ class SentenceExplanation {
               providerKind: config.kind,
               endpoint: config.baseUrl,
               model: model,
-              feature: 'language_explanation',
-              status: cancel.isCancelled ? 'cancelled' : status,
+              feature: "language_explanation",
+              status: cancel.isCancelled ? "cancelled" : status,
               occurredAt: started,
               durationMs: DateTime.now().difference(started).inMilliseconds,
               usage: usage,

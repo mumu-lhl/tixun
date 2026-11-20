@@ -1,18 +1,18 @@
-import 'package:dio/dio.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/features/language_learning/quick_lookup/quick_models.dart';
+import "package:dio/dio.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/features/language_learning/quick_lookup/quick_models.dart";
 
 const quickTestConfig = ProviderConfig(
   id: 1,
-  kind: 'deepseek',
-  baseUrl: 'https://api.deepseek.com',
-  model: 'test-lookup',
+  kind: "deepseek",
+  baseUrl: "https://api.deepseek.com",
+  model: "test-lookup",
   vision: false,
   supportsTools: true,
   thinking: true,
   supportsThinking: true,
-  effort: 'max',
+  effort: "max",
 );
 
 const validQuickReply = '''
@@ -48,7 +48,7 @@ class QuickTestProvider implements ChatProvider {
 
 QuickQuery quickTestQuery(
   LanguageQuickAction action, {
-  String input = 'pleasure',
+  String input = "pleasure",
 }) => QuickQuery(
   actionId: action.id,
   actionName: action.name.isEmpty ? action.id : action.name,
@@ -57,7 +57,7 @@ QuickQuery quickTestQuery(
   input: input,
   sourceLanguage: action.sourceLanguage,
   targetLanguage: action.targetLanguage,
-  glossLanguage: 'zh',
-  level: 'intermediate',
+  glossLanguage: "zh",
+  level: "intermediate",
   detailed: action.detailed,
 );

@@ -1,14 +1,14 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:uuid/uuid.dart';
+import "package:material_ui/material_ui.dart";
+import "package:uuid/uuid.dart";
 
-import '../../../core/database/database.dart';
-import '../../../core/l10n/app_strings.dart';
-import '../../../core/ui/app_menu.dart';
-import '../../../core/ui/actions.dart';
-import '../language_store.dart';
-import 'quick_labels.dart';
-import 'quick_models.dart';
-import 'quick_store.dart';
+import "../../../core/database/database.dart";
+import "../../../core/l10n/app_strings.dart";
+import "../../../core/ui/app_menu.dart";
+import "../../../core/ui/actions.dart";
+import "../language_store.dart";
+import "quick_labels.dart";
+import "quick_models.dart";
+import "quick_store.dart";
 
 Future<void> editQuickAction(
   BuildContext context,
@@ -105,16 +105,16 @@ class _QuickActionManagerState extends State<QuickActionManager> {
                     enabled: !_busy,
                     onSelected: (value) => _change(() async {
                       switch (value) {
-                        case 'up':
+                        case "up":
                           await widget.store.moveQuickAction(action.id, -1);
-                        case 'down':
+                        case "down":
                           await widget.store.moveQuickAction(action.id, 1);
-                        case 'enabled':
+                        case "enabled":
                           await widget.store.setQuickActionEnabled(
                             action.id,
                             !action.enabled,
                           );
-                        case 'reset':
+                        case "reset":
                           await widget.store.saveQuickAction(
                             quickActionDefaults(
                               action.id,
@@ -122,7 +122,7 @@ class _QuickActionManagerState extends State<QuickActionManager> {
                               DateTime.now(),
                             ),
                           );
-                        case 'delete':
+                        case "delete":
                           if (await confirmQuickDelete(
                             context,
                             l10n.quickRemoveAction,
@@ -133,28 +133,28 @@ class _QuickActionManagerState extends State<QuickActionManager> {
                     }),
                     itemBuilder: (context) => [
                       CheckedPopupMenuItem(
-                        value: 'enabled',
+                        value: "enabled",
                         checked: action.enabled,
                         child: Text(l10n.quickEnabled),
                       ),
                       PopupMenuItem(
-                        value: 'up',
+                        value: "up",
                         enabled: index > 0,
                         child: Text(l10n.quickMoveUp),
                       ),
                       PopupMenuItem(
-                        value: 'down',
+                        value: "down",
                         enabled: index + 1 < actions.length,
                         child: Text(l10n.quickMoveDown),
                       ),
                       if (action.builtIn)
                         PopupMenuItem(
-                          value: 'reset',
+                          value: "reset",
                           child: Text(l10n.quickResetAction),
                         )
                       else
                         PopupMenuItem(
-                          value: 'delete',
+                          value: "delete",
                           child: Text(l10n.delete),
                         ),
                     ],
@@ -216,7 +216,7 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
         hintText: hint,
         helperText: help,
         helperMaxLines: 4,
-        counterText: '',
+        counterText: "",
       ),
       onChanged: update,
       validator: validator,
@@ -258,9 +258,9 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                 _name,
                 50,
                 (value) => _name = value,
-                hint: quickName(context, _original.copyWith(name: '')),
+                hint: quickName(context, _original.copyWith(name: "")),
                 validator: (value) =>
-                    !_original.builtIn && (value ?? '').trim().isEmpty
+                    !_original.builtIn && (value ?? "").trim().isEmpty
                     ? l10n.languageRequired
                     : null,
               ),
@@ -274,10 +274,10 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                       child: Icon(
                         quickIcon(icon),
                         semanticLabel: switch (icon) {
-                          'express' => l10n.quickExpress,
-                          'meaning' => l10n.quickMeaning,
-                          'usage' => l10n.quickUsage,
-                          'translate' => l10n.quickActionTarget,
+                          "express" => l10n.quickExpress,
+                          "meaning" => l10n.quickMeaning,
+                          "usage" => l10n.quickUsage,
+                          "translate" => l10n.quickActionTarget,
                           _ => l10n.quickActionIcon,
                         },
                       ),
@@ -292,7 +292,7 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                 (value) => _description = value,
                 hint: quickDescription(
                   context,
-                  _original.copyWith(description: ''),
+                  _original.copyWith(description: ""),
                 ),
               ),
               field(
@@ -300,7 +300,7 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                 _hint,
                 180,
                 (value) => _hint = value,
-                hint: quickHint(context, _original.copyWith(inputHint: '')),
+                hint: quickHint(context, _original.copyWith(inputHint: "")),
               ),
               field(
                 l10n.quickActionPrompt,
@@ -311,7 +311,7 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                 lines: 4,
                 validator: (value) {
                   try {
-                    compileQuickPrompt(value ?? '');
+                    compileQuickPrompt(value ?? "");
                   } on FormatException {
                     return l10n.quickInvalidTemplate;
                   }
@@ -319,7 +319,7 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                 },
               ),
               language(l10n.quickActionSource, _source, [
-                'auto',
+                "auto",
                 ...quickLanguages,
               ], (value) => _source = value),
               language(
@@ -329,7 +329,7 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                 (value) => _target = value,
               ),
               language(l10n.quickActionGloss, _gloss, [
-                'app',
+                "app",
                 ...quickLanguages,
               ], (value) => _gloss = value),
               SwitchListTile(

@@ -1,76 +1,76 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:integration_test/integration_test.dart';
-import 'package:tixun/app/app.dart';
-import 'package:tixun/app/controller.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:integration_test/integration_test.dart";
+import "package:tixun/app/app.dart";
+import "package:tixun/app/controller.dart";
 
 Map<String, dynamic> _triangle({
   Map<String, dynamic>? meta,
   List<Map<String, dynamic>>? constraints,
 }) => {
-  'v': 1,
-  'kind': 'geometry',
-  'title': '直角三角形',
-  'view': {
-    'x': [-1, 5],
-    'y': [-1, 5],
+  "v": 1,
+  "kind": "geometry",
+  "title": "直角三角形",
+  "view": {
+    "x": [-1, 5],
+    "y": [-1, 5],
   },
-  'elements': [
+  "elements": [
     {
-      'id': 'A',
-      'type': 'point',
-      'at': [0, 0],
-      'label': 'A',
+      "id": "A",
+      "type": "point",
+      "at": [0, 0],
+      "label": "A",
     },
     {
-      'id': 'B',
-      'type': 'point',
-      'at': [3, 0],
-      'label': 'B',
+      "id": "B",
+      "type": "point",
+      "at": [3, 0],
+      "label": "B",
     },
     {
-      'id': 'C',
-      'type': 'point',
-      'at': [0, 4],
-      'label': 'C',
+      "id": "C",
+      "type": "point",
+      "at": [0, 4],
+      "label": "C",
     },
     {
-      'id': 'M',
-      'type': 'point',
-      'at': [1.5, 2],
-      'label': 'M',
+      "id": "M",
+      "type": "point",
+      "at": [1.5, 2],
+      "label": "M",
     },
     {
-      'id': 'AB',
-      'type': 'line',
-      'p1': [0, 0],
-      'p2': [3, 0],
+      "id": "AB",
+      "type": "line",
+      "p1": [0, 0],
+      "p2": [3, 0],
     },
     {
-      'id': 'AC',
-      'type': 'line',
-      'p1': [0, 0],
-      'p2': [0, 4],
+      "id": "AC",
+      "type": "line",
+      "p1": [0, 0],
+      "p2": [0, 4],
     },
     {
-      'id': 'BC',
-      'type': 'line',
-      'p1': [3, 0],
-      'p2': [0, 4],
+      "id": "BC",
+      "type": "line",
+      "p1": [3, 0],
+      "p2": [0, 4],
     },
   ],
-  'meta': ?meta,
-  'constraints': ?constraints,
+  "meta": ?meta,
+  "constraints": ?constraints,
 };
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('Real Linux GUI: a constrained triangle renders; a schematic one '
-      'shows the not-to-scale note', (tester) async {
+  testWidgets("Real Linux GUI: a constrained triangle renders; a schematic one "
+      "shows the not-to-scale note", (tester) async {
     final c = await AppController.open(demo: true);
     await c.setAiDrawingEnabled(true);
     final container = ProviderContainer(
@@ -80,11 +80,11 @@ void main() {
       UncontrolledProviderScope(container: container, child: const TixunApp()),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('start-chat')));
+    await tester.tap(find.byKey(const Key("start-chat")));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const Key('chat-input')),
-      '请画图，画出 y = x^2 的函数图',
+      find.byKey(const Key("chat-input")),
+      "请画图，画出 y = x^2 的函数图",
     );
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -104,16 +104,16 @@ void main() {
       jsonEncode(
         _triangle(
           constraints: [
-            {'type': 'distance', 'a': 'A', 'b': 'B', 'value': 3},
-            {'type': 'perpendicular', 'a': 'AB', 'b': 'AC'},
-            {'type': 'midpoint', 'point': 'M', 'a': 'B', 'b': 'C'},
+            {"type": "distance", "a": "A", "b": "B", "value": 3},
+            {"type": "perpendicular", "a": "AB", "b": "AC"},
+            {"type": "midpoint", "point": "M", "a": "B", "b": "C"},
           ],
         ),
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('直角三角形'), findsOneWidget);
-    expect(find.text('示意图，不按比例'), findsNothing);
+    expect(find.text("直角三角形"), findsOneWidget);
+    expect(find.text("示意图，不按比例"), findsNothing);
 
     // Same triangle declared a schematic with a wrong distance: the
     // scene still renders, with the not-to-scale note.
@@ -121,16 +121,16 @@ void main() {
       id,
       jsonEncode(
         _triangle(
-          meta: {'schematic': true, 'alt': '直角三角形示意图'},
+          meta: {"schematic": true, "alt": "直角三角形示意图"},
           constraints: [
-            {'type': 'distance', 'a': 'A', 'b': 'B', 'value': 4},
+            {"type": "distance", "a": "A", "b": "B", "value": 4},
           ],
         ),
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('直角三角形'), findsOneWidget);
-    expect(find.text('示意图，不按比例'), findsOneWidget);
+    expect(find.text("直角三角形"), findsOneWidget);
+    expect(find.text("示意图，不按比例"), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -1,15 +1,15 @@
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:tixun/core/l10n/app_error_localization.dart';
+import "package:tixun/core/l10n/app_error.dart";
+import "package:tixun/core/l10n/app_error_localization.dart";
 
-import '../../core/ui/app_menu.dart';
+import "../../core/ui/app_menu.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import '../../app/controller.dart';
-import '../../core/l10n/app_strings.dart';
-import '../review/review_providers.dart';
-import 'learning_profile.dart';
+import "../../app/controller.dart";
+import "../../core/l10n/app_strings.dart";
+import "../review/review_providers.dart";
+import "learning_profile.dart";
 
 class ProfileEditor extends ConsumerStatefulWidget {
   const ProfileEditor(this.profile, {super.key});
@@ -22,7 +22,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
   late final stage = TextEditingController(text: widget.profile.stage),
       region = TextEditingController(text: widget.profile.region),
       exam = TextEditingController(text: widget.profile.exam),
-      minutes = TextEditingController(text: '${widget.profile.dailyMinutes}'),
+      minutes = TextEditingController(text: "${widget.profile.dailyMinutes}"),
       scope = TextEditingController(text: widget.profile.scope);
   late DateTime? date = widget.profile.examDate;
   late String teaching = widget.profile.teaching;
@@ -83,15 +83,15 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
             ),
             items: [
               DropdownMenuItem(
-                value: 'guided',
+                value: "guided",
                 child: Text(context.l10n.guidedLearning),
               ),
               DropdownMenuItem(
-                value: 'direct',
+                value: "direct",
                 child: Text(context.l10n.directAnswer),
               ),
               DropdownMenuItem(
-                value: 'exam',
+                value: "exam",
                 child: Text(context.l10n.examPractice),
               ),
             ],
@@ -126,7 +126,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                 label: Text(
                   date == null
                       ? context.l10n.setExamDate
-                      : '${date!.year}-${date!.month}-${date!.day}',
+                      : "${date!.year}-${date!.month}-${date!.day}",
                 ),
               ),
               if (date != null)
@@ -159,7 +159,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                   if (n == null) {
                     throw const AppFormatException(
                       AppErrorCode.errorEnterTheDailyTimeAsA,
-                      '每日时间请输入整数分钟。',
+                      "每日时间请输入整数分钟。",
                     );
                   }
                   await LearningProfile(
@@ -180,7 +180,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                           ? e
                           : const AppFormatException(
                               AppErrorCode.errorSaveTryAgain,
-                              '保存失败，请重试。',
+                              "保存失败，请重试。",
                             ),
                     );
                   }

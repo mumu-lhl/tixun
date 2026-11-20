@@ -1,24 +1,24 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/features/scratchpad/scratch_document.dart';
-import 'package:tixun/features/scratchpad/scratchpad_screen.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/scratchpad/scratch_document.dart";
+import "package:tixun/features/scratchpad/scratchpad_screen.dart";
 
 void main() {
   testWidgets(
-    'A persistently failing save offers discard-and-exit instead of trapping the user',
+    "A persistently failing save offers discard-and-exit instead of trapping the user",
     (tester) async {
       late AppController c;
       await tester.runAsync(() async {
         final root = await Directory.systemTemp.createTemp(
-          'tixun-scratch-close',
+          "tixun-scratch-close",
         );
         c = AppController(
           AppDatabase.memory(),
@@ -45,7 +45,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(home: ScratchpadScreen('mistake:probe')),
+          child: const MaterialApp(home: ScratchpadScreen("mistake:probe")),
         ),
       );
       await tester.pumpAndSettle();
@@ -54,14 +54,13 @@ void main() {
       // database makes flush() throw. (An empty pending set never touches
       // the database, so staging first is what makes the failure real.)
       await tester.runAsync(() async {
-        c.scratch.stage('mistake:probe', ScratchDocument().addPage());
+        c.scratch.stage("mistake:probe", ScratchDocument().addPage());
         await c.db.close();
       });
       await tester.tap(find.byIcon(Icons.close));
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('保存失败，放弃未保存内容退出？'), findsOneWidget);
-      // "Keep retrying" dismisses the dialog and stays on the board.
+      expect(find.text("保存失败，放弃未保存内容退出？"), findsOneWidget);
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
@@ -71,7 +70,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.byType(ScratchpadScreen), findsOneWidget);
-      // A second failed close, then "Discard and exit" pops the board.
       await tester.tap(find.byIcon(Icons.close));
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);

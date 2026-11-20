@@ -1,12 +1,12 @@
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:tixun/core/l10n/app_error.dart";
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import 'study_store.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "study_store.dart";
 
 Future<void> startAiStudyWriting(
   BuildContext context,
@@ -19,7 +19,7 @@ Future<void> startAiStudyWriting(
   if (c.busy) {
     throw const AppFormatException(
       AppErrorCode.stopGenerationBeforeOrganizingMaterial,
-      '请先停止生成，再整理资料。',
+      "请先停止生成，再整理资料。",
     );
   }
   final title = knowledge != null
@@ -37,7 +37,7 @@ Future<void> startAiStudyWriting(
       requiredInput: source == null,
       initial: knowledge != null && source == null
           ? context.l10n.improveTheStructurePreserveThe
-          : '',
+          : "",
     ),
   );
   if (instruction == null || !context.mounted) return;
@@ -48,7 +48,7 @@ Future<void> startAiStudyWriting(
     instruction: instruction,
   );
   if (!context.mounted) return; // The prepared draft remains available.
-  context.go('/chat');
+  context.go("/chat");
   await c.send(prompt);
 }
 
@@ -91,7 +91,7 @@ class _WritingRequestState extends State<_WritingRequest> {
               child: Text(widget.target!),
             ),
           TextField(
-            key: const Key('ai-study-instruction'),
+            key: const Key("ai-study-instruction"),
             controller: input,
             minLines: 2,
             maxLines: 5,
@@ -116,7 +116,7 @@ class _WritingRequestState extends State<_WritingRequest> {
         child: Text(context.l10n.cancel),
       ),
       FilledButton(
-        key: const Key('start-ai-study-writing'),
+        key: const Key("start-ai-study-writing"),
         onPressed: () {
           if (widget.requiredInput && input.text.trim().isEmpty) {
             setState(() => error = context.l10n.describeWhatYouWantTo);
@@ -171,7 +171,7 @@ class _KnowledgePickerState extends State<_KnowledgePicker> {
             ),
             const SizedBox(height: 12),
             TextField(
-              key: const Key('ai-knowledge-target-search'),
+              key: const Key("ai-knowledge-target-search"),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
                 hintText: context.l10n.searchKnowledgeOrSelectA,
@@ -206,7 +206,7 @@ class _KnowledgePickerState extends State<_KnowledgePicker> {
                     itemBuilder: (_, i) {
                       final k = snap.data![i];
                       return ListTile(
-                        key: ValueKey('ai-knowledge-target-${k.id}'),
+                        key: ValueKey("ai-knowledge-target-${k.id}"),
                         title: Text(
                           k.title,
                           maxLines: 2,

@@ -1,11 +1,11 @@
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import '../../core/l10n/app_error.dart';
-import '../practice/practice_store.dart';
-import '../a2ui/a2ui_store.dart';
-import 'chat_context_store.dart';
+import "../../core/database/database.dart";
+import "../../core/l10n/app_error.dart";
+import "../practice/practice_store.dart";
+import "../a2ui/a2ui_store.dart";
+import "chat_context_store.dart";
 
 /// Copies only the prefix ending at the chosen message. Original messages,
 /// drafts stay untouched. Saved figures and attempts retain their references;
@@ -31,12 +31,12 @@ class ChatBranchStore {
             db.chatSessions,
           )..where((s) => s.id.equals(source.sessionId))).getSingleOrNull();
     if (source == null ||
-        source.status == 'generating' ||
+        source.status == "generating" ||
         parent == null ||
         parent.deleted) {
       throw const AppFormatException(
         AppErrorCode.cannotForkMessage,
-        '请从未删除会话中的已完成消息创建分支。',
+        "请从未删除会话中的已完成消息创建分支。",
       );
     }
     final history = await db.messages(parent.id);
@@ -91,7 +91,7 @@ class ChatBranchStore {
           .insert(
             message.copyWith(id: newId, sessionId: branch.id, content: content),
           );
-      if (message.role == 'assistant') {
+      if (message.role == "assistant") {
         await practice.linkFork(message.id, newId);
         await a2ui.copyMessage(
           sourceSession: parent.id,

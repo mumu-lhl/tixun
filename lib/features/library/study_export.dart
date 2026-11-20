@@ -6,24 +6,24 @@
 /// in `core/export`.
 library;
 
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
+import "dart:async";
+import "dart:convert";
+import "dart:io";
+import "dart:typed_data";
 
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:material_ui/material_ui.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import "package:flutter/services.dart" show rootBundle;
+import "package:material_ui/material_ui.dart";
+import "package:path/path.dart" as p;
+import "package:path_provider/path_provider.dart";
 
-import '../../core/export/docx_export.dart';
-import '../../core/export/markdown_export.dart';
-import '../../core/export/pdf_export.dart';
-import '../../core/export/study_export.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/l10n/generated/app_localizations.dart';
-import '../../core/platform/export_file_picker.dart';
-import 'study_store.dart';
+import "../../core/export/docx_export.dart";
+import "../../core/export/markdown_export.dart";
+import "../../core/export/pdf_export.dart";
+import "../../core/export/study_export.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/l10n/generated/app_localizations.dart";
+import "../../core/platform/export_file_picker.dart";
+import "study_store.dart";
 
 class StudyExportService {
   StudyExportService(
@@ -56,9 +56,9 @@ class StudyExportService {
         for (final attachment in detail.images) {
           if (attachment.deleted) continue;
           final mime = attachment.mime.toLowerCase();
-          if (mime != 'image/png' &&
-              mime != 'image/jpeg' &&
-              mime != 'image/jpg') {
+          if (mime != "image/png" &&
+              mime != "image/jpeg" &&
+              mime != "image/jpg") {
             continue;
           }
           try {
@@ -110,8 +110,8 @@ class StudyExportService {
           includeImages: includeImages,
         );
       case StudyExportFormat.pdf:
-        final font = await _loadFont('assets/fonts/NotoSansSC.ttf');
-        final mono = await _loadFont('assets/fonts/RobotoMono.ttf');
+        final font = await _loadFont("assets/fonts/NotoSansSC.ttf");
+        final mono = await _loadFont("assets/fonts/RobotoMono.ttf");
         return buildStudyPdf(
           bundle: bundle,
           chrome: chrome,
@@ -148,7 +148,6 @@ class StudyExportService {
   }
 }
 
-/// Builds the frame texts the writers need from the current locale.
 StudyExportChrome studyExportChrome({
   required AppLocalizations l10n,
   required String Function(String subject) subjectName,
@@ -168,10 +167,10 @@ StudyExportChrome studyExportChrome({
         subjectName(note.subject),
         note.chapter,
         note.kind,
-        if (note.tags.isNotEmpty) note.tags.map((tag) => '#$tag').join(' '),
+        if (note.tags.isNotEmpty) note.tags.map((tag) => "#$tag").join(" "),
       ].where((part) => part.trim().isNotEmpty);
       return l10n.exportNoteMeta(
-        l10nArgument(parts.join(' · ')),
+        l10nArgument(parts.join(" · ")),
         l10nArgument(formatExportDate(note.updatedAt)),
       );
     },
@@ -181,19 +180,18 @@ StudyExportChrome studyExportChrome({
 
 String formatExportDate(DateTime value) {
   final local = value.toLocal();
-  String two(int number) => number.toString().padLeft(2, '0');
-  return '${local.year}-${two(local.month)}-${two(local.day)}';
+  String two(int number) => number.toString().padLeft(2, "0");
+  return "${local.year}-${two(local.month)}-${two(local.day)}";
 }
 
 String exportFileName(DateTime now, StudyExportFormat format) {
   final local = now.toLocal();
-  String two(int number) => number.toString().padLeft(2, '0');
+  String two(int number) => number.toString().padLeft(2, "0");
   final stamp =
-      '${local.year}${two(local.month)}${two(local.day)}-${two(local.hour)}${two(local.minute)}';
-  return 'tixun-notes-$stamp.${format.extension}';
+      "${local.year}${two(local.month)}${two(local.day)}-${two(local.hour)}${two(local.minute)}";
+  return "tixun-notes-$stamp.${format.extension}";
 }
 
-/// What the progress dialog reports back to the screen.
 class StudyExportOutcome {
   const StudyExportOutcome({
     this.savedName,

@@ -1,4 +1,4 @@
-part of 'app.dart';
+part of "app.dart";
 
 class _MainNavigationMotion {
   const _MainNavigationMotion(this.from, this.to);
@@ -43,8 +43,8 @@ GoRoute _materialRoute({
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: const String.fromEnvironment(
-      'TIXUN_ROUTE',
-      defaultValue: '/study',
+      "TIXUN_ROUTE",
+      defaultValue: "/study",
     ),
     // Unknown paths (mistyped deep links, stale links) must not strand
     // the user on GoRouter's default error page, which sits outside the
@@ -67,7 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               Text(state.uri.path, textAlign: TextAlign.center),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: () => context.go('/study'),
+                onPressed: () => context.go("/study"),
                 child: Text(context.l10n.returnToStudyPage),
               ),
             ],
@@ -81,142 +81,142 @@ final routerProvider = Provider<GoRouter>((ref) {
             AppShell(path: state.uri.path, child: child),
         routes: [
           _materialRoute(
-            path: '/exams',
+            path: "/exams",
             builder: (_, _) => const ExamCalendarScreen(),
             routes: [
               _materialRoute(
-                path: ':id',
-                builder: (_, s) => ExamDetailScreen(s.pathParameters['id']!),
+                path: ":id",
+                builder: (_, s) => ExamDetailScreen(s.pathParameters["id"]!),
                 routes: [
                   _materialRoute(
-                    path: 'subject/:subjectId',
+                    path: "subject/:subjectId",
                     builder: (_, s) =>
-                        ExamSubjectScreen(s.pathParameters['subjectId']!),
+                        ExamSubjectScreen(s.pathParameters["subjectId"]!),
                   ),
                 ],
               ),
             ],
           ),
           _materialRoute(
-            path: '/timeline',
+            path: "/timeline",
             builder: (_, _) => const TimelineScreen(),
           ),
           _materialRoute(
-            path: '/language',
+            path: "/language",
             builder: (_, _) => const LanguageLearningScreen(),
           ),
           _materialRoute(
-            path: '/language/quick',
+            path: "/language/quick",
             builder: (_, state) => QuickLookupScreen(
-              initialInput: state.extra is String ? state.extra as String : '',
+              initialInput: state.extra is String ? state.extra as String : "",
             ),
           ),
           _materialRoute(
-            path: '/study',
+            path: "/study",
             builder: (_, _) => const DashboardScreen(),
           ),
           _materialRoute(
-            path: '/review',
+            path: "/review",
             builder: (_, _) => const ReviewScreen(),
           ),
           _materialRoute(
-            path: '/progress',
+            path: "/progress",
             builder: (_, _) => const ProgressScreen(),
           ),
           _materialRoute(
-            path: '/practice',
+            path: "/practice",
             builder: (_, _) => const PracticeScreen(),
             routes: [
               _materialRoute(
-                path: 'run',
+                path: "run",
                 builder: (_, _) => const PracticeRunScreen(),
               ),
               _materialRoute(
-                path: ':id',
+                path: ":id",
                 builder: (_, s) => PracticeDetailScreen(
-                  s.pathParameters['id']!,
-                  attemptId: s.uri.queryParameters['attempt'],
+                  s.pathParameters["id"]!,
+                  attemptId: s.uri.queryParameters["attempt"],
                 ),
                 routes: [
                   _materialRoute(
-                    path: 'history',
+                    path: "history",
                     builder: (_, s) =>
-                        PracticeHistoryScreen(s.pathParameters['id']!),
+                        PracticeHistoryScreen(s.pathParameters["id"]!),
                   ),
                 ],
               ),
             ],
           ),
-          _materialRoute(path: '/chat', builder: (_, _) => const ChatScreen()),
+          _materialRoute(path: "/chat", builder: (_, _) => const ChatScreen()),
           _materialRoute(
-            path: '/settings',
+            path: "/settings",
             builder: (_, _) => const SettingsScreen(),
             routes: [
               _materialRoute(
-                path: 'subjects',
+                path: "subjects",
                 builder: (_, _) => const SubjectsScreen(),
               ),
               _materialRoute(
-                path: 'ai',
+                path: "ai",
                 builder: (_, _) => const AiSettingsScreen(),
               ),
               _materialRoute(
-                path: 'ai-usage',
+                path: "ai-usage",
                 builder: (_, _) => const AiUsageScreen(),
               ),
               _materialRoute(
-                path: 'chatgpt',
+                path: "chatgpt",
                 builder: (_, _) =>
                     const AiSettingsScreen(showSubscription: true),
               ),
               _materialRoute(
-                path: 'tools',
+                path: "tools",
                 builder: (_, _) => const AiToolsSettings(),
               ),
               _materialRoute(
-                path: 'python',
+                path: "python",
                 builder: (_, _) => const AiToolsSettings(),
               ),
               _materialRoute(
-                path: 'prompts',
+                path: "prompts",
                 builder: (_, _) => const PromptScreen(),
                 routes: [
                   _materialRoute(
-                    path: ':id',
+                    path: ":id",
                     builder: (_, state) =>
-                        PromptEditorScreen(state.pathParameters['id']!),
+                        PromptEditorScreen(state.pathParameters["id"]!),
                   ),
                 ],
               ),
             ],
           ),
           _materialRoute(
-            path: '/knowledge',
+            path: "/knowledge",
             builder: (_, s) => LibraryScreen(
               isMistake: false,
-              initialModule: s.uri.queryParameters['module'],
+              initialModule: s.uri.queryParameters["module"],
             ),
             routes: [
               _materialRoute(
-                path: ':id',
+                path: ":id",
                 builder: (_, state) => StudyDetailScreen(
-                  id: state.pathParameters['id']!,
+                  id: state.pathParameters["id"]!,
                   isMistake: false,
                 ),
               ),
             ],
           ),
           _materialRoute(
-            path: '/mistakes',
+            path: "/mistakes",
             builder: (_, s) => LibraryScreen(
               isMistake: true,
-              initialModule: s.uri.queryParameters['module'],
+              initialModule: s.uri.queryParameters["module"],
             ),
             routes: [
               _materialRoute(
-                path: ':id',
+                path: ":id",
                 builder: (_, state) => StudyDetailScreen(
-                  id: state.pathParameters['id']!,
+                  id: state.pathParameters["id"]!,
                   isMistake: true,
                 ),
               ),

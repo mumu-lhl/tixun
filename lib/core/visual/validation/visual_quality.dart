@@ -1,15 +1,10 @@
-import 'dart:math' as math;
+import "dart:math" as math;
 
-import '../math/expression.dart';
-import '../math/sampling.dart';
-import '../model/visual_scene.dart';
+import "../math/expression.dart";
+import "../math/sampling.dart";
+import "../model/visual_scene.dart";
 
-/// One finding of the static quality auto-check (Phase 4).
-///
-/// Not a validation error: the scene is valid and renders, but something
-/// about it is likely wrong for teaching. The create/update tools attach
-/// these to their result so the model can fix the figure in the next
-/// round instead of shipping a silently bad one.
+/// A rendering or mathematical issue in a structurally valid scene.
 class VisualQualityIssue {
   const VisualQualityIssue({
     required this.code,
@@ -21,16 +16,14 @@ class VisualQualityIssue {
   /// `curve_not_visible`, `derived_mismatch`.
   final String code;
 
-  /// Human-readable (Chinese) description.
   final String message;
 
-  /// Element id or JSON path the issue is about, when it has one.
   final String? path;
 
   Map<String, dynamic> toJson() => {
-    'code': code,
-    'message': message,
-    if (path != null) 'path': path,
+    "code": code,
+    "message": message,
+    if (path != null) "path": path,
   };
 }
 
@@ -43,13 +36,13 @@ class VisualQualityIssue {
 /// never throws (a check that cannot run is skipped).
 List<VisualQualityIssue> checkVisualQuality(VisualScene scene) {
   final issues = <VisualQualityIssue>[];
-  final alt = scene.meta?.alt?.trim() ?? '';
-  final title = scene.title?.trim() ?? '';
+  final alt = scene.meta?.alt?.trim() ?? "";
+  final title = scene.title?.trim() ?? "";
   if (alt.isEmpty && title.isEmpty) {
     issues.add(
       const VisualQualityIssue(
-        code: 'missing_alt',
-        message: '图形缺少文字说明（alt 或标题），读屏器无法描述它。',
+        code: "missing_alt",
+        message: "图形缺少文字说明（alt 或标题），读屏器无法描述它。",
       ),
     );
   }
@@ -57,7 +50,7 @@ List<VisualQualityIssue> checkVisualQuality(VisualScene scene) {
       scene.elements.isEmpty &&
       scene.annotations.isEmpty) {
     issues.add(
-      const VisualQualityIssue(code: 'empty_scene', message: '图形没有任何内容。'),
+      const VisualQualityIssue(code: "empty_scene", message: "图形没有任何内容。"),
     );
   }
 
@@ -84,8 +77,8 @@ List<VisualQualityIssue> checkVisualQuality(VisualScene scene) {
             extent.minY > yMax) {
           issues.add(
             VisualQualityIssue(
-              code: 'point_outside_view',
-              message: '图元 ${element.id} 的图形完全在视图范围外，不会显示。',
+              code: "point_outside_view",
+              message: "图元 ${element.id} 的图形完全在视图范围外，不会显示。",
               path: element.id,
             ),
           );
@@ -100,9 +93,9 @@ List<VisualQualityIssue> checkVisualQuality(VisualScene scene) {
             point.dy > yMax) {
           issues.add(
             VisualQualityIssue(
-              code: 'point_outside_view',
+              code: "point_outside_view",
               message:
-                  '图元 ${element.id} 的坐标 (${_fmt(point.dx)}, ${_fmt(point.dy)}) 在视图范围外，不会显示。',
+                  "图元 ${element.id} 的坐标 (${_fmt(point.dx)}, ${_fmt(point.dy)}) 在视图范围外，不会显示。",
               path: element.id,
             ),
           );
@@ -126,8 +119,8 @@ List<VisualQualityIssue> checkVisualQuality(VisualScene scene) {
     if (!_hasSamples(modelExpression, parameters, range.$1, range.$2)) {
       issues.add(
         const VisualQualityIssue(
-          code: 'curve_not_visible',
-          message: '函数图像在视图内没有任何可见点。',
+          code: "curve_not_visible",
+          message: "函数图像在视图内没有任何可见点。",
         ),
       );
     }
@@ -146,8 +139,8 @@ List<VisualQualityIssue> checkVisualQuality(VisualScene scene) {
     )) {
       issues.add(
         VisualQualityIssue(
-          code: 'curve_not_visible',
-          message: '图元 ${element.id} 的函数图像在视图内没有任何可见点。',
+          code: "curve_not_visible",
+          message: "图元 ${element.id} 的函数图像在视图内没有任何可见点。",
           path: element.id,
         ),
       );
@@ -172,29 +165,29 @@ List<VisualQualityIssue> checkVisualQuality(VisualScene scene) {
           : (-10.0, 10.0);
       final yScale = _yScale(modelExpression, parameters, range.$1, range.$2);
       final zeroTol = 1e-6 * math.max(1.0, yScale);
-      for (final zero in (derived['zeros'] as List).cast<double>()) {
+      for (final zero in (derived["zeros"] as List).cast<double>()) {
         final y = _tryEvaluate(expr, parameters, zero);
         if (y == null || y.abs() > zeroTol) {
           issues.add(
             VisualQualityIssue(
-              code: 'derived_mismatch',
-              message: '计算出的零点 x=${_fmt(zero)} 处函数值不是 0。',
+              code: "derived_mismatch",
+              message: "计算出的零点 x=${_fmt(zero)} 处函数值不是 0。",
             ),
           );
           break;
         }
       }
-      for (final extremum in (derived['extrema'] as List).cast<Map>()) {
-        final x = (extremum['x'] as num).toDouble();
-        final y = (extremum['y'] as num).toDouble();
+      for (final extremum in (derived["extrema"] as List).cast<Map>()) {
+        final x = (extremum["x"] as num).toDouble();
+        final y = (extremum["y"] as num).toDouble();
         final actual = _tryEvaluate(expr, parameters, x);
         final extremumTol =
             1e-6 * math.max(1.0, math.max(y.abs(), actual?.abs() ?? 0.0));
         if (actual == null || (actual - y).abs() > extremumTol) {
           issues.add(
             VisualQualityIssue(
-              code: 'derived_mismatch',
-              message: '计算出的极值点 x=${_fmt(x)} 处函数值与报告值不一致。',
+              code: "derived_mismatch",
+              message: "计算出的极值点 x=${_fmt(x)} 处函数值与报告值不一致。",
             ),
           );
           break;
@@ -264,7 +257,7 @@ double? _tryEvaluate(
   double x,
 ) {
   try {
-    final value = expr.evaluate({...parameters, 'x': x});
+    final value = expr.evaluate({...parameters, "x": x});
     return value.isFinite ? value : null;
   } catch (_) {
     return null;
@@ -382,6 +375,6 @@ String _fmt(double value) {
   if (value == value.roundToDouble()) return value.toInt().toString();
   return value
       .toStringAsFixed(4)
-      .replaceAll(RegExp(r'0+$'), '')
-      .replaceAll(RegExp(r'\.$'), '');
+      .replaceAll(RegExp(r"0+$"), "")
+      .replaceAll(RegExp(r"\.$"), "");
 }

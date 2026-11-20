@@ -1,4 +1,4 @@
-part of 'ai_usage_screen.dart';
+part of "ai_usage_screen.dart";
 
 extension _UsagePrices on _AiUsageScreenState {
   Future<void> _deletePrice(AiModelPrice price) async {
@@ -10,35 +10,35 @@ extension _UsagePrices on _AiUsageScreenState {
     final currentConfig = ref.read(appControllerProvider).config;
     final initialProvider =
         price?.providerKind ??
-        (currentConfig.kind == 'chatgpt' ? 'deepseek' : currentConfig.kind);
+        (currentConfig.kind == "chatgpt" ? "deepseek" : currentConfig.kind);
     final input = TextEditingController(
-      text: price == null ? '' : _rateText(price.inputRateNanoUsdPerMillion),
+      text: price == null ? "" : _rateText(price.inputRateNanoUsdPerMillion),
     );
     final cached = TextEditingController(
       text: price == null
-          ? ''
+          ? ""
           : _rateText(price.cachedInputRateNanoUsdPerMillion),
     );
     final output = TextEditingController(
-      text: price == null ? '' : _rateText(price.outputRateNanoUsdPerMillion),
+      text: price == null ? "" : _rateText(price.outputRateNanoUsdPerMillion),
     );
     final discount = TextEditingController(
       text: price == null
-          ? (initialProvider == 'deepseek' ? '50' : '0')
+          ? (initialProvider == "deepseek" ? "50" : "0")
           : price.offPeakDiscountPercent.toString(),
     );
     final model = TextEditingController(
       text:
           price?.model ??
-          (currentConfig.kind == 'chatgpt'
-              ? 'deepseek-flash'
+          (currentConfig.kind == "chatgpt"
+              ? "deepseek-flash"
               : currentConfig.model),
     );
     final endpoint = TextEditingController(
       text:
           price?.endpoint ??
-          (currentConfig.kind == 'chatgpt'
-              ? 'https://api.deepseek.com'
+          (currentConfig.kind == "chatgpt"
+              ? "https://api.deepseek.com"
               : currentConfig.baseUrl),
     );
     var provider = initialProvider;
@@ -76,11 +76,11 @@ extension _UsagePrices on _AiUsageScreenState {
                         ),
                         items: [
                           DropdownMenuItem(
-                            value: 'deepseek',
+                            value: "deepseek",
                             child: Text(context.l10n.providerDeepSeek),
                           ),
                           DropdownMenuItem(
-                            value: 'compatible',
+                            value: "compatible",
                             child: Text(context.l10n.providerCompatible),
                           ),
                         ],
@@ -94,7 +94,7 @@ extension _UsagePrices on _AiUsageScreenState {
                         controller: endpoint,
                         decoration: InputDecoration(
                           labelText: context.l10n.endpoint,
-                          hintText: 'https://api.example.com/v1',
+                          hintText: "https://api.example.com/v1",
                         ),
                       ),
                       TextField(
@@ -244,7 +244,7 @@ extension _UsagePrices on _AiUsageScreenState {
               child: Text(l10n.modelPrices, style: theme.textTheme.titleMedium),
             ),
             IconButton(
-              key: const Key('add-ai-model-price'),
+              key: const Key("add-ai-model-price"),
               tooltip: l10n.addModelPrice,
               onPressed: _editPrice,
               icon: const Icon(Icons.add),
@@ -258,7 +258,7 @@ extension _UsagePrices on _AiUsageScreenState {
           alignment: Alignment.centerLeft,
           child: TextButton(
             onPressed: () => launchUrl(
-              Uri.parse('https://api-docs.deepseek.com/quick_start/pricing/'),
+              Uri.parse("https://api-docs.deepseek.com/quick_start/pricing/"),
               mode: LaunchMode.externalApplication,
             ),
             child: Text(l10n.officialPricingPage),
@@ -280,20 +280,20 @@ extension _UsagePrices on _AiUsageScreenState {
                 for (final price in list)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('${price.providerKind} · ${price.model}'),
+                    title: Text("${price.providerKind} · ${price.model}"),
                     subtitle: Text(
-                      '${price.endpoint} · '
-                      '${l10n.usagePriceUpdated(_dateOnly(price.updatedAt.toLocal()))}\n'
-                      '${_usdRate(price.inputRateNanoUsdPerMillion)} / '
-                      '${_usdRate(price.cachedInputRateNanoUsdPerMillion)} / '
-                      '${_usdRate(price.outputRateNanoUsdPerMillion)}'
+                      "${price.endpoint} · "
+                      "${l10n.usagePriceUpdated(_dateOnly(price.updatedAt.toLocal()))}\n"
+                      "${_usdRate(price.inputRateNanoUsdPerMillion)} / "
+                      "${_usdRate(price.cachedInputRateNanoUsdPerMillion)} / "
+                      "${_usdRate(price.outputRateNanoUsdPerMillion)}"
                       '${price.offPeakDiscountPercent > 0 ? ' · ${l10n.usageOffPeakDiscount(l10nArgument(usageInteger(price.offPeakDiscountPercent)))}' : ''}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     isThreeLine: true,
                     onTap: () => _editPrice(price),
-                    trailing: price.source == 'user'
+                    trailing: price.source == "user"
                         ? IconButton(
                             tooltip: l10n.delete,
                             onPressed: () => _deletePrice(price),

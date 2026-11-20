@@ -1,12 +1,12 @@
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:drift/drift.dart';
+import "package:tixun/core/l10n/app_error.dart";
+import "package:drift/drift.dart";
 
-import '../../core/database/database_notifier.dart';
+import "../../core/database/database_notifier.dart";
 
-import 'package:uuid/uuid.dart';
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import 'review_algorithm.dart';
+import "../../core/database/database.dart";
+import "review_algorithm.dart";
 
 class ReviewItem {
   const ReviewItem(this.schedule, this.question);
@@ -69,10 +69,10 @@ class ReviewStore extends DatabaseNotifier {
           final a = await (db.select(
             db.practiceAttempts,
           )..where((a) => a.id.equals(attempt.id))).getSingle();
-          if (a.status != 'graded' || a.correct == null) {
+          if (a.status != "graded" || a.correct == null) {
             throw const AppFormatException(
               AppErrorCode.errorCompleteGradingBeforeSchedulingAReview,
-              '尚未完成评分，不能安排复习。',
+              "尚未完成评分，不能安排复习。",
             );
           }
           final time = now ?? a.submittedAt ?? DateTime.now();
@@ -97,7 +97,7 @@ class ReviewStore extends DatabaseNotifier {
             previous,
             correct: a.correct!,
             hintUsed: a.hintUsed,
-            answerChecked: a.gradingBasis != 'ai_reference',
+            answerChecked: a.gradingBasis != "ai_reference",
             now: time,
           );
           final hasEvidence =
@@ -105,7 +105,7 @@ class ReviewStore extends DatabaseNotifier {
                     ..where(
                       (r) =>
                           r.scheduleId.equals(schedule.id) &
-                          r.event.equals('graded'),
+                          r.event.equals("graded"),
                     )
                     ..limit(1))
                   .get();
@@ -117,7 +117,7 @@ class ReviewStore extends DatabaseNotifier {
               schedule.dueAt,
               decision.quality,
               decision.independent,
-              '提前练习已记录；保留原复习日期，避免短时间重复作答拉长间隔。',
+              "提前练习已记录；保留原复习日期，避免短时间重复作答拉长间隔。",
             );
           }
           await (db.update(
@@ -139,7 +139,7 @@ class ReviewStore extends DatabaseNotifier {
                   id: const Uuid().v4(),
                   scheduleId: schedule.id,
                   attemptId: Value(a.id),
-                  event: 'graded',
+                  event: "graded",
                   previousDueAt: schedule.dueAt,
                   nextDueAt: decision.dueAt,
                   quality: Value(decision.quality),
@@ -156,7 +156,7 @@ class ReviewStore extends DatabaseNotifier {
     bool dueOnly = false,
     DateTime? now,
     bool paused = false,
-    String subject = '',
+    String subject = "",
     int limit = 200,
   }) async {
     final joined = db.select(db.reviewSchedules).join([
@@ -192,7 +192,7 @@ class ReviewStore extends DatabaseNotifier {
   Future<int> dueCount({DateTime? now}) async =>
       (await db
               .customSelect(
-                'SELECT count(*) n FROM review_schedules s JOIN practice_questions q ON q.id=s.question_id WHERE s.enabled=1 AND q.deleted=0 AND s.due_at<=?',
+                "SELECT count(*) n FROM review_schedules s JOIN practice_questions q ON q.id=s.question_id WHERE s.enabled=1 AND q.deleted=0 AND s.due_at<=?",
                 variables: [
                   Variable(
                     (now ?? DateTime.now()).millisecondsSinceEpoch ~/ 1000,
@@ -200,7 +200,7 @@ class ReviewStore extends DatabaseNotifier {
                 ],
               )
               .getSingle())
-          .read<int>('n');
+          .read<int>("n");
   Future<List<ReviewRecord>> history(String id) =>
       (db.select(db.reviewRecords)
             ..where((r) => r.scheduleId.equals(id))
@@ -224,7 +224,7 @@ class ReviewStore extends DatabaseNotifier {
             due.isAfter(now.add(const Duration(days: 366)))) {
           throw const AppFormatException(
             AppErrorCode.errorTheDateMustBeBetweenToday,
-            '日期需在今天至一年内。',
+            "日期需在今天至一年内。",
           );
         }
         await db.transaction(() async {
@@ -247,10 +247,10 @@ class ReviewStore extends DatabaseNotifier {
                 ReviewRecordsCompanion.insert(
                   id: const Uuid().v4(),
                   scheduleId: id,
-                  event: reset ? 'reset' : 'reschedule',
+                  event: reset ? "reset" : "reschedule",
                   previousDueAt: s.dueAt,
                   nextDueAt: due,
-                  reason: reset ? '用户重置复习进度；历史作答仍保留。' : '用户手动调整复习日期。',
+                  reason: reset ? "用户重置复习进度；历史作答仍保留。" : "用户手动调整复习日期。",
                   recordedAt: now,
                 ),
               );

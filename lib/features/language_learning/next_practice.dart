@@ -1,7 +1,7 @@
-import '../../core/database/database.dart';
-import 'language_store.dart';
-import 'sentence_batch_store.dart';
-import 'sentence_content.dart';
+import "../../core/database/database.dart";
+import "language_store.dart";
+import "sentence_batch_store.dart";
+import "sentence_content.dart";
 
 typedef SentencePerformance = ({
   int correct,

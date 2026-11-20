@@ -1,19 +1,19 @@
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
 
-import 'language_layout.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import 'exam_ai.dart';
-import 'exam_material.dart';
-import 'exam_store.dart';
-import 'sentence_content.dart';
-import 'written_exam_profile.dart';
-import 'written_exam_run.dart';
-import 'written_exam_store.dart';
-import 'writing_ai.dart';
-import 'writing_task_ai.dart';
+import "language_layout.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "exam_ai.dart";
+import "exam_material.dart";
+import "exam_store.dart";
+import "sentence_content.dart";
+import "written_exam_profile.dart";
+import "written_exam_run.dart";
+import "written_exam_store.dart";
+import "writing_ai.dart";
+import "writing_task_ai.dart";
 
 typedef _Prepared = ({
   List<ExamMaterial> objectives,
@@ -93,7 +93,7 @@ class _WrittenExamLabState extends State<WrittenExamLab> {
             final made = await widget.writing.generate(
               kind: spec.writing!,
               level: SentenceLevel.intermediate,
-              topic: '',
+              topic: "",
               cancel: cancel,
               profile: _profile.exam,
             );

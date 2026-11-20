@@ -8,14 +8,14 @@
 /// error, and numbers arrive either as JSON numbers or as numeric strings.
 library;
 
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:dio/dio.dart';
+import "package:dio/dio.dart";
 
-import '../../l10n/app_error.dart';
-import '../ai_types.dart';
-import '../account_query_cache.dart';
-import 'auth.dart';
+import "../../l10n/app_error.dart";
+import "../ai_types.dart";
+import "../account_query_cache.dart";
+import "auth.dart";
 
 /// One rolling quota window (typically five hours, plus a weekly window).
 class ChatGptQuotaWindow {
@@ -74,7 +74,7 @@ class ChatGptUsageClient {
             ),
           );
 
-  static const _defaultEndpoint = 'https://chatgpt.com/backend-api/wham/usage';
+  static const _defaultEndpoint = "https://chatgpt.com/backend-api/wham/usage";
 
   final ChatGptAuth auth;
   final Uri _endpoint;
@@ -97,12 +97,12 @@ class ChatGptUsageClient {
         _endpoint.toString(),
         options: Options(
           headers: {
-            'Authorization': 'Bearer ${session.accessToken}',
+            "Authorization": "Bearer ${session.accessToken}",
             // The server ignores an empty identity; omitting the header is
             // what the Codex client does when it has no account claim.
             if (session.accountId.isNotEmpty)
-              'ChatGPT-Account-Id': session.accountId,
-            'Accept': 'application/json',
+              "ChatGPT-Account-Id": session.accountId,
+            "Accept": "application/json",
           },
           responseType: ResponseType.json,
           validateStatus: (_) => true,
@@ -111,64 +111,63 @@ class ChatGptUsageClient {
     } on DioException {
       throw const AiFailure.localized(
         AppErrorCode.theChatGPTRequestFailedCheck,
-        'ChatGPT 请求失败，请检查网络后重试。',
+        "ChatGPT 请求失败，请检查网络后重试。",
       );
     }
     final status = response.statusCode ?? 0;
     if (status == 401) {
       throw const AiFailure.localized(
         AppErrorCode.yourChatGPTSignInHas,
-        'ChatGPT 登录已失效，请重新登录。',
+        "ChatGPT 登录已失效，请重新登录。",
       );
     }
     if (status == 403) {
       throw const AiFailure.localized(
         AppErrorCode.chatGPTPlanAllowanceOrPermissions,
-        'ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。',
+        "ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。",
       );
     }
     if (status == 429) {
       throw const AiFailure.localized(
         AppErrorCode.tooManyRequestsTryAgain,
-        '请求过于频繁，请稍后重试。',
+        "请求过于频繁，请稍后重试。",
       );
     }
     if (status < 200 || status >= 300) {
       throw const AiFailure.localized(
         AppErrorCode.theChatGPTRequestFailedCheck,
-        'ChatGPT 请求失败，请检查网络后重试。',
+        "ChatGPT 请求失败，请检查网络后重试。",
       );
     }
     if (revision != auth.accountRevision) {
       throw const AiFailure.localized(
         AppErrorCode.selectASavedChatGPTAccount,
-        '请选择已保存的 ChatGPT 账号。',
+        "请选择已保存的 ChatGPT 账号。",
       );
     }
     return parseChatGptQuota(response.data);
   }
 }
 
-/// Reads the quota payload, tolerating anything the server leaves out.
 ChatGptQuota parseChatGptQuota(Object? data, {DateTime? now}) {
   final map = _map(data);
   if (map == null) {
     throw const AiFailure.localized(
       AppErrorCode.chatGPTReturnedAnUnrecognizedFormat,
-      'ChatGPT 返回了无法识别的格式，请稍后重试或重新登录。',
+      "ChatGPT 返回了无法识别的格式，请稍后重试或重新登录。",
     );
   }
-  final rateLimit = _map(map['rate_limit']);
-  final credits = _map(map['credits']);
+  final rateLimit = _map(map["rate_limit"]);
+  final credits = _map(map["credits"]);
   return ChatGptQuota(
-    planType: _text(map['plan_type']),
-    allowed: rateLimit?['allowed'] != false,
-    limitReached: rateLimit?['limit_reached'] == true,
-    primary: _window(rateLimit?['primary_window'], now: now),
-    secondary: _window(rateLimit?['secondary_window'], now: now),
-    hasCredits: credits?['has_credits'] == true,
-    unlimitedCredits: credits?['unlimited'] == true,
-    creditBalance: _optionalText(credits?['balance']),
+    planType: _text(map["plan_type"]),
+    allowed: rateLimit?["allowed"] != false,
+    limitReached: rateLimit?["limit_reached"] == true,
+    primary: _window(rateLimit?["primary_window"], now: now),
+    secondary: _window(rateLimit?["secondary_window"], now: now),
+    hasCredits: credits?["has_credits"] == true,
+    unlimitedCredits: credits?["unlimited"] == true,
+    creditBalance: _optionalText(credits?["balance"]),
     fetchedAt: now ?? DateTime.now(),
   );
 }
@@ -176,11 +175,11 @@ ChatGptQuota parseChatGptQuota(Object? data, {DateTime? now}) {
 ChatGptQuotaWindow? _window(Object? value, {DateTime? now}) {
   final map = _map(value);
   if (map == null) return null;
-  final used = _int(map['used_percent']);
+  final used = _int(map["used_percent"]);
   if (used == null) return null;
-  final window = _int(map['limit_window_seconds']) ?? 0;
-  final after = _int(map['reset_after_seconds']) ?? 0;
-  final resetSeconds = _int(map['reset_at']);
+  final window = _int(map["limit_window_seconds"]) ?? 0;
+  final after = _int(map["reset_after_seconds"]) ?? 0;
+  final resetSeconds = _int(map["reset_at"]);
   final base = now ?? DateTime.now();
   return ChatGptQuotaWindow(
     usedPercent: used.clamp(0, 100),
@@ -193,7 +192,7 @@ ChatGptQuotaWindow? _window(Object? value, {DateTime? now}) {
           final int seconds => DateTime.fromMillisecondsSinceEpoch(
             seconds * 1000,
           ),
-          null => DateTime.tryParse(_text(map['reset_at'])),
+          null => DateTime.tryParse(_text(map["reset_at"])),
         } ??
         (after > 0 ? base.add(Duration(seconds: after)) : null),
   );
@@ -202,9 +201,9 @@ ChatGptQuotaWindow? _window(Object? value, {DateTime? now}) {
 Map<String, dynamic>? _map(Object? value) => switch (value) {
   final Map<String, dynamic> map => map,
   final Map map => {
-    for (final entry in map.entries) '${entry.key}': entry.value,
+    for (final entry in map.entries) "${entry.key}": entry.value,
   },
-  final String text when text.trimLeft().startsWith('{') => _decode(text),
+  final String text when text.trimLeft().startsWith("{") => _decode(text),
   _ => null,
 };
 
@@ -212,7 +211,7 @@ Map<String, dynamic>? _decode(String text) {
   try {
     final value = jsonDecode(text);
     return value is Map
-        ? {for (final e in value.entries) '${e.key}': e.value}
+        ? {for (final e in value.entries) "${e.key}": e.value}
         : null;
   } catch (_) {
     return null;
@@ -230,7 +229,7 @@ int? _int(Object? value) => switch (value) {
 String _text(Object? value) => switch (value) {
   final String text => text.trim(),
   final num number => number.toString(),
-  _ => '',
+  _ => "",
 };
 
 String? _optionalText(Object? value) {

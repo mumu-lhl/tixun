@@ -1,35 +1,35 @@
-import 'dart:async';
-import 'dart:io';
+import "dart:async";
+import "dart:io";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:package_info_plus/package_info_plus.dart";
+import "package:path/path.dart" as p;
+import "package:path_provider/path_provider.dart";
 
-import '../../app/controller.dart';
-import 'android_install.dart';
-import 'linux_staging.dart';
-import 'update_models.dart';
-import 'update_service.dart';
+import "../../app/controller.dart";
+import "android_install.dart";
+import "linux_staging.dart";
+import "update_models.dart";
+import "update_service.dart";
 
 /// Nightly tag baked into this build via `--dart-define=TIXUN_NIGHTLY_TAG=...`
 /// (e.g. `nightly-20261109-203000`); empty for ordinary and formal release
 /// builds.
 const String nightlyTag = String.fromEnvironment(
-  'TIXUN_NIGHTLY_TAG',
-  defaultValue: '',
+  "TIXUN_NIGHTLY_TAG",
+  defaultValue: "",
 );
 
 /// Pref keys for the in-app update feature.
-const String _channelPref = 'update_channel';
-const String _lastAutoCheckPref = 'update_last_auto_check';
+const String _channelPref = "update_channel";
+const String _lastAutoCheckPref = "update_last_auto_check";
 
 /// Display string for the running build, e.g. `0.5.2+7`, plus
 /// ` · nightly-20261109-203000` when this is a nightly build.
 final updateCurrentVersionProvider = FutureProvider<String>((ref) async {
   final info = await PackageInfo.fromPlatform();
-  final display = '${info.version}+${info.buildNumber}';
-  return nightlyTag.isEmpty ? display : '$display · $nightlyTag';
+  final display = "${info.version}+${info.buildNumber}";
+  return nightlyTag.isEmpty ? display : "$display · $nightlyTag";
 });
 
 /// Holds the release channel the user opted into.
@@ -50,7 +50,7 @@ class UpdateChannelNotifier extends Notifier<UpdateChannel> {
 
   @override
   UpdateChannel build() {
-    _loadSaved();
+    unawaited(_loadSaved());
     return UpdateChannel.stable;
   }
 
@@ -99,9 +99,6 @@ final updateServiceProvider = Provider<UpdateService>((ref) => UpdateService());
 
 enum UpdateStatus { idle, checking, upToDate, available, noneAvailable, failed }
 
-/// One snapshot of the update state shown in Settings.
-///
-/// [message] is a structured code, localized only when displayed.
 class UpdateState {
   const UpdateState({
     this.status = UpdateStatus.idle,
@@ -117,7 +114,6 @@ class UpdateState {
 
   final UpdateStatus status;
 
-  /// The candidate release, when one was found.
   final ReleaseInfo? release;
 
   /// Short status text (l10n key), or null when nothing should be shown.
@@ -232,7 +228,6 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
       final channel = ref.read(updateChannelProvider);
       outcome = await _service.check(
         channel,
-        // Slice A compares the version without the build number.
         currentVersion: info.version,
         embeddedNightlyTag: nightlyTag,
       );
@@ -322,10 +317,10 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
   ) async {
     if (Platform.isAndroid) {
       final abi = await androidAbiAsset();
-      return 'tixun-${release.tag}-android-$abi-release.apk';
+      return "tixun-${release.tag}-android-$abi-release.apk";
     }
     if (Platform.isLinux) {
-      return 'tixun-${release.tag}-linux-x64.tar.gz';
+      return "tixun-${release.tag}-linux-x64.tar.gz";
     }
     return null;
   }
@@ -453,7 +448,6 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
     if (Platform.isLinux) {
       if (!state.staged) return;
       final result = await applyPendingUpdate();
-      // Success never returns (the process restarts).
       if (result == ApplyResult.nothingPending) {
         state = state.copyWith(staged: false);
       } else if (result == ApplyResult.failed) {
@@ -499,8 +493,7 @@ class UpdateStatusNotifier extends Notifier<UpdateState> {
             DateTime.now().millisecondsSinceEpoch.toString(),
           );
     } catch (_) {
-      // A failed timestamp write must not fail the check itself; the next
-      // automatic check simply runs again.
+      // Failed timestamp persistence must not invalidate an update check.
     }
   }
 }

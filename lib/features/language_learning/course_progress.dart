@@ -1,13 +1,13 @@
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import 'course_content.dart';
-import 'language_store.dart';
+import "../../core/database/database.dart";
+import "course_content.dart";
+import "language_store.dart";
 
 const courseReviewInterval = Duration(days: 7);
 
-String courseLessonId(int index) => 'course-v1-$index';
+String courseLessonId(int index) => "course-v1-$index";
 
 class CourseProgress {
   const CourseProgress(this.attempts);
@@ -34,14 +34,14 @@ class CourseProgress {
 }
 
 List<LanguageLesson> languageLessons(String language) => switch (language) {
-  'en' => englishLessons,
-  'ja' => japaneseLessons,
+  "en" => englishLessons,
+  "ja" => japaneseLessons,
   _ => const [],
 };
 
 bool sameCourseExpression(String response, String expected) {
   String canonical(String value) =>
-      value.toLowerCase().replaceAll(RegExp(r'''[\s.,;:!?'"、。！？・！，．]'''), '');
+      value.toLowerCase().replaceAll(RegExp(r'''[\s.,;:!?'"、。！？・！，．]'''), "");
   return canonical(response).isNotEmpty &&
       canonical(response) == canonical(expected);
 }
@@ -82,7 +82,7 @@ extension CourseProgressStore on LanguageLearningStore {
         recognized > 2 ||
         produced < 0 ||
         produced > 1) {
-      throw const FormatException('Invalid course check');
+      throw const FormatException("Invalid course check");
     }
     await db
         .into(db.learningCourseAttempts)

@@ -1,4 +1,4 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
 class QuestionRegion {
   const QuestionRegion(
@@ -15,23 +15,23 @@ class QuestionRegion {
   factory QuestionRegion.fromJson(Map<String, dynamic> a) {
     if (a.keys.any(
       (k) => !{
-        'label',
-        'subject',
-        'left',
-        'top',
-        'right',
-        'bottom',
-        'question',
+        "label",
+        "subject",
+        "left",
+        "top",
+        "right",
+        "bottom",
+        "question",
       }.contains(k),
     )) {
       throw const AppFormatException(
         AppErrorCode.errorTheQuestionRegionContainsUnknownFields,
-        '分题区域包含未知字段。',
+        "分题区域包含未知字段。",
       );
     }
-    final label = a['label'],
-        subject = a['subject'],
-        question = a['question'] ?? '';
+    final label = a["label"],
+        subject = a["subject"],
+        question = a["question"] ?? "";
     if (label is! String ||
         label.trim().isEmpty ||
         label.length > 150 ||
@@ -42,7 +42,7 @@ class QuestionRegion {
         question.length > 12000) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidQuestionRegionText,
-        '分题文字无效。',
+        "分题文字无效。",
       );
     }
     double coordinate(String name) {
@@ -50,31 +50,31 @@ class QuestionRegion {
       if (v is! num || !v.isFinite || v < 0 || v > 1) {
         throw const AppFormatException(
           AppErrorCode.errorQuestionRegionCoordinatesMustBeWithin,
-          '分题坐标应在图片范围内。',
+          "分题坐标应在图片范围内。",
         );
       }
       return v.toDouble();
     }
 
-    final l = coordinate('left'),
-        t = coordinate('top'),
-        r = coordinate('right'),
-        b = coordinate('bottom');
+    final l = coordinate("left"),
+        t = coordinate("top"),
+        r = coordinate("right"),
+        b = coordinate("bottom");
     if (r - l < .02 || b - t < .02) {
       throw const AppFormatException(
         AppErrorCode.errorTheQuestionRegionIsTooSmall,
-        '分题范围太小或方向错误。',
+        "分题范围太小或方向错误。",
       );
     }
     return QuestionRegion(label.trim(), subject.trim(), l, t, r, b, question);
   }
   Map<String, dynamic> toJson() => {
-    'label': label,
-    'subject': subject,
-    'left': left,
-    'top': top,
-    'right': right,
-    'bottom': bottom,
-    'question': question,
+    "label": label,
+    "subject": subject,
+    "left": left,
+    "top": top,
+    "right": right,
+    "bottom": bottom,
+    "question": question,
   };
 }

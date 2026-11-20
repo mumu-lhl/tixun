@@ -1,27 +1,27 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import '../../core/ui/app_menu.dart';
+import "../../core/ui/app_menu.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../app/controller.dart';
-import '../../core/ai/chat_provider.dart';
-import '../../core/ai/context_compactor.dart';
-import '../../core/ai/provider_balance.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/l10n/app_error_localization.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/reasoning_labels.dart';
-import 'provider_balance_panel.dart';
+import "../../app/controller.dart";
+import "../../core/ai/chat_provider.dart";
+import "../../core/ai/context_compactor.dart";
+import "../../core/ai/provider_balance.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/l10n/app_error_localization.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/reasoning_labels.dart";
+import "provider_balance_panel.dart";
 
-import 'chatgpt_screen.dart';
+import "chatgpt_screen.dart";
 
-part 'api_settings_fields.dart';
+part "api_settings_fields.dart";
 
 class AiSettingsScreen extends ConsumerStatefulWidget {
   const AiSettingsScreen({super.key, this.showSubscription = false});
@@ -73,8 +73,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   };
   bool _failure = false;
 
-  static const _kinds = ['deepseek', 'compatible', 'chatgpt'];
-  static const _deepseekModels = ['deepseek-flash', 'deepseek-v4-pro'];
+  static const _kinds = ["deepseek", "compatible", "chatgpt"];
+  static const _deepseekModels = ["deepseek-flash", "deepseek-v4-pro"];
   String? _reasoningLevels;
   List<String> get _efforts => AiOptions(_candidate()).reasoningEfforts;
 
@@ -84,10 +84,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   /// time ("There should be exactly one item with [DropdownButton]'s
   /// value") and blanks the whole settings page.
   void _applyConfig(ProviderConfig c) {
-    _kind = _kinds.contains(c.kind) ? c.kind : 'deepseek';
+    _kind = _kinds.contains(c.kind) ? c.kind : "deepseek";
     _base.text = c.baseUrl;
-    _model.text = _kind == 'deepseek' && !_deepseekModels.contains(c.model)
-        ? 'deepseek-flash'
+    _model.text = _kind == "deepseek" && !_deepseekModels.contains(c.model)
+        ? "deepseek-flash"
         : c.model;
     _vision = c.vision;
     _thinking = c.thinking;
@@ -108,12 +108,12 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       text: ref.read(appControllerProvider).maxContextTokens.toString(),
     );
     _applyConfig(c);
-    _provider = widget.showSubscription ? 'chatgpt' : _kind;
-    _refreshKeyStatus();
+    _provider = widget.showSubscription ? "chatgpt" : _kind;
+    unawaited(_refreshKeyStatus());
   }
 
   Future<void> _refreshKeyStatus() async {
-    if (_kind == 'chatgpt') return;
+    if (_kind == "chatgpt") return;
     try {
       final controller = ref.read(appControllerProvider);
       final candidate = _candidate();
@@ -124,7 +124,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       setState(() => _hasSavedKey = hasKey);
       if (hasKey &&
           !controller.demo &&
-          _kind == 'deepseek' &&
+          _kind == "deepseek" &&
           _key.text.isEmpty) {
         await _loadBalance(refresh: false);
       }
@@ -178,7 +178,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   ProviderConfig _candidate() => ProviderConfig(
     id: 1,
     kind: _kind,
-    baseUrl: _base.text.trim().replaceAll(RegExp(r'/+$'), ''),
+    baseUrl: _base.text.trim().replaceAll(RegExp(r"/+$"), ""),
     model: _model.text.trim(),
     vision: _vision,
     thinking: _supportsThinking && _thinking,
@@ -190,7 +190,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   void _scheduleSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 700), () {
-      if (mounted) _perform();
+      if (mounted) unawaited(_perform());
     });
   }
 
@@ -211,14 +211,14 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
         if (parsed == null || !isValidMaxContextTokens(parsed)) {
           throw const AppFormatException(
             AppErrorCode.maxContextTokensMustBe,
-            '最大上下文 Token 数应为 4096–1048576 的整数。',
+            "最大上下文 Token 数应为 4096–1048576 的整数。",
           );
         }
         await c.setMaxContextTokens(parsed);
         await c.saveSettings(
           _candidate(),
           remove
-              ? ''
+              ? ""
               : _key.text.trim().isEmpty
               ? null
               : _key.text,
@@ -237,7 +237,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
         if (!test) {
           _resetBalance();
           _key.clear();
-          _refreshKeyStatus();
+          unawaited(_refreshKeyStatus());
         }
       });
     } catch (e) {
@@ -262,13 +262,13 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       await _perform();
       if (!mounted) return;
     }
-    if (kind == 'chatgpt') {
+    if (kind == "chatgpt") {
       setState(() => _provider = kind);
       return;
     }
     final c = ref.read(appControllerProvider);
     ProviderConfig? previous;
-    if (c.config.kind == 'chatgpt' && _kind != kind) {
+    if (c.config.kind == "chatgpt" && _kind != kind) {
       setState(() => _working = true);
       try {
         previous = await c.preferences.previousApiProvider();
@@ -291,13 +291,13 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       } else {
         _kind = kind;
         _reasoningLevels = null;
-        _base.text = kind == 'deepseek'
-            ? 'https://api.deepseek.com'
-            : 'https://api.openai.com/v1';
-        _model.text = kind == 'deepseek' ? 'deepseek-flash' : '';
-        _vision = kind == 'deepseek';
-        _supportsThinking = kind == 'deepseek';
-        _supportsTools = kind == 'deepseek';
+        _base.text = kind == "deepseek"
+            ? "https://api.deepseek.com"
+            : "https://api.openai.com/v1";
+        _model.text = kind == "deepseek" ? "deepseek-flash" : "";
+        _vision = kind == "deepseek";
+        _supportsThinking = kind == "deepseek";
+        _supportsTools = kind == "deepseek";
         _thinking = false;
         _effort = AiOptions(_candidate()).preferredEffort;
       }
@@ -316,7 +316,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
       previous,
       next,
     ) {
-      if (previous == next || next.kind == 'chatgpt' || _kind != next.kind) {
+      if (previous == next || next.kind == "chatgpt" || _kind != next.kind) {
         return;
       }
       setState(() {
@@ -325,7 +325,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
         _hasSavedKey = null;
         _resetBalance();
       });
-      _refreshKeyStatus();
+      unawaited(_refreshKeyStatus());
     });
     final colors = Theme.of(context).colorScheme;
     return ListView(
@@ -342,7 +342,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     BackButton(
                       onPressed: () => context.canPop()
                           ? context.pop()
-                          : context.go('/settings'),
+                          : context.go("/settings"),
                     ),
                     Expanded(
                       child: Text(
@@ -364,20 +364,20 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                 ),
                 const SizedBox(height: 20),
                 AppSelectField<String>(
-                  key: const Key('provider-selector'),
+                  key: const Key("provider-selector"),
                   initialValue: _provider,
                   decoration: InputDecoration(labelText: context.l10n.provider),
                   items: [
                     const DropdownMenuItem(
-                      value: 'deepseek',
-                      child: Text('DeepSeek'),
+                      value: "deepseek",
+                      child: Text("DeepSeek"),
                     ),
                     const DropdownMenuItem(
-                      value: 'compatible',
-                      child: Text('OpenAI-compatible'),
+                      value: "compatible",
+                      child: Text("OpenAI-compatible"),
                     ),
                     DropdownMenuItem(
-                      value: 'chatgpt',
+                      value: "chatgpt",
                       child: Text(context.l10n.chatGPTPlan),
                     ),
                   ],
@@ -385,11 +385,13 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       ? null
                       : (value) {
                           if (value != null) {
-                            act(context, () => _selectProvider(value));
+                            unawaited(
+                              act(context, () => _selectProvider(value)),
+                            );
                           }
                         },
                 ),
-                if (_provider == 'chatgpt') ...[
+                if (_provider == "chatgpt") ...[
                   const SizedBox(height: 24),
                   const ChatGptSettings(),
                 ] else

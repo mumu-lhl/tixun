@@ -1,13 +1,13 @@
-import 'dart:math' as math;
+import "dart:math" as math;
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/visual/math/sampling.dart';
-import 'package:tixun/core/visual/model/visual_scene.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/visual/math/sampling.dart";
+import "package:tixun/core/visual/model/visual_scene.dart";
 
 void main() {
-  group('sampleFunction', () {
-    test('tan(x) splits at both asymptotes over [-4, 4]', () {
-      final segments = sampleFunction('tan(x)', variables: {}, min: -4, max: 4);
+  group("sampleFunction", () {
+    test("tan(x) splits at both asymptotes over [-4, 4]", () {
+      final segments = sampleFunction("tan(x)", variables: {}, min: -4, max: 4);
       expect(segments.length, greaterThanOrEqualTo(3));
       for (final asymptote in [-math.pi / 2, math.pi / 2]) {
         for (final segment in segments) {
@@ -16,15 +16,15 @@ void main() {
           expect(
             left && right,
             isFalse,
-            reason: 'no segment may span the asymptote at $asymptote',
+            reason: "no segment may span the asymptote at $asymptote",
           );
         }
       }
     });
 
-    test('tan(x) splits at every asymptote over [-10, 10]', () {
+    test("tan(x) splits at every asymptote over [-10, 10]", () {
       final segments = sampleFunction(
-        'tan(x)',
+        "tan(x)",
         variables: {},
         min: -10,
         max: 10,
@@ -44,13 +44,13 @@ void main() {
           expect(
             left && right,
             isFalse,
-            reason: 'no segment may span the asymptote at $pole',
+            reason: "no segment may span the asymptote at $pole",
           );
         }
       }
     });
 
-    test('tan(x) splits at every asymptote at 256 samples too', () {
+    test("tan(x) splits at every asymptote at 256 samples too", () {
       // The slope rule compares against the median of the recent
       // slopes, not the previous slope, so on the approach to a pole
       // the rule alone could split late — but the pole rule (opposite
@@ -58,7 +58,7 @@ void main() {
       // every asymptote, including at the coarser resolution the
       // quality check and auto-fit use.
       final segments = sampleFunction(
-        'tan(x)',
+        "tan(x)",
         variables: {},
         min: -10,
         max: 10,
@@ -79,14 +79,14 @@ void main() {
           expect(
             left && right,
             isFalse,
-            reason: 'no segment may span the asymptote at $pole',
+            reason: "no segment may span the asymptote at $pole",
           );
         }
       }
     });
 
-    test('1/x splits at 0 over [-2, 3]', () {
-      final segments = sampleFunction('1/x', variables: {}, min: -2, max: 3);
+    test("1/x splits at 0 over [-2, 3]", () {
+      final segments = sampleFunction("1/x", variables: {}, min: -2, max: 3);
       expect(segments.length, greaterThanOrEqualTo(2));
       for (final segment in segments) {
         final left = segment.points.any((p) => p.dx < 0);
@@ -95,9 +95,9 @@ void main() {
       }
     });
 
-    test('1/(x-0.7) splits at 0.7', () {
+    test("1/(x-0.7) splits at 0.7", () {
       final segments = sampleFunction(
-        '1/(x-0.7)',
+        "1/(x-0.7)",
         variables: {},
         min: -3,
         max: 3,
@@ -110,9 +110,9 @@ void main() {
       }
     });
 
-    test('steep continuous 1e6*(x-0.5) stays in one segment', () {
+    test("steep continuous 1e6*(x-0.5) stays in one segment", () {
       final segments = sampleFunction(
-        '1e6*(x-0.5)',
+        "1e6*(x-0.5)",
         variables: {},
         min: -10,
         max: 10,
@@ -120,16 +120,16 @@ void main() {
       expect(segments, hasLength(1));
     });
 
-    test('sin(x) and x^3 stay in one segment over [-10, 10]', () {
-      for (final expr in ['sin(x)', 'x^3']) {
+    test("sin(x) and x^3 stay in one segment over [-10, 10]", () {
+      for (final expr in ["sin(x)", "x^3"]) {
         final segments = sampleFunction(expr, variables: {}, min: -10, max: 10);
         expect(segments, hasLength(1), reason: expr);
       }
     });
 
-    test('1/(x-1) splits at x=1', () {
+    test("1/(x-1) splits at x=1", () {
       final segments = sampleFunction(
-        '1/(x-1)',
+        "1/(x-1)",
         variables: {},
         min: -2,
         max: 2,
@@ -142,9 +142,9 @@ void main() {
       }
     });
 
-    test('piecewise if(x>=0, x, -x) samples |x| on both sides', () {
+    test("piecewise if(x>=0, x, -x) samples |x| on both sides", () {
       final segments = sampleFunction(
-        'if(x>=0, x, -x)',
+        "if(x>=0, x, -x)",
         variables: {},
         min: -2,
         max: 2,
@@ -164,10 +164,10 @@ void main() {
       expect(nearZero.dy, closeTo(0, 0.005));
     });
 
-    test('parameter substitution: a*x with a=3', () {
+    test("parameter substitution: a*x with a=3", () {
       final segments = sampleFunction(
-        'a*x',
-        variables: {'a': 3},
+        "a*x",
+        variables: {"a": 3},
         min: -1,
         max: 1,
       );
@@ -179,10 +179,10 @@ void main() {
       expect(points.last.dy, closeTo(3, 1e-9));
     });
 
-    test('caller-supplied x is overwritten by the sweep', () {
+    test("caller-supplied x is overwritten by the sweep", () {
       final segments = sampleFunction(
-        'a*x',
-        variables: {'a': 3, 'x': 999},
+        "a*x",
+        variables: {"a": 3, "x": 999},
         min: -1,
         max: 1,
       );
@@ -190,8 +190,8 @@ void main() {
       expect(segments.single.points.last.dy, closeTo(3, 1e-9));
     });
 
-    test('total points respect maxSamples', () {
-      for (final expr in ['sin(x)', 'tan(x)']) {
+    test("total points respect maxSamples", () {
+      for (final expr in ["sin(x)", "tan(x)"]) {
         final segments = sampleFunction(
           expr,
           variables: {},
@@ -204,21 +204,21 @@ void main() {
       }
     });
 
-    test('empty range throws ArgumentError', () {
+    test("empty range throws ArgumentError", () {
       expect(
-        () => sampleFunction('x', variables: {}, min: 1, max: 1),
+        () => sampleFunction("x", variables: {}, min: 1, max: 1),
         throwsArgumentError,
       );
       expect(
-        () => sampleFunction('x', variables: {}, min: 2, max: 1),
+        () => sampleFunction("x", variables: {}, min: 2, max: 1),
         throwsArgumentError,
       );
     });
 
-    test('maxSamples above the hard cap throws ArgumentError', () {
+    test("maxSamples above the hard cap throws ArgumentError", () {
       expect(
         () => sampleFunction(
-          'x',
+          "x",
           variables: {},
           min: 0,
           max: 1,
@@ -228,70 +228,70 @@ void main() {
       );
     });
 
-    test('unparseable expression throws FormatException', () {
+    test("unparseable expression throws FormatException", () {
       expect(
-        () => sampleFunction('x + (', variables: {}, min: 0, max: 1),
+        () => sampleFunction("x + (", variables: {}, min: 0, max: 1),
         throwsFormatException,
       );
     });
   });
 
-  group('findZeros', () {
-    test('x^2-4 has zeros exactly [-2, 2]', () {
-      final zeros = findZeros('x^2-4', {}, -3, 3);
+  group("findZeros", () {
+    test("x^2-4 has zeros exactly [-2, 2]", () {
+      final zeros = findZeros("x^2-4", {}, -3, 3);
       expect(zeros, hasLength(2));
       expect(zeros[0], closeTo(-2, 1e-9));
       expect(zeros[1], closeTo(2, 1e-9));
     });
 
-    test('x^2+1 has no zeros', () {
-      expect(findZeros('x^2+1', {}, -3, 3), isEmpty);
+    test("x^2+1 has no zeros", () {
+      expect(findZeros("x^2+1", {}, -3, 3), isEmpty);
     });
 
-    test('tan(x) poles are not reported as zeros', () {
-      final zeros = findZeros('tan(x)', {}, -3, 3);
+    test("tan(x) poles are not reported as zeros", () {
+      final zeros = findZeros("tan(x)", {}, -3, 3);
       expect(zeros, [closeTo(0, 1e-6)]);
     });
 
-    test('1/x has no zeros', () {
-      expect(findZeros('1/x', {}, -2, 3), isEmpty);
+    test("1/x has no zeros", () {
+      expect(findZeros("1/x", {}, -2, 3), isEmpty);
     });
 
-    test('1/(x-0.7) has no zeros', () {
-      expect(findZeros('1/(x-0.7)', {}, -3, 3), isEmpty);
+    test("1/(x-0.7) has no zeros", () {
+      expect(findZeros("1/(x-0.7)", {}, -3, 3), isEmpty);
     });
 
-    test('steep genuine root 1e6*(x-0.5) is still found', () {
-      final zeros = findZeros('1e6*(x-0.5)', {}, -3, 3);
+    test("steep genuine root 1e6*(x-0.5) is still found", () {
+      final zeros = findZeros("1e6*(x-0.5)", {}, -3, 3);
       expect(zeros, [closeTo(0.5, 1e-6)]);
     });
 
-    test('exact hit at a grid point is caught', () {
+    test("exact hit at a grid point is caught", () {
       // x^2 touches zero at 0 without a sign change; 0 is on the grid.
-      expect(findZeros('x^2', {}, -2, 2), [closeTo(0, 1e-9)]);
+      expect(findZeros("x^2", {}, -2, 2), [closeTo(0, 1e-9)]);
     });
 
-    test('tangent touch (x-1)^2 is found even off the grid', () {
+    test("tangent touch (x-1)^2 is found even off the grid", () {
       // (x-1)^2 touches zero at x = 1 without a sign change, and 1
       // is not a sweep grid point over [-3, 3].
-      final zeros = findZeros('(x-1)^2', {}, -3, 3);
+      final zeros = findZeros("(x-1)^2", {}, -3, 3);
       expect(zeros, [closeTo(1, 1e-6)]);
     });
 
-    test('tangent touch (x-2)^2 is found', () {
-      expect(findZeros('(x-2)^2', {}, -3, 3), [closeTo(2, 1e-6)]);
+    test("tangent touch (x-2)^2 is found", () {
+      expect(findZeros("(x-2)^2", {}, -3, 3), [closeTo(2, 1e-6)]);
     });
 
-    test('a small nonzero minimum is not reported as a zero', () {
+    test("a small nonzero minimum is not reported as a zero", () {
       // (x-1)^2 + 1e-7 dips to 1e-7 at x = 1: a local minimum of |f|,
       // but not a zero.
-      expect(findZeros('(x-1)^2+1e-7', {}, -3, 3), isEmpty);
+      expect(findZeros("(x-1)^2+1e-7", {}, -3, 3), isEmpty);
     });
   });
 
-  group('findIntersections', () {
-    test('x^2 and 2x meet at (0,0) and (2,4)', () {
-      final points = findIntersections('x^2', '2*x', {}, -3, 3);
+  group("findIntersections", () {
+    test("x^2 and 2x meet at (0,0) and (2,4)", () {
+      final points = findIntersections("x^2", "2*x", {}, -3, 3);
       expect(points, hasLength(2));
       expect(points[0].dx, closeTo(0, 1e-6));
       expect(points[0].dy, closeTo(0, 1e-6));
@@ -299,161 +299,160 @@ void main() {
       expect(points[1].dy, closeTo(4, 1e-6));
     });
 
-    test('parallel lines have no intersections', () {
-      expect(findIntersections('x', 'x+1', {}, -3, 3), isEmpty);
+    test("parallel lines have no intersections", () {
+      expect(findIntersections("x", "x+1", {}, -3, 3), isEmpty);
     });
 
-    test('tan(x) meets 0 only at the origin, not at the poles', () {
-      final points = findIntersections('tan(x)', '0', {}, -3, 3);
+    test("tan(x) meets 0 only at the origin, not at the poles", () {
+      final points = findIntersections("tan(x)", "0", {}, -3, 3);
       expect(points, hasLength(1));
       expect(points.single.dx, closeTo(0, 1e-6));
       expect(points.single.dy, closeTo(0, 1e-6));
     });
 
-    test('a tangent intersection is found', () {
+    test("a tangent intersection is found", () {
       // (x-1)^2 touches y = 0 at x = 1 without crossing; 1 is not a
       // sweep grid point over [-3, 3].
-      final points = findIntersections('(x-1)^2', '0', {}, -3, 3);
+      final points = findIntersections("(x-1)^2", "0", {}, -3, 3);
       expect(points, hasLength(1));
       expect(points.single.dx, closeTo(1, 1e-6));
       expect(points.single.dy, closeTo(0, 1e-6));
     });
   });
 
-  group('findExtrema', () {
-    test('x^2 has one minimum at (0,0)', () {
-      final extrema = findExtrema('x^2', {}, -2, 2);
+  group("findExtrema", () {
+    test("x^2 has one minimum at (0,0)", () {
+      final extrema = findExtrema("x^2", {}, -2, 2);
       expect(extrema, hasLength(1));
-      expect(extrema.single.kind, 'min');
+      expect(extrema.single.kind, "min");
       expect(extrema.single.x, closeTo(0, 1e-6));
       expect(extrema.single.y, closeTo(0, 1e-6));
     });
 
-    test('-x^2 has one maximum at (0,0)', () {
-      final extrema = findExtrema('-x^2', {}, -2, 2);
+    test("-x^2 has one maximum at (0,0)", () {
+      final extrema = findExtrema("-x^2", {}, -2, 2);
       expect(extrema, hasLength(1));
-      expect(extrema.single.kind, 'max');
+      expect(extrema.single.kind, "max");
       expect(extrema.single.x, closeTo(0, 1e-6));
       expect(extrema.single.y, closeTo(0, 1e-6));
     });
 
-    test('sin has a max and a min over [-pi, pi]', () {
-      final extrema = findExtrema('sin(x)', {}, -math.pi, math.pi);
+    test("sin has a max and a min over [-pi, pi]", () {
+      final extrema = findExtrema("sin(x)", {}, -math.pi, math.pi);
       expect(extrema, hasLength(2));
-      expect(extrema[0].kind, 'min');
+      expect(extrema[0].kind, "min");
       expect(extrema[0].x, closeTo(-math.pi / 2, 1e-6));
-      expect(extrema[1].kind, 'max');
+      expect(extrema[1].kind, "max");
       expect(extrema[1].x, closeTo(math.pi / 2, 1e-6));
     });
 
-    test('monotone function has no extrema', () {
-      expect(findExtrema('x^3', {}, -2, 2), isEmpty);
+    test("monotone function has no extrema", () {
+      expect(findExtrema("x^3", {}, -2, 2), isEmpty);
     });
   });
 
-  group('computeDerivedValues', () {
-    test('design-note example scene returns zeros [-2, 2]', () {
+  group("computeDerivedValues", () {
+    test("design-note example scene returns zeros [-2, 2]", () {
       final scene = VisualScene.fromJson({
-        'v': 1,
-        'kind': 'plot2d',
-        'model': {'expression': 'x^2-4'},
-        'view': {
-          'x': [-3, 3],
-          'y': [-5, 6],
+        "v": 1,
+        "kind": "plot2d",
+        "model": {"expression": "x^2-4"},
+        "view": {
+          "x": [-3, 3],
+          "y": [-5, 6],
         },
       });
       final values = computeDerivedValues(scene);
-      final zeros = values['zeros'] as List;
+      final zeros = values["zeros"] as List;
       expect(zeros, hasLength(2));
       expect(zeros[0], closeTo(-2, 1e-9));
       expect(zeros[1], closeTo(2, 1e-9));
-      final extrema = values['extrema'] as List;
+      final extrema = values["extrema"] as List;
       expect(extrema, hasLength(1));
       final min = extrema.single as Map;
-      expect(min['kind'], 'min');
-      expect(min['x'], closeTo(0, 1e-6));
-      expect(min['y'], closeTo(-4, 1e-6));
-      expect(values.containsKey('errors'), isFalse);
+      expect(min["kind"], "min");
+      expect(min["x"], closeTo(0, 1e-6));
+      expect(min["y"], closeTo(-4, 1e-6));
+      expect(values.containsKey("errors"), isFalse);
     });
 
-    test('plot elements get zeros and intersections keyed by id', () {
+    test("plot elements get zeros and intersections keyed by id", () {
       final scene = VisualScene.fromJson({
-        'v': 1,
-        'kind': 'plot2d',
-        'model': {'expression': 'x^2'},
-        'view': {
-          'x': [-3, 3],
-          'y': [-1, 9],
+        "v": 1,
+        "kind": "plot2d",
+        "model": {"expression": "x^2"},
+        "view": {
+          "x": [-3, 3],
+          "y": [-1, 9],
         },
-        'elements': [
+        "elements": [
           {
-            'id': 'p1',
-            'type': 'plot',
-            'expression': '2*x',
-            'domain': [-3, 3],
+            "id": "p1",
+            "type": "plot",
+            "expression": "2*x",
+            "domain": [-3, 3],
           },
         ],
       });
       final values = computeDerivedValues(scene);
-      final elements = values['elements'] as Map;
-      expect(elements.keys, ['p1']);
-      final p1 = elements['p1'] as Map;
-      final zeros = p1['zeros'] as List;
+      final elements = values["elements"] as Map;
+      expect(elements.keys, ["p1"]);
+      final p1 = elements["p1"] as Map;
+      final zeros = p1["zeros"] as List;
       expect(zeros, hasLength(1));
       expect(zeros.single, closeTo(0, 1e-9));
-      final intersections = p1['intersections'] as List;
+      final intersections = p1["intersections"] as List;
       expect(intersections, hasLength(2));
       final first = intersections[0] as Map;
-      expect(first['x'], closeTo(0, 1e-6));
-      expect(first['y'], closeTo(0, 1e-6));
+      expect(first["x"], closeTo(0, 1e-6));
+      expect(first["y"], closeTo(0, 1e-6));
       final second = intersections[1] as Map;
-      expect(second['x'], closeTo(2, 1e-6));
-      expect(second['y'], closeTo(4, 1e-6));
+      expect(second["x"], closeTo(2, 1e-6));
+      expect(second["y"], closeTo(4, 1e-6));
     });
 
-    test('no view falls back to [-10, 10]', () {
+    test("no view falls back to [-10, 10]", () {
       const scene = VisualScene(
         kind: VisualSceneKind.plot2d,
-        model: VisualModel(expression: 'x^2-4'),
+        model: VisualModel(expression: "x^2-4"),
       );
       final values = computeDerivedValues(scene);
-      final zeros = values['zeros'] as List;
+      final zeros = values["zeros"] as List;
       expect(zeros, hasLength(2));
       expect(zeros[0], closeTo(-2, 1e-9));
       expect(zeros[1], closeTo(2, 1e-9));
     });
 
-    test('bad expressions are recorded under errors, never thrown', () {
+    test("bad expressions are recorded under errors, never thrown", () {
       const scene = VisualScene(
         kind: VisualSceneKind.plot2d,
-        model: VisualModel(expression: 'x + ('),
+        model: VisualModel(expression: "x + ("),
         elements: [
           PlotElement(
-            id: 'p1',
+            id: "p1",
             style: VisualStyle.primary,
             layer: 0,
             visible: true,
-            expression: 'x^2',
+            expression: "x^2",
             domain: (-2, 2),
           ),
         ],
       );
       final values = computeDerivedValues(scene);
-      final errors = values['errors'] as List;
+      final errors = values["errors"] as List;
       expect(errors, isNotEmpty);
-      expect(errors.first, contains('model'));
-      // The valid plot element is still computed despite the bad model.
-      final elements = values['elements'] as Map;
-      final p1 = elements['p1'] as Map;
-      expect((p1['zeros'] as List).single, closeTo(0, 1e-9));
+      expect(errors.first, contains("model"));
+      final elements = values["elements"] as Map;
+      final p1 = elements["p1"] as Map;
+      expect((p1["zeros"] as List).single, closeTo(0, 1e-9));
     });
 
-    test('scene without a model expression returns empty values', () {
+    test("scene without a model expression returns empty values", () {
       const scene = VisualScene(kind: VisualSceneKind.geometry);
       final values = computeDerivedValues(scene);
-      expect(values['zeros'], isEmpty);
-      expect(values['extrema'], isEmpty);
-      expect(values.containsKey('errors'), isFalse);
+      expect(values["zeros"], isEmpty);
+      expect(values["extrema"], isEmpty);
+      expect(values.containsKey("errors"), isFalse);
     });
   });
 }

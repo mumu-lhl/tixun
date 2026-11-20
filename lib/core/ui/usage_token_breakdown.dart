@@ -1,10 +1,10 @@
-import 'dart:convert';
-import 'dart:math' as math;
+import "dart:convert";
+import "dart:math" as math;
 
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../database/database.dart';
-import '../l10n/app_strings.dart';
+import "../database/database.dart";
+import "../l10n/app_strings.dart";
 
 class UsageTokenBreakdown extends StatelessWidget {
   const UsageTokenBreakdown({required this.rows, super.key});
@@ -90,7 +90,7 @@ class UsageTokenBreakdown extends StatelessWidget {
                 leading: Icon(Icons.circle, color: colors[i], size: 16),
                 title: Text(labels[i]),
                 trailing: Text(
-                  '${(values[i] * 100 / total).toStringAsFixed(1)}% · ${usageTokenCount(values[i])} (${usageInteger(values[i])})',
+                  "${(values[i] * 100 / total).toStringAsFixed(1)}% · ${usageTokenCount(values[i])} (${usageInteger(values[i])})",
                 ),
               ),
         ] else
@@ -109,13 +109,13 @@ class _LocalTokenBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const keys = [
-      'system',
-      'user',
-      'toolDefinitions',
-      'toolCalls',
-      'toolResults',
-      'reasoning',
-      'reply',
+      "system",
+      "user",
+      "toolDefinitions",
+      "toolCalls",
+      "toolResults",
+      "reasoning",
+      "reply",
     ];
     const colors = [
       Color(0xff3977c3),
@@ -141,8 +141,8 @@ class _LocalTokenBreakdown extends StatelessWidget {
       if (row.tokenBreakdownJson == null) continue;
       try {
         final decoded = jsonDecode(row.tokenBreakdownJson!);
-        if (decoded is! Map || decoded['counts'] is! Map) continue;
-        final counts = decoded['counts'] as Map;
+        if (decoded is! Map || decoded["counts"] is! Map) continue;
+        final counts = decoded["counts"] as Map;
         covered++;
         for (var i = 0; i < keys.length; i++) {
           if (counts[keys[i]] case final int count when count > 0) {
@@ -180,7 +180,7 @@ class _LocalTokenBreakdown extends StatelessWidget {
               leading: Icon(Icons.circle, color: colors[i], size: 16),
               title: Text(labels[i]),
               trailing: Text(
-                '${(values[i] * 100 / total).toStringAsFixed(1)}% · ${usageTokenCount(values[i])} (${usageInteger(values[i])})',
+                "${(values[i] * 100 / total).toStringAsFixed(1)}% · ${usageTokenCount(values[i])} (${usageInteger(values[i])})",
               ),
             ),
         ] else
@@ -223,39 +223,39 @@ String usageFeatureLabel(
   BuildContext context,
   String feature,
 ) => switch (feature) {
-  'chat' => context.l10n.usageFeatureChat,
-  'context_compaction' => context.l10n.usageFeatureContextCompaction,
-  'exam_scores' => context.l10n.usageFeatureExamScores,
-  'language_quick_lookup' => context.l10n.quickLookup,
-  'language_vocabulary' => context.l10n.usageFeatureLanguageVocabulary,
-  'language_explanation' => context.l10n.usageFeatureLanguageExplanation,
-  'language_sentence_batch' => context.l10n.usageFeatureLanguageSentenceBatch,
-  'language_exam_generation' => context.l10n.usageFeatureLanguageExamGeneration,
-  'language_exam_review' => context.l10n.usageFeatureLanguageExamReview,
-  'language_writing_task' => context.l10n.usageFeatureLanguageWritingTask,
-  'language_writing' => context.l10n.usageFeatureLanguageWriting,
-  'connection_test' => context.l10n.usageFeatureConnectionTest,
-  'a2ui_create' => context.l10n.chatA2uiLabel,
-  'visual_create' => context.l10n.usageFeatureVisualCreate,
-  'visual_edit' => context.l10n.usageFeatureVisualEdit,
-  'quiz_with_visual' => context.l10n.usageFeatureQuizWithVisual,
+  "chat" => context.l10n.usageFeatureChat,
+  "context_compaction" => context.l10n.usageFeatureContextCompaction,
+  "exam_scores" => context.l10n.usageFeatureExamScores,
+  "language_quick_lookup" => context.l10n.quickLookup,
+  "language_vocabulary" => context.l10n.usageFeatureLanguageVocabulary,
+  "language_explanation" => context.l10n.usageFeatureLanguageExplanation,
+  "language_sentence_batch" => context.l10n.usageFeatureLanguageSentenceBatch,
+  "language_exam_generation" => context.l10n.usageFeatureLanguageExamGeneration,
+  "language_exam_review" => context.l10n.usageFeatureLanguageExamReview,
+  "language_writing_task" => context.l10n.usageFeatureLanguageWritingTask,
+  "language_writing" => context.l10n.usageFeatureLanguageWriting,
+  "connection_test" => context.l10n.usageFeatureConnectionTest,
+  "a2ui_create" => context.l10n.chatA2uiLabel,
+  "visual_create" => context.l10n.usageFeatureVisualCreate,
+  "visual_edit" => context.l10n.usageFeatureVisualEdit,
+  "quiz_with_visual" => context.l10n.usageFeatureQuizWithVisual,
   _ => feature,
 };
 
 String usageInteger(int value) => value.toString().replaceAllMapped(
-  RegExp(r'\B(?=(\d{3})+(?!\d))'),
-  (_) => ',',
+  RegExp(r"\B(?=(\d{3})+(?!\d))"),
+  (_) => ",",
 );
 
 String usageTokenCount(int value) {
   final (divisor, suffix) = value >= 1000000000
-      ? (1000000000, 'B')
+      ? (1000000000, "B")
       : value >= 1000000
-      ? (1000000, 'M')
+      ? (1000000, "M")
       : value >= 1000
-      ? (1000, 'K')
-      : (1, '');
-  if (divisor == 1) return '$value';
+      ? (1000, "K")
+      : (1, "");
+  if (divisor == 1) return "$value";
   final formatted = (value / divisor).toStringAsFixed(2);
   return '${formatted.replaceFirst(RegExp(r"0+$"), "").replaceFirst(RegExp(r"\.$"), "")}$suffix';
 }

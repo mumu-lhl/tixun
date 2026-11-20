@@ -1,12 +1,12 @@
-import 'package:drift/drift.dart';
+import "package:drift/drift.dart";
 
-import '../../core/database/database.dart';
-import 'exam_material.dart';
-import 'exam_store.dart';
-import 'language_skills.dart';
-import 'language_store.dart';
-import 'lexical_form.dart';
-import 'sentence_content.dart';
+import "../../core/database/database.dart";
+import "exam_material.dart";
+import "exam_store.dart";
+import "language_skills.dart";
+import "language_store.dart";
+import "lexical_form.dart";
+import "sentence_content.dart";
 
 extension LanguageProfileStore on LanguageLearningStore {
   Stream<LanguageProfile> languageProfile(
@@ -14,7 +14,7 @@ extension LanguageProfileStore on LanguageLearningStore {
     ExamProfile exam = ExamProfile.zhejiang2026,
   }) => db
       .customSelect(
-        'SELECT 1',
+        "SELECT 1",
         readsFrom: {
           db.learningLexicalItems,
           db.learningLexicalSenses,
@@ -43,17 +43,17 @@ extension LanguageProfileStore on LanguageLearningStore {
       due:
           (await db
                   .customSelect(
-                    '''
+                    """
         SELECT COUNT(*) AS due
         FROM learning_review_schedules r
         JOIN learning_lexical_senses s ON s.id = r.sense_id
         JOIN learning_lexical_items i ON i.id = s.item_id
         WHERE i.language = ? AND r.due_at <= unixepoch()
-      ''',
+      """,
                     variables: [Variable(language)],
                   )
                   .getSingle())
-              .read<int>('due'),
+              .read<int>("due"),
       hasApplications: await _available(db, language, forms: false),
       hasForms: await _available(db, language, forms: true),
       evidence: [
@@ -61,7 +61,7 @@ extension LanguageProfileStore on LanguageLearningStore {
         ...await _sentences(db, language),
         ...await _course(db, language),
         ...await _exams(db, language, exam),
-        if (language == 'en') ...await _writing(db, exam),
+        if (language == "en") ...await _writing(db, exam),
       ],
     );
   });
@@ -73,11 +73,11 @@ Future<bool> _available(
   required bool forms,
 }) async {
   final content = forms
-      ? 'JOIN learning_lexical_senses s ON s.item_id = i.id JOIN learning_lexical_forms f ON f.sense_id = s.id'
-      : 'JOIN learning_lexical_senses s ON s.item_id = i.id AND s.application IS NOT NULL AND s.application_answer IS NOT NULL';
+      ? "JOIN learning_lexical_senses s ON s.item_id = i.id JOIN learning_lexical_forms f ON f.sense_id = s.id"
+      : "JOIN learning_lexical_senses s ON s.item_id = i.id AND s.application IS NOT NULL AND s.application_answer IS NOT NULL";
   return (await db
           .customSelect(
-            'SELECT 1 FROM learning_lexical_items i $content WHERE i.language = ? LIMIT 1',
+            "SELECT 1 FROM learning_lexical_items i $content WHERE i.language = ? LIMIT 1",
             variables: [Variable(language)],
           )
           .getSingleOrNull()) !=
@@ -90,7 +90,7 @@ Future<List<LanguageObservation>> _words(
 ) async {
   final rows = await db
       .customSelect(
-        '''
+        """
     SELECT e.*, i.form AS lemma, s.source, f.surface,
            EXISTS (
              SELECT 1 FROM learning_evidence old
@@ -108,38 +108,38 @@ Future<List<LanguageObservation>> _words(
     WHERE i.language = ? AND s.source <> 'mock'
     ORDER BY e.occurred_at DESC, e.rowid DESC
     LIMIT 150
-  ''',
+  """,
         variables: [Variable(language)],
       )
       .get();
   final results = <LanguageObservation>[];
   for (final row in rows) {
-    final skill = switch (row.read<String>('skill')) {
-      'meaningRecall' => LanguageSkill.wordRecall,
-      'meaningRecognition' => LanguageSkill.wordRecognition,
-      'contextApplication' => LanguageSkill.wordApplication,
+    final skill = switch (row.read<String>("skill")) {
+      "meaningRecall" => LanguageSkill.wordRecall,
+      "meaningRecognition" => LanguageSkill.wordRecognition,
+      "contextApplication" => LanguageSkill.wordApplication,
       LexicalFormDraft.recognitionSkill => LanguageSkill.formRecognition,
       LexicalFormDraft.productionSkill => LanguageSkill.formProduction,
       _ => null,
     };
     if (skill == null) continue;
-    final correct = row.readNullable<bool>('correct');
+    final correct = row.readNullable<bool>("correct");
     results.add(
       LanguageObservation(
-        id: row.read('id'),
+        id: row.read("id"),
         skill: skill,
-        at: row.read('occurred_at'),
-        basis: row.readNullable<String>('surface') ?? row.read<String>('lemma'),
+        at: row.read("occurred_at"),
+        basis: row.readNullable<String>("surface") ?? row.read<String>("lemma"),
         correct: correct,
         verified:
             skill != LanguageSkill.wordApplication ||
-            row.read<String>('source') == 'user',
+            row.read<String>("source") == "user",
         kind: correct == null
             ? EvidenceKind.selfReport
-            : row.read<bool>('repeated')
+            : row.read<bool>("repeated")
             ? EvidenceKind.repeat
-            : row.read<bool>('answer_revealed') ||
-                  row.read<bool>('group_prompt')
+            : row.read<bool>("answer_revealed") ||
+                  row.read<bool>("group_prompt")
             ? EvidenceKind.assisted
             : EvidenceKind.independent,
       ),
@@ -154,7 +154,7 @@ Future<List<LanguageObservation>> _sentences(
 ) async {
   final rows = await db
       .customSelect(
-        '''
+        """
     SELECT a.*, EXISTS (
       SELECT 1 FROM learning_sentence_attempts old
       WHERE old.language = a.language AND old.skill = a.skill
@@ -167,28 +167,28 @@ Future<List<LanguageObservation>> _sentences(
     WHERE a.language = ?
     ORDER BY a.occurred_at DESC, a.rowid DESC
     LIMIT 150
-  ''',
+  """,
         variables: [Variable(language)],
       )
       .get();
   final results = <LanguageObservation>[];
   for (final row in rows) {
-    final skill = SentenceSkill.values.asNameMap()[row.read<String>('skill')];
+    final skill = SentenceSkill.values.asNameMap()[row.read<String>("skill")];
     if (skill == null) continue;
-    final correct = row.readNullable<bool>('correct');
+    final correct = row.readNullable<bool>("correct");
     results.add(
       LanguageObservation(
-        id: row.read('id'),
+        id: row.read("id"),
         skill: sentenceAbility(skill),
-        at: row.read('occurred_at'),
-        basis: row.read('sentence'),
+        at: row.read("occurred_at"),
+        basis: row.read("sentence"),
         correct: correct,
         verified: false,
         kind: correct == null
             ? EvidenceKind.selfReport
-            : row.read<bool>('repeated')
+            : row.read<bool>("repeated")
             ? EvidenceKind.repeat
-            : row.readNullable<int>('help_before_answer') != 0
+            : row.readNullable<int>("help_before_answer") != 0
             ? EvidenceKind.assisted
             : EvidenceKind.independent,
       ),
@@ -204,7 +204,7 @@ Future<List<LanguageObservation>> _exams(
 ) async {
   final material = db.learningExamMaterials;
   final attempt = db.learningExamAttempts;
-  final other = db.alias(attempt, 'profile_other_exam_attempt');
+  final other = db.alias(attempt, "profile_other_exam_attempt");
   final earlier = db.selectOnly(other)
     ..addColumns([other.id])
     ..where(
@@ -217,7 +217,7 @@ Future<List<LanguageObservation>> _exams(
     ..addColumns([other.id])
     ..where(
       other.materialId.equalsExp(attempt.materialId) &
-          other.disputedPositions.equals('[]').not(),
+          other.disputedPositions.equals("[]").not(),
     );
   final repeatedFlag = existsQuery(earlier);
   final disputedFlag = existsQuery(disputed);
@@ -230,7 +230,7 @@ Future<List<LanguageObservation>> _exams(
           material.language.equals(language) &
               material.profile.equals(profile.id) &
               material.source.equals(ExamSource.bundled.name).not() &
-              (material.model.isNull() | material.model.equals('Mock').not()),
+              (material.model.isNull() | material.model.equals("Mock").not()),
         )
         ..orderBy([
           OrderingTerm.desc(attempt.submittedAt),
@@ -256,7 +256,7 @@ Future<List<LanguageObservation>> _exams(
             id: record.id,
             skill: skill,
             at: record.submittedAt,
-            basis: [paper.paper.title, item.prompt].join(' · '),
+            basis: [paper.paper.title, item.prompt].join(" · "),
             profile: profile,
             correct: item.matches(answers[i]),
             verified:

@@ -1,21 +1,23 @@
-import '../../core/ui/app_menu.dart';
+import "dart:async";
 
-import 'dart:convert';
+import "../../core/ui/app_menu.dart";
 
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import "dart:convert";
 
-import '../../app/controller.dart';
-import '../../core/ai/chat_provider.dart';
-import '../../core/ai/chatgpt/auth.dart';
-import '../../core/ai/chatgpt/usage.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/l10n/app_error_localization.dart';
-import '../../core/ui/reasoning_labels.dart';
-import 'chatgpt_quota_panel.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:url_launcher/url_launcher.dart";
+
+import "../../app/controller.dart";
+import "../../core/ai/chat_provider.dart";
+import "../../core/ai/chatgpt/auth.dart";
+import "../../core/ai/chatgpt/usage.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/l10n/app_error_localization.dart";
+import "../../core/ui/reasoning_labels.dart";
+import "chatgpt_quota_panel.dart";
 
 class ChatGptSettings extends ConsumerStatefulWidget {
   const ChatGptSettings({super.key});
@@ -55,7 +57,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
     _ => failureText(context.l10n, value),
   };
   bool working = true, vision = false;
-  String effort = 'default';
+  String effort = "default";
   late final ChatGptAuth auth;
   CancelToken? connectionCancel;
   @override
@@ -63,18 +65,18 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
     super.initState();
     final c = ref.read(appControllerProvider);
     auth = c.chatGpt;
-    if (c.config.kind == 'chatgpt') {
+    if (c.config.kind == "chatgpt") {
       model = c.config.model;
       vision = c.config.vision;
-      effort = c.config.thinking ? c.config.effort : 'default';
+      effort = c.config.thinking ? c.config.effort : "default";
     }
-    load();
+    unawaited(load());
   }
 
   @override
   void dispose() {
     auth.cancelLogin();
-    connectionCancel?.cancel('user');
+    connectionCancel?.cancel("user");
     super.dispose();
   }
 
@@ -96,7 +98,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
       }
       if (saved.any((a) => a.id == selected && a.connected)) {
         if (mounted && !ref.read(appControllerProvider).demo) {
-          loadQuota(refresh: false);
+          unawaited(loadQuota(refresh: false));
         }
         final choices = await auth.models();
         if (mounted) {
@@ -173,14 +175,14 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
         ?.reasoningEfforts;
     return ProviderConfig(
       id: 1,
-      kind: 'chatgpt',
+      kind: "chatgpt",
       baseUrl: chatGptResource,
-      model: model ?? '',
+      model: model ?? "",
       vision: vision,
       supportsTools: true,
       supportsThinking: true,
-      thinking: effort != 'default',
-      effort: effort == 'default' ? 'high' : effort,
+      thinking: effort != "default",
+      effort: effort == "default" ? "high" : effort,
       reasoningLevels: declared == null ? null : jsonEncode(declared),
     );
   }
@@ -188,10 +190,10 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
   List<String> get availableEfforts =>
       AiOptions(modelConfiguration()).reasoningEfforts;
   String get selectedEffort =>
-      availableEfforts.contains(effort) ? effort : 'default';
+      availableEfforts.contains(effort) ? effort : "default";
   ProviderConfig candidate() => modelConfiguration().copyWith(
     supportsThinking: availableEfforts.isNotEmpty,
-    thinking: selectedEffort != 'default',
+    thinking: selectedEffort != "default",
   );
 
   @override
@@ -213,7 +215,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
         const SizedBox(height: 20),
         if (accounts.isNotEmpty)
           AppSelectField<String>(
-            key: const Key('chatgpt-account-selector'),
+            key: const Key("chatgpt-account-selector"),
 
             initialValue: active,
             decoration: InputDecoration(
@@ -275,7 +277,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
           runSpacing: 8,
           children: [
             FilledButton(
-              key: const Key('chatgpt-sign-in'),
+              key: const Key("chatgpt-sign-in"),
               onPressed: working || c.demo
                   ? null
                   : () => perform(() async {
@@ -292,7 +294,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
                         });
                       }
                     }),
-              child: const Text('Continue with ChatGPT'),
+              child: const Text("Continue with ChatGPT"),
             ),
             if (account != null)
               OutlinedButton(
@@ -327,7 +329,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
               ),
             if (connectionCancel != null)
               TextButton(
-                onPressed: () => connectionCancel?.cancel('user'),
+                onPressed: () => connectionCancel?.cancel("user"),
                 child: Text(context.l10n.cancelConnectionTest),
               ),
             if (auth.signingIn)
@@ -361,7 +363,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
           if (models.isEmpty) Text(context.l10n.noAvailableModelsRefreshThe),
           if (models.isNotEmpty)
             AppSelectField<String>(
-              key: const Key('chatgpt-model-selector'),
+              key: const Key("chatgpt-model-selector"),
 
               initialValue: models.any((m) => m.id == model) ? model : null,
               decoration: InputDecoration(labelText: context.l10n.model),
@@ -393,7 +395,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
           ),
           const SizedBox(height: 12),
           AppSelectField<String>(
-            key: const Key('chatgpt-effort-selector'),
+            key: const Key("chatgpt-effort-selector"),
             initialValue: selectedEffort,
 
             decoration: InputDecoration(
@@ -401,7 +403,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
             ),
             items: [
               for (final e in {
-                'default': context.l10n.modelDefault,
+                "default": context.l10n.modelDefault,
                 for (final level in availableEfforts)
                   level: reasoningEffortLabel(
                     context,
@@ -431,7 +433,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
             runSpacing: 8,
             children: [
               FilledButton(
-                key: const Key('use-chatgpt'),
+                key: const Key("use-chatgpt"),
                 onPressed: working || !models.any((m) => m.id == model)
                     ? null
                     : () => perform(() async {
@@ -472,7 +474,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
         TextButton(
           onPressed: () async {
             if (!await launchUrl(
-                  Uri.parse('https://chatgpt.com/settings/usage'),
+                  Uri.parse("https://chatgpt.com/settings/usage"),
                   mode: LaunchMode.externalApplication,
                 ) &&
                 mounted) {

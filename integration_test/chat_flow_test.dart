@@ -1,20 +1,20 @@
-import 'support/gui_capture.dart';
+import "support/gui_capture.dart";
 
-import 'package:tixun/features/chat/chat_screen.dart';
+import "package:tixun/features/chat/chat_screen.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:integration_test/integration_test.dart';
-import 'package:tixun/app/app.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/database/database.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:integration_test/integration_test.dart";
+import "package:tixun/app/app.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/database/database.dart";
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
-    'Real Linux GUI: send, stream, persist, navigate and restore draft',
+    "Real Linux GUI: send, stream, persist, navigate and restore draft",
     (tester) async {
       final c = await AppController.open(demo: true);
       final container = ProviderContainer(
@@ -27,15 +27,15 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('start-chat')));
+      await tester.tap(find.byKey(const Key("start-chat")));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('chat-input')), '请解释二次函数的顶点');
+      await tester.enterText(find.byKey(const Key("chat-input")), "请解释二次函数的顶点");
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       await tester.pump(const Duration(milliseconds: 300));
       expect(c.busy, true);
-      expect(find.byKey(const Key('stop-generation')), findsOneWidget);
+      expect(find.byKey(const Key("stop-generation")), findsOneWidget);
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       // pumpAndSettle observes animations, not pending SQLite I/O.
       for (var i = 0; i < 100 && c.busy; i++) {
@@ -44,48 +44,48 @@ void main() {
       expect(c.busy, false);
       await tester.pumpAndSettle();
       expect(c.messages.length, 2);
-      expect(c.messages.last.status, 'complete');
-      expect(c.messages.last.content, contains('配方'));
+      expect(c.messages.last.status, "complete");
+      expect(c.messages.last.content, contains("配方"));
       expect(
         (await c.db.messages(c.selected!.id)).last.content,
         c.messages.last.content,
       );
       expect(
-        tester.widget<TextField>(find.byKey(const Key('chat-input'))).enabled ??
+        tester.widget<TextField>(find.byKey(const Key("chat-input"))).enabled ??
             true,
         true,
       );
-      await tester.tap(find.byKey(const Key('chat-input')));
+      await tester.tap(find.byKey(const Key("chat-input")));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('chat-input')), '明天继续的问题');
+      await tester.enterText(find.byKey(const Key("chat-input")), "明天继续的问题");
       expect(
         c.selected!.draft,
-        '明天继续的问题',
-        reason: 'draft callback before navigation',
+        "明天继续的问题",
+        reason: "draft callback before navigation",
       );
-      if (find.byKey(const Key('chat-back')).evaluate().isNotEmpty) {
-        await tester.tap(find.byKey(const Key('chat-back')));
+      if (find.byKey(const Key("chat-back")).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key("chat-back")));
         await tester.pumpAndSettle();
       }
-      await tester.tap(find.byKey(const Key('nav-4')));
+      await tester.tap(find.byKey(const Key("nav-4")));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('nav-1')));
+      await tester.tap(find.byKey(const Key("nav-1")));
       await tester.pumpAndSettle();
       expect(
         c.selected!.draft,
-        '明天继续的问题',
-        reason: 'controller draft after navigation',
+        "明天继续的问题",
+        reason: "controller draft after navigation",
       );
       expect(
         tester
-            .widget<TextField>(find.byKey(const Key('chat-input')))
+            .widget<TextField>(find.byKey(const Key("chat-input")))
             .controller!
             .text,
-        '明天继续的问题',
+        "明天继续的问题",
       );
-      expect(find.text('明天继续的问题'), findsOneWidget);
+      expect(find.text("明天继续的问题"), findsOneWidget);
       await resizeGui(tester, 390, 844);
-      await c.addImage('assets/demo/two_problems.png');
+      await c.addImage("assets/demo/two_problems.png");
       await tester.pumpAndSettle();
       // The thumbnail's right side contains a separate 48dp remove button.
       await tester.tapAt(
@@ -93,17 +93,17 @@ void main() {
             const Offset(12, 0),
       );
       await tester.pumpAndSettle();
-      await guiCapture('chat', 'phone-image-preview');
-      await tester.tap(find.text('裁剪 / 旋转 / 缩小'));
+      await guiCapture("chat", "phone-image-preview");
+      await tester.tap(find.text("裁剪 / 旋转 / 缩小"));
       await tester.pumpAndSettle();
       for (
         var i = 0;
-        i < 100 && find.byKey(const Key('crop-canvas')).evaluate().isEmpty;
+        i < 100 && find.byKey(const Key("crop-canvas")).evaluate().isEmpty;
         i++
       ) {
         await tester.pump(const Duration(milliseconds: 100));
       }
-      final canvas = tester.getRect(find.byKey(const Key('crop-canvas')));
+      final canvas = tester.getRect(find.byKey(const Key("crop-canvas")));
       final gesture = await tester.startGesture(
         canvas.topLeft + Offset(canvas.width * .04, canvas.height * .1),
       );
@@ -112,8 +112,8 @@ void main() {
       );
       await gesture.up();
       await tester.pumpAndSettle();
-      await guiCapture('chat', 'phone-image-crop');
-      await tester.tap(find.text('保存图片编辑'));
+      await guiCapture("chat", "phone-image-crop");
+      await tester.tap(find.text("保存图片编辑"));
       for (
         var i = 0;
         i < 100 && c.attachments.single.originalPath == null;
@@ -123,44 +123,43 @@ void main() {
       }
       await tester.pumpAndSettle();
       expect(c.attachments.single.originalPath, isNotNull);
-      // The thumbnail's right side contains a separate 48dp remove button.
       await tester.tapAt(
         tester.getRect(find.byType(AttachmentImage)).centerLeft +
             const Offset(12, 0),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('查看保留的原图'));
+      await tester.tap(find.text("查看保留的原图"));
       await tester.pumpAndSettle();
-      expect(find.text('保留的原图'), findsOneWidget);
-      await guiCapture('chat', 'phone-original-retained');
+      expect(find.text("保留的原图"), findsOneWidget);
+      await guiCapture("chat", "phone-original-retained");
       // Both the retained-original viewer (on top) and the preview viewer
       // below it have a '关闭预览' button; close the topmost one first.
-      await tester.tap(find.byTooltip('关闭预览').last);
+      await tester.tap(find.byTooltip("关闭预览").last);
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('关闭预览'));
+      await tester.tap(find.byTooltip("关闭预览"));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.byKey(const Key('chat-input')),
-        '请再举一个例子\n说明关键步骤',
+        find.byKey(const Key("chat-input")),
+        "请再举一个例子\n说明关键步骤",
       );
       await tester.pump();
-      await tester.tap(find.byKey(const Key('send-message')));
+      await tester.tap(find.byKey(const Key("send-message")));
       for (var i = 0; i < 100 && c.busy; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(c.messages.length, 4);
-      expect(c.messages[c.messages.length - 2].content, contains('\n'));
+      expect(c.messages[c.messages.length - 2].content, contains("\n"));
       await tester.pumpAndSettle();
       await tester.drag(
-        find.byKey(PageStorageKey('messages-${c.selected!.id}')),
+        find.byKey(PageStorageKey("messages-${c.selected!.id}")),
         const Offset(0, 240),
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('chat-scroll-bottom')), findsOneWidget);
-      await guiCapture('chat', 'history-return-button-phone');
-      await tester.tap(find.byKey(const Key('chat-scroll-bottom')));
+      expect(find.byKey(const Key("chat-scroll-bottom")), findsOneWidget);
+      await guiCapture("chat", "history-return-button-phone");
+      await tester.tap(find.byKey(const Key("chat-scroll-bottom")));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('chat-scroll-bottom')), findsNothing);
+      expect(find.byKey(const Key("chat-scroll-bottom")), findsNothing);
       await resizeGui(tester, 1280, 900);
       expect(tester.takeException(), isNull);
       await c.newSession();
@@ -168,13 +167,13 @@ void main() {
           .into(c.db.chatMessages)
           .insert(
             ChatMessagesCompanion.insert(
-              id: 'readable-table',
+              id: "readable-table",
               sessionId: c.selected!.id,
-              role: 'assistant',
-              content: r'''| 知识点 | 核心解释 | 公式 | 条件 | 易错点 | 例子 |
+              role: "assistant",
+              content: r"""| 知识点 | 核心解释 | 公式 | 条件 | 易错点 | 例子 |
 | --- | --- | --- | --- | --- | --- |
 | 二次函数 | 配方能把二次函数化为顶点式。先提出二次项系数，再配成完全平方；括号内补入的常数要在括号外抵消。这样可以直接看出对称轴、顶点以及最大值或最小值。解释较长时仍按正常宽度换行，不挤成竖排。 | $f(x)=a(x-h)^2+k$ | $a\ne0$ | 注意括号外系数，避免补项后漏乘。 | $x^2-4x+3=(x-2)^2-1$ |
-''',
+""",
               createdAt: DateTime.now(),
             ),
           );
@@ -182,16 +181,16 @@ void main() {
       await resizeGui(tester, 390, 844);
       await tester.pumpAndSettle();
       expect(tester.getSize(find.byType(Table)).width, greaterThan(390));
-      await guiCapture('markdown', 'wide-table-phone');
+      await guiCapture("markdown", "wide-table-phone");
       final table = tester.getRect(find.byType(Table));
       await tester.dragFrom(
         Offset(200, table.top + 20),
         const Offset(-1500, 0),
       );
       await tester.pumpAndSettle();
-      await guiCapture('markdown', 'wide-table-phone-scrolled');
+      await guiCapture("markdown", "wide-table-phone-scrolled");
       await resizeGui(tester, 1280, 900);
-      await guiCapture('markdown', 'wide-table-desktop');
+      await guiCapture("markdown", "wide-table-desktop");
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       container.dispose();

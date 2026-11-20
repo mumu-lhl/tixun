@@ -6,15 +6,15 @@
 /// can call without a widget tree.
 library;
 
-import 'dart:typed_data';
+import "dart:typed_data";
 
 class StudyExportImage {
   const StudyExportImage({required this.bytes, required this.mime});
   final Uint8List bytes;
   final String mime;
 
-  bool get isPng => mime == 'image/png';
-  bool get isJpeg => mime == 'image/jpeg' || mime == 'image/jpg';
+  bool get isPng => mime == "image/png";
+  bool get isJpeg => mime == "image/jpeg" || mime == "image/jpg";
 }
 
 class StudyExportNote {
@@ -23,8 +23,8 @@ class StudyExportNote {
     required this.subject,
     required this.content,
     required this.updatedAt,
-    this.chapter = '',
-    this.kind = '',
+    this.chapter = "",
+    this.kind = "",
     this.tags = const [],
     this.images = const [],
   });
@@ -66,12 +66,12 @@ class StudyExportBundle {
 }
 
 enum StudyExportFormat {
-  pdf('pdf', 'application/pdf'),
+  pdf("pdf", "application/pdf"),
   docx(
-    'docx',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    "docx",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ),
-  markdown('md', 'text/markdown');
+  markdown("md", "text/markdown");
 
   const StudyExportFormat(this.extension, this.mimeType);
   final String extension;
@@ -86,7 +86,7 @@ class StudyExportChrome {
     required this.dateLine,
     required this.pageLabel,
     required this.noteMeta,
-    this.imagesExcluded = '',
+    this.imagesExcluded = "",
   });
 
   final String title;

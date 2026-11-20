@@ -1,16 +1,18 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "dart:async";
 
-import '../../app/controller.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/app_menu.dart';
-import '../library/library_providers.dart';
-import 'daily_learning.dart';
-import 'language_subject_action.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-part 'dashboard_counts.dart';
+import "../../app/controller.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/app_menu.dart";
+import "../library/library_providers.dart";
+import "daily_learning.dart";
+import "language_subject_action.dart";
+
+part "dashboard_counts.dart";
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -31,7 +33,7 @@ class DashboardScreen extends ConsumerWidget {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 320),
                     child: Semantics(
-                      key: const Key('subject-switch'),
+                      key: const Key("subject-switch"),
                       label: context.l10n.switchSubject,
                       child: AppSelectField<String>(
                         initialValue: c.subjectFilter,
@@ -45,7 +47,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         items: [
                           DropdownMenuItem(
-                            value: '',
+                            value: "",
                             child: Text(context.l10n.allSubjects),
                           ),
                           for (final subject in [
@@ -66,7 +68,9 @@ class DashboardScreen extends ConsumerWidget {
                         onChanged: (value) {
                           if (value != null) {
                             // Filtering never switches the conversation.
-                            act(context, () => c.setSubjectFilter(value));
+                            unawaited(
+                              act(context, () => c.setSubjectFilter(value)),
+                            );
                           }
                         },
                       ),
@@ -144,14 +148,14 @@ class DashboardScreen extends ConsumerWidget {
                         runSpacing: 8,
                         children: [
                           OutlinedButton.icon(
-                            key: const Key('open-timeline'),
-                            onPressed: () => context.push('/timeline'),
+                            key: const Key("open-timeline"),
+                            onPressed: () => context.push("/timeline"),
                             icon: const Icon(Icons.event_note_outlined),
                             label: Text(context.l10n.timelineTitle),
                           ),
                           OutlinedButton.icon(
-                            key: const Key('open-exams'),
-                            onPressed: () => context.push('/exams'),
+                            key: const Key("open-exams"),
+                            onPressed: () => context.push("/exams"),
                             icon: const Icon(Icons.calendar_month_outlined),
                             label: Text(context.l10n.examRecords),
                           ),
@@ -207,10 +211,10 @@ class DashboardScreen extends ConsumerWidget {
                                 runSpacing: 10,
                                 children: [
                                   FilledButton.icon(
-                                    key: const Key('start-chat'),
+                                    key: const Key("start-chat"),
                                     onPressed: () => act(context, () async {
                                       await c.newSession();
-                                      if (context.mounted) context.go('/chat');
+                                      if (context.mounted) context.go("/chat");
                                     }),
                                     icon: const Icon(Icons.add, size: 18),
                                     label: Text(
@@ -218,13 +222,13 @@ class DashboardScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   FilledButton.tonalIcon(
-                                    key: const Key('start-practice'),
-                                    onPressed: () => context.go('/practice'),
+                                    key: const Key("start-practice"),
+                                    onPressed: () => context.go("/practice"),
                                     icon: const Icon(Icons.edit_note),
                                     label: Text(context.l10n.practice),
                                   ),
                                   OutlinedButton.icon(
-                                    onPressed: () => context.go('/mistakes'),
+                                    onPressed: () => context.go("/mistakes"),
                                     icon: const Icon(
                                       Icons.add_photo_alternate_outlined,
                                       size: 18,
@@ -242,10 +246,10 @@ class DashboardScreen extends ConsumerWidget {
                           runSpacing: 8,
                           children: [
                             FilledButton.icon(
-                              key: const Key('start-chat'),
+                              key: const Key("start-chat"),
                               onPressed: () => act(context, () async {
                                 await c.newSession();
-                                if (context.mounted) context.go('/chat');
+                                if (context.mounted) context.go("/chat");
                               }),
                               icon: const Icon(Icons.add, size: 18),
                               label: Text(
@@ -253,7 +257,7 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.go('/mistakes'),
+                              onPressed: () => context.go("/mistakes"),
                               icon: const Icon(
                                 Icons.add_photo_alternate_outlined,
                                 size: 18,
@@ -281,8 +285,8 @@ class DashboardScreen extends ConsumerWidget {
                               await c.prepareSubjectChat();
                               if (context.mounted &&
                                   GoRouter.of(context).state.uri.path ==
-                                      '/study') {
-                                context.go('/chat');
+                                      "/study") {
+                                context.go("/chat");
                               }
                             }),
                             child: Text(context.l10n.allConversations),
@@ -356,7 +360,7 @@ class DashboardScreen extends ConsumerWidget {
                                     ),
                                     onTap: () => act(context, () async {
                                       await c.selectSession(s);
-                                      if (context.mounted) context.go('/chat');
+                                      if (context.mounted) context.go("/chat");
                                     }),
                                   ),
                                 ),

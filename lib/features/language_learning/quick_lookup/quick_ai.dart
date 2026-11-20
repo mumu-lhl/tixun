@@ -1,15 +1,15 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
+import "package:crypto/crypto.dart";
+import "package:dio/dio.dart";
 
-import '../../../core/ai/ai_usage_store.dart';
-import '../../../core/ai/chat_provider.dart';
-import '../../../core/database/database.dart';
-import '../language_json_request.dart';
-import '../language_store.dart';
-import 'quick_models.dart';
-import 'quick_store.dart';
+import "../../../core/ai/ai_usage_store.dart";
+import "../../../core/ai/chat_provider.dart";
+import "../../../core/database/database.dart";
+import "../language_json_request.dart";
+import "../language_store.dart";
+import "quick_models.dart";
+import "quick_store.dart";
 
 class QuickLookupAi {
   const QuickLookupAi(this.store, this.provider, this.config, this.usageStore);
@@ -30,8 +30,8 @@ class QuickLookupAi {
     final task = compileQuickPrompt(query.prompt);
     if (query.input.trim().isEmpty ||
         query.input.length > quickInputLimit ||
-        query.input.contains('\u0000')) {
-      throw const FormatException('Invalid lookup input');
+        query.input.contains("\u0000")) {
+      throw const FormatException("Invalid lookup input");
     }
     cancel.checkCancelled();
     final cacheKey = sha256
@@ -59,12 +59,12 @@ class QuickLookupAi {
       if (cached != null) return cached;
     }
     if (_active[store.db] == true) {
-      throw const FormatException('A lookup is already running');
+      throw const FormatException("A lookup is already running");
     }
     _active[store.db] = true;
     try {
       final request = AiRequest(
-        instructions: '$_instructions\n\nTask instructions:\n$task',
+        instructions: "$_instructions\n\nTask instructions:\n$task",
         messages: [AiMessage.user(jsonEncode(query.data))],
       );
       final answer = provider is MockChatProvider
@@ -73,12 +73,12 @@ class QuickLookupAi {
               provider: provider,
               config: config,
               usageStore: usageStore,
-              feature: 'language_quick_lookup',
+              feature: "language_quick_lookup",
               request: request,
               cancel: cancel,
               maxChars: 26000,
               parse: QuickAnswer.parse,
-              cancelledStatus: 'cancelled',
+              cancelledStatus: "cancelled",
               captureLocalBreakdown: false,
             );
       cancel.checkCancelled();
@@ -86,7 +86,7 @@ class QuickLookupAi {
         query,
         answer,
         config: provider is MockChatProvider
-            ? config.copyWith(kind: 'mock', model: 'Mock')
+            ? config.copyWith(kind: "mock", model: "Mock")
             : config,
         key: cacheKey,
         cancel: cancel,
@@ -126,8 +126,8 @@ when no learning candidate applies.
 ''';
 
 QuickAnswer _mockAnswer(String language) => QuickAnswer.parse({
-  'summary': language == 'zh' ? '速查 Mock 测试结果。' : 'Mock lookup result.',
-  'content': language == 'zh'
-      ? '这是用于验证速查页面和历史的 **Mock** 解答。'
-      : 'This is a **Mock** answer for testing the lookup history.',
+  "summary": language == "zh" ? "速查 Mock 测试结果。" : "Mock lookup result.",
+  "content": language == "zh"
+      ? "这是用于验证速查页面和历史的 **Mock** 解答。"
+      : "This is a **Mock** answer for testing the lookup history.",
 });

@@ -1,14 +1,14 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import 'language_layout.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/l10n/generated/app_localizations.dart';
-import 'language_profile_store.dart';
-import 'language_skills.dart';
-import 'language_store.dart';
-import 'sentence_content.dart';
-import 'sentence_practice.dart' show sentenceSkillLabel;
+import "language_layout.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/l10n/generated/app_localizations.dart";
+import "language_profile_store.dart";
+import "language_skills.dart";
+import "language_store.dart";
+import "sentence_content.dart";
+import "sentence_practice.dart" show sentenceSkillLabel;
 
 SentenceSkill? sentenceSkillForAbility(LanguageSkill skill) => SentenceSkill
     .values
@@ -128,7 +128,7 @@ class _LanguageProfileScreenState extends State<LanguageProfileScreen> {
                 runSpacing: 10,
                 spacing: 16,
                 children: [
-                  if (profile.language == 'en')
+                  if (profile.language == "en")
                     SizedBox(
                       width: fieldWidth,
                       child: AppSelectField<LanguageGoal>(
@@ -270,7 +270,7 @@ class _SkillEvidence extends StatelessWidget {
                 for (final kind in EvidenceKind.values)
                   if (row.count(kind) > 0)
                     Text(
-                      [_evidenceLabel(l10n, kind), row.count(kind)].join(' '),
+                      [_evidenceLabel(l10n, kind), row.count(kind)].join(" "),
                     ),
               ],
             ),
@@ -291,7 +291,7 @@ class _SkillEvidence extends StatelessWidget {
                   entry.correct!
                       ? l10n.languageCorrect
                       : l10n.languageIncorrect,
-              ].join(' · '),
+              ].join(" · "),
             ),
           ),
       ],

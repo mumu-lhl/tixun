@@ -1,16 +1,18 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/cached_stream_builder.dart';
-import '../exams/exam_calendar.dart' show examDate, showExamDialog;
-import 'timeline_store.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/cached_stream_builder.dart";
+import "../exams/exam_calendar.dart" show examDate, showExamDialog;
+import "timeline_store.dart";
+
+part "timeline_event_editor.dart";
 
 class TimelineScreen extends ConsumerStatefulWidget {
   const TimelineScreen({super.key});
@@ -66,6 +68,11 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
     super.dispose();
   }
 
+  void _selectEventDay(DateTime day) => setState(() {
+    month = DateTime(day.year, day.month);
+    selected = day;
+  });
+
   void _moveMonth(int delta) => setState(() {
     month = DateTime(month.year, month.month + delta);
     selected = DateTime(month.year, month.month);
@@ -85,13 +92,13 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
     );
     return switch (status.phase) {
       TimelinePhase.upcoming => context.l10n.timelineDaysUntil(
-        '${status.days}',
+        "${status.days}",
       ),
-      TimelinePhase.past => context.l10n.timelineDaysSince('${status.days}'),
+      TimelinePhase.past => context.l10n.timelineDaysSince("${status.days}"),
       TimelinePhase.today => context.l10n.timelineToday,
       TimelinePhase.endsToday => context.l10n.timelineEndsToday,
       TimelinePhase.inProgress => context.l10n.timelineInProgress(
-        '${status.days}',
+        "${status.days}",
       ),
     };
   }
@@ -115,7 +122,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                       BackButton(
                         onPressed: () => context.canPop()
                             ? context.pop()
-                            : context.go('/study'),
+                            : context.go("/study"),
                       ),
                       Expanded(
                         child: Text(
@@ -124,7 +131,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                         ),
                       ),
                       IconButton.filledTonal(
-                        key: const Key('timeline-add'),
+                        key: const Key("timeline-add"),
                         tooltip: context.l10n.timelineAdd,
                         onPressed: () => _edit(),
                         icon: const Icon(Icons.add),
@@ -139,7 +146,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                     ),
                   ),
                   SegmentedButton<bool>(
-                    key: const Key('timeline-view'),
+                    key: const Key("timeline-view"),
                     segments: [
                       ButtonSegment(
                         value: false,
@@ -164,7 +171,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
         Expanded(
           child: CachedStreamBuilder<List<TimelineEvent>>(
             owner: store,
-            cacheKey: 'timeline',
+            cacheKey: "timeline",
             stream: events,
             builder: (context, snapshot) {
               if (snapshot.hasError) {
@@ -192,10 +199,10 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
               return AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
                 child: KeyedSubtree(
-                  key: ValueKey((listView, visible.map((e) => e.id).join('|'))),
+                  key: ValueKey((listView, visible.map((e) => e.id).join("|"))),
                   child: ListView.builder(
                     key: PageStorageKey(
-                      listView ? 'timeline-list' : 'timeline-calendar',
+                      listView ? "timeline-list" : "timeline-calendar",
                     ),
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                     itemCount: visible.length + 1,
@@ -253,7 +260,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
             ),
             Expanded(
               child: Text(
-                '${month.year} / ${month.month}',
+                "${month.year} / ${month.month}",
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
@@ -302,10 +309,10 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
             final count = events.where((event) => _onDay(event, date)).length;
             final active = DateUtils.isSameDay(date, selected);
             return Semantics(
-              label: '${examDate(date)}, $count',
+              label: "${examDate(date)}, $count",
               selected: active,
               child: InkWell(
-                key: ValueKey('timeline-day-${examDate(date)}'),
+                key: ValueKey("timeline-day-${examDate(date)}"),
                 onTap: () => setState(() => selected = date),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
@@ -318,7 +325,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        '$day',
+                        "$day",
                         style: TextStyle(
                           fontWeight: active ? FontWeight.bold : null,
                         ),
@@ -354,7 +361,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
     final start = event.startDate.toUtc();
     final end = event.endDate?.toUtc();
     return Padding(
-      key: ValueKey('timeline-event-${event.id}'),
+      key: ValueKey("timeline-event-${event.id}"),
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Card(
         child: Padding(
@@ -396,7 +403,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
               const SizedBox(height: 8),
               Text(
                 _countdown(event, DateTime.now()),
-                key: ValueKey('timeline-countdown-${event.id}'),
+                key: ValueKey("timeline-countdown-${event.id}"),
                 style: TextStyle(
                   color: colors.primary,
                   fontWeight: FontWeight.w600,
@@ -412,179 +419,5 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
         ),
       ),
     );
-  }
-
-  Future<void> _delete(TimelineEvent event) async {
-    final yes = await showExamDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.l10n.timelineDelete),
-        content: Text(ctx.l10n.timelineDeleteConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(ctx.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(ctx.l10n.delete),
-          ),
-        ],
-      ),
-    );
-    if (yes == true && mounted) {
-      await act(
-        context,
-        () => ref.read(appControllerProvider).timeline.delete(event.id),
-      );
-    }
-  }
-
-  Future<void> _edit([TimelineEvent? event]) async {
-    final title = TextEditingController(text: event?.title ?? '');
-    final notes = TextEditingController(text: event?.notes ?? '');
-    var start =
-        event?.startDate.toUtc() ??
-        (listView ? DateUtils.dateOnly(DateTime.now()) : selected);
-    var end = event?.endDate?.toUtc();
-    String? error;
-    try {
-      final accepted = await showExamDialog<bool>(
-        context: context,
-        builder: (ctx) => StatefulBuilder(
-          builder: (ctx, set) {
-            Future<DateTime?> pick(DateTime initial) => showDatePicker(
-              context: ctx,
-              initialDate: initial,
-              firstDate: DateTime(1900),
-              lastDate: DateTime(2100),
-            );
-            return AlertDialog(
-              title: Text(
-                event == null ? ctx.l10n.timelineAdd : ctx.l10n.timelineEdit,
-              ),
-              content: SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        key: const Key('timeline-name'),
-                        controller: title,
-                        autofocus: true,
-                        maxLength: 120,
-                        decoration: InputDecoration(
-                          labelText: ctx.l10n.timelineName,
-                          hintText: ctx.l10n.timelineNameHint,
-                        ),
-                      ),
-                      TextField(
-                        key: const Key('timeline-notes'),
-                        controller: notes,
-                        minLines: 2,
-                        maxLines: 5,
-                        maxLength: 2000,
-                        decoration: InputDecoration(
-                          labelText: ctx.l10n.timelineNotes,
-                          hintText: ctx.l10n.timelineNotesHint,
-                        ),
-                      ),
-                      TextButton.icon(
-                        key: const Key('timeline-start'),
-                        onPressed: () async {
-                          final value = await pick(start);
-                          if (value != null && ctx.mounted) {
-                            set(() => start = value);
-                          }
-                        },
-                        icon: const Icon(Icons.calendar_today_outlined),
-                        label: Text(
-                          '${ctx.l10n.timelineStart}: ${examDate(start)}',
-                        ),
-                      ),
-                      TextButton.icon(
-                        key: const Key('timeline-end'),
-                        onPressed: () async {
-                          final value = await pick(end ?? start);
-                          if (value != null && ctx.mounted) {
-                            set(() => end = value);
-                          }
-                        },
-                        icon: const Icon(Icons.date_range_outlined),
-                        label: Text(
-                          end == null
-                              ? ctx.l10n.timelineAddEnd
-                              : '${ctx.l10n.timelineEnd}: ${examDate(end!)}',
-                        ),
-                      ),
-                      if (end != null)
-                        TextButton(
-                          onPressed: () => set(() => end = null),
-                          child: Text(ctx.l10n.timelineRemoveEnd),
-                        ),
-                      if (error != null)
-                        Text(
-                          error!,
-                          style: TextStyle(
-                            color: Theme.of(ctx).colorScheme.error,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(ctx.l10n.cancel),
-                ),
-                FilledButton(
-                  key: const Key('timeline-save'),
-                  onPressed: () {
-                    if (title.text.trim().isEmpty) {
-                      set(() => error = ctx.l10n.timelineNameRequired);
-                      return;
-                    }
-                    if (end != null &&
-                        timelineDate(end!).isBefore(timelineDate(start))) {
-                      set(() => error = ctx.l10n.timelineBadRange);
-                      return;
-                    }
-                    Navigator.pop(ctx, true);
-                  },
-                  child: Text(ctx.l10n.save),
-                ),
-              ],
-            );
-          },
-        ),
-      );
-      if (accepted == true && mounted) {
-        await act(
-          context,
-          () => ref
-              .read(appControllerProvider)
-              .timeline
-              .save(
-                id: event?.id,
-                title: title.text,
-                notes: notes.text,
-                start: start,
-                end: end,
-              ),
-        );
-        if (mounted && !listView) {
-          setState(() {
-            selected = DateTime(start.year, start.month, start.day);
-            month = DateTime(start.year, start.month);
-          });
-        }
-      }
-    } finally {
-      title.dispose();
-      notes.dispose();
-    }
   }
 }

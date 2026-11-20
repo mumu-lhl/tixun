@@ -1,38 +1,38 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
+import "dart:async";
+import "dart:convert";
+import "dart:io";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/ai/context_compactor.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/ai/context_compactor.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
 
 void main() {
   Stream<List<int>> bytes(String value) =>
       Stream.fromIterable(utf8.encode(value).map((b) => [b]));
   const end =
       'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n';
-  test('SSE handles individual UTF-8 bytes, CRLF, comments, multiline events and usage', () async {
+  test("SSE handles individual UTF-8 bytes, CRLF, comments, multiline events and usage", () async {
     final chunks = await decodeCompletion(
       bytes(
         ': keepalive\r\ndata: {"choices":[{"delta":{"content":"你好"}}]}\r\n\r\ndata: {"choices":[],\ndata: "usage":{"total_tokens":42}}\n\n$end',
       ),
     ).toList();
-    expect(chunks.map((c) => c.text).join(), '你好');
+    expect(chunks.map((c) => c.text).join(), "你好");
     expect(chunks.any((c) => c.tokens == 42), true);
   });
-  test('Chat Completions stream exposes the final generated title', () async {
+  test("Chat Completions stream exposes the final generated title", () async {
     final chunks = await decodeCompletion(
       bytes(
         'data: {"choices":[{"delta":{"title":"北京明天天气"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
       ),
     ).toList();
-    expect(chunks.singleWhere((chunk) => chunk.title != null).title, '北京明天天气');
+    expect(chunks.singleWhere((chunk) => chunk.title != null).title, "北京明天天气");
   });
-  test('Chat Completions usage chunks retain token breakdowns', () async {
+  test("Chat Completions usage chunks retain token breakdowns", () async {
     final chunks = await decodeCompletion(
       bytes('''data: {"choices":[],"usage":{"prompt_tokens":120,"completion_tokens":30,"total_tokens":150,"prompt_tokens_details":{"cached_tokens":60}}}
 
@@ -50,11 +50,11 @@ data: [DONE]
   });
 
   test(
-    'Malformed JSON, unexpected close and malformed tools fail explicitly',
+    "Malformed JSON, unexpected close and malformed tools fail explicitly",
     () async {
       for (final data in [
-        'data: {broken}\n\n',
-        'data: [DONE]\n\n',
+        "data: {broken}\n\n",
+        "data: [DONE]\n\n",
         'data: {"choices":[{"delta":{"content":"部分"}}]}\n\n',
         'data: {"choices":[{"delta":{"tool_calls":"bad"}}]}\n\n',
       ]) {
@@ -65,7 +65,7 @@ data: [DONE]
       }
     },
   );
-  test('Token limit preserves text then reports incomplete response', () async {
+  test("Token limit preserves text then reports incomplete response", () async {
     final output = <String>[];
     try {
       await for (final c in decodeCompletion(
@@ -76,35 +76,35 @@ data: [DONE]
         output.add(c.text);
       }
     } on AiFailure catch (e) {
-      expect(e.message, contains('长度'));
+      expect(e.message, contains("长度"));
     }
-    expect(output.join(), 'partial');
+    expect(output.join(), "partial");
   });
   test(
-    'Image request contains actual stable file bytes and Pro rejects images',
+    "Image request contains actual stable file bytes and Pro rejects images",
     () async {
-      final root = await Directory.systemTemp.createTemp('tixun-ai-test');
+      final root = await Directory.systemTemp.createTemp("tixun-ai-test");
       addTearDown(() => root.delete(recursive: true));
       final store = AttachmentStore(root);
-      await store.resolve('attachments/a.png').parent.create(recursive: true);
-      await store.resolve('attachments/a.png').writeAsBytes([137, 80, 78, 71]);
+      await store.resolve("attachments/a.png").parent.create(recursive: true);
+      await store.resolve("attachments/a.png").writeAsBytes([137, 80, 78, 71]);
       final db = AppDatabase.memory();
       addTearDown(db.close);
       final config = await db.config();
       final message = ChatMessage(
-        id: 'm1',
-        sessionId: 's',
-        role: 'user',
-        content: '解释图片',
-        status: 'complete',
+        id: "m1",
+        sessionId: "s",
+        role: "user",
+        content: "解释图片",
+        status: "complete",
         createdAt: DateTime(2026),
       );
       const a = Attachment(
-        id: 'a',
-        sessionId: 's',
-        messageId: 'm1',
-        relativePath: 'attachments/a.png',
-        mime: 'image/png',
+        id: "a",
+        sessionId: "s",
+        messageId: "m1",
+        relativePath: "attachments/a.png",
+        mime: "image/png",
         byteLength: 4,
       );
       final body = await prepareAiRequest(
@@ -112,49 +112,49 @@ data: [DONE]
         [message],
         [a],
         store,
-        'guided',
+        "guided",
       );
       final messages = body.messages;
       expect(
         messages.last.images.single.dataUrl,
-        'data:image/png;base64,iVBORw==',
+        "data:image/png;base64,iVBORw==",
       );
-      expect(encodeCompletion(config, body)['thinking'], {'type': 'disabled'});
+      expect(encodeCompletion(config, body)["thinking"], {"type": "disabled"});
       await expectLater(
         prepareAiRequest(
-          config.copyWith(model: 'deepseek-v4-pro', vision: false),
+          config.copyWith(model: "deepseek-v4-pro", vision: false),
           [message],
           [a],
           store,
-          'guided',
+          "guided",
         ),
         throwsA(isA<AiFailure>()),
       );
       expect(
         () =>
-            validateConfig(config.copyWith(baseUrl: 'https://key@example.com')),
+            validateConfig(config.copyWith(baseUrl: "https://key@example.com")),
         throwsFormatException,
       );
     },
   );
   test(
-    'Real HTTP transport retries 429 once, sends bearer key, parses SSE',
+    "Real HTTP transport retries 429 once, sends bearer key, parses SSE",
     () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       addTearDown(() => server.close(force: true));
       var requests = 0;
       final served = server.listen((request) async {
         requests++;
-        expect(request.uri.path, '/v1/chat/completions');
-        expect(request.headers.value('authorization'), 'Bearer test-only');
+        expect(request.uri.path, "/v1/chat/completions");
+        expect(request.headers.value("authorization"), "Bearer test-only");
         final data = jsonDecode(await utf8.decoder.bind(request).join());
-        expect(data['stream'], true);
+        expect(data["stream"], true);
         if (requests == 1) {
           request.response.statusCode = 429;
         } else {
           request.response.headers.contentType = ContentType(
-            'text',
-            'event-stream',
+            "text",
+            "event-stream",
           );
           request.response.write(
             'data: {"choices":[{"delta":{"content":"OK"}}]}\n\n$end',
@@ -166,18 +166,18 @@ data: [DONE]
       final db = AppDatabase.memory();
       addTearDown(db.close);
       final config = (await db.config()).copyWith(
-        baseUrl: 'http://127.0.0.1:${server.port}/v1',
-        kind: 'compatible',
+        baseUrl: "http://127.0.0.1:${server.port}/v1",
+        kind: "compatible",
       );
       final result = await OpenAiChatProvider()
-          .start(config, apiKeyOverride: 'test-only')
-          .complete(AiRequest(instructions: '', messages: []), CancelToken())
+          .start(config, apiKeyOverride: "test-only")
+          .complete(AiRequest(instructions: "", messages: []), CancelToken())
           .toList();
-      expect(result.map((e) => e.text).join(), 'OK');
+      expect(result.map((e) => e.text).join(), "OK");
       expect(requests, 2);
     },
   );
-  test('Cancellation prevents a Mock response from continuing', () async {
+  test("Cancellation prevents a Mock response from continuing", () async {
     final db = AppDatabase.memory();
     addTearDown(db.close);
     final token = CancelToken();
@@ -186,102 +186,102 @@ data: [DONE]
       await for (final c
           in MockChatProvider()
               .start(await db.config())
-              .complete(AiRequest(instructions: '', messages: []), token)) {
+              .complete(AiRequest(instructions: "", messages: []), token)) {
         values.add(c);
-        token.cancel('user');
+        token.cancel("user");
       }
     }(), throwsA(isA<DioException>()));
     expect(values.length, 1);
   });
-  test('SSE captures reasoning_content deltas alongside text', () async {
+  test("SSE captures reasoning_content deltas alongside text", () async {
     final chunks = await decodeCompletion(
       bytes(
         'data: {"choices":[{"delta":{"reasoning_content":"先想","content":"答"}}]}\n\n'
         'data: {"choices":[{"delta":{"reasoning_content":"一步"}}]}\n\n'
-        '$end',
+        "$end",
       ),
     ).toList();
-    expect(chunks.map((c) => c.reasoning).join(), '先想一步');
-    expect(chunks.map((c) => c.text).join(), '答');
+    expect(chunks.map((c) => c.reasoning).join(), "先想一步");
+    expect(chunks.map((c) => c.text).join(), "答");
   });
-  test('encodeCompletion sends reasoning_content only to DeepSeek', () async {
+  test("encodeCompletion sends reasoning_content only to DeepSeek", () async {
     final db = AppDatabase.memory();
     addTearDown(db.close);
     final config = await db.config();
     final request = AiRequest(
-      instructions: '',
+      instructions: "",
       messages: [
-        AiMessage.assistant('已想好', reasoningContent: '思考过程'),
-        AiMessage.assistant('无思考'),
-        AiMessage.assistant('空思考', reasoningContent: ''),
+        AiMessage.assistant("已想好", reasoningContent: "思考过程"),
+        AiMessage.assistant("无思考"),
+        AiMessage.assistant("空思考", reasoningContent: ""),
       ],
     );
-    final deepseek = encodeCompletion(config, request)['messages'] as List;
-    expect(deepseek[0]['reasoning_content'], '思考过程');
-    expect(deepseek[1].containsKey('reasoning_content'), false);
-    expect(deepseek[2].containsKey('reasoning_content'), false);
+    final deepseek = encodeCompletion(config, request)["messages"] as List;
+    expect(deepseek[0]["reasoning_content"], "思考过程");
+    expect(deepseek[1].containsKey("reasoning_content"), false);
+    expect(deepseek[2].containsKey("reasoning_content"), false);
     final chat =
         encodeCompletion(
               config.copyWith(
-                kind: 'chatgpt',
-                baseUrl: 'https://api.openai.com/v1',
+                kind: "chatgpt",
+                baseUrl: "https://api.openai.com/v1",
               ),
               request,
-            )['messages']
+            )["messages"]
             as List;
-    expect(chat[0].containsKey('reasoning_content'), false);
+    expect(chat[0].containsKey("reasoning_content"), false);
     final compatible =
         encodeCompletion(
               config.copyWith(
-                kind: 'compatible',
-                baseUrl: 'https://example.com/v1',
+                kind: "compatible",
+                baseUrl: "https://example.com/v1",
               ),
               request,
-            )['messages']
+            )["messages"]
             as List;
-    expect(compatible[0].containsKey('reasoning_content'), false);
+    expect(compatible[0].containsKey("reasoning_content"), false);
     final titleRequest = request.copyWith(enableConversationTitle: true);
     final titleBody = encodeCompletion(
-      config.copyWith(kind: 'deepseek', baseUrl: 'https://api.deepseek.com'),
+      config.copyWith(kind: "deepseek", baseUrl: "https://api.deepseek.com"),
       titleRequest,
     );
-    expect(titleBody['title'], {'enabled': true});
+    expect(titleBody["title"], {"enabled": true});
     final nonDeepSeekTitle = encodeCompletion(
-      config.copyWith(kind: 'chatgpt', baseUrl: 'https://api.openai.com/v1'),
+      config.copyWith(kind: "chatgpt", baseUrl: "https://api.openai.com/v1"),
       titleRequest,
     );
-    expect(nonDeepSeekTitle.containsKey('title'), false);
+    expect(nonDeepSeekTitle.containsKey("title"), false);
   });
   test(
-    'encodeCompletion omits max_tokens without a limit, sends it when set',
+    "encodeCompletion omits max_tokens without a limit, sends it when set",
     () async {
       final db = AppDatabase.memory();
       addTearDown(db.close);
       final config = await db.config();
       final unlimited = encodeCompletion(
         config,
-        AiRequest(instructions: '', messages: []),
+        AiRequest(instructions: "", messages: []),
       );
-      expect(unlimited.containsKey('max_tokens'), false);
+      expect(unlimited.containsKey("max_tokens"), false);
       final limited = encodeCompletion(
         config,
-        AiRequest(instructions: '', messages: [], maxOutputTokens: 16),
+        AiRequest(instructions: "", messages: [], maxOutputTokens: 16),
       );
-      expect(limited['max_tokens'], 16);
+      expect(limited["max_tokens"], 16);
     },
   );
-  test('AiMessage.withText preserves reasoningContent', () {
-    const assistant = AiMessage.assistant('旧', reasoningContent: '想');
-    final updated = assistant.withText('新');
-    expect(updated.text, '新');
-    expect(updated.reasoningContent, '想');
-    const user = AiMessage.user('问', reasoningContent: 'r');
-    expect(user.withText('问2').reasoningContent, 'r');
+  test("AiMessage.withText preserves reasoningContent", () {
+    const assistant = AiMessage.assistant("旧", reasoningContent: "想");
+    final updated = assistant.withText("新");
+    expect(updated.text, "新");
+    expect(updated.reasoningContent, "想");
+    const user = AiMessage.user("问", reasoningContent: "r");
+    expect(user.withText("问2").reasoningContent, "r");
   });
   test(
-    'Persisted reasoning_content is sent back on the next request',
+    "Persisted reasoning_content is sent back on the next request",
     () async {
-      final root = await Directory.systemTemp.createTemp('tixun-ai-reasoning');
+      final root = await Directory.systemTemp.createTemp("tixun-ai-reasoning");
       addTearDown(() => root.delete(recursive: true));
       final store = AttachmentStore(root);
       final db = AppDatabase.memory();
@@ -291,8 +291,8 @@ data: [DONE]
           .into(db.chatSessions)
           .insert(
             ChatSessionsCompanion.insert(
-              id: 's',
-              title: '会话',
+              id: "s",
+              title: "会话",
               createdAt: DateTime(2026),
               updatedAt: DateTime(2026),
             ),
@@ -301,10 +301,10 @@ data: [DONE]
           .into(db.chatMessages)
           .insert(
             ChatMessagesCompanion.insert(
-              id: 'u1',
-              sessionId: 's',
-              role: 'user',
-              content: '出题',
+              id: "u1",
+              sessionId: "s",
+              role: "user",
+              content: "出题",
               createdAt: DateTime(2026),
             ),
           );
@@ -312,128 +312,126 @@ data: [DONE]
           .into(db.chatMessages)
           .insert(
             ChatMessagesCompanion.insert(
-              id: 'a1',
-              sessionId: 's',
-              role: 'assistant',
-              content: '已出题',
-              reasoningContent: const Value('先想再答'),
+              id: "a1",
+              sessionId: "s",
+              role: "assistant",
+              content: "已出题",
+              reasoningContent: const Value("先想再答"),
               createdAt: DateTime(2026),
             ),
           );
       final history = await db.select(db.chatMessages).get();
-      expect(history.firstWhere((m) => m.id == 'a1').reasoningContent, '先想再答');
+      expect(history.firstWhere((m) => m.id == "a1").reasoningContent, "先想再答");
       final request = await prepareAiRequest(
         config,
         history,
         [],
         store,
-        'guided',
+        "guided",
       );
-      final messages = encodeCompletion(config, request)['messages'] as List;
+      final messages = encodeCompletion(config, request)["messages"] as List;
       final assistant =
-          messages.firstWhere((m) => m['role'] == 'assistant') as Map;
-      expect(assistant['reasoning_content'], '先想再答');
+          messages.firstWhere((m) => m["role"] == "assistant") as Map;
+      expect(assistant["reasoning_content"], "先想再答");
     },
   );
   ChatMessage historyMessage(
     String id,
     String content, {
-    String role = 'user',
+    String role = "user",
   }) => ChatMessage(
     id: id,
-    sessionId: 's',
+    sessionId: "s",
     role: role,
     content: content,
-    status: 'complete',
+    status: "complete",
     createdAt: DateTime(2026),
   );
-  test('Context selection keeps whole turns within a token budget', () {
+  test("Context selection keeps whole turns within a token budget", () {
     // 'a' * 400 and '中' * 100 each estimate to 125 tokens.
     final selected = selectRecentWithinBudget([
-      historyMessage('u1', 'a' * 400),
-      historyMessage('a1', '中' * 100, role: 'assistant'),
-      historyMessage('u2', 'a' * 400),
-      historyMessage('a2', '中' * 100, role: 'assistant'),
-      historyMessage('u3', 'a' * 400),
+      historyMessage("u1", "a" * 400),
+      historyMessage("a1", "中" * 100, role: "assistant"),
+      historyMessage("u2", "a" * 400),
+      historyMessage("a2", "中" * 100, role: "assistant"),
+      historyMessage("u3", "a" * 400),
     ], tokenBudget: 500);
-    expect(selected.map((m) => m.id), ['u2', 'a2', 'u3']);
+    expect(selected.map((m) => m.id), ["u2", "a2", "u3"]);
   });
-  test('The newest user message is kept whole, never truncated', () {
-    // The 30-message / 32000-char caps are gone: the current request is
-    // always sent in full, the token budget only trims older history.
+  test("The newest user message is kept whole, never truncated", () {
+    // The context budget may trim older history, while the current request remains intact.
     final selected = selectRecentWithinBudget([
-      historyMessage('u1', '第一问'),
-      historyMessage('u2', 'x' * 40000),
+      historyMessage("u1", "第一问"),
+      historyMessage("u2", "x" * 40000),
     ], tokenBudget: 300);
-    expect(selected.map((m) => m.id), ['u2']);
-    expect(selected.single.content, 'x' * 40000);
+    expect(selected.map((m) => m.id), ["u2"]);
+    expect(selected.single.content, "x" * 40000);
   });
   test(
-    'Missing and oversized images are skipped with a note, not an abort',
+    "Missing and oversized images are skipped with a note, not an abort",
     () async {
-      final root = await Directory.systemTemp.createTemp('tixun-ai-images');
+      final root = await Directory.systemTemp.createTemp("tixun-ai-images");
       addTearDown(() => root.delete(recursive: true));
       final store = AttachmentStore(root);
       final db = AppDatabase.memory();
       addTearDown(db.close);
       final config = await db.config();
       const missing = Attachment(
-        id: 'gone',
-        sessionId: 's',
-        messageId: 'u1',
-        relativePath: 'attachments/gone.png',
-        mime: 'image/png',
+        id: "gone",
+        sessionId: "s",
+        messageId: "u1",
+        relativePath: "attachments/gone.png",
+        mime: "image/png",
         byteLength: 4,
       );
       final request = await prepareAiRequest(
         config,
         [
-          historyMessage('u1', '看图'),
-          historyMessage('a1', 'y' * 40000, role: 'assistant'),
-          historyMessage('u2', '继续'),
+          historyMessage("u1", "看图"),
+          historyMessage("a1", "y" * 40000, role: "assistant"),
+          historyMessage("u2", "继续"),
         ],
         [missing],
         store,
-        'guided',
+        "guided",
         selectedHistory: [
-          historyMessage('u1', '看图'),
-          historyMessage('u2', '继续'),
+          historyMessage("u1", "看图"),
+          historyMessage("u2", "继续"),
         ],
         droppedUncovered: 1,
       );
       expect(request.messages.map((m) => m.text), [
-        '看图',
-        contains('略过了 1 条历史消息'),
+        "看图",
+        contains("略过了 1 条历史消息"),
       ]);
       expect(request.messages.first.images, isEmpty);
-      expect(request.messages.last.text, contains('跳过了 1 张图片'));
-      // A single image over 8 MB is skipped the same way.
-      await store.resolve('attachments/big.png').parent.create(recursive: true);
+      expect(request.messages.last.text, contains("跳过了 1 张图片"));
+      await store.resolve("attachments/big.png").parent.create(recursive: true);
       await store
-          .resolve('attachments/big.png')
+          .resolve("attachments/big.png")
           .writeAsBytes(List.filled(8 * 1024 * 1024 + 1, 0));
       final big = await prepareAiRequest(
         config,
-        [historyMessage('u1', '看大图')],
+        [historyMessage("u1", "看大图")],
         [
           const Attachment(
-            id: 'big',
-            sessionId: 's',
-            messageId: 'u1',
-            relativePath: 'attachments/big.png',
-            mime: 'image/png',
+            id: "big",
+            sessionId: "s",
+            messageId: "u1",
+            relativePath: "attachments/big.png",
+            mime: "image/png",
             byteLength: 8 * 1024 * 1024 + 1,
           ),
         ],
         store,
-        'guided',
+        "guided",
       );
       expect(big.messages.single.images, isEmpty);
-      expect(big.messages.single.text, contains('跳过了 1 张图片'));
+      expect(big.messages.single.text, contains("跳过了 1 张图片"));
     },
   );
-  test('Image payloads stop at the 32 MB total cap', () async {
-    final root = await Directory.systemTemp.createTemp('tixun-ai-cap');
+  test("Image payloads stop at the 32 MB total cap", () async {
+    final root = await Directory.systemTemp.createTemp("tixun-ai-cap");
     addTearDown(() => root.delete(recursive: true));
     final store = AttachmentStore(root);
     final db = AppDatabase.memory();
@@ -441,34 +439,34 @@ data: [DONE]
     final config = await db.config();
     final attachments = <Attachment>[];
     for (var i = 0; i < 5; i++) {
-      await store.resolve('attachments/$i.png').parent.create(recursive: true);
+      await store.resolve("attachments/$i.png").parent.create(recursive: true);
       await store
-          .resolve('attachments/$i.png')
+          .resolve("attachments/$i.png")
           .writeAsBytes(List.filled(7 * 1024 * 1024, 0));
       attachments.add(
         Attachment(
-          id: 'img$i',
-          sessionId: 's',
-          messageId: 'u${i + 1}',
-          relativePath: 'attachments/$i.png',
-          mime: 'image/png',
+          id: "img$i",
+          sessionId: "s",
+          messageId: "u${i + 1}",
+          relativePath: "attachments/$i.png",
+          mime: "image/png",
           byteLength: 7 * 1024 * 1024,
         ),
       );
     }
     final request = await prepareAiRequest(
       config,
-      [for (var i = 0; i < 5; i++) historyMessage('u${i + 1}', '图${i + 1}')],
+      [for (var i = 0; i < 5; i++) historyMessage("u${i + 1}", "图${i + 1}")],
       attachments,
       store,
-      'guided',
+      "guided",
     );
     // The first four (28 MB) fit; the fifth would push the total past 32 MB.
     expect(request.messages.take(4).map((m) => m.images.length), [1, 1, 1, 1]);
     expect(request.messages.last.images, isEmpty);
-    expect(request.messages.last.text, contains('跳过了 1 张图片'));
+    expect(request.messages.last.text, contains("跳过了 1 张图片"));
   });
-  test('SSE server errors keep their code and message', () async {
+  test("SSE server errors keep their code and message", () async {
     await expectLater(
       decodeCompletion(
         bytes(
@@ -477,27 +475,24 @@ data: [DONE]
       ).toList(),
       throwsA(
         isA<AiFailure>()
-            .having((e) => e.message, 'message', contains('invalid_request'))
+            .having((e) => e.message, "message", contains("invalid_request"))
             .having(
               (e) => e.message,
-              'message',
-              contains('reasoning_content is required'),
+              "message",
+              contains("reasoning_content is required"),
             ),
       ),
     );
     await expectLater(
       decodeCompletion(bytes('data: {"error":"boom"}\n\n')).toList(),
       throwsA(
-        isA<AiFailure>().having((e) => e.message, 'message', contains('boom')),
+        isA<AiFailure>().having((e) => e.message, "message", contains("boom")),
       ),
     );
   });
   test(
-    'Content plus [DONE] without finish_reason still fails explicitly',
+    "Content plus [DONE] without finish_reason still fails explicitly",
     () async {
-      // Probe: no compatible endpoint was observed sending this shape, so the
-      // fail-closed behavior stays; only the duplicate-completion half of
-      // P2-1 is fixed (see architecture_test.dart).
       await expectLater(
         decodeCompletion(
           bytes(
@@ -508,23 +503,19 @@ data: [DONE]
       );
     },
   );
-  test('A repeated finish_reason in a trailing usage chunk yields a second completed chunk', () async {
+  test("A repeated finish_reason in a trailing usage chunk yields a second completed chunk", () async {
     final chunks = await decodeCompletion(
       bytes(
         'data: {"choices":[{"delta":{"content":"答"}}]}\n\n'
         'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n'
         'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"total_tokens":7}}\n\n'
-        'data: [DONE]\n\n',
+        "data: [DONE]\n\n",
       ),
     ).toList();
     expect(chunks.where((c) => c.completed).length, 2);
-    expect(chunks.map((c) => c.text).join(), '答');
+    expect(chunks.map((c) => c.text).join(), "答");
   });
-  test('decodeCompletion only reads streaming reasoning deltas, never a message payload', () async {
-    // Probe for P1-14: the client only ever parses SSE delta frames, so a
-    // non-streaming message.reasoning_content field is unreachable here.
-    // The remaining gap (an endpoint that streams no reasoning delta at all)
-    // cannot be confirmed without a real DeepSeek key.
+  test("decodeCompletion only reads streaming reasoning deltas, never a message payload", () async {
     final chunks = await decodeCompletion(
       bytes(
         'data: {"choices":[{"message":{"content":"答","reasoning_content":"非流式推理"}}]}\n\n$end',
@@ -533,16 +524,16 @@ data: [DONE]
     expect(chunks.map((c) => c.reasoning).join(), isEmpty);
     expect(chunks.any((c) => c.completed), true);
   });
-  test('prepareAiRequest reports bad config as AiFailure', () async {
-    final root = await Directory.systemTemp.createTemp('tixun-ai-config');
+  test("prepareAiRequest reports bad config as AiFailure", () async {
+    final root = await Directory.systemTemp.createTemp("tixun-ai-config");
     addTearDown(() => root.delete(recursive: true));
     final db = AppDatabase.memory();
     addTearDown(db.close);
     final config = (await db.config()).copyWith(
-      baseUrl: 'https://key@example.com',
+      baseUrl: "https://key@example.com",
     );
     await expectLater(
-      prepareAiRequest(config, [], [], AttachmentStore(root), 'guided'),
+      prepareAiRequest(config, [], [], AttachmentStore(root), "guided"),
       throwsA(isA<AiFailure>()),
     );
   });

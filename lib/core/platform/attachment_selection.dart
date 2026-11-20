@@ -1,5 +1,5 @@
-import '../database/database.dart';
-import 'attachment_store.dart';
+import "../database/database.dart";
+import "attachment_store.dart";
 
 /// Input is in creation order. Keep the newest surviving edit per original.
 List<StudyAttachment> preferredStudyImages(List<StudyAttachment> images) {

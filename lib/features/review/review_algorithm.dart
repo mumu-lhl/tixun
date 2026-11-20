@@ -1,6 +1,6 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'dart:math' as math;
+import "dart:math" as math;
 
 class ReviewState {
   const ReviewState({
@@ -44,7 +44,7 @@ ReviewDecision nextReview(
       previous.lapses < 0) {
     throw const AppFormatException(
       AppErrorCode.errorInvalidReviewStatus,
-      '复习状态无效。',
+      "复习状态无效。",
     );
   }
   if (!correct) {
@@ -58,7 +58,7 @@ ReviewDecision nextReview(
       now.add(const Duration(minutes: 10)),
       1,
       false,
-      '本次需要订正，10 分钟后再尝试。',
+      "本次需要订正，10 分钟后再尝试。",
     );
   }
   if (hintUsed || !answerChecked) {
@@ -72,7 +72,7 @@ ReviewDecision nextReview(
       now.add(const Duration(days: 1)),
       3,
       false,
-      hintUsed ? '使用了提示，明天再独立检测。' : '参考答案尚未核对，明天再检测；不增加独立掌握次数。',
+      hintUsed ? "使用了提示，明天再独立检测。" : "参考答案尚未核对，明天再检测；不增加独立掌握次数。",
     );
   }
   final n = previous.repetitions + 1;
@@ -94,6 +94,6 @@ ReviewDecision nextReview(
     now.add(Duration(days: interval)),
     4,
     true,
-    '独立做对，$interval 天后再次检测。',
+    "独立做对，$interval 天后再次检测。",
   );
 }

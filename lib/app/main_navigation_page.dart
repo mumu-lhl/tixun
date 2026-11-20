@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
 /// A main destination keeps a stable Page type even when entered without a
 /// bottom-bar gesture (deep links, shortcuts, or returning from a subpage).

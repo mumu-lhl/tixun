@@ -1,11 +1,11 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:tixun/core/ui/cached_stream_builder.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:material_ui/material_ui.dart";
+import "package:tixun/core/ui/cached_stream_builder.dart";
 
 void main() {
-  testWidgets('reentry shows cached data then reflects updates and deletion', (
+  testWidgets("reentry shows cached data then reflects updates and deletion", (
     tester,
   ) async {
     final owner = Object();
@@ -20,27 +20,27 @@ void main() {
     Widget screen(Stream<String?> stream) => MaterialApp(
       home: CachedStreamBuilder<String?>(
         owner: owner,
-        cacheKey: 'record',
+        cacheKey: "record",
         stream: stream,
-        builder: (_, snapshot) => Text(snapshot.data ?? 'empty'),
+        builder: (_, snapshot) => Text(snapshot.data ?? "empty"),
       ),
     );
     await tester.pumpWidget(screen(first.stream));
-    first.add('old');
+    first.add("old");
     await tester.pump();
-    expect(find.text('old'), findsOneWidget);
+    expect(find.text("old"), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(screen(second.stream));
-    expect(find.text('old'), findsOneWidget);
-    second.add('new');
+    expect(find.text("old"), findsOneWidget);
+    second.add("new");
     await tester.pump();
-    expect(find.text('new'), findsOneWidget);
+    expect(find.text("new"), findsOneWidget);
     second.add(null);
     await tester.pump();
     await tester.pump();
-    expect(find.text('empty'), findsOneWidget);
+    expect(find.text("empty"), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(screen(third.stream));
-    expect(find.text('empty'), findsOneWidget);
+    expect(find.text("empty"), findsOneWidget);
   });
 }

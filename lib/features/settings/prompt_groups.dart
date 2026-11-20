@@ -1,11 +1,11 @@
-import 'package:go_router/go_router.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:go_router/go_router.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../core/ai/prompt_settings.dart';
-import '../../core/l10n/app_strings.dart';
-import '../language_learning/language_store.dart';
-import '../language_learning/quick_lookup/quick_action_editor.dart';
-import 'prompt_localization.dart';
+import "../../core/ai/prompt_settings.dart";
+import "../../core/l10n/app_strings.dart";
+import "../language_learning/language_store.dart";
+import "../language_learning/quick_lookup/quick_action_editor.dart";
+import "prompt_localization.dart";
 
 class PromptGroups extends StatelessWidget {
   const PromptGroups({
@@ -40,7 +40,7 @@ class PromptGroups extends StatelessWidget {
                 matches(context.l10n.quickLookup) ||
                 matches(context.l10n.languagePromptQuickActionsDesc)))
           ListTile(
-            key: const Key('prompt-quick-actions'),
+            key: const Key("prompt-quick-actions"),
             leading: const Icon(Icons.manage_search_outlined),
             title: Text(context.l10n.quickActions),
             subtitle: Text(context.l10n.languagePromptQuickActionsDesc),
@@ -63,7 +63,7 @@ class PromptGroups extends StatelessWidget {
         Card(
           child: keyword.isEmpty
               ? ExpansionTile(
-                  key: PageStorageKey('prompt-group-${group.name}'),
+                  key: PageStorageKey("prompt-group-${group.name}"),
                   shape: const Border(),
                   collapsedShape: const Border(),
                   initiallyExpanded: group == PromptGroup.teaching,
@@ -90,13 +90,13 @@ class PromptGroups extends StatelessWidget {
   }
 
   Widget _prompt(BuildContext context, PromptDefinition prompt) => ListTile(
-    key: Key('prompt-${prompt.id}'),
+    key: Key("prompt-${prompt.id}"),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     title: Text(promptTitle(context, prompt)),
     subtitle: Text(
-      '${settings.overrides.containsKey(prompt.id) ? context.l10n.customized : context.l10n.defaultLabel} · ${promptDescription(context, prompt)}',
+      "${settings.overrides.containsKey(prompt.id) ? context.l10n.customized : context.l10n.defaultLabel} · ${promptDescription(context, prompt)}",
     ),
     trailing: const Icon(Icons.chevron_right),
-    onTap: () => context.push('/settings/prompts/${prompt.id}'),
+    onTap: () => context.push("/settings/prompts/${prompt.id}"),
   );
 }

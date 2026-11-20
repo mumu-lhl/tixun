@@ -1,10 +1,10 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_riverpod/legacy.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import 'visual_store.dart';
-import '../library/library_providers.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "visual_store.dart";
+import "../library/library_providers.dart";
 
 final visualStoreProvider = ChangeNotifierProvider<VisualStore>(
   (ref) => ref.read(appControllerProvider).visual,

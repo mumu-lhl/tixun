@@ -1,4 +1,4 @@
-/// Geometric constraints declared on a scene (Phase 4, plan §4.5).
+/// Geometric constraints for literal scene coordinates.
 ///
 /// A constraint states a geometric fact the construction must satisfy:
 /// a distance between two points, two segments parallel or
@@ -15,8 +15,8 @@
 /// instead of failing.
 library;
 
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:tixun/core/visual/model/visual_elements.dart';
+import "package:tixun/core/l10n/app_error.dart";
+import "package:tixun/core/visual/model/visual_elements.dart";
 
 /// Maximum number of constraints per scene (resource bound, same order
 /// as the other DSL limits).
@@ -37,7 +37,7 @@ enum VisualConstraintType {
 
   /// The DSL name: `onCircle` is written as `on_circle` in JSON.
   String get dslName =>
-      this == VisualConstraintType.onCircle ? 'on_circle' : name;
+      this == VisualConstraintType.onCircle ? "on_circle" : name;
 
   static VisualConstraintType? fromDslName(String name) {
     for (final value in VisualConstraintType.values) {
@@ -66,18 +66,18 @@ class VisualConstraint {
 
   factory VisualConstraint.fromJson(Map<String, dynamic> json) {
     checkNoUnknownFields(json, const {
-      'type',
-      'a',
-      'b',
-      'point',
-      'circle',
-      'value',
-    }, '约束');
-    final typeRaw = json['type'];
+      "type",
+      "a",
+      "b",
+      "point",
+      "circle",
+      "value",
+    }, "约束");
+    final typeRaw = json["type"];
     if (typeRaw == null) {
       throw const AppFormatException(
         AppErrorCode.errorMissingParameter,
-        '约束缺少字段：type。',
+        "约束缺少字段：type。",
       );
     }
     final type = typeRaw is String
@@ -86,7 +86,7 @@ class VisualConstraint {
     if (type == null) {
       throw AppFormatException(
         AppErrorCode.errorInvalidParameterType,
-        '未知的约束类型：$typeRaw。',
+        "未知的约束类型：$typeRaw。",
         [typeRaw.toString()],
       );
     }
@@ -96,24 +96,24 @@ class VisualConstraint {
       if (raw is! String || raw.isEmpty) {
         throw AppFormatException(
           AppErrorCode.errorInvalidParameterType,
-          '约束的 $key 必须是非空文字。',
+          "约束的 $key 必须是非空文字。",
           [key],
         );
       }
       return raw;
     }
 
-    final a = idField('a');
-    final b = idField('b');
-    final point = idField('point');
-    final circle = idField('circle');
+    final a = idField("a");
+    final b = idField("b");
+    final point = idField("point");
+    final circle = idField("circle");
     double? value;
-    final rawValue = json['value'];
+    final rawValue = json["value"];
     if (rawValue != null) {
       if (rawValue is! num || !rawValue.toDouble().isFinite) {
         throw const AppFormatException(
           AppErrorCode.errorParameterMustBeNumber,
-          '约束的 value 必须是有限数字。',
+          "约束的 value 必须是有限数字。",
         );
       }
       value = rawValue.toDouble();
@@ -123,14 +123,14 @@ class VisualConstraint {
         if (a == null || b == null || value == null) {
           throw const AppFormatException(
             AppErrorCode.errorMissingParameter,
-            'distance 约束需要字段：a、b、value。',
+            "distance 约束需要字段：a、b、value。",
           );
         }
         if (value < 0) {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
-            'distance 约束的 value 不能小于 0。',
-            ['value'],
+            "distance 约束的 value 不能小于 0。",
+            ["value"],
           );
         }
       case VisualConstraintType.parallel:
@@ -139,35 +139,35 @@ class VisualConstraint {
         if (a == null || b == null) {
           throw const AppFormatException(
             AppErrorCode.errorMissingParameter,
-            '约束需要字段：a、b。',
+            "约束需要字段：a、b。",
           );
         }
       case VisualConstraintType.onCircle:
         if (point == null || circle == null) {
           throw const AppFormatException(
             AppErrorCode.errorMissingParameter,
-            'on_circle 约束需要字段：point、circle。',
+            "on_circle 约束需要字段：point、circle。",
           );
         }
       case VisualConstraintType.angle:
         if (a == null || b == null || value == null) {
           throw const AppFormatException(
             AppErrorCode.errorMissingParameter,
-            'angle 约束需要字段：a、b、value。',
+            "angle 约束需要字段：a、b、value。",
           );
         }
         if (value < 0 || value > 180) {
           throw const AppFormatException(
             AppErrorCode.errorInvalidParameterType,
-            'angle 约束的 value 必须在 0~180 度之间。',
-            ['value'],
+            "angle 约束的 value 必须在 0~180 度之间。",
+            ["value"],
           );
         }
       case VisualConstraintType.midpoint:
         if (point == null || a == null || b == null) {
           throw const AppFormatException(
             AppErrorCode.errorMissingParameter,
-            'midpoint 约束需要字段：point、a、b。',
+            "midpoint 约束需要字段：point、a、b。",
           );
         }
     }
@@ -176,20 +176,20 @@ class VisualConstraint {
     // it cannot be stored and silently misread later. Mirrors the
     // validator's per-type field check.
     const perTypeFields = {
-      VisualConstraintType.distance: {'a', 'b', 'value'},
-      VisualConstraintType.parallel: {'a', 'b'},
-      VisualConstraintType.perpendicular: {'a', 'b'},
-      VisualConstraintType.intersect: {'a', 'b'},
-      VisualConstraintType.onCircle: {'point', 'circle'},
-      VisualConstraintType.angle: {'a', 'b', 'value'},
-      VisualConstraintType.midpoint: {'point', 'a', 'b'},
+      VisualConstraintType.distance: {"a", "b", "value"},
+      VisualConstraintType.parallel: {"a", "b"},
+      VisualConstraintType.perpendicular: {"a", "b"},
+      VisualConstraintType.intersect: {"a", "b"},
+      VisualConstraintType.onCircle: {"point", "circle"},
+      VisualConstraintType.angle: {"a", "b", "value"},
+      VisualConstraintType.midpoint: {"point", "a", "b"},
     };
     final allowedFields = perTypeFields[type]!;
-    for (final key in ['a', 'b', 'point', 'circle', 'value']) {
+    for (final key in ["a", "b", "point", "circle", "value"]) {
       if (!allowedFields.contains(key) && json[key] != null) {
         throw AppFormatException(
           AppErrorCode.errorInvalidParameterType,
-          '${type.dslName} 约束不需要 $key 字段。',
+          "${type.dslName} 约束不需要 $key 字段。",
           [key],
         );
       }
@@ -205,11 +205,11 @@ class VisualConstraint {
   }
 
   Map<String, dynamic> toJson() => {
-    'type': type.dslName,
-    if (a != null) 'a': a,
-    if (b != null) 'b': b,
-    if (point != null) 'point': point,
-    if (circle != null) 'circle': circle,
-    if (value != null) 'value': value,
+    "type": type.dslName,
+    if (a != null) "a": a,
+    if (b != null) "b": b,
+    if (point != null) "point": point,
+    if (circle != null) "circle": circle,
+    if (value != null) "value": value,
   };
 }

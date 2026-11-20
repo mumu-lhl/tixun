@@ -1,32 +1,38 @@
-import '../../core/ui/app_menu.dart';
+import "dart:async";
 
-import 'dart:io';
+import "../../core/ui/app_menu.dart";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart' hide Column;
-import 'package:material_ui/material_ui.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import "dart:io";
 
-import '../../app/controller.dart';
-import '../../core/ai/ai_options.dart';
-import '../../core/ai/ai_usage_store.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/cached_stream_builder.dart';
-import '../../core/ui/reasoning_labels.dart';
-import '../../core/ui/image_viewer.dart';
-import '../../core/ui/reasoning_panel.dart';
-import 'exam_photo_intake.dart';
-import 'exam_ai.dart';
-import 'exam_calendar.dart';
-import 'exam_detail.dart';
-import 'exam_localization.dart';
-import 'exam_store.dart';
-import 'score_editor.dart';
-import 'exam_image_editor.dart';
-import '../../core/platform/photo_picker.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart" hide Column;
+import "package:material_ui/material_ui.dart";
+import "package:go_router/go_router.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+
+import "../../app/controller.dart";
+import "../../core/ai/ai_options.dart";
+import "../../core/ai/ai_usage_store.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/cached_stream_builder.dart";
+import "../../core/ui/reasoning_labels.dart";
+import "../../core/ui/image_viewer.dart";
+import "../../core/ui/reasoning_panel.dart";
+import "exam_photo_intake.dart";
+import "exam_ai.dart";
+import "exam_calendar.dart";
+import "exam_detail.dart";
+import "exam_localization.dart";
+import "exam_store.dart";
+import "score_editor.dart";
+import "exam_image_editor.dart";
+import "../../core/platform/photo_picker.dart";
+
+part "exam_marks_ai.dart";
+
+part "exam_subject_documents.dart";
 
 class ExamSubjectScreen extends ConsumerWidget {
   const ExamSubjectScreen(this.id, {super.key});
@@ -36,7 +42,7 @@ class ExamSubjectScreen extends ConsumerWidget {
     final c = ref.watch(appControllerProvider);
     return CachedStreamBuilder<ExamSubject?>(
       owner: c.exams,
-      cacheKey: ('subject', id),
+      cacheKey: ("subject", id),
       stream: (c.db.select(
         c.db.examSubjects,
       )..where((t) => t.id.equals(id))).watchSingleOrNull(),
@@ -103,7 +109,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                               await act(context, () async {
                                 await c.exams.deleteSubject(id);
                                 if (context.mounted) {
-                                  context.go('/exams/${subject.eventId}');
+                                  context.go("/exams/${subject.eventId}");
                                 }
                               });
                             }
@@ -127,282 +133,13 @@ class ExamSubjectScreen extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     Text(context.l10n.originalPhotosAreStoredLocally),
-                    CachedStreamBuilder<List<ExamAttachment>>(
-                      owner: c.exams,
-                      cacheKey: ('attachments', id),
-                      stream:
-                          (c.db.select(c.db.examAttachments)
-                                ..where((t) => t.subjectId.equals(id))
-                                ..orderBy([
-                                  (t) => OrderingTerm.asc(t.createdAt),
-                                  (t) => OrderingTerm.asc(t.id),
-                                ]))
-                              .watch(),
-                      builder: (ctx, images) {
-                        if (images.hasError) {
-                          return Text(ctx.l10n.couldNotLoadPhotosPlease);
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            for (final role in examImageRoles.entries)
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          examImageRoleLabel(ctx, role.key),
-                                          style: Theme.of(ctx)
-                                              .textTheme
-                                              .titleMedium,
-                                        ),
-                                      ),
-                                      if (Platform.isAndroid)
-                                        IconButton(
-                                          tooltip: ctx.l10n.takePhoto,
-                                          icon: const Icon(
-                                            Icons.photo_camera_outlined,
-                                          ),
-                                          onPressed: () => act(
-                                            ctx,
-                                            () => _pick(
-                                              ctx,
-                                              c,
-                                              role.key,
-                                              camera: true,
-                                            ),
-                                          ),
-                                        ),
-                                      TextButton.icon(
-                                        icon: const Icon(
-                                          Icons.add_photo_alternate_outlined,
-                                        ),
-                                        label: Text(ctx.l10n.addPhotos),
-                                        onPressed: () => act(
-                                          ctx,
-                                          () => _pick(ctx, c, role.key),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      for (final image
-                                          in (images.data ?? <ExamAttachment>[])
-                                              .where((i) => i.role == role.key))
-                                        SizedBox(
-                                          width: 140,
-                                          height: 110,
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                            child: Stack(
-                                              fit: StackFit.expand,
-                                              children: [
-                                                InkWell(
-                                                  key: Key(
-                                                    'exam-image-preview-${image.id}',
-                                                  ),
-                                                  onTap: () {
-                                                    final roleImages =
-                                                        (images.data ??
-                                                                <
-                                                                  ExamAttachment
-                                                                >[])
-                                                            .where(
-                                                              (i) =>
-                                                                  i.role ==
-                                                                  role.key,
-                                                            )
-                                                            .toList();
-                                                    showImageViewer(
-                                                      ctx,
-                                                      images: [
-                                                        for (final item
-                                                            in roleImages)
-                                                          ImageViewerItem(
-                                                            file: c.files.resolve(
-                                                              item.relativePath,
-                                                            ),
-                                                            heroTag:
-                                                                'exam-image-${item.id}',
-                                                            cacheWidth: 2000,
-                                                            errorText: ctx
-                                                                .l10n
-                                                                .couldNotReadImageThe,
-                                                          ),
-                                                      ],
-                                                      initialIndex: roleImages
-                                                          .indexWhere(
-                                                            (i) =>
-                                                                i.id ==
-                                                                image.id,
-                                                          ),
-                                                      title: examImageRoleLabel(
-                                                        ctx,
-                                                        role.key,
-                                                      ),
-                                                    );
-                                                  },
-                                                  child: Hero(
-                                                    tag:
-                                                        'exam-image-${image.id}',
-                                                    child: Image.file(
-                                                      c.files.resolve(
-                                                        image.relativePath,
-                                                      ),
-                                                      width: 140,
-                                                      height: 110,
-                                                      fit: BoxFit.cover,
-                                                      cacheWidth: 400,
-                                                      errorBuilder: (_, _, _) =>
-                                                          SizedBox(
-                                                            height: 110,
-                                                            child: Center(
-                                                              child: Text(
-                                                                ctx
-                                                                    .l10n
-                                                                    .couldNotReadImageThe,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  top: 4,
-                                                  right: 4,
-                                                  child: Material(
-                                                    color: Theme.of(ctx)
-                                                        .colorScheme
-                                                        .surface
-                                                        .withValues(alpha: .92),
-                                                    shape: const CircleBorder(),
-                                                    child: PopupMenuButton<String>(
-                                                      key: Key(
-                                                        'exam-image-menu-${image.id}',
-                                                      ),
-                                                      tooltip:
-                                                          ctx.l10n.imageActions,
-                                                      popUpAnimationStyle:
-                                                          menuAnimation(ctx),
-                                                      position:
-                                                          PopupMenuPosition
-                                                              .under,
-                                                      icon: const Icon(
-                                                        Icons.more_vert,
-                                                        size: 20,
-                                                      ),
-                                                      onSelected: (action) =>
-                                                          _imageAction(
-                                                            ctx,
-                                                            c,
-                                                            image,
-                                                            action,
-                                                          ),
-                                                      itemBuilder: (_) => [
-                                                        PopupMenuItem(
-                                                          value: 'edit',
-                                                          child: Text(
-                                                            ctx
-                                                                .l10n
-                                                                .cropRotateResize,
-                                                          ),
-                                                        ),
-                                                        if (image
-                                                                .originalPath !=
-                                                            null)
-                                                          PopupMenuItem(
-                                                            value: 'original',
-                                                            child: Text(
-                                                              ctx
-                                                                  .l10n
-                                                                  .viewPreservedOriginal,
-                                                            ),
-                                                          ),
-                                                        const PopupMenuDivider(),
-                                                        PopupMenuItem(
-                                                          value: 'delete',
-                                                          child: Text(
-                                                            ctx
-                                                                .l10n
-                                                                .deleteImage,
-                                                            style: TextStyle(
-                                                              color: Theme.of(ctx)
-                                                                  .colorScheme
-                                                                  .error,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            const Divider(height: 32),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children: [
-                                FilledButton.icon(
-                                  key: const Key('exam-edit-scores'),
-                                  onPressed: () =>
-                                      Navigator.of(
-                                        ctx,
-                                        rootNavigator: true,
-                                      ).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) =>
-                                              ScoreEditor(subject: subject),
-                                        ),
-                                      ),
-                                  icon: const Icon(Icons.table_rows_outlined),
-                                  label: Text(ctx.l10n.editQuestionMarks),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: (images.data ?? []).isEmpty
-                                      ? null
-                                      : () =>
-                                            Navigator.of(
-                                              ctx,
-                                              rootNavigator: true,
-                                            ).push(
-                                              MaterialPageRoute<void>(
-                                                builder: (_) => ExamAiScreen(
-                                                  subject: subject,
-                                                  images: images.data!,
-                                                ),
-                                              ),
-                                            ),
-                                  icon: const Icon(Icons.auto_awesome_outlined),
-                                  label: Text(
-                                    ctx.l10n.extractQuestionMarksWithAI,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                    _documents(c, subject),
                     if (subject.aiReasoning.isNotEmpty)
                       ReasoningPanel(text: subject.aiReasoning),
                     const SizedBox(height: 16),
                     CachedStreamBuilder<List<ExamScoreRow>>(
                       owner: c.exams,
-                      cacheKey: ('scores', id),
+                      cacheKey: ("scores", id),
                       stream:
                           (c.db.select(c.db.examScoreRows)
                                 ..where((t) => t.subjectId.equals(id))
@@ -462,7 +199,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                                 trailing: Text(
                                   parents.contains(row.id)
                                       ? ctx.l10n.subquestionTotal
-                                      : '${points(row.earned)} / ${points(row.maximum)}',
+                                      : "${points(row.earned)} / ${points(row.maximum)}",
                                 ),
                               ),
                           ],
@@ -487,9 +224,9 @@ class ExamSubjectScreen extends ConsumerWidget {
   ) async {
     if (!context.mounted) return;
     switch (action) {
-      case 'edit':
+      case "edit":
         await act(context, () => editExamPhoto(context, c, image));
-      case 'original':
+      case "original":
         if (image.originalPath == null) return;
         await showImageViewer(
           context,
@@ -502,7 +239,7 @@ class ExamSubjectScreen extends ConsumerWidget {
           ],
           title: context.l10n.preservedOriginal,
         );
-      case 'delete':
+      case "delete":
         final yes = await showDialog<bool>(
           context: context,
           builder: (d) => AlertDialog(
@@ -545,207 +282,5 @@ class ExamSubjectScreen extends ConsumerWidget {
         await editExamPhoto(context, c, image);
       }
     }
-  }
-}
-
-class ExamAiScreen extends ConsumerStatefulWidget {
-  const ExamAiScreen({required this.subject, required this.images, super.key});
-  final ExamSubject subject;
-  final List<ExamAttachment> images;
-  @override
-  ConsumerState<ExamAiScreen> createState() => _ExamAiState();
-}
-
-class _ExamAiState extends ConsumerState<ExamAiScreen> {
-  final selected = <String>{};
-  final cancel = CancelToken();
-  bool busy = false;
-  String reasoning = '', effort = '';
-  String? error;
-  List<ScoreDraft>? proposal;
-  @override
-  void initState() {
-    super.initState();
-    selected.addAll(
-      widget.images.where((i) => i.role != 'paper').map((i) => i.id),
-    );
-  }
-
-  @override
-  void dispose() {
-    cancel.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = ref.watch(appControllerProvider);
-    final config = AiOptions.forSession(c.config, effort);
-    return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.extractQuestionMarksWithAI)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(context.l10n.onlyTheSelectedPhotosWill),
-          if (c.demo) Text(context.l10n.mockModeDoesNotGrade),
-          if (!AiOptions(config).vision)
-            Text(context.l10n.modelDoesNotSupportImages),
-          AppSelectField<String>(
-            initialValue: effort,
-            decoration: InputDecoration(
-              labelText: context.l10n.reasoningEffort,
-            ),
-            items: [
-              for (final e in {
-                '': context.l10n.useGlobalDefault,
-                'off': reasoningOffLabel(
-                  context,
-                  AiOptions(c.config),
-                  choice: true,
-                ),
-                for (final level in AiOptions(c.config).reasoningEfforts)
-                  level: reasoningEffortLabel(
-                    context,
-                    AiOptions(c.config),
-                    level,
-                  ),
-              }.entries)
-                DropdownMenuItem(
-                  value: e.key,
-                  enabled:
-                      e.key.isEmpty ||
-                      e.key == 'off' ||
-                      c.config.supportsThinking,
-                  child: Text(e.value),
-                ),
-            ],
-            onChanged: busy ? null : (v) => setState(() => effort = v ?? ''),
-          ),
-          for (final image in widget.images)
-            CheckboxListTile(
-              value: selected.contains(image.id),
-              title: Text(examImageRoleLabel(context, image.role)),
-              secondary: Image.file(
-                c.files.resolve(image.relativePath),
-                width: 55,
-                height: 55,
-                fit: BoxFit.cover,
-                cacheWidth: 150,
-                errorBuilder: (_, _, _) =>
-                    const Icon(Icons.broken_image_outlined),
-              ),
-              onChanged: busy
-                  ? null
-                  : (v) => setState(() {
-                      if (v == true) {
-                        selected.add(image.id);
-                      } else {
-                        selected.remove(image.id);
-                      }
-                    }),
-            ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed:
-                busy || c.demo || !AiOptions(config).vision || selected.isEmpty
-                ? null
-                : () async {
-                    setState(() {
-                      busy = true;
-                      error = null;
-                      proposal = null;
-                      reasoning = '';
-                    });
-                    try {
-                      final rows = await generateExamScores(
-                        provider: c.provider,
-                        config: config,
-                        files: c.files,
-                        images: widget.images
-                            .where((i) => selected.contains(i.id))
-                            .toList(),
-                        subject: widget.subject.subject,
-                        prompt: c.prompts.text('exam_scores'),
-                        cancel: cancel,
-                        usageStore: AiUsageStore(c.db),
-                        onReasoning: (value) {
-                          if (mounted && value != reasoning) {
-                            setState(() => reasoning = value);
-                          }
-                        },
-                      );
-                      if (mounted) {
-                        await (c.db.update(
-                          c.db.examSubjects,
-                        )..where((t) => t.id.equals(widget.subject.id))).write(
-                          ExamSubjectsCompanion(
-                            aiReasoning: Value(reasoning),
-                            aiModel: Value(config.model),
-                          ),
-                        );
-                        if (mounted) {
-                          setState(() {
-                            proposal = rows;
-                            busy = false;
-                          });
-                        }
-                      }
-                    } catch (_) {
-                      if (mounted) {
-                        setState(() {
-                          busy = false;
-                          error =
-                              context.l10n.aiExtractionFailedWithoutChanging;
-                        });
-                      }
-                    }
-                  },
-            icon: const Icon(Icons.auto_awesome_outlined),
-            label: Text(context.l10n.uploadSelectedPhotosAndExtract),
-          ),
-          if (busy)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: LinearProgressIndicator(),
-            ),
-          if (busy)
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(context.l10n.stopAndReturn),
-            ),
-          if (reasoning.isNotEmpty)
-            ReasoningPanel(text: reasoning, generating: busy),
-          if (error != null)
-            Text(
-              error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          if (proposal != null) ...[
-            const SizedBox(height: 16),
-            Text(context.l10n.extractionFinishedYourSavedMarks),
-            for (final row in proposal!)
-              ListTile(
-                contentPadding: EdgeInsets.only(
-                  left: row.parentId == null ? 0 : 20,
-                ),
-                title: Text(row.label),
-                subtitle: row.note.isEmpty ? null : Text(row.note),
-                trailing: Text(
-                  '${points(row.earned)} / ${points(row.maximum)}',
-                ),
-              ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pushReplacement(
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      ScoreEditor(subject: widget.subject, proposal: proposal),
-                ),
-              ),
-              child: Text(context.l10n.reviewAndEditMarks),
-            ),
-          ],
-        ],
-      ),
-    );
   }
 }

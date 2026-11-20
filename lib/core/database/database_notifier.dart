@@ -1,6 +1,6 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:flutter/foundation.dart';
+import "package:flutter/foundation.dart";
 
 /// Notify UI consumers in the store's owning zone. Drift scopes transactions
 /// to zones; deferred Riverpod refreshes must never inherit a nested transaction
@@ -14,7 +14,7 @@ class DatabaseNotifier extends ChangeNotifier {
       ? Future.value()
       : (_idle ??= Completer<void>()).future;
   Future<T> runOperation<T>(Future<T> Function() action) async {
-    if (isDisposed) throw StateError('学习数据已关闭，无法继续修改。');
+    if (isDisposed) throw StateError("学习数据已关闭，无法继续修改。");
     _activeOperations++;
     try {
       return await action();

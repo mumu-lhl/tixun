@@ -1,14 +1,9 @@
-// Models for the in-app update feature (slice A: core service).
-//
-// Other slices build against exactly these types; do not rename them.
-
 /// The release channel the user opted into.
 ///
 /// Persisted as the pref string values `'stable'`, `'prerelease'` and
 /// `'nightly'`.
 enum UpdateChannel { stable, prerelease, nightly }
 
-/// One downloadable file attached to a GitHub release.
 class ReleaseAssetInfo {
   final String name;
   final String downloadUrl;
@@ -25,8 +20,8 @@ class ReleaseInfo {
   final List<ReleaseAssetInfo> assets;
 
   // Fixed nightly tags need an immutable build identity for comparisons.
-  String get updateIdentity => tag == 'nightly'
-      ? RegExp(r'nightly-\d{8}-\d{6}').firstMatch(name)?.group(0) ?? ''
+  String get updateIdentity => tag == "nightly"
+      ? RegExp(r"nightly-\d{8}-\d{6}").firstMatch(name)?.group(0) ?? ""
       : tag;
 
   const ReleaseInfo({

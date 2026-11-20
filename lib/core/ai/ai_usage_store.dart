@@ -1,12 +1,12 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../database/database.dart';
-import 'ai_types.dart';
-import 'ai_usage.dart';
-import 'token_breakdown.dart';
+import "../database/database.dart";
+import "ai_types.dart";
+import "ai_usage.dart";
+import "token_breakdown.dart";
 
 const _nanoUsdPerUsd = 1000000000;
 const _tokensPerMillion = 1000000;
@@ -49,7 +49,6 @@ class AiUsageCapture {
   final String? tokenBreakdownJson;
 }
 
-/// Local request-level AI usage history, pricing snapshots, and export.
 enum AiUsageScope { all, chats, language }
 
 class AiUsageStore {
@@ -59,8 +58,8 @@ class AiUsageStore {
   Future<void> record(
     AiUsageCapture capture, {
     AiRequest? request,
-    String response = '',
-    String reasoning = '',
+    String response = "",
+    String reasoning = "",
     List<ToolCall> calls = const [],
   }) async {
     var breakdown = capture.tokenBreakdownJson;
@@ -80,10 +79,10 @@ class AiUsageStore {
       }
     }
     final usage = capture.usage;
-    final isSubscription = capture.providerKind == 'chatgpt';
+    final isSubscription = capture.providerKind == "chatgpt";
     final source =
-        capture.usageSource ?? (usage == null ? 'unavailable' : 'provider');
-    final isMock = source == 'mock';
+        capture.usageSource ?? (usage == null ? "unavailable" : "provider");
+    final isMock = source == "mock";
     final price = isSubscription || isMock
         ? null
         : await (db.select(db.aiModelPrices)..where(
@@ -144,12 +143,12 @@ class AiUsageStore {
             costNanoUsd: Value(cost),
             costBasis: Value(
               isSubscription
-                  ? 'subscription'
+                  ? "subscription"
                   : isMock
-                  ? 'mock'
+                  ? "mock"
                   : price == null || !canEstimateCost
-                  ? 'unknown'
-                  : 'estimate',
+                  ? "unknown"
+                  : "estimate",
             ),
             inputRateNanoUsdPerMillion: Value(inputRate),
             cachedInputRateNanoUsdPerMillion: Value(cachedRate),
@@ -158,7 +157,7 @@ class AiUsageStore {
               price == null
                   ? null
                   : offPeak
-                  ? '${price.source}_off_peak'
+                  ? "${price.source}_off_peak"
                   : price.source,
             ),
             rateUpdatedAt: Value(price?.updatedAt),
@@ -180,7 +179,7 @@ class AiUsageStore {
               if (through != null) {
                 filter = filter & e.occurredAt.isSmallerOrEqualValue(through);
               }
-              final language = e.feature.substr(1, 9).equals('language_');
+              final language = e.feature.substr(1, 9).equals("language_");
               filter =
                   filter &
                   switch (scope) {
@@ -188,12 +187,12 @@ class AiUsageStore {
                     AiUsageScope.chats =>
                       (e.sessionId.isNotNull() |
                               e.feature.isIn(const [
-                                'chat',
-                                'a2ui_create',
-                                'context_compaction',
-                                'visual_create',
-                                'visual_edit',
-                                'quiz_with_visual',
+                                "chat",
+                                "a2ui_create",
+                                "context_compaction",
+                                "visual_create",
+                                "visual_edit",
+                                "quiz_with_visual",
                               ])) &
                           language.not(),
                     AiUsageScope.language => language,
@@ -218,19 +217,17 @@ class AiUsageStore {
   Future<List<AiModelPrice>> prices() => db.select(db.aiModelPrices).get();
 
   Future<void> ensureBuiltinPrices() async {
-    if (await db.preference('ai_usage_default_prices_v1') == '1') return;
-    // Official peak rates in nano-USD per million tokens, checked against
-    // https://api-docs.deepseek.com/quick_start/pricing/ on 2026-11-14.
-    // Off-peak is half price; isDeepSeekOffPeak() defines the window.
+    if (await db.preference("ai_usage_default_prices_v1") == "1") return;
+    // Peak rates in nano-USD per million tokens. See https://api-docs.deepseek.com/quick_start/pricing/.
     const defaults = [
       (
-        model: 'deepseek-flash',
+        model: "deepseek-flash",
         input: 300000000,
         cached: 6000000,
         output: 1200000000,
       ),
       (
-        model: 'deepseek-v4-pro',
+        model: "deepseek-v4-pro",
         input: 1320000000,
         cached: 44000000,
         output: 3960000000,
@@ -241,20 +238,20 @@ class AiUsageStore {
           .into(db.aiModelPrices)
           .insert(
             AiModelPricesCompanion.insert(
-              providerKind: 'deepseek',
-              endpoint: const Value('https://api.deepseek.com'),
+              providerKind: "deepseek",
+              endpoint: const Value("https://api.deepseek.com"),
               model: price.model,
               inputRateNanoUsdPerMillion: price.input,
               cachedInputRateNanoUsdPerMillion: price.cached,
               outputRateNanoUsdPerMillion: price.output,
               offPeakDiscountPercent: const Value(50),
-              source: const Value('deepseek_official_peak'),
+              source: const Value("deepseek_official_peak"),
               updatedAt: DateTime.now(),
             ),
             mode: InsertMode.insertOrIgnore,
           );
     }
-    await db.setPreference('ai_usage_default_prices_v1', '1');
+    await db.setPreference("ai_usage_default_prices_v1", "1");
   }
 
   Future<void> savePrice({
@@ -272,7 +269,7 @@ class AiUsageStore {
         outputRateNanoUsdPerMillion < 0 ||
         offPeakDiscountPercent < 0 ||
         offPeakDiscountPercent > 100) {
-      throw ArgumentError('模型名和价格必须有效。');
+      throw ArgumentError("模型名和价格必须有效。");
     }
     await db
         .into(db.aiModelPrices)
@@ -285,7 +282,7 @@ class AiUsageStore {
             cachedInputRateNanoUsdPerMillion: cachedInputRateNanoUsdPerMillion,
             outputRateNanoUsdPerMillion: outputRateNanoUsdPerMillion,
             offPeakDiscountPercent: Value(offPeakDiscountPercent),
-            source: const Value('user'),
+            source: const Value("user"),
             updatedAt: DateTime.now(),
           ),
         );
@@ -302,15 +299,15 @@ class AiUsageStore {
 
   String toCsv(List<AiUsageEvent> rows) {
     final out = StringBuffer(
-      'occurred_at,action_id,session_id,message_id,provider,endpoint,model,feature,status,usage_source,image_count,tool_call_count,input_tokens,cached_input_tokens,output_tokens,reasoning_tokens,total_tokens,cost_basis,cost_usd,input_rate_nano_usd_per_million,cached_rate_nano_usd_per_million,output_rate_nano_usd_per_million,rate_source,rate_updated_at,duration_ms,token_breakdown_json\r\n',
+      "occurred_at,action_id,session_id,message_id,provider,endpoint,model,feature,status,usage_source,image_count,tool_call_count,input_tokens,cached_input_tokens,output_tokens,reasoning_tokens,total_tokens,cost_basis,cost_usd,input_rate_nano_usd_per_million,cached_rate_nano_usd_per_million,output_rate_nano_usd_per_million,rate_source,rate_updated_at,duration_ms,token_breakdown_json\r\n",
     );
     for (final row in rows) {
       out.writeln(
         [
           row.occurredAt.toIso8601String(),
           row.actionId,
-          row.sessionId ?? '',
-          row.messageId ?? '',
+          row.sessionId ?? "",
+          row.messageId ?? "",
           row.providerKind,
           row.endpoint,
           row.model,
@@ -319,23 +316,23 @@ class AiUsageStore {
           row.usageSource,
           row.imageCount.toString(),
           row.toolCallCount.toString(),
-          row.inputTokens?.toString() ?? '',
-          row.cachedInputTokens?.toString() ?? '',
-          row.outputTokens?.toString() ?? '',
-          row.reasoningTokens?.toString() ?? '',
-          row.totalTokens?.toString() ?? '',
+          row.inputTokens?.toString() ?? "",
+          row.cachedInputTokens?.toString() ?? "",
+          row.outputTokens?.toString() ?? "",
+          row.reasoningTokens?.toString() ?? "",
+          row.totalTokens?.toString() ?? "",
           row.costBasis,
           row.costNanoUsd == null
-              ? ''
+              ? ""
               : (row.costNanoUsd! / _nanoUsdPerUsd).toStringAsFixed(9),
-          row.inputRateNanoUsdPerMillion?.toString() ?? '',
-          row.cachedInputRateNanoUsdPerMillion?.toString() ?? '',
-          row.outputRateNanoUsdPerMillion?.toString() ?? '',
-          row.rateSource ?? '',
-          row.rateUpdatedAt?.toIso8601String() ?? '',
-          row.durationMs?.toString() ?? '',
-          row.tokenBreakdownJson ?? '',
-        ].map(_csvField).join(','),
+          row.inputRateNanoUsdPerMillion?.toString() ?? "",
+          row.cachedInputRateNanoUsdPerMillion?.toString() ?? "",
+          row.outputRateNanoUsdPerMillion?.toString() ?? "",
+          row.rateSource ?? "",
+          row.rateUpdatedAt?.toIso8601String() ?? "",
+          row.durationMs?.toString() ?? "",
+          row.tokenBreakdownJson ?? "",
+        ].map(_csvField).join(","),
       );
     }
     return out.toString();
@@ -344,40 +341,40 @@ class AiUsageStore {
   String toJsonLines(List<AiUsageEvent> rows) => rows
       .map(
         (row) => jsonEncode({
-          'occurredAt': row.occurredAt.toIso8601String(),
-          'actionId': row.actionId,
-          'sessionId': row.sessionId,
-          'messageId': row.messageId,
-          'provider': row.providerKind,
-          'endpoint': row.endpoint,
-          'model': row.model,
-          'feature': row.feature,
-          'status': row.status,
-          'usageSource': row.usageSource,
-          'imageCount': row.imageCount,
-          'toolCallCount': row.toolCallCount,
-          'inputTokens': row.inputTokens,
-          'cachedInputTokens': row.cachedInputTokens,
-          'outputTokens': row.outputTokens,
-          'reasoningTokens': row.reasoningTokens,
-          'totalTokens': row.totalTokens,
-          'tokenBreakdown': row.tokenBreakdownJson == null
+          "occurredAt": row.occurredAt.toIso8601String(),
+          "actionId": row.actionId,
+          "sessionId": row.sessionId,
+          "messageId": row.messageId,
+          "provider": row.providerKind,
+          "endpoint": row.endpoint,
+          "model": row.model,
+          "feature": row.feature,
+          "status": row.status,
+          "usageSource": row.usageSource,
+          "imageCount": row.imageCount,
+          "toolCallCount": row.toolCallCount,
+          "inputTokens": row.inputTokens,
+          "cachedInputTokens": row.cachedInputTokens,
+          "outputTokens": row.outputTokens,
+          "reasoningTokens": row.reasoningTokens,
+          "totalTokens": row.totalTokens,
+          "tokenBreakdown": row.tokenBreakdownJson == null
               ? null
               : jsonDecode(row.tokenBreakdownJson!),
-          'costBasis': row.costBasis,
-          'inputRateNanoUsdPerMillion': row.inputRateNanoUsdPerMillion,
-          'cachedInputRateNanoUsdPerMillion':
+          "costBasis": row.costBasis,
+          "inputRateNanoUsdPerMillion": row.inputRateNanoUsdPerMillion,
+          "cachedInputRateNanoUsdPerMillion":
               row.cachedInputRateNanoUsdPerMillion,
-          'outputRateNanoUsdPerMillion': row.outputRateNanoUsdPerMillion,
-          'rateSource': row.rateSource,
-          'rateUpdatedAt': row.rateUpdatedAt?.toIso8601String(),
-          'costUsd': row.costNanoUsd == null
+          "outputRateNanoUsdPerMillion": row.outputRateNanoUsdPerMillion,
+          "rateSource": row.rateSource,
+          "rateUpdatedAt": row.rateUpdatedAt?.toIso8601String(),
+          "costUsd": row.costNanoUsd == null
               ? null
               : row.costNanoUsd! / _nanoUsdPerUsd,
-          'durationMs': row.durationMs,
+          "durationMs": row.durationMs,
         }),
       )
-      .join('\n');
+      .join("\n");
 
   int _estimateCostNanoUsd(
     AiTokenUsage usage,
@@ -415,7 +412,7 @@ int _discountedRate(int rate, int discountPercent) =>
     discountPercent == 0 ? rate : rate * (100 - discountPercent) ~/ 100;
 
 String _normalizeEndpoint(String endpoint) {
-  final trimmed = endpoint.trim().replaceAll(RegExp(r'/+$'), '');
+  final trimmed = endpoint.trim().replaceAll(RegExp(r"/+$"), "");
   final uri = Uri.tryParse(trimmed);
   if (uri == null || !uri.hasScheme || uri.host.isEmpty) return trimmed;
   return uri
@@ -424,6 +421,6 @@ String _normalizeEndpoint(String endpoint) {
 }
 
 String _csvField(String value) {
-  final safe = RegExp(r'^[=+\-@\t\r]').hasMatch(value) ? "'$value" : value;
+  final safe = RegExp(r"^[=+\-@\t\r]").hasMatch(value) ? "'$value" : value;
   return '"${safe.replaceAll('"', '""')}"';
 }

@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
 ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
   final dark = brightness == Brightness.dark;
@@ -13,7 +13,7 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
     useMaterial3: true,
     colorScheme: colors,
     brightness: brightness,
-    fontFamily: 'NotoSansSC',
+    fontFamily: "NotoSansSC",
     scaffoldBackgroundColor: colors.surface,
     splashFactory: InkRipple.splashFactory,
     splashColor: colors.onSurface.withValues(alpha: dark ? .16 : .12),
@@ -27,13 +27,13 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
       horizontalTitleGap: 14,
       iconColor: colors.onSurfaceVariant,
       titleTextStyle: TextStyle(
-        fontFamily: 'NotoSansSC',
+        fontFamily: "NotoSansSC",
         fontSize: 15,
         fontWeight: FontWeight.w500,
         color: colors.onSurface,
       ),
       subtitleTextStyle: TextStyle(
-        fontFamily: 'NotoSansSC',
+        fontFamily: "NotoSansSC",
         fontSize: 13,
         height: 1.5,
         color: colors.onSurfaceVariant,
@@ -135,7 +135,7 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
       side: BorderSide(color: colors.outlineVariant.withValues(alpha: .5)),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       labelStyle: TextStyle(
-        fontFamily: 'NotoSansSC',
+        fontFamily: "NotoSansSC",
         fontSize: 12,
         color: colors.onSurface,
       ),

@@ -1,4 +1,4 @@
-import 'a2ui_catalog.dart';
+import "a2ui_catalog.dart";
 
 enum InlineA2uiKind { prose, surface, invalid }
 
@@ -7,12 +7,12 @@ typedef InlineA2uiPart = ({InlineA2uiKind kind, String text});
 /// Only frames transport blocks. Express syntax and A2UI validation are
 /// owned by the official compiler. Partial blocks never reach the renderer.
 class InlineA2uiStream {
-  static const _open = '<a2ui>';
-  static const _close = '</a2ui>';
-  String _pending = '';
+  static const _open = "<a2ui>";
+  static const _close = "</a2ui>";
+  String _pending = "";
   StringBuffer? _source;
   var _oversize = false;
-  var _codeChar = '';
+  var _codeChar = "";
   var _codeWidth = 0;
   var _fence = false;
   var _indent = 0;
@@ -21,23 +21,23 @@ class InlineA2uiStream {
 
   Iterable<InlineA2uiPart> feed(String text, {bool done = false}) sync* {
     final input = _pending + text;
-    _pending = '';
+    _pending = "";
     var prose = StringBuffer();
     for (var i = 0; i < input.length;) {
       final char = input[i];
       if (_source != null) {
-        if (char == '<' && input.startsWith(_close, i)) {
+        if (char == "<" && input.startsWith(_close, i)) {
           final source = _source!;
           _source = null;
           yield (
             kind: _oversize ? InlineA2uiKind.invalid : InlineA2uiKind.surface,
-            text: _oversize ? '' : source.toString(),
+            text: _oversize ? "" : source.toString(),
           );
           _oversize = false;
           i += _close.length;
           continue;
         }
-        if (char == '<' &&
+        if (char == "<" &&
             !done &&
             input.length - i < _close.length &&
             _close.startsWith(input.substring(i))) {
@@ -57,7 +57,7 @@ class InlineA2uiStream {
 
       if (_codeChar.isEmpty &&
           !_escaped &&
-          char == '<' &&
+          char == "<" &&
           !(_lineStart && _indent >= 4)) {
         if (input.startsWith(_open, i)) {
           if (prose.isNotEmpty) {
@@ -75,7 +75,7 @@ class InlineA2uiStream {
           if (prose.isNotEmpty) {
             yield (kind: InlineA2uiKind.prose, text: prose.toString());
           }
-          yield (kind: InlineA2uiKind.invalid, text: '');
+          yield (kind: InlineA2uiKind.invalid, text: "");
           return;
         }
         if (!done &&
@@ -86,7 +86,7 @@ class InlineA2uiStream {
         }
       }
 
-      if ((char == '`' || char == '~') && !_escaped) {
+      if ((char == "`" || char == "~") && !_escaped) {
         var end = i + 1;
         while (end < input.length && input[end] == char) {
           end++;
@@ -103,7 +103,7 @@ class InlineA2uiStream {
                 : width == _codeWidth)) {
           if (_fence) {
             // A closing fence may have trailing whitespace only.
-            final newline = input.indexOf('\n', end);
+            final newline = input.indexOf("\n", end);
             if (newline < 0 &&
                 !done &&
                 input.length - i < 128 &&
@@ -115,12 +115,12 @@ class InlineA2uiStream {
                 .substring(end, newline < 0 ? input.length : newline)
                 .trim()
                 .isEmpty) {
-              _codeChar = '';
+              _codeChar = "";
             }
           } else {
-            _codeChar = '';
+            _codeChar = "";
           }
-        } else if (_codeChar.isEmpty && (fencePosition || char == '`')) {
+        } else if (_codeChar.isEmpty && (fencePosition || char == "`")) {
           _codeChar = char;
           _codeWidth = width;
           _fence = fencePosition;
@@ -132,15 +132,15 @@ class InlineA2uiStream {
       }
 
       prose.write(char);
-      if (char == '\n') {
+      if (char == "\n") {
         _lineStart = true;
         _indent = 0;
-      } else if (_lineStart && (char == ' ' || char == '\t')) {
-        _indent += char == ' ' ? 1 : 4;
+      } else if (_lineStart && (char == " " || char == "\t")) {
+        _indent += char == " " ? 1 : 4;
       } else {
         _lineStart = false;
       }
-      _escaped = !_escaped && char == '\\';
+      _escaped = !_escaped && char == "\\";
       i++;
     }
     if (prose.isNotEmpty) {
@@ -148,7 +148,7 @@ class InlineA2uiStream {
     }
     if (done && _source != null) {
       _source = null;
-      yield (kind: InlineA2uiKind.invalid, text: '');
+      yield (kind: InlineA2uiKind.invalid, text: "");
     }
   }
 }

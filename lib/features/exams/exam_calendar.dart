@@ -1,17 +1,19 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "dart:async";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/cached_stream_builder.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
+
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/cached_stream_builder.dart";
 
 String examDate(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 String points(double? n) => n == null
-    ? '—'
+    ? "—"
     : n == n.roundToDouble()
     ? n.toInt().toString()
     : n.toString();
@@ -51,10 +53,10 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                   Row(
                     children: [
                       BackButton(
-                        key: const Key('exam-calendar-back'),
+                        key: const Key("exam-calendar-back"),
                         onPressed: () => context.canPop()
                             ? context.pop()
-                            : context.go('/study'),
+                            : context.go("/study"),
                       ),
                       Expanded(
                         child: Text(
@@ -63,7 +65,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                         ),
                       ),
                       FilledButton.icon(
-                        key: const Key('exam-add'),
+                        key: const Key("exam-add"),
                         onPressed: () => _create(
                           listView
                               ? DateUtils.dateOnly(DateTime.now())
@@ -76,7 +78,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                   ),
                   const SizedBox(height: 16),
                   SegmentedButton<bool>(
-                    key: const Key('exam-view'),
+                    key: const Key("exam-view"),
                     segments: [
                       ButtonSegment(
                         value: false,
@@ -124,11 +126,11 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                   key: ValueKey((
                     listView,
                     selected,
-                    visible.map((e) => e.id).join('|'),
+                    visible.map((e) => e.id).join("|"),
                   )),
                   child: ListView.builder(
                     key: PageStorageKey(
-                      listView ? 'exam-timeline' : 'exam-calendar',
+                      listView ? "exam-timeline" : "exam-calendar",
                     ),
                     padding: const EdgeInsets.all(20),
                     itemCount: visible.length + 1,
@@ -138,7 +140,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                         child: index > 0
                             ? ListTile(
                                 key: ValueKey(
-                                  'exam-event-${visible[index - 1].id}',
+                                  "exam-event-${visible[index - 1].id}",
                                 ),
                                 contentPadding: EdgeInsets.zero,
                                 leading: const Icon(Icons.event_note_outlined),
@@ -148,7 +150,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                 ),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () => context.push(
-                                  '/exams/${visible[index - 1].id}',
+                                  "/exams/${visible[index - 1].id}",
                                 ),
                               )
                             : Column(
@@ -173,7 +175,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                         ),
                                         Expanded(
                                           child: Text(
-                                            '${month.year} / ${month.month}',
+                                            "${month.year} / ${month.month}",
                                             textAlign: TextAlign.center,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -261,7 +263,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                             .colorScheme;
                                         return Semantics(
                                           label:
-                                              '${examDate(date)}, $count ${context.l10n.exams}',
+                                              "${examDate(date)}, $count ${context.l10n.exams}",
                                           selected: active,
                                           child: InkWell(
                                             onTap: () =>
@@ -283,7 +285,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                                     MainAxisAlignment.center,
                                                 children: [
                                                   Text(
-                                                    '$day',
+                                                    "$day",
                                                     style: TextStyle(
                                                       fontWeight: active
                                                           ? FontWeight.bold
@@ -377,7 +379,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                     onSubmitted: (_) => submit(),
                   ),
                   TextButton.icon(
-                    key: const Key('exam-record-date'),
+                    key: const Key("exam-record-date"),
                     icon: const Icon(Icons.calendar_today_outlined),
                     label: Text(examDate(recordDate)),
                     onPressed: () async {
@@ -416,7 +418,7 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
               .read(appControllerProvider)
               .exams
               .saveEvent(title: title.text, date: recordDate);
-          if (mounted) context.push('/exams/$id');
+          if (mounted) unawaited(context.push("/exams/$id"));
         });
       }
     } finally {

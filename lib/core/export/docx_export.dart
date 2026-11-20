@@ -6,15 +6,15 @@
 /// could drift from the content.
 library;
 
-import 'dart:math' as math;
-import 'dart:typed_data';
+import "dart:math" as math;
+import "dart:typed_data";
 
-import 'package:archive/archive.dart';
+import "package:archive/archive.dart";
 
-import 'image_size.dart';
-import 'markdown_blocks.dart';
-import 'math_omml.dart';
-import 'study_export.dart';
+import "image_size.dart";
+import "markdown_blocks.dart";
+import "math_omml.dart";
+import "study_export.dart";
 
 /// A4 usable width inside the default margins (twips: 11906 - 2 * 1134).
 const _pageWidthTwips = 9638;
@@ -23,8 +23,8 @@ const _pageWidthTwips = 9638;
 const _pageWidthEmu = _pageWidthTwips * 635;
 const _maxImageHeightEmu = 4400000;
 
-const _eastAsianFont = '宋体';
-const _latinFont = 'Calibri';
+const _eastAsianFont = "宋体";
+const _latinFont = "Calibri";
 
 Uint8List buildStudyDocx({
   required StudyExportBundle bundle,
@@ -33,12 +33,12 @@ Uint8List buildStudyDocx({
 }) {
   final writer = _DocxWriter();
   writer.heading(1, chrome.title);
-  writer.paragraph([MdRun(chrome.dateLine)], style: 'Meta');
+  writer.paragraph([MdRun(chrome.dateLine)], style: "Meta");
   for (final entry in bundle.bySubject.entries) {
     if (bundle.bySubject.length > 1) writer.heading(2, entry.key);
     for (final note in entry.value) {
       writer.heading(2, note.title);
-      writer.paragraph([MdRun(chrome.noteMeta(note))], style: 'Meta');
+      writer.paragraph([MdRun(chrome.noteMeta(note))], style: "Meta");
       for (final block in parseLearningMarkdown(note.content).blocks) {
         writer.block(block);
       }
@@ -64,12 +64,12 @@ class _DocxWriter {
     void addText(String name, String content) =>
         archive.addFile(ArchiveFile.string(name, content));
 
-    addText('[Content_Types].xml', _contentTypes(_media));
-    addText('_rels/.rels', _rootRels());
-    addText('word/document.xml', _document(_body));
-    addText('word/styles.xml', _styles());
-    addText('word/_rels/document.xml.rels', _documentRels(_imageRels));
-    addText('word/footer1.xml', _footer());
+    addText("[Content_Types].xml", _contentTypes(_media));
+    addText("_rels/.rels", _rootRels());
+    addText("word/document.xml", _document(_body));
+    addText("word/styles.xml", _styles());
+    addText("word/_rels/document.xml.rels", _documentRels(_imageRels));
+    addText("word/footer1.xml", _footer());
     _media.forEach((name, bytes) {
       archive.addFile(ArchiveFile(name, bytes.length, bytes));
     });
@@ -79,11 +79,11 @@ class _DocxWriter {
 
   void heading(int level, String text) {
     _body.write(
-      _paragraph(_runs([MdRun(text)], bold: level > 1), style: 'Heading$level'),
+      _paragraph(_runs([MdRun(text)], bold: level > 1), style: "Heading$level"),
     );
   }
 
-  void paragraph(List<MdRun> runs, {String style = ''}) {
+  void paragraph(List<MdRun> runs, {String style = ""}) {
     if (plainText(runs).trim().isEmpty) return;
     _body.write(_paragraph(_runs(runs), style: style));
   }
@@ -99,24 +99,24 @@ class _DocxWriter {
         _body.write(
           _paragraph(
             _runs(block.runs, bold: true),
-            style: 'Heading${math.min(block.level + 1, 3)}',
+            style: "Heading${math.min(block.level + 1, 3)}",
             indent: block.quote ? 240 : 0,
           ),
         );
       case MdBlockKind.code:
-        for (final line in plainText(block.runs).split('\n')) {
-          _body.write(_paragraph(_run(line), style: 'Code'));
+        for (final line in plainText(block.runs).split("\n")) {
+          _body.write(_paragraph(_run(line), style: "Code"));
         }
       case MdBlockKind.formula:
         _body.write(
-          _paragraph(_runs(block.runs, italic: true), style: 'Formula'),
+          _paragraph(_runs(block.runs, italic: true), style: "Formula"),
         );
       case MdBlockKind.bulletList:
       case MdBlockKind.orderList:
         _body.write(
           _paragraph(
-            '${_run(block.marker)}${_runs(block.runs)}',
-            style: 'List',
+            "${_run(block.marker)}${_runs(block.runs)}",
+            style: "List",
             indent: 240 + (block.listDepth - 1) * 240,
           ),
         );
@@ -124,16 +124,16 @@ class _DocxWriter {
         _body.write(_table(block));
       case MdBlockKind.paragraph:
         _body.write(
-          _paragraph(_runs(block.runs), style: block.quote ? 'Quote' : ''),
+          _paragraph(_runs(block.runs), style: block.quote ? "Quote" : ""),
         );
     }
   }
 
   void image(StudyExportImage image) {
     final extension = image.isPng
-        ? 'png'
+        ? "png"
         : image.isJpeg
-        ? 'jpeg'
+        ? "jpeg"
         : null;
     if (extension == null) return;
     final size = imagePixelSize(image.bytes);
@@ -147,11 +147,11 @@ class _DocxWriter {
       height = _maxImageHeightEmu;
     }
     _imageCount++;
-    final name = 'image$_imageCount.$extension';
-    final mediaPath = 'word/media/$name';
+    final name = "image$_imageCount.$extension";
+    final mediaPath = "word/media/$name";
     _media[mediaPath] = image.bytes;
-    final relId = 'rIdImg$_imageCount';
-    _imageRels[relId] = 'media/$name';
+    final relId = "rIdImg$_imageCount";
+    _imageRels[relId] = "media/$name";
     final id = _drawingId++;
     _body.write(
       '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing>'
@@ -160,18 +160,18 @@ class _DocxWriter {
       '<wp:effectExtent l="0" t="0" r="0" b="0"/>'
       '<wp:docPr id="$id" name="Picture $id"/>'
       '<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/>'
-      '</wp:cNvGraphicFramePr>'
-      '<a:graphic><a:graphicData '
+      "</wp:cNvGraphicFramePr>"
+      "<a:graphic><a:graphicData "
       'uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
       '<pic:pic><pic:nvPicPr><pic:cNvPr id="$id" name="$name"/>'
-      '<pic:cNvPicPr/></pic:nvPicPr>'
+      "<pic:cNvPicPr/></pic:nvPicPr>"
       '<pic:blipFill><a:blip r:embed="$relId"/>'
-      '<a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+      "<a:stretch><a:fillRect/></a:stretch></pic:blipFill>"
       '<pic:spPr><a:xfrm><a:off x="0" y="0"/>'
       '<a:ext cx="$width" cy="$height"/></a:xfrm>'
       '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
-      '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>'
-      '</w:r></w:p>',
+      "</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>"
+      "</w:r></w:p>",
     );
   }
 
@@ -183,45 +183,45 @@ class _DocxWriter {
     final out = StringBuffer()
       ..write(
         '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/>'
-        '<w:tblBorders>'
+        "<w:tblBorders>"
         '${['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((side) => '<w:$side w:val="single" w:sz="4" w:space="0" w:color="808080"/>').join()}'
-        '</w:tblBorders></w:tblPr><w:tblGrid>',
+        "</w:tblBorders></w:tblPr><w:tblGrid>",
       );
     for (var i = 0; i < columns; i++) {
       out.write('<w:gridCol w:w="$width"/>');
     }
-    out.write('</w:tblGrid>');
+    out.write("</w:tblGrid>");
     for (final row in block.rows) {
-      out.write('<w:tr>');
+      out.write("<w:tr>");
       for (var i = 0; i < columns; i++) {
         out.write(
-          '<w:tc><w:tcPr>'
+          "<w:tc><w:tcPr>"
           '${row.header ? '<w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/>' : ''}'
-          '</w:tcPr>',
+          "</w:tcPr>",
         );
         final cells = i < row.cells.length ? row.cells[i] : const <MdRun>[];
         out.write(
-          _paragraph(_runs(cells, bold: row.header), style: 'TableText'),
+          _paragraph(_runs(cells, bold: row.header), style: "TableText"),
         );
-        out.write('</w:tc>');
+        out.write("</w:tc>");
       }
-      out.write('</w:tr>');
+      out.write("</w:tr>");
     }
-    out.write('</w:tbl>');
+    out.write("</w:tbl>");
     // Word ends a table with a paragraph; an empty one keeps the flow stable.
-    out.write('<w:p/>');
+    out.write("<w:p/>");
     return out.toString();
   }
 }
 
-String _paragraph(String runsXml, {String style = '', int indent = 0}) {
+String _paragraph(String runsXml, {String style = "", int indent = 0}) {
   final properties = StringBuffer();
   if (style.isNotEmpty) properties.write('<w:pStyle w:val="$style"/>');
   if (indent > 0) {
     properties.write('<w:ind w:left="$indent" w:hanging="$indent"/>');
   }
-  if (properties.isEmpty) return '<w:p>$runsXml</w:p>';
-  return '<w:p><w:pPr>$properties</w:pPr>$runsXml</w:p>';
+  if (properties.isEmpty) return "<w:p>$runsXml</w:p>";
+  return "<w:p><w:pPr>$properties</w:pPr>$runsXml</w:p>";
 }
 
 String _runs(List<MdRun> runs, {bool bold = false, bool italic = false}) => [
@@ -249,11 +249,11 @@ String _run(
       'w:eastAsia="$_eastAsianFont"/>',
     );
   }
-  if (bold) properties.add('<w:b/><w:bCs/>');
-  if (italic) properties.add('<w:i/><w:iCs/>');
+  if (bold) properties.add("<w:b/><w:bCs/>");
+  if (italic) properties.add("<w:i/><w:iCs/>");
   if (code) properties.add('<w:color w:val="444444"/><w:sz w:val="18"/>');
-  final open = properties.isEmpty ? '' : '<w:rPr>${properties.join()}</w:rPr>';
-  final escaped = _escape(text).replaceAll('\n', '<w:br/>');
+  final open = properties.isEmpty ? "" : "<w:rPr>${properties.join()}</w:rPr>";
+  final escaped = _escape(text).replaceAll("\n", "<w:br/>");
   return '<w:r>$open<w:t xml:space="preserve">$escaped</w:t></w:r>';
 }
 
@@ -264,11 +264,11 @@ String _escape(String text) {
     // document Word refuses to open.
     if (rune < 0x20 && rune != 0x09 && rune != 0x0a) continue;
     out.write(switch (rune) {
-      0x26 => '&amp;',
-      0x3c => '&lt;',
-      0x3e => '&gt;',
-      0x22 => '&quot;',
-      0x27 => '&apos;',
+      0x26 => "&amp;",
+      0x3c => "&lt;",
+      0x3e => "&gt;",
+      0x22 => "&quot;",
+      0x27 => "&apos;",
       _ => String.fromCharCode(rune),
     });
   }
@@ -278,11 +278,11 @@ String _escape(String text) {
 String _contentTypes(Map<String, Uint8List> media) {
   final extensions = <String>{
     for (final name in media.keys)
-      if (name.contains('.')) name.split('.').last,
+      if (name.contains(".")) name.split(".").last,
   };
   final imageDefaults = {
-    'png': 'image/png',
-    'jpeg': 'image/jpeg',
+    "png": "image/png",
+    "jpeg": "image/jpeg",
   }.entries.where((entry) => extensions.contains(entry.key));
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
@@ -292,14 +292,14 @@ String _contentTypes(Map<String, Uint8List> media) {
       '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
       '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
       '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>'
-      '</Types>';
+      "</Types>";
 }
 
 String _rootRels() =>
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
     '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
-    '</Relationships>';
+    "</Relationships>";
 
 String _documentRels(Map<String, String> imageRels) =>
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -307,7 +307,7 @@ String _documentRels(Map<String, String> imageRels) =>
     '<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'
     '${imageRels.entries.map((entry) => '<Relationship Id="${entry.key}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${entry.value}"/>').join()}'
     '<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
-    '</Relationships>';
+    "</Relationships>";
 
 String _footer() =>
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -319,38 +319,38 @@ String _footer() =>
     '<w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r>'
     '<w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t>1</w:t></w:r>'
     '<w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
-    '</w:p></w:ftr>';
+    "</w:p></w:ftr>";
 
 String _document(StringBuffer body) =>
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-    '<w:document '
+    "<w:document "
     'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
     'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" '
     'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
     'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
     'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
     'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
-    '<w:body>$body'
-    '<w:sectPr>'
+    "<w:body>$body"
+    "<w:sectPr>"
     '<w:footerReference w:type="default" r:id="rIdFooter1"/>'
     '<w:pgSz w:w="11906" w:h="16838"/>'
     '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" '
     'w:header="720" w:footer="720" w:gutter="0"/>'
-    '</w:sectPr></w:body></w:document>';
+    "</w:sectPr></w:body></w:document>";
 
 String _styles() =>
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-    '<w:docDefaults>'
-    '<w:rPrDefault><w:rPr>'
+    "<w:docDefaults>"
+    "<w:rPrDefault><w:rPr>"
     '<w:rFonts w:ascii="$_latinFont" w:hAnsi="$_latinFont" w:eastAsia="$_eastAsianFont" w:cs="$_latinFont"/>'
     '<w:sz w:val="21"/><w:szCs w:val="21"/>'
     '<w:lang w:val="en-US" w:eastAsia="zh-CN"/>'
-    '</w:rPr></w:rPrDefault>'
-    '<w:pPrDefault><w:pPr>'
+    "</w:rPr></w:rPrDefault>"
+    "<w:pPrDefault><w:pPr>"
     '<w:spacing w:after="110" w:line="300" w:lineRule="auto"/>'
-    '</w:pPr></w:pPrDefault>'
-    '</w:docDefaults>'
+    "</w:pPr></w:pPrDefault>"
+    "</w:docDefaults>"
     '<w:style w:type="paragraph" w:default="1" w:styleId="Normal">'
     '<w:name w:val="Normal"/><w:qFormat/></w:style>'
     '<w:style w:type="paragraph" w:styleId="Heading1">'
@@ -395,4 +395,4 @@ String _styles() =>
     '<w:name w:val="TableText"/><w:basedOn w:val="Normal"/>'
     '<w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
     '<w:rPr><w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr></w:style>'
-    '</w:styles>';
+    "</w:styles>";

@@ -1,9 +1,9 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../ai/chat_provider.dart';
-import '../l10n/app_strings.dart';
-import '../l10n/app_error_localization.dart';
-import 'markdown_editor.dart';
+import "../ai/chat_provider.dart";
+import "../l10n/app_strings.dart";
+import "../l10n/app_error_localization.dart";
+import "markdown_editor.dart";
 
 Future<void> act(BuildContext context, Future<void> Function() action) async {
   try {
@@ -21,7 +21,7 @@ Future<void> act(BuildContext context, Future<void> Function() action) async {
 Future<String?> editText(
   BuildContext context, {
   required String title,
-  String initial = '',
+  String initial = "",
   bool multiline = false,
   bool markdown = false,
   String? helperText,

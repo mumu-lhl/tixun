@@ -1,25 +1,25 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'app_notice.dart';
-import '../features/a2ui/a2ui_tools.dart';
+import "app_notice.dart";
+import "../features/a2ui/a2ui_tools.dart";
 
-import 'dart:convert';
-import 'dart:ui' show PlatformDispatcher;
+import "dart:convert";
+import "dart:ui" show PlatformDispatcher;
 
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../core/ai/chat_provider.dart';
-import '../core/ai/context_compactor.dart';
-import '../core/ai/prompt_settings.dart';
-import '../core/ai/tool_limits.dart';
-import '../core/ai/study_tools.dart' show studyToolCategoriesKey;
-import '../core/ai/visual_toolset.dart' show aiDrawingEnabledKey;
-import '../core/database/database.dart';
-import '../core/database/database_notifier.dart';
-import '../core/l10n/app_strings.dart';
-import '../core/l10n/generated/app_localizations.dart';
-import '../core/platform/key_store.dart';
-import '../core/python/python_tool.dart' show pythonPolicyKey;
+import "../core/ai/chat_provider.dart";
+import "../core/ai/context_compactor.dart";
+import "../core/ai/prompt_settings.dart";
+import "../core/ai/tool_limits.dart";
+import "../core/ai/study_tools.dart" show studyToolCategoriesKey;
+import "../core/ai/visual_toolset.dart" show aiDrawingEnabledKey;
+import "../core/database/database.dart";
+import "../core/database/database_notifier.dart";
+import "../core/l10n/app_strings.dart";
+import "../core/l10n/generated/app_localizations.dart";
+import "../core/platform/key_store.dart";
+import "../core/python/python_tool.dart" show pythonPolicyKey;
 
 enum EnglishStudyLevel { mixed, beginner, intermediate }
 
@@ -37,8 +37,8 @@ class AppPreferences extends DatabaseNotifier {
   final KeyStore keys;
   final bool demo;
   AppNotice? loadNotice;
-  List<String> learningSubjects = const ['语文', '数学', '英语'];
-  static const subjectsPreference = 'learning_subjects_v1';
+  List<String> learningSubjects = const ["语文", "数学", "英语"];
+  static const subjectsPreference = "learning_subjects_v1";
   late ProviderConfig config;
   int maxContextTokens = kDefaultMaxContextTokens;
   int maxToolCalls = defaultMaxToolCalls;
@@ -51,21 +51,21 @@ class AppPreferences extends DatabaseNotifier {
   }
 
   set prompts(PromptSettings value) => _prompts = value;
-  static const _studyLevelKey = 'language_en_level';
-  static const _feedbackLanguageKey = 'language_feedback_language';
+  static const _studyLevelKey = "language_en_level";
+  static const _feedbackLanguageKey = "language_feedback_language";
   LanguageStudySettings _languageStudy = (
     level: EnglishStudyLevel.mixed,
     feedbackLanguage: LanguageFeedbackLanguage.app,
   );
   LanguageStudySettings get languageStudy => _languageStudy;
 
-  String languageChoice = 'zh';
+  String languageChoice = "zh";
   bool dynamicColors = true;
   bool aiDrawingEnabled = false;
   bool aiA2uiEnabled = true;
   Locale? get appLocale =>
-      languageChoice == 'system' ? null : Locale(languageChoice);
-  String get promptLanguage => languageChoice == 'system'
+      languageChoice == "system" ? null : Locale(languageChoice);
+  String get promptLanguage => languageChoice == "system"
       ? resolveAppLocale(PlatformDispatcher.instance.locales).languageCode
       : languageChoice;
   AppLocalizations get l10n => lookupAppLocalizations(Locale(promptLanguage));
@@ -74,7 +74,7 @@ class AppPreferences extends DatabaseNotifier {
     config = await db.config();
     maxContextTokens = await loadMaxContextTokens(db);
     maxToolCalls = await loadMaxToolCalls(db);
-    aiDrawingEnabled = await db.preference(aiDrawingEnabledKey) == 'true';
+    aiDrawingEnabled = await db.preference(aiDrawingEnabledKey) == "true";
     aiA2uiEnabled =
         readA2uiOverride(await db.preference(aiA2uiEnabledKey)) ?? true;
     await loadSubjects();
@@ -90,13 +90,13 @@ class AppPreferences extends DatabaseNotifier {
         orElse: () => LanguageFeedbackLanguage.app,
       ),
     );
-    final language = await db.preference('app_language') ?? 'zh';
-    languageChoice = ['zh', 'en', 'system'].contains(language)
+    final language = await db.preference("app_language") ?? "zh";
+    languageChoice = ["zh", "en", "system"].contains(language)
         ? language
-        : 'zh';
+        : "zh";
     dynamicColors =
-        (await db.preference('dynamic_colors') ?? (demo ? 'false' : 'true')) ==
-        'true';
+        (await db.preference("dynamic_colors") ?? (demo ? "false" : "true")) ==
+        "true";
     try {
       prompts = PromptSettings.decode(
         await db.preference(PromptSettings.preference),
@@ -105,9 +105,9 @@ class AppPreferences extends DatabaseNotifier {
       prompts = PromptSettings().withLanguage(promptLanguage);
       loadNotice = const AppNotice(AppNoticeKind.promptSettingsUnreadable);
     }
-    themeMode = switch (await db.preference('theme')) {
-      'dark' => ThemeMode.dark,
-      'light' => ThemeMode.light,
+    themeMode = switch (await db.preference("theme")) {
+      "dark" => ThemeMode.dark,
+      "light" => ThemeMode.light,
       _ => ThemeMode.system,
     };
   }
@@ -116,10 +116,10 @@ class AppPreferences extends DatabaseNotifier {
     final values = subjects.map((s) => s.trim()).toSet().toList();
     if (values.isEmpty ||
         values.length > 20 ||
-        values.any((s) => s.isEmpty || s.length > 40 || s.contains('\n'))) {
+        values.any((s) => s.isEmpty || s.length > 40 || s.contains("\n"))) {
       throw const AppFormatException(
         AppErrorCode.select120SubjectsWith,
-        '请选择 1–20 个科目，每个名称最多 40 字。',
+        "请选择 1–20 个科目，每个名称最多 40 字。",
       );
     }
     return List.unmodifiable(values);
@@ -148,25 +148,25 @@ class AppPreferences extends DatabaseNotifier {
         .get();
     learningSubjects = checkedSubjects(
       {
-        '语文',
-        '数学',
-        '英语',
+        "语文",
+        "数学",
+        "英语",
         ...recorded
-            .map((r) => r.read<String>('subject'))
-            .where((s) => s.length <= 40 && !s.contains('\n')),
+            .map((r) => r.read<String>("subject"))
+            .where((s) => s.length <= 40 && !s.contains("\n")),
       }.take(20),
     );
   }
 
   Future<void> saveSubjects(
     List<String> subjects, {
-    String currentFilter = '',
+    String currentFilter = "",
   }) => runOperation(() async {
     final values = checkedSubjects(subjects);
     await db.transaction(() async {
       await db.setPreference(subjectsPreference, jsonEncode(values));
       if (currentFilter.isNotEmpty && !values.contains(currentFilter)) {
-        await db.setPreference('subject_filter', '');
+        await db.setPreference("subject_filter", "");
       }
     });
     learningSubjects = values;
@@ -187,17 +187,17 @@ class AppPreferences extends DatabaseNotifier {
       });
 
   Future<void> setLanguage(String value) => runOperation(() async {
-    if (!['zh', 'en', 'system'].contains(value)) {
-      throw const FormatException('Unsupported language');
+    if (!["zh", "en", "system"].contains(value)) {
+      throw const FormatException("Unsupported language");
     }
-    await db.setPreference('app_language', value);
+    await db.setPreference("app_language", value);
     languageChoice = value;
     prompts = prompts.withLanguage(promptLanguage);
     changed();
   });
 
   Future<void> setDynamicColors(bool value) => runOperation(() async {
-    await db.setPreference('dynamic_colors', value.toString());
+    await db.setPreference("dynamic_colors", value.toString());
     dynamicColors = value;
     changed();
   });
@@ -205,8 +205,8 @@ class AppPreferences extends DatabaseNotifier {
   Future<void> copyChatSettings(String source, String target) =>
       runOperation(() async {
         for (final (oldKey, newKey) in [
-          ('ai_reasoning:$source', 'ai_reasoning:$target'),
-          ('ai_drawing:$source', 'ai_drawing:$target'),
+          ("ai_reasoning:$source", "ai_reasoning:$target"),
+          ("ai_drawing:$source", "ai_drawing:$target"),
           (chatA2uiPreference(source), chatA2uiPreference(target)),
           (studyToolCategoriesKey(source), studyToolCategoriesKey(target)),
         ]) {
@@ -223,7 +223,7 @@ class AppPreferences extends DatabaseNotifier {
 
   Future<String> pythonExecutionPolicy() async {
     final value = await db.preference(pythonPolicyKey);
-    return ['ask', 'auto', 'off'].contains(value) ? value! : 'ask';
+    return ["ask", "auto", "off"].contains(value) ? value! : "ask";
   }
 
   Future<void> setPythonExecutionPolicy(String value) =>
@@ -236,14 +236,14 @@ class AppPreferences extends DatabaseNotifier {
   });
 
   Future<void> saveChatA2uiOverride(String id, bool? value) => runOperation(
-    () => db.setPreference(chatA2uiPreference(id), value?.toString() ?? ''),
+    () => db.setPreference(chatA2uiPreference(id), value?.toString() ?? ""),
   );
 
   Future<void> setMaxToolCalls(int value) => runOperation(() async {
     if (value < 0) {
       throw const AppFormatException(
         AppErrorCode.invalidToolCallLimit,
-        '工具调用上限应为非负整数，0 表示不限制。',
+        "工具调用上限应为非负整数，0 表示不限制。",
       );
     }
     await db.setPreference(maxToolCallsKey, value.toString());
@@ -255,10 +255,10 @@ class AppPreferences extends DatabaseNotifier {
     if (!isValidMaxContextTokens(value)) {
       throw const AppFormatException(
         AppErrorCode.maxContextTokensMustBe,
-        '最大上下文 Token 数应为 4096–1048576 的整数。',
+        "最大上下文 Token 数应为 4096–1048576 的整数。",
       );
     }
-    await db.setPreference('max_context_tokens', value.toString());
+    await db.setPreference("max_context_tokens", value.toString());
     maxContextTokens = value;
     changed();
   });
@@ -289,10 +289,10 @@ class AppPreferences extends DatabaseNotifier {
   Future<void> saveSettings(ProviderConfig next, String? key) =>
       runOperation(() async {
         validateConfig(next);
-        if (next.kind == 'chatgpt' && key != null) {
+        if (next.kind == "chatgpt" && key != null) {
           throw const AppFormatException(
             AppErrorCode.chatGPTUsesBrowserSignIn,
-            'ChatGPT 使用浏览器登录，无需 API Key。',
+            "ChatGPT 使用浏览器登录，无需 API Key。",
           );
         }
         // Read the current key first so a failed write can be undone.
@@ -304,9 +304,9 @@ class AppPreferences extends DatabaseNotifier {
         // write fails, the key is never rotated out from under the
         // config still in effect (same provider, model-only change).
         await db.transaction(() async {
-          if (next.kind == 'chatgpt' && config.kind != 'chatgpt') {
+          if (next.kind == "chatgpt" && config.kind != "chatgpt") {
             await db.setPreference(
-              'previous_api_provider',
+              "previous_api_provider",
               jsonEncode(config.toJson()),
             );
           }
@@ -322,7 +322,7 @@ class AppPreferences extends DatabaseNotifier {
             // report the failure so the user can retry.
             try {
               if (previousKey == null || previousKey.isEmpty) {
-                await keys.write(providerKeyId(next), '');
+                await keys.write(providerKeyId(next), "");
               } else {
                 await keys.write(providerKeyId(next), previousKey);
               }
@@ -338,39 +338,39 @@ class AppPreferences extends DatabaseNotifier {
       });
 
   Future<ProviderConfig?> previousApiProvider() async {
-    final raw = await db.preference('previous_api_provider');
+    final raw = await db.preference("previous_api_provider");
     if (raw == null || raw.isEmpty) return null;
     final decoded = jsonDecode(raw);
     if (decoded is! Map<String, dynamic>) return null;
     final previous = ProviderConfig.fromJson(decoded);
-    return previous.kind == 'chatgpt' ? null : previous;
+    return previous.kind == "chatgpt" ? null : previous;
   }
 
   Future<void> restoreApiProvider() => runOperation(() async {
-    final raw = await db.preference('previous_api_provider');
+    final raw = await db.preference("previous_api_provider");
     if (raw == null || raw.isEmpty) {
       throw const AppFormatException(
         AppErrorCode.noPreviousAPISettingsWere,
-        '没有已保存的 API 配置，请在设置中选择服务商。',
+        "没有已保存的 API 配置，请在设置中选择服务商。",
       );
     }
     final previous = ProviderConfig.fromJson(
       jsonDecode(raw) as Map<String, dynamic>,
     );
-    if (previous.kind == 'chatgpt') {
+    if (previous.kind == "chatgpt") {
       throw const AppFormatException(
         AppErrorCode.previousAPISettingsAreInvalid,
-        '原 API 配置无效。',
+        "原 API 配置无效。",
       );
     }
     await saveSettings(previous, null);
     // A successful restore consumes the saved provider; leaving the
     // stale value would let a second restore silently re-apply it.
-    await db.setPreference('previous_api_provider', '');
+    await db.setPreference("previous_api_provider", "");
   });
 
   Future<void> theme(ThemeMode value) => runOperation(() async {
-    await db.setPreference('theme', value.name);
+    await db.setPreference("theme", value.name);
     themeMode = value;
     changed();
   });

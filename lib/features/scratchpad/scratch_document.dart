@@ -1,8 +1,8 @@
-import 'dart:convert';
-import 'dart:math' as math;
-import 'dart:ui';
+import "dart:convert";
+import "dart:math" as math;
+import "dart:ui";
 
-import 'scratchpad_exception.dart';
+import "scratchpad_exception.dart";
 
 class InkStroke {
   InkStroke(this.color, this.width, List<Offset> points)
@@ -13,9 +13,9 @@ class InkStroke {
   late final Path path = Path()..addPolygon(points, false);
   late final Rect bounds = path.getBounds().inflate(width / 2);
   Map<String, dynamic> toJson() => {
-    'color': color,
-    'width': width,
-    'points': [
+    "color": color,
+    "width": width,
+    "points": [
       for (final p in points) [p.dx, p.dy],
     ],
   };
@@ -40,9 +40,9 @@ class ScratchPage {
     scale: scale ?? this.scale,
   );
   Map<String, dynamic> toJson() => {
-    'offset': [offset.dx, offset.dy],
-    'scale': scale,
-    'strokes': strokes.map((s) => s.toJson()).toList(),
+    "offset": [offset.dx, offset.dy],
+    "scale": scale,
+    "strokes": strokes.map((s) => s.toJson()).toList(),
   };
 }
 
@@ -62,7 +62,7 @@ class ScratchDocument {
     if (pages.length >= 100) {
       throw const ScratchpadException(
         ScratchpadError.tooManyPages,
-        '一个草稿最多支持 100 页。',
+        "一个草稿最多支持 100 页。",
       );
     }
     return ScratchDocument(
@@ -79,14 +79,14 @@ class ScratchDocument {
         );
   String encode() {
     final value = jsonEncode({
-      'version': 1,
-      'index': index,
-      'pages': pages.map((p) => p.toJson()).toList(),
+      "version": 1,
+      "index": index,
+      "pages": pages.map((p) => p.toJson()).toList(),
     });
     if (value.length > 8 * 1024 * 1024) {
       throw const ScratchpadException(
         ScratchpadError.tooLarge,
-        '草稿内容过大，请整理后重试。',
+        "草稿内容过大，请整理后重试。",
       );
     }
     return value;
@@ -96,8 +96,8 @@ class ScratchDocument {
     try {
       if (text.length > 8 * 1024 * 1024) throw const FormatException();
       final data = jsonDecode(text) as Map;
-      if (data['version'] != 1) throw const FormatException();
-      final rows = data['pages'] as List;
+      if (data["version"] != 1) throw const FormatException();
+      final rows = data["pages"] as List;
       if (rows.isEmpty || rows.length > 100) throw const FormatException();
       var pointCount = 0;
       double number(dynamic n, double min, double max) {
@@ -112,29 +112,29 @@ class ScratchDocument {
       final pages = <ScratchPage>[];
       for (final row in rows) {
         final strokes = <InkStroke>[];
-        for (final s in row['strokes'] as List) {
-          final points = (s['points'] as List).map(point).toList();
+        for (final s in row["strokes"] as List) {
+          final points = (s["points"] as List).map(point).toList();
           pointCount += points.length;
           if (points.isEmpty ||
               pointCount > 150000 ||
-              s['color'] is! int ||
-              s['color'] < 0 ||
-              s['color'] > 0xffffffff) {
+              s["color"] is! int ||
+              s["color"] < 0 ||
+              s["color"] > 0xffffffff) {
             throw const FormatException();
           }
           strokes.add(
-            InkStroke(s['color'], number(s['width'], 0.01, 1000), points),
+            InkStroke(s["color"], number(s["width"], 0.01, 1000), points),
           );
         }
         pages.add(
           ScratchPage(
             strokes: strokes,
-            offset: point(row['offset']),
-            scale: number(row['scale'], 0.1, 8),
+            offset: point(row["offset"]),
+            scale: number(row["scale"], 0.1, 8),
           ),
         );
       }
-      final index = data['index'];
+      final index = data["index"];
       if (index is! int || index < 0 || index >= pages.length) {
         throw const FormatException();
       }
@@ -142,7 +142,7 @@ class ScratchDocument {
     } catch (_) {
       throw const ScratchpadException(
         ScratchpadError.unreadable,
-        '草稿无法读取，原内容仍保留。',
+        "草稿无法读取，原内容仍保留。",
       );
     }
   }

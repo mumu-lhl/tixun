@@ -1,10 +1,10 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/features/library/split_suggestions.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/features/library/split_suggestions.dart";
 
 void main() {
-  group('displayRectForContain', () {
-    test('letterboxes a wide image into a tall box', () {
+  group("displayRectForContain", () {
+    test("letterboxes a wide image into a tall box", () {
       final rect = displayRectForContain(
         const Size(300, 200),
         const Size(400, 100),
@@ -13,7 +13,7 @@ void main() {
       expect(rect, const Rect.fromLTWH(0, 62.5, 300, 75));
     });
 
-    test('letterboxes a tall image into a wide box', () {
+    test("letterboxes a tall image into a wide box", () {
       final rect = displayRectForContain(
         const Size(300, 200),
         const Size(100, 400),
@@ -22,7 +22,7 @@ void main() {
       expect(rect, const Rect.fromLTWH(125, 0, 50, 200));
     });
 
-    test('same aspect fills the box exactly', () {
+    test("same aspect fills the box exactly", () {
       final rect = displayRectForContain(
         const Size(300, 200),
         const Size(600, 400),
@@ -30,7 +30,7 @@ void main() {
       expect(rect, const Rect.fromLTWH(0, 0, 300, 200));
     });
 
-    test('empty sizes fall back to the full box', () {
+    test("empty sizes fall back to the full box", () {
       expect(
         displayRectForContain(const Size(300, 200), Size.zero),
         const Rect.fromLTWH(0, 0, 300, 200),

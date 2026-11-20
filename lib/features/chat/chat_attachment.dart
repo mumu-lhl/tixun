@@ -1,4 +1,4 @@
-part of 'chat_screen.dart';
+part of "chat_screen.dart";
 
 class AttachmentImage extends ConsumerWidget {
   const AttachmentImage({
@@ -39,54 +39,56 @@ class AttachmentImage extends ConsumerWidget {
               .where((a) => a.messageId == attachment.messageId)
               .toList();
           final index = siblings.indexWhere((a) => a.id == attachment.id);
-          showImageViewer(
-            context,
-            images: [
-              for (final a in siblings)
-                ImageViewerItem(
-                  file: c.files.resolve(a.relativePath),
-                  heroTag: 'chat-image-${a.id}',
-                  cacheWidth: 1600,
-                ),
-            ],
-            initialIndex: index < 0 ? 0 : index,
-            title: attachment.originalPath == null
-                ? context.l10n.originalImagePreview
-                : context.l10n.outgoingImagePreview,
-            actions: (closeViewer) => [
-              if (attachment.originalPath != null)
-                TextButton(
-                  onPressed: () => showImageViewer(
-                    context,
-                    images: [
-                      ImageViewerItem(
-                        file: c.files.resolve(attachment.originalPath!),
-                        cacheWidth: 1600,
-                        errorText: context.l10n.couldNotReadOriginalImage,
-                      ),
-                    ],
-                    title: context.l10n.preservedOriginal,
+          unawaited(
+            showImageViewer(
+              context,
+              images: [
+                for (final a in siblings)
+                  ImageViewerItem(
+                    file: c.files.resolve(a.relativePath),
+                    heroTag: "chat-image-${a.id}",
+                    cacheWidth: 1600,
                   ),
-                  child: Text(context.l10n.viewPreservedOriginal),
-                ),
-              if (attachment.messageId == null)
-                TextButton.icon(
-                  key: Key('edit-draft-image-${attachment.id}'),
-                  onPressed: c.busy
-                      ? null
-                      : () => act(context, () async {
-                          closeViewer();
-                          await editChatPhoto(context, c, attachment);
-                        }),
-                  icon: const Icon(Icons.crop, size: 18),
-                  label: Text(context.l10n.cropRotateResize),
-                ),
-            ],
-            footnote: context.l10n.theOriginalIsKeptSeparately,
+              ],
+              initialIndex: index < 0 ? 0 : index,
+              title: attachment.originalPath == null
+                  ? context.l10n.originalImagePreview
+                  : context.l10n.outgoingImagePreview,
+              actions: (closeViewer) => [
+                if (attachment.originalPath != null)
+                  TextButton(
+                    onPressed: () => showImageViewer(
+                      context,
+                      images: [
+                        ImageViewerItem(
+                          file: c.files.resolve(attachment.originalPath!),
+                          cacheWidth: 1600,
+                          errorText: context.l10n.couldNotReadOriginalImage,
+                        ),
+                      ],
+                      title: context.l10n.preservedOriginal,
+                    ),
+                    child: Text(context.l10n.viewPreservedOriginal),
+                  ),
+                if (attachment.messageId == null)
+                  TextButton.icon(
+                    key: Key("edit-draft-image-${attachment.id}"),
+                    onPressed: c.busy
+                        ? null
+                        : () => act(context, () async {
+                            closeViewer();
+                            await editChatPhoto(context, c, attachment);
+                          }),
+                    icon: const Icon(Icons.crop, size: 18),
+                    label: Text(context.l10n.cropRotateResize),
+                  ),
+              ],
+              footnote: context.l10n.theOriginalIsKeptSeparately,
+            ),
           );
         },
         child: Hero(
-          tag: 'chat-image-${attachment.id}',
+          tag: "chat-image-${attachment.id}",
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: ColoredBox(
@@ -114,7 +116,7 @@ Future<void> editChatPhoto(
         relativePath: image.relativePath,
         mime: image.mime,
         byteLength: image.byteLength,
-        role: 'original',
+        role: "original",
         deleted: false,
       ),
       isMistake: true,

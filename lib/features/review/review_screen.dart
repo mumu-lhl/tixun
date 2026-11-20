@@ -1,26 +1,26 @@
-import '../../core/ui/app_menu.dart';
+import "../../core/ui/app_menu.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../app/controller.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../practice/practice_providers.dart';
-import 'review_providers.dart';
-import 'review_store.dart';
+import "../../app/controller.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../practice/practice_providers.dart";
+import "review_providers.dart";
+import "review_store.dart";
 
 String reviewDate(DateTime value, {BuildContext? context}) {
   final d = value.toLocal();
-  if (context != null && context.l10n.localeName == 'en') {
+  if (context != null && context.l10n.localeName == "en") {
     final local = MaterialLocalizations.of(context);
-    return '${local.formatShortDate(d)} ${local.formatTimeOfDay(TimeOfDay.fromDateTime(d))}';
+    return "${local.formatShortDate(d)} ${local.formatTimeOfDay(TimeOfDay.fromDateTime(d))}";
   }
   final time =
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-  if (d.year == DateTime.now().year) return '${d.month}月${d.day}日 $time';
-  return '${d.year}年${d.month}月${d.day}日 $time';
+  if (d.year == DateTime.now().year) return "${d.month}月${d.day}日 $time";
+  return "${d.year}年${d.month}月${d.day}日 $time";
 }
 
 /// A due date with an overdue marker when it is in the past.
@@ -30,26 +30,25 @@ String dueLabel(BuildContext context, DateTime dueAt) {
   if (dueAt.isBefore(now)) {
     final days = now.difference(dueAt).inDays;
     text += days > 0
-        ? ' · ${context.l10n.overdueByDays(l10nArgument((days)))}'
-        : ' · ${context.l10n.overdue}';
+        ? " · ${context.l10n.overdueByDays(l10nArgument((days)))}"
+        : " · ${context.l10n.overdue}";
   }
   return text;
 }
 
-/// Older records retain the explanation captured at grading time.
 String reviewReason(BuildContext context, String reason) {
-  final match = RegExp(r'^独立做对，(\d+) 天后再次检测。$').firstMatch(reason);
+  final match = RegExp(r"^独立做对，(\d+) 天后再次检测。$").firstMatch(reason);
   if (match != null) {
     return context.l10n.answeredIndependentlyReviewAgainIn(match[1]!);
   }
   // Historic records store Chinese text. Translate only known app-generated
   // reasons; preserve unknown or user-supplied data verbatim.
   return switch (reason) {
-    '本次需要订正，10 分钟后再尝试。' => context.l10n.reviewThisAnswerAndTry,
-    '使用了提示，明天再独立检测。' => context.l10n.aHintWasUsedTry,
-    '参考答案尚未核对，明天再检测；不增加独立掌握次数。' => context.l10n.theReferenceAnswerIsUnchecked,
-    '用户重置复习进度；历史作答仍保留。' => context.l10n.reviewResetReason,
-    '用户手动调整复习日期。' => context.l10n.reviewDateAdjustedReason,
+    "本次需要订正，10 分钟后再尝试。" => context.l10n.reviewThisAnswerAndTry,
+    "使用了提示，明天再独立检测。" => context.l10n.aHintWasUsedTry,
+    "参考答案尚未核对，明天再检测；不增加独立掌握次数。" => context.l10n.theReferenceAnswerIsUnchecked,
+    "用户重置复习进度；历史作答仍保留。" => context.l10n.reviewResetReason,
+    "用户手动调整复习日期。" => context.l10n.reviewDateAdjustedReason,
     _ => reason,
   };
 }
@@ -61,7 +60,7 @@ class ReviewScreen extends ConsumerStatefulWidget {
 }
 
 class _ReviewScreenState extends ConsumerState<ReviewScreen> {
-  String filter = 'due';
+  String filter = "due";
   int limit = 200;
   @override
   Widget build(BuildContext context) {
@@ -80,7 +79,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 children: [
                   IconButton(
                     tooltip: context.l10n.backToStudy,
-                    onPressed: () => context.go('/study'),
+                    onPressed: () => context.go("/study"),
                     icon: const Icon(Icons.arrow_back),
                   ),
                   const SizedBox(width: 4),
@@ -99,9 +98,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 spacing: 8,
                 children: [
                   for (final e in {
-                    'due': context.l10n.reviewFilterDue,
-                    'all': context.l10n.all,
-                    'paused': context.l10n.reviewFilterPaused,
+                    "due": context.l10n.reviewFilterDue,
+                    "all": context.l10n.all,
+                    "paused": context.l10n.reviewFilterPaused,
                   }.entries)
                     ChoiceChip(
                       label: Text(e.value),
@@ -133,13 +132,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            filter == 'due'
+                            filter == "due"
                                 ? context.l10n.nothingIsDueAfterPractice
                                 : context.l10n.noReviewsInThisCategory,
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton(
-                            onPressed: () => context.go('/practice'),
+                            onPressed: () => context.go("/practice"),
                             child: Text(context.l10n.practiceNow),
                           ),
                         ],
@@ -209,14 +208,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   FilledButton.tonal(
-                                    key: Key('review-start-${s.id}'),
+                                    key: Key("review-start-${s.id}"),
                                     onPressed: () => act(context, () async {
                                       await ref
                                           .read(appControllerProvider)
                                           .practice
                                           .begin(s.questionId, retry: true);
                                       if (context.mounted) {
-                                        context.go('/practice/${s.questionId}');
+                                        context.go("/practice/${s.questionId}");
                                       }
                                     }),
                                     child: Text(context.l10n.startReview),
@@ -238,11 +237,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                       final store = ref.read(
                                         reviewStoreProvider,
                                       );
-                                      if (v == 'pause') {
+                                      if (v == "pause") {
                                         await store.pause(s.id, s.enabled);
                                         return;
                                       }
-                                      if (v == 'reset') {
+                                      if (v == "reset") {
                                         final ok = await showDialog<bool>(
                                           context: context,
                                           builder: (ctx) => AlertDialog(
@@ -303,15 +302,15 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                     }),
                                     itemBuilder: (_) => [
                                       PopupMenuItem(
-                                        value: 'date',
+                                        value: "date",
                                         child: Text(context.l10n.adjustDate),
                                       ),
                                       PopupMenuItem(
-                                        value: 'reset',
+                                        value: "reset",
                                         child: Text(context.l10n.resetProgress),
                                       ),
                                       PopupMenuItem(
-                                        value: 'pause',
+                                        value: "pause",
                                         child: Text(
                                           s.enabled
                                               ? context.l10n.pauseReviews
@@ -368,7 +367,7 @@ Future<void> showReviewHistory(
               contentPadding: EdgeInsets.zero,
               title: Text(reviewReason(context, r.reason)),
               subtitle: Text(
-                '${reviewDate(r.recordedAt, context: context)} → ${reviewDate(r.nextDueAt, context: context)}',
+                "${reviewDate(r.recordedAt, context: context)} → ${reviewDate(r.nextDueAt, context: context)}",
               ),
             ),
         ],
@@ -420,7 +419,7 @@ class QuestionReviewStatus extends ConsumerWidget {
                   if (item == null) {
                     await ref.read(reviewStoreProvider).enroll(id);
                   } else {
-                    context.go('/review');
+                    context.go("/review");
                   }
                 }),
                 child: Text(
@@ -440,13 +439,13 @@ class QuestionReviewStatus extends ConsumerWidget {
 /// `$3x+5=20$` or `**...**`. The detail card keeps full rendering.
 String plainTextPreview(String text) {
   final out = text
-      .replaceAll(RegExp(r'!\[[^\]]*\]\([^)]*\)'), '')
-      .replaceAllMapped(RegExp(r'\[([^\]]*)\]\([^)]*\)'), (m) => m[1] ?? '')
-      .replaceAll(RegExp(r'\$\$?'), '')
-      .replaceAll(RegExp(r'(`{1,3}|[*_]{1,2}|~~)'), '')
-      .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '')
-      .replaceAll(RegExp(r'^>\s?', multiLine: true), '')
-      .replaceAll(RegExp(r'^\s*[-*+]\s+', multiLine: true), '')
-      .replaceAll(RegExp(r'<[^>]+>'), '');
-  return out.replaceAll(RegExp(r'\s+'), ' ').trim();
+      .replaceAll(RegExp(r"!\[[^\]]*\]\([^)]*\)"), "")
+      .replaceAllMapped(RegExp(r"\[([^\]]*)\]\([^)]*\)"), (m) => m[1] ?? "")
+      .replaceAll(RegExp(r"\$\$?"), "")
+      .replaceAll(RegExp(r"(`{1,3}|[*_]{1,2}|~~)"), "")
+      .replaceAll(RegExp(r"^#{1,6}\s+", multiLine: true), "")
+      .replaceAll(RegExp(r"^>\s?", multiLine: true), "")
+      .replaceAll(RegExp(r"^\s*[-*+]\s+", multiLine: true), "")
+      .replaceAll(RegExp(r"<[^>]+>"), "");
+  return out.replaceAll(RegExp(r"\s+"), " ").trim();
 }

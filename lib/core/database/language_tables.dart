@@ -1,11 +1,11 @@
-part of 'database.dart';
+part of "database.dart";
 
 class LearningLexicalItems extends Table {
   TextColumn get id => text()();
   TextColumn get language => text()();
   TextColumn get form => text()();
   TextColumn get normalizedForm => text()();
-  TextColumn get lexicalType => text().withDefault(const Constant('word'))();
+  TextColumn get lexicalType => text().withDefault(const Constant("word"))();
   TextColumn get pronunciation => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   @override
@@ -29,7 +29,7 @@ class LearningLexicalSenses extends Table {
   TextColumn get exampleTranslation => text().nullable()();
   TextColumn get application => text().nullable()();
   TextColumn get applicationAnswer => text().nullable()();
-  TextColumn get source => text().withDefault(const Constant('user'))();
+  TextColumn get source => text().withDefault(const Constant("user"))();
   TextColumn get aiBatchId => text().nullable()();
   TextColumn get aiModel => text().nullable()();
   IntColumn get aiPromptVersion => integer().nullable()();
@@ -66,7 +66,7 @@ class LearningVocabularyGroups extends Table {
   TextColumn get id => text()();
   TextColumn get language => text()();
   TextColumn get title => text()();
-  TextColumn get groupType => text().withDefault(const Constant('topic'))();
+  TextColumn get groupType => text().withDefault(const Constant("topic"))();
   DateTimeColumn get createdAt => dateTime()();
   @override
   Set<Column> get primaryKey => {id};
@@ -130,7 +130,7 @@ class LearningReviewSchedules extends Table {
   Set<Column> get primaryKey => {senseId};
 }
 
-@DataClassName('LearningSentenceBatch')
+@DataClassName("LearningSentenceBatch")
 class LearningSentenceBatches extends Table {
   TextColumn get id => text()();
   TextColumn get language => text()();
@@ -232,7 +232,7 @@ class LearningWritingNotes extends Table {
   Set<Column> get primaryKey => {versionId, position};
 }
 
-@DataClassName('LearningExamMaterialRow')
+@DataClassName("LearningExamMaterialRow")
 class LearningExamMaterials extends Table {
   TextColumn get id => text()();
   TextColumn get fingerprint => text().unique()();
@@ -258,14 +258,14 @@ class LearningExamMaterials extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DataClassName('LearningExamAttemptRow')
+@DataClassName("LearningExamAttemptRow")
 class LearningExamAttempts extends Table {
   TextColumn get id => text()();
   TextColumn get materialId => text().references(LearningExamMaterials, #id)();
   TextColumn get responses => text()();
   TextColumn get confidence => text().nullable()();
   TextColumn get disputedPositions =>
-      text().withDefault(const Constant('[]'))();
+      text().withDefault(const Constant("[]"))();
   BoolColumn get hintUsed => boolean()();
   BoolColumn get reviewedAtSubmission =>
       boolean().withDefault(const Constant(false))();
@@ -276,7 +276,7 @@ class LearningExamAttempts extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DataClassName('LearningWritingTaskRow')
+@DataClassName("LearningWritingTaskRow")
 class LearningWritingTasks extends Table {
   TextColumn get id => text()();
   TextColumn get kind => text()();
@@ -333,7 +333,7 @@ class LearningWrittenExamSections extends Table {
   Set<Column> get primaryKey => {examId, position};
   @override
   List<String> get customConstraints => [
-    'CHECK ((material_id IS NULL) <> (writing_task_id IS NULL))',
+    "CHECK ((material_id IS NULL) <> (writing_task_id IS NULL))",
   ];
 }
 

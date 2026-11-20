@@ -1,16 +1,16 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/features/language_learning/exam_material.dart';
-import 'package:tixun/features/language_learning/exam_store.dart';
-import 'package:tixun/features/language_learning/language_profile_store.dart';
-import 'package:tixun/features/language_learning/language_skills.dart';
-import 'package:tixun/features/language_learning/language_store.dart';
-import 'package:tixun/features/language_learning/lexical_form.dart';
-import 'package:tixun/features/language_learning/lexical_form_store.dart';
-import 'package:tixun/features/language_learning/sentence_content.dart';
-import 'package:tixun/features/language_learning/sentence_store.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/features/language_learning/exam_material.dart";
+import "package:tixun/features/language_learning/exam_store.dart";
+import "package:tixun/features/language_learning/language_profile_store.dart";
+import "package:tixun/features/language_learning/language_skills.dart";
+import "package:tixun/features/language_learning/language_store.dart";
+import "package:tixun/features/language_learning/lexical_form.dart";
+import "package:tixun/features/language_learning/lexical_form_store.dart";
+import "package:tixun/features/language_learning/sentence_content.dart";
+import "package:tixun/features/language_learning/sentence_store.dart";
 
-import 'support/exam_bundled.dart';
+import "support/exam_bundled.dart";
 
 void main() {
   late AppDatabase db;
@@ -24,75 +24,75 @@ void main() {
     await db.close();
   });
 
-  test('inflections share a lemma without creating cards and forms keep distinct evidence', () async {
-    for (final group in ['Verbs', 'Review']) {
+  test("inflections share a lemma without creating cards and forms keep distinct evidence", () async {
+    for (final group in ["Verbs", "Review"]) {
       await store.saveEntries(
-        language: 'en',
+        language: "en",
         groupTitle: group,
         groupType: VocabularyGroupType.topic,
         entries: const [
           VocabularyEntry(
-            form: 'go',
-            meaning: '去',
+            form: "go",
+            meaning: "去",
             forms: [
-              LexicalFormDraft('went', Inflection.past),
-              LexicalFormDraft('gone', Inflection.pastParticiple),
+              LexicalFormDraft("went", Inflection.past),
+              LexicalFormDraft("gone", Inflection.pastParticiple),
             ],
           ),
           VocabularyEntry(
-            form: 'see',
-            meaning: '看见',
-            forms: [LexicalFormDraft('saw', Inflection.past)],
+            form: "see",
+            meaning: "看见",
+            forms: [LexicalFormDraft("saw", Inflection.past)],
           ),
           VocabularyEntry(
-            form: 'saw',
-            meaning: '锯子',
-            forms: [LexicalFormDraft('saws', Inflection.plural)],
+            form: "saw",
+            meaning: "锯子",
+            forms: [LexicalFormDraft("saws", Inflection.plural)],
           ),
           VocabularyEntry(
-            form: 'study',
-            meaning: '学习',
+            form: "study",
+            meaning: "学习",
             forms: [
-              LexicalFormDraft('studied', Inflection.past),
-              LexicalFormDraft('studied', Inflection.pastParticiple),
+              LexicalFormDraft("studied", Inflection.past),
+              LexicalFormDraft("studied", Inflection.pastParticiple),
             ],
           ),
         ],
       );
     }
     expect(await db.select(db.learningLexicalForms).get(), hasLength(6));
-    expect(await store.dueCount('en').first, 4);
-    final exercises = await store.formPractice('en');
-    final saw = exercises.singleWhere((e) => e.form.surface == 'saw');
-    expect(saw.item.form, 'see');
+    expect(await store.dueCount("en").first, 4);
+    final exercises = await store.formPractice("en");
+    final saw = exercises.singleWhere((e) => e.form.surface == "saw");
+    expect(saw.item.form, "see");
     expect(
       await store.recordFormPractice(
-        attemptId: 'r',
+        attemptId: "r",
         exercise: saw,
-        answer: 'see',
+        answer: "see",
         production: false,
       ),
       isTrue,
     );
     expect(
       await store.recordFormPractice(
-        attemptId: 'p',
+        attemptId: "p",
         exercise: saw,
-        answer: 'saw',
+        answer: "saw",
         production: true,
       ),
       isTrue,
     );
     expect(
       await store.recordFormPractice(
-        attemptId: 'p2',
+        attemptId: "p2",
         exercise: saw,
-        answer: 'seen',
+        answer: "seen",
         production: true,
       ),
       isFalse,
     );
-    final profile = await store.readLanguageProfile('en');
+    final profile = await store.readLanguageProfile("en");
     expect(profile.skills[LanguageSkill.formRecognition]!.independent, 1);
     final production = profile.skills[LanguageSkill.formProduction]!;
     expect(production.independent, 1);
@@ -100,13 +100,13 @@ void main() {
     expect(production.uncertain, isTrue);
     expect(profile.skills[LanguageSkill.wordRecall]!.observations, isEmpty);
     expect(
-      (await store.readLanguageProfile('ja')).skills.values
+      (await store.readLanguageProfile("ja")).skills.values
           .every((r) => r.observations.isEmpty),
       isTrue,
     );
   });
 
-  test('first verified exam, assisted sentence and unverified content retain distinct provenance', () async {
+  test("first verified exam, assisted sentence and unverified content retain distinct provenance", () async {
     final target = ExamTarget(
       kind: ExamKind.grammar,
       count: 5,
@@ -117,32 +117,32 @@ void main() {
       target: target,
       paper: fixture,
       source: ExamSource.aiGenerated,
-      id: 'paper',
-      model: 'Fixture',
+      id: "paper",
+      model: "Fixture",
       promptVersion: 1,
     );
     final reviewed = await store.markExamAiReviewed(saved);
     final result = await store.submitExam(
       material: reviewed,
-      attemptId: 'first',
+      attemptId: "first",
       responses: fixture.items.map((i) => i.answers.first).toList(),
       confidence: ExamConfidence.certain,
       hintUsed: false,
     );
     final card = SentenceCard(
-      id: 'sentence',
-      text: 'I went yesterday.',
-      translation: '',
-      hint: '',
-      question: 'When?',
-      choices: const ['Yesterday', 'Tomorrow'],
+      id: "sentence",
+      text: "I went yesterday.",
+      translation: "",
+      hint: "",
+      question: "When?",
+      choices: const ["Yesterday", "Tomorrow"],
       correctIndex: 0,
       skill: SentenceSkill.sequence,
       level: SentenceLevel.beginner,
     );
     for (final (id, helps) in [
-      ('alone', <SentenceHelp>{}),
-      ('repeat', <SentenceHelp>{SentenceHelp.hint}),
+      ("alone", <SentenceHelp>{}),
+      ("repeat", <SentenceHelp>{SentenceHelp.hint}),
     ]) {
       await store.recordSentence(
         batchId: id,
@@ -153,7 +153,7 @@ void main() {
         selectedIndex: 0,
       );
     }
-    var profile = await store.readLanguageProfile('en');
+    var profile = await store.readLanguageProfile("en");
     expect(profile.skills[LanguageSkill.grammar]!.independent, 5);
     expect(profile.skills[LanguageSkill.grammar]!.uncertain, true);
     expect(profile.skills[LanguageSkill.sequence]!.tentative, 1);
@@ -162,7 +162,7 @@ void main() {
       1,
     );
     await store.flagExamResponse(result, 0);
-    profile = await store.readLanguageProfile('en');
+    profile = await store.readLanguageProfile("en");
     expect(profile.skills[LanguageSkill.grammar]!.independent, 0);
     expect(
       profile.skills[LanguageSkill.grammar]!.count(EvidenceKind.disputed),
@@ -170,11 +170,11 @@ void main() {
     );
   });
 
-  test('recommendation favors weak evidence, rotates recent work, and supports a difficulty override', () {
+  test("recommendation favors weak evidence, rotates recent work, and supports a difficulty override", () {
     final now = DateTime(2026);
     LanguageProfile profile(List<LanguageObservation> observations) =>
         LanguageProfile(
-          language: 'en',
+          language: "en",
           exam: ExamProfile.zhejiang2026,
           due: 2,
           evidence: observations,
@@ -184,22 +184,22 @@ void main() {
     final weak = [
       for (var i = 0; i < 3; i++)
         LanguageObservation(
-          id: 'weak-$i',
+          id: "weak-$i",
           skill: LanguageSkill.condition,
           kind: EvidenceKind.independent,
           at: now.subtract(Duration(days: i)),
-          basis: 'item',
+          basis: "item",
           correct: false,
         ),
     ];
     final active = [
       for (var i = 0; i < 3; i++)
         LanguageObservation(
-          id: 'other-$i',
+          id: "other-$i",
           skill: LanguageSkill.sequence,
           kind: EvidenceKind.independent,
           at: now.add(Duration(days: i + 1)),
-          basis: 'item',
+          basis: "item",
           correct: true,
         ),
     ];

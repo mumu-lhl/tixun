@@ -1,4 +1,4 @@
-part of 'ai_usage_screen.dart';
+part of "ai_usage_screen.dart";
 
 class _StatData {
   const _StatData(this.label, this.value, this.hint);
@@ -57,7 +57,7 @@ class _StatCard extends StatelessWidget {
               SizedBox(
                 height: 28,
                 child: Text(
-                  hint ?? '',
+                  hint ?? "",
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -92,7 +92,7 @@ class _UsageTrend extends StatelessWidget {
     final today = DateTime.now();
     final todayKey = DateTime(today.year, today.month, today.day);
     return Column(
-      key: const Key('ai-usage-trend'),
+      key: const Key("ai-usage-trend"),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -104,7 +104,7 @@ class _UsageTrend extends StatelessWidget {
               ),
             ),
             Text(
-              '${context.l10n.tokenTotal}: ${usageTokenCount(total)}',
+              "${context.l10n.tokenTotal}: ${usageTokenCount(total)}",
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
@@ -152,11 +152,11 @@ class _UsageTrend extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final message = [
       _dateOnly(day.day),
-      '${context.l10n.tokenTotal}: ${usageTokenCount(day.tokens)}',
-      '${context.l10n.requestCount}: ${usageInteger(day.requests)}',
+      "${context.l10n.tokenTotal}: ${usageTokenCount(day.tokens)}",
+      "${context.l10n.requestCount}: ${usageInteger(day.requests)}",
       if (day.estimatedCostNanoUsd > 0)
-        '${context.l10n.estimatedCost}: ${_usd(day.estimatedCostNanoUsd)}',
-    ].join('\n');
+        "${context.l10n.estimatedCost}: ${_usd(day.estimatedCostNanoUsd)}",
+    ].join("\n");
     final ratio = maxTokens == 0 ? 0.0 : day.tokens / maxTokens;
     final height = day.tokens == 0
         ? (day.requests > 0 ? 2.0 : 1.0)

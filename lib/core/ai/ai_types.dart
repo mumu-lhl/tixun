@@ -1,8 +1,8 @@
-import 'package:dio/dio.dart';
+import "package:dio/dio.dart";
 
-import '../database/database.dart';
-import '../l10n/app_error.dart';
-import 'ai_usage.dart';
+import "../database/database.dart";
+import "../l10n/app_error.dart";
+import "ai_usage.dart";
 
 class AiFailure implements Exception, LocalizedAppFailure {
   const AiFailure(this.message) : code = null, arguments = const [];
@@ -115,7 +115,6 @@ class AiRequest {
   /// Null means no app-side cap: the provider's own model limit decides.
   final int? maxOutputTokens;
 
-  /// Ask DeepSeek to generate a title alongside this response.
   final bool enableConversationTitle;
 
   AiRequest copyWith({
@@ -138,8 +137,8 @@ class AiRequest {
 /// A completed event is required before callers may execute any tool call.
 class AiChunk {
   const AiChunk({
-    this.text = '',
-    this.reasoning = '',
+    this.text = "",
+    this.reasoning = "",
     this.title,
     this.tokens,
     this.usage,
@@ -148,16 +147,13 @@ class AiChunk {
   });
   final String text;
 
-  /// Reasoning delta for this event, if the provider streams one.
   final String reasoning;
 
-  /// Optional provider-generated conversation title.
   final String? title;
 
   /// Legacy total-token count; providers should prefer [usage].
   final int? tokens;
 
-  /// Provider-reported token breakdown for this model request.
   final AiTokenUsage? usage;
   final bool completed;
   final List<ToolCall> calls;
@@ -188,7 +184,7 @@ void validateToolCalls(List<ToolCall> calls) {
     if (c.id.isEmpty || c.name.isEmpty || !ids.add(c.id)) {
       throw const AiFailure.localized(
         AppErrorCode.errorToolCallsAreIncompleteOrHave,
-        '工具调用不完整或 ID 重复。',
+        "工具调用不完整或 ID 重复。",
       );
     }
     if (c.arguments.length > 64000 ||
@@ -196,7 +192,7 @@ void validateToolCalls(List<ToolCall> calls) {
         c.id.length > 200) {
       throw const AiFailure.localized(
         AppErrorCode.errorToolCallDataIsTooLong,
-        '工具调用数据过长。',
+        "工具调用数据过长。",
       );
     }
   }

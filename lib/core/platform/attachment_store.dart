@@ -1,10 +1,10 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'dart:io';
-import 'dart:typed_data';
+import "dart:io";
+import "dart:typed_data";
 
-import 'package:path/path.dart' as p;
-import 'package:uuid/uuid.dart';
+import "package:path/path.dart" as p;
+import "package:uuid/uuid.dart";
 
 class ImportedImage {
   const ImportedImage(this.path, this.mime, this.bytes);
@@ -22,7 +22,7 @@ class AttachmentStore {
     if (!p.isWithin(root.path, target)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidAttachmentPath,
-        '附件路径无效',
+        "附件路径无效",
       );
     }
     return File(target);
@@ -34,12 +34,12 @@ class AttachmentStore {
     if (size > 8 * 1024 * 1024) {
       throw const AppFormatException(
         AppErrorCode.errorEachImageMustBeAtMost,
-        '单张图片上限为 8 MB，请先缩小图片。',
+        "单张图片上限为 8 MB，请先缩小图片。",
       );
     }
     final data = await file.readAsBytes();
     final (mime, ext) = identify(data);
-    final relative = p.join('attachments', '${const Uuid().v4()}.$ext');
+    final relative = p.join("attachments", "${const Uuid().v4()}.$ext");
     final target = resolve(relative);
     await target.parent.create(recursive: true);
     await target.writeAsBytes(data, flush: true);
@@ -52,22 +52,22 @@ class AttachmentStore {
         b[1] == 80 &&
         b[2] == 78 &&
         b[3] == 71) {
-      return ('image/png', 'png');
+      return ("image/png", "png");
     }
     if (b.length >= 3 && b[0] == 255 && b[1] == 216 && b[2] == 255) {
-      return ('image/jpeg', 'jpg');
+      return ("image/jpeg", "jpg");
     }
-    if (b.length >= 6 && String.fromCharCodes(b.take(6)).startsWith('GIF8')) {
-      return ('image/gif', 'gif');
+    if (b.length >= 6 && String.fromCharCodes(b.take(6)).startsWith("GIF8")) {
+      return ("image/gif", "gif");
     }
     if (b.length >= 12 &&
-        String.fromCharCodes(b.take(4)) == 'RIFF' &&
-        String.fromCharCodes(b.skip(8).take(4)) == 'WEBP') {
-      return ('image/webp', 'webp');
+        String.fromCharCodes(b.take(4)) == "RIFF" &&
+        String.fromCharCodes(b.skip(8).take(4)) == "WEBP") {
+      return ("image/webp", "webp");
     }
     throw const AppFormatException(
       AppErrorCode.errorOnlyJPGPNGGIFAndWebP,
-      '仅支持 JPG、PNG、GIF 和 WebP 图片。',
+      "仅支持 JPG、PNG、GIF 和 WebP 图片。",
     );
   }
 }

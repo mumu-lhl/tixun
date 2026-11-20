@@ -1,23 +1,25 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
+import "dart:async";
+import "dart:convert";
+import "dart:io";
+import "dart:math";
 
-import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
-import 'package:jose/jose.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:uuid/uuid.dart';
+import "package:crypto/crypto.dart";
+import "package:dio/dio.dart";
+import "package:jose/jose.dart";
+import "package:url_launcher/url_launcher.dart";
+import "package:uuid/uuid.dart";
 
-import '../../platform/key_store.dart';
-import '../chat_provider.dart';
+import "../../platform/key_store.dart";
+import "../chat_provider.dart";
 
-const chatGptIssuer = 'https://auth.openai.com';
-const chatGptResource = 'https://api.openai.com/v1';
-const _tokenUrl = '$chatGptIssuer/api/accounts/oauth/token';
-const _requiredScopes = {'resource.invoke', 'chatgpt.tokens.use.direct'};
+part "auth_login.dart";
+
+const chatGptIssuer = "https://auth.openai.com";
+const chatGptResource = "https://api.openai.com/v1";
+const _tokenUrl = "$chatGptIssuer/api/accounts/oauth/token";
+const _requiredScopes = {"resource.invoke", "chatgpt.tokens.use.direct"};
 
 class ChatGptAccount {
   const ChatGptAccount({
@@ -28,10 +30,9 @@ class ChatGptAccount {
   });
   final String clientId, subject, label;
   final bool connected;
-  String get id => '$clientId:$subject';
+  String get id => "$clientId:$subject";
 }
 
-/// Token and identity for account-scoped requests.
 class ChatGptSession {
   const ChatGptSession({required this.accessToken, required this.accountId});
   final String accessToken;
@@ -53,7 +54,7 @@ class ChatGptSnapshot {
 /// itself stored, and any malformed token simply yields no claim.
 Map<String, dynamic>? _unverifiedTokenPayload(Object? raw) {
   if (raw is! String) return null;
-  final parts = raw.split('.');
+  final parts = raw.split(".");
   if (parts.length < 2) return null;
   try {
     final decoded = utf8.decode(
@@ -71,41 +72,41 @@ class _AccountRecord {
     // Fail eagerly so a record missing its identity is caught by _accounts
     // and reported as an unreadable login instead of a raw TypeError from
     // a getter later.
-    if (data['client_id'] is! String || data['sub'] is! String) {
+    if (data["client_id"] is! String || data["sub"] is! String) {
       throw const AppFormatException(
         AppErrorCode.errorTheChatGPTSignInRecordIs,
-        'ChatGPT 登录记录损坏。',
+        "ChatGPT 登录记录损坏。",
       );
     }
   }
   final Map<String, dynamic> data;
-  String get clientId => data['client_id'] as String;
-  String get subject => data['sub'] as String;
-  String get id => '$clientId:$subject';
+  String get clientId => data["client_id"] as String;
+  String get subject => data["sub"] as String;
+  String get id => "$clientId:$subject";
   String get label =>
-      data['email'] as String? ?? data['name'] as String? ?? 'ChatGPT';
-  bool get connected => (data['refresh_token'] as String? ?? '').isNotEmpty;
+      data["email"] as String? ?? data["name"] as String? ?? "ChatGPT";
+  bool get connected => (data["refresh_token"] as String? ?? "").isNotEmpty;
 
   /// Identity OpenAI uses for account-scoped endpoints. Sign-in stores it when
   /// the verified ID token carries it; older records fall back to the same
   /// claim inside the stored token, so a quota check works without re-login.
   String get accountId {
-    final stored = data['account_id'];
+    final stored = data["account_id"];
     if (stored is String && stored.isNotEmpty) return stored;
-    final payload = _unverifiedTokenPayload(data['id_token']);
-    final auth = payload?['https://api.openai.com/auth'];
-    final id = auth is Map ? auth['chatgpt_account_id'] : null;
-    return id is String ? id : '';
+    final payload = _unverifiedTokenPayload(data["id_token"]);
+    final auth = payload?["https://api.openai.com/auth"];
+    final id = auth is Map ? auth["chatgpt_account_id"] : null;
+    return id is String ? id : "";
   }
 
   /// Plan label from the same claim, e.g. `plus`, `pro`. Not a quota figure.
   String get planType {
-    final stored = data['plan_type'];
+    final stored = data["plan_type"];
     if (stored is String && stored.isNotEmpty) return stored;
-    final payload = _unverifiedTokenPayload(data['id_token']);
-    final auth = payload?['https://api.openai.com/auth'];
-    final plan = auth is Map ? auth['chatgpt_plan_type'] : null;
-    return plan is String ? plan : '';
+    final payload = _unverifiedTokenPayload(data["id_token"]);
+    final auth = payload?["https://api.openai.com/auth"];
+    final plan = auth is Map ? auth["chatgpt_plan_type"] : null;
+    return plan is String ? plan : "";
   }
 
   ChatGptAccount get summary => ChatGptAccount(
@@ -114,7 +115,7 @@ class _AccountRecord {
     label: label,
     connected: connected,
   );
-  List<String> get scopes => List<String>.from(data['scopes'] as List? ?? []);
+  List<String> get scopes => List<String>.from(data["scopes"] as List? ?? []);
 }
 
 class ChatGptModel {
@@ -145,7 +146,7 @@ class ChatGptAuth {
        _openBrowser =
            openBrowser ??
            ((uri) => launchUrl(uri, mode: LaunchMode.externalApplication));
-  static const storageKey = 'chatgpt.oauth.v1';
+  static const storageKey = "chatgpt.oauth.v1";
   final KeyStore _keys;
   final Dio _client;
   final Future<bool> Function(Uri) _openBrowser;
@@ -169,25 +170,23 @@ class ChatGptAuth {
   Future<Map<String, dynamic>> _load() async {
     final raw = await _keys.read(storageKey);
     if (raw == null || raw.isEmpty) {
-      return {'version': 1, 'accounts': <dynamic>[]};
+      return {"version": 1, "accounts": <dynamic>[]};
     }
     try {
       final data = jsonDecode(raw) as Map<String, dynamic>;
-      if (data['version'] != 1 || data['accounts'] is! List) {
+      if (data["version"] != 1 || data["accounts"] is! List) {
         throw const AiFailure.localized(
           AppErrorCode.couldNotReadChatGPTSign,
-          'ChatGPT 登录记录无法读取，请检查系统安全存储。',
+          "ChatGPT 登录记录无法读取，请检查系统安全存储。",
         );
       }
       return data;
     } on AiFailure {
       rethrow;
     } catch (_) {
-      // Corrupt JSON or a non-object record used to surface raw
-      // FormatException/TypeError here; report it as an unreadable login.
       throw const AiFailure.localized(
         AppErrorCode.couldNotReadChatGPTSign,
-        'ChatGPT 登录记录无法读取，请检查系统安全存储。',
+        "ChatGPT 登录记录无法读取，请检查系统安全存储。",
       );
     }
   }
@@ -197,14 +196,13 @@ class ChatGptAuth {
   List<_AccountRecord> _accounts(Map<String, dynamic> data) {
     try {
       return [
-        for (final row in data['accounts'] as List)
+        for (final row in data["accounts"] as List)
           _AccountRecord(Map<String, dynamic>.from(row as Map)),
       ];
     } catch (_) {
-      // One corrupt account row must not surface a raw TypeError.
       throw const AiFailure.localized(
         AppErrorCode.couldNotReadChatGPTSign,
-        'ChatGPT 登录记录无法读取，请检查系统安全存储。',
+        "ChatGPT 登录记录无法读取，请检查系统安全存储。",
       );
     }
   }
@@ -212,7 +210,7 @@ class ChatGptAuth {
   Future<ChatGptSnapshot> snapshot() async {
     final data = await _load();
     final accounts = _accounts(data).map((a) => a.summary).toList();
-    final active = data['active'] as String?;
+    final active = data["active"] as String?;
     return ChatGptSnapshot(
       accounts,
       accounts.any((a) => a.id == active) ? active : null,
@@ -224,23 +222,23 @@ class ChatGptAuth {
     if (!_accounts(data).any((a) => a.id == id)) {
       throw const AiFailure.localized(
         AppErrorCode.selectASavedChatGPTAccount,
-        '请选择已保存的 ChatGPT 账号。',
+        "请选择已保存的 ChatGPT 账号。",
       );
     }
-    data['active'] = id;
+    data["active"] = id;
     await _save(data);
     _accountEpoch++;
   });
 
   Future<Map<String, dynamic>> _discovery() async {
     final result = await _client.get<Map<String, dynamic>>(
-      '$chatGptIssuer/.well-known/openid-configuration',
+      "$chatGptIssuer/.well-known/openid-configuration",
     );
     final data = result.data!;
-    if (data['issuer'] != chatGptIssuer) {
+    if (data["issuer"] != chatGptIssuer) {
       throw const AiFailure.localized(
         AppErrorCode.invalidChatGPTAuthorizationServiceIdentity,
-        'ChatGPT 授权服务身份无效。',
+        "ChatGPT 授权服务身份无效。",
       );
     }
     return data;
@@ -248,15 +246,15 @@ class ChatGptAuth {
 
   Uri _trustedEndpoint(Object? value) {
     final uri = Uri.parse(value as String);
-    if (uri.scheme != 'https' ||
-        uri.host != 'auth.openai.com' ||
+    if (uri.scheme != "https" ||
+        uri.host != "auth.openai.com" ||
         uri.userInfo.isNotEmpty ||
         uri.hasQuery ||
         uri.hasFragment ||
         (uri.hasPort && uri.port != 443)) {
       throw const AiFailure.localized(
         AppErrorCode.invalidChatGPTAuthorizationServiceURL,
-        'ChatGPT 授权服务地址无效。',
+        "ChatGPT 授权服务地址无效。",
       );
     }
     return uri;
@@ -264,317 +262,10 @@ class ChatGptAuth {
 
   String _random() =>
       base64UrlEncode(List.generate(32, (_) => Random.secure().nextInt(256)))
-          .replaceAll('=', '');
+          .replaceAll("=", "");
 
-  Future<ChatGptAccount> signIn({String? accountId}) async {
-    if (_signingOut) {
-      throw const AiFailure.localized(
-        AppErrorCode.signingOutOfChatGPTTry,
-        '正在退出 ChatGPT，请稍后重试。',
-      );
-    }
-    if (_login != null) {
-      throw const AiFailure.localized(
-        AppErrorCode.aChatGPTSignInIs,
-        '已有 ChatGPT 登录正在进行。',
-      );
-    }
-    final cancel = _login = CancelToken();
-    HttpServer? server;
-    Timer? timer;
-    try {
-      final host = await _exclusive(() async {
-        final data = await _load();
-        data['host'] ??= 'urn:uuid:${const Uuid().v4()}';
-        await _save(
-          data,
-        ); // Fail before opening browser if secure storage is unavailable.
-        return data['host'] as String;
-      });
-      cancel.checkCancelled();
-      final saved = _accounts(await _load());
-      final old = accountId == null
-          ? null
-          : saved.where((a) => a.id == accountId).firstOrNull;
-      if (accountId != null && old == null) {
-        throw const AiFailure.localized(
-          AppErrorCode.selectASavedChatGPTAccount,
-          '请选择已保存的 ChatGPT 账号。',
-        );
-      }
-      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      final redirect = 'http://127.0.0.1:${server.port}/auth/callback';
-      final state = _random(), nonce = _random(), verifier = _random();
-      final result = Completer<Map<String, String>>();
-      cancel.whenCancel.then((_) {
-        if (!result.isCompleted) {
-          result.completeError(
-            const AiFailure.localized(
-              AppErrorCode.chatGPTSignInCancelled,
-              '已取消 ChatGPT 登录。',
-            ),
-          );
-        }
-      });
-      timer = Timer(const Duration(minutes: 3), () {
-        if (!result.isCompleted) {
-          result.completeError(
-            const AiFailure.localized(
-              AppErrorCode.chatGPTSignInTimedOut,
-              'ChatGPT 登录超时，请重试。',
-            ),
-          );
-        }
-      });
-      // Attach an error listener before browser launch/cancellation can complete it.
-      final callback = result.future;
-      unawaited(
-        callback.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
-      );
-      server.listen((request) async {
-        var accepted = false;
-        try {
-          final query = request.uri.queryParametersAll;
-          accepted =
-              request.method == 'GET' &&
-              request.uri.path == '/auth/callback' &&
-              request.headers.value('host') == '127.0.0.1:${server!.port}' &&
-              query.values.every((v) => v.length == 1) &&
-              request.uri.queryParameters['state'] == state &&
-              !result.isCompleted;
-          if (accepted) result.complete(request.uri.queryParameters);
-          request.response.statusCode = accepted ? 200 : 400;
-          request.response.headers
-            ..contentType = ContentType.html
-            ..set('Cache-Control', 'no-store')
-            ..set('Referrer-Policy', 'no-referrer')
-            ..set('Content-Security-Policy', "default-src 'none'");
-          request.response.write(
-            accepted
-                ? '<!doctype html><meta charset="utf-8"><p>Return to TiXun to finish signing in. 请返回题训完成登录。</p>'
-                : 'Invalid callback.',
-          );
-          await request.response.close();
-        } catch (_) {
-          await request.response.close();
-        }
-      });
-      final uri = Uri.parse('$chatGptIssuer/api/accounts/authorize').replace(
-        queryParameters: {
-          'response_type': 'code',
-          'client_id': old?.clientId ?? 'dynamic_agent_client',
-          'agent_name_hint': 'TiXun',
-          'ext_agent_host_id': host,
-          'redirect_uri': redirect,
-          'scope': 'openid profile email offline_access resource.invoke chatgpt.tokens.use.direct',
-          'resource': chatGptResource,
-          'state': state,
-          'nonce': nonce,
-          'code_challenge_method': 'S256',
-          'code_challenge': base64UrlEncode(
-            sha256.convert(ascii.encode(verifier)).bytes,
-          ).replaceAll('=', ''),
-          if (old?.data['id_token'] case final String hint)
-            'id_token_hint': hint,
-        },
-      );
-      bool opened;
-      try {
-        opened = await _openBrowser(uri);
-      } catch (_) {
-        throw const AiFailure.localized(
-          AppErrorCode.couldNotOpenSystemBrowser,
-          '无法打开系统浏览器，请检查浏览器设置。',
-        );
-      }
-      if (!opened) {
-        throw const AiFailure.localized(
-          AppErrorCode.couldNotOpenSystemBrowser,
-          '无法打开系统浏览器，请检查浏览器设置。',
-        );
-      }
-      final answer = await callback;
-      cancel.checkCancelled();
-      if (answer.containsKey('error')) {
-        throw const AiFailure.localized(
-          AppErrorCode.chatGPTAuthorizationWasNotCompleted,
-          'ChatGPT 授权未完成，请重新登录并确认订阅使用权限。',
-        );
-      }
-      final clientId = answer['client_id'] ?? old?.clientId;
-      if (clientId == null ||
-          clientId == 'dynamic_agent_client' ||
-          !clientId.startsWith('oaiapp_') ||
-          (old != null && clientId != old.clientId) ||
-          (answer['code'] ?? '').isEmpty) {
-        throw const AiFailure.localized(
-          AppErrorCode.invalidChatGPTSignInCallback,
-          'ChatGPT 登录回调无效，请重新登录。',
-        );
-      }
-      final token = (await _client.post<Map<String, dynamic>>(
-        _tokenUrl,
-        data: {
-          'grant_type': 'authorization_code',
-          'client_id': clientId,
-          'code': answer['code'],
-          'code_verifier': verifier,
-          'redirect_uri': redirect,
-          'resource': chatGptResource,
-        },
-        cancelToken: cancel,
-        options: Options(contentType: Headers.formUrlEncodedContentType),
-      )).data!;
-      final identity = await _verifyIdentity(
-        token['id_token'] as String,
-        clientId,
-        nonce,
-      );
-      if (old != null && identity['sub'] != old.subject) {
-        throw const AiFailure.localized(
-          AppErrorCode.theSignedInIdentityDiffers,
-          '登录账号与所选账号不一致，原登录记录未更改。',
-        );
-      }
-      final record = _tokenRecord(token, {...identity, 'client_id': clientId});
-      cancel.checkCancelled();
-      await _exclusive(() async {
-        cancel.checkCancelled();
-        final data = await _load();
-        final account = _AccountRecord(record);
-        data['accounts'] = [
-          for (final a in _accounts(data))
-            if (a.id != account.id) a.data,
-          record,
-        ];
-        data['active'] = account.id;
-        await _save(data);
-        _accountEpoch++;
-      });
-      return _AccountRecord(record).summary;
-    } on AiFailure {
-      rethrow;
-    } catch (_) {
-      if (cancel.isCancelled) {
-        throw const AiFailure.localized(
-          AppErrorCode.chatGPTSignInCancelled,
-          '已取消 ChatGPT 登录。',
-        );
-      }
-      throw const AiFailure.localized(
-        AppErrorCode.chatGPTSignInFailedCheck,
-        'ChatGPT 登录失败，请检查网络、系统时间和安全存储后重试。',
-      );
-    } finally {
-      timer?.cancel();
-      await server?.close(force: true);
-      _login = null;
-    }
-  }
-
-  Future<Map<String, dynamic>> _verifyIdentity(
-    String raw,
-    String clientId,
-    String nonce,
-  ) async {
-    // Trust keys from OpenAI discovery only, never a token-provided key or URL.
-    // This also enforces the mitigation for GHSA-vm9r-h74p-hg97 independently
-    // of JOSE dependency key-selection behavior.
-    final parts = raw.split('.');
-    if (parts.length != 3) {
-      throw const AiFailure.localized(
-        AppErrorCode.chatGPTIdentityVerificationFailedSign,
-        'ChatGPT 账号身份校验失败，请重新登录。',
-      );
-    }
-    final header = jsonDecode(
-      utf8.decode(base64Url.decode(base64Url.normalize(parts.first))),
-    );
-    if (header is! Map ||
-        header['alg'] != 'RS256' ||
-        ['jwk', 'jku', 'x5u'].any(header.containsKey)) {
-      throw const AiFailure.localized(
-        AppErrorCode.chatGPTIdentityVerificationFailedSign,
-        'ChatGPT 账号身份校验失败，请重新登录。',
-      );
-    }
-    final discovery = await _discovery();
-    final jwks = (await _client.get<Map<String, dynamic>>(
-      _trustedEndpoint(discovery['jwks_uri']).toString(),
-    )).data!;
-    final store = JsonWebKeyStore()..addKeySet(JsonWebKeySet.fromJson(jwks));
-    final jwt = await JsonWebToken.decodeAndVerify(
-      raw,
-      store,
-      allowedArguments: ['RS256'],
-    );
-    final claims = jwt.claims;
-    final now = DateTime.now();
-    if (claims.issuer.toString() != chatGptIssuer ||
-        !(claims.audience ?? []).contains(clientId) ||
-        claims.issuedAt == null ||
-        claims.expiry == null ||
-        !claims.expiry!.isAfter(now) ||
-        (claims.notBefore?.isAfter(now.add(const Duration(seconds: 30))) ??
-            false) ||
-        (claims.issuedAt?.isAfter(now.add(const Duration(seconds: 30))) ??
-            false) ||
-        claims['nonce'] != nonce ||
-        (claims.subject ?? '').isEmpty ||
-        ((claims.audience?.length ?? 0) > 1 && claims['azp'] != clientId)) {
-      throw const AiFailure.localized(
-        AppErrorCode.chatGPTIdentityVerificationFailedSign,
-        'ChatGPT 账号身份校验失败，请重新登录。',
-      );
-    }
-    final auth = claims['https://api.openai.com/auth'];
-    return {
-      'sub': claims.subject,
-      'id_token': raw,
-      if (claims['email'] is String) 'email': claims['email'],
-      if (claims['name'] is String) 'name': claims['name'],
-      if (auth is Map && auth['chatgpt_account_id'] is String)
-        'account_id': auth['chatgpt_account_id'],
-      if (auth is Map && auth['chatgpt_plan_type'] is String)
-        'plan_type': auth['chatgpt_plan_type'],
-    };
-  }
-
-  Map<String, dynamic> _tokenRecord(
-    Map<String, dynamic> token,
-    Map<String, dynamic> old,
-  ) {
-    final scopes = token['scope'] is String
-        ? (token['scope'] as String)
-              .split(' ')
-              .where((s) => s.isNotEmpty)
-              .toList()
-        : List<String>.from(old['scopes'] as List? ?? []);
-    if (!_requiredScopes.every(scopes.contains) ||
-        token['token_type']?.toString().toLowerCase() != 'bearer' ||
-        token['access_token'] is! String ||
-        (token['access_token'] as String).isEmpty ||
-        token['expires_in'] is! num ||
-        (token['expires_in'] as num) <= 0 ||
-        (token['expires_in'] as num) > 604800 ||
-        ((token['refresh_token'] ?? old['refresh_token']) as String? ?? '')
-            .isEmpty) {
-      throw const AiFailure.localized(
-        AppErrorCode.thisAccountHasNotGranted,
-        '账号未授予 ChatGPT 订阅推理权限，请重新授权。',
-      );
-    }
-    return {
-      ...old,
-      'access_token': token['access_token'],
-      'refresh_token': token['refresh_token'] ?? old['refresh_token'],
-      'scopes': scopes,
-      'expires_at': DateTime.now()
-          .add(Duration(seconds: (token['expires_in'] as num).toInt()))
-          .toUtc()
-          .toIso8601String(),
-    };
-  }
+  Future<ChatGptAccount> signIn({String? accountId}) =>
+      _signIn(accountId: accountId);
 
   Future<String> accessToken({CancelToken? cancel}) async =>
       (await session(cancel: cancel)).accessToken;
@@ -590,31 +281,31 @@ class ChatGptAuth {
     if (epoch != _accountEpoch) {
       throw const AiFailure.localized(
         AppErrorCode.theChatGPTAccountChangedSend,
-        'ChatGPT 账号已切换，请重新发送。',
+        "ChatGPT 账号已切换，请重新发送。",
       );
     }
     final account = _accounts(data)
-        .where((a) => a.id == data['active'])
+        .where((a) => a.id == data["active"])
         .firstOrNull;
     if (account == null || !account.connected) {
       throw const AiFailure.localized(
         AppErrorCode.signInUsingContinueWith,
-        '请先使用 Continue with ChatGPT 登录。',
+        "请先使用 Continue with ChatGPT 登录。",
       );
     }
     if (!_requiredScopes.every(account.scopes.contains)) {
       throw const AiFailure.localized(
         AppErrorCode.thisAccountHasNotGranted,
-        '账号未授予 ChatGPT 订阅推理权限，请重新授权。',
+        "账号未授予 ChatGPT 订阅推理权限，请重新授权。",
       );
     }
     final expiry = DateTime.tryParse(
-      account.data['expires_at'] as String? ?? '',
+      account.data["expires_at"] as String? ?? "",
     );
     if (expiry != null &&
         expiry.isAfter(DateTime.now().add(const Duration(minutes: 1)))) {
       return ChatGptSession(
-        accessToken: account.data['access_token'] as String,
+        accessToken: account.data["access_token"] as String,
         accountId: account.accountId,
       );
     }
@@ -625,7 +316,7 @@ class ChatGptAuth {
       pending = refresh;
       void release() {
         if (identical(_refreshes[account.id], refresh)) {
-          _refreshes.remove(account.id);
+          final _ = _refreshes.remove(account.id);
         }
       }
 
@@ -647,7 +338,7 @@ class ChatGptAuth {
     if (epoch != _accountEpoch) {
       throw const AiFailure.localized(
         AppErrorCode.theChatGPTAccountChangedSend,
-        'ChatGPT 账号已切换，请重新发送。',
+        "ChatGPT 账号已切换，请重新发送。",
       );
     }
     return ChatGptSession(accessToken: token, accountId: account.accountId);
@@ -658,10 +349,10 @@ class ChatGptAuth {
       final token = (await _client.post<Map<String, dynamic>>(
         _tokenUrl,
         data: {
-          'grant_type': 'refresh_token',
-          'client_id': account.clientId,
-          'refresh_token': account.data['refresh_token'],
-          'resource': chatGptResource,
+          "grant_type": "refresh_token",
+          "client_id": account.clientId,
+          "refresh_token": account.data["refresh_token"],
+          "resource": chatGptResource,
         },
         options: Options(contentType: Headers.formUrlEncodedContentType),
       )).data!;
@@ -672,24 +363,24 @@ class ChatGptAuth {
             .where((a) => a.id == account.id)
             .firstOrNull;
         if (existing == null ||
-            existing.data['refresh_token'] != account.data['refresh_token']) {
+            existing.data["refresh_token"] != account.data["refresh_token"]) {
           throw const AiFailure.localized(
             AppErrorCode.chatGPTSignInChangedSend,
-            'ChatGPT 登录已改变，请重新发送。',
+            "ChatGPT 登录已改变，请重新发送。",
           );
         }
-        data['accounts'] = [
+        data["accounts"] = [
           for (final a in _accounts(data)) a.id == account.id ? next : a.data,
         ];
         await _save(data);
       });
-      return next['access_token'] as String;
+      return next["access_token"] as String;
     } on AiFailure {
       rethrow;
     } catch (_) {
       throw const AiFailure.localized(
         AppErrorCode.couldNotRenewChatGPTSign,
-        'ChatGPT 登录续期失败，请重新登录。',
+        "ChatGPT 登录续期失败，请重新登录。",
       );
     }
   }
@@ -699,7 +390,7 @@ class ChatGptAuth {
     if (_signingOut) {
       throw const AiFailure.localized(
         AppErrorCode.signingOutOfChatGPTTry,
-        '正在退出 ChatGPT，请稍后重试。',
+        "正在退出 ChatGPT，请稍后重试。",
       );
     }
     _signingOut = true;
@@ -714,15 +405,15 @@ class ChatGptAuth {
       // usable credentials during a slow or failed revocation request.
       await _exclusive(() async {
         final data = await _load();
-        data['accounts'] = [
+        data["accounts"] = [
           for (final a in _accounts(data))
             a.id == id
                 ? {
                     ...a.data,
-                    'access_token': '',
-                    'refresh_token': '',
-                    'expires_at': '',
-                    'scopes': <String>[],
+                    "access_token": "",
+                    "refresh_token": "",
+                    "expires_at": "",
+                    "scopes": <String>[],
                   }
                 : a.data,
         ];
@@ -732,11 +423,11 @@ class ChatGptAuth {
       try {
         final discovery = await _discovery();
         await _client.post<void>(
-          _trustedEndpoint(discovery['revocation_endpoint']).toString(),
+          _trustedEndpoint(discovery["revocation_endpoint"]).toString(),
           data: {
-            'client_id': account.clientId,
-            'token': account.data['refresh_token'],
-            'token_type_hint': 'refresh_token',
+            "client_id": account.clientId,
+            "token": account.data["refresh_token"],
+            "token_type_hint": "refresh_token",
           },
           options: Options(contentType: Headers.formUrlEncodedContentType),
         );
@@ -753,28 +444,28 @@ class ChatGptAuth {
     try {
       final token = await accessToken();
       final data = (await _client.get<Map<String, dynamic>>(
-        '$chatGptResource/models',
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        "$chatGptResource/models",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
       )).data!;
-      if (data['models'] is! List) {
+      if (data["models"] is! List) {
         throw const AiFailure.localized(
           AppErrorCode.invalidChatGPTModelCatalog,
-          'ChatGPT 模型列表格式无效。',
+          "ChatGPT 模型列表格式无效。",
         );
       }
       return [
-        for (final row in data['models'] as List)
+        for (final row in data["models"] as List)
           if (row is Map &&
-              row['visibility'] == 'list' &&
-              row['slug'] is String &&
-              row['display_name'] is String)
+              row["visibility"] == "list" &&
+              row["slug"] is String &&
+              row["display_name"] is String)
             ChatGptModel(
-              row['slug'] as String,
-              row['display_name'] as String,
-              (row['input_modalities'] is List
-                      ? row['input_modalities'] as List
+              row["slug"] as String,
+              row["display_name"] as String,
+              (row["input_modalities"] is List
+                      ? row["input_modalities"] as List
                       : [])
-                  .contains('image'),
+                  .contains("image"),
               reasoningEfforts: advertisedReasoningLevels(row),
             ),
       ];
@@ -783,7 +474,7 @@ class ChatGptAuth {
     } catch (_) {
       throw const AiFailure.localized(
         AppErrorCode.couldNotLoadChatGPTModels,
-        '无法读取 ChatGPT 模型列表，请检查网络或重新登录。',
+        "无法读取 ChatGPT 模型列表，请检查网络或重新登录。",
       );
     }
   }

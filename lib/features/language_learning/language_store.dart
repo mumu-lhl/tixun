@@ -1,13 +1,13 @@
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import '../../core/database/database_notifier.dart';
-import 'lexical_form.dart';
+import "../../core/database/database.dart";
+import "../../core/database/database_notifier.dart";
+import "lexical_form.dart";
 
 const languageBatchSize = 20;
 String normalizeLanguageText(String value) =>
-    value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+    value.trim().replaceAll(RegExp(r"\s+"), " ").toLowerCase();
 
 enum LexicalType { word, phrase, phrasalVerb, collocation, idiom }
 
@@ -79,7 +79,7 @@ class LanguageLearningStore extends DatabaseNotifier {
         entries.any(
           (entry) => entry.form.trim().isEmpty || entry.meaning.trim().isEmpty,
         )) {
-      throw ArgumentError('A group title, expression and meaning are required');
+      throw ArgumentError("A group title, expression and meaning are required");
     }
     await db.transaction(() async {
       final existing =
@@ -169,8 +169,8 @@ class LanguageLearningStore extends DatabaseNotifier {
     if ((application != null || answer != null) &&
         (application == null ||
             answer == null ||
-            '___'.allMatches(application).length != 1)) {
-      throw ArgumentError('An application requires one blank and an answer');
+            "___".allMatches(application).length != 1)) {
+      throw ArgumentError("An application requires one blank and an answer");
     }
     if (sense == null) {
       await db
@@ -185,9 +185,9 @@ class LanguageLearningStore extends DatabaseNotifier {
               application: Value(application),
               applicationAnswer: Value(answer),
               source: Value(switch (provenance) {
-                null => 'user',
-                VocabularyProvenance(mock: true) => 'mock',
-                _ => 'ai',
+                null => "user",
+                VocabularyProvenance(mock: true) => "mock",
+                _ => "ai",
               }),
               aiBatchId: Value(provenance?.batchId),
               aiModel: Value(provenance?.model),
@@ -402,7 +402,7 @@ class LanguageLearningStore extends DatabaseNotifier {
         LearningEvidenceCompanion.insert(
           id: attemptId,
           senseId: senseId,
-          skill: 'meaningRecall',
+          skill: "meaningRecall",
           rating: Value(rating.name),
           answerRevealed: const Value(true),
           groupPrompt: Value(groupPrompt),
@@ -449,13 +449,13 @@ class LanguageLearningStore extends DatabaseNotifier {
       if (sense.application == null ||
           expected == null ||
           answer.trim().isEmpty) {
-        throw StateError('No valid application response');
+        throw StateError("No valid application response");
       }
       await _insertEvidence(
         LearningEvidenceCompanion.insert(
           id: attemptId,
           senseId: senseId,
-          skill: 'contextApplication',
+          skill: "contextApplication",
           answer: Value(answer.trim()),
           correct: Value(
             normalizeLanguageText(answer) == normalizeLanguageText(expected),

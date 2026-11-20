@@ -1,58 +1,58 @@
-import '../features/timeline/timeline_store.dart';
+import "../features/timeline/timeline_store.dart";
 
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'app_notice.dart';
-import '../features/scratchpad/scratch_store.dart';
-import '../features/exams/exam_store.dart';
-import '../features/library/module_store.dart';
+import "app_notice.dart";
+import "../features/scratchpad/scratch_store.dart";
+import "../features/exams/exam_store.dart";
+import "../features/library/module_store.dart";
 
-import 'dart:async';
-import 'dart:io';
+import "dart:async";
+import "dart:io";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart' hide Column;
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/legacy.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:uuid/uuid.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart" hide Column;
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:flutter_riverpod/legacy.dart";
+import "package:path/path.dart" as p;
+import "package:path_provider/path_provider.dart";
+import "package:uuid/uuid.dart";
 
-import 'preferences.dart';
+import "preferences.dart";
 
-import '../core/ai/chat_provider.dart';
-import '../core/ai/chatgpt/usage.dart';
-import '../core/ai/provider_balance.dart';
-import '../core/ai/ai_usage_store.dart';
-import '../core/ai/chatgpt/auth.dart';
-import '../core/ai/chatgpt/responses.dart';
-import '../core/ai/prompt_settings.dart';
-import '../core/ai/study_write_task.dart';
-import '../core/ai/study_tools.dart';
-import '../core/database/attachment_cleanup.dart';
-import '../core/database/database.dart';
-import '../core/l10n/app_strings.dart';
-import '../core/l10n/generated/app_localizations.dart';
-import '../core/platform/attachment_store.dart';
-import '../core/platform/attachment_selection.dart';
-import '../core/platform/key_store.dart';
-import '../features/language_learning/language_store.dart';
-import '../features/library/study_store.dart';
-import '../features/practice/practice_store.dart';
-import '../features/chat/learning_run.dart';
-import '../features/a2ui/a2ui_store.dart';
-import '../features/a2ui/a2ui_tools.dart';
-import '../features/chat/chat_branch_store.dart';
-import '../features/chat/chat_failure.dart';
-import '../features/progress/learning_profile.dart';
-import '../features/review/review_store.dart';
-import '../features/visual/visual_store.dart';
+import "../core/ai/chat_provider.dart";
+import "../core/ai/chatgpt/usage.dart";
+import "../core/ai/provider_balance.dart";
+import "../core/ai/ai_usage_store.dart";
+import "../core/ai/chatgpt/auth.dart";
+import "../core/ai/chatgpt/responses.dart";
+import "../core/ai/prompt_settings.dart";
+import "../core/ai/study_write_task.dart";
+import "../core/ai/study_tools.dart";
+import "../core/database/attachment_cleanup.dart";
+import "../core/database/database.dart";
+import "../core/l10n/app_strings.dart";
+import "../core/l10n/generated/app_localizations.dart";
+import "../core/platform/attachment_store.dart";
+import "../core/platform/attachment_selection.dart";
+import "../core/platform/key_store.dart";
+import "../features/language_learning/language_store.dart";
+import "../features/library/study_store.dart";
+import "../features/practice/practice_store.dart";
+import "../features/chat/learning_run.dart";
+import "../features/a2ui/a2ui_store.dart";
+import "../features/a2ui/a2ui_tools.dart";
+import "../features/chat/chat_branch_store.dart";
+import "../features/chat/chat_failure.dart";
+import "../features/progress/learning_profile.dart";
+import "../features/review/review_store.dart";
+import "../features/visual/visual_store.dart";
 
-part 'controller_chat_sessions.dart';
-part 'controller_chat_generation.dart';
-part 'controller_demo.dart';
-part 'controller_practice_setup.dart';
+part "controller_chat_sessions.dart";
+part "controller_chat_generation.dart";
+part "controller_demo.dart";
+part "controller_practice_setup.dart";
 
 typedef _PreparedGeneration = ({
   String sessionId,
@@ -60,7 +60,7 @@ typedef _PreparedGeneration = ({
 });
 
 final appControllerProvider = ChangeNotifierProvider<AppController>(
-  (ref) => throw StateError('AppController must be initialized'),
+  (ref) => throw StateError("AppController must be initialized"),
 );
 
 class AppController extends ChangeNotifier {
@@ -110,7 +110,7 @@ class AppController extends ChangeNotifier {
   set config(ProviderConfig value) => preferences.config = value;
   PromptSettings get prompts => preferences.prompts;
   set prompts(PromptSettings value) => preferences.prompts = value;
-  String sessionReasoning = '';
+  String sessionReasoning = "";
   Set<StudyToolCategory> studyToolCategories = allStudyToolCategories;
   String get languageChoice => preferences.languageChoice;
   bool get dynamicColors => preferences.dynamicColors;
@@ -126,7 +126,7 @@ class AppController extends ChangeNotifier {
     sessionDrawingOverride = value;
     changed();
     return preferences.runOperation(
-      () => db.setPreference('ai_drawing:$id', value?.toString() ?? ''),
+      () => db.setPreference("ai_drawing:$id", value?.toString() ?? ""),
     );
   }
 
@@ -169,7 +169,7 @@ class AppController extends ChangeNotifier {
   Completer<void>? _preparation;
   int _epoch = 0;
   bool _disposed = false;
-  String search = '';
+  String search = "";
   String? searchTargetMessageId;
   int searchTargetRevision = 0;
 
@@ -187,7 +187,7 @@ class AppController extends ChangeNotifier {
   Future<void> setLearningSubjects(List<String> values) async {
     await preferences.saveSubjects(values, currentFilter: subjectFilter);
     if (subjectFilter.isNotEmpty && !learningSubjects.contains(subjectFilter)) {
-      subjectFilter = '';
+      subjectFilter = "";
     }
     await reload();
   }
@@ -196,7 +196,7 @@ class AppController extends ChangeNotifier {
   // are supported alongside the built-in school subjects.
   // Persisted under 'subject_filter'; sessions, library, mistakes,
   // practice and review all follow it.
-  String subjectFilter = '';
+  String subjectFilter = "";
 
   List<ChatSession> _visibleSessions(List<ChatSession> rows) =>
       subjectFilter.isEmpty
@@ -204,14 +204,14 @@ class AppController extends ChangeNotifier {
       : rows.where((s) => s.subject == subjectFilter).toList();
 
   Future<void> setSubjectFilter(String value) async {
-    if (value != '' &&
+    if (value != "" &&
         !schoolSubjects.contains(value) &&
         !learningSubjects.contains(value)) {
-      throw const AppFormatException(AppErrorCode.errorInvalidSubject, '科目无效。');
+      throw const AppFormatException(AppErrorCode.errorInvalidSubject, "科目无效。");
     }
     if (value == subjectFilter) return;
     subjectFilter = value;
-    await db.setPreference('subject_filter', value);
+    await db.setPreference("subject_filter", value);
     await reload();
   }
 
@@ -231,9 +231,9 @@ class AppController extends ChangeNotifier {
   }
 
   static Future<Directory> rootDirectory({required bool demo}) async {
-    if (demo) return Directory.systemTemp.createTemp('tixun-demo-');
+    if (demo) return Directory.systemTemp.createTemp("tixun-demo-");
     return Directory(
-      p.join((await getApplicationSupportDirectory()).path, 'tixun'),
+      p.join((await getApplicationSupportDirectory()).path, "tixun"),
     );
   }
 
@@ -251,7 +251,7 @@ class AppController extends ChangeNotifier {
     await root.create(recursive: true);
     final db = demo && seed
         ? AppDatabase.memory()
-        : AppDatabase.file(File(p.join(root.path, 'tixun.sqlite')));
+        : AppDatabase.file(File(p.join(root.path, "tixun.sqlite")));
     final actualKeys =
         keyStore ?? (demo ? MemoryKeyStore() : const SecureKeyStore());
     final c = AppController(
@@ -278,7 +278,7 @@ class AppController extends ChangeNotifier {
     await preferences.load();
     await AiUsageStore(db).ensureBuiltinPrices();
     notice = preferences.loadNotice;
-    final savedSubject = await db.preference('subject_filter');
+    final savedSubject = await db.preference("subject_filter");
     if (savedSubject != null &&
         (savedSubject.isEmpty ||
             schoolSubjects.contains(savedSubject) ||
@@ -290,7 +290,7 @@ class AppController extends ChangeNotifier {
       await preferences.loadSubjects();
     }
     await reload();
-    final lastId = await db.preference('selected_session');
+    final lastId = await db.preference("selected_session");
     // A list filter must not prevent restoring a conversation that still exists.
     final last = allSessions.where((s) => s.id == lastId).firstOrNull;
     if (last != null) await selectSession(last);
@@ -430,7 +430,7 @@ class AppController extends ChangeNotifier {
     ProviderConfig candidate,
   ) async => _balanceClient.cached(
     baseUrl: candidate.baseUrl,
-    apiKey: await keys.read(providerKeyId(candidate)) ?? '',
+    apiKey: await keys.read(providerKeyId(candidate)) ?? "",
   );
 
   /// Reads the provider's own account balance. Only DeepSeek documents such an
@@ -441,16 +441,16 @@ class AppController extends ChangeNotifier {
     ProviderBalanceClient? client,
     bool refresh = false,
   }) async {
-    if (candidate.kind != 'deepseek') {
+    if (candidate.kind != "deepseek") {
       throw const AiFailure.localized(
         AppErrorCode.thisProviderHasNoBalanceEndpoint,
-        '该服务商没有提供查询余额的公开接口。',
+        "该服务商没有提供查询余额的公开接口。",
       );
     }
-    final typed = key?.trim() ?? '';
+    final typed = key?.trim() ?? "";
     final apiKey = typed.isNotEmpty
         ? typed
-        : await keys.read(providerKeyId(candidate)) ?? '';
+        : await keys.read(providerKeyId(candidate)) ?? "";
     return (client ?? _balanceClient).deepSeek(
       baseUrl: candidate.baseUrl,
       apiKey: apiKey,
@@ -472,15 +472,15 @@ class AppController extends ChangeNotifier {
     final cancel = cancellation ?? CancelToken();
     final timer = Timer(
       const Duration(seconds: 35),
-      () => cancel.cancel('timeout'),
+      () => cancel.cancel("timeout"),
     );
     final actionId = const Uuid().v4();
     final startedAt = DateTime.now();
     AiTokenUsage? usage;
-    var requestStatus = 'error';
+    var requestStatus = "error";
     final request = AiRequest(
-      instructions: '',
-      messages: [const AiMessage.user('只回复 OK')],
+      instructions: "",
+      messages: [const AiMessage.user("只回复 OK")],
       maxOutputTokens: 16,
     );
     final text = StringBuffer();
@@ -499,24 +499,24 @@ class AppController extends ChangeNotifier {
         text.write(chunk.text);
         reasoning.write(chunk.reasoning);
         if (text.isNotEmpty && chunk.completed && chunk.calls.isEmpty) {
-          requestStatus = 'complete';
+          requestStatus = "complete";
         }
       }
-      if (requestStatus == 'complete') return;
+      if (requestStatus == "complete") return;
       throw const AiFailure.localized(
         AppErrorCode.connectedButNoResponseText,
-        '连接成功但没有收到正文。',
+        "连接成功但没有收到正文。",
       );
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) {
-        throw cancel.cancelError?.error == 'timeout'
+        throw cancel.cancelError?.error == "timeout"
             ? const AiFailure.localized(
                 AppErrorCode.theResponseTimedOutReceived,
-                '等待回复超时，已保留收到的内容。',
+                "等待回复超时，已保留收到的内容。",
               )
             : const AiFailure.localized(
                 AppErrorCode.connectionTestCancelled,
-                '连接测试已取消。',
+                "连接测试已取消。",
               );
       }
       rethrow;
@@ -530,7 +530,7 @@ class AppController extends ChangeNotifier {
               providerKind: candidate.kind,
               endpoint: candidate.baseUrl,
               model: candidate.model,
-              feature: 'connection_test',
+              feature: "connection_test",
               status: requestStatus,
               occurredAt: startedAt,
               durationMs: DateTime.now().difference(startedAt).inMilliseconds,

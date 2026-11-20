@@ -1,9 +1,9 @@
-import 'package:tixun/features/language_learning/exam_material.dart';
+import "package:tixun/features/language_learning/exam_material.dart";
 
-import 'gap_exercises.dart';
-import 'reading_content.dart';
+import "gap_exercises.dart";
+import "reading_content.dart";
 
-import 'package:tixun/features/language_learning/sentence_content.dart';
+import "package:tixun/features/language_learning/sentence_content.dart";
 
 List<({String id, ExamPaper paper})> bundledExamPapers(ExamKind kind) {
   final passages = switch (kind) {
@@ -15,7 +15,7 @@ List<({String id, ExamPaper paper})> bundledExamPapers(ExamKind kind) {
   return [
     for (final passage in passages)
       (
-        id: 'bundled:${passage.id}:v1',
+        id: "bundled:${passage.id}:v1",
         paper: ExamPaper(
           title: passage.title,
           paragraphs: passage.paragraphs,

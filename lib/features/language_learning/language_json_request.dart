@@ -1,17 +1,17 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:dio/dio.dart';
-import 'package:uuid/uuid.dart';
+import "package:dio/dio.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/ai/ai_usage_store.dart';
-import '../../core/ai/chat_provider.dart';
-import '../../core/database/database.dart';
-import 'language_stream.dart';
+import "../../core/ai/ai_usage_store.dart";
+import "../../core/ai/chat_provider.dart";
+import "../../core/database/database.dart";
+import "language_stream.dart";
 
 Object? decodeLanguageJson(String raw) {
   final trimmed = raw.trim();
   final fence = RegExp(
-    r'^\x60\x60\x60(?:json)?\s*([\s\S]+?)\s*\x60\x60\x60$',
+    r"^\x60\x60\x60(?:json)?\s*([\s\S]+?)\s*\x60\x60\x60$",
     caseSensitive: false,
   ).firstMatch(trimmed);
   return jsonDecode(fence?.group(1) ?? trimmed);
@@ -27,7 +27,7 @@ Future<T> requestLanguageJson<T>({
   required CancelToken cancel,
   required T Function(Object?) parse,
   int maxChars = 28000,
-  String cancelledStatus = 'cancelled',
+  String cancelledStatus = "cancelled",
   bool captureLocalBreakdown = true,
 }) async {
   cancel.checkCancelled();
@@ -35,7 +35,7 @@ Future<T> requestLanguageJson<T>({
   final body = StringBuffer(), reasoning = StringBuffer();
   var complete = false;
   var breakdownComplete = captureLocalBreakdown;
-  var status = 'error';
+  var status = "error";
   AiTokenUsage? usage;
   try {
     await for (final chunk in boundedLanguageStream(
@@ -47,7 +47,7 @@ Future<T> requestLanguageJson<T>({
       if (chunk.calls.isNotEmpty ||
           (complete && (chunk.text.isNotEmpty || chunk.reasoning.isNotEmpty)) ||
           body.length + chunk.text.length > maxChars) {
-        throw const FormatException('Invalid language generation reply');
+        throw const FormatException("Invalid language generation reply");
       }
       complete |= chunk.completed;
       body.write(chunk.text);
@@ -56,14 +56,14 @@ Future<T> requestLanguageJson<T>({
     }
     cancel.checkCancelled();
     if (!complete) {
-      status = 'incomplete';
-      throw const FormatException('Language generation reply was interrupted');
+      status = "incomplete";
+      throw const FormatException("Language generation reply was interrupted");
     }
     final value = parse(decodeLanguageJson(body.toString()));
-    status = 'complete';
+    status = "complete";
     return value;
   } on DioException catch (error) {
-    if (CancelToken.isCancel(error)) status = 'cancelled';
+    if (CancelToken.isCancel(error)) status = "cancelled";
     rethrow;
   } finally {
     if (usageStore != null && provider is! MockChatProvider) {

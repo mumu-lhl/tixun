@@ -1,17 +1,17 @@
-import 'dart:async';
-import 'dart:io';
+import "dart:async";
+import "dart:io";
 
-import 'package:dio/dio.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/ai/prompt_settings.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/python/python_tool.dart';
-import 'package:tixun/features/chat/learning_run.dart';
-import 'package:tixun/features/library/study_store.dart';
-import 'package:tixun/features/practice/practice_store.dart';
-import 'package:tixun/features/review/review_store.dart';
+import "package:dio/dio.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/ai/prompt_settings.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/python/python_tool.dart";
+import "package:tixun/features/chat/learning_run.dart";
+import "package:tixun/features/library/study_store.dart";
+import "package:tixun/features/practice/practice_store.dart";
+import "package:tixun/features/review/review_store.dart";
 
 class _Calculation implements ChatProvider {
   int round = 0;
@@ -22,15 +22,15 @@ class _Calculation implements ChatProvider {
           yield const AiChunk(
             calls: [
               ToolCall(
-                'calc',
-                'run_python',
+                "calc",
+                "run_python",
                 '{"code":"print(9)","purpose":"核对结果"}',
               ),
             ],
             completed: true,
           );
         } else {
-          yield const AiChunk(text: '计算结果为9。', completed: true);
+          yield const AiChunk(text: "计算结果为9。", completed: true);
         }
       });
 }
@@ -47,10 +47,10 @@ class _InferenceDeadline implements Timer {
 
 void main() {
   test(
-    'Reviewing code pauses the inference deadline without bypassing approval',
+    "Reviewing code pauses the inference deadline without bypassing approval",
     () async {
       final db = AppDatabase.memory();
-      final root = await Directory.systemTemp.createTemp('review-deadline');
+      final root = await Directory.systemTemp.createTemp("review-deadline");
       final files = AttachmentStore(root);
       final study = StudyStore(db, files);
       final practice = PracticeStore(db, files: files);
@@ -60,10 +60,10 @@ void main() {
           .into(db.chatMessages)
           .insert(
             ChatMessagesCompanion.insert(
-              id: 'user',
+              id: "user",
               sessionId: session.id,
-              role: 'user',
-              content: '用Python核对计算',
+              role: "user",
+              content: "用Python核对计算",
               createdAt: DateTime.now(),
             ),
           );
@@ -79,7 +79,7 @@ void main() {
               required cancel,
             }) async {
               executed = true;
-              return {'ok': true, 'stdout': '9'};
+              return {"ok": true, "stdout": "9"};
             },
       );
       final run = LearningRun(
@@ -95,12 +95,12 @@ void main() {
       final result = await runZoned(
         () async => run.run(
           sessionId: session.id,
-          runId: 'answer',
+          runId: "answer",
           requestConfig: await db.config(),
           requestPrompts: PromptSettings(),
           history: await db.messages(session.id),
           images: [],
-          mode: 'direct',
+          mode: "direct",
           authorized: false,
           cancel: CancelToken(),
           confirm: (_, args, count) async {
@@ -124,7 +124,7 @@ void main() {
       expect(executed, true);
       expect(deadlines, hasLength(2));
       expect(deadlines.every((timer) => !timer.isActive), isTrue);
-      expect(result.text, contains('9'));
+      expect(result.text, contains("9"));
       study.dispose();
       practice.dispose();
       review.dispose();

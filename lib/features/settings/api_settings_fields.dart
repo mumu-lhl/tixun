@@ -1,4 +1,4 @@
-part of 'ai_settings_screen.dart';
+part of "ai_settings_screen.dart";
 
 extension _ApiSettingsFields on _AiSettingsScreenState {
   List<Widget> _apiFields(AppController c, ColorScheme colors) {
@@ -11,28 +11,28 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
             _hasSavedKey = null;
             _resetBalance();
           });
-          _refreshKeyStatus();
+          unawaited(_refreshKeyStatus());
           _scheduleSave();
         },
         enabled: !_working,
         autocorrect: false,
         decoration: InputDecoration(
-          labelText: 'API Base URL',
+          labelText: "API Base URL",
           helperText: context.l10n.enterTheAPIPrefixChat,
         ),
       ),
       const SizedBox(height: 16),
-      if (_kind == 'deepseek')
+      if (_kind == "deepseek")
         AppSelectField<String>(
-          key: const Key('model-selector'),
+          key: const Key("model-selector"),
           initialValue:
               _AiSettingsScreenState._deepseekModels.contains(_model.text)
               ? _model.text
-              : 'deepseek-flash',
+              : "deepseek-flash",
           decoration: InputDecoration(labelText: context.l10n.model),
           items: [
             DropdownMenuItem(
-              value: 'deepseek-flash',
+              value: "deepseek-flash",
               child: Text(
                 context.l10n.deepSeekFlashSupportsImages,
                 maxLines: 1,
@@ -40,7 +40,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
               ),
             ),
             DropdownMenuItem(
-              value: 'deepseek-v4-pro',
+              value: "deepseek-v4-pro",
               child: Text(
                 context.l10n.deepSeekV4ProTextOnly,
                 maxLines: 1,
@@ -53,7 +53,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
               : (model) {
                   _mutate(() {
                     _model.text = model!;
-                    _vision = model == 'deepseek-flash';
+                    _vision = model == "deepseek-flash";
                   });
                   _scheduleSave();
                 },
@@ -77,7 +77,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
         ),
       const SizedBox(height: 16),
       TextField(
-        key: const Key('api-key'),
+        key: const Key("api-key"),
         controller: _key,
         onChanged: (_) {
           _mutate(_resetBalance);
@@ -88,7 +88,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
         autocorrect: false,
         enabled: !_working && !c.demo,
         decoration: InputDecoration(
-          labelText: 'API Key',
+          labelText: "API Key",
           hintText: context.l10n.leaveBlankToKeepThe,
           helperText: c.demo
               ? context.l10n.noKeyNeededInMock
@@ -124,7 +124,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
             ),
           ),
         ),
-      if (!c.demo && _kind == 'deepseek')
+      if (!c.demo && _kind == "deepseek")
         ProviderBalancePanel(
           balance: _balance,
           loading: _balanceLoading,
@@ -132,7 +132,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
           onRefresh: _working || _balanceLoading ? null : _loadBalance,
         ),
       const SizedBox(height: 16),
-      if (_kind == 'compatible')
+      if (_kind == "compatible")
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(context.l10n.supportsToolCalls),
@@ -154,20 +154,20 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
         subtitle: Text(
           // DeepSeek derives vision from the model (Flash yes,
           // V4 Pro no), so the switch is fixed here.
-          _kind == 'deepseek'
+          _kind == "deepseek"
               ? context.l10n.decidedByTheModelFlash
               : context.l10n.enableOnlyIfTheProvider,
           style: TextStyle(fontSize: 12),
         ),
         value: _vision,
-        onChanged: _working || (_kind == 'deepseek')
+        onChanged: _working || (_kind == "deepseek")
             ? null
             : (v) {
                 _mutate(() => _vision = v);
                 _scheduleSave();
               },
       ),
-      if (_kind == 'compatible')
+      if (_kind == "compatible")
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(context.l10n.supportsReasoningEffort),
@@ -190,7 +190,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(
-            _kind == 'deepseek'
+            _kind == "deepseek"
                 ? context.l10n.deepThinking
                 : context.l10n.sendReasoningEffortParameter,
           ),
@@ -210,7 +210,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: AppSelectField<String>(
-              key: const Key('api-effort-selector'),
+              key: const Key("api-effort-selector"),
               initialValue: _efforts.contains(_effort)
                   ? _effort
                   : _efforts.firstOrNull,

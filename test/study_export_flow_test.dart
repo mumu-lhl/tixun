@@ -1,24 +1,24 @@
-import 'dart:io';
-import 'dart:typed_data';
+import "dart:io";
+import "dart:typed_data";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/features/library/library_screen.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/export/study_export.dart';
-import 'package:tixun/core/l10n/app_strings.dart';
-import 'package:tixun/core/l10n/generated/app_localizations.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/features/library/study_export.dart';
-import 'package:tixun/features/library/study_export_dialog.dart';
-import 'package:tixun/features/library/study_store.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/library/library_screen.dart";
+import "package:material_ui/material_ui.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/export/study_export.dart";
+import "package:tixun/core/l10n/app_strings.dart";
+import "package:tixun/core/l10n/generated/app_localizations.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/features/library/study_export.dart";
+import "package:tixun/features/library/study_export_dialog.dart";
+import "package:tixun/features/library/study_store.dart";
 
 void main() {
-  group('StudyExportService', () {
+  group("StudyExportService", () {
     late AppDatabase db;
     late Directory root;
     late StudyStore store;
@@ -26,7 +26,7 @@ void main() {
 
     setUp(() async {
       db = AppDatabase.memory();
-      root = await Directory.systemTemp.createTemp('tixun-export');
+      root = await Directory.systemTemp.createTemp("tixun-export");
       store = StudyStore(db, AttachmentStore(root));
       service = StudyExportService(
         store,
@@ -49,51 +49,51 @@ void main() {
       await root.delete(recursive: true);
     });
 
-    test('keeps the caller order, tags and attachments', () async {
+    test("keeps the caller order, tags and attachments", () async {
       final a = await store.saveKnowledge(
         const KnowledgeDraft(
-          title: '分页资料 A',
-          content: r'二次函数 $y=ax^2$',
-          subject: '数学',
-          chapter: '第二章',
-          tags: ['函数'],
+          title: "分页资料 A",
+          content: r"二次函数 $y=ax^2$",
+          subject: "数学",
+          chapter: "第二章",
+          tags: ["函数"],
         ),
       );
       final b = await store.saveKnowledge(
-        const KnowledgeDraft(title: '导数', content: '导数定义', subject: '数学'),
+        const KnowledgeDraft(title: "导数", content: "导数定义", subject: "数学"),
       );
       await store.importImage(
         a.id,
-        'assets/demo/two_problems.png',
+        "assets/demo/two_problems.png",
         isMistake: false,
       );
 
       final bundle = await service.load(
         ids: [b.id, a.id],
-        title: '知识打印稿',
+        title: "知识打印稿",
         generatedAt: DateTime.utc(2026, 11, 10),
         includeImages: true,
       );
-      expect(bundle.notes.map((note) => note.title), ['导数', '分页资料 A']);
+      expect(bundle.notes.map((note) => note.title), ["导数", "分页资料 A"]);
       final exported = bundle.notes.last;
-      expect(exported.tags, ['函数']);
-      expect(exported.chapter, '第二章');
+      expect(exported.tags, ["函数"]);
+      expect(exported.chapter, "第二章");
       expect(exported.images, hasLength(1));
       expect(exported.images.single.isPng, isTrue);
     });
 
     test(
-      'skips trashed notes and images when they are not requested',
+      "skips trashed notes and images when they are not requested",
       () async {
         final a = await store.saveKnowledge(
-          const KnowledgeDraft(title: '保留', content: '内容'),
+          const KnowledgeDraft(title: "保留", content: "内容"),
         );
         final b = await store.saveKnowledge(
-          const KnowledgeDraft(title: '回收区', content: '内容'),
+          const KnowledgeDraft(title: "回收区", content: "内容"),
         );
         await store.importImage(
           a.id,
-          'assets/demo/two_problems.png',
+          "assets/demo/two_problems.png",
           isMistake: false,
         );
         await store.setDeleted(
@@ -105,20 +105,20 @@ void main() {
 
         final bundle = await service.load(
           ids: [a.id, b.id],
-          title: '知识打印稿',
+          title: "知识打印稿",
           generatedAt: DateTime.utc(2026, 11, 10),
           includeImages: false,
         );
-        expect(bundle.notes.map((note) => note.title), ['保留']);
+        expect(bundle.notes.map((note) => note.title), ["保留"]);
         expect(bundle.notes.single.images, isEmpty);
       },
     );
 
-    test('renders every format for a note with maths and images', () async {
+    test("renders every format for a note with maths and images", () async {
       final a = await store.saveKnowledge(
         const KnowledgeDraft(
-          title: '顶点式',
-          content: r'''
+          title: "顶点式",
+          content: r"""
 ## 要点
 
 顶点为 $(h,k)$，判别式 $\Delta=b^2-4ac$。
@@ -126,27 +126,27 @@ void main() {
 | 条件 | 开口 |
 | --- | --- |
 | $a>0$ | 向上 |
-''',
-          tags: ['函数'],
+""",
+          tags: ["函数"],
         ),
       );
       await store.importImage(
         a.id,
-        'assets/demo/two_problems.png',
+        "assets/demo/two_problems.png",
         isMistake: false,
       );
       final bundle = await service.load(
         ids: [a.id],
-        title: '知识打印稿',
+        title: "知识打印稿",
         generatedAt: DateTime.utc(2026, 11, 10),
         includeImages: true,
       );
       final chrome = StudyExportChrome(
-        title: '知识打印稿',
-        dateLine: '生成于 2026-11-10 · 共 1 条',
-        pageLabel: (page, total) => '第 $page / $total 页',
+        title: "知识打印稿",
+        dateLine: "生成于 2026-11-10 · 共 1 条",
+        pageLabel: (page, total) => "第 $page / $total 页",
         noteMeta: (note) => note.subject,
-        imagesExcluded: '纯文本导出不包含图片附件。',
+        imagesExcluded: "纯文本导出不包含图片附件。",
       );
 
       for (final format in StudyExportFormat.values) {
@@ -158,7 +158,7 @@ void main() {
         );
         expect(bytes, isNotEmpty, reason: format.name);
         if (format == StudyExportFormat.pdf) {
-          expect(String.fromCharCodes(bytes.sublist(0, 4)), '%PDF');
+          expect(String.fromCharCodes(bytes.sublist(0, 4)), "%PDF");
         }
         if (format == StudyExportFormat.docx) {
           // A docx is a zip: local file header signature.
@@ -167,24 +167,24 @@ void main() {
       }
     });
 
-    test('names the file with the local date and the format extension', () {
+    test("names the file with the local date and the format extension", () {
       final now = DateTime(2026, 11, 10, 9, 5);
       expect(
         exportFileName(now, StudyExportFormat.pdf),
-        'tixun-notes-20261110-0905.pdf',
+        "tixun-notes-20261110-0905.pdf",
       );
-      expect(exportFileName(now, StudyExportFormat.docx), endsWith('.docx'));
-      expect(exportFileName(now, StudyExportFormat.markdown), endsWith('.md'));
+      expect(exportFileName(now, StudyExportFormat.docx), endsWith(".docx"));
+      expect(exportFileName(now, StudyExportFormat.markdown), endsWith(".md"));
     });
   });
 
-  group('Library entry point', () {
+  group("Library entry point", () {
     late AppController controller;
     late ProviderContainer scope;
     late Directory dir;
 
     setUp(() async {
-      dir = await Directory.systemTemp.createTemp('tixun-export-ui');
+      dir = await Directory.systemTemp.createTemp("tixun-export-ui");
       controller = AppController(
         AppDatabase.memory(),
         AttachmentStore(dir),
@@ -204,7 +204,7 @@ void main() {
       if (await dir.exists()) await dir.delete(recursive: true);
     });
 
-    testWidgets('selection offers the print export dialog', (tester) async {
+    testWidgets("selection offers the print export dialog", (tester) async {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: scope,
@@ -215,75 +215,75 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('更多操作'));
+      await tester.tap(find.byTooltip("更多操作"));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('选择多条资料'));
+      await tester.tap(find.text("选择多条资料"));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(ListTile).first);
       await tester.pumpAndSettle();
-      expect(find.text('导出打印版'), findsOneWidget);
-      await tester.tap(find.text('导出打印版'));
+      expect(find.text("导出打印版"), findsOneWidget);
+      await tester.tap(find.text("导出打印版"));
       await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
-      expect(find.text('导出知识'), findsOneWidget);
-      await tester.tap(find.text('取消'));
+      expect(find.text("导出知识"), findsOneWidget);
+      await tester.tap(find.text("取消"));
       await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
     });
   });
 
-  group('Progress dialog', () {
+  group("Progress dialog", () {
     Widget host(Future<StudyExportOutcome> Function() run) => MaterialApp(
       home: Scaffold(
         body: Builder(
           builder: (context) => Center(
             child: FilledButton(
-              key: const Key('start'),
+              key: const Key("start"),
               onPressed: () async {
                 final outcome = await showDialog<StudyExportOutcome>(
                   context: context,
                   barrierDismissible: false,
                   builder: (_) =>
-                      StudyExportProgressDialog(message: '正在生成打印文件…', run: run),
+                      StudyExportProgressDialog(message: "正在生成打印文件…", run: run),
                 );
                 if (!context.mounted || outcome == null) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('${outcome.savedName}:${outcome.failed}'),
+                    content: Text("${outcome.savedName}:${outcome.failed}"),
                   ),
                 );
               },
-              child: const Text('start'),
+              child: const Text("start"),
             ),
           ),
         ),
       ),
     );
 
-    testWidgets('closes itself and reports the saved file', (tester) async {
+    testWidgets("closes itself and reports the saved file", (tester) async {
       await tester.pumpWidget(
-        host(() async => const StudyExportOutcome(savedName: 'a.pdf')),
+        host(() async => const StudyExportOutcome(savedName: "a.pdf")),
       );
-      await tester.tap(find.byKey(const Key('start')));
+      await tester.tap(find.byKey(const Key("start")));
       await tester.pump();
-      expect(find.text('正在生成打印文件…'), findsOneWidget);
+      expect(find.text("正在生成打印文件…"), findsOneWidget);
       await tester.pumpAndSettle();
-      expect(find.text('正在生成打印文件…'), findsNothing);
-      expect(find.text('a.pdf:false'), findsOneWidget);
+      expect(find.text("正在生成打印文件…"), findsNothing);
+      expect(find.text("a.pdf:false"), findsOneWidget);
     });
 
-    testWidgets('turns a thrown error into a failure outcome', (tester) async {
-      await tester.pumpWidget(host(() async => throw StateError('boom')));
-      await tester.tap(find.byKey(const Key('start')));
+    testWidgets("turns a thrown error into a failure outcome", (tester) async {
+      await tester.pumpWidget(host(() async => throw StateError("boom")));
+      await tester.tap(find.byKey(const Key("start")));
       await tester.pumpAndSettle();
-      expect(find.text('null:true'), findsOneWidget);
+      expect(find.text("null:true"), findsOneWidget);
     });
   });
 
-  group('Export dialog', () {
+  group("Export dialog", () {
     Widget app() => MaterialApp(
-      locale: const Locale('zh'),
+      locale: const Locale("zh"),
       supportedLocales: supportedAppLocales,
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -297,44 +297,44 @@ void main() {
                 final choice = await showStudyExportDialog(context);
                 if (choice == null) return;
                 Text(
-                  '${choice.format.name}:${choice.includeImages}',
+                  "${choice.format.name}:${choice.includeImages}",
                   textDirection: TextDirection.ltr,
                 );
               },
-              child: const Text('open'),
+              child: const Text("open"),
             ),
           ),
         ),
       ),
     );
 
-    testWidgets('defaults to PDF with images', (tester) async {
+    testWidgets("defaults to PDF with images", (tester) async {
       await tester.pumpWidget(app());
-      await tester.tap(find.text('open'));
+      await tester.tap(find.text("open"));
       await tester.pumpAndSettle();
-      expect(find.text('PDF（可直接打印）'), findsOneWidget);
+      expect(find.text("PDF（可直接打印）"), findsOneWidget);
       expect(
         tester
             .widget<SwitchListTile>(
-              find.byKey(const Key('export-include-images')),
+              find.byKey(const Key("export-include-images")),
             )
             .value,
         isTrue,
       );
     });
 
-    testWidgets('markdown cannot include attachments', (tester) async {
+    testWidgets("markdown cannot include attachments", (tester) async {
       await tester.pumpWidget(app());
-      await tester.tap(find.text('open'));
+      await tester.tap(find.text("open"));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('export-format-markdown')));
+      await tester.tap(find.byKey(const Key("export-format-markdown")));
       await tester.pumpAndSettle();
       final tile = tester.widget<SwitchListTile>(
-        find.byKey(const Key('export-include-images')),
+        find.byKey(const Key("export-include-images")),
       );
       expect(tile.value, isFalse);
       expect(tile.onChanged, isNull);
-      expect(find.text('纯文本导出不包含图片附件。'), findsOneWidget);
+      expect(find.text("纯文本导出不包含图片附件。"), findsOneWidget);
     });
   });
 }

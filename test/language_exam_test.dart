@@ -1,36 +1,36 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:dio/dio.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:tixun/core/ai/ai_usage_store.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/l10n/generated/app_localizations.dart';
-import 'package:tixun/features/language_learning/exam_ai.dart';
-import 'package:tixun/features/language_learning/exam_material.dart';
-import 'package:tixun/features/language_learning/exam_paper_screen.dart';
-import 'package:tixun/features/language_learning/exam_store.dart';
-import 'package:tixun/features/language_learning/language_store.dart';
-import 'package:tixun/features/language_learning/sentence_content.dart';
+import "package:dio/dio.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:material_ui/material_ui.dart";
+import "package:tixun/core/ai/ai_usage_store.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/l10n/generated/app_localizations.dart";
+import "package:tixun/features/language_learning/exam_ai.dart";
+import "package:tixun/features/language_learning/exam_material.dart";
+import "package:tixun/features/language_learning/exam_paper_screen.dart";
+import "package:tixun/features/language_learning/exam_store.dart";
+import "package:tixun/features/language_learning/language_store.dart";
+import "package:tixun/features/language_learning/sentence_content.dart";
 
-import 'support/exam_bundled.dart';
+import "support/exam_bundled.dart";
 
 const _config = ProviderConfig(
   id: 1,
-  kind: 'openai',
-  baseUrl: 'https://example.com',
-  model: 'test-model',
+  kind: "openai",
+  baseUrl: "https://example.com",
+  model: "test-model",
   vision: false,
   supportsTools: true,
   thinking: false,
   supportsThinking: false,
-  effort: '',
+  effort: "",
 );
 
 class _Provider implements ChatProvider {
   final requests = <AiRequest>[];
-  String response = '';
+  String response = "";
   bool complete = true;
   bool available = true;
   bool cancelReply = false;
@@ -39,11 +39,11 @@ class _Provider implements ChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
         expect(
-          encodeCompletion(config, request).containsKey('max_tokens'),
+          encodeCompletion(config, request).containsKey("max_tokens"),
           isFalse,
         );
         requests.add(request);
-        if (!available) throw const AiFailure('Offline');
+        if (!available) throw const AiFailure("Offline");
         if (cancelReply) cancel.cancel();
         yield AiChunk(text: response, completed: complete);
       });
@@ -59,19 +59,19 @@ Map<String, Object?> _fixture(ExamKind kind) {
   final sample = bundledExamPapers(kind).first.paper;
   return {
     ...sample.toJson(),
-    'paragraphs': [
-      'This passage was prepared for the exercise.',
+    "paragraphs": [
+      "This passage was prepared for the exercise.",
       ...sample.paragraphs,
     ],
     if (kind == ExamKind.reading)
-      'items': [
+      "items": [
         for (final item in sample.items)
           {
             ...item.toJson(),
-            'distractors': {
+            "distractors": {
               for (final option in item.options.keys)
                 if (!item.answers.contains(option))
-                  option: 'The passage gives a different detail.',
+                  option: "The passage gives a different detail.",
             },
           },
       ],
@@ -103,12 +103,12 @@ void main() {
   });
 
   for (final kind in ExamKind.values) {
-    test('validates, saves, grades and reloads ${kind.name}', () async {
+    test("validates, saves, grades and reloads ${kind.name}", () async {
       provider.response = jsonEncode(_fixture(kind));
       final target = _target(kind);
       final material = await ai.acquire(
         target,
-        glossLanguage: 'en',
+        glossLanguage: "en",
         cancel: CancelToken(),
       );
       expect(provider.requests.single.tools, isEmpty);
@@ -118,7 +118,7 @@ void main() {
       provider.available = false;
       final reused = await ai.acquire(
         target,
-        glossLanguage: 'en',
+        glossLanguage: "en",
         cancel: CancelToken(),
       );
       expect(reused.row.id, material.row.id);
@@ -127,12 +127,12 @@ void main() {
       final answers = material.paper.items
           .map((item) => item.answers.first)
           .toList();
-      if (kind == ExamKind.grammar) answers[3] = '  IF  ';
+      if (kind == ExamKind.grammar) answers[3] = "  IF  ";
       if (kind == ExamKind.sentenceInsertion) {
         await expectLater(
           store.submitExam(
             material: material,
-            attemptId: 'duplicate',
+            attemptId: "duplicate",
             responses: List.filled(5, answers.first),
             confidence: null,
             hintUsed: false,
@@ -143,7 +143,7 @@ void main() {
 
       final result = await store.submitExam(
         material: material,
-        attemptId: 'attempt',
+        attemptId: "attempt",
         responses: answers,
         confidence: ExamConfidence.guess,
         hintUsed: true,
@@ -152,7 +152,7 @@ void main() {
       expect(result.confidence, ExamConfidence.guess);
       final replay = await store.submitExam(
         material: material,
-        attemptId: 'attempt',
+        attemptId: "attempt",
         responses: answers,
         confidence: ExamConfidence.guess,
         hintUsed: true,
@@ -162,61 +162,61 @@ void main() {
       expect(await store.reusableExam(target), isNull);
       expect(
         (await db.select(db.aiUsageEvents).get()).single.feature,
-        'language_exam_generation',
+        "language_exam_generation",
       );
       expect(await db.select(db.chatMessages).get(), isEmpty);
     });
   }
 
   test(
-    'incomplete replies, bogus evidence, and cancelled replies are never saved',
+    "incomplete replies, bogus evidence, and cancelled replies are never saved",
     () async {
       final target = _target(ExamKind.cloze);
       final payload = _fixture(ExamKind.cloze);
       provider.response = jsonEncode(payload);
       provider.complete = false;
       await expectLater(
-        ai.acquire(target, glossLanguage: 'en', cancel: CancelToken()),
+        ai.acquire(target, glossLanguage: "en", cancel: CancelToken()),
         throwsFormatException,
       );
       provider.complete = true;
-      final items = payload['items'] as List;
+      final items = payload["items"] as List;
       final first = items.first as Map;
       provider.response = jsonEncode({
         ...payload,
-        'items': [
-          {...first, 'evidence': 'A quotation that is not in the passage.'},
+        "items": [
+          {...first, "evidence": "A quotation that is not in the passage."},
           ...items.skip(1),
         ],
       });
       await expectLater(
-        ai.acquire(target, glossLanguage: 'en', cancel: CancelToken()),
+        ai.acquire(target, glossLanguage: "en", cancel: CancelToken()),
         throwsFormatException,
       );
       provider.response = jsonEncode(payload);
       provider.cancelReply = true;
       await expectLater(
-        ai.acquire(target, glossLanguage: 'en', cancel: CancelToken()),
+        ai.acquire(target, glossLanguage: "en", cancel: CancelToken()),
         throwsA(isA<DioException>()),
       );
       expect(await db.select(db.learningExamMaterials).get(), isEmpty);
       final events = await db.select(db.aiUsageEvents).get();
       expect(events.map((event) => event.status), [
-        'incomplete',
-        'error',
-        'cancelled',
+        "incomplete",
+        "error",
+        "cancelled",
       ]);
     },
   );
 
   test(
-    'negative independent review cannot update the verification state',
+    "negative independent review cannot update the verification state",
     () async {
       final target = _target(ExamKind.reading);
       provider.response = jsonEncode(_fixture(ExamKind.reading));
       final material = await ai.acquire(
         target,
-        glossLanguage: 'en',
+        glossLanguage: "en",
         cancel: CancelToken(),
       );
       final wrongAnswers = material.paper.items
@@ -228,7 +228,7 @@ void main() {
           .toList();
       await store.submitExam(
         material: material,
-        attemptId: 'incorrect-reading',
+        attemptId: "incorrect-reading",
         responses: wrongAnswers,
         confidence: ExamConfidence.certain,
         hintUsed: false,
@@ -238,7 +238,7 @@ void main() {
           '{"approved":false,"issue":"One distractor is ambiguous."}';
       final declined = await ai.review(
         material,
-        glossLanguage: 'en',
+        glossLanguage: "en",
         cancel: CancelToken(),
       );
       expect(declined.material.verification, ExamVerification.reviewRejected);
@@ -248,7 +248,7 @@ void main() {
       provider.response = '{"approved":true,"issue":""}';
       final approved = await ai.review(
         material,
-        glossLanguage: 'en',
+        glossLanguage: "en",
         cancel: CancelToken(),
       );
       expect(approved.material.verification, ExamVerification.aiReviewed);
@@ -256,7 +256,7 @@ void main() {
       expect(await store.recommendedExamSkill(ExamKind.reading), isNull);
       final repeated = await store.submitExam(
         material: approved.material,
-        attemptId: 'reviewed-repeat',
+        attemptId: "reviewed-repeat",
         responses: wrongAnswers,
         confidence: ExamConfidence.certain,
         hintUsed: false,
@@ -269,7 +269,7 @@ void main() {
       );
       expect(
         saved
-            .singleWhere((a) => a.id == 'incorrect-reading')
+            .singleWhere((a) => a.id == "incorrect-reading")
             .reviewedAtSubmission,
         isFalse,
       );
@@ -277,7 +277,7 @@ void main() {
     },
   );
 
-  test('old bundled papers are unavailable for new practice', () async {
+  test("old bundled papers are unavailable for new practice", () async {
     final sample = bundledExamPapers(ExamKind.grammar).single;
     final target = _target(ExamKind.grammar);
     await store.saveExamMaterial(
@@ -294,14 +294,14 @@ void main() {
       store: store,
     );
     await expectLater(
-      demo.acquire(target, glossLanguage: 'en', cancel: CancelToken()),
+      demo.acquire(target, glossLanguage: "en", cancel: CancelToken()),
       throwsFormatException,
     );
     expect(await db.select(db.learningExamMaterials).get(), hasLength(1));
   });
 
   testWidgets(
-    'shared options are disabled across gaps before paper submission',
+    "shared options are disabled across gaps before paper submission",
     (tester) async {
       final sample = bundledExamPapers(ExamKind.sentenceInsertion).single;
       final material = await tester.runAsync(
@@ -318,13 +318,13 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       await tester.pumpWidget(
         MaterialApp(
-          locale: const Locale('en'),
+          locale: const Locale("en"),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: ExamPaperScreen(ai: ai, material: material!),
         ),
       );
-      final chips = find.widgetWithText(ChoiceChip, 'D');
+      final chips = find.widgetWithText(ChoiceChip, "D");
       expect(chips, findsNWidgets(5));
       await tester.ensureVisible(chips.first);
       await tester.pumpAndSettle();
@@ -332,10 +332,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.widget<ChoiceChip>(chips.at(1)).onSelected, isNull);
       expect(
-        find.textContaining('The boxes under the stairs were the first plan'),
+        find.textContaining("The boxes under the stairs were the first plan"),
         findsNothing,
       );
-      final submit = find.widgetWithText(FilledButton, 'Submit all answers');
+      final submit = find.widgetWithText(FilledButton, "Submit all answers");
       expect(tester.widget<FilledButton>(submit).onPressed, isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 1));

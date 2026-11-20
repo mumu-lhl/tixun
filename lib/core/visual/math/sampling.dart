@@ -1,34 +1,12 @@
-/// Sampling + derived values for TiXun Visual DSL v1 (math slice).
-///
-/// Pure Dart: no widgets/material imports. `dart:ui` is used only for
-/// [Offset] as a model-coordinate point pair, which `flutter test` handles.
-/// Nothing here executes generated code: every expression goes through
-/// [Expression], which builds an AST and evaluates it.
-///
-/// Discontinuity handling in [sampleFunction]: a segment breaks when a
-/// sample is non-finite (evaluation throws), when |Δy| exceeds half the
-/// sampled y-span, when the local slope jumps by more than 50x the
-/// median slope of the recent edges in the current segment, or when
-/// adjacent samples change sign while both stay far above the local
-/// magnitude scale (the pole rule below: across an asymptote the two
-/// samples straddling the pole are both large, while the recent median
-/// |y| is small). The goal is never to draw a line across an asymptote
-/// (e.g. tan). Extra splits are harmless for rendering: they only omit
-/// one sample-step of line between two adjacent segments.
-///
-/// The slope rule compares against the *current* segment's recent median
-/// slope (windowed, see [_slopeWindow]), not the previous completed
-/// segment: a branch right after an asymptote starts with a huge slope,
-/// so comparing against the previous segment would split off a spurious
-/// one-point segment at every branch start.
+/// Samples parsed expressions without connecting curve branches across poles.
 library;
 
-import 'dart:math' as math;
-import 'dart:ui';
+import "dart:math" as math;
+import "dart:ui";
 
-import 'package:tixun/core/visual/model/visual_scene.dart';
+import "package:tixun/core/visual/model/visual_scene.dart";
 
-import 'expression.dart';
+import "expression.dart";
 
 /// Hard cap on samples per curve (DSL resource limit).
 const maxSamplesHardCap = 4096;
@@ -50,7 +28,6 @@ const _dedupeTolerance = 1e-6;
 /// (e.g. exp) instead of splitting it.
 const _slopeWindow = 64;
 
-/// One continuous polyline in model coordinates.
 class SampledSegment {
   const SampledSegment(this.points);
 
@@ -62,7 +39,7 @@ class SampledSegment {
 /// Returns null when evaluation fails (unknown variable, non-finite
 /// intermediate or final result). Callers treat null as a discontinuity.
 double? _tryEvaluate(Expression expr, Map<String, double> variables, double x) {
-  final vars = Map<String, double>.of(variables)..['x'] = x;
+  final vars = Map<String, double>.of(variables)..["x"] = x;
   try {
     return expr.evaluate(vars);
   } on FormatException {
@@ -78,8 +55,9 @@ double _median(List<double> values) {
       : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-/// Uniformly samples [expression] over `[min, max]` into segments split at
-/// discontinuities (see the library doc comment).
+/// Samples [expression] over `[min, max]`, splitting at undefined values
+/// and large jumps. Large sign changes relative to the local magnitude
+/// also split the curve when a pole makes the global range unreliable.
 ///
 /// [variables] holds parameters and `t`; `x` is the sweep variable and any
 /// caller-supplied `x` entry is overwritten per sample. [maxSamples] is
@@ -97,13 +75,13 @@ List<SampledSegment> sampleFunction(
   int maxSamples = 1024,
 }) {
   if (min >= max) {
-    throw ArgumentError('Sampling range must satisfy min < max.');
+    throw ArgumentError("Sampling range must satisfy min < max.");
   }
   if (maxSamples < 2) {
-    throw ArgumentError('maxSamples must be at least 2.');
+    throw ArgumentError("maxSamples must be at least 2.");
   }
   if (maxSamples > maxSamplesHardCap) {
-    throw ArgumentError('maxSamples must not exceed $maxSamplesHardCap.');
+    throw ArgumentError("maxSamples must not exceed $maxSamplesHardCap.");
   }
   final expr = Expression.parse(expression);
   final step = (max - min) / (maxSamples - 1);
@@ -370,7 +348,7 @@ List<double> findZeros(
   double max,
 ) {
   if (min >= max) {
-    throw ArgumentError('Range must satisfy min < max.');
+    throw ArgumentError("Range must satisfy min < max.");
   }
   final expr = Expression.parse(expression);
   return _findZerosOf((x) => _tryEvaluate(expr, variables, x), min, max);
@@ -389,7 +367,7 @@ List<Offset> findIntersections(
   double max,
 ) {
   if (min >= max) {
-    throw ArgumentError('Range must satisfy min < max.');
+    throw ArgumentError("Range must satisfy min < max.");
   }
   final first = Expression.parse(e1);
   final second = Expression.parse(e2);
@@ -426,7 +404,7 @@ List<({double x, double y, String kind})> findExtrema(
   double max,
 ) {
   if (min >= max) {
-    throw ArgumentError('Range must satisfy min < max.');
+    throw ArgumentError("Range must satisfy min < max.");
   }
   final expr = Expression.parse(expression);
   final span = max - min;
@@ -458,7 +436,7 @@ List<({double x, double y, String kind})> findExtrema(
       final before = i > 0 ? ds[i - 1] : null;
       final after = i < n ? ds[i + 1] : null;
       if (before != null && after != null && _oppositeSigns(before, after)) {
-        addExtremum(x, before > 0 ? 'max' : 'min');
+        addExtremum(x, before > 0 ? "max" : "min");
       }
       continue;
     }
@@ -467,7 +445,7 @@ List<({double x, double y, String kind})> findExtrema(
     if (prevD != null && d != null && _oppositeSigns(prevD, d)) {
       final root = _bisect(derivative, x - step, x, prevD, d);
       if (root != null) {
-        addExtremum(root, prevD > 0 ? 'max' : 'min');
+        addExtremum(root, prevD > 0 ? "max" : "min");
       }
     }
   }
@@ -491,7 +469,6 @@ List<({double x, double y, String kind})> findExtrema(
   return (-10, 10);
 }
 
-/// All elements in the scene, including group children.
 Iterable<VisualElement> _allElements(VisualScene scene) sync* {
   for (final element in scene.elements) {
     yield element;
@@ -536,8 +513,8 @@ Iterable<VisualElement> _flattenGroup(GroupElement group) sync* {
 /// ```
 Map<String, dynamic> computeDerivedValues(VisualScene scene) {
   final result = <String, dynamic>{
-    'zeros': <double>[],
-    'extrema': <Map<String, dynamic>>[],
+    "zeros": <double>[],
+    "extrema": <Map<String, dynamic>>[],
   };
   final errors = <String>[];
   final parameters = scene.model?.parameters ?? const <String, double>{};
@@ -545,7 +522,7 @@ Map<String, dynamic> computeDerivedValues(VisualScene scene) {
   final modelExpression = scene.model?.expression;
   if (modelExpression != null) {
     try {
-      result['zeros'] = findZeros(
+      result["zeros"] = findZeros(
         modelExpression,
         parameters,
         modelRange.$1,
@@ -557,11 +534,11 @@ Map<String, dynamic> computeDerivedValues(VisualScene scene) {
         modelRange.$1,
         modelRange.$2,
       );
-      result['extrema'] = [
-        for (final e in extrema) {'x': e.x, 'y': e.y, 'kind': e.kind},
+      result["extrema"] = [
+        for (final e in extrema) {"x": e.x, "y": e.y, "kind": e.kind},
       ];
     } catch (e) {
-      errors.add('model: $e');
+      errors.add("model: $e");
     }
   }
   final elements = <String, dynamic>{};
@@ -570,7 +547,7 @@ Map<String, dynamic> computeDerivedValues(VisualScene scene) {
     final range = element.domain ?? _sceneRange(scene);
     try {
       final entry = <String, dynamic>{
-        'zeros': findZeros(element.expression, parameters, range.$1, range.$2),
+        "zeros": findZeros(element.expression, parameters, range.$1, range.$2),
       };
       if (modelExpression != null) {
         // Intersections are best-effort: a bad model expression must not
@@ -583,23 +560,23 @@ Map<String, dynamic> computeDerivedValues(VisualScene scene) {
             range.$1,
             range.$2,
           );
-          entry['intersections'] = [
-            for (final p in points) {'x': p.dx, 'y': p.dy},
+          entry["intersections"] = [
+            for (final p in points) {"x": p.dx, "y": p.dy},
           ];
         } catch (e) {
-          errors.add('element ${element.id} intersections: $e');
+          errors.add("element ${element.id} intersections: $e");
         }
       }
       elements[element.id] = entry;
     } catch (e) {
-      errors.add('element ${element.id}: $e');
+      errors.add("element ${element.id}: $e");
     }
   }
   if (elements.isNotEmpty) {
-    result['elements'] = elements;
+    result["elements"] = elements;
   }
   if (errors.isNotEmpty) {
-    result['errors'] = errors;
+    result["errors"] = errors;
   }
   return result;
 }

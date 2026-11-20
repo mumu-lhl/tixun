@@ -1,23 +1,23 @@
-import 'dart:async';
-import 'dart:convert';
+import "dart:async";
+import "dart:convert";
 
-import 'package:a2ui_core/a2ui_core.dart';
-import 'package:a2ui_flutter/a2ui_flutter.dart';
+import "package:a2ui_core/a2ui_core.dart";
+import "package:a2ui_flutter/a2ui_flutter.dart";
 // The official renderer uses legacy Material.
 // ignore: deprecated_member_use
-import 'package:flutter/material.dart' as legacy;
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:flutter/material.dart" as legacy;
+import "package:flutter/services.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/visual/model/visual_scene.dart';
-import 'a2ui_diagrams.dart';
-import 'a2ui_catalog.dart';
-import 'a2ui_store.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/visual/model/visual_scene.dart";
+import "a2ui_diagrams.dart";
+import "a2ui_catalog.dart";
+import "a2ui_store.dart";
 
 /// A separate official renderer per mounted snapshot. Only the data model and
 /// accepted user actions can write back to TiXun.
@@ -65,11 +65,11 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
         if (utf8.encode(state).length <= chatA2uiMaxState) {
           final decoded = jsonDecode(state);
           if (decoded is Map<String, dynamic>) {
-            surface.dataModel.set('/', decoded);
+            surface.dataModel.set("/", decoded);
           }
         }
       }
-      surface.dataModel.subscribe<Object?>('/', (value) {
+      surface.dataModel.subscribe<Object?>("/", (value) {
         // Encode now: the SDK owns and mutates the backing data.
         unawaited(_saveState(row, jsonEncode(value)));
       });
@@ -97,8 +97,8 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
         !chatA2uiActions.contains(action.name)) {
       return;
     }
-    final text = action.context['text'];
-    if (action.name == 'open_practice'
+    final text = action.context["text"];
+    if (action.name == "open_practice"
         ? action.context.isNotEmpty
         : action.context.length != 1 ||
               text is! String ||
@@ -111,7 +111,7 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
     if (controller.selected?.id != row.sessionId || controller.busy) return;
     _actionPending = true;
     try {
-      if (action.name == 'copy_text') {
+      if (action.name == "copy_text") {
         await Clipboard.setData(ClipboardData(text: text as String));
         await _record(row, action);
         if (mounted) {
@@ -119,7 +119,7 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
             context,
           ).showSnackBar(SnackBar(content: Text(context.l10n.chatA2uiCopied)));
         }
-      } else if (action.name == 'ask_chat') {
+      } else if (action.name == "ask_chat") {
         final approved = await showDialog<String>(
           context: context,
           builder: (_) => _A2uiChatConfirmation(text: text as String),
@@ -137,8 +137,8 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
             controller.busy) {
           return;
         }
-        await controller.send('[TiXun A2UI ${row.id}]\n$approved');
-      } else if (action.name == 'open_practice') {
+        await controller.send("[TiXun A2UI ${row.id}]\n$approved");
+      } else if (action.name == "open_practice") {
         final practice = await controller.practice.list(
           messageId: row.messageId,
         );
@@ -185,7 +185,7 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
             controller.selected?.id == row.sessionId &&
             !controller.busy) {
           await context.push(
-            '/practice/${Uri.encodeComponent(practice.single.id)}',
+            "/practice/${Uri.encodeComponent(practice.single.id)}",
           );
         }
       }
@@ -228,8 +228,8 @@ class _ChatA2uiSurfaceCardState extends ConsumerState<ChatA2uiSurfaceCard> {
         sceneJson: jsonEncode(scene.toJson()),
         title: scene.title,
         messageId: widget.row.messageId,
-        source: 'a2ui_promotion',
-        promotionKey: '${widget.row.id}/$componentId',
+        source: "a2ui_promotion",
+        promotionKey: "${widget.row.id}/$componentId",
       );
       if (mounted) {
         ScaffoldMessenger.of(

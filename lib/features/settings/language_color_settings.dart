@@ -1,11 +1,11 @@
-import '../../core/ui/app_menu.dart';
-import '../../core/l10n/app_strings.dart';
+import "../../core/ui/app_menu.dart";
+import "../../core/l10n/app_strings.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import '../../app/controller.dart';
-import '../../core/ui/actions.dart';
+import "../../app/controller.dart";
+import "../../core/ui/actions.dart";
 
 class LanguageColorSettings extends ConsumerWidget {
   const LanguageColorSettings({super.key});
@@ -16,17 +16,17 @@ class LanguageColorSettings extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppSelectField<String>(
-          key: const Key('language-selector'),
+          key: const Key("language-selector"),
           initialValue: c.languageChoice,
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.language),
             labelText: context.l10n.interfaceLanguage,
           ),
           items: [
-            DropdownMenuItem(value: 'zh', child: Text(context.l10n.chinese)),
-            const DropdownMenuItem(value: 'en', child: Text('English')),
+            DropdownMenuItem(value: "zh", child: Text(context.l10n.chinese)),
+            const DropdownMenuItem(value: "en", child: Text("English")),
             DropdownMenuItem(
-              value: 'system',
+              value: "system",
               child: Text(context.l10n.followSystem),
             ),
           ],
@@ -34,7 +34,7 @@ class LanguageColorSettings extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         SwitchListTile(
-          key: const Key('dynamic-colors'),
+          key: const Key("dynamic-colors"),
           contentPadding: EdgeInsets.zero,
           title: Text(context.l10n.dynamicColors),
           subtitle: Text(context.l10n.useTheWallpaperOrDesktop),

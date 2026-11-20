@@ -1,14 +1,14 @@
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:tixun/core/l10n/app_error.dart";
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import '../../core/database/database_notifier.dart';
-import '../../core/database/attachment_cleanup.dart';
-import '../../core/platform/attachment_store.dart';
+import "../../core/database/database.dart";
+import "../../core/database/database_notifier.dart";
+import "../../core/database/attachment_cleanup.dart";
+import "../../core/platform/attachment_store.dart";
 
-const mainExamSubjects = ['语文', '数学', '英语'];
-const examImageRoles = {'paper': '试卷', 'sheet': '答题卡', 'answers': '参考答案'};
+const mainExamSubjects = ["语文", "数学", "英语"];
+const examImageRoles = {"paper": "试卷", "sheet": "答题卡", "answers": "参考答案"};
 
 class ScoreDraft {
   ScoreDraft({
@@ -17,7 +17,7 @@ class ScoreDraft {
     required this.label,
     this.earned,
     this.maximum,
-    this.note = '',
+    this.note = "",
   }) : id = id ?? const Uuid().v4();
   final String id;
   final String? parentId;
@@ -29,7 +29,7 @@ void validateScores(List<ScoreDraft> rows) {
   if (rows.length > 500) {
     throw const AppFormatException(
       AppErrorCode.errorAScoreBreakdownCanHaveAt,
-      '小分表最多 500 行。',
+      "小分表最多 500 行。",
     );
   }
   final ids = <String, ScoreDraft>{};
@@ -41,7 +41,7 @@ void validateScores(List<ScoreDraft> rows) {
         row.note.length > 2000) {
       throw const AppFormatException(
         AppErrorCode.errorQuestionNumbersMustBeUniqueAnd,
-        '题号不能为空或重复，题号最长 60 字。',
+        "题号不能为空或重复，题号最长 60 字。",
       );
     }
     ids[row.id] = row;
@@ -54,7 +54,7 @@ void validateScores(List<ScoreDraft> rows) {
             row.parentId == row.id)) {
       throw const AppFormatException(
         AppErrorCode.errorEachSubquestionMustBelongToA,
-        '小题必须关联本表中的一道大题。',
+        "小题必须关联本表中的一道大题。",
       );
     }
   }
@@ -63,7 +63,7 @@ void validateScores(List<ScoreDraft> rows) {
     if (!labels.add('${row.parentId ?? "root"}:${row.label.trim()}')) {
       throw const AppFormatException(
         AppErrorCode.errorQuestionNumbersAtTheSameLevel,
-        '同一级的题号不能重复。',
+        "同一级的题号不能重复。",
       );
     }
   }
@@ -74,14 +74,14 @@ void validateScore(double? score, double? maximum) {
     if (value != null && (!value.isFinite || value < 0 || value > 10000)) {
       throw const AppFormatException(
         AppErrorCode.errorScoresMustBeValidNumbersFrom,
-        '分数需为 0–10000 的有效数字。',
+        "分数需为 0–10000 的有效数字。",
       );
     }
   }
   if (score != null && maximum != null && score > maximum) {
     throw const AppFormatException(
       AppErrorCode.errorTheScoreCannotExceedTheMaximum,
-      '得分不能超过满分。',
+      "得分不能超过满分。",
     );
   }
 }
@@ -129,7 +129,7 @@ class ExamStore extends DatabaseNotifier {
     if (title.trim().isEmpty || title.length > 120) {
       throw const AppFormatException(
         AppErrorCode.examNameMustBe1,
-        '考试名称需为 1–120 字。',
+        "考试名称需为 1–120 字。",
       );
     }
     final key = id ?? const Uuid().v4();
@@ -155,12 +155,12 @@ class ExamStore extends DatabaseNotifier {
     double? scaled,
     double? maximum,
     bool scaling = false,
-    String notes = '',
+    String notes = "",
   }) => runOperation(() async {
     if (subject.trim().isEmpty || subject.length > 40 || notes.length > 10000) {
       throw const AppFormatException(
         AppErrorCode.errorCheckTheLengthsOfTheSubject,
-        '请检查科目名称和备注长度。',
+        "请检查科目名称和备注长度。",
       );
     }
     validateScore(raw, maximum);
@@ -201,7 +201,7 @@ class ExamStore extends DatabaseNotifier {
       if (expected != null && subject.scoreRevision != expected) {
         throw const AppFormatException(
           AppErrorCode.errorThisRecordHasChangedReopenThe,
-          '记录已更新，请重新打开小分表后编辑。',
+          "记录已更新，请重新打开小分表后编辑。",
         );
       }
       await (db.delete(
@@ -246,7 +246,7 @@ class ExamStore extends DatabaseNotifier {
     if (!examImageRoles.containsKey(role)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidImageCategory,
-        '图片类别无效。',
+        "图片类别无效。",
       );
     }
     final image = await files.importFile(source);
@@ -292,7 +292,7 @@ class ExamStore extends DatabaseNotifier {
   Future<void> deleteEvent(String id) => runOperation(() async {
     final paths = await db
         .customSelect(
-          'SELECT relative_path, original_path FROM exam_attachments WHERE subject_id IN (SELECT id FROM exam_subjects WHERE event_id=?)',
+          "SELECT relative_path, original_path FROM exam_attachments WHERE subject_id IN (SELECT id FROM exam_subjects WHERE event_id=?)",
           variables: [Variable(id)],
         )
         .get();
@@ -302,9 +302,9 @@ class ExamStore extends DatabaseNotifier {
       files,
       paths.expand(
         (r) => [
-          r.read<String>('relative_path'),
-          if (r.readNullable<String>('original_path') != null)
-            r.read<String>('original_path'),
+          r.read<String>("relative_path"),
+          if (r.readNullable<String>("original_path") != null)
+            r.read<String>("original_path"),
         ],
       ),
     );
@@ -316,11 +316,11 @@ class ExamStore extends DatabaseNotifier {
         if (bytes.length > 8 * 1024 * 1024) {
           throw const AppFormatException(
             AppErrorCode.theEditedImageExceeds8,
-            '编辑副本超过 8 MB。',
+            "编辑副本超过 8 MB。",
           );
         }
         final (mime, extension) = AttachmentStore.identify(bytes);
-        final path = 'attachments/${const Uuid().v4()}.$extension';
+        final path = "attachments/${const Uuid().v4()}.$extension";
         String? discard;
         try {
           await db.transaction(() async {
@@ -330,7 +330,7 @@ class ExamStore extends DatabaseNotifier {
             if (row == null || row.relativePath != image.relativePath) {
               throw const AppFormatException(
                 AppErrorCode.thePhotoChangedOrWas,
-                '照片已更改或删除，请重新打开。',
+                "照片已更改或删除，请重新打开。",
               );
             }
             final file = files.resolve(path);

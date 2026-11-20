@@ -1,14 +1,14 @@
-import 'package:drift/drift.dart';
+import "package:drift/drift.dart";
 
-import '../../core/database/database.dart';
+import "../../core/database/database.dart";
 
 class TopicEvidence {
   const TopicEvidence(this.name, this.subject, this.questions, this.correct);
   final String name, subject;
   final int questions, correct;
   String get description => questions < 3
-      ? '样本不足：$questions 道独立检测题'
-      : '最近独立检测 $correct / $questions 道正确';
+      ? "样本不足：$questions 道独立检测题"
+      : "最近独立检测 $correct / $questions 道正确";
 }
 
 class LearningProgress {
@@ -76,60 +76,60 @@ class LearningProgress {
         )
         .get();
     return LearningProgress(
-      total: n('total'),
-      checked: n('checked'),
-      self: n('self'),
-      unverified: n('unverified'),
-      hinted: n('hinted'),
-      correct: n('correct'),
+      total: n("total"),
+      checked: n("checked"),
+      self: n("self"),
+      unverified: n("unverified"),
+      hinted: n("hinted"),
+      correct: n("correct"),
       topics: topics
           .map(
             (r) => TopicEvidence(
-              r.read<String>('name'),
-              r.read<String>('subject'),
-              r.read<int>('n'),
-              r.read<int>('correct'),
+              r.read<String>("name"),
+              r.read<String>("subject"),
+              r.read<int>("n"),
+              r.read<int>("correct"),
             ),
           )
           .toList(),
       recent: recent
           .map(
             (r) => (
-              stem: r.read<String>('stem'),
-              subject: r.read<String>('subject'),
-              basis: r.read<String>('grading_basis'),
-              correct: r.read<bool>('correct'),
-              hint: r.read<bool>('hint_used'),
+              stem: r.read<String>("stem"),
+              subject: r.read<String>("subject"),
+              basis: r.read<String>("grading_basis"),
+              correct: r.read<bool>("correct"),
+              hint: r.read<bool>("hint_used"),
               time: DateTime.fromMillisecondsSinceEpoch(
-                r.read<int>('submitted_at') * 1000,
+                r.read<int>("submitted_at") * 1000,
               ),
             ),
           )
           .toList(),
       errorReasons: {
         for (final r in reasons)
-          r.read<String>('error_reason'): r.read<int>('n'),
+          r.read<String>("error_reason"): r.read<int>("n"),
       },
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'graded_attempts': total,
-    'checked_answer_attempts': checked,
-    'self_assessed': self,
-    'ai_reference_unverified': unverified,
-    'hinted_attempts': hinted,
-    'mastery': null,
-    'evidence_note':
-        '仅展示真实作答证据，不推断考试分数或精确掌握度。知识点使用每道题最近一次已评分作答，仅纳入已核对且未用提示的结果；少于3道题标为样本不足。',
-    'topics': topics
+    "graded_attempts": total,
+    "checked_answer_attempts": checked,
+    "self_assessed": self,
+    "ai_reference_unverified": unverified,
+    "hinted_attempts": hinted,
+    "mastery": null,
+    "evidence_note":
+        "仅展示真实作答证据，不推断考试分数或精确掌握度。知识点使用每道题最近一次已评分作答，仅纳入已核对且未用提示的结果；少于3道题标为样本不足。",
+    "topics": topics
         .map(
           (t) => {
-            'name': t.name,
-            'subject': t.subject,
-            'distinct_questions': t.questions,
-            'correct': t.correct,
-            'sufficient_sample': t.questions >= 3,
+            "name": t.name,
+            "subject": t.subject,
+            "distinct_questions": t.questions,
+            "correct": t.correct,
+            "sufficient_sample": t.questions >= 3,
           },
         )
         .toList(),

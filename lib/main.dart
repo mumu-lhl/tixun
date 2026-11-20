@@ -1,18 +1,18 @@
-import 'app/app_notice.dart';
-import 'features/exams/exam_photo_intake.dart';
+import "app/app_notice.dart";
+import "features/exams/exam_photo_intake.dart";
 
-import 'dart:io';
+import "dart:io";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
+import "package:material_ui/material_ui.dart";
+import "package:image_picker/image_picker.dart";
+import "package:path/path.dart" as p;
 
-import 'app/app_host.dart';
-import 'app/controller.dart';
-import 'app/theme.dart';
-import 'core/backup/backup_service.dart';
-import 'features/library/study_photo_intake.dart';
-import 'features/update/linux_staging.dart';
+import "app/app_host.dart";
+import "app/controller.dart";
+import "app/theme.dart";
+import "core/backup/backup_service.dart";
+import "features/library/study_photo_intake.dart";
+import "features/update/linux_staging.dart";
 
 Future<void> main() async {
   if (Platform.isLinux) {
@@ -35,14 +35,14 @@ Future<void> main() async {
     }
   }
   WidgetsFlutterBinding.ensureInitialized();
-  const demo = bool.fromEnvironment('TIXUN_DEMO');
+  const demo = bool.fromEnvironment("TIXUN_DEMO");
   late final Directory root;
   RandomAccessFile? instance;
   try {
     root = await AppController.rootDirectory(demo: demo);
     await root.parent.create(recursive: true);
     instance = await File(
-      p.join(root.parent.path, '.${p.basename(root.path)}.instance.lock'),
+      p.join(root.parent.path, ".${p.basename(root.path)}.instance.lock"),
     ).open(mode: FileMode.append);
     await instance.lock(FileLock.exclusive);
   } catch (_) {
@@ -58,11 +58,11 @@ Future<void> main() async {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    '无法独占打开应用数据。请关闭其他题训窗口，并检查应用目录权限。',
+                    "无法独占打开应用数据。请关闭其他题训窗口，并检查应用目录权限。",
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-                  FilledButton(onPressed: main, child: const Text('重试')),
+                  FilledButton(onPressed: main, child: const Text("重试")),
                 ],
               ),
             ),
@@ -114,5 +114,5 @@ Future<void> main() async {
       initialError: failure,
     ),
   );
-  if (c != null) debugPrint('TIXUN_READY demo=$demo');
+  if (c != null) debugPrint("TIXUN_READY demo=$demo");
 }

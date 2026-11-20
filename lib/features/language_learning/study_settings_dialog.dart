@@ -1,9 +1,9 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../../app/preferences.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/ui/actions.dart';
+import "../../app/preferences.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/ui/actions.dart";
 
 Future<void> editLanguageStudy(
   BuildContext context,

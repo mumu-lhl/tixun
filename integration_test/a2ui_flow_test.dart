@@ -1,28 +1,28 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:tixun/app/app.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/features/a2ui/a2ui_surface_card.dart';
-import 'package:tixun/features/visual/visual_card.dart';
+import "package:flutter/services.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:integration_test/integration_test.dart";
+import "package:material_ui/material_ui.dart";
+import "package:tixun/app/app.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/a2ui/a2ui_surface_card.dart";
+import "package:tixun/features/visual/visual_card.dart";
 
-import '../test/support/chat_a2ui.dart';
-import 'support/gui_capture.dart';
+import "../test/support/chat_a2ui.dart";
+import "support/gui_capture.dart";
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-    'Native chat streams A2UI Express and interacts without another query',
+    "Native chat streams A2UI Express and interacts without another query",
     (t) async {
-      final root = await Directory.systemTemp.createTemp('tixun-native-a2ui');
+      final root = await Directory.systemTemp.createTemp("tixun-native-a2ui");
       final provider = A2uiTestProvider();
       final c = AppController(
         AppDatabase.memory(),
@@ -32,7 +32,7 @@ void main() {
         demo: true,
       );
       await c.initialize();
-      await c.setLanguage('en');
+      await c.setLanguage("en");
       await c.setAiDrawingEnabled(true);
       final container = ProviderContainer(
         overrides: [appControllerProvider.overrideWith((ref) => c)],
@@ -44,11 +44,11 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.tap(find.byKey(const Key('start-chat')));
+      await t.tap(find.byKey(const Key("start-chat")));
       await t.pumpAndSettle();
       await t.enterText(
-        find.byKey(const Key('chat-input')),
-        'Draw a parabola and create native controls',
+        find.byKey(const Key("chat-input")),
+        "Draw a parabola and create native controls",
       );
       await t.pumpAndSettle();
       await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -62,18 +62,18 @@ void main() {
         await t.pump(const Duration(milliseconds: 100));
       }
       await t.pumpAndSettle();
-      expect(c.messages.last.status, 'complete');
+      expect(c.messages.last.status, "complete");
       expect(find.byType(ChatA2uiSurfaceCard), findsNWidgets(3));
       expect(find.byType(VisualCard), findsOneWidget);
-      expect(find.text('A parabola'), findsOneWidget);
-      final flip = find.text('Flip card');
+      expect(find.text("A parabola"), findsOneWidget);
+      final flip = find.text("Flip card");
       await t.ensureVisible(flip);
       await t.tap(flip);
       await t.pumpAndSettle();
-      expect(find.text('Back of card', findRichText: true), findsOneWidget);
+      expect(find.text("Back of card", findRichText: true), findsOneWidget);
       expect(provider.requests, hasLength(1));
       expect(t.takeException(), isNull);
-      await guiCapture('a2ui', 'native-flashcard');
+      await guiCapture("a2ui", "native-flashcard");
       await t.pumpWidget(const SizedBox.shrink());
       container.dispose();
       await c.db.close();

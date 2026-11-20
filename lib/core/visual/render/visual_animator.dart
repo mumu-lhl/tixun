@@ -1,4 +1,4 @@
-import 'package:tixun/core/visual/model/visual_scene.dart';
+import "package:tixun/core/visual/model/visual_scene.dart";
 
 /// Sentinel for "no teaching step applies": [VisualFrame.stepIndex] is
 /// this when the frame is before the first step, or the scene has no
@@ -29,7 +29,6 @@ class VisualFrame {
   /// the painter applies those itself.
   final Set<String> hiddenElementIds;
 
-  /// The resolved moment in milliseconds.
   final double timeMs;
 
   /// Index of the current step (last step with `atMs <= timeMs`), or

@@ -1,18 +1,18 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'dart:convert';
+import "dart:convert";
 
-import '../../core/database/database.dart';
+import "../../core/database/database.dart";
 
 class LearningProfile {
   const LearningProfile({
-    this.stage = '高中',
-    this.region = '',
-    this.exam = '高考',
+    this.stage = "高中",
+    this.region = "",
+    this.exam = "高考",
     this.examDate,
     this.dailyMinutes = 45,
-    this.scope = '',
-    this.teaching = 'guided',
+    this.scope = "",
+    this.teaching = "guided",
     this.partialFallback = false,
   });
   final String stage, region, exam, scope, teaching;
@@ -25,7 +25,7 @@ class LearningProfile {
   /// the rest on the next save.
   final bool partialFallback;
   static Future<LearningProfile> load(AppDatabase db) async {
-    final raw = await db.preference('learning_profile');
+    final raw = await db.preference("learning_profile");
     if (raw == null || raw.isEmpty) return const LearningProfile();
     Map<String, dynamic> data;
     try {
@@ -44,7 +44,7 @@ class LearningProfile {
     }
 
     int minutesField() {
-      final value = data['daily_minutes'];
+      final value = data["daily_minutes"];
       final minutes = value is int
           ? value
           : value is num && value == value.roundToDouble()
@@ -58,7 +58,7 @@ class LearningProfile {
     }
 
     DateTime? dateField() {
-      final value = data['exam_date'];
+      final value = data["exam_date"];
       if (value == null) return null;
       if (value is String) {
         final parsed = DateTime.tryParse(value);
@@ -69,25 +69,25 @@ class LearningProfile {
       return null;
     }
 
-    var teachingValue = 'guided';
-    var region = stringField('region', '').trim();
+    var teachingValue = "guided";
+    var region = stringField("region", "").trim();
     if (region.length > 100) {
-      region = '';
+      region = "";
       partial = true;
     }
-    final teaching = data['teaching'];
-    if (teaching is String && ['guided', 'direct', 'exam'].contains(teaching)) {
+    final teaching = data["teaching"];
+    if (teaching is String && ["guided", "direct", "exam"].contains(teaching)) {
       teachingValue = teaching;
     } else if (teaching != null) {
       partial = true;
     }
     return LearningProfile(
-      stage: stringField('stage', '高中'),
+      stage: stringField("stage", "高中"),
       region: region,
-      exam: stringField('exam', '高考'),
+      exam: stringField("exam", "高考"),
       examDate: dateField(),
       dailyMinutes: minutesField(),
-      scope: stringField('scope', ''),
+      scope: stringField("scope", ""),
       teaching: teachingValue,
       partialFallback: partial,
     );
@@ -101,22 +101,22 @@ class LearningProfile {
         scope.length > 4000 ||
         dailyMinutes < 5 ||
         dailyMinutes > 480 ||
-        !['guided', 'direct', 'exam'].contains(teaching)) {
+        !["guided", "direct", "exam"].contains(teaching)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidLearningSettings,
-        '学习设置内容无效。',
+        "学习设置内容无效。",
       );
     }
     await db.setPreference(
-      'learning_profile',
+      "learning_profile",
       jsonEncode({
-        'stage': stage.trim(),
-        'region': region.trim(),
-        'exam': exam.trim(),
-        'exam_date': examDate?.toIso8601String(),
-        'daily_minutes': dailyMinutes,
-        'scope': scope.trim(),
-        'teaching': teaching,
+        "stage": stage.trim(),
+        "region": region.trim(),
+        "exam": exam.trim(),
+        "exam_date": examDate?.toIso8601String(),
+        "daily_minutes": dailyMinutes,
+        "scope": scope.trim(),
+        "teaching": teaching,
       }),
     );
   }

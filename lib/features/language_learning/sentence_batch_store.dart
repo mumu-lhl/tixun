@@ -1,13 +1,13 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
 
-import '../../core/ai/chat_provider.dart' show CancelGuard;
+import "../../core/ai/chat_provider.dart" show CancelGuard;
 
-import '../../core/database/database.dart';
-import 'language_store.dart';
-import 'sentence_content.dart';
+import "../../core/database/database.dart";
+import "language_store.dart";
+import "sentence_content.dart";
 
 class SentenceBatchProposal {
   const SentenceBatchProposal({
@@ -43,18 +43,18 @@ extension SentenceBatchStore on LanguageLearningStore {
       for (final card in proposal.cards)
         if (selected.contains(card.id))
           {
-            'id': card.id,
-            'text': card.text,
-            'hint': card.hint,
-            'translation': card.translation,
-            'level': card.level.name,
-            'revision': card.revision,
-            if (card.skill != null) 'skill': card.skill!.name,
+            "id": card.id,
+            "text": card.text,
+            "hint": card.hint,
+            "translation": card.translation,
+            "level": card.level.name,
+            "revision": card.revision,
+            if (card.skill != null) "skill": card.skill!.name,
             if (card.choices.isNotEmpty) ...{
-              'question': card.question,
-              'choices': card.choices,
-              'correctIndex': card.correctIndex,
-              'checkExplanation': card.checkExplanation,
+              "question": card.question,
+              "choices": card.choices,
+              "correctIndex": card.correctIndex,
+              "checkExplanation": card.checkExplanation,
             },
           },
     ];
@@ -65,7 +65,7 @@ extension SentenceBatchStore on LanguageLearningStore {
           .insert(
             LearningSentenceBatchesCompanion.insert(
               id: proposal.id,
-              language: 'en',
+              language: "en",
               topic: proposal.topic.name,
               style: proposal.style.name,
               glossLanguage: proposal.glossLanguage,
@@ -102,19 +102,19 @@ extension SentenceBatchStore on LanguageLearningStore {
       final query = db.select(table)..where((row) => row.id.equals(card.id));
       final row = await query.getSingle();
       final existing = openSavedSentenceBatch(row).cards.single;
-      if (!row.id.startsWith('quick:') || existing.text != card.text) {
-        throw const FormatException('Invalid saved quick sentence');
+      if (!row.id.startsWith("quick:") || existing.text != card.text) {
+        throw const FormatException("Invalid saved quick sentence");
       }
       if (existing.choices.isNotEmpty) return existing;
       final data =
           (jsonDecode(row.cards) as List).single as Map<String, dynamic>;
       data.addAll({
-        'revision': card.revision,
-        'skill': card.skill!.name,
-        'question': card.question,
-        'choices': card.choices,
-        'correctIndex': card.correctIndex,
-        'checkExplanation': card.checkExplanation,
+        "revision": card.revision,
+        "skill": card.skill!.name,
+        "question": card.question,
+        "choices": card.choices,
+        "correctIndex": card.correctIndex,
+        "checkExplanation": card.checkExplanation,
       });
       final write = db.update(table)..where((item) => item.id.equals(card.id));
       await write.write(
@@ -128,7 +128,7 @@ extension SentenceBatchStore on LanguageLearningStore {
   Future<List<LearningSentenceBatch>> savedSentenceBatches({int limit = 40}) =>
       (db.select(db.learningSentenceBatches)
             ..where(
-              (row) => row.language.equals('en') & row.isMock.equals(false),
+              (row) => row.language.equals("en") & row.isMock.equals(false),
             )
             ..orderBy([
               (row) => OrderingTerm.desc(row.generatedAt),
@@ -145,20 +145,20 @@ SentenceBatch openSavedSentenceBatch(LearningSentenceBatch row) {
     cards.map((value) {
       final card = value as Map<String, dynamic>;
       return SentenceCard(
-        id: card['id'] as String,
-        text: card['text'] as String,
-        hint: card['hint'] as String,
-        translation: card['translation'] as String,
-        level: SentenceLevel.values.byName(card['level'] as String),
-        revision: card['revision'] as int,
+        id: card["id"] as String,
+        text: card["text"] as String,
+        hint: card["hint"] as String,
+        translation: card["translation"] as String,
+        level: SentenceLevel.values.byName(card["level"] as String),
+        revision: card["revision"] as int,
         language: row.language,
-        skill: SentenceSkill.values.asNameMap()[card['skill']],
-        question: card['question'] as String? ?? '',
-        choices: (card['choices'] as List?)?.cast<String>() ?? const [],
-        correctIndex: card['correctIndex'] as int? ?? -1,
-        checkExplanation: card['checkExplanation'] as String? ?? '',
+        skill: SentenceSkill.values.asNameMap()[card["skill"]],
+        question: card["question"] as String? ?? "",
+        choices: (card["choices"] as List?)?.cast<String>() ?? const [],
+        correctIndex: card["correctIndex"] as int? ?? -1,
+        checkExplanation: card["checkExplanation"] as String? ?? "",
       );
     }),
-    generatedBy: row.isMock ? 'Mock' : row.model,
+    generatedBy: row.isMock ? "Mock" : row.model,
   );
 }

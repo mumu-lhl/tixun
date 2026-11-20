@@ -1,11 +1,11 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
+import "dart:async";
+import "dart:convert";
+import "dart:io";
 
-import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/python/android_python_runtime.dart';
+import "package:dio/dio.dart";
+import "package:flutter/services.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/python/android_python_runtime.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +14,8 @@ void main() {
   late Directory root;
   late Directory workspace;
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('android-python');
-    workspace = Directory('${root.path}/python-workspaces/session');
+    root = await Directory.systemTemp.createTemp("android-python");
+    workspace = Directory("${root.path}/python-workspaces/session");
     await workspace.create(recursive: true);
   });
   tearDown(() async {
@@ -25,77 +25,77 @@ void main() {
 
   Future<Map<String, dynamic>> execute({CancelToken? cancel}) =>
       AndroidPythonRuntime.execute(
-        code: 'print(9)',
+        code: "print(9)",
         workspace: workspace,
         timeoutSeconds: 10,
         cancel: cancel ?? CancelToken(),
       );
 
   Map<String, dynamic> response({Object? snapshot}) => {
-    'ok': true,
-    'stdout': '9\n',
-    'stderr': '',
-    'output_truncated': false,
-    'workspace':
-        snapshot ?? {'files': <String, String>{}, 'directories': <String>[]},
+    "ok": true,
+    "stdout": "9\n",
+    "stderr": "",
+    "output_truncated": false,
+    "workspace":
+        snapshot ?? {"files": <String, String>{}, "directories": <String>[]},
   };
 
-  test('passes bounded snapshot and persists validated output', () async {
-    await File('${workspace.path}/input.txt').writeAsString('input');
+  test("passes bounded snapshot and persists validated output", () async {
+    await File("${workspace.path}/input.txt").writeAsString("input");
     messenger.setMockMethodCallHandler(AndroidPythonRuntime.channel, (
       call,
     ) async {
-      expect(call.method, 'execute');
+      expect(call.method, "execute");
       final payload =
-          jsonDecode((call.arguments as Map)['payload'] as String) as Map;
-      expect((payload['workspace'] as Map)['files'], {'input.txt': 'aW5wdXQ='});
+          jsonDecode((call.arguments as Map)["payload"] as String) as Map;
+      expect((payload["workspace"] as Map)["files"], {"input.txt": "aW5wdXQ="});
       return jsonEncode(
         response(
           snapshot: {
-            'files': {'result.txt': 'b3V0cHV0'},
-            'directories': <String>[],
+            "files": {"result.txt": "b3V0cHV0"},
+            "directories": <String>[],
           },
         ),
       );
     });
-    expect((await execute())['ok'], true);
-    expect(await File('${workspace.path}/input.txt').exists(), false);
-    expect(await File('${workspace.path}/result.txt').readAsString(), 'output');
+    expect((await execute())["ok"], true);
+    expect(await File("${workspace.path}/input.txt").exists(), false);
+    expect(await File("${workspace.path}/result.txt").readAsString(), "output");
   });
 
-  test('rejects malicious output without writing outside workspace', () async {
+  test("rejects malicious output without writing outside workspace", () async {
     messenger.setMockMethodCallHandler(
       AndroidPythonRuntime.channel,
       (_) async => jsonEncode(
         response(
           snapshot: {
-            'files': {'../../escape': 'eA=='},
-            'directories': <String>[],
+            "files": {"../../escape": "eA=="},
+            "directories": <String>[],
           },
         ),
       ),
     );
-    expect((await execute())['ok'], false);
-    expect(await File('${root.path}/escape').exists(), false);
+    expect((await execute())["ok"], false);
+    expect(await File("${root.path}/escape").exists(), false);
   });
 
   test(
-    'maps native timeout without falling back to another interpreter',
+    "maps native timeout without falling back to another interpreter",
     () async {
       var calls = 0;
       messenger.setMockMethodCallHandler(AndroidPythonRuntime.channel, (
         _,
       ) async {
         calls++;
-        throw PlatformException(code: 'SANDBOX_TIMEOUT');
+        throw PlatformException(code: "SANDBOX_TIMEOUT");
       });
-      expect((await execute())['error'], contains('超时'));
+      expect((await execute())["error"], contains("超时"));
       expect(calls, 1);
     },
   );
 
   test(
-    'cancellation stops the matching isolated request and skips output sync',
+    "cancellation stops the matching isolated request and skips output sync",
     () async {
       final pending = Completer<String>();
       final started = Completer<void>();
@@ -104,19 +104,19 @@ void main() {
         call,
       ) async {
         final args = call.arguments as Map;
-        if (call.method == 'execute') {
-          requestId = args['requestId'] as String;
+        if (call.method == "execute") {
+          requestId = args["requestId"] as String;
           started.complete();
           return pending.future;
         }
-        expect(call.method, 'cancel');
-        expect(args['requestId'], requestId);
+        expect(call.method, "cancel");
+        expect(args["requestId"], requestId);
         pending.complete(
           jsonEncode(
             response(
               snapshot: {
-                'files': {'cancelled.txt': 'eA=='},
-                'directories': <String>[],
+                "files": {"cancelled.txt": "eA=="},
+                "directories": <String>[],
               },
             ),
           ),
@@ -129,11 +129,11 @@ void main() {
       await started.future;
       token.cancel();
       await assertion;
-      expect(await File('${workspace.path}/cancelled.txt').exists(), false);
+      expect(await File("${workspace.path}/cancelled.txt").exists(), false);
     },
   );
 
-  test('missing native channel fails closed', () async {
-    expect((await execute())['ok'], false);
+  test("missing native channel fails closed", () async {
+    expect((await execute())["ok"], false);
   });
 }

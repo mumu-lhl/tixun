@@ -1,42 +1,44 @@
-import '../../core/ui/app_menu.dart';
-import '../scratchpad/scratchpad_screen.dart';
+import "dart:async";
 
-import 'dart:io';
+import "../../core/ui/app_menu.dart";
+import "../scratchpad/scratchpad_screen.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "dart:io";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/ai/study_tools.dart';
-import '../../core/ai/ai_usage_store.dart';
-import '../../core/ai/ai_usage_summary.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/usage_token_breakdown.dart';
-import '../../core/ui/markdown_editor.dart';
-import '../../core/platform/photo_picker.dart';
-import '../../core/ui/image_viewer.dart';
-import '../library/chat_study_actions.dart';
-import '../library/image_editor.dart';
-import '../practice/question_card.dart';
-import '../visual/visual_markdown.dart';
-import '../settings/tool_call_limit_setting.dart';
-import 'reasoning_menu.dart';
-import 'drawing_menu.dart';
-import 'message_reasoning.dart';
-import 'chat_failure.dart';
-import 'session_list.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter/scheduler.dart";
+import "package:flutter/services.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-part 'chat_conversation.dart';
-part 'chat_message_panel.dart';
-part 'chat_composer.dart';
-part 'message_view.dart';
-part 'message_usage.dart';
-part 'chat_attachment.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/ai/study_tools.dart";
+import "../../core/ai/ai_usage_store.dart";
+import "../../core/ai/ai_usage_summary.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/usage_token_breakdown.dart";
+import "../../core/ui/markdown_editor.dart";
+import "../../core/platform/photo_picker.dart";
+import "../../core/ui/image_viewer.dart";
+import "../library/chat_study_actions.dart";
+import "../library/image_editor.dart";
+import "../practice/question_card.dart";
+import "../visual/visual_markdown.dart";
+import "../settings/tool_call_limit_setting.dart";
+import "reasoning_menu.dart";
+import "drawing_menu.dart";
+import "message_reasoning.dart";
+import "chat_failure.dart";
+import "session_list.dart";
+
+part "chat_conversation.dart";
+part "chat_message_panel.dart";
+part "chat_composer.dart";
+part "message_view.dart";
+part "message_usage.dart";
+part "chat_attachment.dart";
 
 class ChatScreen extends ConsumerWidget {
   const ChatScreen({super.key});
@@ -77,14 +79,14 @@ class ChatScreen extends ConsumerWidget {
                   children: [
                     if (MediaQuery.sizeOf(context).width < 800)
                       IconButton(
-                        key: const Key('chat-back'),
+                        key: const Key("chat-back"),
                         tooltip: context.l10n.back,
                         icon: const Icon(Icons.arrow_back),
                         onPressed: () {
                           if (context.canPop()) {
                             context.pop();
                           } else {
-                            context.go('/study');
+                            context.go("/study");
                           }
                         },
                       ),
@@ -118,14 +120,14 @@ class ChatScreen extends ConsumerWidget {
                           Text(
                             c.demo
                                 ? context.l10n.mockIsolatedDataNoAPI
-                                : c.config.kind == 'chatgpt'
+                                : c.config.kind == "chatgpt"
                                 ? context.l10n.usingChatGPTPlan(
                                     c.config.model,
                                     c.busy
                                         ? context.l10n.responding
                                         : context.l10n.savedLocally,
                                   )
-                                : '${c.config.model} · ${c.busy ? context.l10n.responding : context.l10n.savedLocally}',
+                                : "${c.config.model} · ${c.busy ? context.l10n.responding : context.l10n.savedLocally}",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -167,16 +169,16 @@ class ChatScreen extends ConsumerWidget {
                       ),
                     const ReasoningMenu(),
                     if (c.selected != null)
-                      ScratchpadButton('chat:${c.selected!.id}'),
+                      ScratchpadButton("chat:${c.selected!.id}"),
                     if (!compact)
                       IconButton(
                         tooltip: context.l10n.modelSettings,
-                        onPressed: () => context.push('/settings/ai'),
+                        onPressed: () => context.push("/settings/ai"),
                         icon: const Icon(Icons.tune, size: 21),
                       ),
                     PopupMenuButton<String>(
                       popUpAnimationStyle: menuAnimation(context),
-                      key: const Key('chat-more'),
+                      key: const Key("chat-more"),
                       tooltip: context.l10n.moreChatActions,
                       icon: Badge(
                         isLabelVisible: c.selected?.toolsEnabled == true,
@@ -187,18 +189,25 @@ class ChatScreen extends ConsumerWidget {
                         if (handleDrawingMenuSelection(context, c, action)) {
                           return;
                         }
-                        if (action == 'tool-call-limit') {
-                          editToolCallLimit(context, c);
+                        if (action == "tool-call-limit") {
+                          unawaited(editToolCallLimit(context, c));
                           return;
                         }
-                        if (action == 'tools') {
-                          act(context, () => _toggleStudyTools(context, c));
+                        if (action == "tools") {
+                          unawaited(
+                            act(context, () => _toggleStudyTools(context, c)),
+                          );
                         }
-                        if (action == 'links') {
-                          act(context, () => openChatStudyLinks(context, ref));
+                        if (action == "links") {
+                          unawaited(
+                            act(
+                              context,
+                              () => openChatStudyLinks(context, ref),
+                            ),
+                          );
                         }
-                        if (action == 'settings') {
-                          context.push('/settings/ai');
+                        if (action == "settings") {
+                          unawaited(context.push("/settings/ai"));
                         }
                       },
                       itemBuilder: (ctx) => [
@@ -206,7 +215,7 @@ class ChatScreen extends ConsumerWidget {
                         if (compact) const PopupMenuDivider(),
                         if (compact)
                           CheckedPopupMenuItem(
-                            value: 'tools',
+                            value: "tools",
                             checked: c.selected?.toolsEnabled == true,
                             enabled: !c.busy && c.selected != null,
                             child: Text(
@@ -217,13 +226,13 @@ class ChatScreen extends ConsumerWidget {
                           ),
                         if (compact)
                           PopupMenuItem(
-                            value: 'links',
+                            value: "links",
                             enabled: c.selected != null,
                             child: Text(ctx.l10n.linkedLearningMaterial),
                           ),
                         if (compact)
                           PopupMenuItem(
-                            value: 'settings',
+                            value: "settings",
                             child: Text(ctx.l10n.modelSettings),
                           ),
                       ],
@@ -283,7 +292,7 @@ Future<void> _toggleStudyTools(BuildContext context, AppController c) async {
               (StudyToolCategory.review, ctx.l10n.reviewSchedule),
             ])
               CheckboxListTile(
-                key: Key('study-tools-${category.name}'),
+                key: Key("study-tools-${category.name}"),
                 value: selection.contains(category),
                 title: Text(label),
                 controlAffinity: ListTileControlAffinity.leading,

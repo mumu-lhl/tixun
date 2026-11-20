@@ -1,10 +1,10 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../core/l10n/app_strings.dart';
-import '../progress/profile_editor.dart';
-import '../review/review_providers.dart';
+import "../../core/l10n/app_strings.dart";
+import "../progress/profile_editor.dart";
+import "../review/review_providers.dart";
 
 /// Whether [examDate] is already past, comparing calendar dates only.
 /// Exam dates come from a date picker at midnight, so comparing against
@@ -186,8 +186,8 @@ class _DailyActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = FilledButton.icon(
-      key: const Key('today-review'),
-      onPressed: () => context.go(hasReviews ? '/review' : '/practice'),
+      key: const Key("today-review"),
+      onPressed: () => context.go(hasReviews ? "/review" : "/practice"),
       icon: Icon(hasReviews ? Icons.event_repeat : Icons.edit_note, size: 18),
       label: Text(
         hasReviews ? context.l10n.startReview : context.l10n.startPractice,
@@ -195,13 +195,13 @@ class _DailyActions extends StatelessWidget {
     );
     final secondary = [
       TextButton(
-        key: const Key('today-review-schedule'),
-        onPressed: () => context.go('/review'),
+        key: const Key("today-review-schedule"),
+        onPressed: () => context.go("/review"),
         child: Text(context.l10n.reviewSchedule, textAlign: TextAlign.center),
       ),
       TextButton(
-        key: const Key('today-learning-insights'),
-        onPressed: () => context.go('/progress'),
+        key: const Key("today-learning-insights"),
+        onPressed: () => context.go("/progress"),
         child: Text(context.l10n.learningInsights, textAlign: TextAlign.center),
       ),
     ];

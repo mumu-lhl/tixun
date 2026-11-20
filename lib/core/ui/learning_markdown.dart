@@ -1,12 +1,12 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:gpt_markdown/gpt_markdown.dart';
-import 'package:val_latex_flutter/val_latex_flutter.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:gpt_markdown/gpt_markdown.dart";
+import "package:val_latex_flutter/val_latex_flutter.dart";
 
-import '../l10n/app_strings.dart';
-import '../markdown/learning_syntax.dart';
+import "../l10n/app_strings.dart";
+import "../markdown/learning_syntax.dart";
 
-export '../markdown/learning_syntax.dart';
+export "../markdown/learning_syntax.dart";
 
 Widget _math(BuildContext context, String source, {bool block = false}) {
   return Tooltip(
@@ -32,7 +32,7 @@ Widget _math(BuildContext context, String source, {bool block = false}) {
           ),
           onError: (_, _) => SelectableText(
             source,
-            style: const TextStyle(fontFamily: 'TixunMono'),
+            style: const TextStyle(fontFamily: "TixunMono"),
           ),
         ),
       ),
@@ -46,10 +46,10 @@ class _MathBlock extends MarkdownBlockSyntax {
   final String prefix;
   @override
   String get type =>
-      prefix == r'$$' ? 'tixun-dollar-math' : 'tixun-bracket-math';
+      prefix == r"$$" ? "tixun-dollar-math" : "tixun-bracket-math";
   @override
   MarkdownBlockMatch? parse(List<String> lines, int startLine) {
-    final end = prefix == r'$$' ? r'$$' : r'\]';
+    final end = prefix == r"$$" ? r"$$" : r"\]";
     final first = lines[startLine].trim().substring(2);
     if (first.endsWith(end)) {
       return MarkdownBlockMatch(
@@ -73,7 +73,7 @@ class _MathBlock extends MarkdownBlockSyntax {
       body.add(lines[next - 1]);
     }
     return MarkdownBlockMatch(
-      node: MdCustomBlock(type: type, body: body.join('\n'), closed: closed),
+      node: MdCustomBlock(type: type, body: body.join("\n"), closed: closed),
       endLine: next,
     );
   }
@@ -83,7 +83,7 @@ class _MathBlock extends MarkdownBlockSyntax {
 // from the syntax used by existing notes and the print exporters. Mask escape
 // sequences before Markdown removes them, then use the shared inline syntax.
 final _mathPattern = InlinePattern(
-  pattern: RegExp('(?<!\\\\)(?:${MathInlineSyntax.expression})'),
+  pattern: RegExp("(?<!\\\\)(?:${MathInlineSyntax.expression})"),
   scopes: MarkdownComponent.allScopes,
   builder: (context, match, style) => WidgetSpan(
     alignment: PlaceholderAlignment.middle,
@@ -94,7 +94,7 @@ final _mathPattern = InlinePattern(
   ),
 );
 final _escapedDollarPattern = InlinePattern(
-  pattern: RegExp(r'(?<!\\)((?:\\\\)*)\\\$'),
+  pattern: RegExp(r"(?<!\\)((?:\\\\)*)\\\$"),
   scopes: MarkdownComponent.allScopes,
   builder: (context, match, style) =>
       TextSpan(text: '${r'\' * (match.group(1)!.length ~/ 2)}\$', style: style),
@@ -103,7 +103,7 @@ final _escapedSlashMathPattern = InlinePattern(
   pattern: RegExp('${r'(?<!\\)((?:\\\\)+)(?:'}${MathInlineSyntax.expression})'),
   scopes: MarkdownComponent.allScopes,
   builder: (context, match, style) => TextSpan(
-    text: r'\' * (match.group(1)!.length ~/ 2),
+    text: r"\" * (match.group(1)!.length ~/ 2),
     style: style,
     children: [
       WidgetSpan(
@@ -117,7 +117,7 @@ final _escapedSlashMathPattern = InlinePattern(
   ),
 );
 final _mathBlocks = [
-  for (final syntax in [const _MathBlock(r'$$'), const _MathBlock(r'\[')])
+  for (final syntax in [const _MathBlock(r"$$"), const _MathBlock(r"\[")])
     MarkdownBlockComponent(
       syntax: syntax,
       builder: (context, node, config) =>
@@ -212,12 +212,12 @@ class LearningMarkdown extends StatelessWidget {
           codeBlock: CodeBlockStyle(
             backgroundColor: theme.colorScheme.surfaceContainer,
             borderRadius: const Radius.circular(10),
-            fontFamily: 'TixunMono',
+            fontFamily: "TixunMono",
             fontSize: 14,
           ),
         ),
         inlineCodeStyle: InlineCodeStyle(
-          fontFamily: 'TixunMono',
+          fontFamily: "TixunMono",
           backgroundColor: theme.colorScheme.surfaceContainer,
           borderRadius: const Radius.circular(6),
         ),

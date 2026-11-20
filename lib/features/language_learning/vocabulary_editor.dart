@@ -1,11 +1,11 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/l10n/generated/app_localizations.dart';
-import '../../core/ui/actions.dart';
-import 'language_store.dart';
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/l10n/generated/app_localizations.dart";
+import "../../core/ui/actions.dart";
+import "language_store.dart";
 
 String vocabularyGroupLabel(AppLocalizations l10n, VocabularyGroupType type) =>
     switch (type) {
@@ -48,7 +48,7 @@ class _VocabularyEditor extends StatefulWidget {
     : initial = null;
   const _VocabularyEditor.preview(this.initial)
     : store = null,
-      language = 'en',
+      language = "en",
       group = null;
 
   final LanguageLearningStore? store;
@@ -128,7 +128,7 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     String? requiredText(String? text) =>
-        (text ?? '').trim().isEmpty ? l10n.languageRequired : null;
+        (text ?? "").trim().isEmpty ? l10n.languageRequired : null;
     Widget field(
       TextEditingController controller,
       String label, [
@@ -189,11 +189,11 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
                 field(_example, l10n.languageExample),
                 field(_translation, l10n.languageTranslation),
                 field(_application, l10n.languageApplication, (value) {
-                  final sentence = value?.trim() ?? '';
+                  final sentence = value?.trim() ?? "";
                   final answer = _answer.text.trim();
                   if (sentence.isEmpty && answer.isEmpty) return null;
                   return answer.isNotEmpty &&
-                          '___'.allMatches(sentence).length == 1
+                          "___".allMatches(sentence).length == 1
                       ? null
                       : l10n.languageBlankRequired;
                 }),

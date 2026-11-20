@@ -1,18 +1,18 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import 'language_layout.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/ui/actions.dart';
-import 'course_content.dart';
-import 'course_progress.dart';
-import 'language_store.dart';
+import "language_layout.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/ui/actions.dart";
+import "course_content.dart";
+import "course_progress.dart";
+import "language_store.dart";
 
 class LanguageCourse extends StatefulWidget {
   const LanguageCourse({
     super.key,
     this.store,
-    this.initialLanguage = 'en',
+    this.initialLanguage = "en",
     this.openProfile,
   });
 
@@ -31,7 +31,7 @@ class _LanguageCourseState extends State<LanguageCourse> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final zh = l10n.localeName == 'zh';
+    final zh = l10n.localeName == "zh";
     final lessons = languageLessons(_language);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.languageFoundations)),
@@ -42,8 +42,8 @@ class _LanguageCourseState extends State<LanguageCourse> {
           children: [
             SegmentedButton<String>(
               segments: [
-                ButtonSegment(value: 'en', label: Text(l10n.languageEnglish)),
-                ButtonSegment(value: 'ja', label: Text(l10n.languageJapanese)),
+                ButtonSegment(value: "en", label: Text(l10n.languageEnglish)),
+                ButtonSegment(value: "ja", label: Text(l10n.languageJapanese)),
               ],
               selected: {_language},
               onSelectionChanged: (values) => setState(() {
@@ -122,7 +122,7 @@ class _LessonPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final zh = context.l10n.localeName == 'zh';
+    final zh = context.l10n.localeName == "zh";
     return Scaffold(
       appBar: AppBar(title: Text(zh ? lesson.titleZh : lesson.titleEn)),
       body: languagePage(
@@ -175,7 +175,7 @@ class _CourseCheck extends StatefulWidget {
 
 class _CourseCheckState extends State<_CourseCheck> {
   final _choices = List<String?>.filled(2, null);
-  String _written = '';
+  String _written = "";
   (int, int)? _score;
   bool _saving = false;
 
@@ -217,7 +217,7 @@ class _CourseCheckState extends State<_CourseCheck> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final zh = l10n.localeName == 'zh';
+    final zh = l10n.localeName == "zh";
     final examples = widget.lesson.examples;
     final prompt = examples[(widget.rotation + 2) % examples.length];
     final options = examples.map((example) => example.text).toList()..sort();
@@ -252,7 +252,7 @@ class _CourseCheckState extends State<_CourseCheck> {
           Text(
             (zh ? prompt.zh : prompt.en).replaceAll(
               RegExp(RegExp.escape(prompt.text), caseSensitive: false),
-              '…',
+              "…",
             ),
           ),
           TextField(

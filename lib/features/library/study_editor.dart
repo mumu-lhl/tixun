@@ -1,17 +1,17 @@
-import 'package:tixun/core/l10n/app_error_localization.dart';
+import "package:tixun/core/l10n/app_error_localization.dart";
 
-import 'study_localization.dart';
-import '../../core/ui/app_menu.dart';
+import "study_localization.dart";
+import "../../core/ui/app_menu.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/markdown_editor.dart';
-import '../visual/visual_markdown.dart';
-import 'library_providers.dart';
-import 'study_store.dart';
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/markdown_editor.dart";
+import "../visual/visual_markdown.dart";
+import "library_providers.dart";
+import "study_store.dart";
 
 class StudyEditor extends ConsumerStatefulWidget {
   const StudyEditor({
@@ -48,30 +48,30 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
     final m = widget.mistake;
     final kd = widget.initialKnowledge;
     final md = widget.initialMistake;
-    _kind = k?.item.kind ?? kd?.kind ?? '个人笔记';
+    _kind = k?.item.kind ?? kd?.kind ?? "个人笔记";
     final values = <String, String>{
-      'title': k?.item.title ?? m?.item.title ?? kd?.title ?? md?.title ?? '',
-      'subject':
+      "title": k?.item.title ?? m?.item.title ?? kd?.title ?? md?.title ?? "",
+      "subject":
           k?.item.subject ??
           m?.item.subject ??
           kd?.subject ??
           md?.subject ??
-          '数学',
-      'chapter':
+          "数学",
+      "chapter":
           k?.item.chapter ??
           m?.item.chapter ??
           kd?.chapter ??
           md?.chapter ??
-          '',
-      'tags': (k?.tags ?? m?.tags ?? kd?.tags ?? md?.tags ?? []).join('，'),
-      'content': k?.item.content ?? kd?.content ?? '',
-      'question': m?.item.question ?? md?.question ?? '',
-      'correctAnswer': m?.item.correctAnswer ?? md?.correctAnswer ?? '',
-      'originalAnswer': m?.item.originalAnswer ?? md?.originalAnswer ?? '',
-      'ownAnalysis': m?.item.ownAnalysis ?? md?.ownAnalysis ?? '',
-      'aiAnalysis': m?.item.aiAnalysis ?? md?.aiAnalysis ?? '',
-      'errorReason': m?.item.errorReason ?? md?.errorReason ?? '暂未确定',
-      'suggestedReason': m?.item.suggestedReason ?? md?.suggestedReason ?? '',
+          "",
+      "tags": (k?.tags ?? m?.tags ?? kd?.tags ?? md?.tags ?? []).join("，"),
+      "content": k?.item.content ?? kd?.content ?? "",
+      "question": m?.item.question ?? md?.question ?? "",
+      "correctAnswer": m?.item.correctAnswer ?? md?.correctAnswer ?? "",
+      "originalAnswer": m?.item.originalAnswer ?? md?.originalAnswer ?? "",
+      "ownAnalysis": m?.item.ownAnalysis ?? md?.ownAnalysis ?? "",
+      "aiAnalysis": m?.item.aiAnalysis ?? md?.aiAnalysis ?? "",
+      "errorReason": m?.item.errorReason ?? md?.errorReason ?? "暂未确定",
+      "suggestedReason": m?.item.suggestedReason ?? md?.suggestedReason ?? "",
     };
     for (final e in values.entries) {
       final controller = TextEditingController(text: e.value);
@@ -120,11 +120,11 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
     setState(() => _saving = true);
     try {
       final store = ref.read(studyStoreProvider);
-      final labels = field('tags').text.split(RegExp('[,，]'));
+      final labels = field("tags").text.split(RegExp("[,，]"));
       final oldId = widget.knowledge?.item.id ?? widget.mistake?.item.id;
       final oldSubject =
           widget.knowledge?.item.subject ?? widget.mistake?.item.subject;
-      if (oldId != null && oldSubject != field('subject').text.trim()) {
+      if (oldId != null && oldSubject != field("subject").text.trim()) {
         final linked = await store.modules.ids(oldId, widget.isMistake);
         if (linked.isNotEmpty) {
           if (!mounted) return;
@@ -153,17 +153,17 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       if (widget.isMistake) {
         final row = await store.saveMistake(
           MistakeDraft(
-            title: field('title').text,
-            question: field('question').text,
-            subject: field('subject').text,
-            chapter: field('chapter').text,
+            title: field("title").text,
+            question: field("question").text,
+            subject: field("subject").text,
+            chapter: field("chapter").text,
             tags: labels,
-            correctAnswer: field('correctAnswer').text,
-            originalAnswer: field('originalAnswer').text,
-            ownAnalysis: field('ownAnalysis').text,
-            aiAnalysis: field('aiAnalysis').text,
-            errorReason: field('errorReason').text,
-            suggestedReason: field('suggestedReason').text,
+            correctAnswer: field("correctAnswer").text,
+            originalAnswer: field("originalAnswer").text,
+            ownAnalysis: field("ownAnalysis").text,
+            aiAnalysis: field("aiAnalysis").text,
+            errorReason: field("errorReason").text,
+            suggestedReason: field("suggestedReason").text,
           ),
           id: widget.mistake?.item.id,
           expectedRevision: widget.mistake?.item.revision,
@@ -174,11 +174,11 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       } else {
         final row = await store.saveKnowledge(
           KnowledgeDraft(
-            title: field('title').text,
-            content: field('content').text,
-            subject: field('subject').text,
+            title: field("title").text,
+            content: field("content").text,
+            subject: field("subject").text,
             kind: _kind,
-            chapter: field('chapter').text,
+            chapter: field("chapter").text,
             tags: labels,
           ),
           id: widget.knowledge?.item.id,
@@ -244,7 +244,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: FilledButton(
-                key: const Key('save-study'),
+                key: const Key("save-study"),
                 onPressed: _saving ? null : () => act(context, _save),
                 child: Text(
                   _saving ? context.l10n.savingEllipsis : context.l10n.save,
@@ -271,9 +271,9 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                         ),
                         const SizedBox(height: 16),
                         _input(
-                          'aiAnalysis',
+                          "aiAnalysis",
                           context.l10n.aiExplanationCheckConclusion,
-                          key: const Key('study-ai-analysis'),
+                          key: const Key("study-ai-analysis"),
                           lines: 12,
                         ),
                       ] else ...[
@@ -282,13 +282,13 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                           Icons.info_outline,
                           [
                             _input(
-                              'title',
+                              "title",
                               context.l10n.titleLabel,
-                              key: const Key('study-title'),
+                              key: const Key("study-title"),
                               maxLength: 160,
                             ),
                             _input(
-                              'subject',
+                              "subject",
                               context.l10n.subjectCustomizable,
                               maxLength: 40,
                             ),
@@ -317,12 +317,12 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                                 ),
                               ),
                             _input(
-                              'chapter',
+                              "chapter",
                               context.l10n.chapterLearningScope,
                               maxLength: 160,
                             ),
                             _input(
-                              'tags',
+                              "tags",
                               context.l10n.tagsCommaSeparated,
                               maxLength: 800,
                             ),
@@ -334,9 +334,9 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                             Icons.menu_book_outlined,
                             [
                               _input(
-                                'content',
+                                "content",
                                 context.l10n.contentMarkdownLatex,
-                                key: const Key('study-content'),
+                                key: const Key("study-content"),
                                 lines: 12,
                               ),
                             ],
@@ -347,9 +347,9 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                             Icons.help_outline,
                             [
                               _input(
-                                'question',
+                                "question",
                                 context.l10n.questionTextOptionalForImages,
-                                key: const Key('study-content'),
+                                key: const Key("study-content"),
                                 lines: 5,
                               ),
                               Text(
@@ -368,12 +368,12 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                             Icons.edit_note,
                             [
                               _input(
-                                'originalAnswer',
+                                "originalAnswer",
                                 context.l10n.myOriginalAnswer,
                                 lines: 3,
                               ),
                               _input(
-                                'ownAnalysis',
+                                "ownAnalysis",
                                 context.l10n.myAnalysisAndThoughts,
                                 lines: 4,
                               ),
@@ -384,12 +384,12 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                             Icons.manage_search_outlined,
                             [
                               _input(
-                                'errorReason',
+                                "errorReason",
                                 context.l10n.confirmedErrorReasonCustomizable,
                                 maxLength: 100,
                               ),
                               ValueListenableBuilder<TextEditingValue>(
-                                valueListenable: field('errorReason'),
+                                valueListenable: field("errorReason"),
                                 builder: (context, value, _) => Wrap(
                                   spacing: 6,
                                   runSpacing: 4,
@@ -411,13 +411,13 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                                           ? colors.primaryContainer
                                           : null,
                                       onPressed: () =>
-                                          field('errorReason').text = r,
+                                          field("errorReason").text = r,
                                     );
                                   }).toList(),
                                 ),
                               ),
                               _input(
-                                'suggestedReason',
+                                "suggestedReason",
                                 context.l10n.aiSuggestedCauseUnverified,
                                 lines: 2,
                                 maxLength: 500,
@@ -429,12 +429,12 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                             Icons.fact_check_outlined,
                             [
                               _input(
-                                'correctAnswer',
+                                "correctAnswer",
                                 context.l10n.correctAnswer,
                                 lines: 3,
                               ),
                               _input(
-                                'aiAnalysis',
+                                "aiAnalysis",
                                 context.l10n.aiExplanationCheckConclusion,
                                 lines: 6,
                               ),
@@ -499,12 +499,12 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
         alignLabelWithHint: lines > 1,
         suffixIcon: lines > 1
             ? MarkdownFullscreenButton(
-                key: ValueKey('study-markdown-$name'),
+                key: ValueKey("study-markdown-$name"),
                 controller: field(name),
                 title: label,
                 enabled: !_saving,
                 maxLength: maxLength,
-                previewBuilder: name == 'content' && widget.knowledge != null
+                previewBuilder: name == "content" && widget.knowledge != null
                     ? (context, text) => VisualMarkdown(
                         text,
                         knowledgeId: widget.knowledge!.item.id,
@@ -516,7 +516,7 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
         // maxLength at all, so over-long input reaches the store's 60000
         // check and is rejected with an error instead of being silently
         // truncated by the TextField.
-        counterText: maxLength == null ? '' : null,
+        counterText: maxLength == null ? "" : null,
       ),
     ),
   );

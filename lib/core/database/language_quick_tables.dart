@@ -1,4 +1,4 @@
-part of 'database.dart';
+part of "database.dart";
 
 class LanguageQuickActions extends Table {
   TextColumn get id => text()();
@@ -74,6 +74,6 @@ class LanguageQuickLearningLinks extends Table {
 
   @override
   List<String> get customConstraints => [
-    'CHECK ((sense_id IS NULL) <> (sentence_batch_id IS NULL))',
+    "CHECK ((sense_id IS NULL) <> (sentence_batch_id IS NULL))",
   ];
 }

@@ -1,4 +1,4 @@
-part of 'database.dart';
+part of "database.dart";
 
 class ReviewSchedules extends Table {
   TextColumn get id => text()();

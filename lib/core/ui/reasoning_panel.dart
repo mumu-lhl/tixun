@@ -1,8 +1,8 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/rendering.dart' show ScrollDirection;
+import "package:material_ui/material_ui.dart";
+import "package:flutter/rendering.dart" show ScrollDirection;
 
-import '../l10n/app_strings.dart';
-import 'learning_markdown.dart';
+import "../l10n/app_strings.dart";
+import "learning_markdown.dart";
 
 /// Only provider-returned text or public summaries belong here.
 class ReasoningPanel extends StatefulWidget {

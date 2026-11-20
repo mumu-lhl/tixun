@@ -1,8 +1,8 @@
-import 'package:drift/drift.dart' hide isNull, isNotNull;
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:tixun/features/visual/visual_store.dart';
+import "package:drift/drift.dart" hide isNull, isNotNull;
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/l10n/app_error.dart";
+import "package:tixun/features/visual/visual_store.dart";
 
 const _sceneV1 = '{"v":1,"kind":"plot2d","model":{"expression":"x^2-4"}}';
 const _sceneV2 =
@@ -19,7 +19,7 @@ Future<void> _seedMessage(
       .insert(
         ChatSessionsCompanion.insert(
           id: sessionId,
-          title: '会话',
+          title: "会话",
           createdAt: now,
           updatedAt: now,
         ),
@@ -31,8 +31,8 @@ Future<void> _seedMessage(
         ChatMessagesCompanion.insert(
           id: messageId,
           sessionId: sessionId,
-          role: 'assistant',
-          content: '请看图',
+          role: "assistant",
+          content: "请看图",
           createdAt: now,
         ),
       );
@@ -44,10 +44,10 @@ Future<void> _seedQuestion(AppDatabase db, String questionId) async {
       .insert(
         PracticeQuestionsCompanion.insert(
           id: questionId,
-          kind: 'numeric',
-          stem: '2+2',
-          subject: '数学',
-          origin: 'ai',
+          kind: "numeric",
+          stem: "2+2",
+          subject: "数学",
+          origin: "ai",
           createdAt: DateTime.now(),
         ),
       );
@@ -60,9 +60,9 @@ Future<void> _seedKnowledge(AppDatabase db, String knowledgeId) async {
       .insert(
         KnowledgeItemsCompanion.insert(
           id: knowledgeId,
-          title: '二次函数',
-          content: '正文',
-          subject: '数学',
+          title: "二次函数",
+          content: "正文",
+          subject: "数学",
           createdAt: now,
           updatedAt: now,
         ),
@@ -83,59 +83,59 @@ void main() {
   });
 
   test(
-    'create stores the scene, revision 1 snapshot and message link',
+    "create stores the scene, revision 1 snapshot and message link",
     () async {
-      await _seedMessage(db, 's', 'm');
+      await _seedMessage(db, "s", "m");
       final id = await store.create(
         sceneJson: _sceneV1,
-        messageId: 'm',
-        title: '抛物线',
+        messageId: "m",
+        title: "抛物线",
       );
       final scene = await store.get(id);
       expect(scene, isNotNull);
       expect(scene!.sceneJson, _sceneV1);
-      expect(scene.title, '抛物线');
+      expect(scene.title, "抛物线");
       expect(scene.dslVersion, 1);
-      expect(scene.verificationStatus, 'unverified');
+      expect(scene.verificationStatus, "unverified");
       expect(scene.revision, 1);
-      expect(scene.source, 'ai');
+      expect(scene.source, "ai");
       expect(scene.deleted, isFalse);
       final snapshots = await db.select(db.visualSceneRevisions).get();
       expect(snapshots, hasLength(1));
       expect(snapshots.single.visualId, id);
       expect(snapshots.single.revision, 1);
       expect(snapshots.single.sceneJson, _sceneV1);
-      expect((await store.listByMessage('m')).map((s) => s.id), [id]);
+      expect((await store.listByMessage("m")).map((s) => s.id), [id]);
     },
   );
 
-  test('create applies defaults and rejects an empty scene', () async {
-    await _seedMessage(db, 's', 'm');
-    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+  test("create applies defaults and rejects an empty scene", () async {
+    await _seedMessage(db, "s", "m");
+    final id = await store.create(sceneJson: _sceneV1, messageId: "m");
     final scene = (await store.get(id))!;
     expect(scene.title, isNull);
-    expect(scene.source, 'ai');
+    expect(scene.source, "ai");
     await expectLater(
-      store.create(sceneJson: '   ', messageId: 'm'),
+      store.create(sceneJson: "   ", messageId: "m"),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorVisualSceneJsonEmpty,
         ),
       ),
     );
   });
 
-  test('create rejects an invalid scene and writes nothing', () async {
-    await _seedMessage(db, 's', 'm');
+  test("create rejects an invalid scene and writes nothing", () async {
+    await _seedMessage(db, "s", "m");
     const invalid = '{"v":1,"kind":"plot2d","model":{"expression":"z^2"}}';
     await expectLater(
-      store.create(sceneJson: invalid, messageId: 'm'),
+      store.create(sceneJson: invalid, messageId: "m"),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorInvalidParameterType,
         ),
       ),
@@ -145,24 +145,24 @@ void main() {
     expect(await db.select(db.visualMessageLinks).get(), isEmpty);
   });
 
-  test('create rejects malformed JSON', () async {
-    await _seedMessage(db, 's', 'm');
+  test("create rejects malformed JSON", () async {
+    await _seedMessage(db, "s", "m");
     await expectLater(
-      store.create(sceneJson: '{not json', messageId: 'm'),
+      store.create(sceneJson: "{not json", messageId: "m"),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorInvalidParameterType,
         ),
       ),
     );
     await expectLater(
-      store.create(sceneJson: '[1, 2]', messageId: 'm'),
+      store.create(sceneJson: "[1, 2]", messageId: "m"),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorInvalidParameterType,
         ),
       ),
@@ -170,16 +170,16 @@ void main() {
     expect(await db.select(db.visualScenes).get(), isEmpty);
   });
 
-  test('revise rejects an invalid scene and keeps revision 1', () async {
-    await _seedMessage(db, 's', 'm');
-    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+  test("revise rejects an invalid scene and keeps revision 1", () async {
+    await _seedMessage(db, "s", "m");
+    final id = await store.create(sceneJson: _sceneV1, messageId: "m");
     const invalid = '{"v":1,"kind":"plot2d","model":{"expression":"z^2"}}';
     await expectLater(
       store.revise(id, invalid),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorInvalidParameterType,
         ),
       ),
@@ -191,80 +191,80 @@ void main() {
   });
 
   test(
-    'revise syncs title and verification status from the new scene',
+    "revise syncs title and verification status from the new scene",
     () async {
-      await _seedMessage(db, 's', 'm');
-      final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+      await _seedMessage(db, "s", "m");
+      final id = await store.create(sceneJson: _sceneV1, messageId: "m");
       final updated = await store.revise(id, _sceneV2);
-      expect(updated.title, '二次函数');
-      expect(updated.verificationStatus, 'verified');
+      expect(updated.title, "二次函数");
+      expect(updated.verificationStatus, "verified");
       final row = (await store.get(id))!;
-      expect(row.title, '二次函数');
-      expect(row.verificationStatus, 'verified');
+      expect(row.title, "二次函数");
+      expect(row.verificationStatus, "verified");
     },
   );
 
-  test('get returns null for an unknown id', () async {
-    expect(await store.get('nope'), isNull);
+  test("get returns null for an unknown id", () async {
+    expect(await store.get("nope"), isNull);
   });
 
-  test('listByMessage only returns scenes linked to that message', () async {
-    await _seedMessage(db, 's', 'm1');
-    await _seedMessage(db, 's', 'm2');
-    final first = await store.create(sceneJson: _sceneV1, messageId: 'm1');
-    final second = await store.create(sceneJson: _sceneV2, messageId: 'm2');
-    expect((await store.listByMessage('m1')).map((s) => s.id), [first]);
-    expect((await store.listByMessage('m2')).map((s) => s.id), [second]);
-    expect(await store.listByMessage('other'), isEmpty);
+  test("listByMessage only returns scenes linked to that message", () async {
+    await _seedMessage(db, "s", "m1");
+    await _seedMessage(db, "s", "m2");
+    final first = await store.create(sceneJson: _sceneV1, messageId: "m1");
+    final second = await store.create(sceneJson: _sceneV2, messageId: "m2");
+    expect((await store.listByMessage("m1")).map((s) => s.id), [first]);
+    expect((await store.listByMessage("m2")).map((s) => s.id), [second]);
+    expect(await store.listByMessage("other"), isEmpty);
   });
 
-  test('listByQuestion reads question links', () async {
-    await _seedMessage(db, 's', 'm');
-    await _seedQuestion(db, 'q');
-    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+  test("listByQuestion reads question links", () async {
+    await _seedMessage(db, "s", "m");
+    await _seedQuestion(db, "q");
+    final id = await store.create(sceneJson: _sceneV1, messageId: "m");
     await db
         .into(db.visualQuestionLinks)
         .insert(
-          VisualQuestionLinksCompanion.insert(visualId: id, questionId: 'q'),
+          VisualQuestionLinksCompanion.insert(visualId: id, questionId: "q"),
         );
-    expect((await store.listByQuestion('q')).map((s) => s.id), [id]);
-    expect(await store.listByQuestion('other'), isEmpty);
+    expect((await store.listByQuestion("q")).map((s) => s.id), [id]);
+    expect(await store.listByQuestion("other"), isEmpty);
   });
 
   test(
-    'listByStudy reads study links and requires exactly one owner',
+    "listByStudy reads study links and requires exactly one owner",
     () async {
-      await _seedMessage(db, 's', 'm');
-      await _seedKnowledge(db, 'k');
-      final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+      await _seedMessage(db, "s", "m");
+      await _seedKnowledge(db, "k");
+      final id = await store.create(sceneJson: _sceneV1, messageId: "m");
       await db
           .into(db.visualStudyLinks)
           .insert(
             VisualStudyLinksCompanion.insert(
               visualId: id,
-              knowledgeId: const Value('k'),
+              knowledgeId: const Value("k"),
             ),
           );
-      expect((await store.listByStudy(knowledgeId: 'k')).map((s) => s.id), [
+      expect((await store.listByStudy(knowledgeId: "k")).map((s) => s.id), [
         id,
       ]);
-      expect(await store.listByStudy(mistakeId: 'none'), isEmpty);
+      expect(await store.listByStudy(mistakeId: "none"), isEmpty);
       await expectLater(
         store.listByStudy(),
         throwsA(
           isA<AppFormatException>().having(
             (e) => e.code,
-            'code',
+            "code",
             AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
           ),
         ),
       );
       await expectLater(
-        store.listByStudy(knowledgeId: 'k', mistakeId: 'x'),
+        store.listByStudy(knowledgeId: "k", mistakeId: "x"),
         throwsA(
           isA<AppFormatException>().having(
             (e) => e.code,
-            'code',
+            "code",
             AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
           ),
         ),
@@ -273,10 +273,10 @@ void main() {
   );
 
   test(
-    'snapshotForQuestion freezes the current JSON at a new revision',
+    "snapshotForQuestion freezes the current JSON at a new revision",
     () async {
-      await _seedMessage(db, 's', 'm');
-      final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+      await _seedMessage(db, "s", "m");
+      final id = await store.create(sceneJson: _sceneV1, messageId: "m");
       final snap = await store.snapshotForQuestion(id);
       expect(snap.visualId, id);
       expect(snap.revision, 2);
@@ -291,10 +291,10 @@ void main() {
   );
 
   test(
-    'revise bumps the revision and appends a snapshot of the new JSON',
+    "revise bumps the revision and appends a snapshot of the new JSON",
     () async {
-      await _seedMessage(db, 's', 'm');
-      final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+      await _seedMessage(db, "s", "m");
+      final id = await store.create(sceneJson: _sceneV1, messageId: "m");
       await store.snapshotForQuestion(id);
       final updated = await store.revise(id, _sceneV2);
       expect(updated.id, id);
@@ -309,49 +309,48 @@ void main() {
     },
   );
 
-  test('linkToQuestion pins a revision and re-linking moves the pin', () async {
-    await _seedMessage(db, 's', 'm');
-    await _seedQuestion(db, 'q');
-    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+  test("linkToQuestion pins a revision and re-linking moves the pin", () async {
+    await _seedMessage(db, "s", "m");
+    await _seedQuestion(db, "q");
+    final id = await store.create(sceneJson: _sceneV1, messageId: "m");
     final snap = await store.snapshotForQuestion(id);
-    await store.linkToQuestion(id, 'q', snap.revision);
-    expect(await store.questionVisualLinks('q'), [(visualId: id, revision: 2)]);
-    // Re-linking the same pair moves the pin instead of duplicating it.
-    await store.linkToQuestion(id, 'q', 1);
-    expect(await store.questionVisualLinks('q'), [(visualId: id, revision: 1)]);
-    expect(await store.questionVisualLinks('other'), isEmpty);
+    await store.linkToQuestion(id, "q", snap.revision);
+    expect(await store.questionVisualLinks("q"), [(visualId: id, revision: 2)]);
+    await store.linkToQuestion(id, "q", 1);
+    expect(await store.questionVisualLinks("q"), [(visualId: id, revision: 1)]);
+    expect(await store.questionVisualLinks("other"), isEmpty);
   });
 
-  test('linkToQuestion rejects bad revisions and unknown scenes', () async {
-    await _seedMessage(db, 's', 'm');
-    await _seedQuestion(db, 'q');
-    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+  test("linkToQuestion rejects bad revisions and unknown scenes", () async {
+    await _seedMessage(db, "s", "m");
+    await _seedQuestion(db, "q");
+    final id = await store.create(sceneJson: _sceneV1, messageId: "m");
     await expectLater(
-      store.linkToQuestion(id, 'q', 0),
+      store.linkToQuestion(id, "q", 0),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorInvalidParameterType,
         ),
       ),
     );
     await expectLater(
-      store.linkToQuestion(id, 'q', 99),
+      store.linkToQuestion(id, "q", 99),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorVisualSceneRevisionDoesNotExist,
         ),
       ),
     );
     await expectLater(
-      store.linkToQuestion('nope', 'q', 1),
+      store.linkToQuestion("nope", "q", 1),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorVisualSceneDoesNotExist,
         ),
       ),
@@ -359,13 +358,13 @@ void main() {
   });
 
   test(
-    'linkToStudy links exactly one owner and is visible in listByStudy',
+    "linkToStudy links exactly one owner and is visible in listByStudy",
     () async {
-      await _seedMessage(db, 's', 'm');
-      await _seedKnowledge(db, 'k');
-      final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
-      await store.linkToStudy(id, knowledgeId: 'k');
-      expect((await store.listByStudy(knowledgeId: 'k')).map((s) => s.id), [
+      await _seedMessage(db, "s", "m");
+      await _seedKnowledge(db, "k");
+      final id = await store.create(sceneJson: _sceneV1, messageId: "m");
+      await store.linkToStudy(id, knowledgeId: "k");
+      expect((await store.listByStudy(knowledgeId: "k")).map((s) => s.id), [
         id,
       ]);
       await expectLater(
@@ -373,17 +372,17 @@ void main() {
         throwsA(
           isA<AppFormatException>().having(
             (e) => e.code,
-            'code',
+            "code",
             AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
           ),
         ),
       );
       await expectLater(
-        store.linkToStudy(id, knowledgeId: 'k', mistakeId: 'x'),
+        store.linkToStudy(id, knowledgeId: "k", mistakeId: "x"),
         throwsA(
           isA<AppFormatException>().having(
             (e) => e.code,
-            'code',
+            "code",
             AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
           ),
         ),
@@ -391,44 +390,43 @@ void main() {
     },
   );
 
-  test('linkToStudy linking the same owner twice keeps a single row', () async {
-    await _seedMessage(db, 's', 'm');
-    await _seedKnowledge(db, 'k');
-    await _seedKnowledge(db, 'k2');
-    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
-    await store.linkToStudy(id, knowledgeId: 'k');
-    await store.linkToStudy(id, knowledgeId: 'k');
-    expect((await store.listByStudy(knowledgeId: 'k')).map((s) => s.id), [id]);
+  test("linkToStudy linking the same owner twice keeps a single row", () async {
+    await _seedMessage(db, "s", "m");
+    await _seedKnowledge(db, "k");
+    await _seedKnowledge(db, "k2");
+    final id = await store.create(sceneJson: _sceneV1, messageId: "m");
+    await store.linkToStudy(id, knowledgeId: "k");
+    await store.linkToStudy(id, knowledgeId: "k");
+    expect((await store.listByStudy(knowledgeId: "k")).map((s) => s.id), [id]);
     // The nullable composite key cannot see the duplicate (SQLite treats
     // NULLs as distinct), so the store must guard the write itself.
     expect(await db.select(db.visualStudyLinks).get(), hasLength(1));
-    // A different owner is a genuinely different link.
-    await store.linkToStudy(id, knowledgeId: 'k2');
+    await store.linkToStudy(id, knowledgeId: "k2");
     expect(await db.select(db.visualStudyLinks).get(), hasLength(2));
   });
 
-  test('questionVisualLinks hides links of deleted scenes', () async {
-    await _seedMessage(db, 's', 'm');
-    await _seedQuestion(db, 'q');
-    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+  test("questionVisualLinks hides links of deleted scenes", () async {
+    await _seedMessage(db, "s", "m");
+    await _seedQuestion(db, "q");
+    final id = await store.create(sceneJson: _sceneV1, messageId: "m");
     final snap = await store.snapshotForQuestion(id);
-    await store.linkToQuestion(id, 'q', snap.revision);
-    expect(await store.questionVisualLinks('q'), hasLength(1));
+    await store.linkToQuestion(id, "q", snap.revision);
+    expect(await store.questionVisualLinks("q"), hasLength(1));
     await (db.update(db.visualScenes)..where((s) => s.id.equals(id))).write(
       const VisualScenesCompanion(deleted: Value(true)),
     );
-    expect(await store.questionVisualLinks('q'), isEmpty);
+    expect(await store.questionVisualLinks("q"), isEmpty);
   });
 
-  test('a pinned question visual stays frozen after later edits', () async {
-    await _seedMessage(db, 's', 'm');
-    await _seedQuestion(db, 'q');
-    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+  test("a pinned question visual stays frozen after later edits", () async {
+    await _seedMessage(db, "s", "m");
+    await _seedQuestion(db, "q");
+    final id = await store.create(sceneJson: _sceneV1, messageId: "m");
     final snap = await store.snapshotForQuestion(id);
-    await store.linkToQuestion(id, 'q', snap.revision);
+    await store.linkToQuestion(id, "q", snap.revision);
     await store.revise(id, _sceneV2);
     expect((await store.get(id))!.sceneJson, _sceneV2);
-    final links = await store.questionVisualLinks('q');
+    final links = await store.questionVisualLinks("q");
     expect(links.single.revision, 2);
     expect(
       await store.getRevisionSceneJson(id, links.single.revision),
@@ -436,35 +434,35 @@ void main() {
     );
   });
 
-  test('revise and snapshot reject unknown ids and empty JSON', () async {
+  test("revise and snapshot reject unknown ids and empty JSON", () async {
     await expectLater(
-      store.revise('nope', _sceneV2),
+      store.revise("nope", _sceneV2),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorVisualSceneDoesNotExist,
         ),
       ),
     );
     await expectLater(
-      store.snapshotForQuestion('nope'),
+      store.snapshotForQuestion("nope"),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorVisualSceneDoesNotExist,
         ),
       ),
     );
-    await _seedMessage(db, 's', 'm');
-    final id = await store.create(sceneJson: _sceneV1, messageId: 'm');
+    await _seedMessage(db, "s", "m");
+    final id = await store.create(sceneJson: _sceneV1, messageId: "m");
     await expectLater(
-      store.revise(id, ''),
+      store.revise(id, ""),
       throwsA(
         isA<AppFormatException>().having(
           (e) => e.code,
-          'code',
+          "code",
           AppErrorCode.errorVisualSceneJsonEmpty,
         ),
       ),

@@ -6,3 +6,14 @@ analyzer:
     - build/**
     - android/**
     - linux/**
+
+linter:
+  rules:
+    prefer_double_quotes: true
+    always_declare_return_types: true
+    unawaited_futures: true
+    discarded_futures: true
+    cancel_subscriptions: true
+    close_sinks: true
+    unnecessary_ignore: true
+    prefer_final_locals: true

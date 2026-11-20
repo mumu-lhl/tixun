@@ -1,7 +1,7 @@
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
+import "../../core/database/database.dart";
 
 enum Inflection {
   past,
@@ -18,15 +18,15 @@ class LexicalFormDraft {
   final String surface;
   final Inflection inflection;
 
-  static const recognitionSkill = 'formRecognition';
-  static const productionSkill = 'formProduction';
+  static const recognitionSkill = "formRecognition";
+  static const productionSkill = "formProduction";
 
   void validate(String lemma) {
     final form = surface.trim();
     if (form.isEmpty ||
         !RegExp(r"^[a-zA-Z][a-zA-Z'-]{0,79}$").hasMatch(form) ||
         form.toLowerCase() == lemma.trim().toLowerCase()) {
-      throw const FormatException('Invalid English inflection');
+      throw const FormatException("Invalid English inflection");
     }
   }
 }

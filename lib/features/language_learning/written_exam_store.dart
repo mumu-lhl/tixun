@@ -1,15 +1,15 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import 'exam_material.dart';
-import 'exam_store.dart';
-import 'language_store.dart';
-import 'written_exam_profile.dart';
-import 'writing_task_ai.dart';
-import 'writing_store.dart';
+import "../../core/database/database.dart";
+import "exam_material.dart";
+import "exam_store.dart";
+import "language_store.dart";
+import "written_exam_profile.dart";
+import "writing_task_ai.dart";
+import "writing_store.dart";
 
 class WrittenExamSection {
   const WrittenExamSection(this.row, {this.material, this.writing});
@@ -120,7 +120,7 @@ extension WrittenExamStore on LanguageLearningStore {
           objectives.map((paper) => paper.row.id).toSet().length !=
               objectives.length ||
           essays.map((task) => task.id).toSet().length != essays.length) {
-        throw const FormatException('Invalid written exam sections');
+        throw const FormatException("Invalid written exam sections");
       }
       final id = const Uuid().v4();
       final start = now ?? DateTime.now();
@@ -145,14 +145,14 @@ extension WrittenExamStore on LanguageLearningStore {
                     paper.target.profile != profile.exam ||
                     paper.paper.items.length != spec.count ||
                     paper.source == ExamSource.bundled ||
-                    paper.row.model == 'Mock' ||
+                    paper.row.model == "Mock" ||
                     paper.verification == ExamVerification.reviewRejected) ||
             task != null &&
                 (task.kind != spec.writing!.name ||
                     task.profile != profile.exam.id ||
-                    task.model == 'Mock')) {
+                    task.model == "Mock")) {
           throw const FormatException(
-            'Written exam material does not match the profile',
+            "Written exam material does not match the profile",
           );
         }
         await db
@@ -163,7 +163,7 @@ extension WrittenExamStore on LanguageLearningStore {
                 position: position,
                 materialId: Value(paper?.row.id),
                 writingTaskId: Value(task?.id),
-                answers: jsonEncode(List.filled(spec.count, '')),
+                answers: jsonEncode(List.filled(spec.count, "")),
                 halfPoints: spec.halfPoints,
                 reviewedAtStart: Value(
                   paper?.verification == ExamVerification.aiReviewed,
@@ -186,7 +186,7 @@ extension WrittenExamStore on LanguageLearningStore {
       final time = now ?? DateTime.now();
       if (run.submitted || !time.isBefore(run.row.deadline)) return;
       if (position < 0 || position >= run.sections.length) {
-        throw const FormatException('Invalid written exam section');
+        throw const FormatException("Invalid written exam section");
       }
       final entry = run.sections[position];
       final paper = entry.material;
@@ -199,14 +199,14 @@ extension WrittenExamStore on LanguageLearningStore {
                     choices.isNotEmpty &&
                     !choices.containsKey(value.$2));
           })) {
-        throw const FormatException('Invalid written exam answer');
+        throw const FormatException("Invalid written exam answer");
       }
       if (paper?.target.kind == ExamKind.sentenceInsertion) {
         final assigned = answers
             .where((response) => response.isNotEmpty)
             .toList();
         if (assigned.toSet().length != assigned.length) {
-          throw const FormatException('Duplicate insertion option');
+          throw const FormatException("Duplicate insertion option");
         }
       }
       await (db.update(db.learningWrittenExamSections)..where(
@@ -262,7 +262,7 @@ extension WrittenExamStore on LanguageLearningStore {
             if (section.material case final material?) {
               await submitExam(
                 material: material,
-                attemptId: ['written', id, section.row.position].join(':'),
+                attemptId: ["written", id, section.row.position].join(":"),
                 responses: section.answers,
                 confidence: null,
                 hintUsed: false,
@@ -325,7 +325,7 @@ extension WrittenExamStore on LanguageLearningStore {
             (row) =>
                 row.profile.equals(exam.id) &
                 row.kind.equals(kind.name) &
-                row.model.equals('Mock').not() &
+                row.model.equals("Mock").not() &
                 notExistsQuery(exercised) &
                 notExistsQuery(assigned),
           )
@@ -342,7 +342,7 @@ extension WrittenExamStore on LanguageLearningStore {
 WritingTask isolatedWrittenTask(WrittenExam run, LearningWritingTaskRow row) {
   final task = openWritingTask(row);
   return WritingTask(
-    ['written', run.row.id, task.id].join(':'),
+    ["written", run.row.id, task.id].join(":"),
     task.prompt,
     title: task.title,
     passage: task.passage,

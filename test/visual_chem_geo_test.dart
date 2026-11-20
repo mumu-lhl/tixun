@@ -1,116 +1,116 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:tixun/core/visual/model/visual_scene.dart';
-import 'package:tixun/core/visual/render/visual_painter.dart';
-import 'package:tixun/core/visual/render/visual_animator.dart';
-import 'package:tixun/core/visual/render/visual_png.dart';
-import 'package:tixun/core/visual/render/visual_theme.dart';
-import 'package:tixun/core/visual/validation/visual_validator.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:material_ui/material_ui.dart";
+import "package:tixun/core/visual/model/visual_scene.dart";
+import "package:tixun/core/visual/render/visual_painter.dart";
+import "package:tixun/core/visual/render/visual_animator.dart";
+import "package:tixun/core/visual/render/visual_png.dart";
+import "package:tixun/core/visual/render/visual_theme.dart";
+import "package:tixun/core/visual/validation/visual_validator.dart";
 
 /// A water molecule: atoms as circles, bonds as lines, formula as a
 /// math label (subscripts come from TeX, not canvas text).
 Map<String, dynamic> waterMoleculeJson() => {
-  'v': 1,
-  'kind': 'chemistry',
-  'title': '水分子的结构',
-  'view': {
-    'x': [-2, 2],
-    'y': [-2, 2],
+  "v": 1,
+  "kind": "chemistry",
+  "title": "水分子的结构",
+  "view": {
+    "x": [-2, 2],
+    "y": [-2, 2],
   },
-  'elements': [
+  "elements": [
     {
-      'id': 'o',
-      'type': 'circle',
-      'center': [0, 0.4],
-      'r': 0.5,
-      'style': 'danger',
+      "id": "o",
+      "type": "circle",
+      "center": [0, 0.4],
+      "r": 0.5,
+      "style": "danger",
     },
     {
-      'id': 'o-label',
-      'type': 'text',
-      'at': [0.2, 0.6],
-      'text': 'O',
+      "id": "o-label",
+      "type": "text",
+      "at": [0.2, 0.6],
+      "text": "O",
     },
     {
-      'id': 'h1',
-      'type': 'circle',
-      'center': [-0.8, -0.6],
-      'r': 0.35,
+      "id": "h1",
+      "type": "circle",
+      "center": [-0.8, -0.6],
+      "r": 0.35,
     },
     {
-      'id': 'h2',
-      'type': 'circle',
-      'center': [0.8, -0.6],
-      'r': 0.35,
+      "id": "h2",
+      "type": "circle",
+      "center": [0.8, -0.6],
+      "r": 0.35,
     },
     {
-      'id': 'b1',
-      'type': 'line',
-      'p1': [-0.3, 0.1],
-      'p2': [-0.65, -0.35],
+      "id": "b1",
+      "type": "line",
+      "p1": [-0.3, 0.1],
+      "p2": [-0.65, -0.35],
     },
     {
-      'id': 'b2',
-      'type': 'line',
-      'p1': [0.3, 0.1],
-      'p2': [0.65, -0.35],
+      "id": "b2",
+      "type": "line",
+      "p1": [0.3, 0.1],
+      "p2": [0.65, -0.35],
     },
     {
-      'id': 'formula',
-      'type': 'math_label',
-      'at': [0, 1.4],
-      'tex': r'H_2O',
+      "id": "formula",
+      "type": "math_label",
+      "at": [0, 1.4],
+      "tex": r"H_2O",
     },
   ],
-  'meta': {'alt': '水分子：一个氧原子连接两个氢原子'},
+  "meta": {"alt": "水分子：一个氧原子连接两个氢原子"},
 };
 
 /// A combustion reaction: formulas as math labels, reaction arrow.
 Map<String, dynamic> combustionJson() => {
-  'v': 1,
-  'kind': 'chemistry',
-  'title': '甲烷燃烧',
-  'view': {
-    'x': [-4, 4],
-    'y': [-2, 2],
+  "v": 1,
+  "kind": "chemistry",
+  "title": "甲烷燃烧",
+  "view": {
+    "x": [-4, 4],
+    "y": [-2, 2],
   },
-  'elements': [
+  "elements": [
     {
-      'id': 'reactants',
-      'type': 'math_label',
-      'at': [-3.5, 0.5],
-      'tex': r'CH_4 + 2O_2',
+      "id": "reactants",
+      "type": "math_label",
+      "at": [-3.5, 0.5],
+      "tex": r"CH_4 + 2O_2",
     },
     {
-      'id': 'arrow',
-      'type': 'arrow',
-      'from': [-1, 0],
-      'to': [1, 0],
+      "id": "arrow",
+      "type": "arrow",
+      "from": [-1, 0],
+      "to": [1, 0],
     },
     {
-      'id': 'products',
-      'type': 'math_label',
-      'at': [1.5, 0.5],
-      'tex': r'CO_2 + 2H_2O',
+      "id": "products",
+      "type": "math_label",
+      "at": [1.5, 0.5],
+      "tex": r"CO_2 + 2H_2O",
     },
   ],
-  'meta': {'alt': '甲烷燃烧生成二氧化碳和水'},
+  "meta": {"alt": "甲烷燃烧生成二氧化碳和水"},
 };
 
 /// A terrain cross-section: filled polygon + labels.
 Map<String, dynamic> terrainJson() => {
-  'v': 1,
-  'kind': 'geography',
-  'title': '地形剖面',
-  'view': {
-    'x': [-4, 4],
-    'y': [-2, 3],
+  "v": 1,
+  "kind": "geography",
+  "title": "地形剖面",
+  "view": {
+    "x": [-4, 4],
+    "y": [-2, 3],
   },
-  'elements': [
+  "elements": [
     {
-      'id': 'ground',
-      'type': 'polygon',
-      'points': [
+      "id": "ground",
+      "type": "polygon",
+      "points": [
         [-3.5, -1.5],
         [-1.5, 1],
         [-0.5, 0.4],
@@ -118,47 +118,47 @@ Map<String, dynamic> terrainJson() => {
         [1.5, 0.6],
         [3.5, -1.5],
       ],
-      'fill': true,
+      "fill": true,
     },
     {
-      'id': 'peak',
-      'type': 'text',
-      'at': [0.5, 2],
-      'text': '山峰',
+      "id": "peak",
+      "type": "text",
+      "at": [0.5, 2],
+      "text": "山峰",
     },
     {
-      'id': 'valley',
-      'type': 'text',
-      'at': [-0.5, 0.6],
-      'text': '山谷',
+      "id": "valley",
+      "type": "text",
+      "at": [-0.5, 0.6],
+      "text": "山谷",
     },
   ],
-  'meta': {'alt': '山地地形剖面：山峰与山谷'},
+  "meta": {"alt": "山地地形剖面：山峰与山谷"},
 };
 
 /// Earth revolving around the sun: orbit circle + four earth positions
 /// shown one per timeline step.
 Map<String, dynamic> revolutionJson() => {
-  'v': 1,
-  'kind': 'geography',
-  'title': '地球公转',
-  'view': {
-    'x': [-3, 3],
-    'y': [-3, 3],
+  "v": 1,
+  "kind": "geography",
+  "title": "地球公转",
+  "view": {
+    "x": [-3, 3],
+    "y": [-3, 3],
   },
-  'elements': [
+  "elements": [
     {
-      'id': 'orbit',
-      'type': 'circle',
-      'center': [0, 0],
-      'r': 2,
-      'style': 'muted',
+      "id": "orbit",
+      "type": "circle",
+      "center": [0, 0],
+      "r": 2,
+      "style": "muted",
     },
     {
-      'id': 'sun',
-      'type': 'point',
-      'at': [0, 0],
-      'label': '太阳',
+      "id": "sun",
+      "type": "point",
+      "at": [0, 0],
+      "label": "太阳",
     },
     for (final (i, pos) in [
       [2, 0],
@@ -167,30 +167,30 @@ Map<String, dynamic> revolutionJson() => {
       [0, -2],
     ].indexed)
       {
-        'id': 'earth$i',
-        'type': 'point',
-        'at': pos,
-        'label': '地球',
-        'style': 'highlight',
+        "id": "earth$i",
+        "type": "point",
+        "at": pos,
+        "label": "地球",
+        "style": "highlight",
       },
   ],
-  'timeline': {
-    'durationMs': 8000,
-    'tracks': [],
-    'steps': [
+  "timeline": {
+    "durationMs": 8000,
+    "tracks": [],
+    "steps": [
       for (var i = 0; i < 4; i++)
         {
-          'atMs': i * 2000,
-          'show': ['earth$i'],
-          'hide': [
+          "atMs": i * 2000,
+          "show": ["earth$i"],
+          "hide": [
             for (var j = 0; j < 4; j++)
-              if (j != i) 'earth$j',
+              if (j != i) "earth$j",
           ],
-          'note': '第 ${i + 1} 个位置',
+          "note": "第 ${i + 1} 个位置",
         },
     ],
   },
-  'meta': {'alt': '地球绕太阳公转的四个位置'},
+  "meta": {"alt": "地球绕太阳公转的四个位置"},
 };
 
 const _palette = VisualPalette(
@@ -207,8 +207,8 @@ const _palette = VisualPalette(
 );
 
 void main() {
-  group('chemistry scenes', () {
-    test('water molecule validates and renders', () async {
+  group("chemistry scenes", () {
+    test("water molecule validates and renders", () async {
       final v = validateVisualScene(waterMoleculeJson());
       expect(v.ok, isTrue);
       expect(v.errors, isEmpty);
@@ -219,7 +219,7 @@ void main() {
       expect(bytes.sublist(0, 4), [0x89, 0x50, 0x4e, 0x47]);
     });
 
-    test('combustion reaction validates and renders a complete PNG', () async {
+    test("combustion reaction validates and renders a complete PNG", () async {
       final v = validateVisualScene(combustionJson());
       expect(v.ok, isTrue);
       expect(v.errors, isEmpty);
@@ -232,8 +232,8 @@ void main() {
     });
   });
 
-  group('geography scenes', () {
-    test('terrain profile validates and renders', () async {
+  group("geography scenes", () {
+    test("terrain profile validates and renders", () async {
       final v = validateVisualScene(terrainJson());
       expect(v.ok, isTrue);
       expect(v.errors, isEmpty);
@@ -244,53 +244,54 @@ void main() {
       expect(bytes.sublist(0, 4), [0x89, 0x50, 0x4e, 0x47]);
     });
 
-    test('earth revolution validates, resolves every step and renders', () async {
-      final v = validateVisualScene(revolutionJson());
-      expect(v.ok, isTrue);
-      expect(v.errors, isEmpty);
-      final scene = VisualScene.fromJson(revolutionJson());
-      expect(scene.timeline!.steps.length, 4);
-      expect(scene.timeline!.durationMs, 8000);
-      for (final (time, index) in [
-        (0.0, 0),
-        (2000.0, 1),
-        (4000.0, 2),
-        (6000.0, 3),
-        (8000.0, 3),
-        (12000.0, 3),
-      ]) {
-        final frame = resolveVisualFrame(scene, time);
-        expect(frame.stepIndex, index, reason: 'time=$time');
-        // Exact equality also proves that orbit/sun never become hidden.
-        expect(
-          frame.hiddenElementIds,
-          {'earth0', 'earth1', 'earth2', 'earth3'}..remove('earth$index'),
-          reason: 'time=$time',
-        );
-      }
-      // All four steps still render: consolidate the fixture, not PNG coverage.
-      for (var i = 0; i < 4; i++) {
-        final bytes = await renderVisualPng(
-          scene,
-          _palette,
-          timeMs: i * 2000.0,
-          stepIndex: i,
-        );
-        expect(bytes, isNotEmpty, reason: 'step=$i');
-        expect(bytes.sublist(0, 8), [
-          137,
-          80,
-          78,
-          71,
-          13,
-          10,
-          26,
-          10,
-        ], reason: 'step=$i');
-      }
-    });
+    test(
+      "earth revolution validates, resolves every step and renders",
+      () async {
+        final v = validateVisualScene(revolutionJson());
+        expect(v.ok, isTrue);
+        expect(v.errors, isEmpty);
+        final scene = VisualScene.fromJson(revolutionJson());
+        expect(scene.timeline!.steps.length, 4);
+        expect(scene.timeline!.durationMs, 8000);
+        for (final (time, index) in [
+          (0.0, 0),
+          (2000.0, 1),
+          (4000.0, 2),
+          (6000.0, 3),
+          (8000.0, 3),
+          (12000.0, 3),
+        ]) {
+          final frame = resolveVisualFrame(scene, time);
+          expect(frame.stepIndex, index, reason: "time=$time");
+          expect(
+            frame.hiddenElementIds,
+            {"earth0", "earth1", "earth2", "earth3"}..remove("earth$index"),
+            reason: "time=$time",
+          );
+        }
+        for (var i = 0; i < 4; i++) {
+          final bytes = await renderVisualPng(
+            scene,
+            _palette,
+            timeMs: i * 2000.0,
+            stepIndex: i,
+          );
+          expect(bytes, isNotEmpty, reason: "step=$i");
+          expect(bytes.sublist(0, 8), [
+            137,
+            80,
+            78,
+            71,
+            13,
+            10,
+            26,
+            10,
+          ], reason: "step=$i");
+        }
+      },
+    );
 
-    test('geography and chemistry scenes have no axes by default', () {
+    test("geography and chemistry scenes have no axes by default", () {
       expect(
         visualSceneDrawsAxes(VisualScene.fromJson(terrainJson())),
         isFalse,

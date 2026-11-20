@@ -1,13 +1,15 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "dart:async";
 
-import '../../app/controller.dart';
-import '../../core/ai/chat_provider.dart';
-import '../../core/ai/prompt_settings.dart';
-import '../../core/l10n/app_strings.dart';
-import 'prompt_localization.dart';
-import 'prompt_groups.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
+
+import "../../app/controller.dart";
+import "../../core/ai/chat_provider.dart";
+import "../../core/ai/prompt_settings.dart";
+import "../../core/l10n/app_strings.dart";
+import "prompt_localization.dart";
+import "prompt_groups.dart";
 
 class PromptScreen extends ConsumerStatefulWidget {
   const PromptScreen({super.key});
@@ -16,7 +18,7 @@ class PromptScreen extends ConsumerStatefulWidget {
 }
 
 class _PromptScreenState extends ConsumerState<PromptScreen> {
-  String query = '';
+  String query = "";
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(appControllerProvider);
@@ -32,11 +34,11 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                 Row(
                   children: [
                     IconButton(
-                      key: const Key('prompt-manager-back'),
+                      key: const Key("prompt-manager-back"),
                       tooltip: context.l10n.back,
                       onPressed: () => context.canPop()
                           ? context.pop()
-                          : context.go('/settings'),
+                          : context.go("/settings"),
                       icon: const Icon(Icons.arrow_back),
                     ),
                     const SizedBox(width: 8),
@@ -52,7 +54,7 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                 Text(context.l10n.editTeachingStylesAndTask),
                 const SizedBox(height: 18),
                 TextField(
-                  key: const Key('prompt-search'),
+                  key: const Key("prompt-search"),
                   onTapOutside: (_) =>
                       FocusManager.instance.primaryFocus?.unfocus(),
                   decoration: InputDecoration(
@@ -91,7 +93,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
       .firstOrNull;
   late final TextEditingController input = TextEditingController(
     text: definition == null
-        ? ''
+        ? ""
         : ref.read(appControllerProvider).prompts.text(widget.id),
   );
   bool saving = false;
@@ -125,7 +127,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
     if (context.canPop()) {
       context.pop();
     } else {
-      context.go('/settings/prompts');
+      context.go("/settings/prompts");
     }
   }
 
@@ -142,23 +144,23 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
         content: Text(context.l10n.savePromptBeforeLeaving),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, 'stay'),
+            onPressed: () => Navigator.pop(ctx, "stay"),
             child: Text(context.l10n.cancel),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, 'discard'),
+            onPressed: () => Navigator.pop(ctx, "discard"),
             child: Text(context.l10n.discardChanges),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, 'save'),
+            onPressed: () => Navigator.pop(ctx, "save"),
             child: Text(context.l10n.savePrompt),
           ),
         ],
       ),
     );
     if (!mounted) return;
-    if (choice == 'discard') _returnToManager();
-    if (choice == 'save') await save();
+    if (choice == "discard") _returnToManager();
+    if (choice == "save") await save();
   }
 
   Future<void> save() async {
@@ -227,23 +229,23 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
   }
 
   String _chatPreview(PromptSettings settings) {
-    final mode = ['guided', 'direct', 'exam'].contains(widget.id)
+    final mode = ["guided", "direct", "exam"].contains(widget.id)
         ? widget.id
-        : ['knowledge_writing', 'knowledge_editing'].contains(widget.id)
-        ? 'direct'
-        : widget.id == 'quiz'
-        ? 'exam'
-        : 'guided';
+        : ["knowledge_writing", "knowledge_editing"].contains(widget.id)
+        ? "direct"
+        : widget.id == "quiz"
+        ? "exam"
+        : "guided";
     final system = teachingPrompt(
       mode,
       prompts: settings,
       toolsEnabled: [
-        'knowledge_writing',
-        'knowledge_editing',
+        "knowledge_writing",
+        "knowledge_editing",
       ].contains(widget.id),
     );
-    final task = ['global', 'guided', 'direct', 'exam'].contains(widget.id)
-        ? ''
+    final task = ["global", "guided", "direct", "exam"].contains(widget.id)
+        ? ""
         : context.l10n.taskPrompt(l10nArgument(settings.text(widget.id)));
     return context.l10n.actualRequestsAlsoIncludeThe(
       l10nArgument(system),
@@ -265,7 +267,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) leave();
+        if (!didPop) unawaited(leave());
       },
       child: ListView(
         padding: const EdgeInsets.all(20),
@@ -279,7 +281,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                   Row(
                     children: [
                       IconButton(
-                        key: const Key('prompt-back'),
+                        key: const Key("prompt-back"),
                         tooltip: context.l10n.backToPromptManager,
                         onPressed: saving ? null : leave,
                         icon: const Icon(Icons.arrow_back),
@@ -309,7 +311,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                   ],
                   const SizedBox(height: 18),
                   TextField(
-                    key: const Key('prompt-content'),
+                    key: const Key("prompt-content"),
                     controller: input,
                     enabled: !saving,
                     minLines: 12,
@@ -339,7 +341,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                       SizedBox(
                         height: 48,
                         child: FilledButton(
-                          key: const Key('save-prompt'),
+                          key: const Key("save-prompt"),
                           onPressed: saving ? null : save,
                           child: Text(
                             saving

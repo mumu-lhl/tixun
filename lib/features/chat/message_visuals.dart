@@ -1,11 +1,11 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../core/visual/model/visual_scene.dart';
-import '../visual/visual_card.dart';
-import '../visual/visual_providers.dart';
+import "../../core/visual/model/visual_scene.dart";
+import "../visual/visual_card.dart";
+import "../visual/visual_providers.dart";
 
 /// The visual scenes attached to one assistant message, rendered under
 /// the message text (analogue of [MessageQuestions] for quiz cards).

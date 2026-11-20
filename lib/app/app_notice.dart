@@ -1,4 +1,4 @@
-import '../core/l10n/generated/app_localizations.dart';
+import "../core/l10n/generated/app_localizations.dart";
 
 /// Transient controller failures have stable, language-independent identities.
 enum AppTransientError {

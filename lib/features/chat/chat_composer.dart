@@ -1,4 +1,4 @@
-part of 'chat_screen.dart';
+part of "chat_screen.dart";
 
 extension _ChatComposer on _ConversationState {
   Widget _composer(
@@ -41,21 +41,21 @@ extension _ChatComposer on _ConversationState {
                               compact: true,
                               initialValue: c.selected!.mode,
                               style: TextStyle(
-                                fontFamily: 'NotoSansSC',
+                                fontFamily: "NotoSansSC",
                                 fontSize: 12,
                                 color: colors.primary,
                               ),
                               items: [
                                 DropdownMenuItem(
-                                  value: 'guided',
+                                  value: "guided",
                                   child: Text(context.l10n.guidedLearning),
                                 ),
                                 DropdownMenuItem(
-                                  value: 'direct',
+                                  value: "direct",
                                   child: Text(context.l10n.directAnswer),
                                 ),
                                 DropdownMenuItem(
-                                  value: 'exam',
+                                  value: "exam",
                                   child: Text(context.l10n.examPractice),
                                 ),
                               ],
@@ -172,7 +172,7 @@ extension _ChatComposer on _ConversationState {
                         children: [
                           Expanded(
                             child: TextField(
-                              key: const Key('chat-input'),
+                              key: const Key("chat-input"),
                               scrollPadding: EdgeInsets.fromLTRB(
                                 20,
                                 20,
@@ -196,7 +196,7 @@ extension _ChatComposer on _ConversationState {
                                 hintText: viewport.width < 600
                                     ? context.l10n.chatCompactInputHint
                                     : context.l10n.askAQuestionOrAdd,
-                                counterText: '',
+                                counterText: "",
                                 filled: false,
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
@@ -210,7 +210,7 @@ extension _ChatComposer on _ConversationState {
                             ),
                           ),
                           PopupMenuButton<String>(
-                            key: const Key('chat-add-photo'),
+                            key: const Key("chat-add-photo"),
                             popUpAnimationStyle: menuAnimation(context),
                             tooltip: context.l10n.addPhotos,
                             enabled: !c.busy,
@@ -222,22 +222,22 @@ extension _ChatComposer on _ConversationState {
                             itemBuilder: (_) => [
                               if (Platform.isAndroid) ...[
                                 PopupMenuItem(
-                                  value: 'camera',
+                                  value: "camera",
                                   child: Text(context.l10n.takePhoto),
                                 ),
                                 PopupMenuItem(
-                                  value: 'gallery',
+                                  value: "gallery",
                                   child: Text(context.l10n.chooseFromPhotos),
                                 ),
                               ],
                               PopupMenuItem(
-                                value: 'file',
+                                value: "file",
                                 child: Text(context.l10n.chooseImageFile),
                               ),
                             ],
                           ),
                           IconButton(
-                            key: const Key('chat-markdown-fullscreen'),
+                            key: const Key("chat-markdown-fullscreen"),
                             tooltip: context.l10n.markdownOpenFull,
                             icon: const Icon(
                               Icons.open_in_full_outlined,
@@ -269,7 +269,7 @@ extension _ChatComposer on _ConversationState {
                           ),
                           c.busy
                               ? IconButton.filled(
-                                  key: const Key('stop-generation'),
+                                  key: const Key("stop-generation"),
                                   tooltip: context.l10n.stopGenerating,
                                   onPressed: c.stop,
                                   icon: const Icon(Icons.stop_rounded),
@@ -290,7 +290,7 @@ extension _ChatComposer on _ConversationState {
                                     }
                                     return IconButton.filled(
                                       key: canSend
-                                          ? const Key('send-message')
+                                          ? const Key("send-message")
                                           : null,
                                       tooltip: context.l10n.sendCtrlEnter,
                                       onPressed: canSend

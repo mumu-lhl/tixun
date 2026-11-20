@@ -1,13 +1,15 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import "dart:async";
 
-import '../../app/controller.dart';
-import '../../core/l10n/app_strings.dart';
-import 'tool_call_limit_setting.dart';
-import '../../core/python/python_runtime.dart';
-import '../../core/python/python_workspace_store.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/app_menu.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+
+import "../../app/controller.dart";
+import "../../core/l10n/app_strings.dart";
+import "tool_call_limit_setting.dart";
+import "../../core/python/python_runtime.dart";
+import "../../core/python/python_workspace_store.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/app_menu.dart";
 
 class AiToolsSettings extends ConsumerStatefulWidget {
   const AiToolsSettings({super.key});
@@ -30,23 +32,25 @@ class _AiToolsSettingsState extends ConsumerState<AiToolsSettings> {
       ref.read(appControllerProvider).files.root,
     );
     workspaceFuture = workspaceStore.list();
-    ref
-        .read(appControllerProvider)
-        .preferences
-        .pythonExecutionPolicy()
-        .then((value) {
-          if (mounted) setState(() => policy = value);
-        })
-        .onError((error, stack) {
-          if (mounted) setState(() => loadError = true);
-        });
+    unawaited(
+      ref
+          .read(appControllerProvider)
+          .preferences
+          .pythonExecutionPolicy()
+          .then((value) {
+            if (mounted) setState(() => policy = value);
+          })
+          .onError((error, stack) {
+            if (mounted) setState(() => loadError = true);
+          }),
+    );
   }
 
   Future<void> change(String? next) async {
     if (next == null || next == policy) return;
     // Show the saved permission until confirmation and persistence succeed.
     setState(() => selection++);
-    if (next == 'auto') {
+    if (next == "auto") {
       final approved = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -58,7 +62,7 @@ class _AiToolsSettingsState extends ConsumerState<AiToolsSettings> {
               child: Text(ctx.l10n.cancel),
             ),
             FilledButton(
-              key: const Key('confirm-python-auto'),
+              key: const Key("confirm-python-auto"),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(ctx.l10n.allowAutomaticallyAnyway),
             ),
@@ -80,9 +84,9 @@ class _AiToolsSettingsState extends ConsumerState<AiToolsSettings> {
   }
 
   String formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    if (bytes < 1024) return "$bytes B";
+    if (bytes < 1024 * 1024) return "${(bytes / 1024).toStringAsFixed(1)} KB";
+    return "${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB";
   }
 
   Future<void> deleteWorkspace(PythonWorkspaceInfo workspace) async {
@@ -175,18 +179,18 @@ class _AiToolsSettingsState extends ConsumerState<AiToolsSettings> {
               const LinearProgressIndicator()
             else
               SizedBox(
-                key: const Key('python-policy'),
+                key: const Key("python-policy"),
                 child: AppSelectField<String>(
-                  key: ValueKey('$policy-$selection'),
+                  key: ValueKey("$policy-$selection"),
                   initialValue: policy,
                   decoration: InputDecoration(
                     labelText: context.l10n.executionPermission,
                   ),
                   items: [
                     for (final pair in [
-                      ('off', context.l10n.close),
-                      ('ask', context.l10n.reviewEveryScript),
-                      ('auto', context.l10n.automaticallyAllowArbitraryCode),
+                      ("off", context.l10n.close),
+                      ("ask", context.l10n.reviewEveryScript),
+                      ("auto", context.l10n.automaticallyAllowArbitraryCode),
                     ])
                       DropdownMenuItem(value: pair.$1, child: Text(pair.$2)),
                   ],
@@ -259,7 +263,7 @@ class _AiToolsSettingsState extends ConsumerState<AiToolsSettings> {
                     ),
                     for (final entry in entries)
                       ListTile(
-                        key: ValueKey('python-workspace-${entry.sessionId}'),
+                        key: ValueKey("python-workspace-${entry.sessionId}"),
                         title: Text(entry.sessionId),
                         subtitle: Text(
                           context.l10n.pythonWorkspaceDetails(
@@ -295,7 +299,7 @@ class _GlobalToolPreferences extends ConsumerWidget {
       child: Column(
         children: [
           SwitchListTile(
-            key: const Key('settings-ai-drawing'),
+            key: const Key("settings-ai-drawing"),
             secondary: const Icon(Icons.draw_outlined),
             title: Text(context.l10n.aiDrawing),
             subtitle: Text(context.l10n.aiDrawingHelp),
@@ -304,7 +308,7 @@ class _GlobalToolPreferences extends ConsumerWidget {
                 act(context, () => c.setAiDrawingEnabled(value)),
           ),
           SwitchListTile(
-            key: const Key('settings-ai-a2ui'),
+            key: const Key("settings-ai-a2ui"),
             secondary: const Icon(Icons.widgets_outlined),
             title: Text(context.l10n.aiA2ui),
             subtitle: Text(context.l10n.aiA2uiHelp),
@@ -312,11 +316,11 @@ class _GlobalToolPreferences extends ConsumerWidget {
             onChanged: (value) => act(context, () => c.setAiA2uiEnabled(value)),
           ),
           ListTile(
-            key: const Key('settings-tool-call-limit'),
+            key: const Key("settings-tool-call-limit"),
             leading: const Icon(Icons.tune),
             title: Text(context.l10n.maxToolCalls),
             subtitle: Text(
-              '${c.maxToolCalls == 0 ? context.l10n.toolCallsUnlimited : c.maxToolCalls}\n${context.l10n.maxToolCallsHelp}',
+              "${c.maxToolCalls == 0 ? context.l10n.toolCallsUnlimited : c.maxToolCalls}\n${context.l10n.maxToolCallsHelp}",
             ),
             onTap: () => editToolCallLimit(context, c),
           ),

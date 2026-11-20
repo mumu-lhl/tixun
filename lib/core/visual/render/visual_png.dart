@@ -1,32 +1,14 @@
-import 'dart:typed_data';
-import 'dart:ui' as ui;
+import "dart:typed_data";
+import "dart:ui" as ui;
 
-import 'package:material_ui/material_ui.dart'
+import "package:material_ui/material_ui.dart"
     show TextPainter, TextSpan, TextStyle;
-import 'package:tixun/core/visual/model/visual_scene.dart';
+import "package:tixun/core/visual/model/visual_scene.dart";
 
-import 'visual_animator.dart';
-import 'visual_painter.dart';
-import 'visual_theme.dart';
+import "visual_animator.dart";
+import "visual_painter.dart";
+import "visual_theme.dart";
 
-/// Renders [scene] to PNG bytes without any widget.
-///
-/// Uses the same [VisualPainter] as the on-screen card, so the export
-/// matches what the user sees, with two known Phase 1 limitations:
-/// `math_label` elements are drawn as cleaned plain text (see
-/// [texToPlainText] — there is no TeX layout in an offscreen picture;
-/// on screen they are `Math.tex` overlays), and the canvas is always
-/// the fit view (no pan/zoom state).
-///
-/// [timeMs] renders the frame at that moment: tracks are evaluated at
-/// [timeMs] and the teaching steps active then hide their elements. An
-/// explicit [stepIndex] (>= 0) pins the frame to that step instead:
-/// [stepIndex] indexes the original (unsorted) step list, and the frame
-/// is resolved cumulatively (every step with `atMs <=` that step's
-/// `atMs` applies, tracks evaluated at the step's `atMs`), as the
-/// animator defines.
-/// [parameters]/[toggles] override the resolved frame (manual slider and
-/// toggle state win over the animation), exactly like the fullscreen page.
 /// Minimal TeX-to-plain-text cleaning for PNG export.
 ///
 /// The offscreen picture has no TeX layout (on screen `math_label`s
@@ -41,7 +23,7 @@ String texToPlainText(String tex) {
   var i = 0;
   while (i < tex.length) {
     final ch = tex[i];
-    if (ch == r'\') {
+    if (ch == r"\") {
       var j = i + 1;
       while (j < tex.length) {
         final c = tex.codeUnitAt(j);
@@ -52,7 +34,7 @@ String texToPlainText(String tex) {
         }
       }
       final name = tex.substring(i + 1, j);
-      if (name == 'frac') {
+      if (name == "frac") {
         final first = _readGroup(tex, j);
         if (first == null) {
           // No braced groups: drop the command, let the tokens render.
@@ -65,18 +47,18 @@ String texToPlainText(String tex) {
           i = first.$2;
         } else {
           out.write(texToPlainText(first.$1));
-          out.write('/');
+          out.write("/");
           out.write(texToPlainText(second.$1));
           i = second.$2;
         }
-      } else if (name == 'sqrt') {
+      } else if (name == "sqrt") {
         final group = _readGroup(tex, j);
         if (group == null) {
           // `\sqrt2`: the next character is the radicand.
-          out.write('√');
+          out.write("√");
           i = j;
         } else {
-          out.write('√');
+          out.write("√");
           out.write(texToPlainText(group.$1));
           i = group.$2;
         }
@@ -87,8 +69,7 @@ String texToPlainText(String tex) {
       }
       continue;
     }
-    if (ch == '{' || ch == '}') {
-      // Grouping braces carry no text.
+    if (ch == "{" || ch == "}") {
       i++;
       continue;
     }
@@ -103,19 +84,19 @@ String texToPlainText(String tex) {
 /// or null when there is no group there. Nested braces are balanced.
 (String, int)? _readGroup(String tex, int start) {
   var i = start;
-  while (i < tex.length && tex[i] == ' ') {
+  while (i < tex.length && tex[i] == " ") {
     i++;
   }
-  if (i >= tex.length || tex[i] != '{') return null;
+  if (i >= tex.length || tex[i] != "{") return null;
   var depth = 0;
   final inner = StringBuffer();
   i++; // Past '{'.
   while (i < tex.length) {
     final ch = tex[i];
-    if (ch == '{') {
+    if (ch == "{") {
       depth++;
       inner.write(ch);
-    } else if (ch == '}') {
+    } else if (ch == "}") {
       if (depth == 0) return (inner.toString(), i + 1);
       depth--;
       inner.write(ch);
@@ -127,6 +108,11 @@ String texToPlainText(String tex) {
   return null; // Unbalanced: no group.
 }
 
+/// Exports the fit view with the same painter as the on-screen card. TeX
+/// overlays become plain text because the offscreen canvas has no widget layout.
+///
+/// A non-negative [stepIndex] selects a step in the authored order. Its time
+/// determines the cumulative frame. [parameters] and [toggles] override that frame.
 Future<Uint8List> renderVisualPng(
   VisualScene scene,
   VisualPalette palette, {

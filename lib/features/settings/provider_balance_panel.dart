@@ -1,10 +1,10 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../../core/ai/provider_balance.dart';
-import '../../core/ai/account_query_cache.dart';
-import '../../core/l10n/app_error_localization.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/time_format.dart';
+import "../../core/ai/provider_balance.dart";
+import "../../core/ai/account_query_cache.dart";
+import "../../core/l10n/app_error_localization.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/time_format.dart";
 
 /// Shows the balance the provider reports for its own account.
 ///
@@ -30,7 +30,7 @@ class ProviderBalancePanel extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final value = balance;
     return Container(
-      key: const Key('provider-balance'),
+      key: const Key("provider-balance"),
       width: double.infinity,
       margin: const EdgeInsets.only(top: 4, bottom: 8),
       padding: const EdgeInsets.fromLTRB(14, 10, 8, 12),
@@ -60,7 +60,7 @@ class ProviderBalancePanel extends StatelessWidget {
                 )
               else
                 IconButton(
-                  key: const Key('provider-balance-refresh'),
+                  key: const Key("provider-balance-refresh"),
                   tooltip: value == null ? l10n.checkBalance : l10n.refresh,
                   onPressed: onRefresh,
                   icon: Icon(
@@ -108,7 +108,7 @@ class ProviderBalancePanel extends StatelessWidget {
               for (final line in value.lines) ...[
                 Text(
                   l10n.accountBalanceTotal(balanceAmount(line, line.total)),
-                  key: Key('balance-total-${line.currency}'),
+                  key: Key("balance-total-${line.currency}"),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -147,9 +147,9 @@ class ProviderBalancePanel extends StatelessWidget {
 /// `¥110.00`, `$3.50`, or `CHF 4.00` for a currency we have no symbol for.
 String balanceAmount(ProviderBalanceLine line, String amount) {
   final symbol = switch (line.currency.toUpperCase()) {
-    'CNY' || 'RMB' => '¥',
-    'USD' => r'$',
-    final other => '$other ',
+    "CNY" || "RMB" => "¥",
+    "USD" => r"$",
+    final other => "$other ",
   };
-  return '$symbol$amount';
+  return "$symbol$amount";
 }

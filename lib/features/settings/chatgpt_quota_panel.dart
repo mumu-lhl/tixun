@@ -1,16 +1,12 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../../core/ai/chatgpt/usage.dart';
-import '../../core/ai/account_query_cache.dart';
-import '../../core/l10n/app_error_localization.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/time_format.dart';
+import "../../core/ai/chatgpt/usage.dart";
+import "../../core/ai/account_query_cache.dart";
+import "../../core/l10n/app_error_localization.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/time_format.dart";
 
-/// Shows the subscription quota the ChatGPT endpoint reports.
-///
-/// The numbers come from an undocumented endpoint, so the panel says so and
-/// never hides a failure behind a stale value: every check replaces the shown
-/// result or an error.
+/// Keep the last successful quota visible and mark it stale when refresh fails.
 class ChatGptQuotaPanel extends StatelessWidget {
   const ChatGptQuotaPanel({
     required this.quota,
@@ -31,7 +27,7 @@ class ChatGptQuotaPanel extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final value = quota;
     return Container(
-      key: const Key('chatgpt-quota'),
+      key: const Key("chatgpt-quota"),
       width: double.infinity,
       margin: const EdgeInsets.only(top: 8, bottom: 8),
       padding: const EdgeInsets.fromLTRB(14, 10, 10, 12),
@@ -61,7 +57,7 @@ class ChatGptQuotaPanel extends StatelessWidget {
                 )
               else
                 IconButton(
-                  key: const Key('chatgpt-quota-refresh'),
+                  key: const Key("chatgpt-quota-refresh"),
                   tooltip: value == null
                       ? l10n.chatGptQuotaCheck
                       : l10n.refresh,
@@ -224,7 +220,7 @@ String _duration(BuildContext context, Duration value) {
           : l10n.chatGptQuotaDurationSeconds(count(remaining.inSeconds)),
     );
   }
-  return parts.join(' ');
+  return parts.join(" ");
 }
 
 /// `plus` → `Plus`; unknown plans keep the server's word instead of a guess.

@@ -1,26 +1,26 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'app_notice.dart';
+import "app_notice.dart";
 
-import 'dart:async';
-import 'dart:io';
-import 'dart:ui' show PlatformDispatcher;
+import "dart:async";
+import "dart:io";
+import "dart:ui" show PlatformDispatcher;
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:path/path.dart" as p;
+import "package:path_provider/path_provider.dart";
 
-import '../core/backup/backup_actions.dart';
-import '../core/backup/backup_service.dart';
-import '../core/l10n/app_strings.dart';
-import '../core/l10n/generated/app_localizations.dart';
-import '../core/platform/backup_file_picker.dart';
-import '../core/ui/actions.dart';
-import '../features/update/update_providers.dart';
-import 'app.dart';
-import 'controller.dart';
-import 'theme.dart';
+import "../core/backup/backup_actions.dart";
+import "../core/backup/backup_service.dart";
+import "../core/l10n/app_strings.dart";
+import "../core/l10n/generated/app_localizations.dart";
+import "../core/platform/backup_file_picker.dart";
+import "../core/ui/actions.dart";
+import "../features/update/update_providers.dart";
+import "app.dart";
+import "controller.dart";
+import "theme.dart";
 
 enum HostFailure { initialOpen, reopen }
 
@@ -130,17 +130,15 @@ class _TixunHostState extends State<TixunHost> {
     try {
       await container.read(updateChannelProvider.notifier).loadCompleted;
       final db = container.read(appControllerProvider).db;
-      final lastRaw = await db.preference('update_last_auto_check');
-      final last = int.tryParse(lastRaw ?? '');
+      final lastRaw = await db.preference("update_last_auto_check");
+      final last = int.tryParse(lastRaw ?? "");
       final now = DateTime.now().millisecondsSinceEpoch;
       if (last != null &&
           now - last < const Duration(hours: 6).inMilliseconds) {
         return;
       }
       await container.read(updateStatusProvider.notifier).checkForUpdate();
-    } catch (_) {
-      // Automatic checks never surface errors in the UI.
-    }
+    } catch (_) {}
   }
 
   @override
@@ -160,7 +158,7 @@ class _TixunHostState extends State<TixunHost> {
     if (_working) {
       throw const AppFormatException(
         AppErrorCode.errorAnotherBackupOperationIsStillIn,
-        '另一项备份操作尚未完成。',
+        "另一项备份操作尚未完成。",
       );
     }
     setState(() {
@@ -187,12 +185,12 @@ class _TixunHostState extends State<TixunHost> {
     await c.practice.whenIdle;
     await c.review.whenIdle;
     final temp = await Directory(
-      p.join((await getTemporaryDirectory()).path, 'tixun-backup-export'),
+      p.join((await getTemporaryDirectory()).path, "tixun-backup-export"),
     ).create(recursive: true);
     final file = File(
       p.join(
         temp.path,
-        'tixun-${DateTime.now().millisecondsSinceEpoch}.tixun-backup',
+        "tixun-${DateTime.now().millisecondsSinceEpoch}.tixun-backup",
       ),
     );
     try {
@@ -222,9 +220,9 @@ class _TixunHostState extends State<TixunHost> {
           await old?.practice.whenIdle;
           await old?.review.whenIdle;
           if (old != null &&
-              !await File(p.join(widget.root.path, 'tixun.sqlite')).exists()) {
-            await old.db.customStatement('VACUUM INTO ?', [
-              p.join(widget.root.path, 'tixun.sqlite'),
+              !await File(p.join(widget.root.path, "tixun.sqlite")).exists()) {
+            await old.db.customStatement("VACUUM INTO ?", [
+              p.join(widget.root.path, "tixun.sqlite"),
             ]);
           }
           setState(() => _detached = true);
@@ -278,7 +276,7 @@ class _TixunHostState extends State<TixunHost> {
           }
           throw const AppFormatException(
             AppErrorCode.errorTheRestoreDidNotFinishThe,
-            '恢复未完成，已尝试保留并重新打开原数据。',
+            "恢复未完成，已尝试保留并重新打开原数据。",
           );
         }
       });
@@ -289,7 +287,7 @@ class _TixunHostState extends State<TixunHost> {
       demo: widget.demo,
       seed:
           widget.demo &&
-          !await File(p.join(widget.root.path, 'tixun.sqlite')).exists(),
+          !await File(p.join(widget.root.path, "tixun.sqlite")).exists(),
     );
     if (mounted) {
       setState(() => _install(c));
@@ -352,13 +350,13 @@ class _TixunHostState extends State<TixunHost> {
                                         ctx.l10n
                                             .includesConversationsKnowledgeNotesAnd(
                                               l10nArgument(
-                                                (info.counts['chats'] ?? 0),
+                                                (info.counts["chats"] ?? 0),
                                               ),
                                               l10nArgument(
-                                                (info.counts['knowledge'] ?? 0),
+                                                (info.counts["knowledge"] ?? 0),
                                               ),
                                               l10nArgument(
-                                                (info.counts['mistakes'] ?? 0),
+                                                (info.counts["mistakes"] ?? 0),
                                               ),
                                             ),
                                       ),
@@ -448,7 +446,7 @@ class _TixunHostState extends State<TixunHost> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: overlayColors.onSurface,
-                            fontFamily: 'NotoSansSC',
+                            fontFamily: "NotoSansSC",
                             fontSize: 14,
                           ),
                         ),

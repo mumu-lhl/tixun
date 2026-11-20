@@ -1,11 +1,11 @@
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../../core/ai/chat_provider.dart' show CancelGuard;
-import '../../../core/database/database.dart';
-import '../language_store.dart';
-import 'quick_models.dart';
+import "../../../core/ai/chat_provider.dart" show CancelGuard;
+import "../../../core/database/database.dart";
+import "../language_store.dart";
+import "quick_models.dart";
 
 typedef QuickCursor = ({int time, int rowId});
 typedef QuickHistoryRow = ({
@@ -51,7 +51,7 @@ extension QuickLookupStore on LanguageLearningStore {
             db.languageQuickActions,
           )..where((row) => row.id.equals(value.id))).getSingleOrNull();
           if (old?.deleted == true) {
-            throw StateError('The lookup action has been deleted');
+            throw StateError("The lookup action has been deleted");
           }
           final now = DateTime.now();
           final last =
@@ -125,17 +125,17 @@ extension QuickLookupStore on LanguageLearningStore {
   });
 
   Future<Map<String, String>> deletedQuickActionLabels() async {
-    final rows = await db.customSelect('''
+    final rows = await db.customSelect("""
       SELECT l.action_id, l.action_name, max(l.rowid)
       FROM language_quick_lookups l
       JOIN language_quick_actions a ON a.id = l.action_id
       WHERE a.deleted
       GROUP BY l.action_id
       ORDER BY max(l.rowid) DESC
-    ''').get();
+    """).get();
     return {
       for (final row in rows)
-        row.read<String>('action_id'): row.read<String>('action_name'),
+        row.read<String>("action_id"): row.read<String>("action_name"),
     };
   }
 
@@ -201,58 +201,58 @@ extension QuickLookupStore on LanguageLearningStore {
 
   Future<List<QuickHistoryRow>> quickHistory({
     String? actionId,
-    String search = '',
+    String search = "",
     QuickCursor? before,
   }) async {
-    final trimmed = search.replaceAll('\x00', '').trim();
+    final trimmed = search.replaceAll("\x00", "").trim();
     final query = trimmed.length <= quickSearchLimit
         ? trimmed
         : trimmed.substring(0, quickSearchLimit);
     final conditions = <String>[];
     final parameters = <Variable>[];
     if (actionId != null) {
-      conditions.add('action_id = ?');
+      conditions.add("action_id = ?");
       parameters.add(Variable(actionId));
     }
     if (query.isNotEmpty) {
       if (query.runes.length >= 3) {
         conditions.add(
-          'rowid IN (SELECT rowid FROM language_quick_search WHERE language_quick_search MATCH ?)',
+          "rowid IN (SELECT rowid FROM language_quick_search WHERE language_quick_search MATCH ?)",
         );
         final escaped = query.replaceAll('"', '""');
         parameters.add(Variable('"$escaped"'));
       } else {
-        conditions.add('''
+        conditions.add("""
           (instr(lower(input), lower(?)) > 0
            OR instr(lower(summary), lower(?)) > 0
            OR instr(lower(content), lower(?)) > 0)
-        ''');
+        """);
         parameters.addAll(List.generate(3, (_) => Variable(query)));
       }
     }
     if (before != null) {
-      conditions.add('(created_at, rowid) < (?, ?)');
+      conditions.add("(created_at, rowid) < (?, ?)");
       parameters.addAll([Variable(before.time), Variable(before.rowId)]);
     }
-    final where = conditions.isEmpty ? '' : 'WHERE ${conditions.join(' AND ')}';
-    final rows = await db.customSelect('''
+    final where = conditions.isEmpty ? "" : 'WHERE ${conditions.join(' AND ')}';
+    final rows = await db.customSelect("""
       SELECT rowid, id, action_id, action_name, input, summary, created_at
       FROM language_quick_lookups
       $where
       ORDER BY created_at DESC, rowid DESC
       LIMIT $quickPageSize
-    ''', variables: parameters).get();
+    """, variables: parameters).get();
     return [
       for (final row in rows)
         (
-          id: row.read<String>('id'),
-          actionId: row.read<String>('action_id'),
-          actionName: row.read<String>('action_name'),
-          input: row.read<String>('input'),
-          summary: row.read<String>('summary'),
+          id: row.read<String>("id"),
+          actionId: row.read<String>("action_id"),
+          actionName: row.read<String>("action_name"),
+          input: row.read<String>("input"),
+          summary: row.read<String>("summary"),
           cursor: (
-            time: row.read<int>('created_at'),
-            rowId: row.read<int>('rowid'),
+            time: row.read<int>("created_at"),
+            rowId: row.read<int>("rowid"),
           ),
         ),
     ];

@@ -1,16 +1,16 @@
-import 'dart:io';
-import 'dart:typed_data';
-import 'dart:ui' as ui;
+import "dart:io";
+import "dart:typed_data";
+import "dart:ui" as ui;
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/features/library/image_editor.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/library/image_editor.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +25,7 @@ void main() {
   }
 
   test(
-    'editorDecodeSize never yields a zero edge for extreme aspect ratios',
+    "editorDecodeSize never yields a zero edge for extreme aspect ratios",
     () {
       expect(editorDecodeSize(5000, 1), (width: 2048, height: 1));
       expect(editorDecodeSize(1, 5000), (width: 1, height: 2048));
@@ -33,7 +33,7 @@ void main() {
       expect(editorDecodeSize(800, 600), (width: 800, height: 600));
     },
   );
-  test('Crop after rotation produces bounded pixels without modifying the original', () async {
+  test("Crop after rotation produces bounded pixels without modifying the original", () async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     canvas.drawRect(
@@ -70,9 +70,9 @@ void main() {
     );
   });
 
-  group('crop handle hit-testing', () {
+  group("crop handle hit-testing", () {
     const crop = Rect.fromLTRB(0.2, 0.3, 0.8, 0.7);
-    test('corners win over edges, edges over inside', () {
+    test("corners win over edges, edges over inside", () {
       expect(
         resolveCropHandle(const Offset(0.2, 0.3), crop, 0.05, 0.05),
         CropHandle.topLeft,
@@ -99,8 +99,7 @@ void main() {
       );
     });
 
-    test('edge hit needs the point to span the edge', () {
-      // Above the top edge but outside its x-range: not a top hit.
+    test("edge hit needs the point to span the edge", () {
       expect(
         resolveCropHandle(const Offset(0.05, 0.3), crop, 0.05, 0.05),
         CropHandle.outside,
@@ -108,8 +107,8 @@ void main() {
     });
   });
 
-  group('moveCropRect', () {
-    test('shifts and clamps into the unit square', () {
+  group("moveCropRect", () {
+    test("shifts and clamps into the unit square", () {
       const start = Rect.fromLTRB(0.2, 0.3, 0.5, 0.6);
       expectRect(
         moveCropRect(start, const Offset(0.1, -0.1)),
@@ -135,8 +134,8 @@ void main() {
     });
   });
 
-  group('resizeCropRect', () {
-    test('dragging a corner moves only that corner, min size 0.02', () {
+  group("resizeCropRect", () {
+    test("dragging a corner moves only that corner, min size 0.02", () {
       const start = Rect.fromLTRB(0.2, 0.3, 0.8, 0.7);
       expectRect(
         resizeCropRect(start, CropHandle.bottomRight, const Offset(0.9, 0.9)),
@@ -152,7 +151,6 @@ void main() {
         0.8,
         0.7,
       );
-      // Dragging bottom-right past top-left clamps at the minimum size.
       expectRect(
         resizeCropRect(start, CropHandle.bottomRight, const Offset(0.0, 0.0)),
         0.2,
@@ -162,7 +160,7 @@ void main() {
       );
     });
 
-    test('dragging an edge moves only that edge', () {
+    test("dragging an edge moves only that edge", () {
       const start = Rect.fromLTRB(0.2, 0.3, 0.8, 0.7);
       expectRect(
         resizeCropRect(start, CropHandle.left, const Offset(0.1, 0.5)),
@@ -181,8 +179,8 @@ void main() {
     });
   });
 
-  group('isFullFrameCrop', () {
-    test('tolerates rounding noise', () {
+  group("isFullFrameCrop", () {
+    test("tolerates rounding noise", () {
       expect(isFullFrameCrop(const Rect.fromLTRB(0, 0, 1, 1)), isTrue);
       expect(
         isFullFrameCrop(const Rect.fromLTRB(0.0005, 0, 0.9995, 1)),
@@ -192,23 +190,21 @@ void main() {
     });
   });
 
-  group('zoomTransform', () {
-    test('scales around the focal point and clamps to 1..4', () {
+  group("zoomTransform", () {
+    test("scales around the focal point and clamps to 1..4", () {
       final identity = Matrix4.identity();
       final zoomed = zoomTransform(identity, const Offset(100, 100), 2);
       expect(zoomed.storage[0], 2);
       // The focal point stays fixed: scale 2 around (100,100) shifts by -100.
       expect(zoomed.storage[12], -100);
       expect(zoomed.storage[13], -100);
-      // Clamped at max 4.
       expect(zoomTransform(identity, Offset.zero, 100).storage[0], 4);
-      // No-op zoom returns the same matrix.
       final current = zoomTransform(identity, const Offset(50, 50), 1.25);
       expect(zoomTransform(current, const Offset(50, 50), 1), current);
     });
   });
 
-  group('StudyImageEditor widget', () {
+  group("StudyImageEditor widget", () {
     late AppController c;
     late Uint8List png;
     late ProviderContainer container;
@@ -217,7 +213,7 @@ void main() {
     Future<void> pumpEditor(WidgetTester tester) async {
       await tester.runAsync(() async {
         final root = await Directory.systemTemp.createTemp(
-          'tixun-editor-widget',
+          "tixun-editor-widget",
         );
         c = AppController(
           AppDatabase.memory(),
@@ -227,7 +223,7 @@ void main() {
         );
         await c.initialize();
         png = await _testPng();
-        final file = c.files.resolve('attachments/test.png');
+        final file = c.files.resolve("attachments/test.png");
         await file.parent.create(recursive: true);
         await file.writeAsBytes(png);
       });
@@ -250,19 +246,19 @@ void main() {
           child: MaterialApp(
             home: StudyImageEditor(
               attachment: StudyAttachment(
-                id: 'a1',
-                relativePath: 'attachments/test.png',
-                mime: 'image/png',
+                id: "a1",
+                relativePath: "attachments/test.png",
+                mime: "image/png",
                 byteLength: png.length,
-                role: 'original',
+                role: "original",
                 deleted: false,
               ),
               isMistake: true,
-              title: '编辑题目图片',
-              createLabel: '保存图片编辑',
+              title: "编辑题目图片",
+              createLabel: "保存图片编辑",
               onCreate: (bytes, crop, turns) async {
                 capturedCrop = crop;
-                return 'new-id';
+                return "new-id";
               },
             ),
           ),
@@ -276,21 +272,21 @@ void main() {
           () => Future<void>.delayed(const Duration(milliseconds: 100)),
         );
         await tester.pump();
-        loaded = find.byKey(const Key('crop-canvas')).evaluate().isNotEmpty;
+        loaded = find.byKey(const Key("crop-canvas")).evaluate().isNotEmpty;
       }
       expect(
         loaded,
         isTrue,
         reason:
-            'editor image did not load (spinner: '
-            '${find.byType(CircularProgressIndicator).evaluate().isNotEmpty}, '
+            "editor image did not load (spinner: "
+            "${find.byType(CircularProgressIndicator).evaluate().isNotEmpty}, "
             'error: ${find.textContaining('无法解码').evaluate().isNotEmpty})',
       );
       await tester.pumpAndSettle();
     }
 
     Future<void> dragCrop(WidgetTester tester) async {
-      final canvasRect = tester.getRect(find.byKey(const Key('crop-canvas')));
+      final canvasRect = tester.getRect(find.byKey(const Key("crop-canvas")));
       final start =
           canvasRect.topLeft +
           Offset(canvasRect.width * 0.25, canvasRect.height * 0.25);
@@ -302,7 +298,7 @@ void main() {
     }
 
     Future<void> save(WidgetTester tester) async {
-      await tester.tap(find.byKey(const Key('split-mistake')));
+      await tester.tap(find.byKey(const Key("split-mistake")));
       // The render + onCreate run outside the fake-async zone; poll until
       // the crop is reported instead of trusting a fixed delay.
       for (var i = 0; i < 50 && capturedCrop == null; i++) {
@@ -311,15 +307,15 @@ void main() {
         );
         await tester.pump();
       }
-      expect(capturedCrop, isNotNull, reason: 'save never reported a crop');
+      expect(capturedCrop, isNotNull, reason: "save never reported a crop");
       await tester.pumpAndSettle();
     }
 
-    testWidgets('drag draws a crop box and save reports it via onCreate', (
+    testWidgets("drag draws a crop box and save reports it via onCreate", (
       tester,
     ) async {
       await pumpEditor(tester);
-      expect(find.byKey(const Key('crop-canvas')), findsOneWidget);
+      expect(find.byKey(const Key("crop-canvas")), findsOneWidget);
       await dragCrop(tester);
       await save(tester);
       expect(capturedCrop, isNotNull);
@@ -331,21 +327,19 @@ void main() {
     });
 
     testWidgets(
-      'rotating a custom crop asks first, then resets to full frame',
+      "rotating a custom crop asks first, then resets to full frame",
       (tester) async {
         await pumpEditor(tester);
-        // Full-frame crop rotates directly, no dialog.
-        await tester.tap(find.byTooltip('顺时针旋转'));
+        await tester.tap(find.byTooltip("顺时针旋转"));
         await tester.pumpAndSettle();
-        expect(find.text('旋转会重置框选'), findsNothing);
-        // A custom crop asks for confirmation.
+        expect(find.text("旋转会重置框选"), findsNothing);
         await dragCrop(tester);
-        await tester.tap(find.byTooltip('顺时针旋转'));
+        await tester.tap(find.byTooltip("顺时针旋转"));
         await tester.pumpAndSettle();
-        expect(find.text('旋转会重置框选'), findsOneWidget);
-        await tester.tap(find.text('旋转并重置'));
+        expect(find.text("旋转会重置框选"), findsOneWidget);
+        await tester.tap(find.text("旋转并重置"));
         await tester.pumpAndSettle();
-        expect(find.text('旋转会重置框选'), findsNothing);
+        expect(find.text("旋转会重置框选"), findsNothing);
         await save(tester);
         expect(capturedCrop, const Rect.fromLTRB(0, 0, 1, 1));
         expect(tester.takeException(), isNull);

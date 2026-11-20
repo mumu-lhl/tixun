@@ -1,39 +1,39 @@
-import 'dart:convert';
-import 'dart:io';
+import "dart:convert";
+import "dart:io";
 
-import 'package:archive/archive_io.dart';
-import 'package:drift/drift.dart' show Value;
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/backup/backup_service.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/features/library/study_store.dart';
-import 'package:tixun/features/language_learning/exam_material.dart';
-import 'package:tixun/features/language_learning/course_progress.dart';
-import 'package:tixun/features/language_learning/written_exam_profile.dart';
-import 'package:tixun/features/language_learning/written_exam_store.dart';
-import 'package:tixun/features/language_learning/exam_store.dart';
-import 'package:tixun/features/language_learning/language_store.dart';
-import 'package:tixun/features/language_learning/lexical_form.dart';
-import 'package:tixun/features/language_learning/quick_lookup/quick_learning.dart';
-import 'package:tixun/features/language_learning/quick_lookup/quick_models.dart';
-import 'package:tixun/features/language_learning/quick_lookup/quick_store.dart';
-import 'package:tixun/features/language_learning/sentence_content.dart';
-import 'package:tixun/features/language_learning/writing_store.dart';
-import 'package:tixun/features/language_learning/writing_task_ai.dart';
-import 'package:tixun/features/practice/question_spec.dart';
+import "package:archive/archive_io.dart";
+import "package:drift/drift.dart" show Value;
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/backup/backup_service.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/library/study_store.dart";
+import "package:tixun/features/language_learning/exam_material.dart";
+import "package:tixun/features/language_learning/course_progress.dart";
+import "package:tixun/features/language_learning/written_exam_profile.dart";
+import "package:tixun/features/language_learning/written_exam_store.dart";
+import "package:tixun/features/language_learning/exam_store.dart";
+import "package:tixun/features/language_learning/language_store.dart";
+import "package:tixun/features/language_learning/lexical_form.dart";
+import "package:tixun/features/language_learning/quick_lookup/quick_learning.dart";
+import "package:tixun/features/language_learning/quick_lookup/quick_models.dart";
+import "package:tixun/features/language_learning/quick_lookup/quick_store.dart";
+import "package:tixun/features/language_learning/sentence_content.dart";
+import "package:tixun/features/language_learning/writing_store.dart";
+import "package:tixun/features/language_learning/writing_task_ai.dart";
+import "package:tixun/features/practice/question_spec.dart";
 
-import 'support/exam_bundled.dart';
-import 'support/quick_lookup.dart';
+import "support/exam_bundled.dart";
+import "support/quick_lookup.dart";
 
 void main() {
   late Directory parent, root;
   late AppController c;
   setUp(() async {
-    parent = await Directory.systemTemp.createTemp('tixun-backup-test');
-    root = Directory('${parent.path}/app');
+    parent = await Directory.systemTemp.createTemp("tixun-backup-test");
+    root = Directory("${parent.path}/app");
     c = await AppController.openRoot(
       root,
       demo: false,
@@ -48,19 +48,19 @@ void main() {
     if (await parent.exists()) await parent.delete(recursive: true);
   });
   Future<String> fixture() async {
-    await c.addImage('assets/demo/two_problems.png');
+    await c.addImage("assets/demo/two_problems.png");
     final original = c.attachments.single;
     await c.replaceDraftImage(
       original,
       await c.files.resolve(original.relativePath).readAsBytes(),
     );
-    await c.send('请解释题目');
-    await c.draft('待发送草稿');
+    await c.send("请解释题目");
+    await c.draft("待发送草稿");
     final note = await c.study.saveKnowledge(
-      const KnowledgeDraft(title: '备份知识', content: '恢复前的内容', tags: ['函数']),
+      const KnowledgeDraft(title: "备份知识", content: "恢复前的内容", tags: ["函数"]),
     );
     final mistake = await c.study.saveMistake(
-      const MistakeDraft(title: '原题', question: '2+2', correctAnswer: '4'),
+      const MistakeDraft(title: "原题", question: "2+2", correctAnswer: "4"),
     );
     final a = c.attachments.first;
     await c.study.addImageReference(
@@ -73,33 +73,33 @@ void main() {
     await c.study.link(note.id, mistakeId: mistake.id);
     final q = await c.practice.create(
       const QuestionSpec(
-        kind: 'numeric',
-        stem: '2+2',
+        kind: "numeric",
+        stem: "2+2",
         answers: [
-          ['4'],
+          ["4"],
         ],
-        topics: ['加法'],
+        topics: ["加法"],
       ),
       mistakeId: mistake.id,
       knowledgeIds: [note.id],
     );
-    await c.practice.submit((await c.practice.begin(q)).id, ['4']);
+    await c.practice.submit((await c.practice.begin(q)).id, ["4"]);
     await c.setTools(true);
     await c.timeline.save(
-      title: '期中考',
+      title: "期中考",
       start: DateTime(2027, 4, 5),
       end: DateTime(2027, 4, 6),
-      notes: '带准考证',
+      notes: "带准考证",
     );
-    await c.savePrompt('guided', '保留我的教学偏好。');
-    await c.setLanguage('en');
+    await c.savePrompt("guided", "保留我的教学偏好。");
+    await c.setLanguage("en");
     await c.setDynamicColors(false);
-    await c.setSessionReasoning('off');
-    await c.keys.write(providerKeyId(c.config), 'test-key-never-exported-9837');
+    await c.setSessionReasoning("off");
+    await c.keys.write(providerKeyId(c.config), "test-key-never-exported-9837");
     return note.id;
   }
 
-  test('Complete backup round-trip and undo preserve relational data, managed images, drafts and external keys', () async {
+  test("Complete backup round-trip and undo preserve relational data, managed images, drafts and external keys", () async {
     final note = await fixture();
     final context = await c.db.select(c.db.chatContextEvents).get();
     expect(context, hasLength(2));
@@ -116,7 +116,7 @@ void main() {
     );
     await c.language.submitExam(
       material: material,
-      attemptId: 'backup-language-exam',
+      attemptId: "backup-language-exam",
       responses: sample.paper.items.map((item) => item.answers.first).toList(),
       confidence: ExamConfidence.unsure,
       hintUsed: false,
@@ -126,52 +126,52 @@ void main() {
           .into(c.db.learningWritingTasks)
           .insertReturning(
             LearningWritingTasksCompanion.insert(
-              id: 'backup-generated-writing',
+              id: "backup-generated-writing",
               kind: WritingTaskKind.continuation.name,
               profile: ExamProfile.zhejiang2026.id,
               level: SentenceLevel.beginner.name,
-              topic: 'Market',
-              title: 'A new market',
-              prompt: 'Continue the story.',
+              topic: "Market",
+              title: "A new market",
+              prompt: "Continue the story.",
               passage: const Value(
-                'Maya looked for the owner of a lost sketchbook.',
+                "Maya looked for the owner of a lost sketchbook.",
               ),
-              model: 'test-model',
+              model: "test-model",
               promptVersion: 1,
               createdAt: DateTime.now(),
             ),
           ),
     );
     await c.language.snapshotWriting(
-      'Maya asked for directions.',
+      "Maya asked for directions.",
       taskId: writing.id,
     );
     await c.language.saveEntries(
-      language: 'en',
-      groupTitle: 'Backup forms',
+      language: "en",
+      groupTitle: "Backup forms",
       groupType: VocabularyGroupType.topic,
       entries: const [
         VocabularyEntry(
-          form: 'go',
-          meaning: '去',
-          forms: [LexicalFormDraft('went', Inflection.past)],
+          form: "go",
+          meaning: "去",
+          forms: [LexicalFormDraft("went", Inflection.past)],
         ),
       ],
     );
     await c.language.ensureQuickActions();
     final action = await c.language.saveQuickAction(
       quickActionDefaults(
-        'backup-action',
+        "backup-action",
         0,
         DateTime.now(),
-      ).copyWith(name: 'Backup lookup', prompt: 'Explain {input}'),
+      ).copyWith(name: "Backup lookup", prompt: "Explain {input}"),
     );
     final answer = QuickAnswer.parse(jsonDecode(validQuickReply));
     final quick = await c.language.saveQuickLookup(
       quickTestQuery(action),
       answer,
       config: quickTestConfig,
-      key: 'backup-lookup',
+      key: "backup-lookup",
     );
     await c.language.saveQuickSentence(
       quick,
@@ -181,8 +181,8 @@ void main() {
     await c.language.deleteQuickAction(action.id);
     final timed = await c.language.startWrittenExam(
       profile: const WrittenExamProfile(
-        id: 'backup-v1',
-        region: 'Zhejiang',
+        id: "backup-v1",
+        region: "Zhejiang",
         year: 2026,
         exam: ExamProfile.zhejiang2026,
         duration: Duration(minutes: 10),
@@ -196,35 +196,35 @@ void main() {
     await c.language.editWrittenSection(
       id: timed.row.id,
       position: 0,
-      answers: ['Timed draft'],
+      answers: ["Timed draft"],
     );
     await c.language.recordCourseCheck(
-      language: 'ja',
+      language: "ja",
       lesson: 0,
       rotation: 1,
       recognized: 2,
       produced: 1,
     );
-    final backup = File('${parent.path}/complete.tixun-backup');
+    final backup = File("${parent.path}/complete.tixun-backup");
     final preview = await BackupService.export(c.db, c.files, backup);
-    expect(preview.counts['attempts'], 1);
-    expect(preview.counts['reviews'], 1);
+    expect(preview.counts["attempts"], 1);
+    expect(preview.counts["reviews"], 1);
     expect(preview.files, 2);
     expect(
       latin1.decode(await backup.readAsBytes()),
-      isNot(contains('test-key-never-exported-9837')),
+      isNot(contains("test-key-never-exported-9837")),
     );
     final old = await c.study.knowledge(note);
     await c.study.saveKnowledge(
-      const KnowledgeDraft(title: '备份知识', content: '备份后的改动'),
+      const KnowledgeDraft(title: "备份知识", content: "备份后的改动"),
       id: note,
       expectedRevision: old.revision,
     );
     final prepared = await BackupService.prepare(backup, root);
     expect(
       (await c.study.knowledge(note)).content,
-      '备份后的改动',
-      reason: 'Preview never modifies live data',
+      "备份后的改动",
+      reason: "Preview never modifies live data",
     );
     final keys = c.keys;
     await c.db.close();
@@ -238,7 +238,7 @@ void main() {
     );
     await BackupService.finish(activation);
     await prepared.discard();
-    expect((await c.study.knowledge(note)).content, '恢复前的内容');
+    expect((await c.study.knowledge(note)).content, "恢复前的内容");
     final savedExam = ExamMaterial(
       await c.db.select(c.db.learningExamMaterials).getSingle(),
     );
@@ -253,16 +253,16 @@ void main() {
     expect(savedWriting.passage, writing.passage);
     expect(
       await c.language.writingDraft(taskId: savedWriting.id),
-      'Maya asked for directions.',
+      "Maya asked for directions.",
     );
     expect(
       (await c.db.select(c.db.learningLexicalForms).getSingle()).surface,
-      'went',
+      "went",
     );
     final restoredTimed = await c.language.writtenExam(timed.row.id);
-    expect(restoredTimed.sections.single.answers, ['Timed draft']);
+    expect(restoredTimed.sections.single.answers, ["Timed draft"]);
     expect(
-      (await c.language.courseProgress('ja').first)
+      (await c.language.courseProgress("ja").first)
           .values
           .single
           .passedRotations,
@@ -270,12 +270,12 @@ void main() {
     );
     final restoredQuick = (await c.language.quickHistory(
       actionId: action.id,
-      search: 'pleasure',
+      search: "pleasure",
     )).single;
     expect(restoredQuick.id, quick.id);
     expect(restoredQuick.summary, answer.summary);
     expect(await c.language.deletedQuickActionLabels(), {
-      action.id: 'Backup lookup',
+      action.id: "Backup lookup",
     });
     expect(
       (await c.db.select(c.db.languageQuickLearningLinks).getSingle()).lookupId,
@@ -283,15 +283,15 @@ void main() {
     );
     expect(await c.db.select(c.db.learningSentenceBatches).get(), hasLength(1));
     final timeline = (await c.db.select(c.db.timelineEvents).get()).single;
-    expect(timeline.title, '期中考');
-    expect(timeline.notes, '带准考证');
+    expect(timeline.title, "期中考");
+    expect(timeline.notes, "带准考证");
     expect(timeline.endDate!.toUtc(), DateTime.utc(2027, 4, 6));
-    expect(c.selected!.draft, '待发送草稿');
-    expect(c.languageChoice, 'en');
+    expect(c.selected!.draft, "待发送草稿");
+    expect(c.languageChoice, "en");
     expect(c.dynamicColors, false);
-    expect(c.sessionReasoning, 'off');
-    expect(c.prompts.text('guided'), '保留我的教学偏好。');
-    expect(c.prompts.text('global'), startsWith('You are TiXun'));
+    expect(c.sessionReasoning, "off");
+    expect(c.prompts.text("guided"), "保留我的教学偏好。");
+    expect(c.prompts.text("global"), startsWith("You are TiXun"));
     expect(c.selected!.toolsEnabled, false);
     expect(c.messages.length, 2);
     expect(
@@ -311,9 +311,9 @@ void main() {
     }
     expect(
       await c.keys.read(providerKeyId(c.config)),
-      'test-key-never-exported-9837',
+      "test-key-never-exported-9837",
     );
-    expect(await c.db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+    expect(await c.db.customSelect("PRAGMA foreign_key_check").get(), isEmpty);
     final undo = await BackupService.preparePrevious(root);
     await c.db.close();
     c.dispose();
@@ -326,7 +326,7 @@ void main() {
     );
     await BackupService.finish(undoReceipt);
     await undo.discard();
-    expect((await c.study.knowledge(note)).content, '备份后的改动');
+    expect((await c.study.knowledge(note)).content, "备份后的改动");
     expect(await BackupService.previousRoot(root), isNotNull);
     await BackupService.clearPrevious(root);
     expect(await BackupService.previousRoot(root), isNull);
@@ -334,61 +334,61 @@ void main() {
       BackupService.preparePrevious(root),
       throwsFormatException,
     );
-    expect((await c.study.knowledge(note)).content, '备份后的改动');
+    expect((await c.study.knowledge(note)).content, "备份后的改动");
   });
   test(
-    'backup restores private question/solution pins and the current draft',
+    "backup restores private question/solution pins and the current draft",
     () async {
       final id = await c.practice.create(
         const QuestionSpec(
-          kind: 'read_value',
-          stem: 'Read figure',
+          kind: "read_value",
+          stem: "Read figure",
           answers: [
-            ['2'],
+            ["2"],
           ],
           questionScene: {
-            'v': 1,
-            'kind': 'geometry',
-            'title': 'QUESTION',
-            'elements': [
+            "v": 1,
+            "kind": "geometry",
+            "title": "QUESTION",
+            "elements": [
               {
-                'id': 'p',
-                'type': 'point',
-                'at': [2, 0],
+                "id": "p",
+                "type": "point",
+                "at": [2, 0],
               },
             ],
           },
           solutionScene: {
-            'v': 1,
-            'kind': 'geometry',
-            'title': 'SOLUTION',
-            'elements': [
+            "v": 1,
+            "kind": "geometry",
+            "title": "SOLUTION",
+            "elements": [
               {
-                'id': 's',
-                'type': 'text',
-                'at': [0, 0],
-                'text': 'Answer 2',
+                "id": "s",
+                "type": "text",
+                "at": [0, 0],
+                "text": "Answer 2",
               },
             ],
           },
         ),
       );
       final attempt = await c.practice.begin(id);
-      await c.practice.draft(attempt.id, ['1']);
+      await c.practice.draft(attempt.id, ["1"]);
       final original = await c.practice.detail(id);
-      final backup = File('${parent.path}/figures.tixun-backup');
+      final backup = File("${parent.path}/figures.tixun-backup");
       await BackupService.export(c.db, c.files, backup);
       await c.visual.revise(
         original.spec.solutionVisualId!,
         jsonEncode({
-          'v': 1,
-          'kind': 'geometry',
-          'title': 'LATER',
-          'elements': [
+          "v": 1,
+          "kind": "geometry",
+          "title": "LATER",
+          "elements": [
             {
-              'id': 'p',
-              'type': 'point',
-              'at': [0, 0],
+              "id": "p",
+              "type": "point",
+              "at": [0, 0],
             },
           ],
         }),
@@ -408,28 +408,28 @@ void main() {
       final restored = await c.practice.detail(id);
       expect(restored.visualLinks, original.visualLinks);
       expect(restored.solutionVisualLinks, original.solutionVisualLinks);
-      expect(restored.latest!.status, 'draft');
-      expect(restored.responses[attempt.id], ['1']);
+      expect(restored.latest!.status, "draft");
+      expect(restored.responses[attempt.id], ["1"]);
       expect(
         await c.visual.getRevisionSceneJson(
           restored.spec.solutionVisualId!,
           restored.spec.solutionVisualRevision!,
         ),
-        contains('SOLUTION'),
+        contains("SOLUTION"),
       );
       expect(await c.db.select(c.db.visualMessageLinks).get(), isEmpty);
       expect(
-        await c.db.customSelect('PRAGMA foreign_key_check').get(),
+        await c.db.customSelect("PRAGMA foreign_key_check").get(),
         isEmpty,
       );
     },
   );
 
-  test('Damaged archives, traversal, duplicate paths and future versions never change live data', () async {
+  test("Damaged archives, traversal, duplicate paths and future versions never change live data", () async {
     final note = await fixture();
-    final good = File('${parent.path}/good.tixun-backup');
+    final good = File("${parent.path}/good.tixun-backup");
     await BackupService.export(c.db, c.files, good);
-    final damaged = File('${parent.path}/broken.tixun-backup');
+    final damaged = File("${parent.path}/broken.tixun-backup");
     final bytes = await good.readAsBytes();
     bytes[100] ^= 0x7f;
     await damaged.writeAsBytes(bytes);
@@ -438,7 +438,7 @@ void main() {
       throwsFormatException,
     );
     Future<File> zip(String name, List<ArchiveFile> entries) async {
-      final file = File('${parent.path}/$name');
+      final file = File("${parent.path}/$name");
       final encoder = ZipFileEncoder()
         ..create(file.path, level: ZipFileEncoder.store);
       for (final e in entries) {
@@ -448,31 +448,31 @@ void main() {
       return file;
     }
 
-    final traversal = await zip('traversal.zip', [
-      ArchiveFile.string('../escape.txt', 'bad'),
+    final traversal = await zip("traversal.zip", [
+      ArchiveFile.string("../escape.txt", "bad"),
     ]);
     await expectLater(
       BackupService.prepare(traversal, root),
       throwsFormatException,
     );
-    expect(await File('${parent.path}/escape.txt').exists(), false);
-    final duplicate = await zip('duplicate.zip', [
-      ArchiveFile.string('database.sqlite', 'a'),
-      ArchiveFile.string('database.sqlite', 'b'),
+    expect(await File("${parent.path}/escape.txt").exists(), false);
+    final duplicate = await zip("duplicate.zip", [
+      ArchiveFile.string("database.sqlite", "a"),
+      ArchiveFile.string("database.sqlite", "b"),
     ]);
     await expectLater(
       BackupService.prepare(duplicate, root),
       throwsFormatException,
     );
-    final future = await zip('future.zip', [
+    final future = await zip("future.zip", [
       ArchiveFile.string(
-        'manifest.json',
+        "manifest.json",
         jsonEncode({
-          'format': 'tixun-backup',
-          'version': 1,
-          'schema': 999,
-          'created_at': '2030-01-01',
-          'files': [],
+          "format": "tixun-backup",
+          "version": 1,
+          "schema": 999,
+          "created_at": "2030-01-01",
+          "files": [],
         }),
       ),
     ]);
@@ -480,38 +480,38 @@ void main() {
       BackupService.prepare(future, root),
       throwsFormatException,
     );
-    expect((await c.study.knowledge(note)).content, '恢复前的内容');
+    expect((await c.study.knowledge(note)).content, "恢复前的内容");
     expect(
       (await parent.list().toList()).where(
-        (e) => e.path.contains('.tixun-stage-'),
+        (e) => e.path.contains(".tixun-stage-"),
       ),
       isEmpty,
     );
   });
   test(
-    'Missing originals prevent export and leave an existing backup untouched',
+    "Missing originals prevent export and leave an existing backup untouched",
     () async {
       await fixture();
-      final output = File('${parent.path}/keep.tixun-backup');
-      await output.writeAsString('existing backup');
+      final output = File("${parent.path}/keep.tixun-backup");
+      await output.writeAsString("existing backup");
       final image = (await c.db.select(c.db.attachments).get()).first;
       await c.files.resolve(image.relativePath).delete();
       await expectLater(
         BackupService.export(c.db, c.files, output),
         throwsFormatException,
       );
-      expect(await output.readAsString(), 'existing backup');
+      expect(await output.readAsString(), "existing backup");
     },
   );
   test(
-    'Activation killed between the two renames resumes from staging',
+    "Activation killed between the two renames resumes from staging",
     () async {
       final note = await fixture();
-      final output = File('${parent.path}/backup.tixun-backup');
+      final output = File("${parent.path}/backup.tixun-backup");
       await BackupService.export(c.db, c.files, output);
       final old = await c.study.knowledge(note);
       await c.study.saveKnowledge(
-        const KnowledgeDraft(title: '备份知识', content: '恢复操作之前的新内容'),
+        const KnowledgeDraft(title: "备份知识", content: "恢复操作之前的新内容"),
         id: note,
         expectedRevision: old.revision,
       );
@@ -530,19 +530,18 @@ void main() {
         keyStore: MemoryKeyStore(),
         chatProvider: MockChatProvider(),
       );
-      expect((await c.study.knowledge(note)).content, '恢复前的内容');
-      // The old data is still kept as the undo point.
+      expect((await c.study.knowledge(note)).content, "恢复前的内容");
       expect(await BackupService.previousRoot(root), isNotNull);
       await prepared.discard();
     },
   );
-  test('Interrupted directory activation recovers the original when the live name is missing', () async {
+  test("Interrupted directory activation recovers the original when the live name is missing", () async {
     final note = await fixture();
-    final output = File('${parent.path}/backup.tixun-backup');
+    final output = File("${parent.path}/backup.tixun-backup");
     await BackupService.export(c.db, c.files, output);
     final old = await c.study.knowledge(note);
     await c.study.saveKnowledge(
-      const KnowledgeDraft(title: '备份知识', content: '恢复操作之前的新内容'),
+      const KnowledgeDraft(title: "备份知识", content: "恢复操作之前的新内容"),
       id: note,
       expectedRevision: old.revision,
     );
@@ -550,7 +549,7 @@ void main() {
     await c.db.close();
     c.dispose();
     await BackupService.activate(prepared, root);
-    await root.rename('${parent.path}/interrupted-new-data');
+    await root.rename("${parent.path}/interrupted-new-data");
     await BackupService.recoverPending(root);
     c = await AppController.openRoot(
       root,
@@ -558,7 +557,7 @@ void main() {
       keyStore: MemoryKeyStore(),
       chatProvider: MockChatProvider(),
     );
-    expect((await c.study.knowledge(note)).content, '恢复操作之前的新内容');
+    expect((await c.study.knowledge(note)).content, "恢复操作之前的新内容");
     expect(await BackupService.previousRoot(root), isNull);
     await prepared.discard();
   });

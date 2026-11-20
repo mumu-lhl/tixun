@@ -1,32 +1,27 @@
-import 'dart:convert';
-import 'dart:io';
+import "dart:convert";
+import "dart:io";
 
-import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
+import "package:crypto/crypto.dart";
+import "package:dio/dio.dart";
 
-import 'update_models.dart';
-import 'version_compare.dart';
+import "update_models.dart";
+import "version_compare.dart";
 
-/// Fetches GitHub releases for tixun and decides whether an update is
-/// available on the requested channel.
-///
-/// Network access uses the existing `dio` dependency; no new dependencies.
-/// [check] never throws — network/parse failures surface as a
-/// [UpdateCheckKind.failed] outcome.
+/// Fetches GitHub releases for the selected channel. Network and parse
+/// failures are returned as [UpdateCheckKind.failed].
 class UpdateService {
   UpdateService({Dio? dio}) : _dio = dio ?? Dio();
 
   static const String releasesUrl =
-      'https://api.github.com/repos/mumu-lhl/tixun/releases?per_page=20';
+      "https://api.github.com/repos/mumu-lhl/tixun/releases?per_page=20";
 
   static const String nightlyUrl =
-      'https://api.github.com/repos/mumu-lhl/tixun/releases/tags/nightly';
+      "https://api.github.com/repos/mumu-lhl/tixun/releases/tags/nightly";
 
   static const Duration _timeout = Duration(seconds: 10);
 
   final Dio _dio;
 
-  /// Fetches the release list (newest first), skipping drafts.
   Future<List<ReleaseInfo>> fetchReleases({bool includeNightly = false}) async {
     final response = await _dio.get<dynamic>(
       releasesUrl,
@@ -35,7 +30,7 @@ class UpdateService {
     final releases = List<ReleaseInfo>.of(parseReleases(response.data));
     // GitHub orders the list by release creation time. An edited fixed-tag
     // release can eventually fall outside the first page even when current.
-    if (includeNightly && !releases.any((r) => r.tag == 'nightly')) {
+    if (includeNightly && !releases.any((r) => r.tag == "nightly")) {
       try {
         final fixed = await _dio.get<dynamic>(
           nightlyUrl,
@@ -62,24 +57,24 @@ class UpdateService {
     final releases = <ReleaseInfo>[];
     for (final entry in json) {
       if (entry is! Map<String, dynamic>) continue;
-      if (entry['draft'] as bool? ?? false) continue;
+      if (entry["draft"] as bool? ?? false) continue;
       final assets = <ReleaseAssetInfo>[];
-      final rawAssets = entry['assets'];
+      final rawAssets = entry["assets"];
       if (rawAssets is List) {
         for (final rawAsset in rawAssets) {
           if (rawAsset is! Map<String, dynamic>) continue;
-          final name = rawAsset['name'] as String? ?? '';
-          final downloadUrl = rawAsset['browser_download_url'] as String? ?? '';
+          final name = rawAsset["name"] as String? ?? "";
+          final downloadUrl = rawAsset["browser_download_url"] as String? ?? "";
           if (name.isEmpty || downloadUrl.isEmpty) continue;
           assets.add(ReleaseAssetInfo(name: name, downloadUrl: downloadUrl));
         }
       }
       releases.add(
         ReleaseInfo(
-          tag: entry['tag_name'] as String? ?? '',
-          name: entry['name'] as String? ?? '',
-          prerelease: entry['prerelease'] as bool? ?? false,
-          draft: entry['draft'] as bool? ?? false,
+          tag: entry["tag_name"] as String? ?? "",
+          name: entry["name"] as String? ?? "",
+          prerelease: entry["prerelease"] as bool? ?? false,
+          draft: entry["draft"] as bool? ?? false,
           assets: assets,
         ),
       );
@@ -97,7 +92,7 @@ class UpdateService {
     if (channel == UpdateChannel.nightly) {
       for (final release in releases) {
         if (release.prerelease &&
-            release.tag == 'nightly' &&
+            release.tag == "nightly" &&
             release.updateIdentity.isNotEmpty) {
           return release;
         }
@@ -108,11 +103,11 @@ class UpdateService {
         case UpdateChannel.stable:
           if (!release.prerelease) return release;
         case UpdateChannel.prerelease:
-          if (release.prerelease && release.tag.startsWith('v')) {
+          if (release.prerelease && release.tag.startsWith("v")) {
             return release;
           }
         case UpdateChannel.nightly:
-          if (release.prerelease && release.tag.startsWith('nightly-')) {
+          if (release.prerelease && release.tag.startsWith("nightly-")) {
             return release;
           }
       }
@@ -182,7 +177,7 @@ class UpdateService {
   ) async {
     try {
       final sumsAsset = release.assets
-          .where((asset) => asset.name == 'SHA256SUMS')
+          .where((asset) => asset.name == "SHA256SUMS")
           .firstOrNull;
       if (sumsAsset == null) return null;
       final response = await _dio.get<String>(
@@ -196,14 +191,14 @@ class UpdateService {
       final text = response.data;
       if (text == null || text.isEmpty) return null;
       for (final line in const LineSplitter().convert(text)) {
-        final tokens = line.trim().split(RegExp(r'\s+'));
+        final tokens = line.trim().split(RegExp(r"\s+"));
         if (tokens.length < 2) continue;
         final hash = tokens.first;
         var filename = tokens.last;
-        if (filename.startsWith('*')) filename = filename.substring(1);
+        if (filename.startsWith("*")) filename = filename.substring(1);
         // CI generates the file with `sha256sum ./*.apk ./*.tar.gz`, so
         // entries carry a `./` prefix (e.g. `./tixun-...-linux-x64.tar.gz`).
-        if (filename.startsWith('./')) filename = filename.substring(2);
+        if (filename.startsWith("./")) filename = filename.substring(2);
         if (filename == assetName) return hash;
       }
       return null;
@@ -222,7 +217,7 @@ class UpdateService {
   }) async {
     final asset = release.assets.where((a) => a.name == assetName).firstOrNull;
     if (asset == null) {
-      throw ArgumentError('Asset not found in release: $assetName');
+      throw ArgumentError("Asset not found in release: $assetName");
     }
     await _dio.download(
       asset.downloadUrl,

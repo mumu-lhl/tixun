@@ -1,12 +1,12 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
+import "dart:async";
+import "dart:convert";
+import "dart:io";
+import "dart:typed_data";
 
-import 'package:dio/dio.dart';
-import 'package:jose/jose.dart';
-import 'package:tixun/core/ai/chatgpt/auth.dart';
-import 'package:tixun/core/platform/key_store.dart';
+import "package:dio/dio.dart";
+import "package:jose/jose.dart";
+import "package:tixun/core/ai/chatgpt/auth.dart";
+import "package:tixun/core/platform/key_store.dart";
 
 class FixtureAdapter implements HttpClientAdapter {
   FixtureAdapter(this.handle);
@@ -26,26 +26,26 @@ ResponseBody fixtureJson(Object data, {int status = 200}) =>
       jsonEncode(data),
       status,
       headers: {
-        'content-type': ['application/json'],
+        "content-type": ["application/json"],
       },
     );
 ResponseBody fixtureSse(List<Map<String, dynamic>> events) =>
     ResponseBody.fromString(
-      events.map((e) => 'data: ${jsonEncode(e)}\n\n').join(),
+      events.map((e) => "data: ${jsonEncode(e)}\n\n").join(),
       200,
       headers: {
-        'content-type': ['text/event-stream'],
+        "content-type": ["text/event-stream"],
       },
     );
 Map<String, dynamic> completed({
   List<dynamic> output = const [],
   int tokens = 17,
 }) => {
-  'type': 'response.completed',
-  'response': {
-    'status': 'completed',
-    'output': output,
-    'usage': {'total_tokens': tokens},
+  "type": "response.completed",
+  "response": {
+    "status": "completed",
+    "output": output,
+    "usage": {"total_tokens": tokens},
   },
 };
 
@@ -56,10 +56,10 @@ class ChatGptFixture {
   }
   final keys = MemoryKeyStore();
   final dio = Dio();
-  final signingKey = JsonWebKey.generate('RS256');
+  final signingKey = JsonWebKey.generate("RS256");
   late final ChatGptAuth auth;
   Uri? authorization;
-  String subject = 'student';
+  String subject = "student";
   Map<String, dynamic> overrides = {};
   JsonWebKey? alternativeSigningKey;
   Map<String, Object> protectedHeaders = {};
@@ -71,16 +71,16 @@ class ChatGptFixture {
   final callbackStatuses = <int>[];
   Future<bool> openBrowser(Uri uri) async {
     authorization = uri;
-    final callback = Uri.parse(uri.queryParameters['redirect_uri']!);
+    final callback = Uri.parse(uri.queryParameters["redirect_uri"]!);
     final client = HttpClient();
     try {
-      for (final state in ['wrong-state', uri.queryParameters['state']!]) {
+      for (final state in ["wrong-state", uri.queryParameters["state"]!]) {
         final request = await client.getUrl(
           callback.replace(
             queryParameters: {
-              'code': 'code-fixture',
-              'state': state,
-              'client_id': 'oaiapp_fixture',
+              "code": "code-fixture",
+              "state": state,
+              "client_id": "oaiapp_fixture",
             },
           ),
         );
@@ -97,113 +97,113 @@ class ChatGptFixture {
   String idToken() {
     final builder = JsonWebSignatureBuilder()
       ..jsonContent = {
-        'iss': chatGptIssuer,
-        'sub': subject,
-        'aud': 'oaiapp_fixture',
-        'exp':
+        "iss": chatGptIssuer,
+        "sub": subject,
+        "aud": "oaiapp_fixture",
+        "exp":
             DateTime.now()
                 .add(const Duration(hours: 1))
                 .millisecondsSinceEpoch ~/
             1000,
-        'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        'nonce': authorization!.queryParameters['nonce'],
-        'email': 'student@example.test',
+        "iat": DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        "nonce": authorization!.queryParameters["nonce"],
+        "email": "student@example.test",
         ...overrides,
       }
-      ..setProtectedHeader('typ', 'JWT')
-      ..addRecipient(alternativeSigningKey ?? signingKey, algorithm: 'RS256');
+      ..setProtectedHeader("typ", "JWT")
+      ..addRecipient(alternativeSigningKey ?? signingKey, algorithm: "RS256");
     protectedHeaders.forEach(builder.setProtectedHeader);
     return builder.build().toCompactSerialization();
   }
 
   FutureOr<ResponseBody> handle(RequestOptions request) async {
     requests.add(request);
-    if (request.path.endsWith('openid-configuration')) {
+    if (request.path.endsWith("openid-configuration")) {
       return fixtureJson({
-        'issuer': chatGptIssuer,
-        'jwks_uri': '$chatGptIssuer/.well-known/jwks.json',
-        'revocation_endpoint': '$chatGptIssuer/api/accounts/oauth/revoke',
+        "issuer": chatGptIssuer,
+        "jwks_uri": "$chatGptIssuer/.well-known/jwks.json",
+        "revocation_endpoint": "$chatGptIssuer/api/accounts/oauth/revoke",
       });
     }
-    if (request.path.endsWith('jwks.json')) {
+    if (request.path.endsWith("jwks.json")) {
       return fixtureJson({
-        'keys': [
+        "keys": [
           JsonWebKey.fromCryptoKeys(
             publicKey: signingKey.cryptoKeyPair.publicKey,
           ).toJson(),
         ],
       });
     }
-    if (request.path.endsWith('/oauth/token')) {
+    if (request.path.endsWith("/oauth/token")) {
       final form = request.data as Map;
-      if (form['grant_type'] == 'refresh_token') {
+      if (form["grant_type"] == "refresh_token") {
         refreshes++;
         await refreshGate?.future;
         return fixtureJson({
-          'access_token': 'refreshed-fixture',
-          'refresh_token': 'rotated-fixture',
-          'token_type': 'Bearer',
-          'expires_in': 3600,
+          "access_token": "refreshed-fixture",
+          "refresh_token": "rotated-fixture",
+          "token_type": "Bearer",
+          "expires_in": 3600,
         });
       }
       exchanges++;
       return fixtureJson({
-        'id_token': idToken(),
-        'access_token': 'access-fixture',
-        'refresh_token': 'refresh-fixture',
-        'token_type': 'Bearer',
-        'expires_in': 3600,
-        'scope': denyScope
-            ? 'openid profile'
-            : 'openid offline_access resource.invoke chatgpt.tokens.use.direct',
+        "id_token": idToken(),
+        "access_token": "access-fixture",
+        "refresh_token": "refresh-fixture",
+        "token_type": "Bearer",
+        "expires_in": 3600,
+        "scope": denyScope
+            ? "openid profile"
+            : "openid offline_access resource.invoke chatgpt.tokens.use.direct",
       });
     }
-    if (request.path.endsWith('/oauth/revoke')) {
+    if (request.path.endsWith("/oauth/revoke")) {
       revocations++;
       await revokeGate?.future;
       return fixtureJson({}, status: failRevocation ? 503 : 200);
     }
-    if (request.path == '$chatGptResource/models') {
+    if (request.path == "$chatGptResource/models") {
       return fixtureJson({
-        'models': [
+        "models": [
           {
-            'slug': 'fixture-text',
-            'display_name': 'Fixture text model',
-            'visibility': 'list',
+            "slug": "fixture-text",
+            "display_name": "Fixture text model",
+            "visibility": "list",
           },
           {
-            'slug': 'fixture-vision',
-            'display_name': 'Fixture vision model',
-            'visibility': 'list',
-            'input_modalities': ['text', 'image'],
-            'supported_reasoning_levels': [
-              for (final effort in ['low', 'medium', 'high', 'xhigh', 'max'])
-                {'effort': effort, 'description': 'Fixture level'},
+            "slug": "fixture-vision",
+            "display_name": "Fixture vision model",
+            "visibility": "list",
+            "input_modalities": ["text", "image"],
+            "supported_reasoning_levels": [
+              for (final effort in ["low", "medium", "high", "xhigh", "max"])
+                {"effort": effort, "description": "Fixture level"},
             ],
           },
-          {'slug': 'hidden', 'display_name': 'Hidden', 'visibility': 'hide'},
+          {"slug": "hidden", "display_name": "Hidden", "visibility": "hide"},
         ],
       });
     }
-    throw StateError('Unexpected fixture endpoint');
+    throw StateError("Unexpected fixture endpoint");
   }
 
   Future<void> seed({bool expired = false}) async {
     await keys.write(
       ChatGptAuth.storageKey,
       jsonEncode({
-        'version': 1,
-        'host': 'urn:uuid:test-host',
-        'active': 'oaiapp_fixture:student',
-        'accounts': [
+        "version": 1,
+        "host": "urn:uuid:test-host",
+        "active": "oaiapp_fixture:student",
+        "accounts": [
           {
-            'client_id': 'oaiapp_fixture',
-            'sub': 'student',
-            'email': 'student@example.test',
-            'access_token': 'access-fixture',
-            'refresh_token': 'refresh-fixture',
-            'scopes': ['resource.invoke', 'chatgpt.tokens.use.direct'],
-            'expires_at': DateTime.now()
+            "client_id": "oaiapp_fixture",
+            "sub": "student",
+            "email": "student@example.test",
+            "access_token": "access-fixture",
+            "refresh_token": "refresh-fixture",
+            "scopes": ["resource.invoke", "chatgpt.tokens.use.direct"],
+            "expires_at": DateTime.now()
                 .add(Duration(hours: expired ? -1 : 1))
                 .toUtc()
                 .toIso8601String(),

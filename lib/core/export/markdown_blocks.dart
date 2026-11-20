@@ -4,10 +4,10 @@
 /// alongside a readable text fallback for the exporters.
 library;
 
-import 'package:markdown/markdown.dart' as md;
+import "package:markdown/markdown.dart" as md;
 
-import '../markdown/learning_syntax.dart';
-import 'latex_text.dart';
+import "../markdown/learning_syntax.dart";
+import "latex_text.dart";
 
 enum MdBlockKind {
   heading,
@@ -56,10 +56,10 @@ class MdBlock {
   const MdBlock(
     this.kind, {
     this.level = 0,
-    this.marker = '',
+    this.marker = "",
     this.runs = const [],
     this.rows = const [],
-    this.language = '',
+    this.language = "",
     this.quote = false,
     this.listDepth = 0,
   });
@@ -115,7 +115,7 @@ MdParsedDocument parseLearningMarkdown(String source) {
 }
 
 List<String> _splitLines(String source) =>
-    source.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
+    source.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
 
 void _collectBlocks(
   List<md.Node> nodes,
@@ -133,12 +133,12 @@ void _collectBlocks(
     }
     if (node is! md.Element) continue;
     switch (node.tag) {
-      case 'h1':
-      case 'h2':
-      case 'h3':
-      case 'h4':
-      case 'h5':
-      case 'h6':
+      case "h1":
+      case "h2":
+      case "h3":
+      case "h4":
+      case "h5":
+      case "h6":
         final level = (int.parse(node.tag.substring(1)) + headingShift).clamp(
           1,
           6,
@@ -151,43 +151,43 @@ void _collectBlocks(
             quote: quote,
           ),
         );
-      case 'p':
+      case "p":
         final runs = _runs(node.children ?? const []);
         if (plainText(runs).trim().isEmpty) continue;
         out.add(MdBlock(MdBlockKind.paragraph, runs: runs, quote: quote));
-      case 'blockquote':
+      case "blockquote":
         _collectBlocks(
           node.children ?? const [],
           out,
           quote: true,
           headingShift: headingShift + 1,
         );
-      case 'ul':
-      case 'ol':
+      case "ul":
+      case "ol":
         _collectList(node, out, quote: quote, depth: listDepth + 1);
-      case 'pre':
+      case "pre":
         final codes = (node.children ?? const []).whereType<md.Element>();
         final code = codes.isEmpty ? null : codes.first;
         final text = (code?.textContent ?? node.textContent).replaceFirst(
-          RegExp(r'\n$'),
-          '',
+          RegExp(r"\n$"),
+          "",
         );
         out.add(
           MdBlock(
             MdBlockKind.code,
             runs: [MdRun(text)],
-            language: _languageOf(code?.attributes['class'] ?? ''),
+            language: _languageOf(code?.attributes["class"] ?? ""),
             quote: quote,
           ),
         );
-      case 'table':
+      case "table":
         final rows = _tableRows(node);
         if (rows.isNotEmpty) {
           out.add(MdBlock(MdBlockKind.table, rows: rows, quote: quote));
         }
-      case 'hr':
+      case "hr":
         out.add(MdBlock(MdBlockKind.rule, quote: quote));
-      case 'mathblock':
+      case "mathblock":
         out.add(
           MdBlock(
             MdBlockKind.formula,
@@ -205,13 +205,13 @@ void _collectBlocks(
 }
 
 String _languageOf(String? classes) {
-  if (classes == null) return '';
-  for (final token in classes.split(' ')) {
-    if (token.startsWith('language-')) {
-      return token.substring('language-'.length);
+  if (classes == null) return "";
+  for (final token in classes.split(" ")) {
+    if (token.startsWith("language-")) {
+      return token.substring("language-".length);
     }
   }
-  return '';
+  return "";
 }
 
 void _collectList(
@@ -220,25 +220,25 @@ void _collectList(
   required bool quote,
   required int depth,
 }) {
-  final ordered = list.tag == 'ol';
-  var number = int.tryParse(list.attributes['start'] ?? '') ?? 1;
+  final ordered = list.tag == "ol";
+  var number = int.tryParse(list.attributes["start"] ?? "") ?? 1;
   for (final item in (list.children ?? const []).whereType<md.Element>()) {
-    if (item.tag != 'li') continue;
+    if (item.tag != "li") continue;
     final inline = <md.Node>[];
     final nested = <md.Element>[];
     for (final child in item.children ?? const <md.Node>[]) {
-      if (child is md.Element && (child.tag == 'ul' || child.tag == 'ol')) {
+      if (child is md.Element && (child.tag == "ul" || child.tag == "ol")) {
         nested.add(child);
         continue;
       }
       // A `<p>` inside a loose list item still belongs to that item.
-      if (child is md.Element && child.tag == 'p') {
+      if (child is md.Element && child.tag == "p") {
         inline.addAll(child.children ?? const []);
         continue;
       }
       inline.add(child);
     }
-    final marker = ordered ? '${number++}.' : '•';
+    final marker = ordered ? "${number++}." : "•";
     final runs = _runs(inline);
     out.add(
       MdBlock(
@@ -261,19 +261,19 @@ List<MdRow> _tableRows(md.Element table) {
   void visit(md.Element element, {required bool header}) {
     for (final child in element.children ?? const <md.Node>[]) {
       if (child is! md.Element) continue;
-      if (child.tag == 'tr') {
+      if (child.tag == "tr") {
         final cells = <List<MdRun>>[];
         var isHeader = header;
         for (final cell
             in (child.children ?? const []).whereType<md.Element>()) {
-          if (cell.tag == 'th') isHeader = true;
+          if (cell.tag == "th") isHeader = true;
           cells.add(_runs(cell.children ?? const []));
         }
         if (cells.isNotEmpty) rows.add(MdRow(cells, header: isHeader));
-      } else if (child.tag == 'thead' ||
-          child.tag == 'tbody' ||
-          child.tag == 'tfoot') {
-        visit(child, header: header || child.tag == 'thead');
+      } else if (child.tag == "thead" ||
+          child.tag == "tbody" ||
+          child.tag == "tfoot") {
+        visit(child, header: header || child.tag == "thead");
       }
     }
   }
@@ -313,21 +313,21 @@ List<MdRun> _runs(List<md.Node> nodes) {
     }
     if (node is! md.Element) return;
     switch (node.tag) {
-      case 'strong':
+      case "strong":
         node.children?.forEach(
           (child) => visit(child, bold: true, italic: italic, code: code),
         );
-      case 'em':
+      case "em":
         node.children?.forEach(
           (child) => visit(child, bold: bold, italic: true, code: code),
         );
-      case 'del':
+      case "del":
         node.children?.forEach(
           (child) => visit(child, bold: bold, italic: italic, code: code),
         );
-      case 'code':
+      case "code":
         add(MdRun(node.textContent, bold: bold, italic: italic, code: true));
-      case 'math':
+      case "math":
         add(
           MdRun(
             latexToText(node.textContent),
@@ -335,7 +335,7 @@ List<MdRun> _runs(List<md.Node> nodes) {
             tex: node.textContent,
           ),
         );
-      case 'mathblock':
+      case "mathblock":
         add(
           MdRun(
             latexToText(node.textContent),
@@ -343,17 +343,17 @@ List<MdRun> _runs(List<md.Node> nodes) {
             tex: node.textContent,
           ),
         );
-      case 'br':
-        add(const MdRun('\n'));
-      case 'img':
-        final alt = node.attributes['alt'] ?? '';
+      case "br":
+        add(const MdRun("\n"));
+      case "img":
+        final alt = node.attributes["alt"] ?? "";
         if (alt.isNotEmpty) add(MdRun(alt, bold: bold, italic: italic));
-      case 'a':
-        final href = node.attributes['href'] ?? '';
+      case "a":
+        final href = node.attributes["href"] ?? "";
         node.children?.forEach(
           (child) => visit(child, bold: bold, italic: italic, code: code),
         );
-        if (href.startsWith('http')) add(MdRun(' ($href)', italic: true));
+        if (href.startsWith("http")) add(MdRun(" ($href)", italic: true));
       default:
         node.children?.forEach(
           (child) => visit(child, bold: bold, italic: italic, code: code),
@@ -367,7 +367,7 @@ List<MdRun> _runs(List<md.Node> nodes) {
   // A paragraph must never end with trailing spaces that look like a gap.
   if (runs.isNotEmpty) {
     final last = runs.last;
-    final trimmed = last.text.replaceFirst(RegExp(r'[ \t]+$'), '');
+    final trimmed = last.text.replaceFirst(RegExp(r"[ \t]+$"), "");
     if (trimmed.isEmpty) {
       runs.removeLast();
     } else if (trimmed != last.text) {

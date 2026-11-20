@@ -1,6 +1,6 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../database/search_terms.dart';
+import "../database/search_terms.dart";
 
 RegExpMatch? _firstMatch(String text, String query) {
   for (final term in searchTerms(query)) {

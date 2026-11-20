@@ -1,12 +1,12 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/app/app_notice.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/ai/prompt_settings.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/core/database/database.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/app/app_notice.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/ai/prompt_settings.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/core/database/database.dart";
 
 class PromptCaptureProvider implements ChatProvider {
   final bodies = <AiRequest>[];
@@ -16,43 +16,43 @@ class PromptCaptureProvider implements ChatProvider {
     configs.add(config);
     return AiConversation((request, cancel) async* {
       bodies.add(request);
-      yield const AiChunk(text: '收到学习请求。', completed: true);
+      yield const AiChunk(text: "收到学习请求。", completed: true);
     });
   }
 }
 
 void main() {
-  test('invalid prompt lengths expose a typed error code', () {
+  test("invalid prompt lengths expose a typed error code", () {
     expect(
-      () => PromptSettings().update('guided', ''),
+      () => PromptSettings().update("guided", ""),
       throwsA(
         isA<PromptSettingsException>().having(
           (error) => error.code,
-          'code',
+          "code",
           PromptError.invalidEntry,
         ),
       ),
     );
   });
   test(
-    'Prompt overrides validate, restore defaults and retain application rules',
+    "Prompt overrides validate, restore defaults and retain application rules",
     () {
       final original = PromptSettings();
-      final custom = original.update('guided', '请先用反例解释。');
+      final custom = original.update("guided", "请先用反例解释。");
       final restored = PromptSettings.decode(custom.encode());
-      expect(restored.text('guided'), '请先用反例解释。');
+      expect(restored.text("guided"), "请先用反例解释。");
       expect(
-        restored.update('guided', original.text('guided')).overrides,
+        restored.update("guided", original.text("guided")).overrides,
         isEmpty,
       );
-      expect(() => original.update('guided', ' '), throwsFormatException);
+      expect(() => original.update("guided", " "), throwsFormatException);
       expect(
-        () => original.update('guided', 'a' * 6001),
+        () => original.update("guided", "a" * 6001),
         throwsFormatException,
       );
       expect(
         () => PromptSettings({
-          for (final p in promptDefinitions.take(5)) p.id: 'a' * 6000,
+          for (final p in promptDefinitions.take(5)) p.id: "a" * 6000,
         }),
         throwsFormatException,
       );
@@ -61,18 +61,18 @@ void main() {
         throwsFormatException,
       );
       final text = teachingPrompt(
-        'exam',
-        prompts: custom.update('exam', '请直接给答案。'),
+        "exam",
+        prompts: custom.update("exam", "请直接给答案。"),
         toolsEnabled: true,
       );
-      expect(text, contains('请直接给答案。'));
-      expect(text, contains('用户提交前不得'));
-      expect(text, contains('写入必须经过应用确认'));
+      expect(text, contains("请直接给答案。"));
+      expect(text, contains("用户提交前不得"));
+      expect(text, contains("写入必须经过应用确认"));
     },
   );
 
-  test('language prompts edit teaching preferences separately from request contracts', () {
-    final original = PromptSettings().withLanguage('en');
+  test("language prompts edit teaching preferences separately from request contracts", () {
+    final original = PromptSettings().withLanguage("en");
     final tasks = promptDefinitions.where(
       (p) => p.group == PromptGroup.language,
     );
@@ -82,12 +82,12 @@ void main() {
     );
     for (final task in LanguagePrompt.values) {
       final definition = tasks.singleWhere((p) => p.id == task.id);
-      final custom = original.update(task.id, 'Use a short dialogue.');
+      final custom = original.update(task.id, "Use a short dialogue.");
       final restored = PromptSettings.decode(custom.encode())
-          .withLanguage('en');
+          .withLanguage("en");
       final request = task.instructions(restored);
       expect(request, startsWith(definition.requestContract!));
-      expect(request, endsWith('Use a short dialogue.'));
+      expect(request, endsWith("Use a short dialogue."));
       expect(
         restored.update(task.id, original.text(task.id)).overrides,
         isEmpty,
@@ -95,8 +95,8 @@ void main() {
     }
   });
 
-  test('Saved prompts reach real request payloads; reasoning overrides persist, branch, and respect tools', () async {
-    final root = await Directory.systemTemp.createTemp('tixun-ai-preferences');
+  test("Saved prompts reach real request payloads; reasoning overrides persist, branch, and respect tools", () async {
+    final root = await Directory.systemTemp.createTemp("tixun-ai-preferences");
     final provider = PromptCaptureProvider(), keys = MemoryKeyStore();
     var c = await AppController.openRoot(
       root,
@@ -108,35 +108,33 @@ void main() {
       await c.shutdown();
       await root.delete(recursive: true);
     });
-    await keys.write(providerKeyId(c.config), 'fixture-key');
-    c.config = c.config.copyWith(thinking: true, effort: 'high');
+    await keys.write(providerKeyId(c.config), "fixture-key");
+    c.config = c.config.copyWith(thinking: true, effort: "high");
     await c.db.saveConfig(c.config);
-    await c.savePrompt('global', '请使用适合初学者的中文。');
-    await c.savePrompt('guided', '每次只问一个诊断问题。');
-    await c.savePrompt('quiz', '请给我出一道函数检测题。');
-    await c.savePrompt(LanguagePrompt.sentenceExplanation.id, '先解释句中的搭配。');
+    await c.savePrompt("global", "请使用适合初学者的中文。");
+    await c.savePrompt("guided", "每次只问一个诊断问题。");
+    await c.savePrompt("quiz", "请给我出一道函数检测题。");
+    await c.savePrompt(LanguagePrompt.sentenceExplanation.id, "先解释句中的搭配。");
     await c.newSession();
-    await c.setSessionReasoning('low');
-    await c.send('请解释函数');
-    expect(provider.configs.last.effort, 'low');
+    await c.setSessionReasoning("low");
+    await c.send("请解释函数");
+    expect(provider.configs.last.effort, "low");
     expect(provider.configs.last.thinking, true);
-    expect(provider.bodies.last.instructions, contains('每次只问一个诊断问题'));
+    expect(provider.bodies.last.instructions, contains("每次只问一个诊断问题"));
     final user = c.messages.first;
-    await c.editAndResend(user, '请解释另一个函数');
-    expect(c.sessionReasoning, 'low');
-    expect(provider.configs.last.effort, 'low');
-    await c.setSessionReasoning('off');
-    await c.send('继续讲解');
+    await c.editAndResend(user, "请解释另一个函数");
+    expect(c.sessionReasoning, "low");
+    expect(provider.configs.last.effort, "low");
+    await c.setSessionReasoning("off");
+    await c.send("继续讲解");
     expect(provider.configs.last.thinking, false);
     // This request includes structured quiz tools; they must not replace custom prompts.
     expect(provider.bodies.last.tools.isNotEmpty, true);
-    expect(provider.bodies.last.instructions, contains('适合初学者'));
-    expect(provider.bodies.last.instructions, contains('每次只问一个诊断问题'));
+    expect(provider.bodies.last.instructions, contains("适合初学者"));
+    expect(provider.bodies.last.instructions, contains("每次只问一个诊断问题"));
     await c.setTools(true);
-    // DeepSeek allows thinking with tools: enabling high reasoning while
-    // tools are on succeeds and persists, instead of throwing.
-    await c.setSessionReasoning('high');
-    expect(c.sessionReasoning, 'high');
+    await c.setSessionReasoning("high");
+    expect(c.sessionReasoning, "high");
     await c.shutdown();
     c = await AppController.openRoot(
       root,
@@ -144,30 +142,30 @@ void main() {
       keyStore: keys,
       chatProvider: provider,
     );
-    expect(c.sessionReasoning, 'high');
-    expect(c.prompts.text('guided'), '每次只问一个诊断问题。');
-    expect(c.prompts.text(LanguagePrompt.sentenceExplanation.id), '先解释句中的搭配。');
+    expect(c.sessionReasoning, "high");
+    expect(c.prompts.text("guided"), "每次只问一个诊断问题。");
+    expect(c.prompts.text(LanguagePrompt.sentenceExplanation.id), "先解释句中的搭配。");
     expect(c.config.thinking, true);
     await c.prepareQuickQuiz();
-    expect(c.selected!.draft, '请给我出一道函数检测题。');
-    expect(c.sessionReasoning, 'high');
+    expect(c.selected!.draft, "请给我出一道函数检测题。");
+    expect(c.sessionReasoning, "high");
     expect(c.config.thinking, true);
     c.config = c.config.copyWith(supportsThinking: false, thinking: false);
-    await expectLater(c.setSessionReasoning('max'), throwsA(isA<AiFailure>()));
+    await expectLater(c.setSessionReasoning("max"), throwsA(isA<AiFailure>()));
   });
 
   test(
-    'Damaged prompt preferences do not prevent opening learning data',
+    "Damaged prompt preferences do not prevent opening learning data",
     () async {
       final root = await Directory.systemTemp.createTemp(
-        'tixun-prompts-recovery',
+        "tixun-prompts-recovery",
       );
       var c = await AppController.openRoot(
         root,
         demo: false,
         keyStore: MemoryKeyStore(),
       );
-      await c.db.setPreference(PromptSettings.preference, 'broken-json');
+      await c.db.setPreference(PromptSettings.preference, "broken-json");
       await c.shutdown();
       c = await AppController.openRoot(
         root,
@@ -176,11 +174,11 @@ void main() {
       );
       expect(c.notice?.kind, AppNoticeKind.promptSettingsUnreadable);
       expect(c.prompts.overrides, isEmpty);
-      await c.savePrompt('global', '修复后的教学风格');
+      await c.savePrompt("global", "修复后的教学风格");
       expect(
         PromptSettings.decode(await c.db.preference(PromptSettings.preference))
-            .text('global'),
-        '修复后的教学风格',
+            .text("global"),
+        "修复后的教学风格",
       );
       await c.shutdown();
       await root.delete(recursive: true);

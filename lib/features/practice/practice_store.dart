@@ -1,22 +1,26 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:drift/drift.dart';
+import "package:drift/drift.dart";
 
-import '../../core/database/database_notifier.dart';
+import "../../core/database/database_notifier.dart";
 
-import 'package:uuid/uuid.dart';
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import '../../core/database/attachment_cleanup.dart';
-import '../../core/platform/attachment_store.dart';
-import '../../core/platform/attachment_selection.dart';
-import 'question_spec.dart';
-import 'practice_run.dart';
-import 'question_visual.dart';
-import '../visual/visual_store.dart';
-import '../../core/visual/model/visual_scene.dart';
+import "../../core/database/database.dart";
+import "../../core/database/attachment_cleanup.dart";
+import "../../core/platform/attachment_store.dart";
+import "../../core/platform/attachment_selection.dart";
+import "question_spec.dart";
+import "practice_run.dart";
+import "question_visual.dart";
+import "../visual/visual_store.dart";
+import "../../core/visual/model/visual_scene.dart";
+
+part "practice_question_creation.dart";
+
+part "practice_question_detail.dart";
 
 class QuestionDetail {
   const QuestionDetail(
@@ -77,13 +81,13 @@ class PracticeStore extends DatabaseNotifier {
               previous.spec.visualId != null
           ? QuestionSpec.fromJson({
               ...spec.toJson(),
-              'visual_id': previous.spec.visualId,
-              'visual_revision': previous.spec.visualRevision,
+              "visual_id": previous.spec.visualId,
+              "visual_revision": previous.spec.visualRevision,
               if (spec.solutionVisualId == null &&
                   spec.solutionScene == null &&
                   previous.spec.solutionVisualId != null) ...{
-                'solution_visual_id': previous.spec.solutionVisualId,
-                'solution_visual_revision':
+                "solution_visual_id": previous.spec.solutionVisualId,
+                "solution_visual_revision":
                     previous.spec.solutionVisualRevision,
               },
             })
@@ -95,8 +99,8 @@ class PracticeStore extends DatabaseNotifier {
           previous.spec.solutionVisualId != null) {
         inherited = QuestionSpec.fromJson({
           ...inherited.toJson(),
-          'solution_visual_id': previous.spec.solutionVisualId,
-          'solution_visual_revision': previous.spec.solutionVisualRevision,
+          "solution_visual_id": previous.spec.solutionVisualId,
+          "solution_visual_revision": previous.spec.solutionVisualRevision,
         });
       }
       return create(
@@ -109,8 +113,8 @@ class PracticeStore extends DatabaseNotifier {
   );
 
   Future<List<PracticeQuestion>> list({
-    String query = '',
-    String subject = '',
+    String query = "",
+    String subject = "",
     String? messageId,
     bool trash = false,
     int limit = 200,
@@ -144,8 +148,8 @@ class PracticeStore extends DatabaseNotifier {
 
   Future<String> create(
     QuestionSpec spec, {
-    String origin = 'manual',
-    String verification = 'user_checked',
+    String origin = "manual",
+    String verification = "user_checked",
     String? sessionId,
     String? messageId,
     String? operation,
@@ -153,488 +157,28 @@ class PracticeStore extends DatabaseNotifier {
     List<String> knowledgeIds = const [],
     String? parentId,
     List<Attachment> sourceImages = const [],
-  }) => runOperation(() async {
-    spec.validate();
-    if (!['manual', 'ai', 'template', 'mistake', 'recall'].contains(origin) ||
-        ![
-          'unverified',
-          'user_checked',
-          'template_checked',
-        ].contains(verification) ||
-        (origin == 'ai' && verification != 'unverified')) {
-      throw const AppFormatException(
-        AppErrorCode.errorInvalidQuestionSource,
-        '题目来源无效。',
-      );
-    }
-    final id = await db.transaction(() async {
-      if (operation != null) {
-        final old = await (db.select(
-          db.practiceQuestions,
-        )..where((q) => q.sourceOperation.equals(operation))).getSingleOrNull();
-        if (old != null) {
-          // Same operation replayed: return the old question only when the
-          // content matches. Changed content must never be silently dropped.
-          String canonical(Object? value) {
-            Object? sort(Object? v) {
-              if (v is Map) {
-                final keys = v.keys.cast<String>().toList()..sort();
-                return {for (final k in keys) k: sort(v[k])};
-              }
-              if (v is List) return v.map(sort).toList();
-              return v;
-            }
+  }) => _createQuestion(
+    spec,
+    origin: origin,
+    verification: verification,
+    sessionId: sessionId,
+    messageId: messageId,
+    operation: operation,
+    mistakeId: mistakeId,
+    knowledgeIds: knowledgeIds,
+    parentId: parentId,
+    sourceImages: sourceImages,
+  );
 
-            return jsonEncode(sort(value));
-          }
-
-          Map<String, dynamic> normalized(QuestionSpec s) {
-            final json = s.toJson();
-            json['topics'] = (List<String>.from(json['topics'] as List)
-              ..sort());
-            return json;
-          }
-
-          final oldOptions =
-              await (db.select(db.practiceOptions)
-                    ..where((o) => o.questionId.equals(old.id))
-                    ..orderBy([(o) => OrderingTerm.asc(o.position)]))
-                  .get();
-          final oldKeys =
-              await (db.select(db.practiceAnswerKeys)
-                    ..where((a) => a.questionId.equals(old.id))
-                    ..orderBy([(a) => OrderingTerm.asc(a.position)]))
-                  .get();
-          final oldAnswers = <List<String>>[];
-          for (final k in oldKeys) {
-            while (oldAnswers.length <= k.position) {
-              oldAnswers.add([]);
-            }
-            oldAnswers[k.position].add(k.answer);
-          }
-          final oldTopics = await db
-              .customSelect(
-                'SELECT t.name FROM learning_topics t JOIN practice_question_topics l ON t.id=l.topic_id WHERE l.question_id=?',
-                variables: [Variable(old.id)],
-              )
-              .get();
-          final oldVisual =
-              await (db.select(db.visualQuestionLinks)..where(
-                    (l) =>
-                        l.questionId.equals(old.id) & l.role.equals('question'),
-                  ))
-                  .getSingleOrNull();
-          final oldSolution =
-              await (db.select(db.visualQuestionLinks)..where(
-                    (l) =>
-                        l.questionId.equals(old.id) & l.role.equals('solution'),
-                  ))
-                  .getSingleOrNull();
-          final oldSpec = QuestionSpec(
-            kind: old.kind,
-            stem: old.stem,
-            subject: old.subject,
-            options: {for (final o in oldOptions) o.optionId: o.content},
-            answers: oldAnswers,
-            explanation: old.explanation,
-            hint: old.hint,
-            topics: oldTopics.map((t) => t.read<String>('name')).toList(),
-            absoluteTolerance: old.absoluteTolerance,
-            relativeTolerance: old.relativeTolerance,
-            caseSensitive: old.caseSensitive,
-            timeLimitSeconds: old.timeLimitSeconds,
-            visualId: oldVisual?.visualId,
-            visualRevision: oldVisual?.revision,
-            solutionVisualId: oldSolution?.visualId,
-            solutionVisualRevision: oldSolution?.revision,
-          );
-          final incoming = normalized(spec);
-          // An unspecified revision means "freeze at creation", not
-          // "resnapshot on replay". Explicit pins must still match.
-          if (spec.visualId != null && spec.visualRevision == null) {
-            incoming['visual_revision'] = oldVisual?.revision;
-          }
-          if (spec.solutionVisualId != null &&
-              spec.solutionVisualRevision == null) {
-            incoming['solution_visual_revision'] = oldSolution?.revision;
-          }
-          final previous = normalized(oldSpec);
-          for (final (sceneKey, idKey, revisionKey, link) in [
-            ('question_scene', 'visual_id', 'visual_revision', oldVisual),
-            (
-              'solution_scene',
-              'solution_visual_id',
-              'solution_visual_revision',
-              oldSolution,
-            ),
-          ]) {
-            if (!incoming.containsKey(sceneKey) || link == null) continue;
-            final json = await _visual.getRevisionSceneJson(
-              link.visualId,
-              link.revision,
-            );
-            previous.remove(idKey);
-            previous.remove(revisionKey);
-            previous[sceneKey] = json == null ? null : jsonDecode(json);
-          }
-          if (canonical(previous) != canonical(incoming)) {
-            throw const AppFormatException(
-              AppErrorCode.errorThisOperationAlreadyCreatedAQuestion,
-              '该操作已创建过题目，内容与之前不一致，未覆盖旧题。',
-            );
-          }
-          if (old.deleted) {
-            await (db.update(db.practiceQuestions)
-                  ..where((q) => q.id.equals(old.id)))
-                .write(const PracticeQuestionsCompanion(deleted: Value(false)));
-          }
-          return old.id;
-        }
-      }
-      if (spec.questionScene != null || spec.solutionScene != null) {
-        final resolved = spec.toJson();
-        for (final (sceneKey, idKey, revisionKey) in [
-          ('question_scene', 'visual_id', 'visual_revision'),
-          ('solution_scene', 'solution_visual_id', 'solution_visual_revision'),
-        ]) {
-          final json = resolved.remove(sceneKey) as Map<String, dynamic>?;
-          if (json == null) continue;
-          final scene = VisualScene.fromJson(json);
-          if (sceneKey == 'question_scene') validateAssessmentScene(scene);
-          final visualId = await _visual.create(
-            sceneJson: jsonEncode(json),
-            source: 'assessment',
-          );
-          resolved[idKey] = visualId;
-          resolved[revisionKey] = 1;
-        }
-        spec = QuestionSpec.fromJson(resolved);
-      }
-      final id = const Uuid().v4();
-      await db
-          .into(db.practiceQuestions)
-          .insert(
-            PracticeQuestionsCompanion.insert(
-              id: id,
-              kind: spec.kind,
-              stem: spec.stem,
-              subject: spec.subject,
-              origin: origin,
-              explanation: Value(spec.explanation),
-              hint: Value(spec.hint),
-              verification: Value(verification),
-              absoluteTolerance: Value(spec.absoluteTolerance),
-              relativeTolerance: Value(spec.relativeTolerance),
-              caseSensitive: Value(spec.caseSensitive),
-              timeLimitSeconds: Value(spec.timeLimitSeconds),
-              sourceSessionId: Value(sessionId),
-              sourceMessageId: Value(messageId),
-              sourceOperation: Value(operation),
-              mistakeId: Value(mistakeId),
-              parentQuestionId: Value(parentId),
-              createdAt: DateTime.now(),
-            ),
-          );
-      if (messageId != null) {
-        await db
-            .into(db.practiceChatLinks)
-            .insert(
-              PracticeChatLinksCompanion.insert(
-                questionId: id,
-                messageId: messageId,
-              ),
-            );
-      }
-      var position = 0;
-      for (final e in spec.options.entries) {
-        await db
-            .into(db.practiceOptions)
-            .insert(
-              PracticeOptionsCompanion.insert(
-                questionId: id,
-                optionId: e.key,
-                content: e.value,
-                position: position++,
-              ),
-            );
-      }
-      for (var i = 0; i < spec.answers.length; i++) {
-        for (final a in spec.answers[i]) {
-          await db
-              .into(db.practiceAnswerKeys)
-              .insert(
-                PracticeAnswerKeysCompanion.insert(
-                  questionId: id,
-                  position: i,
-                  answer: a,
-                ),
-              );
-        }
-      }
-      for (final name in spec.topics) {
-        var topic =
-            await (db.select(db.learningTopics)..where(
-                  (t) => t.name.equals(name) & t.subject.equals(spec.subject),
-                ))
-                .getSingleOrNull();
-        if (topic == null) {
-          final tid = const Uuid().v4();
-          await db
-              .into(db.learningTopics)
-              .insert(
-                LearningTopicsCompanion.insert(
-                  id: tid,
-                  name: name,
-                  subject: spec.subject,
-                ),
-              );
-          topic = await (db.select(
-            db.learningTopics,
-          )..where((t) => t.id.equals(tid))).getSingle();
-        }
-        await db
-            .into(db.practiceQuestionTopics)
-            .insert(
-              PracticeQuestionTopicsCompanion.insert(
-                questionId: id,
-                topicId: topic.id,
-              ),
-            );
-      }
-      for (final kid in knowledgeIds.toSet()) {
-        await db
-            .into(db.practiceQuestionKnowledge)
-            .insert(
-              PracticeQuestionKnowledgeCompanion.insert(
-                questionId: id,
-                knowledgeId: kid,
-              ),
-            );
-      }
-      final imageRefs = <({String path, String mime, int bytes})>[];
-      if (origin == 'ai') {
-        imageRefs.addAll(
-          sourceImages.map(
-            (a) => (path: a.relativePath, mime: a.mime, bytes: a.byteLength),
-          ),
-        );
-      } else if (parentId != null) {
-        final images = await (db.select(
-          db.practiceImages,
-        )..where((a) => a.questionId.equals(parentId))).get();
-        imageRefs.addAll(
-          images.map(
-            (a) => (path: a.relativePath, mime: a.mime, bytes: a.byteLength),
-          ),
-        );
-      } else if (mistakeId != null) {
-        final images =
-            await (db.select(db.studyAttachments)
-                  ..where((a) => a.mistakeId.equals(mistakeId))
-                  ..orderBy([(a) => OrderingTerm.asc(a.rowId)]))
-                .get();
-        imageRefs.addAll(
-          preferredStudyImages(images).map(
-            (a) => (path: a.relativePath, mime: a.mime, bytes: a.byteLength),
-          ),
-        );
-      }
-      for (final a in imageRefs) {
-        await db
-            .into(db.practiceImages)
-            .insert(
-              PracticeImagesCompanion.insert(
-                id: const Uuid().v4(),
-                questionId: id,
-                relativePath: a.path,
-                mime: a.mime,
-                byteLength: a.bytes,
-              ),
-            );
-      }
-      if (spec.visualId != null) {
-        final visualId = spec.visualId!;
-        final current = await _visual.get(visualId);
-        if (current == null) {
-          throw const AppFormatException(
-            AppErrorCode.errorVisualSceneDoesNotExist,
-            '图形不存在。',
-          );
-        }
-        final json = spec.visualRevision == null
-            ? current.sceneJson
-            : await _visual.getRevisionSceneJson(
-                visualId,
-                spec.visualRevision!,
-              );
-        if (json == null) {
-          throw const AppFormatException(
-            AppErrorCode.errorVisualSceneRevisionDoesNotExist,
-            '图形修订不存在。',
-          );
-        }
-        validateQuestionVisual(
-          spec,
-          VisualScene.fromJson(
-            (jsonDecode(json) as Map).cast<String, dynamic>(),
-          ),
-        );
-        final revision =
-            spec.visualRevision ??
-            (await _visual.snapshotForQuestion(visualId)).revision;
-        await _visual.linkToQuestion(visualId, id, revision);
-      }
-      if (spec.solutionVisualId != null) {
-        final visualId = spec.solutionVisualId!;
-        final revision =
-            spec.solutionVisualRevision ??
-            (await _visual.snapshotForQuestion(visualId)).revision;
-        final json = await _visual.getRevisionSceneJson(visualId, revision);
-        if (json == null) {
-          throw const AppFormatException(
-            AppErrorCode.errorVisualSceneRevisionDoesNotExist,
-            '图形修订不存在。',
-          );
-        }
-        VisualScene.fromJson((jsonDecode(json) as Map).cast<String, dynamic>());
-        if (visualId == spec.visualId) {
-          throw const AppFormatException(
-            AppErrorCode.errorInvalidParameterType,
-            '题面图与解析图必须独立保存。',
-          );
-        }
-        await _visual.linkToQuestion(visualId, id, revision, role: 'solution');
-      }
-      return id;
-    });
-    changed();
-    return id;
-  });
-
-  Future<QuestionDetail> detail(String id, {String? attemptId}) async {
-    final q = await (db.select(
-      db.practiceQuestions,
-    )..where((q) => q.id.equals(id) & q.deleted.equals(false))).getSingle();
-    final options =
-        await (db.select(db.practiceOptions)
-              ..where((o) => o.questionId.equals(id))
-              ..orderBy([(o) => OrderingTerm.asc(o.position)]))
-            .get();
-    final keys =
-        await (db.select(db.practiceAnswerKeys)
-              ..where((a) => a.questionId.equals(id))
-              ..orderBy([(a) => OrderingTerm.asc(a.position)]))
-            .get();
-    final answers = <List<String>>[];
-    for (final k in keys) {
-      while (answers.length <= k.position) {
-        answers.add([]);
-      }
-      answers[k.position].add(k.answer);
-    }
-    final topics = await db
-        .customSelect(
-          'SELECT t.name FROM learning_topics t JOIN practice_question_topics l ON t.id=l.topic_id WHERE l.question_id=?',
-          variables: [Variable(id)],
-        )
-        .get();
-    // The visual reference lives in the link table, not on the question
-    // row: load it before building the spec, so visual-answer kinds
-    // (which require a visual) validate on read-back.
-    final visualJoin = db.select(db.visualScenes).join([
-      innerJoin(
-        db.visualQuestionLinks,
-        db.visualQuestionLinks.visualId.equalsExp(db.visualScenes.id),
-      ),
-    ]);
-    visualJoin.where(db.visualQuestionLinks.questionId.equals(id));
-    visualJoin.orderBy([OrderingTerm.asc(db.visualScenes.createdAt)]);
-    final allVisualRows = await visualJoin.get();
-    final solutionVisualLinks = [
-      for (final r in allVisualRows)
-        if (r.readTable(db.visualQuestionLinks).role == 'solution')
-          (
-            visualId: r.readTable(db.visualQuestionLinks).visualId,
-            revision: r.readTable(db.visualQuestionLinks).revision,
-          ),
-    ];
-    final visualLinks = allVisualRows
-        .where((r) => r.readTable(db.visualQuestionLinks).role == 'question')
-        .map(
-          (r) => (
-            visualId: r.readTable(db.visualQuestionLinks).visualId,
-            revision: r.readTable(db.visualQuestionLinks).revision,
-          ),
-        )
-        .toList();
-    final spec = QuestionSpec(
-      kind: q.kind,
-      stem: q.stem,
-      subject: q.subject,
-      options: {for (final o in options) o.optionId: o.content},
-      answers: answers,
-      explanation: q.explanation,
-      hint: q.hint,
-      topics: topics.map((t) => t.read<String>('name')).toList(),
-      absoluteTolerance: q.absoluteTolerance,
-      relativeTolerance: q.relativeTolerance,
-      caseSensitive: q.caseSensitive,
-      timeLimitSeconds: q.timeLimitSeconds,
-      visualId: visualLinks.isNotEmpty ? visualLinks.first.visualId : null,
-      visualRevision: visualLinks.isNotEmpty
-          ? visualLinks.first.revision
-          : null,
-      solutionVisualId: solutionVisualLinks.firstOrNull?.visualId,
-      solutionVisualRevision: solutionVisualLinks.firstOrNull?.revision,
-    );
-    spec.validate();
-    final storedAttempts =
-        await (db.select(db.practiceAttempts)
-              ..where((a) => a.questionId.equals(id))
-              ..orderBy([(a) => OrderingTerm.desc(a.rowId)])
-              ..limit(50))
-            .get();
-    final attempts = List<PracticeAttempt>.of(storedAttempts);
-    if (attemptId != null) {
-      final focused =
-          await (db.select(
-                db.practiceAttempts,
-              )..where((a) => a.id.equals(attemptId) & a.questionId.equals(id)))
-              .getSingle();
-      attempts.removeWhere((a) => a.id == attemptId);
-      attempts.insert(0, focused);
-      if (attempts.length > 50) attempts.removeLast();
-    }
-    final responses = <String, List<String>>{};
-    if (attempts.isNotEmpty) {
-      final rows =
-          await (db.select(db.practiceResponses)
-                ..where((r) => r.attemptId.isIn(attempts.map((a) => a.id)))
-                ..orderBy([(r) => OrderingTerm.asc(r.position)]))
-              .get();
-      for (final r in rows) {
-        responses.putIfAbsent(r.attemptId, () => []).add(r.answer);
-      }
-    }
-    return QuestionDetail(
-      q,
-      spec,
-      attempts,
-      responses,
-      await (db.select(
-        db.practiceImages,
-      )..where((a) => a.questionId.equals(id))).get(),
-      visualLinks,
-      solutionVisualLinks,
-    );
-  }
+  Future<QuestionDetail> detail(String id, {String? attemptId}) =>
+      _questionDetail(id, attemptId: attemptId);
 
   Future<PracticeAttempt> begin(String id, {bool retry = false}) =>
       runOperation(() async {
         final attempt = await db.transaction(() async {
           final detail = await this.detail(id);
           if (detail.latest != null &&
-              (!retry || detail.latest!.status != 'graded')) {
+              (!retry || detail.latest!.status != "graded")) {
             return detail.latest!;
           }
           final aid = const Uuid().v4();
@@ -672,7 +216,7 @@ class PracticeStore extends DatabaseNotifier {
   Future<void> _writeDraft(String id, List<String> answers) async {
     await db.transaction(() async {
       final a = await _attempt(id);
-      if (a.status != 'draft') return;
+      if (a.status != "draft") return;
       _checkResponses(answers);
       await (db.delete(
         db.practiceResponses,
@@ -695,18 +239,18 @@ class PracticeStore extends DatabaseNotifier {
     if (a.length > 12 || a.any((v) => v.length > 12000)) {
       throw const AppFormatException(
         AppErrorCode.errorTheAnswerIsTooLong,
-        '作答内容过长。',
+        "作答内容过长。",
       );
     }
   }
 
   Future<void> useHint(String id) => runOperation(() async {
     await (db.update(db.practiceAttempts)
-          ..where((a) => a.id.equals(id) & a.status.equals('draft')))
+          ..where((a) => a.id.equals(id) & a.status.equals("draft")))
         .write(const PracticeAttemptsCompanion(hintUsed: Value(true)));
     final a = await _attempt(id);
-    if (a.status == 'draft') {
-      await _stage(a.questionId, 'hinting');
+    if (a.status == "draft") {
+      await _stage(a.questionId, "hinting");
     }
     changed();
   });
@@ -720,49 +264,49 @@ class PracticeStore extends DatabaseNotifier {
     var gradedNow = false;
     final result = await db.transaction(() async {
       final a = await _attempt(id);
-      if (a.status != 'draft') return a;
+      if (a.status != "draft") return a;
       _checkResponses(answers);
       final d = await detail(a.questionId);
       if (answers.isEmpty || answers.any((v) => v.trim().isEmpty)) {
         throw const AppFormatException(
           AppErrorCode.errorCompleteYourAnswerFirst,
-          '请先完成作答。',
+          "请先完成作答。",
         );
       }
-      if (d.spec.kind == 'fill_blank' &&
+      if (d.spec.kind == "fill_blank" &&
           answers.length != d.spec.answers.length) {
         throw const AppFormatException(
           AppErrorCode.errorFillInAllBlanks,
-          '请填写所有空。',
+          "请填写所有空。",
         );
       }
       if ([
-            'single_choice',
-            'multiple_choice',
-            'true_false',
+            "single_choice",
+            "multiple_choice",
+            "true_false",
           ].contains(d.spec.kind) &&
           answers.any((v) => !d.spec.options.containsKey(v))) {
         throw const AppFormatException(
           AppErrorCode.errorInvalidOption,
-          '选项无效。',
+          "选项无效。",
         );
       }
-      if ((d.spec.kind == 'numeric' || d.spec.kind == 'read_value') &&
+      if ((d.spec.kind == "numeric" || d.spec.kind == "read_value") &&
           (answers.length != 1 || parseNumber(answers.single) == null)) {
         throw const AppFormatException(
           AppErrorCode.errorEnterAFiniteNumberDecimalOr,
-          '请输入有限数值，支持小数或分数。',
+          "请输入有限数值，支持小数或分数。",
         );
       }
       await _writeDraft(id, answers);
-      final self = d.spec.kind == 'short_answer';
+      final self = d.spec.kind == "short_answer";
       final correct = self ? null : d.spec.grade(answers);
       final time = now ?? DateTime.now();
       await (db.update(
         db.practiceAttempts,
       )..where((t) => t.id.equals(id))).write(
         PracticeAttemptsCompanion(
-          status: Value(self ? 'awaiting_self_grade' : 'graded'),
+          status: Value(self ? "awaiting_self_grade" : "graded"),
           correct: Value(correct),
           score: Value(
             correct == null
@@ -773,10 +317,10 @@ class PracticeStore extends DatabaseNotifier {
           ),
           gradingBasis: Value(
             self
-                ? 'self'
-                : d.row.verification == 'unverified'
-                ? 'ai_reference'
-                : 'deterministic',
+                ? "self"
+                : d.row.verification == "unverified"
+                ? "ai_reference"
+                : "deterministic",
           ),
           submittedAt: Value(time),
           elapsedMilliseconds: Value(
@@ -786,7 +330,7 @@ class PracticeStore extends DatabaseNotifier {
       );
       final saved = await _attempt(id);
       gradedNow = !self;
-      await _stage(d.row.id, self ? 'practice' : 'feedback');
+      await _stage(d.row.id, self ? "practice" : "feedback");
       return saved;
     });
     changed();
@@ -799,19 +343,19 @@ class PracticeStore extends DatabaseNotifier {
         var gradedNow = false;
         final result = await db.transaction(() async {
           final a = await _attempt(id);
-          if (a.status != 'awaiting_self_grade') return a;
+          if (a.status != "awaiting_self_grade") return a;
           await (db.update(
             db.practiceAttempts,
           )..where((t) => t.id.equals(id))).write(
             PracticeAttemptsCompanion(
-              status: const Value('graded'),
+              status: const Value("graded"),
               correct: Value(correct),
               score: Value(correct ? 1 : 0),
             ),
           );
           final saved = await _attempt(id);
           gradedNow = true;
-          await _stage(a.questionId, 'feedback');
+          await _stage(a.questionId, "feedback");
           return saved;
         });
         changed();
@@ -831,7 +375,7 @@ class PracticeStore extends DatabaseNotifier {
     } catch (_) {
       throw const AppFormatException(
         AppErrorCode.reviewSchedulingFailedButYour,
-        '复习安排失败，可稍后重试。',
+        "复习安排失败，可稍后重试。",
       );
     }
   }
@@ -839,13 +383,13 @@ class PracticeStore extends DatabaseNotifier {
   Future<void> _stage(String question, String stage) async {
     final sessions = await db
         .customSelect(
-          'SELECT DISTINCT m.session_id FROM practice_chat_links l JOIN chat_messages m ON m.id=l.message_id WHERE l.question_id=?',
+          "SELECT DISTINCT m.session_id FROM practice_chat_links l JOIN chat_messages m ON m.id=l.message_id WHERE l.question_id=?",
           variables: [Variable(question)],
         )
         .get();
     for (final row in sessions) {
       await (db.update(db.chatSessions)
-            ..where((s) => s.id.equals(row.read<String>('session_id'))))
+            ..where((s) => s.id.equals(row.read<String>("session_id"))))
           .write(ChatSessionsCompanion(stage: Value(stage)));
     }
   }
@@ -853,7 +397,7 @@ class PracticeStore extends DatabaseNotifier {
   Future<void> linkFork(String sourceMessage, String targetMessage) async {
     final questions = await db
         .customSelect(
-          'SELECT question_id FROM practice_chat_links WHERE message_id=? UNION SELECT id FROM practice_questions WHERE source_message_id=?',
+          "SELECT question_id FROM practice_chat_links WHERE message_id=? UNION SELECT id FROM practice_questions WHERE source_message_id=?",
           variables: [Variable(sourceMessage), Variable(sourceMessage)],
         )
         .get();
@@ -862,7 +406,7 @@ class PracticeStore extends DatabaseNotifier {
           .into(db.practiceChatLinks)
           .insert(
             PracticeChatLinksCompanion.insert(
-              questionId: row.read<String>('question_id'),
+              questionId: row.read<String>("question_id"),
               messageId: targetMessage,
             ),
             mode: InsertMode.insertOrIgnore,
@@ -878,7 +422,7 @@ class PracticeStore extends DatabaseNotifier {
           .get();
 
   Future<PracticeRun?> loadRun() async {
-    final raw = await db.preference('practice_run');
+    final raw = await db.preference("practice_run");
     if (raw == null || raw.isEmpty) return null;
     try {
       final run = PracticeRun.fromJson(
@@ -890,7 +434,7 @@ class PracticeStore extends DatabaseNotifier {
       if (questions.length != run.ids.length) {
         throw const AppFormatException(
           AppErrorCode.errorAQuestionInThisQuizWas,
-          '小测中的题目已删除，请结束本轮后重新选择。已有记录保留。',
+          "小测中的题目已删除，请结束本轮后重新选择。已有记录保留。",
         );
       }
       final known = run.attempts.whereType<String>().toList();
@@ -903,16 +447,16 @@ class PracticeStore extends DatabaseNotifier {
           final a = byId[run.attempts[i]];
           if (a == null ||
               a.questionId != run.ids[i] ||
-              (i < run.index && a.status != 'graded')) {
+              (i < run.index && a.status != "graded")) {
             throw const AppFormatException(
               AppErrorCode.errorTheQuizAnswerStateIsInconsistent,
-              '小测作答状态不一致，请结束本轮；已有记录保留。',
+              "小测作答状态不一致，请结束本轮；已有记录保留。",
             );
           }
         } else if (run.attempts[i] != null) {
           throw const AppFormatException(
             AppErrorCode.errorTheQuizProgressIsInconsistentEnd,
-            '小测进度不一致，请结束本轮；已有记录保留。',
+            "小测进度不一致，请结束本轮；已有记录保留。",
           );
         }
       }
@@ -922,13 +466,13 @@ class PracticeStore extends DatabaseNotifier {
     } catch (_) {
       throw const AppFormatException(
         AppErrorCode.errorTheQuizStateCouldNotBe,
-        '小测状态无法恢复，请结束本轮后重新开始；已有作答仍保留。',
+        "小测状态无法恢复，请结束本轮后重新开始；已有作答仍保留。",
       );
     }
   }
 
   Future<PracticeRun> startRandomRun({
-    String subject = '',
+    String subject = "",
   }) => runOperation(() async {
     final rows = await db
         .customSelect(
@@ -939,10 +483,10 @@ class PracticeStore extends DatabaseNotifier {
     if (rows.isEmpty) {
       throw const AppFormatException(
         AppErrorCode.errorThereAreNoQuestionsYetEnter,
-        '还没有已有题目。请先手动录题、使用离线基础题，或让 AI 生成练习。',
+        "还没有已有题目。请先手动录题、使用离线基础题，或让 AI 生成练习。",
       );
     }
-    final ids = rows.map((r) => r.read<String>('id')).toList();
+    final ids = rows.map((r) => r.read<String>("id")).toList();
     final run = await db.transaction(() async {
       final previous = await loadRun();
       if (previous != null && !previous.completed) return previous;
@@ -952,7 +496,7 @@ class PracticeStore extends DatabaseNotifier {
         List<String?>.filled(ids.length, null)..[0] = attempt.id,
         0,
       );
-      await db.setPreference('practice_run', jsonEncode(run.toJson()));
+      await db.setPreference("practice_run", jsonEncode(run.toJson()));
       return run;
     });
     changed();
@@ -965,16 +509,16 @@ class PracticeStore extends DatabaseNotifier {
         if (run == null) {
           throw const AppFormatException(
             AppErrorCode.errorThisQuizRoundDoesNotExist,
-            '本轮小测不存在。',
+            "本轮小测不存在。",
           );
         }
         if (run.completed) return run;
         final a = run.attempts[run.index];
         if (expectedAttemptId != null && a != expectedAttemptId) return run;
-        if (a == null || (await _attempt(a)).status != 'graded') {
+        if (a == null || (await _attempt(a)).status != "graded") {
           throw const AppFormatException(
             AppErrorCode.errorSubmitAndGradeTheAnswerFirst,
-            '请先提交答案并完成评分。',
+            "请先提交答案并完成评分。",
           );
         }
         final index = run.index + 1, attempts = List<String?>.of(run.attempts);
@@ -982,7 +526,7 @@ class PracticeStore extends DatabaseNotifier {
           attempts[index] = (await begin(run.ids[index], retry: true)).id;
         }
         final next = PracticeRun(run.ids, attempts, index);
-        await db.setPreference('practice_run', jsonEncode(next.toJson()));
+        await db.setPreference("practice_run", jsonEncode(next.toJson()));
         return next;
       });
       changed();
@@ -990,7 +534,7 @@ class PracticeStore extends DatabaseNotifier {
     },
   );
   Future<void> clearRun() => runOperation(() async {
-    await db.setPreference('practice_run', '');
+    await db.setPreference("practice_run", "");
     changed();
   });
 
@@ -1019,7 +563,7 @@ class PracticeStore extends DatabaseNotifier {
     await (db.update(
       db.practiceQuestions,
     )..where((q) => q.id.equals(id))).write(
-      const PracticeQuestionsCompanion(verification: Value('user_checked')),
+      const PracticeQuestionsCompanion(verification: Value("user_checked")),
     );
     changed();
   });

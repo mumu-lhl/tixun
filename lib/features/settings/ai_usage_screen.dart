@@ -1,19 +1,19 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:url_launcher/url_launcher.dart";
 
-import '../../app/controller.dart';
-import '../../core/ai/ai_usage_store.dart';
-import '../../core/ai/ai_usage_summary.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/platform/usage_file_picker.dart';
-import '../../core/ui/usage_token_breakdown.dart';
-import '../../core/ui/app_menu.dart';
+import "../../app/controller.dart";
+import "../../core/ai/ai_usage_store.dart";
+import "../../core/ai/ai_usage_summary.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/platform/usage_file_picker.dart";
+import "../../core/ui/usage_token_breakdown.dart";
+import "../../core/ui/app_menu.dart";
 
-part 'ai_usage_charts.dart';
-part 'ai_usage_prices.dart';
-part 'ai_usage_requests.dart';
+part "ai_usage_charts.dart";
+part "ai_usage_prices.dart";
+part "ai_usage_requests.dart";
 
 class AiUsageScreen extends ConsumerStatefulWidget {
   const AiUsageScreen({super.key});
@@ -22,7 +22,7 @@ class AiUsageScreen extends ConsumerStatefulWidget {
 }
 
 class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
-  String range = '30d';
+  String range = "30d";
   AiUsageScope scope = AiUsageScope.all;
   bool exporting = false;
   DateTime? customFrom;
@@ -37,14 +37,14 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     return switch (range) {
-      '7d' => today.subtract(const Duration(days: 6)),
-      '30d' => today.subtract(const Duration(days: 29)),
-      'custom' => customFrom,
+      "7d" => today.subtract(const Duration(days: 6)),
+      "30d" => today.subtract(const Duration(days: 29)),
+      "custom" => customFrom,
       _ => null,
     };
   }
 
-  DateTime? get _through => range == 'custom' && customThrough != null
+  DateTime? get _through => range == "custom" && customThrough != null
       ? DateTime(
           customThrough!.year,
           customThrough!.month,
@@ -78,7 +78,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     setState(() {
       customFrom = start;
       customThrough = end;
-      range = 'custom';
+      range = "custom";
       events = _queryEvents();
     });
   }
@@ -116,7 +116,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
         through: _through,
         scope: scope,
       );
-      final contents = extension == 'csv'
+      final contents = extension == "csv"
           ? store.toCsv(rows)
           : store.toJsonLines(rows);
       final saved = await UsageFilePicker.save(contents, extension: extension);
@@ -143,7 +143,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
         title: Text(context.l10n.aiUsage),
         actions: [
           IconButton(
-            key: const Key('refresh-ai-usage'),
+            key: const Key("refresh-ai-usage"),
             tooltip: context.l10n.usageRefresh,
             onPressed: _reloadAll,
             icon: const Icon(Icons.refresh),
@@ -153,9 +153,9 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
             tooltip: context.l10n.usageExport,
             onSelected: _export,
             itemBuilder: (context) => [
-              PopupMenuItem(value: 'csv', child: Text(context.l10n.exportCsv)),
+              PopupMenuItem(value: "csv", child: Text(context.l10n.exportCsv)),
               PopupMenuItem(
-                value: 'jsonl',
+                value: "jsonl",
                 child: Text(context.l10n.exportJsonl),
               ),
             ],
@@ -180,7 +180,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
               final rows = snapshot.data ?? const <AiUsageEvent>[];
               final summary = AiUsageSummary.fromRows(
                 rows,
-                trendDays: range == '7d' ? 7 : 30,
+                trendDays: range == "7d" ? 7 : 30,
               );
               return ListView(
                 padding: const EdgeInsets.all(20),
@@ -188,7 +188,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                   Text(context.l10n.aiUsageHelp),
                   const SizedBox(height: 12),
                   AppSelectField<AiUsageScope>(
-                    key: const Key('ai-usage-scope'),
+                    key: const Key("ai-usage-scope"),
                     initialValue: scope,
                     decoration: InputDecoration(
                       labelText: context.l10n.usageScope,
@@ -219,31 +219,31 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                   SegmentedButton<String>(
                     segments: [
                       ButtonSegment(
-                        value: '7d',
+                        value: "7d",
                         label: Text(context.l10n.last7Days),
                       ),
                       ButtonSegment(
-                        value: '30d',
+                        value: "30d",
                         label: Text(context.l10n.last30Days),
                       ),
                       ButtonSegment(
-                        value: 'all',
+                        value: "all",
                         label: Text(context.l10n.allTime),
                       ),
                     ],
                     emptySelectionAllowed: true,
-                    selected: range == 'custom' ? {} : {range},
+                    selected: range == "custom" ? {} : {range},
                     onSelectionChanged: (value) {
                       if (value.isNotEmpty) _setRange(value.first);
                     },
                   ),
                   TextButton.icon(
-                    key: const Key('ai-usage-custom-range'),
+                    key: const Key("ai-usage-custom-range"),
                     onPressed: _pickRange,
                     icon: const Icon(Icons.date_range),
                     label: Text(
-                      range == 'custom'
-                          ? '${_dateOnly(customFrom!)} – ${_dateOnly(customThrough!)}'
+                      range == "custom"
+                          ? "${_dateOnly(customFrom!)} – ${_dateOnly(customThrough!)}"
                           : context.l10n.usageCustomRange,
                     ),
                   ),
@@ -273,8 +273,8 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            '${context.l10n.imageInputs}: ${usageInteger(summary.imageInputs)}'
-                            ' · ${context.l10n.toolCalls}: ${usageInteger(summary.toolCalls)}',
+                            "${context.l10n.imageInputs}: ${usageInteger(summary.imageInputs)}"
+                            " · ${context.l10n.toolCalls}: ${usageInteger(summary.toolCalls)}",
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(context)
@@ -293,7 +293,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
                         const SizedBox(height: 20),
                         _UsageTrend(
                           days: summary.days,
-                          caption: range == 'all' || range == 'custom'
+                          caption: range == "all" || range == "custom"
                               ? context.l10n.last30Days
                               : null,
                         ),
@@ -345,23 +345,23 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
       _StatData(
         l10n.cacheHitRate,
         summary.cacheHitRate == null
-            ? '—'
-            : '${summary.cacheHitRate!.toStringAsFixed(1)}%',
+            ? "—"
+            : "${summary.cacheHitRate!.toStringAsFixed(1)}%",
         summary.cacheHitRate == null
             ? null
-            : '${l10n.cachedInputTokens}: ${usageTokenCount(summary.cachedInput.value)}',
+            : "${l10n.cachedInputTokens}: ${usageTokenCount(summary.cachedInput.value)}",
       ),
       _StatData(
         l10n.averageLatency,
         summary.averageLatencyMs == null
-            ? '—'
+            ? "—"
             : _duration(summary.averageLatencyMs!),
         null,
       ),
       _StatData(l10n.requestErrors, usageInteger(summary.errors), null),
       _StatData(
         l10n.estimatedCost,
-        summary.estimatedRows == 0 ? '—' : _usd(summary.estimatedCostNanoUsd),
+        summary.estimatedRows == 0 ? "—" : _usd(summary.estimatedCostNanoUsd),
         summary.priceableRows == 0
             ? null
             : l10n.usageCostCoverage(
@@ -371,7 +371,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
       ),
     ];
     return LayoutBuilder(
-      key: const Key('ai-usage-summary'),
+      key: const Key("ai-usage-summary"),
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 780
             ? 4
@@ -457,16 +457,16 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
             ),
             subtitle: Text(
               [
-                '${context.l10n.requestCount}: ${usageInteger(slice.requests)}',
-                '${context.l10n.tokenTotal}: ${_sumText(slice.tokens)}',
+                "${context.l10n.requestCount}: ${usageInteger(slice.requests)}",
+                "${context.l10n.tokenTotal}: ${_sumText(slice.tokens)}",
                 if (!localize && slice.detail != null) slice.detail!,
-              ].join(' · '),
+              ].join(" · "),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: subtitleStyle,
             ),
             trailing: Text(
-              slice.hasEstimate ? _usd(slice.estimatedCostNanoUsd) : '—',
+              slice.hasEstimate ? _usd(slice.estimatedCostNanoUsd) : "—",
               style: theme.textTheme.bodyMedium,
             ),
           ),
@@ -478,7 +478,7 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     if (summary.recent.isEmpty) return const SizedBox.shrink();
     final l10n = context.l10n;
     return ExpansionTile(
-      key: const Key('ai-usage-request-details'),
+      key: const Key("ai-usage-request-details"),
       tilePadding: EdgeInsets.zero,
       childrenPadding: const EdgeInsets.only(bottom: 8),
       title: Text(

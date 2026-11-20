@@ -1,14 +1,14 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import '../../app/controller.dart';
-import '../../core/backup/backup_actions.dart';
-import '../../core/backup/backup_service.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/platform/backup_file_picker.dart';
-import '../../core/ui/actions.dart';
+import "../../app/controller.dart";
+import "../../core/backup/backup_actions.dart";
+import "../../core/backup/backup_service.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/platform/backup_file_picker.dart";
+import "../../core/ui/actions.dart";
 
 class BackupPanel extends ConsumerStatefulWidget {
   const BackupPanel({super.key});
@@ -75,10 +75,10 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
               const SizedBox(height: 12),
               Text(
                 context.l10n.includesConversationsKnowledgeNotesMistakes(
-                  l10nArgument((info.counts['chats'] ?? 0)),
-                  l10nArgument((info.counts['knowledge'] ?? 0)),
-                  l10nArgument((info.counts['mistakes'] ?? 0)),
-                  l10nArgument((info.counts['attempts'] ?? 0)),
+                  l10nArgument((info.counts["chats"] ?? 0)),
+                  l10nArgument((info.counts["knowledge"] ?? 0)),
+                  l10nArgument((info.counts["mistakes"] ?? 0)),
+                  l10nArgument((info.counts["attempts"] ?? 0)),
                   l10nArgument((info.files)),
                 ),
               ),
@@ -92,7 +92,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
               child: Text(context.l10n.cancel),
             ),
             FilledButton(
-              key: const Key('confirm-restore'),
+              key: const Key("confirm-restore"),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(context.l10n.restoreData),
             ),
@@ -131,7 +131,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
           runSpacing: 8,
           children: [
             OutlinedButton.icon(
-              key: const Key('export-backup'),
+              key: const Key("export-backup"),
               onPressed: actions == null || _busy
                   ? null
                   : () => _run(() => act(context, actions.export)),
@@ -139,7 +139,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
               label: Text(context.l10n.exportCompleteBackup),
             ),
             OutlinedButton.icon(
-              key: const Key('import-backup'),
+              key: const Key("import-backup"),
               onPressed: actions == null || _busy
                   ? null
                   : () => _run(
@@ -172,7 +172,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
               : Wrap(
                   children: [
                     TextButton(
-                      key: const Key('undo-restore'),
+                      key: const Key("undo-restore"),
                       onPressed: actions == null || _busy
                           ? null
                           : () => _run(

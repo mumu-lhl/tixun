@@ -1,23 +1,23 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'support/gui_capture.dart';
+import "support/gui_capture.dart";
 
-import 'package:dio/dio.dart';
-import 'package:tixun/core/ai/ai_types.dart';
-import 'package:tixun/core/ai/quiz_tool.dart';
-import 'package:tixun/features/practice/question_card.dart';
+import "package:dio/dio.dart";
+import "package:tixun/core/ai/ai_types.dart";
+import "package:tixun/core/ai/quiz_tool.dart";
+import "package:tixun/features/practice/question_card.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:integration_test/integration_test.dart';
-import 'package:tixun/app/app.dart';
-import 'package:tixun/app/controller.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:integration_test/integration_test.dart";
+import "package:tixun/app/app.dart";
+import "package:tixun/app/controller.dart";
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('Real Linux GUI: a quiz question shows its pinned visual', (
+  testWidgets("Real Linux GUI: a quiz question shows its pinned visual", (
     tester,
   ) async {
     final c = await AppController.open(demo: true);
@@ -29,11 +29,11 @@ void main() {
       UncontrolledProviderScope(container: container, child: const TixunApp()),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('start-chat')));
+    await tester.tap(find.byKey(const Key("start-chat")));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const Key('chat-input')),
-      '请画图，画出 y = x^2 的函数图',
+      find.byKey(const Key("chat-input")),
+      "请画图，画出 y = x^2 的函数图",
     );
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -52,17 +52,17 @@ void main() {
     final result = await executeQuizTool(
       c.practice,
       ToolCall(
-        'c1',
-        'create_quiz',
+        "c1",
+        "create_quiz",
         jsonEncode({
-          'kind': 'numeric',
-          'stem': '图中抛物线与 x 轴交点的横坐标是多少？',
-          'subject': '数学',
-          'answers': [
-            ['2'],
+          "kind": "numeric",
+          "stem": "图中抛物线与 x 轴交点的横坐标是多少？",
+          "subject": "数学",
+          "answers": [
+            ["2"],
           ],
-          'explanation': 'x^2 - 4 = 0 的根是 ±2。',
-          'visual_id': visualId,
+          "explanation": "x^2 - 4 = 0 的根是 ±2。",
+          "visual_id": visualId,
         }),
       ),
       sessionId: c.messages.last.sessionId,
@@ -70,12 +70,12 @@ void main() {
       cancel: CancelToken(),
       visual: c.visual,
     );
-    expect(result['ok'], true);
-    final questionId = result['question_id'] as String;
+    expect(result["ok"], true);
+    final questionId = result["question_id"] as String;
     // Editing the scene afterwards must not change the question's figure:
     // revise the live scene, then render the question card.
     final revised = jsonDecode(scenes.single.sceneJson) as Map<String, dynamic>;
-    revised['title'] = '改过的标题';
+    revised["title"] = "改过的标题";
     await c.visual.revise(visualId, jsonEncode(revised));
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -91,18 +91,17 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    // The card shows the pinned revision's title, not the edited one.
-    expect(find.text('y = x²'), findsOneWidget);
-    expect(find.text('改过的标题'), findsNothing);
-    expect(find.textContaining('图中抛物线与 x 轴交点'), findsOneWidget);
-    await guiCapture('visual-review', 'pinned-question');
+    expect(find.text("y = x²"), findsOneWidget);
+    expect(find.text("改过的标题"), findsNothing);
+    expect(find.textContaining("图中抛物线与 x 轴交点"), findsOneWidget);
+    await guiCapture("visual-review", "pinned-question");
     await tester.tap(find.byIcon(Icons.open_in_full));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('visual-play-pause')), findsNothing);
+    expect(find.byKey(const Key("visual-play-pause")), findsNothing);
     expect(find.byType(Slider), findsNothing);
-    expect(find.byKey(const Key('visual-return-to-answer')), findsOneWidget);
-    await guiCapture('visual-review', 'fixed-preview');
-    await tester.tap(find.byKey(const Key('visual-return-to-answer')));
+    expect(find.byKey(const Key("visual-return-to-answer")), findsOneWidget);
+    await guiCapture("visual-review", "fixed-preview");
+    await tester.tap(find.byKey(const Key("visual-return-to-answer")));
     await tester.pumpAndSettle();
     expect(find.byType(QuestionCard), findsOneWidget);
     expect(tester.takeException(), isNull);

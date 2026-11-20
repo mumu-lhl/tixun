@@ -1,8 +1,8 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:dio/dio.dart';
+import "package:dio/dio.dart";
 
-import '../../core/ai/chat_provider.dart';
+import "../../core/ai/chat_provider.dart";
 
 /// Give direct tasks a total deadline, including streams that keep sending
 /// heartbeats. Late replies from an adapter that ignores cancellation are
@@ -49,7 +49,7 @@ Stream<AiChunk> boundedLanguageStream(
       timer = Timer(deadline, () {
         if (output.isClosed) return;
         output.addError(
-          TimeoutException('Language response timed out', deadline),
+          TimeoutException("Language response timed out", deadline),
         );
         unawaited(output.close());
         finish();

@@ -1,86 +1,86 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
+import "package:crypto/crypto.dart";
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
 
-import '../../features/practice/practice_store.dart';
-import '../../features/practice/question_spec.dart';
-import '../../features/visual/visual_store.dart';
-import '../database/database.dart';
-import 'chat_provider.dart';
-import 'study_tools.dart';
-import 'visual_schema.dart';
+import "../../features/practice/practice_store.dart";
+import "../../features/practice/question_spec.dart";
+import "../../features/visual/visual_store.dart";
+import "../database/database.dart";
+import "chat_provider.dart";
+import "study_tools.dart";
+import "visual_schema.dart";
 
 final quizToolSchema = AiTool(
-  name: 'create_quiz',
+  name: "create_quiz",
   description: '仅用户请求出题、测验或训练时创建交互题，不代替资料整理或讲解；本条出题回复不得透露答案与解析。answers 为按位置排列的二维数组：填空每项包含等价答案，多选每个正确选项单独一项。仅校验结构，答案仍待核对。依赖图片时用 image_indices 引用本次请求前4张图片（0起）；纯文字题不填。需要配图时用 visual_id 引用本次对话中已创建的图形：图形只展示题干所需的图，不含答案与解法；不填 visual_revision 时冻结图形当前状态作为题目快照，填了则引用该修订。考试模式使用 question_scene 和可选 solution_scene，一次性独立保存题面图与提交后解析图，不引用探索图。题面图不能含控件、时间线、隐藏图元或答案/解题标记；解析图只在提交后显示。点选题（point_select）必须带 visual_id 或 question_scene，答案是 "x,y" 形式的坐标；区域选择题（region_select）必须带 visual_id 或 question_scene，options 是区域图元 id 到名称的映射，答案是选中的区域 id。拖点题（drag_to_target）必须带 visual_id 或 question_scene 且图形中有点 draggable 为 true，答案是目标点的 "x,y" 坐标，学生把点拖到目标位置附近即算对；读图题（read_value）必须带 visual_id 或 question_scene，答案是学生从图中读出的数值。',
   parameters: {
-    'type': 'object',
-    'additionalProperties': false,
-    'properties': {
-      'kind': {
-        'type': 'string',
-        'enum': [
-          'single_choice',
-          'multiple_choice',
-          'true_false',
-          'fill_blank',
-          'numeric',
-          'point_select',
-          'region_select',
-          'drag_to_target',
-          'read_value',
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "kind": {
+        "type": "string",
+        "enum": [
+          "single_choice",
+          "multiple_choice",
+          "true_false",
+          "fill_blank",
+          "numeric",
+          "point_select",
+          "region_select",
+          "drag_to_target",
+          "read_value",
         ],
       },
-      'stem': {'type': 'string'},
-      'subject': {'type': 'string'},
-      'options': {
-        'type': 'object',
-        'additionalProperties': {'type': 'string'},
+      "stem": {"type": "string"},
+      "subject": {"type": "string"},
+      "options": {
+        "type": "object",
+        "additionalProperties": {"type": "string"},
       },
-      'answers': {
-        'type': 'array',
-        'items': {
-          'type': 'array',
-          'items': {'type': 'string'},
+      "answers": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {"type": "string"},
         },
       },
-      'explanation': {'type': 'string'},
-      'hint': {'type': 'string'},
-      'topics': {
-        'type': 'array',
-        'items': {'type': 'string'},
+      "explanation": {"type": "string"},
+      "hint": {"type": "string"},
+      "topics": {
+        "type": "array",
+        "items": {"type": "string"},
       },
-      'absolute_tolerance': {'type': 'number', 'minimum': 0, 'maximum': 100},
-      'relative_tolerance': {'type': 'number', 'minimum': 0, 'maximum': 0.1},
-      'case_sensitive': {'type': 'boolean'},
-      'image_indices': {
-        'type': 'array',
-        'items': {'type': 'integer', 'minimum': 0, 'maximum': 3},
-        'maxItems': 4,
+      "absolute_tolerance": {"type": "number", "minimum": 0, "maximum": 100},
+      "relative_tolerance": {"type": "number", "minimum": 0, "maximum": 0.1},
+      "case_sensitive": {"type": "boolean"},
+      "image_indices": {
+        "type": "array",
+        "items": {"type": "integer", "minimum": 0, "maximum": 3},
+        "maxItems": 4,
       },
-      'time_limit_seconds': {'type': 'integer', 'minimum': 10, 'maximum': 7200},
-      'visual_id': {'type': 'string'},
-      'visual_revision': {'type': 'integer', 'minimum': 1},
-      'question_scene': visualSceneSchema,
-      'solution_scene': visualSceneSchema,
+      "time_limit_seconds": {"type": "integer", "minimum": 10, "maximum": 7200},
+      "visual_id": {"type": "string"},
+      "visual_revision": {"type": "integer", "minimum": 1},
+      "question_scene": visualSceneSchema,
+      "solution_scene": visualSceneSchema,
     },
-    'required': ['kind', 'stem', 'subject', 'answers', 'explanation'],
+    "required": ["kind", "stem", "subject", "answers", "explanation"],
   },
 );
 
 /// Exam figures are scoped to one atomic quiz write, never chat visuals.
 final examQuizToolSchema = AiTool(
   name: quizToolSchema.name,
-  description: 'Create an exam question only when requested. Never reveal answers or explanations in chat. Optional question_scene and solution_scene are separate inline Visual DSL objects saved atomically as private frozen snapshots. The question_scene must be static: no timeline, controls, hidden elements, answer markers or solution text. Put all worked solution diagrams in solution_scene, which is shown only after submission of the current attempt. Never reference existing visual IDs in exam mode. Point/drag/region/read_value kinds require question_scene; region options/answers use visible polygon IDs, point/drag answers use x,y coordinates. Use answers as one acceptable-answer list per response position. Content and scientific correctness remain unverified.',
+  description: "Create an exam question only when requested. Never reveal answers or explanations in chat. Optional question_scene and solution_scene are separate inline Visual DSL objects saved atomically as private frozen snapshots. The question_scene must be static: no timeline, controls, hidden elements, answer markers or solution text. Put all worked solution diagrams in solution_scene, which is shown only after submission of the current attempt. Never reference existing visual IDs in exam mode. Point/drag/region/read_value kinds require question_scene; region options/answers use visible polygon IDs, point/drag answers use x,y coordinates. Use answers as one acceptable-answer list per response position. Content and scientific correctness remain unverified.",
   parameters: {
     ...quizToolSchema.parameters,
-    'properties': {...(quizToolSchema.parameters['properties'] as Map)}
-      ..remove('visual_id')
-      ..remove('visual_revision'),
+    "properties": {...(quizToolSchema.parameters["properties"] as Map)}
+      ..remove("visual_id")
+      ..remove("visual_revision"),
   },
 );
 
@@ -88,12 +88,12 @@ final examQuizToolSchema = AiTool(
 /// belong to the atomic exam tool rather than being repeated in every schema.
 final chatQuizToolSchema = AiTool(
   name: quizToolSchema.name,
-  description: '仅用户请求出题、测验或训练时创建交互题，不代替资料或讲解。正文不透露答案与解析；explanation 仍须完整。answers 按作答位置排列，每项为等价答案列表；多选每个正确选项单独一项。image_indices 引用本次请求前4张图片（0起）。配图用 visual_id 引用已创建图形，visual_revision 可冻结指定版本，否则冻结当前版本。题面不得含答案或解法。点选和拖点答案为 x,y；区域题 options/answers 使用可见区域图元 id；拖点需 draggable 点；读图题答案为数值。结构校验不代表答案已核实。',
+  description: "仅用户请求出题、测验或训练时创建交互题，不代替资料或讲解。正文不透露答案与解析；explanation 仍须完整。answers 按作答位置排列，每项为等价答案列表；多选每个正确选项单独一项。image_indices 引用本次请求前4张图片（0起）。配图用 visual_id 引用已创建图形，visual_revision 可冻结指定版本，否则冻结当前版本。题面不得含答案或解法。点选和拖点答案为 x,y；区域题 options/answers 使用可见区域图元 id；拖点需 draggable 点；读图题答案为数值。结构校验不代表答案已核实。",
   parameters: {
     ...quizToolSchema.parameters,
-    'properties': {...(quizToolSchema.parameters['properties'] as Map)}
-      ..remove('question_scene')
-      ..remove('solution_scene'),
+    "properties": {...(quizToolSchema.parameters["properties"] as Map)}
+      ..remove("question_scene")
+      ..remove("solution_scene"),
   },
 );
 
@@ -101,28 +101,28 @@ final chatQuizToolSchema = AiTool(
 /// enabled drawing; otherwise no figure fields or loading instructions remain.
 AiTool textQuizToolSchema({required bool exam, bool visualsAvailable = true}) {
   final base = exam ? examQuizToolSchema : chatQuizToolSchema;
-  final properties = {...(base.parameters['properties'] as Map)}
-    ..remove('question_scene')
-    ..remove('solution_scene');
+  final properties = {...(base.parameters["properties"] as Map)}
+    ..remove("question_scene")
+    ..remove("solution_scene");
   if (!visualsAvailable) {
-    properties.remove('visual_id');
-    properties.remove('visual_revision');
+    properties.remove("visual_id");
+    properties.remove("visual_revision");
   }
-  properties['kind'] = {
-    'type': 'string',
-    'enum': [
-      'single_choice',
-      'multiple_choice',
-      'true_false',
-      'fill_blank',
-      'numeric',
+  properties["kind"] = {
+    "type": "string",
+    "enum": [
+      "single_choice",
+      "multiple_choice",
+      "true_false",
+      "fill_blank",
+      "numeric",
     ],
   };
   return AiTool(
     name: base.name,
     description:
         'Create a text or image-based interactive question only when requested, never instead of reference material. Never reveal answers or explanations in chat; provide a complete explanation in the explanation field for after submission. answers lists equivalent answers per response position; each correct multiple-choice option is a separate item. image_indices references the first four input images (0-based). Validation does not verify correctness.${visualsAvailable ? ' For any diagrams or visual question kinds, first call enable_visual_tools to load the full schemas.${exam ? ' Exam mode never references exploration visual IDs.' : ''}' : ''}',
-    parameters: {...base.parameters, 'properties': properties},
+    parameters: {...base.parameters, "properties": properties},
   );
 }
 
@@ -141,12 +141,12 @@ Future<Map<String, dynamic>> executeQuizTool(
     if (call.arguments.length > 160000) {
       throw const AppFormatException(
         AppErrorCode.errorQuestionDataIsTooLong,
-        '题目数据过长。',
+        "题目数据过长。",
       );
     }
     final args = (jsonDecode(call.arguments) as Map).cast<String, dynamic>();
-    final indices = args.containsKey('image_indices')
-        ? args['image_indices']
+    final indices = args.containsKey("image_indices")
+        ? args["image_indices"]
         : <dynamic>[];
     if (indices is! List ||
         indices.length > 4 ||
@@ -160,14 +160,14 @@ Future<Map<String, dynamic>> executeQuizTool(
         )) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidQuestionImageReference,
-        '题目图片引用无效。',
+        "题目图片引用无效。",
       );
     }
-    final spec = QuestionSpec.fromJson({...args}..remove('image_indices'));
-    if (spec.kind == 'short_answer') {
+    final spec = QuestionSpec.fromJson({...args}..remove("image_indices"));
+    if (spec.kind == "short_answer") {
       throw const AppFormatException(
         AppErrorCode.errorThisModelCannotCurrentlyCreateSelf,
-        '模型当前不能创建自主判分题。',
+        "模型当前不能创建自主判分题。",
       );
     }
     // Exam figures are inline, private assessment assets. Existing chat
@@ -175,8 +175,8 @@ Future<Map<String, dynamic>> executeQuizTool(
     if (exam && (spec.visualId != null || spec.solutionVisualId != null)) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
-        '考试题图必须随出题独立保存，不能引用探索图。',
-        ['visual_id'],
+        "考试题图必须随出题独立保存，不能引用探索图。",
+        ["visual_id"],
       );
     }
     if ((spec.visualId != null ||
@@ -185,26 +185,26 @@ Future<Map<String, dynamic>> executeQuizTool(
         visual == null) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
-        '当前会话未启用图形工具。',
-        ['visual_id'],
+        "当前会话未启用图形工具。",
+        ["visual_id"],
       );
     }
     final encoded = canonicalJson(args);
-    final operation = '$runId:quiz:${sha256.convert(utf8.encode(encoded))}';
+    final operation = "$runId:quiz:${sha256.convert(utf8.encode(encoded))}";
     final result = await store.db.transaction(() async {
       cancel.checkCancelled();
       final old = await (store.db.select(
         store.db.aiToolOperations,
-      )..where((t) => t.id.equals('$runId:${call.id}'))).getSingleOrNull();
+      )..where((t) => t.id.equals("$runId:${call.id}"))).getSingleOrNull();
       if (old != null && (old.arguments != encoded || old.name != call.name)) {
         throw const AppFormatException(
           AppErrorCode.errorThisToolCallIDHasAlready,
-          '工具调用 ID 已被其他参数使用。',
+          "工具调用 ID 已被其他参数使用。",
         );
       }
       // Same call replayed: return the cached result like region_tool does
       // instead of creating the question a second time.
-      if (old != null && old.status == 'succeeded' && old.result != null) {
+      if (old != null && old.status == "succeeded" && old.result != null) {
         return (jsonDecode(old.result!) as Map).cast<String, dynamic>();
       }
       final links =
@@ -212,7 +212,7 @@ Future<Map<String, dynamic>> executeQuizTool(
                 ..where((l) => l.sessionId.equals(sessionId))
                 ..limit(5))
               .get();
-      final parentId = await store.db.preference('practice_parent:$sessionId');
+      final parentId = await store.db.preference("practice_parent:$sessionId");
       final parent = parentId == null
           ? null
           : await (store.db.select(
@@ -220,8 +220,8 @@ Future<Map<String, dynamic>> executeQuizTool(
             )..where((q) => q.id.equals(parentId))).getSingleOrNull();
       final id = await store.create(
         spec,
-        origin: 'ai',
-        verification: 'unverified',
+        origin: "ai",
+        verification: "unverified",
         sessionId: sessionId,
         messageId: runId,
         operation: operation,
@@ -240,35 +240,35 @@ Future<Map<String, dynamic>> executeQuizTool(
       final saved = (await store.detail(id)).spec;
       cancel.checkCancelled();
       final result = <String, dynamic>{
-        'ok': true,
-        'question_id': id,
-        'verification': 'unverified',
-        'visual_id': ?saved.visualId,
-        'visual_revision': ?saved.visualRevision,
+        "ok": true,
+        "question_id": id,
+        "verification": "unverified",
+        "visual_id": ?saved.visualId,
+        "visual_revision": ?saved.visualRevision,
       };
       await store.db
           .into(store.db.aiToolOperations)
           .insertOnConflictUpdate(
             AiToolOperationsCompanion.insert(
-              id: '$runId:${call.id}',
+              id: "$runId:${call.id}",
               runId: runId,
               sessionId: sessionId,
-              name: 'create_quiz',
+              name: "create_quiz",
               arguments: encoded,
-              status: 'succeeded',
+              status: "succeeded",
               result: Value(jsonEncode(result)),
               createdAt: DateTime.now(),
             ),
           );
-      return {...result, 'note': '题目已在应用显示，用户提交前不要透露答案。'};
+      return {...result, "note": "题目已在应用显示，用户提交前不要透露答案。"};
     });
     return result;
   } on DioException {
     rethrow;
   } catch (e) {
     return {
-      'ok': false,
-      'error': e is FormatException ? e.message : '题目数据无效或保存失败，未创建题目。',
+      "ok": false,
+      "error": e is FormatException ? e.message : "题目数据无效或保存失败，未创建题目。",
     };
   }
 }

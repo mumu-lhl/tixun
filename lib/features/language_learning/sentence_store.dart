@@ -1,11 +1,11 @@
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
 
-import '../../core/ai/chat_provider.dart' show CancelGuard;
+import "../../core/ai/chat_provider.dart" show CancelGuard;
 
-import '../../core/database/database.dart';
-import 'language_store.dart';
-import 'sentence_content.dart';
+import "../../core/database/database.dart";
+import "language_store.dart";
+import "sentence_content.dart";
 
 extension SentenceLearningStore on LanguageLearningStore {
   Future<void> recordSentence({
@@ -21,13 +21,13 @@ extension SentenceLearningStore on LanguageLearningStore {
         .into(db.learningSentenceAttempts)
         .insert(
           LearningSentenceAttemptsCompanion.insert(
-            id: '$batchId:${card.id}',
+            id: "$batchId:${card.id}",
             batchId: batchId,
             sentenceId: card.id,
             revision: card.revision,
             language: card.language,
             sentence: card.text,
-            skill: card.skill?.name ?? 'unscored',
+            skill: card.skill?.name ?? "unscored",
             rating: rating.name,
             answer: Value(hasAnswer ? card.choices[selectedIndex] : null),
             correct: Value(

@@ -6,8 +6,8 @@
 /// widget or a picture recorder.
 library;
 
-import 'dart:math' as math;
-import 'dart:ui' as ui;
+import "dart:math" as math;
+import "dart:ui" as ui;
 
 /// Zigzag polyline for a `resistor` spanning `from` → `to`, including
 /// the straight leads: the zigzag occupies the middle 60% of the

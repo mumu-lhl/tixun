@@ -1,13 +1,15 @@
-import 'package:drift/drift.dart' hide Column;
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import "dart:async";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import 'exam_calendar.dart';
-import 'exam_detail.dart';
-import 'exam_store.dart';
+import "package:drift/drift.dart" hide Column;
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "exam_calendar.dart";
+import "exam_detail.dart";
+import "exam_store.dart";
 
 class ScoreEditor extends ConsumerStatefulWidget {
   const ScoreEditor({required this.subject, this.proposal, super.key});
@@ -23,10 +25,10 @@ class _Row {
       parentId = draft.parentId,
       label = TextEditingController(text: draft.label),
       earned = TextEditingController(
-        text: draft.earned == null ? '' : points(draft.earned),
+        text: draft.earned == null ? "" : points(draft.earned),
       ),
       max = TextEditingController(
-        text: draft.maximum == null ? '' : points(draft.maximum),
+        text: draft.maximum == null ? "" : points(draft.maximum),
       ),
       note = TextEditingController(text: draft.note),
       // The note field stays visible once opened, even after the note is
@@ -61,7 +63,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
   @override
   void initState() {
     super.initState();
-    _load();
+    unawaited(_load());
   }
 
   Future<void> _load() async {
@@ -112,14 +114,14 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
     final siblings = rows.where((r) => r.parentId == root).toList();
     final labels = siblings.map((r) => r.label.text).toSet();
     var next = siblings.length + 1;
-    while (labels.contains('$next')) {
+    while (labels.contains("$next")) {
       next++;
     }
     final previousMax = siblings.isEmpty
         ? null
         : double.tryParse(siblings.last.max.text);
     final row = _Row(
-      ScoreDraft(parentId: root, label: '$next', maximum: previousMax),
+      ScoreDraft(parentId: root, label: "$next", maximum: previousMax),
     );
     var position = rows.length;
     if (after != null) {
@@ -253,7 +255,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
                   ),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
-                  key: const Key('score-next-question'),
+                  key: const Key("score-next-question"),
                   onPressed: saving ? null : () => add(null),
                   icon: const Icon(Icons.add),
                   label: Text(context.l10n.nextQuestion),
@@ -270,7 +272,7 @@ class _ScoreEditorState extends ConsumerState<ScoreEditor> {
           .map((r) => double.tryParse(maximum ? r.max.text : r.earned.text))
           .toList();
       return values.any((v) => v == null || !v.isFinite)
-          ? '—'
+          ? "—"
           : points(values.fold<double>(0.0, (s, v) => s + v!));
     }
 

@@ -1,15 +1,15 @@
-import 'dart:convert';
-import 'dart:io';
-import 'dart:ui' as ui;
+import "dart:convert";
+import "dart:io";
+import "dart:ui" as ui;
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/features/library/image_editor.dart';
-import 'package:tixun/features/library/study_store.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/library/image_editor.dart";
+import "package:tixun/features/library/study_store.dart";
 
 class CapturingImageProvider implements ChatProvider {
   AiRequest? request;
@@ -17,14 +17,14 @@ class CapturingImageProvider implements ChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((value, cancel) async* {
         request = value;
-        yield const AiChunk(text: '已收到当前编辑图片。', completed: true);
+        yield const AiChunk(text: "已收到当前编辑图片。", completed: true);
       });
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  test('Draft cropping preserves original, sends only edited bytes and keeps both in a saved mistake', () async {
-    final root = await Directory.systemTemp.createTemp('tixun-chat-image');
+  test("Draft cropping preserves original, sends only edited bytes and keeps both in a saved mistake", () async {
+    final root = await Directory.systemTemp.createTemp("tixun-chat-image");
     final provider = CapturingImageProvider();
     final c = AppController(
       AppDatabase.memory(),
@@ -38,7 +38,7 @@ void main() {
     });
     await c.initialize();
     await c.newSession();
-    await c.addImage('assets/demo/two_problems.png');
+    await c.addImage("assets/demo/two_problems.png");
     final original = c.attachments.single;
     final codec = await ui.instantiateImageCodec(
       await c.files.resolve(original.relativePath).readAsBytes(),
@@ -56,13 +56,13 @@ void main() {
     expect(edited.originalPath, original.relativePath);
     expect(edited.relativePath, isNot(original.relativePath));
     expect(await c.files.resolve(original.relativePath).exists(), true);
-    await c.send('只分析裁剪后的题目');
+    await c.send("只分析裁剪后的题目");
     final content = provider.request!.messages.last.images;
     expect(content.length, 1);
-    expect(content.last.dataUrl, 'data:image/png;base64,${base64Encode(crop)}');
+    expect(content.last.dataUrl, "data:image/png;base64,${base64Encode(crop)}");
     final question = (await c.db.images(c.selected!.id)).single;
     final mistake = await c.study.saveMistake(
-      const MistakeDraft(title: '来自裁剪图片的错题'),
+      const MistakeDraft(title: "来自裁剪图片的错题"),
     );
     await c.study.copyChatImage(mistake.id, question, isMistake: true);
     final refs = await c.study.images(mistake.id, isMistake: true);
@@ -74,7 +74,7 @@ void main() {
     await expectLater(
       c.replaceDraftImage(question, crop),
       throwsFormatException,
-      reason: 'Sent history cannot be edited in place',
+      reason: "Sent history cannot be edited in place",
     );
     final session = c.selected!;
     await expectLater(c.purgeSession(session.id), throwsFormatException);
@@ -84,13 +84,13 @@ void main() {
     expect(
       await c.files.resolve(edited.relativePath).exists(),
       true,
-      reason: 'Saved mistake still references both images',
+      reason: "Saved mistake still references both images",
     );
     expect(await c.files.resolve(original.relativePath).exists(), true);
-    expect((await c.study.mistake(mistake.id)).title, '来自裁剪图片的错题');
-    expect(await c.db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+    expect((await c.study.mistake(mistake.id)).title, "来自裁剪图片的错题");
+    expect(await c.db.customSelect("PRAGMA foreign_key_check").get(), isEmpty);
     await c.newSession();
-    await c.addImage('assets/demo/two_problems.png');
+    await c.addImage("assets/demo/two_problems.png");
     final draftOnly = c.attachments.single;
     await c.replaceDraftImage(draftOnly, crop);
     final editedOnly = c.attachments.single;

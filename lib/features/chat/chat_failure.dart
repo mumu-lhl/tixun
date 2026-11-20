@@ -1,8 +1,8 @@
-import 'dart:convert';
+import "dart:convert";
 
-import '../../core/l10n/app_error.dart';
-import '../../core/l10n/app_error_localization.dart';
-import '../../core/l10n/generated/app_localizations.dart';
+import "../../core/l10n/app_error.dart";
+import "../../core/l10n/app_error_localization.dart";
+import "../../core/l10n/generated/app_localizations.dart";
 
 // Legacy persisted assistant errors were Chinese source messages. This list is
 // intentionally limited to known app-authored AI failures; unrecognized
@@ -117,13 +117,13 @@ String encodeChatFailure(
   AppErrorCode code, [
   List<String> arguments = const [],
 ]) => arguments.isEmpty
-    ? '$chatFailurePrefix${code.name}'
+    ? "$chatFailurePrefix${code.name}"
     : '$chatFailurePrefix${jsonEncode({'code': code.name, 'arguments': arguments})}';
 
-const _rawChatFailurePrefix = '\u001etixun.raw:';
+const _rawChatFailurePrefix = "\u001etixun.raw:";
 
 /// Distinguish new provider text from ambiguous, pre-code historical errors.
-String encodeRawChatFailure(String value) => '$_rawChatFailurePrefix$value';
+String encodeRawChatFailure(String value) => "$_rawChatFailurePrefix$value";
 
 String chatFailureText(AppLocalizations l10n, String stored) {
   if (stored.startsWith(_rawChatFailurePrefix)) {
@@ -133,17 +133,17 @@ String chatFailureText(AppLocalizations l10n, String stored) {
   var arguments = <String>[];
   if (stored.startsWith(chatFailurePrefix)) {
     var name = stored.substring(chatFailurePrefix.length);
-    if (name.startsWith('{')) {
+    if (name.startsWith("{")) {
       try {
         final data = jsonDecode(name);
         if (data is! Map ||
-            data['code'] is! String ||
-            data['arguments'] is! List ||
-            !(data['arguments'] as List).every((value) => value is String)) {
+            data["code"] is! String ||
+            data["arguments"] is! List ||
+            !(data["arguments"] as List).every((value) => value is String)) {
           return stored;
         }
-        name = data['code'] as String;
-        arguments = (data['arguments'] as List).cast<String>();
+        name = data["code"] as String;
+        arguments = (data["arguments"] as List).cast<String>();
       } on FormatException {
         return stored;
       }

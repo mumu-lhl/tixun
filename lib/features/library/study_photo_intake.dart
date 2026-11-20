@@ -1,32 +1,32 @@
-import 'package:tixun/core/l10n/app_error.dart';
+import "package:tixun/core/l10n/app_error.dart";
 
-import '../../app/app_notice.dart';
+import "../../app/app_notice.dart";
 
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:image_picker/image_picker.dart';
-import 'package:drift/drift.dart' show BooleanExpressionOperators;
-import 'package:material_ui/material_ui.dart';
+import "package:image_picker/image_picker.dart";
+import "package:drift/drift.dart" show BooleanExpressionOperators;
+import "package:material_ui/material_ui.dart";
 
-import '../../core/platform/photo_picker.dart';
-import 'image_editor.dart';
-import '../../core/database/database.dart';
-import '../../core/database/attachment_cleanup.dart';
+import "../../core/platform/photo_picker.dart";
+import "image_editor.dart";
+import "../../core/database/database.dart";
+import "../../core/database/attachment_cleanup.dart";
 
-import '../../app/controller.dart';
+import "../../app/controller.dart";
 
 /// Records the destination before Android may destroy the activity for a picker.
 class StudyPhotoIntake {
-  static const preference = 'pending_study_photo_target';
+  static const preference = "pending_study_photo_target";
   static Future<List<String>> pick(
     AppController c, {
     required BuildContext context,
     String? ownerId,
     required bool isMistake,
     bool camera = false,
-    String subject = '数学',
+    String subject = "数学",
   }) async {
-    final target = {'id': ownerId, 'mistake': isMistake, 'subject': subject};
+    final target = {"id": ownerId, "mistake": isMistake, "subject": subject};
     await c.db.setPreference(preference, jsonEncode(target));
     try {
       if (!context.mounted) return [];
@@ -42,7 +42,7 @@ class StudyPhotoIntake {
       }
       return added.map((item) => item.$1).toList();
     } finally {
-      await c.db.setPreference(preference, '');
+      await c.db.setPreference(preference, "");
     }
   }
 
@@ -53,39 +53,39 @@ class StudyPhotoIntake {
     try {
       final decoded = jsonDecode(value);
       if (decoded is! Map<String, dynamic> ||
-          decoded['mistake'] is! bool ||
-          (decoded['id'] != null && decoded['id'] is! String) ||
-          decoded['subject'] is! String ||
-          (decoded['id'] == null && decoded['mistake'] != true) ||
-          (decoded['chatSession'] != null &&
-              decoded['chatSession'] is! String) ||
-          (decoded['files'] != null &&
-              (decoded['files'] is! List ||
-                  (decoded['files'] as List).any((p) => p is! String)))) {
+          decoded["mistake"] is! bool ||
+          (decoded["id"] != null && decoded["id"] is! String) ||
+          decoded["subject"] is! String ||
+          (decoded["id"] == null && decoded["mistake"] != true) ||
+          (decoded["chatSession"] != null &&
+              decoded["chatSession"] is! String) ||
+          (decoded["files"] != null &&
+              (decoded["files"] is! List ||
+                  (decoded["files"] as List).any((p) => p is! String)))) {
         throw const AppFormatException(
           AppErrorCode.errorInvalidPhotoRecoveryDestination,
-          '照片恢复目标无效。',
+          "照片恢复目标无效。",
         );
       }
       target = decoded;
     } on FormatException {
-      await c.db.setPreference(preference, '');
+      await c.db.setPreference(preference, "");
       rethrow;
     }
     // retrieveLostData is consumed once. Retained paths must work on the next
     // launch even when Android no longer returns the original result.
-    final pending = target['files'] is List
-        ? (target['files'] as List).cast<String>().map(XFile.new).toList()
+    final pending = target["files"] is List
+        ? (target["files"] as List).cast<String>().map(XFile.new).toList()
         : files;
     if (pending.isEmpty) {
-      await c.db.setPreference(preference, '');
+      await c.db.setPreference(preference, "");
       return false;
     }
     var missingOwner = false;
-    final owner = target['id'] as String?;
+    final owner = target["id"] as String?;
     if (owner != null) {
       try {
-        if (target['mistake'] == true) {
+        if (target["mistake"] == true) {
           await c.study.mistake(owner);
         } else {
           await c.study.knowledge(owner);
@@ -95,7 +95,7 @@ class StudyPhotoIntake {
       }
     }
     if (missingOwner) {
-      final chatId = target['chatSession'] as String?;
+      final chatId = target["chatSession"] as String?;
       final session = chatId == null
           ? null
           : await (c.db.select(c.db.chatSessions)
@@ -106,7 +106,7 @@ class StudyPhotoIntake {
       } else {
         await c.selectSession(session);
       }
-      target['chatSession'] = c.selected!.id;
+      target["chatSession"] = c.selected!.id;
     }
     await _retainRemaining(c, target, pending, 0);
     final importedPaths = <String>[];
@@ -133,13 +133,13 @@ class StudyPhotoIntake {
       }
       rethrow;
     }
-    await c.db.setPreference(preference, '');
+    await c.db.setPreference(preference, "");
     c.notice = missingOwner
         ? const AppNotice(AppNoticeKind.studyOwnerDeleted)
         : AppNotice(
             AppNoticeKind.studyPhotosRecovered,
             photoCount: pending.length,
-            mistake: target['mistake'] == true,
+            mistake: target["mistake"] == true,
           );
     return true;
   }
@@ -153,7 +153,7 @@ class StudyPhotoIntake {
     preference,
     jsonEncode({
       ...target,
-      'files': files.skip(next).map((f) => f.path).toList(),
+      "files": files.skip(next).map((f) => f.path).toList(),
     }),
   );
 
@@ -162,19 +162,19 @@ class StudyPhotoIntake {
     XFile file,
     Map<String, dynamic> target,
   ) async {
-    final id = target['id'] as String?;
+    final id = target["id"] as String?;
     if (id != null) {
       final image = await c.study.importImage(
         id,
         file.path,
-        isMistake: target['mistake'] as bool,
+        isMistake: target["mistake"] as bool,
       );
       return (id, image);
     } else {
       final row = await c.study.importMistake(
         file.path,
         file.name,
-        subject: target['subject'] as String,
+        subject: target["subject"] as String,
       );
       final detail = await c.study.mistakeDetail(row.id);
       return (row.id, detail.images.single);

@@ -1,14 +1,14 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:dio/dio.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/features/language_learning/language_store.dart';
-import 'package:tixun/features/language_learning/writing_ai.dart';
-import 'package:tixun/features/language_learning/writing_store.dart';
-import 'package:tixun/features/language_learning/writing_task_ai.dart';
-import 'package:tixun/features/language_learning/sentence_content.dart';
+import "package:dio/dio.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/features/language_learning/language_store.dart";
+import "package:tixun/features/language_learning/writing_ai.dart";
+import "package:tixun/features/language_learning/writing_store.dart";
+import "package:tixun/features/language_learning/writing_task_ai.dart";
+import "package:tixun/features/language_learning/sentence_content.dart";
 
 class _WritingProvider implements ChatProvider {
   int calls = 0;
@@ -18,27 +18,27 @@ class _WritingProvider implements ChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
         expect(
-          encodeCompletion(config, request).containsKey('max_tokens'),
+          encodeCompletion(config, request).containsKey("max_tokens"),
           isFalse,
         );
         calls++;
         yield AiChunk(
           completed: complete,
           text: jsonEncode({
-            'task': 3,
-            'organization': 3,
-            'language': 2,
-            'summary': 'Explain what you would like to read.',
-            'notes': [
+            "task": 3,
+            "organization": 3,
+            "language": 2,
+            "summary": "Explain what you would like to read.",
+            "notes": [
               {
-                'kind': 'issue',
-                'quote': 'want join',
-                'comment': 'Use to before join.',
+                "kind": "issue",
+                "quote": "want join",
+                "comment": "Use to before join.",
               },
               {
-                'kind': 'issue',
-                'quote': 'Made-up sentence',
-                'comment': 'Not in this draft.',
+                "kind": "issue",
+                "quote": "Made-up sentence",
+                "comment": "Not in this draft.",
               },
             ],
           }),
@@ -55,7 +55,7 @@ class _TaskProvider implements ChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
         expect(
-          encodeCompletion(config, request).containsKey('max_tokens'),
+          encodeCompletion(config, request).containsKey("max_tokens"),
           isFalse,
         );
         requests.add(request);
@@ -63,10 +63,10 @@ class _TaskProvider implements ChatProvider {
       });
 }
 
-const writingTaskId = 'test-writing-task';
+const writingTaskId = "test-writing-task";
 
 void main() {
-  test('revision preserves the original with anchored feedback even if reassessment fails', () async {
+  test("revision preserves the original with anchored feedback even if reassessment fails", () async {
     final db = AppDatabase.memory();
     final store = LanguageLearningStore(db);
     addTearDown(() async {
@@ -77,34 +77,34 @@ void main() {
     final ai = WritingAi(
       task: const WritingTask(
         writingTaskId,
-        'Write a short email to join a book club.',
+        "Write a short email to join a book club.",
       ),
       store: store,
       provider: provider,
       config: const ProviderConfig(
         id: 1,
-        kind: 'openai',
-        baseUrl: 'https://example.com',
-        model: 'test-model',
+        kind: "openai",
+        baseUrl: "https://example.com",
+        model: "test-model",
         vision: false,
         supportsTools: false,
         thinking: false,
         supportsThinking: false,
-        effort: '',
+        effort: "",
       ),
     );
     Future<String> evaluate(String draft) =>
-        ai.evaluate(text: draft, glossLanguage: 'en', cancel: CancelToken());
+        ai.evaluate(text: draft, glossLanguage: "en", cancel: CancelToken());
 
-    const initial = 'Hello, I want join the book club.';
-    const revision = 'Hello, I want to join the book club.';
+    const initial = "Hello, I want join the book club.";
+    const revision = "Hello, I want to join the book club.";
     await store.saveWritingDraft(initial, taskId: writingTaskId);
     expect(await store.writingDraft(taskId: writingTaskId), initial);
     expect(provider.calls, 0);
 
     final first = await evaluate(initial);
     final note = (await store.writingNotes(first)).single;
-    expect(initial.substring(note.startOffset, note.endOffset), 'want join');
+    expect(initial.substring(note.startOffset, note.endOffset), "want join");
     expect((await store.writingFeedback(first))?.languageScore, 2);
 
     provider.complete = false;
@@ -131,7 +131,7 @@ void main() {
     expect(await db.select(db.chatMessages).get(), isEmpty);
   });
 
-  test('generated writing tasks persist and partition drafts and versions', () async {
+  test("generated writing tasks persist and partition drafts and versions", () async {
     final db = AppDatabase.memory();
     final store = LanguageLearningStore(db);
     addTearDown(() async {
@@ -144,40 +144,40 @@ void main() {
       provider: provider,
       config: const ProviderConfig(
         id: 1,
-        kind: 'openai',
-        baseUrl: 'https://example.com',
-        model: 'test-model',
+        kind: "openai",
+        baseUrl: "https://example.com",
+        model: "test-model",
         vision: false,
         supportsTools: true,
         thinking: false,
         supportsThinking: false,
-        effort: '',
+        effort: "",
       ),
     );
     Future<WritingTask> generate(WritingTaskKind kind) => ai.generate(
       kind: kind,
       level: SentenceLevel.intermediate,
-      topic: 'Community',
+      topic: "Community",
       cancel: CancelToken(),
     );
     provider.data = {
-      'title': 'A letter to the volunteer team',
-      'prompt': 'Write an email asking the volunteers for a weekend training session.',
+      "title": "A letter to the volunteer team",
+      "prompt": "Write an email asking the volunteers for a weekend training session.",
     };
     final application = await generate(WritingTaskKind.application);
     expect(application.passage, isNull);
     final source =
-        'Maya found a sketchbook with a green cover as the outdoor market was closing. It held pictures of the stalls and customers throughout the day. On the last page someone had left a note promising to return at noon. Maya looked around for the owner. '
-        'A shopkeeper pointed to a narrow lane where the artists usually waited '
-        'for a bus. Maya wondered if she still had time to reach them. The next bus was not due for another fifteen minutes.';
+        "Maya found a sketchbook with a green cover as the outdoor market was closing. It held pictures of the stalls and customers throughout the day. On the last page someone had left a note promising to return at noon. Maya looked around for the owner. "
+        "A shopkeeper pointed to a narrow lane where the artists usually waited "
+        "for a bus. Maya wondered if she still had time to reach them. The next bus was not due for another fifteen minutes.";
     provider.data = {
-      'title': 'An unfinished search',
-      'prompt': 'Continue the story and explain how Maya finds the owner.',
-      'passage': source,
+      "title": "An unfinished search",
+      "prompt": "Continue the story and explain how Maya finds the owner.",
+      "passage": source,
     };
     final story = await generate(WritingTaskKind.continuation);
     expect(story.passage, source);
-    expect(story.rubric, contains('source'));
+    expect(story.rubric, contains("source"));
     expect(provider.requests.last.tools, isEmpty);
     final saved = await store.savedWritingTasks().first;
     expect(
@@ -185,11 +185,11 @@ void main() {
       containsAll([application.id, story.id]),
     );
     final first = await store.snapshotWriting(
-      'Her search continued.',
+      "Her search continued.",
       taskId: application.id,
     );
     final second = await store.snapshotWriting(
-      'Her search continued.',
+      "Her search continued.",
       taskId: story.id,
     );
     expect(first, isNot(second));

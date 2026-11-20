@@ -1,8 +1,8 @@
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import '../../core/database/database_notifier.dart';
+import "../../core/database/database.dart";
+import "../../core/database/database_notifier.dart";
 
 DateTime timelineDate(DateTime date) =>
     DateTime.utc(date.year, date.month, date.day);
@@ -51,7 +51,7 @@ class TimelineStore extends DatabaseNotifier {
     required String title,
     required DateTime start,
     DateTime? end,
-    String notes = '',
+    String notes = "",
   }) => runOperation(() async {
     final startDate = timelineDate(start);
     final endDate = end == null ? null : timelineDate(end);
@@ -59,7 +59,7 @@ class TimelineStore extends DatabaseNotifier {
         title.length > 120 ||
         notes.length > 2000 ||
         (endDate != null && endDate.isBefore(startDate))) {
-      throw const FormatException('Invalid timeline event');
+      throw const FormatException("Invalid timeline event");
     }
     final key = id ?? const Uuid().v4();
     await db

@@ -1,22 +1,22 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:crypto/crypto.dart';
-import 'package:drift/drift.dart'
+import "package:crypto/crypto.dart";
+import "package:drift/drift.dart"
     show OrderingTerm, innerJoin, BooleanExpressionOperators;
-import 'package:go_router/go_router.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:go_router/go_router.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../../app/controller.dart';
-import '../../../core/database/database.dart';
-import '../../../core/l10n/app_strings.dart';
-import '../../../core/ui/app_menu.dart';
-import '../language_store.dart';
-import '../lexical_form.dart';
-import '../lexical_form_screen.dart';
-import '../sentence_batch_store.dart';
-import '../sentence_content.dart';
-import '../vocabulary_editor.dart';
-import 'quick_models.dart';
+import "../../../app/controller.dart";
+import "../../../core/database/database.dart";
+import "../../../core/l10n/app_strings.dart";
+import "../../../core/ui/app_menu.dart";
+import "../language_store.dart";
+import "../lexical_form.dart";
+import "../lexical_form_screen.dart";
+import "../sentence_batch_store.dart";
+import "../sentence_content.dart";
+import "../vocabulary_editor.dart";
+import "quick_models.dart";
 
 Future<void> discussQuickLookup(
   BuildContext context,
@@ -24,21 +24,21 @@ Future<void> discussQuickLookup(
   LanguageQuickLookup row,
 ) async {
   final l10n = context.l10n;
-  final reference = const JsonEncoder.withIndent('  ').convert({
-    'task': row.actionName,
-    'taskId': row.actionId,
-    'input': row.input,
-    'savedAnswer': row.content,
+  final reference = const JsonEncoder.withIndent("  ").convert({
+    "task": row.actionName,
+    "taskId": row.actionId,
+    "input": row.input,
+    "savedAnswer": row.content,
   });
   await controller.newSession();
   await controller.draft(
     [
       l10n.quickChatIntro,
       reference,
-      '${l10n.quickChatQuestion}\n',
-    ].join('\n\n'),
+      "${l10n.quickChatQuestion}\n",
+    ].join("\n\n"),
   );
-  if (context.mounted) await context.push<void>('/chat');
+  if (context.mounted) await context.push<void>("/chat");
 }
 
 Future<void> learnQuickVocabulary(
@@ -66,7 +66,7 @@ Future<void> learnQuickVocabulary(
               SimpleDialogOption(
                 onPressed: () => Navigator.pop(
                   context,
-                  const VocabularyEntry(form: '', meaning: ''),
+                  const VocabularyEntry(form: "", meaning: ""),
                 ),
                 child: Text(l10n.quickManualSense),
               ),
@@ -90,7 +90,7 @@ Future<void> learnQuickVocabulary(
       );
   if (!context.mounted || group == null) return;
   final forms =
-      row.targetLanguage == 'en' && edited.form.trim() == initial.form.trim()
+      row.targetLanguage == "en" && edited.form.trim() == initial.form.trim()
       ? await confirmLookupForms(context, edited.form, initial.forms)
       : const <LexicalFormDraft>[];
   if (!context.mounted) return;
@@ -116,7 +116,7 @@ Future<void> learnQuickVocabulary(
       model: row.model,
       promptVersion: row.actionRevision,
       generatedAt: row.createdAt,
-      mock: row.provider == 'mock',
+      mock: row.provider == "mock",
     ),
   );
   if (context.mounted) _showSaved(context);
@@ -148,8 +148,8 @@ extension QuickLearningStore on LanguageLearningStore {
     QuickSentence sentence,
     SentenceLevel level,
   ) async {
-    if (row.targetLanguage != 'en' || sentence.text.trim().isEmpty) {
-      throw const FormatException('Invalid sentence');
+    if (row.targetLanguage != "en" || sentence.text.trim().isEmpty) {
+      throw const FormatException("Invalid sentence");
     }
     final text = sentence.text.trim();
     final gloss = sentence.gloss.trim();
@@ -159,7 +159,7 @@ extension QuickLearningStore on LanguageLearningStore {
         jsonEncode([text, gloss, hint, level.name, row.glossLanguage]),
       ),
     );
-    final cardId = 'quick:$digest';
+    final cardId = "quick:$digest";
     await saveSentenceBatch(
       SentenceBatchProposal(
         id: cardId,
@@ -168,7 +168,7 @@ extension QuickLearningStore on LanguageLearningStore {
         glossLanguage: row.glossLanguage,
         model: row.model,
         promptVersion: row.actionRevision,
-        isMock: row.provider == 'mock',
+        isMock: row.provider == "mock",
         generatedAt: DateTime.now(),
         cards: [
           SentenceCard.study(
@@ -196,8 +196,8 @@ Future<void> learnQuickSentence(
       await showDialog<({QuickSentence sentence, SentenceLevel level})>(
         context: context,
         builder: (context) => _QuickSentenceEditor(
-          candidate ?? QuickSentence(row.input.trim(), row.summary, ''),
-          row.level == 'beginner'
+          candidate ?? QuickSentence(row.input.trim(), row.summary, ""),
+          row.level == "beginner"
               ? SentenceLevel.beginner
               : SentenceLevel.intermediate,
         ),
@@ -234,7 +234,7 @@ class _QuickVocabularyGroupState extends State<_QuickVocabularyGroup> {
   late final _groups = widget.store.groups(widget.language).first;
   late var _meaning = widget.entry.meaning.trim();
   LearningVocabularyGroup? _group;
-  String _title = '';
+  String _title = "";
   var _type = VocabularyGroupType.topic;
 
   @override
@@ -281,13 +281,13 @@ class _QuickVocabularyGroupState extends State<_QuickVocabularyGroup> {
                             onChanged: (value) => _meaning = value!,
                           ),
                         AppSelectField<String>(
-                          initialValue: '',
+                          initialValue: "",
                           decoration: InputDecoration(
                             labelText: l10n.languageGroups,
                           ),
                           items: [
                             DropdownMenuItem(
-                              value: '',
+                              value: "",
                               child: Text(l10n.quickNewGroup),
                             ),
                             for (final group in groups)
@@ -313,7 +313,7 @@ class _QuickVocabularyGroupState extends State<_QuickVocabularyGroup> {
                               labelText: l10n.languageGroupTitle,
                             ),
                             onChanged: (value) => _title = value,
-                            validator: (value) => (value ?? '').trim().isEmpty
+                            validator: (value) => (value ?? "").trim().isEmpty
                                 ? l10n.languageRequired
                                 : null,
                           ),
@@ -411,11 +411,11 @@ class _QuickSentenceEditorState extends State<_QuickSentenceEditor> {
                   maxLines: 4,
                   decoration: InputDecoration(
                     labelText: label,
-                    counterText: '',
+                    counterText: "",
                   ),
                   validator: (value) =>
                       label == l10n.quickSentenceText &&
-                          (value ?? '').trim().isEmpty
+                          (value ?? "").trim().isEmpty
                       ? l10n.languageRequired
                       : null,
                   onChanged: update,

@@ -1,11 +1,11 @@
-part of 'controller.dart';
+part of "controller.dart";
 
 extension _PracticeSetup on AppController {
   void _requireQuizModel() {
     if (!config.supportsTools) {
       throw const AiFailure.localized(
         AppErrorCode.interactiveQuestionsNeedATool,
-        '交互出题需要支持工具调用的模型。请先在设置中调整。',
+        "交互出题需要支持工具调用的模型。请先在设置中调整。",
       );
     }
   }
@@ -14,15 +14,15 @@ extension _PracticeSetup on AppController {
     _requireQuizModel();
     final subject = subjectFilter.isNotEmpty
         ? subjectFilter
-        : learningSubjects.contains('数学')
-        ? '数学'
+        : learningSubjects.contains("数学")
+        ? "数学"
         : learningSubjects.first;
     await newSession();
-    await mode('exam');
-    await renameSession(selected!, '$subject · 检测训练');
+    await mode("exam");
+    await renameSession(selected!, "$subject · 检测训练");
     await setSessionSubject(selected!, subject);
     await useQuizReasoning();
-    await draft(prompts.text('quiz'));
+    await draft(prompts.text("quiz"));
   }
 
   Future<void> _prepareModulePracticeImpl(
@@ -39,7 +39,7 @@ extension _PracticeSetup on AppController {
     if (knowledge.isEmpty && mistakes.isEmpty) {
       throw const AppFormatException(
         AppErrorCode.errorThisFolderHasNoMaterialsAvailable,
-        '此目录没有可用于训练的资料。',
+        "此目录没有可用于训练的资料。",
       );
     }
     if (!mistake) {
@@ -50,14 +50,14 @@ extension _PracticeSetup on AppController {
         mistakes.every((m) => m.question.trim().isEmpty)) {
       throw const AppFormatException(
         AppErrorCode.errorTheSelectedMistakesAreMostlyImages,
-        '所选错题主要是图片，请选择支持视觉的模型。',
+        "所选错题主要是图片，请选择支持视觉的模型。",
       );
     }
     await newSession();
-    await mode('exam');
+    await mode("exam");
     await useQuizReasoning();
     await setSessionSubject(selected!, mistakes.first.subject);
-    await renameSession(selected!, '${mistakes.first.subject} · 模块专项训练');
+    await renameSession(selected!, "${mistakes.first.subject} · 模块专项训练");
     for (final item in mistakes) {
       await study.linkChat(selected!.id, mistakeId: item.id);
       if (AiOptions(sessionConfig).vision) {
@@ -105,8 +105,8 @@ extension _PracticeSetup on AppController {
         db.chatMessages,
       )..where((t) => t.id.equals(sourceMessageId))).getSingleOrNull();
       if (source == null ||
-          source.role != 'assistant' ||
-          source.status == 'generating' ||
+          source.role != "assistant" ||
+          source.status == "generating" ||
           source.content.trim().isEmpty) {
         throw AppFormatException(
           AppErrorCode.selectAnAIReplyWith,
@@ -134,18 +134,18 @@ extension _PracticeSetup on AppController {
         original?.subject ??
         (subjectFilter.isEmpty ? learningSubjects.first : subjectFilter);
     final operation = knowledgeId != null
-        ? 'update_knowledge'
+        ? "update_knowledge"
         : mistake
-        ? 'create_mistake'
-        : 'create_knowledge';
+        ? "create_mistake"
+        : "create_knowledge";
     final body = StringBuffer()
       ..writeln(l10n.thisIsAMaterialWriting)
       ..writeln(
         knowledgeId != null
-            ? prompts.text('knowledge_editing')
+            ? prompts.text("knowledge_editing")
             : mistake
             ? l10n.organizeOneRealMistakeFrom
-            : prompts.text('knowledge_writing'),
+            : prompts.text("knowledge_writing"),
       )
       ..writeln(l10n.saveTheResultUsingThe)
       ..writeln(
@@ -195,7 +195,7 @@ extension _PracticeSetup on AppController {
       }
       await _forkSession(source, inheritStudyLinks: false);
     }
-    await mode('direct');
+    await mode("direct");
     await setSessionSubject(selected!, subject);
     await renameSession(
       selected!,
@@ -227,19 +227,19 @@ extension _PracticeSetup on AppController {
     if (ids.isEmpty || ids.length > 5) {
       throw const AppFormatException(
         AppErrorCode.select15KnowledgeEntries,
-        '每次请选择 1–5 条知识。',
+        "每次请选择 1–5 条知识。",
       );
     }
     final notes = await Future.wait(ids.toSet().map(study.knowledge));
     await newSession();
-    await mode('exam');
+    await mode("exam");
     await useQuizReasoning();
     // All notes from one subject keep that subject; mixed notes take the
     // first one's subject.
     await setSessionSubject(selected!, notes.first.subject);
     await renameSession(
       selected!,
-      notes.length == 1 ? '${notes.first.subject} · 专项训练' : '知识点 · 综合训练',
+      notes.length == 1 ? "${notes.first.subject} · 专项训练" : "知识点 · 综合训练",
     );
     for (final note in notes) {
       await study.linkChat(selected!.id, knowledgeId: note.id);
@@ -253,11 +253,11 @@ extension _PracticeSetup on AppController {
     _requireQuizModel();
     final q = detail.spec, a = detail.latest!;
     await newSession();
-    await mode('guided');
-    await renameSession(selected!, '${q.subject} · 订正与变式训练');
+    await mode("guided");
+    await renameSession(selected!, "${q.subject} · 订正与变式训练");
     await setSessionSubject(selected!, q.subject);
     await useQuizReasoning();
-    await db.setPreference('practice_parent:${selected!.id}', detail.row.id);
+    await db.setPreference("practice_parent:${selected!.id}", detail.row.id);
     if (detail.row.mistakeId != null) {
       await study.linkChat(selected!.id, mistakeId: detail.row.mistakeId);
     }

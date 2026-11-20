@@ -1,11 +1,11 @@
 /// Rasterize formulas at print resolution using the same engine as the UI.
 library;
 
-import 'dart:math' as math;
-import 'dart:typed_data';
-import 'dart:ui' as ui;
+import "dart:math" as math;
+import "dart:typed_data";
+import "dart:ui" as ui;
 
-import 'package:val_latex_flutter/val_latex_flutter.dart' as latex;
+import "package:val_latex_flutter/val_latex_flutter.dart" as latex;
 
 class PdfFormulaImage {
   const PdfFormulaImage(this.bytes, this.width, this.height, this.depth);

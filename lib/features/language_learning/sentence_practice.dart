@@ -1,21 +1,21 @@
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../core/ai/chat_provider.dart';
-import '../../core/l10n/app_error_localization.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/l10n/generated/app_localizations.dart';
-import '../../core/ui/actions.dart';
-import 'language_store.dart';
-import 'next_practice.dart';
-import 'sentence_batch_ai.dart';
-import 'sentence_batch_store.dart';
-import 'quick_lookup/quick_selection.dart';
-import 'sentence_batch_dialog.dart';
-import 'sentence_content.dart';
-import 'sentence_explanation.dart';
-import 'sentence_store.dart';
+import "../../core/ai/chat_provider.dart";
+import "../../core/l10n/app_error_localization.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/l10n/generated/app_localizations.dart";
+import "../../core/ui/actions.dart";
+import "language_store.dart";
+import "next_practice.dart";
+import "sentence_batch_ai.dart";
+import "sentence_batch_store.dart";
+import "quick_lookup/quick_selection.dart";
+import "sentence_batch_dialog.dart";
+import "sentence_content.dart";
+import "sentence_explanation.dart";
+import "sentence_store.dart";
 
 class SentencePractice extends StatefulWidget {
   const SentencePractice({
@@ -267,7 +267,7 @@ class _SentencePracticeState extends State<SentencePractice> {
                   SentencePlan? plan;
                   await act(context, () async {
                     final history = await widget.store
-                        .sentenceEvidence('en')
+                        .sentenceEvidence("en")
                         .first;
                     plan = suggestSentences(history);
                   });
@@ -464,7 +464,7 @@ class _SentenceStepState extends State<_SentenceStep> {
           style: style.headlineSmall,
           onLookup: () => setState(() => _help.add(SentenceHelp.explanation)),
         ),
-        if (card.id.startsWith('quick:') &&
+        if (card.id.startsWith("quick:") &&
             card.choices.isEmpty &&
             card.text.length <= 1200 &&
             widget.batchAi != null &&

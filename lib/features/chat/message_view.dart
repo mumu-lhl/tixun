@@ -1,4 +1,4 @@
-part of 'chat_screen.dart';
+part of "chat_screen.dart";
 
 class MessageView extends ConsumerWidget {
   const MessageView({required this.message, required this.isLast, super.key});
@@ -7,7 +7,7 @@ class MessageView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(appControllerProvider);
-    final user = message.role == 'user';
+    final user = message.role == "user";
     final colors = Theme.of(context).colorScheme;
     final images = c.attachments.where((a) => a.messageId == message.id);
     return Padding(
@@ -68,7 +68,7 @@ class MessageView extends ConsumerWidget {
             MessageReasoning(
               message,
               examGenerating:
-                  message.status == 'generating' && c.selected?.mode == 'exam',
+                  message.status == "generating" && c.selected?.mode == "exam",
             ),
           ],
           if (message.content.isNotEmpty)
@@ -102,17 +102,17 @@ class MessageView extends ConsumerWidget {
                     message.content,
                     sessionId: message.sessionId,
                     messageId: message.id,
-                    streaming: message.status == 'generating',
+                    streaming: message.status == "generating",
                   ),
           if (!user && message.content.isEmpty)
             VisualMarkdown(
-              '',
+              "",
               sessionId: message.sessionId,
               messageId: message.id,
             ),
           if (!user) MessageQuestions(message.id),
           if (!user) ToolHistory(message.id),
-          if (message.status == 'generating')
+          if (message.status == "generating")
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Row(
@@ -151,13 +151,13 @@ class MessageView extends ConsumerWidget {
                 chatFailureText(context.l10n, message.error!),
                 style: TextStyle(
                   fontSize: 12,
-                  color: message.status == 'error'
+                  color: message.status == "error"
                       ? colors.error
                       : colors.onSurfaceVariant,
                 ),
               ),
             ),
-          if (message.status != 'generating')
+          if (message.status != "generating")
             Row(
               mainAxisAlignment: user
                   ? MainAxisAlignment.end
@@ -214,13 +214,13 @@ class MessageView extends ConsumerWidget {
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
-                        key: ValueKey('message-usage-${message.id}'),
+                        key: ValueKey("message-usage-${message.id}"),
                         onPressed: () => _showMessageUsage(context, c, message),
                         icon: const Icon(Icons.analytics_outlined, size: 15),
                         label: Text(
                           message.totalTokens == null
                               ? context.l10n.requestDetails
-                              : '${message.totalTokens} tokens',
+                              : "${message.totalTokens} tokens",
                         ),
                       ),
                     ),

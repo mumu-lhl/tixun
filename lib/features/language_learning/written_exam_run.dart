@@ -1,18 +1,18 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
 
-import 'language_layout.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import 'exam_labels.dart';
-import 'exam_material.dart';
-import 'language_store.dart';
-import 'sentence_practice.dart' show sentenceSkillLabel;
-import 'written_exam_store.dart';
-import 'writing_store.dart';
-import 'writing_task_ai.dart';
+import "language_layout.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "exam_labels.dart";
+import "exam_material.dart";
+import "language_store.dart";
+import "sentence_practice.dart" show sentenceSkillLabel;
+import "written_exam_store.dart";
+import "writing_store.dart";
+import "writing_task_ai.dart";
 
 class WrittenExamRun extends StatefulWidget {
   const WrittenExamRun({
@@ -197,9 +197,9 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
   }
 
   String _clockText(Duration duration) => [
-    duration.inMinutes.toString().padLeft(2, '0'),
-    (duration.inSeconds % 60).toString().padLeft(2, '0'),
-  ].join(':');
+    duration.inMinutes.toString().padLeft(2, "0"),
+    (duration.inSeconds % 60).toString().padLeft(2, "0"),
+  ].join(":");
   String _points(int half) =>
       half.isEven ? (half ~/ 2).toString() : (half / 2).toStringAsFixed(1);
 
@@ -247,7 +247,7 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
                   [
                     _sectionName(context, part),
                     _clockText(Duration(seconds: part.row.seconds)),
-                  ].join(' · '),
+                  ].join(" · "),
                 ),
                 subtitle: Text(
                   part.earnedHalfPoints == null
@@ -274,7 +274,7 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
                     [
                       (part.row.position + 1).toString(),
                       _sectionName(context, part),
-                    ].join(' '),
+                    ].join(" "),
                   ),
                   onSelected: _busy ? null : (_) => _select(part.row.position),
                 ),
@@ -332,7 +332,7 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
         ),
       if (kind == ExamKind.sentenceInsertion)
         for (final entry in paper.candidates.entries)
-          Text([entry.key, entry.value].join('. ')),
+          Text([entry.key, entry.value].join(". ")),
       for (final (index, item) in paper.items.indexed)
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -347,10 +347,10 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
                         .map(
                           (answer) => paper.optionsFor(index)[answer] ?? answer,
                         )
-                        .join(' / '),
+                        .join(" / "),
                   ),
                 ),
-                Text([l10n.languageAnswer, _answers[index]].join(' · ')),
+                Text([l10n.languageAnswer, _answers[index]].join(" · ")),
                 Text(item.explanation),
                 Text(item.evidence),
                 Text(sentenceSkillLabel(l10n, item.skill)),
@@ -372,7 +372,7 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
                         label: Text(
                           kind == ExamKind.sentenceInsertion
                               ? entry.key
-                              : [entry.key, entry.value].join('. '),
+                              : [entry.key, entry.value].join(". "),
                         ),
                         selected: _answers[index] == entry.key,
                         onSelected:
@@ -382,7 +382,7 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
                                     _answers.contains(entry.key))
                             ? null
                             : (selected) =>
-                                  _answer(index, selected ? entry.key : ''),
+                                  _answer(index, selected ? entry.key : ""),
                       ),
                   ],
                 ),
@@ -405,7 +405,7 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
       if (task.passage case final passage?) SelectableText(passage),
       if (!_run.submitted)
         TextFormField(
-          key: ValueKey((_position, 'essay')),
+          key: ValueKey((_position, "essay")),
           initialValue: _answers.single,
           maxLength: 6000,
           minLines: 6,
@@ -427,7 +427,7 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
                     : [
                         l10n.languageWrittenMockReference,
                         result.summary,
-                      ].join('\n'),
+                      ].join("\n"),
               );
             },
           )

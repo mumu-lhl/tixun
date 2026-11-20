@@ -1,11 +1,11 @@
-import 'dart:convert';
-import 'dart:io';
+import "dart:convert";
+import "dart:io";
 
-import 'package:drift/drift.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/features/library/study_store.dart';
+import "package:drift/drift.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/features/library/study_store.dart";
 
 void main() {
   late StudyStore store;
@@ -13,7 +13,7 @@ void main() {
     store = StudyStore(
       AppDatabase.memory(),
       AttachmentStore(
-        await Directory.systemTemp.createTemp('tixun-study-test'),
+        await Directory.systemTemp.createTemp("tixun-study-test"),
       ),
     );
   });
@@ -22,47 +22,47 @@ void main() {
     await store.db.close();
     await store.files.root.delete(recursive: true);
   });
-  test('Knowledge search, normalized tags, revisions, conflict detection and recovery', () async {
+  test("Knowledge search, normalized tags, revisions, conflict detection and recovery", () async {
     final first = await store.saveKnowledge(
       const KnowledgeDraft(
-        title: '二次函数',
-        content: '通过配方求顶点，理解对称轴。',
-        tags: ['代数', '代数', ' 顶点 '],
+        title: "二次函数",
+        content: "通过配方求顶点，理解对称轴。",
+        tags: ["代数", "代数", " 顶点 "],
       ),
     );
-    expect(await store.tags(first.id, isMistake: false), ['代数', '顶点']);
-    expect((await store.searchKnowledge(query: '求顶点')).single.id, first.id);
-    expect((await store.searchKnowledge(query: '代数')).single.id, first.id);
-    expect((await store.searchKnowledge(query: '函数 顶点')).single.id, first.id);
-    expect(await store.searchKnowledge(query: '函数 不存在'), isEmpty);
+    expect(await store.tags(first.id, isMistake: false), ["代数", "顶点"]);
+    expect((await store.searchKnowledge(query: "求顶点")).single.id, first.id);
+    expect((await store.searchKnowledge(query: "代数")).single.id, first.id);
+    expect((await store.searchKnowledge(query: "函数 顶点")).single.id, first.id);
+    expect(await store.searchKnowledge(query: "函数 不存在"), isEmpty);
     expect(await store.searchKnowledge(query: '" OR *'), isEmpty);
     final second = await store.saveKnowledge(
       const KnowledgeDraft(
-        title: '配方法',
-        content: '新版解释',
-        subject: '自定义学科',
-        kind: '解题方法',
+        title: "配方法",
+        content: "新版解释",
+        subject: "自定义学科",
+        kind: "解题方法",
       ),
       id: first.id,
       expectedRevision: 1,
     );
     await expectLater(
       store.saveKnowledge(
-        const KnowledgeDraft(title: '过期', content: '不应覆盖'),
+        const KnowledgeDraft(title: "过期", content: "不应覆盖"),
         id: first.id,
         expectedRevision: 1,
       ),
       throwsA(isA<StudyConflict>()),
     );
-    expect(await store.searchKnowledge(query: '求顶点'), isEmpty);
-    expect((await store.searchKnowledge(query: '新版解释')).single.id, first.id);
-    expect((await store.knowledge(first.id)).content, '新版解释');
+    expect(await store.searchKnowledge(query: "求顶点"), isEmpty);
+    expect((await store.searchKnowledge(query: "新版解释")).single.id, first.id);
+    expect((await store.knowledge(first.id)).content, "新版解释");
     expect((await store.revisions(first.id)).length, 2);
     final restored = await store.restoreRevision(first.id, 1, second.revision);
     expect(restored.revision, 3);
     expect(restored.content, first.content);
-    expect((await store.searchKnowledge(query: '求顶点')).single.id, first.id);
-    expect(await store.searchKnowledge(query: '新版解释'), isEmpty);
+    expect((await store.searchKnowledge(query: "求顶点")).single.id, first.id);
+    expect(await store.searchKnowledge(query: "新版解释"), isEmpty);
     await store.setDeleted(
       first.id,
       isMistake: false,
@@ -70,9 +70,9 @@ void main() {
       expectedRevision: 3,
     );
     expect(await store.searchKnowledge(), isEmpty);
-    expect(await store.searchKnowledge(query: '求顶点'), isEmpty);
+    expect(await store.searchKnowledge(query: "求顶点"), isEmpty);
     expect(
-      (await store.searchKnowledge(query: '求顶点', trash: true)).single.id,
+      (await store.searchKnowledge(query: "求顶点", trash: true)).single.id,
       first.id,
     );
     final trashed = (await store.searchKnowledge(trash: true)).single;
@@ -83,35 +83,35 @@ void main() {
       expectedRevision: trashed.revision,
     );
     expect((await store.knowledge(first.id)).content, first.content);
-    expect((await store.searchKnowledge(query: '求顶点')).single.id, first.id);
+    expect((await store.searchKnowledge(query: "求顶点")).single.id, first.id);
     expect((await store.revisions(first.id)).length, 5);
   });
   test(
-    'Body text over 60000 characters is rejected, not silently truncated',
+    "Body text over 60000 characters is rejected, not silently truncated",
     () async {
-      final overlong = 'x' * 60001;
+      final overlong = "x" * 60001;
       await expectLater(
-        store.saveKnowledge(KnowledgeDraft(title: '长文', content: overlong)),
+        store.saveKnowledge(KnowledgeDraft(title: "长文", content: overlong)),
         throwsFormatException,
       );
       await expectLater(
-        store.saveMistake(MistakeDraft(title: '长题', question: overlong)),
+        store.saveMistake(MistakeDraft(title: "长题", question: overlong)),
         throwsFormatException,
       );
       expect(await store.searchKnowledge(), isEmpty);
       expect(await store.searchMistakes(), isEmpty);
     },
   );
-  test('Mistake photos, reason provenance, links and soft-delete restoration persist', () async {
+  test("Mistake photos, reason provenance, links and soft-delete restoration persist", () async {
     final k = await store.saveKnowledge(
-      const KnowledgeDraft(title: '配方', content: '平方项'),
+      const KnowledgeDraft(title: "配方", content: "平方项"),
     );
     final k2 = await store.saveKnowledge(
-      const KnowledgeDraft(title: '最小值', content: '顶点纵坐标'),
+      const KnowledgeDraft(title: "最小值", content: "顶点纵坐标"),
     );
     final m = await store.importMistake(
-      'assets/demo/two_problems.png',
-      '真实格式的测试图片',
+      "assets/demo/two_problems.png",
+      "真实格式的测试图片",
     );
     final image = (await store.images(m.id, isMistake: true)).single;
     await store.removeImage(image);
@@ -125,14 +125,14 @@ void main() {
     final edited = await store.saveMistake(
       MistakeDraft(
         title: m.title,
-        question: '二次函数问题',
-        aiAnalysis: '待核对的解析',
-        suggestedReason: '可能混淆常数项',
+        question: "二次函数问题",
+        aiAnalysis: "待核对的解析",
+        suggestedReason: "可能混淆常数项",
       ),
       id: m.id,
       expectedRevision: m.revision,
     );
-    expect(edited.errorReason, '暂未确定');
+    expect(edited.errorReason, "暂未确定");
     await store.link(k.id, mistakeId: m.id);
     await store.link(k.id, mistakeId: m.id);
     await store.link(k.id, otherKnowledgeId: k2.id);
@@ -163,19 +163,19 @@ void main() {
       throwsFormatException,
     );
   });
-  test('Accepting a split suggestion whose mistake was purged creates a fresh mistake', () async {
+  test("Accepting a split suggestion whose mistake was purged creates a fresh mistake", () async {
     final session = await store.db.createSession();
-    final source = store.files.resolve('attachments/source.png');
+    final source = store.files.resolve("attachments/source.png");
     await source.parent.create(recursive: true);
     await source.writeAsBytes([1, 2, 3]);
     await store.db
         .into(store.db.attachments)
         .insert(
           AttachmentsCompanion.insert(
-            id: 'img-1',
+            id: "img-1",
             sessionId: session.id,
-            relativePath: 'attachments/source.png',
-            mime: 'image/png',
+            relativePath: "attachments/source.png",
+            mime: "image/png",
             byteLength: 3,
           ),
         );
@@ -183,14 +183,14 @@ void main() {
         .into(store.db.chatMessages)
         .insert(
           ChatMessagesCompanion.insert(
-            id: 'run-1',
+            id: "run-1",
             sessionId: session.id,
-            role: 'assistant',
-            content: '',
+            role: "assistant",
+            content: "",
             createdAt: DateTime.now(),
           ),
         );
-    final old = await store.saveMistake(const MistakeDraft(title: '旧题'));
+    final old = await store.saveMistake(const MistakeDraft(title: "旧题"));
     await store.setDeleted(
       old.id,
       isMistake: true,
@@ -198,32 +198,32 @@ void main() {
       expectedRevision: old.revision,
     );
     await store.purge({old.id: old.revision + 1}, isMistake: true);
-    const operationId = 'run-1:call-1';
+    const operationId = "run-1:call-1";
     await store.db
         .into(store.db.aiToolOperations)
         .insert(
           AiToolOperationsCompanion.insert(
             id: operationId,
-            runId: 'run-1',
+            runId: "run-1",
             sessionId: session.id,
-            name: 'suggest_question_regions',
-            arguments: '{}',
-            status: 'succeeded',
+            name: "suggest_question_regions",
+            arguments: "{}",
+            status: "succeeded",
             result: Value(
               jsonEncode({
-                'regions': [
+                "regions": [
                   {
-                    'label': '第 1 题',
-                    'subject': '数学',
-                    'left': 0.0,
-                    'top': 0.0,
-                    'right': 0.5,
-                    'bottom': 0.5,
-                    'question': '1+1=?',
+                    "label": "第 1 题",
+                    "subject": "数学",
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 0.5,
+                    "bottom": 0.5,
+                    "question": "1+1=?",
                   },
                 ],
-                'accepted': {'0': old.id},
-                'image_id': 'img-1',
+                "accepted": {"0": old.id},
+                "image_id": "img-1",
               }),
             ),
             createdAt: DateTime.now(),
@@ -237,11 +237,11 @@ void main() {
       0,
     );
     expect(id, isNot(old.id));
-    expect((await store.mistake(id)).title, '第 1 题');
+    expect((await store.mistake(id)).title, "第 1 题");
   });
-  test('Image import failure creates neither empty mistakes nor dangling attachments', () async {
+  test("Image import failure creates neither empty mistakes nor dangling attachments", () async {
     await expectLater(
-      store.importMistake('pubspec.yaml', '无效图片'),
+      store.importMistake("pubspec.yaml", "无效图片"),
       throwsFormatException,
     );
     expect(await store.searchMistakes(), isEmpty);

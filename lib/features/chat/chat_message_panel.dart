@@ -1,4 +1,4 @@
-part of 'chat_screen.dart';
+part of "chat_screen.dart";
 
 extension _ChatMessagePanel on _ConversationState {
   Widget _messagesPanel(
@@ -81,7 +81,7 @@ extension _ChatMessagePanel on _ConversationState {
                                   ),
                                   onPressed: () {
                                     _input.text = prompt;
-                                    c.draft(prompt);
+                                    unawaited(c.draft(prompt));
                                     _focus.requestFocus();
                                   },
                                   child: Row(
@@ -159,7 +159,7 @@ extension _ChatMessagePanel on _ConversationState {
                                   ? const ToolApprovalCard()
                                   : MessageView(
                                       key: ValueKey(
-                                        'message-${c.messages[index].id}',
+                                        "message-${c.messages[index].id}",
                                       ),
                                       message: c.messages[index],
                                       isLast: index == c.messages.length - 1,
@@ -173,7 +173,7 @@ extension _ChatMessagePanel on _ConversationState {
                 )
               : ListView.builder(
                   controller: _scroll,
-                  key: PageStorageKey('messages-${c.selected!.id}'),
+                  key: PageStorageKey("messages-${c.selected!.id}"),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 24,
@@ -181,7 +181,7 @@ extension _ChatMessagePanel on _ConversationState {
                   itemCount:
                       c.messages.length + (c.pendingTool != null ? 1 : 0),
                   findChildIndexCallback: (key) {
-                    if (key == const ValueKey('tool-approval')) {
+                    if (key == const ValueKey("tool-approval")) {
                       return c.pendingTool == null ? null : c.messages.length;
                     }
                     final index = c.messages.indexWhere(
@@ -191,7 +191,7 @@ extension _ChatMessagePanel on _ConversationState {
                   },
                   itemBuilder: (context, index) => index == c.messages.length
                       ? Align(
-                          key: const ValueKey('tool-approval'),
+                          key: const ValueKey("tool-approval"),
                           alignment: Alignment.topCenter,
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 790),
@@ -215,7 +215,7 @@ extension _ChatMessagePanel on _ConversationState {
               right: 16,
               bottom: 16,
               child: IconButton.filledTonal(
-                key: const Key('chat-scroll-bottom'),
+                key: const Key("chat-scroll-bottom"),
                 style: IconButton.styleFrom(
                   backgroundColor: colors.surfaceContainerHighest.withValues(
                     alpha: .88,

@@ -1,8 +1,10 @@
-import 'package:go_router/go_router.dart';
-import 'package:material_ui/material_ui.dart';
+import "dart:async";
 
-import '../../../core/l10n/app_strings.dart';
-import 'quick_models.dart';
+import "package:go_router/go_router.dart";
+import "package:material_ui/material_ui.dart";
+
+import "../../../core/l10n/app_strings.dart";
+import "quick_models.dart";
 
 Widget quickSelectableText(
   String text, {
@@ -23,7 +25,7 @@ Widget quickSelectionToolbar(
   final value = editable.textEditingValue;
   final selected = value.selection.isValid && !value.selection.isCollapsed
       ? value.selection.textInside(value.text).trim()
-      : '';
+      : "";
   final router = GoRouter.maybeOf(context);
   return AdaptiveTextSelectionToolbar.buttonItems(
     anchors: editable.contextMenuAnchors,
@@ -37,7 +39,7 @@ Widget quickSelectionToolbar(
           onPressed: () {
             ContextMenuController.removeAny();
             onLookup?.call();
-            router.push('/language/quick', extra: selected);
+            unawaited(router.push("/language/quick", extra: selected));
           },
         ),
     ],

@@ -1,7 +1,7 @@
 // WeChat picker delegates still use the legacy Material types.
 // ignore: deprecated_member_use
-import 'package:flutter/material.dart';
-import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import "package:flutter/material.dart";
+import "package:wechat_assets_picker/wechat_assets_picker.dart";
 
 /// Image-only picker: keep selection counts useful without showing the internal
 /// integer used to avoid imposing an arbitrary photo limit.
@@ -122,6 +122,6 @@ class PhotoConfirmButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FilledButton(
     onPressed: onPressed,
-    child: Text(count == 0 ? label : '$label ($count)'),
+    child: Text(count == 0 ? label : "$label ($count)"),
   );
 }

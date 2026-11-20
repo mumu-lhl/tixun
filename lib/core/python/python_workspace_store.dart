@@ -1,7 +1,7 @@
-import 'dart:convert';
-import 'dart:io';
+import "dart:convert";
+import "dart:io";
 
-import 'package:path/path.dart' as p;
+import "package:path/path.dart" as p;
 
 class PythonWorkspaceInfo {
   const PythonWorkspaceInfo({
@@ -22,7 +22,7 @@ class PythonWorkspaceStore {
   PythonWorkspaceStore(this.root);
 
   final Directory root;
-  Directory get workspaces => Directory(p.join(root.path, 'python-workspaces'));
+  Directory get workspaces => Directory(p.join(root.path, "python-workspaces"));
 
   Future<List<PythonWorkspaceInfo>> list() async {
     if (!await workspaces.exists()) return const [];
@@ -67,10 +67,10 @@ class PythonWorkspaceStore {
   void _validateSession(String sessionId) {
     if (sessionId.isEmpty ||
         p.basename(sessionId) != sessionId ||
-        sessionId == '.' ||
-        sessionId == '..' ||
-        sessionId == '.tixun-runtime') {
-      throw ArgumentError.value(sessionId, 'sessionId');
+        sessionId == "." ||
+        sessionId == ".." ||
+        sessionId == ".tixun-runtime") {
+      throw ArgumentError.value(sessionId, "sessionId");
     }
   }
 
@@ -80,7 +80,7 @@ class PythonWorkspaceStore {
     for (final path in [root.path, workspaces.path, directory.path]) {
       if (await FileSystemEntity.type(path, followLinks: false) ==
           FileSystemEntityType.link) {
-        throw const FormatException('Workspace links are not allowed');
+        throw const FormatException("Workspace links are not allowed");
       }
     }
     await directory.create(recursive: true);
@@ -89,7 +89,7 @@ class PythonWorkspaceStore {
     if (p.dirname(canonicalWorkspaces) != canonicalRoot ||
         p.dirname(await directory.resolveSymbolicLinks()) !=
             canonicalWorkspaces) {
-      throw const FormatException('Workspace links are not allowed');
+      throw const FormatException("Workspace links are not allowed");
     }
     return directory;
   }
@@ -112,91 +112,91 @@ class PythonWorkspaceStore {
         final info = await entity.stat();
         if (info.mode & 0xf000 != 0x8000) {
           throw const FormatException(
-            'Workspace special files are not allowed',
+            "Workspace special files are not allowed",
           );
         }
         bytes += info.size;
         if (bytes > snapshotByteLimit) {
-          throw const FormatException('Workspace exceeds 8 MiB');
+          throw const FormatException("Workspace exceeds 8 MiB");
         }
         files[name] = base64Encode(await entity.readAsBytes());
       } else {
         throw const FormatException(
-          'Workspace links and special files are not allowed',
+          "Workspace links and special files are not allowed",
         );
       }
       if (files.length + directories.length > snapshotEntryLimit) {
-        throw const FormatException('Workspace exceeds 1000 entries');
+        throw const FormatException("Workspace exceeds 1000 entries");
       }
     }
-    return {'files': files, 'directories': directories};
+    return {"files": files, "directories": directories};
   }
 
   void _validateSnapshotPath(String name) {
-    final parts = name.split('/');
+    final parts = name.split("/");
     if (name.isEmpty ||
         name.length > 1024 ||
-        name.contains('\\') ||
+        name.contains("\\") ||
         name.contains(String.fromCharCode(0)) ||
         parts.length > 32 ||
-        parts.any((part) => part.isEmpty || part == '.' || part == '..')) {
-      throw const FormatException('Invalid workspace transfer path');
+        parts.any((part) => part.isEmpty || part == "." || part == "..")) {
+      throw const FormatException("Invalid workspace transfer path");
     }
   }
 
   /// Treat everything returned by Python as hostile, including paths and sizes.
   Future<void> applySnapshot(String sessionId, Object? value) async {
     if (value is! Map ||
-        value['files'] is! Map ||
-        value['directories'] is! List) {
-      throw const FormatException('Invalid workspace snapshot');
+        value["files"] is! Map ||
+        value["directories"] is! List) {
+      throw const FormatException("Invalid workspace snapshot");
     }
-    final encoded = value['files'] as Map;
-    final directoryValues = value['directories'] as List;
+    final encoded = value["files"] as Map;
+    final directoryValues = value["directories"] as List;
     if (encoded.length + directoryValues.length > snapshotEntryLimit) {
-      throw const FormatException('Workspace exceeds 1000 entries');
+      throw const FormatException("Workspace exceeds 1000 entries");
     }
     final files = <String, List<int>>{};
     final directories = <String>{};
     var bytes = 0;
     for (final name in directoryValues) {
       if (name is! String) {
-        throw const FormatException('Invalid directory name');
+        throw const FormatException("Invalid directory name");
       }
       _validateSnapshotPath(name);
       if (!directories.add(name)) {
-        throw const FormatException('Duplicate directory');
+        throw const FormatException("Duplicate directory");
       }
     }
     for (final entry in encoded.entries) {
       final name = entry.key, content = entry.value;
       if (name is! String || content is! String) {
-        throw const FormatException('Invalid workspace file');
+        throw const FormatException("Invalid workspace file");
       }
       _validateSnapshotPath(name);
       if (directories.contains(name) ||
           content.length > (snapshotByteLimit + 2) ~/ 3 * 4) {
-        throw const FormatException('Invalid workspace file or size');
+        throw const FormatException("Invalid workspace file or size");
       }
       final data = base64Decode(content);
       bytes += data.length;
       if (bytes > snapshotByteLimit) {
-        throw const FormatException('Workspace exceeds 8 MiB');
+        throw const FormatException("Workspace exceeds 8 MiB");
       }
       files[name] = data;
     }
     for (final name in [...files.keys, ...directories]) {
       var parent = p.posix.dirname(name);
-      while (parent != '.') {
+      while (parent != ".") {
         if (files.containsKey(parent)) {
-          throw const FormatException('File/directory conflict');
+          throw const FormatException("File/directory conflict");
         }
         directories.add(parent);
         parent = p.posix.dirname(parent);
       }
     }
     if (files.length + directories.length > snapshotEntryLimit) {
-      throw const FormatException('Workspace exceeds 1000 entries');
+      throw const FormatException("Workspace exceeds 1000 entries");
     }
 
     final directory = await _safeWorkspace(sessionId);
@@ -212,8 +212,8 @@ class PythonWorkspaceStore {
       final retained = entity is File
           ? files.containsKey(name)
           : directories.contains(name) ||
-                files.keys.any((file) => file.startsWith('$name/')) ||
-                directories.any((dir) => dir.startsWith('$name/'));
+                files.keys.any((file) => file.startsWith("$name/")) ||
+                directories.any((dir) => dir.startsWith("$name/"));
       if (!retained) await entity.delete();
     }
     for (final name in directories) {

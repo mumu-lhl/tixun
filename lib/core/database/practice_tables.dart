@@ -1,4 +1,4 @@
-part of 'database.dart';
+part of "database.dart";
 
 class LearningTopics extends Table {
   TextColumn get id => text()();
@@ -17,11 +17,11 @@ class PracticeQuestions extends Table {
   TextColumn get kind => text()();
   TextColumn get stem => text()();
   TextColumn get subject => text()();
-  TextColumn get explanation => text().withDefault(const Constant(''))();
-  TextColumn get hint => text().withDefault(const Constant(''))();
+  TextColumn get explanation => text().withDefault(const Constant(""))();
+  TextColumn get hint => text().withDefault(const Constant(""))();
   TextColumn get origin => text()();
   TextColumn get verification =>
-      text().withDefault(const Constant('unverified'))();
+      text().withDefault(const Constant("unverified"))();
   RealColumn get absoluteTolerance =>
       real().withDefault(const Constant(0.000001))();
   RealColumn get relativeTolerance => real().withDefault(const Constant(0))();
@@ -95,7 +95,7 @@ class PracticeAttempts extends Table {
   TextColumn get id => text()();
   TextColumn get questionId =>
       text().references(PracticeQuestions, #id, onDelete: KeyAction.cascade)();
-  TextColumn get status => text().withDefault(const Constant('draft'))();
+  TextColumn get status => text().withDefault(const Constant("draft"))();
   BoolColumn get hintUsed => boolean().withDefault(const Constant(false))();
   BoolColumn get correct => boolean().nullable()();
   RealColumn get score => real().nullable()();

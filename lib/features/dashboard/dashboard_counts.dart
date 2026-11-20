@@ -1,4 +1,4 @@
-part of 'dashboard_screen.dart';
+part of "dashboard_screen.dart";
 
 class _DashboardCounts extends ConsumerWidget {
   const _DashboardCounts({required this.controller, required this.compact});
@@ -26,22 +26,22 @@ class _DashboardCounts extends ConsumerWidget {
                 for (final (label, value) in [
                   (
                     context.l10n.learningConversations,
-                    '${c.allSessions.length}',
+                    "${c.allSessions.length}",
                   ),
                   (
                     context.l10n.knowledgeNotes,
                     counts.when(
-                      data: (v) => '${v.knowledge}',
-                      loading: () => '…',
-                      error: (_, _) => '—',
+                      data: (v) => "${v.knowledge}",
+                      loading: () => "…",
+                      error: (_, _) => "—",
                     ),
                   ),
                   (
                     context.l10n.mistakeRecords,
                     counts.when(
-                      data: (v) => '${v.mistakes}',
-                      loading: () => '…',
-                      error: (_, _) => '—',
+                      data: (v) => "${v.mistakes}",
+                      loading: () => "…",
+                      error: (_, _) => "—",
                     ),
                   ),
                 ])
@@ -79,7 +79,7 @@ class _DashboardCounts extends ConsumerWidget {
                   context,
                   width: (constraints.maxWidth - 32) / 3,
                   label: context.l10n.learningConversations,
-                  value: '${c.allSessions.length}',
+                  value: "${c.allSessions.length}",
                   detail: c.demo
                       ? context.l10n.demoRecordsDetail
                       : context.l10n.deviceSessionsDetail,
@@ -90,9 +90,9 @@ class _DashboardCounts extends ConsumerWidget {
                   width: (constraints.maxWidth - 32) / 3,
                   label: context.l10n.knowledgeNotes,
                   value: counts.when(
-                    data: (v) => '${v.knowledge}',
-                    loading: () => '…',
-                    error: (_, _) => '—',
+                    data: (v) => "${v.knowledge}",
+                    loading: () => "…",
+                    error: (_, _) => "—",
                   ),
                   detail: context.l10n.knowledgeNotesDetail,
                   icon: Icons.bookmarks_outlined,
@@ -102,9 +102,9 @@ class _DashboardCounts extends ConsumerWidget {
                   width: (constraints.maxWidth - 32) / 3,
                   label: context.l10n.mistakeRecords,
                   value: counts.when(
-                    data: (v) => '${v.mistakes}',
-                    loading: () => '…',
-                    error: (_, _) => '—',
+                    data: (v) => "${v.mistakes}",
+                    loading: () => "…",
+                    error: (_, _) => "—",
                   ),
                   detail: context.l10n.mistakeRecordsDetail,
                   icon: Icons.menu_book_outlined,

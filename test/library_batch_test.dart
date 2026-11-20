@@ -1,12 +1,12 @@
-import 'dart:async';
-import 'dart:io';
+import "dart:async";
+import "dart:io";
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/features/library/study_store.dart';
-import 'package:tixun/features/practice/practice_store.dart';
-import 'package:tixun/features/practice/question_spec.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/features/library/study_store.dart";
+import "package:tixun/features/practice/practice_store.dart";
+import "package:tixun/features/practice/question_spec.dart";
 
 void main() {
   late AppDatabase db;
@@ -15,7 +15,7 @@ void main() {
   late PracticeStore practice;
   setUp(() async {
     db = AppDatabase.memory();
-    root = await Directory.systemTemp.createTemp('tixun-batch');
+    root = await Directory.systemTemp.createTemp("tixun-batch");
     final files = AttachmentStore(root);
     store = StudyStore(db, files);
     practice = PracticeStore(db, files: files);
@@ -28,12 +28,12 @@ void main() {
     await db.close();
     await root.delete(recursive: true);
   });
-  test('Batch mutations roll back all versions on conflict; undo and permanent purge preserve shared images', () async {
+  test("Batch mutations roll back all versions on conflict; undo and permanent purge preserve shared images", () async {
     final a = await store.saveKnowledge(
-      const KnowledgeDraft(title: '分页资料 A', content: '二次函数'),
+      const KnowledgeDraft(title: "分页资料 A", content: "二次函数"),
     );
     final b = await store.saveKnowledge(
-      const KnowledgeDraft(title: '分页资料 B', content: '导数'),
+      const KnowledgeDraft(title: "分页资料 B", content: "导数"),
     );
     await expectLater(
       store.batchSetDeleted(
@@ -59,7 +59,7 @@ void main() {
     expect(restored.values.toSet(), {3});
     final image = await store.importImage(
       a.id,
-      'assets/demo/two_problems.png',
+      "assets/demo/two_problems.png",
       isMistake: false,
     );
     await store.addImageReference(
@@ -85,17 +85,17 @@ void main() {
     );
     expect(await store.purge({b.id: 4}, isMistake: false), 0);
     expect(await store.files.resolve(image.relativePath).exists(), false);
-    expect(await store.searchKnowledge(query: '分页', trash: true), isEmpty);
+    expect(await store.searchKnowledge(query: "分页", trash: true), isEmpty);
     expect(await db.select(db.knowledgeRevisions).get(), isEmpty);
-    expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+    expect(await db.customSelect("PRAGMA foreign_key_check").get(), isEmpty);
   });
-  test('Stable paged FTS results cover all data and active crop selection respects removed images', () async {
+  test("Stable paged FTS results cover all data and active crop selection respects removed images", () async {
     for (var i = 0; i < 25; i++) {
       await store.saveKnowledge(
         KnowledgeDraft(
-          title: '测试分页 $i',
-          content: '完整检索资料',
-          subject: i.isEven ? '数学' : '物理',
+          title: "测试分页 $i",
+          content: "完整检索资料",
+          subject: i.isEven ? "数学" : "物理",
         ),
       );
     }
@@ -103,7 +103,7 @@ void main() {
     for (var offset = 0; offset < 25; offset += 10) {
       all.addAll(
         (await store.searchKnowledge(
-          query: '完整检索',
+          query: "完整检索",
           limit: 10,
           offset: offset,
         )).map((k) => k.id),
@@ -112,16 +112,16 @@ void main() {
     expect(all.length, 25);
     expect(
       (await store.searchKnowledge(
-        subject: '数学',
+        subject: "数学",
         offset: 10,
         limit: 10,
       )).length,
       3,
     );
-    final m = await store.saveMistake(const MistakeDraft(title: '原图'));
+    final m = await store.saveMistake(const MistakeDraft(title: "原图"));
     final original = await store.importImage(
       m.id,
-      'assets/demo/two_problems.png',
+      "assets/demo/two_problems.png",
       isMistake: true,
     );
     final copy = await store.files.importFile(
@@ -134,11 +134,11 @@ void main() {
       copy.bytes,
       isMistake: true,
       parentId: original.id,
-      role: 'crop',
+      role: "crop",
     );
     await store.removeImage(removed);
     final q = await practice.create(
-      const QuestionSpec(kind: 'short_answer', stem: '重做原题', answers: []),
+      const QuestionSpec(kind: "short_answer", stem: "重做原题", answers: []),
       mistakeId: m.id,
     );
     expect(
@@ -147,7 +147,7 @@ void main() {
     );
     await store.restoreImage(removed);
     final edited = await practice.create(
-      const QuestionSpec(kind: 'short_answer', stem: '重做编辑题', answers: []),
+      const QuestionSpec(kind: "short_answer", stem: "重做编辑题", answers: []),
       mistakeId: m.id,
     );
     expect(
@@ -164,7 +164,7 @@ void main() {
     expect(
       await store.files.resolve(original.relativePath).exists(),
       true,
-      reason: 'Earlier independent practice still references the original',
+      reason: "Earlier independent practice still references the original",
     );
     await practice.setDeleted(q, true);
     await practice.purge(q);
@@ -174,7 +174,7 @@ void main() {
     await practice.purge(edited);
     expect(await store.files.resolve(removed.relativePath).exists(), false);
   });
-  test('Quiescence waits for queued database writes; drafts flush in order and long histories are bounded', () async {
+  test("Quiescence waits for queued database writes; drafts flush in order and long histories are bounded", () async {
     final release = Completer<void>(), entered = Completer<void>();
     final lock = db.transaction(() async {
       entered.complete();
@@ -182,7 +182,7 @@ void main() {
     });
     await entered.future;
     final write = store.saveKnowledge(
-      const KnowledgeDraft(title: '尚在写入', content: '已完成后才能关闭数据库'),
+      const KnowledgeDraft(title: "尚在写入", content: "已完成后才能关闭数据库"),
     );
     var idle = false;
     final drained = store.whenIdle.then((_) => idle = true);
@@ -195,22 +195,22 @@ void main() {
     expect(idle, true);
     final id = await practice.create(
       const QuestionSpec(
-        kind: 'numeric',
-        stem: '1+1',
+        kind: "numeric",
+        stem: "1+1",
         answers: [
-          ['2'],
+          ["2"],
         ],
       ),
     );
     for (var i = 0; i < 55; i++) {
       final a = await practice.begin(id, retry: true);
       final drafts = [
-        practice.draft(a.id, ['1']),
-        practice.draft(a.id, ['2']),
+        practice.draft(a.id, ["1"]),
+        practice.draft(a.id, ["2"]),
       ];
       await practice.flushDrafts();
       await Future.wait(drafts);
-      await practice.submit(a.id, ['2']);
+      await practice.submit(a.id, ["2"]);
     }
     final detail = await practice.detail(id);
     expect(detail.attempts.length, 50);
@@ -219,7 +219,7 @@ void main() {
     expect(
       (await db.select(db.practiceAttempts).get()).length,
       55,
-      reason: 'Older records stay in the database for diagnosis and backup',
+      reason: "Older records stay in the database for diagnosis and backup",
     );
   });
 }

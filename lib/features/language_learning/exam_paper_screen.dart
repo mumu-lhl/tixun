@@ -1,15 +1,15 @@
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../core/l10n/app_strings.dart';
-import '../../core/l10n/generated/app_localizations.dart';
-import '../../core/ui/actions.dart';
-import 'exam_ai.dart';
-import 'exam_labels.dart';
-import 'exam_material.dart';
-import 'exam_store.dart';
-import 'quick_lookup/quick_selection.dart';
-import 'sentence_practice.dart' show sentenceSkillLabel;
+import "../../core/l10n/app_strings.dart";
+import "../../core/l10n/generated/app_localizations.dart";
+import "../../core/ui/actions.dart";
+import "exam_ai.dart";
+import "exam_labels.dart";
+import "exam_material.dart";
+import "exam_store.dart";
+import "quick_lookup/quick_selection.dart";
+import "sentence_practice.dart" show sentenceSkillLabel;
 
 class ExamPaperScreen extends StatefulWidget {
   const ExamPaperScreen({
@@ -30,7 +30,7 @@ class ExamPaperScreen extends StatefulWidget {
 class _ExamPaperScreenState extends State<ExamPaperScreen> {
   late var _material = widget.material;
   ExamPaper get _paper => _material.paper;
-  late final _answers = List.filled(_paper.items.length, '');
+  late final _answers = List.filled(_paper.items.length, "");
   late var _attempt = widget.ai.store.newExamAttemptId();
   late final _history = widget.ai.store.examHistory(_material.row.id);
   final _hints = <int>{};
@@ -80,7 +80,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
       _confidence = null;
       _hints.clear();
       _lookedUp = false;
-      _answers.fillRange(0, _answers.length, '');
+      _answers.fillRange(0, _answers.length, "");
       _attempt = widget.ai.store.newExamAttemptId();
     });
   }
@@ -139,7 +139,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
         result == null &&
         _material.verification != ExamVerification.aiReviewed &&
         _material.source == ExamSource.aiGenerated &&
-        _material.row.model != 'Mock' &&
+        _material.row.model != "Mock" &&
         !widget.ai.isMock &&
         _answers.every((answer) => answer.isEmpty) &&
         _hints.isEmpty &&
@@ -166,7 +166,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
                     ),
                     if (result.confidence case final confidence?)
                       Text(
-                        '${l10n.languageExamConfidence} · ${_confidenceLabel(l10n, confidence)}',
+                        "${l10n.languageExamConfidence} · ${_confidenceLabel(l10n, confidence)}",
                       ),
                     if (_material.source == ExamSource.aiGenerated)
                       Text(l10n.languageExamReferenceResult),
@@ -203,7 +203,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
                     const Divider(height: 28),
                     Text(l10n.languageExamSharedCandidates),
                     for (final entry in _paper.candidates.entries)
-                      Text('${entry.key}. ${entry.value}'),
+                      Text("${entry.key}. ${entry.value}"),
                   ],
                   const Divider(height: 32),
                   for (final (index, item) in _paper.items.indexed)
@@ -258,10 +258,10 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
   }
 
   String _filled(String paragraph) =>
-      paragraph.replaceAllMapped(RegExp(r'\[(\d+)\]'), (match) {
+      paragraph.replaceAllMapped(RegExp(r"\[(\d+)\]"), (match) {
         final index = int.parse(match[1]!) - 1;
         final answer = _paper.items[index].answers.first;
-        return '[${match[1]}: ${_paper.optionsFor(index)[answer] ?? answer}]';
+        return "[${match[1]}: ${_paper.optionsFor(index)[answer] ?? answer}]";
       });
 
   Widget _input(
@@ -276,18 +276,18 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${index + 1}. ${item.prompt}',
+          "${index + 1}. ${item.prompt}",
           style: Theme.of(context).textTheme.titleMedium,
         ),
         if (options.isEmpty)
           TextFormField(
-            key: ValueKey('$_attempt:$index'),
+            key: ValueKey("$_attempt:$index"),
             initialValue: _answers[index],
             enabled: !_saving,
             maxLength: 100,
             decoration: InputDecoration(
               labelText: l10n.languageExamAnswer,
-              counterText: '',
+              counterText: "",
             ),
             onChanged: (value) => setState(() => _answers[index] = value),
           )
@@ -299,7 +299,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
               for (final option in options.entries)
                 ChoiceChip(
                   label: Text(
-                    insertion ? option.key : '${option.key}. ${option.value}',
+                    insertion ? option.key : "${option.key}. ${option.value}",
                   ),
                   selected: _answers[index] == option.key,
                   onSelected:
@@ -309,7 +309,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
                               _answers.contains(option.key))
                       ? null
                       : (selected) => setState(
-                          () => _answers[index] = selected ? option.key : '',
+                          () => _answers[index] = selected ? option.key : "",
                         ),
                 ),
             ],
@@ -340,14 +340,14 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       initiallyExpanded: !correct,
-      title: Text('${index + 1}. ${item.prompt}'),
+      title: Text("${index + 1}. ${item.prompt}"),
       subtitle: Text(correct ? l10n.correct : l10n.needsCorrection),
       expandedCrossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l10n.languageExamYourAnswer(options[response] ?? response)),
         Text(
           l10n.languageSentenceAnswer(
-            item.answers.map((answer) => options[answer] ?? answer).join(' / '),
+            item.answers.map((answer) => options[answer] ?? answer).join(" / "),
           ),
         ),
         Text(sentenceSkillLabel(l10n, item.skill)),
@@ -360,7 +360,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
         ),
         Text(item.explanation),
         for (final entry in item.distractors.entries)
-          Text('${entry.key}. ${entry.value}'),
+          Text("${entry.key}. ${entry.value}"),
         if (_material.target.kind == ExamKind.grammar && !correct)
           TextButton(
             onPressed:
@@ -397,7 +397,7 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
                         SimpleDialogOption(
                           onPressed: () => Navigator.of(context).pop(result),
                           child: Text(
-                            '${MaterialLocalizations.of(context).formatShortDate(result.submittedAt)} · ${result.matched}/${_paper.items.length}',
+                            "${MaterialLocalizations.of(context).formatShortDate(result.submittedAt)} · ${result.matched}/${_paper.items.length}",
                           ),
                         ),
                     ],

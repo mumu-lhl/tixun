@@ -1,5 +1,5 @@
-import 'exam_material.dart';
-import 'sentence_content.dart';
+import "exam_material.dart";
+import "sentence_content.dart";
 
 /// Names are stable IDs used by projections, distinct from translated labels.
 enum LanguageSkill {

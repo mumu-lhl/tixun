@@ -1,15 +1,15 @@
-import 'dart:async';
-import 'dart:io';
+import "dart:async";
+import "dart:io";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/app.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/app.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
 
 class _DelayedSubjectsController extends AppController {
   _DelayedSubjectsController(
@@ -30,13 +30,13 @@ class _DelayedSubjectsController extends AppController {
 }
 
 void main() {
-  testWidgets('subject order can be changed and is used by study switcher', (
+  testWidgets("subject order can be changed and is used by study switcher", (
     tester,
   ) async {
     late Directory root;
     late _DelayedSubjectsController controller;
     await tester.runAsync(() async {
-      root = await Directory.systemTemp.createTemp('tixun-subject-order');
+      root = await Directory.systemTemp.createTemp("tixun-subject-order");
       controller = _DelayedSubjectsController(
         AppDatabase.memory(),
         AttachmentStore(root),
@@ -45,7 +45,7 @@ void main() {
         demo: true,
       );
       await controller.initialize(seed: false);
-      await controller.setLearningSubjects(['英语', '数学', '语文']);
+      await controller.setLearningSubjects(["英语", "数学", "语文"]);
     });
     final scope = ProviderContainer(
       overrides: [appControllerProvider.overrideWith((_) => controller)],
@@ -63,9 +63,9 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(container: scope, child: const TixunApp()),
     );
-    scope.read(routerProvider).go('/settings/subjects');
+    scope.read(routerProvider).go("/settings/subjects");
     await tester.pumpAndSettle();
-    expect(find.text('已选 3 / 20 个科目'), findsOneWidget);
+    expect(find.text("已选 3 / 20 个科目"), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.drag(
@@ -74,43 +74,43 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    final order = ['英语', '数学', '语文'];
+    final order = ["英语", "数学", "语文"];
     final savedOrder = order.toList()
       ..sort((a, b) {
         final aY = tester
-            .getTopLeft(find.byKey(ValueKey('selected-study-subject-$a')))
+            .getTopLeft(find.byKey(ValueKey("selected-study-subject-$a")))
             .dy;
         final bY = tester
-            .getTopLeft(find.byKey(ValueKey('selected-study-subject-$b')))
+            .getTopLeft(find.byKey(ValueKey("selected-study-subject-$b")))
             .dy;
         return aY.compareTo(bY);
       });
     expect(savedOrder, isNot(order));
 
-    expect(find.byKey(const Key('save-subjects')), findsNothing);
+    expect(find.byKey(const Key("save-subjects")), findsNothing);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 200)),
     );
     await tester.pumpAndSettle();
     expect(controller.learningSubjects, savedOrder);
 
-    scope.read(routerProvider).go('/study');
+    scope.read(routerProvider).go("/study");
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('subject-switch')));
+    await tester.tap(find.byKey(const Key("subject-switch")));
     await tester.pumpAndSettle();
     final menuPositions = savedOrder
         .map((subject) => tester.getTopLeft(find.text(subject)).dy)
         .toList();
     expect(menuPositions, orderedEquals([...menuPositions]..sort()));
 
-    scope.read(routerProvider).go('/settings/subjects');
+    scope.read(routerProvider).go("/settings/subjects");
     await tester.pumpAndSettle();
     controller.saveGate = Completer<void>();
     await tester.tap(find.byType(FilterChip).first);
     await tester.pump();
     expect(
       tester
-              .widget<TextField>(find.byKey(const Key('custom-subject')))
+              .widget<TextField>(find.byKey(const Key("custom-subject")))
               .enabled ??
           true,
       isTrue,
@@ -122,7 +122,7 @@ void main() {
     expect(
       tester
           .widget<IconButton>(
-            find.byKey(ValueKey('remove-study-subject-${savedOrder.first}')),
+            find.byKey(ValueKey("remove-study-subject-${savedOrder.first}")),
           )
           .onPressed,
       isNotNull,
@@ -138,7 +138,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    scope.read(routerProvider).go('/settings/python');
+    scope.read(routerProvider).go("/settings/python");
     tester.view.physicalSize = const Size(1280, 844);
     // Mount the route before giving real filesystem IO time outside fakeAsync.
     // Settling first would wait forever on the workspace loading indicator.
@@ -148,16 +148,16 @@ void main() {
     );
     await tester.pumpAndSettle();
     final pythonContent = tester.getRect(
-      find.byKey(const Key('python-policy')),
+      find.byKey(const Key("python-policy")),
     );
     expect(pythonContent.center.dx, closeTo((203 + 1280) / 2, 1));
     expect(pythonContent.width, lessThanOrEqualTo(760));
 
-    scope.read(routerProvider).go('/settings/ai-usage');
+    scope.read(routerProvider).go("/settings/ai-usage");
     await tester.pumpAndSettle();
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('AI 用量'), findsOneWidget);
-    expect(find.byKey(const Key('add-ai-model-price')), findsOneWidget);
+    expect(find.text("AI 用量"), findsOneWidget);
+    expect(find.byKey(const Key("add-ai-model-price")), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

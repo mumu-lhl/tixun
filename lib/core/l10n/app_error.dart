@@ -1,7 +1,7 @@
 /// Stable marker for application-generated errors stored in chat history.
-const chatFailurePrefix = '\u001etixun.error:';
+const chatFailurePrefix = "\u001etixun.error:";
 const interruptedChatFailure =
-    '${chatFailurePrefix}previousGenerationInterrupted';
+    "${chatFailurePrefix}previousGenerationInterrupted";
 
 /// Stable identifiers for application-generated failures. External error text
 /// is not treated as an app message and is preserved verbatim.
@@ -298,17 +298,16 @@ enum AppErrorCode {
   useAnHTTPSAPIURL,
 }
 
-/// Fixed field identifiers used by study validation errors.
 enum StudyErrorField {
-  tag('标签'),
-  title('标题'),
-  body('正文'),
-  subject('科目'),
-  chapter('章节'),
-  content('内容'),
-  reason('错误原因'),
-  suggestedReason('建议原因'),
-  searchTerm('搜索词');
+  tag("标签"),
+  title("标题"),
+  body("正文"),
+  subject("科目"),
+  chapter("章节"),
+  content("内容"),
+  reason("错误原因"),
+  suggestedReason("建议原因"),
+  searchTerm("搜索词");
 
   const StudyErrorField(this.source);
   final String source;

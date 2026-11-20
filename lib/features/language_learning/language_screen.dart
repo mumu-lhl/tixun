@@ -1,39 +1,39 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../app/controller.dart';
-import '../../app/preferences.dart';
-import '../../core/ai/ai_usage_store.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import 'language_course.dart';
-import 'language_profile_screen.dart';
-import 'language_recommendation.dart';
-import 'language_skills.dart';
-import 'language_store.dart';
-import 'next_practice.dart';
-import 'exam_ai.dart';
-import 'exam_lab.dart';
-import 'exam_labels.dart';
-import 'exam_material.dart';
-import 'sentence_batch_ai.dart';
-import 'sentence_content.dart';
-import 'sentence_explanation.dart';
-import 'sentence_practice.dart';
-import 'study_settings_dialog.dart';
-import 'vocabulary_ai.dart';
-import 'vocabulary_batch.dart';
-import 'vocabulary_editor.dart';
-import 'vocabulary_proposal_dialog.dart';
-import 'writing_lab.dart';
-import 'writing_task_ai.dart';
-import 'written_exam_lab.dart';
+import "../../app/controller.dart";
+import "../../app/preferences.dart";
+import "../../core/ai/ai_usage_store.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "language_course.dart";
+import "language_profile_screen.dart";
+import "language_recommendation.dart";
+import "language_skills.dart";
+import "language_store.dart";
+import "next_practice.dart";
+import "exam_ai.dart";
+import "exam_lab.dart";
+import "exam_labels.dart";
+import "exam_material.dart";
+import "sentence_batch_ai.dart";
+import "sentence_content.dart";
+import "sentence_explanation.dart";
+import "sentence_practice.dart";
+import "study_settings_dialog.dart";
+import "vocabulary_ai.dart";
+import "vocabulary_batch.dart";
+import "vocabulary_editor.dart";
+import "vocabulary_proposal_dialog.dart";
+import "writing_lab.dart";
+import "writing_task_ai.dart";
+import "written_exam_lab.dart";
 
-const _language = 'en';
+const _language = "en";
 
 class LanguageLearningScreen extends ConsumerStatefulWidget {
   const LanguageLearningScreen({super.key});
@@ -248,7 +248,7 @@ class _LanguageLearningScreenState
     final theme = Theme.of(context).textTheme;
     final actions = [
       FilledButton.tonalIcon(
-        onPressed: () => context.push('/language/quick'),
+        onPressed: () => context.push("/language/quick"),
         icon: const Icon(Icons.manage_search),
         label: Text(l10n.quickLookup),
       ),
@@ -265,7 +265,7 @@ class _LanguageLearningScreenState
       appBar: AppBar(
         leading: BackButton(
           onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/study'),
+              context.canPop() ? context.pop() : context.go("/study"),
         ),
         title: Text(l10n.languageLearning),
         actions: [

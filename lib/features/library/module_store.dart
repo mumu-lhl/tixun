@@ -1,10 +1,10 @@
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:tixun/core/l10n/app_error.dart";
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import '../../core/database/database_notifier.dart';
-import 'subject_scope.dart';
+import "../../core/database/database.dart";
+import "../../core/database/database_notifier.dart";
+import "subject_scope.dart";
 
 /// Curriculum folders are shared by notes and mistakes, independent of text history.
 class ModuleStore extends DatabaseNotifier {
@@ -18,7 +18,7 @@ class ModuleStore extends DatabaseNotifier {
     onChange();
   }
 
-  Stream<List<SubjectModule>> watch([String subject = '']) =>
+  Stream<List<SubjectModule>> watch([String subject = ""]) =>
       (db.select(db.subjectModules)
             ..where(
               (t) => subject.isEmpty
@@ -50,7 +50,7 @@ class ModuleStore extends DatabaseNotifier {
         discipline.length > 40) {
       throw const AppFormatException(
         AppErrorCode.errorFolderNamesMustContain180,
-        '目录名称需为 1–80 字，科目需为 1–40 字。',
+        "目录名称需为 1–80 字，科目需为 1–40 字。",
       );
     }
     final id = await db.transaction(() async {
@@ -60,7 +60,7 @@ class ModuleStore extends DatabaseNotifier {
         if (parent == null || parent.parentId != null) {
           throw const AppFormatException(
             AppErrorCode.errorASubmoduleMustBeUnderA,
-            '子模块必须位于同科目的一级模块下。',
+            "子模块必须位于同科目的一级模块下。",
           );
         }
       }
@@ -78,7 +78,7 @@ class ModuleStore extends DatabaseNotifier {
         if (!reuseExisting) {
           throw const AppFormatException(
             AppErrorCode.aDirectoryWithThisName,
-            '已存在该目录。',
+            "已存在该目录。",
           );
         }
         return existing.id;
@@ -86,7 +86,7 @@ class ModuleStore extends DatabaseNotifier {
       if (all.length >= 500) {
         throw const AppFormatException(
           AppErrorCode.errorEachSubjectCanHaveAtMost,
-          '每个科目最多 500 个目录。',
+          "每个科目最多 500 个目录。",
         );
       }
       final key = const Uuid().v4();
@@ -115,7 +115,7 @@ class ModuleStore extends DatabaseNotifier {
     if (title.isEmpty || title.length > 80) {
       throw const AppFormatException(
         AppErrorCode.errorFolderNamesMustContain1802,
-        '目录名称需为 1–80 字。',
+        "目录名称需为 1–80 字。",
       );
     }
     final row = await (db.select(
@@ -142,7 +142,7 @@ class ModuleStore extends DatabaseNotifier {
     if (direction != -1 && direction != 1) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidSortDirection,
-        '排序方向无效。',
+        "排序方向无效。",
       );
     }
     final moved = await db.transaction(() async {
@@ -175,21 +175,21 @@ class ModuleStore extends DatabaseNotifier {
   ) async {
     final keys = ids.toSet().toList();
     if (keys.isEmpty) return {};
-    final table = mistake ? 'mistake_module_links' : 'knowledge_module_links';
-    final idColumn = mistake ? 'mistake_id' : 'knowledge_id';
-    final placeholders = List.filled(keys.length, '?').join(',');
+    final table = mistake ? "mistake_module_links" : "knowledge_module_links";
+    final idColumn = mistake ? "mistake_id" : "knowledge_id";
+    final placeholders = List.filled(keys.length, "?").join(",");
     final rows = await db
         .customSelect(
-          'SELECT ml.$idColumn item, sm.name name, parent.name parent FROM $table ml JOIN subject_modules sm ON sm.id=ml.module_id LEFT JOIN subject_modules parent ON parent.id=sm.parent_id WHERE ml.$idColumn IN ($placeholders) ORDER BY sm.position',
+          "SELECT ml.$idColumn item, sm.name name, parent.name parent FROM $table ml JOIN subject_modules sm ON sm.id=ml.module_id LEFT JOIN subject_modules parent ON parent.id=sm.parent_id WHERE ml.$idColumn IN ($placeholders) ORDER BY sm.position",
           variables: keys.map(Variable.new).toList(),
         )
         .get();
     final result = <String, List<String>>{};
     for (final row in rows) {
-      final name = row.read<String>('name'),
-          parent = row.readNullable<String>('parent');
-      (result[row.read<String>('item')] ??= []).add(
-        parent == null ? name : '$parent / $name',
+      final name = row.read<String>("name"),
+          parent = row.readNullable<String>("parent");
+      (result[row.read<String>("item")] ??= []).add(
+        parent == null ? name : "$parent / $name",
       );
     }
     return result;
@@ -222,32 +222,32 @@ class ModuleStore extends DatabaseNotifier {
     if (values.length > 20 || values.any((s) => s.isEmpty || s.length > 80)) {
       throw const AppFormatException(
         AppErrorCode.errorEachMaterialCanBeLinkedTo,
-        '每条资料最多关联 20 个模块。',
+        "每条资料最多关联 20 个模块。",
       );
     }
     await db.transaction(() async {
-      final table = mistake ? 'mistakes' : 'knowledge_items';
+      final table = mistake ? "mistakes" : "knowledge_items";
       final item = await db
           .customSelect(
-            'SELECT subject FROM $table WHERE id=? AND deleted=0',
+            "SELECT subject FROM $table WHERE id=? AND deleted=0",
             variables: [Variable(id)],
           )
           .getSingleOrNull();
       if (item == null) {
         throw const AppFormatException(
           AppErrorCode.errorTheMaterialDoesNotExistOr,
-          '资料不存在或已在回收区。',
+          "资料不存在或已在回收区。",
         );
       }
-      final itemSubject = item.read<String>('subject');
+      final itemSubject = item.read<String>("subject");
       requireStudySubject(itemSubject, await readStudySubjectScope(db));
       final current = await ids(id, mistake);
       if (expected != null) {
         final previous = expected.toSet().toList()..sort();
-        if (previous.join(',') != current.join(',')) {
+        if (previous.join(",") != current.join(",")) {
           throw const AppFormatException(
             AppErrorCode.errorTheCategoryWasChangedElsewhereReopen,
-            '分类已被其他操作更新，请重新打开后选择。',
+            "分类已被其他操作更新，请重新打开后选择。",
           );
         }
       }
@@ -255,10 +255,10 @@ class ModuleStore extends DatabaseNotifier {
         final module = await (db.select(
           db.subjectModules,
         )..where((t) => t.id.equals(moduleId))).getSingleOrNull();
-        if (module == null || module.subject != item.read<String>('subject')) {
+        if (module == null || module.subject != item.read<String>("subject")) {
           throw const AppFormatException(
             AppErrorCode.errorOnlyModulesOrSubmodulesInThe,
-            '只能关联同科目的模块或子模块。',
+            "只能关联同科目的模块或子模块。",
           );
         }
       }
@@ -304,5 +304,5 @@ class ModuleStore extends DatabaseNotifier {
 
 String modulePath(SubjectModule module, List<SubjectModule> all) {
   final parent = all.where((m) => m.id == module.parentId).firstOrNull;
-  return parent == null ? module.name : '${parent.name} / ${module.name}';
+  return parent == null ? module.name : "${parent.name} / ${module.name}";
 }

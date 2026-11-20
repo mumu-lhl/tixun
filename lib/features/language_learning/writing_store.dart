@@ -1,14 +1,14 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
+import "package:crypto/crypto.dart";
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
 
-import '../../core/ai/chat_provider.dart' show CancelGuard;
+import "../../core/ai/chat_provider.dart" show CancelGuard;
 
-import '../../core/database/database.dart';
-import 'language_store.dart';
-import 'writing_feedback.dart';
+import "../../core/database/database.dart";
+import "language_store.dart";
+import "writing_feedback.dart";
 
 const writingMaxLength = 3000;
 
@@ -25,9 +25,9 @@ class WritingTask {
 }
 
 const continuationRubric =
-    'Check whether the continuation follows the source events, preserves '
-    'the characters and perspective, makes meaningful use of the clue, '
-    'and provides a coherent ending. Consider the clarity of transitions.';
+    "Check whether the continuation follows the source events, preserves "
+    "the characters and perspective, makes meaningful use of the clue, "
+    "and provides a coherent ending. Consider the clarity of transitions.";
 
 typedef WritingHistory = ({
   LearningWritingVersion version,
@@ -39,7 +39,7 @@ extension WritingLearningStore on LanguageLearningStore {
     final row = await (db.select(
       db.learningWritingDrafts,
     )..where((row) => row.taskId.equals(taskId))).getSingleOrNull();
-    return row?.content ?? '';
+    return row?.content ?? "";
   }
 
   Future<void> _saveWritingDraft(String text, String taskId) => db
@@ -54,7 +54,7 @@ extension WritingLearningStore on LanguageLearningStore {
   Future<String> snapshotWriting(String text, {required String taskId}) =>
       runOperation(() async {
         if (text.trim().isEmpty || text.length > writingMaxLength) {
-          throw const FormatException('Invalid draft length');
+          throw const FormatException("Invalid draft length");
         }
         final id = sha256
             .convert(utf8.encode(jsonEncode([taskId, text])))

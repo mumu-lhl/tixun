@@ -1,14 +1,14 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
+import "package:dio/dio.dart";
+import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/ai/ai_types.dart';
-import '../../core/database/database.dart';
-import 'a2ui_catalog.dart';
-import 'a2ui_compile_worker.dart';
-import 'a2ui_tools.dart' show a2uiActionMarker;
+import "../../core/ai/ai_types.dart";
+import "../../core/database/database.dart";
+import "a2ui_catalog.dart";
+import "a2ui_compile_worker.dart";
+import "a2ui_tools.dart" show a2uiActionMarker;
 
 class ChatA2uiStore {
   ChatA2uiStore(this.db);
@@ -25,7 +25,7 @@ class ChatA2uiStore {
   }) async {
     cancel.checkCancelled();
     if (blockIndex < 0 || blockIndex >= 6) {
-      throw const FormatException('At most six blocks per message.');
+      throw const FormatException("At most six blocks per message.");
     }
     final id = const Uuid().v4();
     final compiled = await compileInlineSurface(
@@ -37,12 +37,12 @@ class ChatA2uiStore {
     return db.transaction(() async {
       cancel.checkCancelled();
       final owner = await _owner(sessionId, messageId).getSingleOrNull();
-      if (owner?.role != 'assistant' || owner?.status != 'generating') {
+      if (owner?.role != "assistant" || owner?.status != "generating") {
         throw const FormatException(
-          'No active assistant message for this surface.',
+          "No active assistant message for this surface.",
         );
       }
-      final callId = 'inline:$blockIndex';
+      final callId = "inline:$blockIndex";
       final siblings = _byMessage(sessionId, messageId);
       final existing =
           await (siblings..where((row) => row.toolCallId.equals(callId)))
@@ -51,14 +51,14 @@ class ChatA2uiStore {
         if (existing.express != express ||
             existing.autoOffset != bodyAtInsertion.length) {
           throw const FormatException(
-            'This block position already has a different surface.',
+            "This block position already has a different surface.",
           );
         }
         return existing;
       }
       final count = (await _byMessage(sessionId, messageId).get()).length;
       if (count >= 6) {
-        throw const FormatException('At most six surfaces per message.');
+        throw const FormatException("At most six surfaces per message.");
       }
       cancel.checkCancelled();
       final surface = ChatA2uiSurfacesCompanion.insert(
@@ -107,7 +107,7 @@ class ChatA2uiStore {
 
   Future<void> saveState(ChatA2uiSurface surface, String state) async {
     if (utf8.encode(state).length > chatA2uiMaxState) {
-      throw const FormatException('Surface state exceeds its storage limit.');
+      throw const FormatException("Surface state exceeds its storage limit.");
     }
     await (db.update(db.chatA2uiSurfaces)..where(
           (r) =>
@@ -122,7 +122,7 @@ class ChatA2uiStore {
     required String kind,
   }) async {
     if (!chatA2uiActions.contains(kind) || componentId.length > 64) {
-      throw const FormatException('Unsupported surface action.');
+      throw const FormatException("Unsupported surface action.");
     }
     // Keep an audit trail without duplicating form values or chat text.
     await db
@@ -134,7 +134,7 @@ class ChatA2uiStore {
             surfaceId: surface.id,
             componentId: componentId,
             kind: kind,
-            contextJson: '{}',
+            contextJson: "{}",
             createdAt: DateTime.now(),
           ),
         );
@@ -192,7 +192,7 @@ class ChatA2uiStore {
       return surface == null ? null : _outline([surface]);
     }
     for (final message
-        in history.reversed.where((m) => m.role == 'assistant').take(5)) {
+        in history.reversed.where((m) => m.role == "assistant").take(5)) {
       final surfaces = await _byMessage(sessionId, message.id).get();
       if (surfaces.isEmpty) continue;
       return _outline(surfaces.reversed.take(2));
@@ -202,7 +202,7 @@ class ChatA2uiStore {
 
   String _outline(Iterable<ChatA2uiSurface> surfaces) => jsonEncode([
     for (final surface in surfaces)
-      {'components': chatA2uiOutline(surface.messagesJson, surface.id)},
+      {"components": chatA2uiOutline(surface.messagesJson, surface.id)},
   ]);
 }
 

@@ -1,5 +1,5 @@
-import 'exam_material.dart';
-import 'writing_task_ai.dart';
+import "exam_material.dart";
+import "writing_task_ai.dart";
 
 /// Written practice scope of the 2026 Zhejiang exam. The application chooses
 /// its own practice duration because it cannot administer the listening section.
@@ -26,8 +26,8 @@ class WrittenExamProfile {
       .fold(0, (sum, section) => sum + section.maximumHalfPoints);
 
   static const zhejiang2026 = WrittenExamProfile(
-    id: 'zhejiang-gaokao-en-2026-written-v1',
-    region: 'Zhejiang',
+    id: "zhejiang-gaokao-en-2026-written-v1",
+    region: "Zhejiang",
     year: 2026,
     exam: ExamProfile.zhejiang2026,
     duration: Duration(minutes: 100),

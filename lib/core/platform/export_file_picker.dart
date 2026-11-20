@@ -1,7 +1,7 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:file_selector/file_selector.dart';
-import 'package:flutter/services.dart';
+import "package:file_selector/file_selector.dart";
+import "package:flutter/services.dart";
 
 /// Writes an exported print file to a location the user picks.
 ///
@@ -11,7 +11,7 @@ import 'package:flutter/services.dart';
 class ExportFilePicker {
   const ExportFilePicker();
 
-  static const _channel = MethodChannel('org.tixun/backup_files');
+  static const _channel = MethodChannel("org.tixun/backup_files");
 
   Future<bool> save(
     File source, {
@@ -21,11 +21,11 @@ class ExportFilePicker {
     required String label,
   }) async {
     if (Platform.isAndroid) {
-      return await _channel.invokeMethod<bool>('saveExport', {
-            'source': source.path,
-            'name': name,
-            'extension': extension,
-            'mime': mimeType,
+      return await _channel.invokeMethod<bool>("saveExport", {
+            "source": source.path,
+            "name": name,
+            "extension": extension,
+            "mime": mimeType,
           }) ??
           false;
     }

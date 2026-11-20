@@ -1,8 +1,8 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/ai/ai_usage.dart';
-import 'package:tixun/core/ai/ai_usage_store.dart';
-import 'package:tixun/core/ai/ai_usage_summary.dart';
-import 'package:tixun/core/database/database.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/ai/ai_usage.dart";
+import "package:tixun/core/ai/ai_usage_store.dart";
+import "package:tixun/core/ai/ai_usage_summary.dart";
+import "package:tixun/core/database/database.dart";
 
 void main() {
   late AppDatabase db;
@@ -17,17 +17,17 @@ void main() {
   tearDown(() => db.close());
 
   Future<void> record({
-    String providerKind = 'compatible',
-    String endpoint = 'https://api.test/v1',
-    String model = 'm',
-    String feature = 'chat',
-    String status = 'complete',
+    String providerKind = "compatible",
+    String endpoint = "https://api.test/v1",
+    String model = "m",
+    String feature = "chat",
+    String status = "complete",
     DateTime? occurredAt,
     AiTokenUsage? usage,
     String? usageSource,
   }) => store.record(
     AiUsageCapture(
-      actionId: 'action-${action++}',
+      actionId: "action-${action++}",
       providerKind: providerKind,
       endpoint: endpoint,
       model: model,
@@ -40,16 +40,16 @@ void main() {
   );
 
   Future<void> price(String model) => store.savePrice(
-    providerKind: 'compatible',
-    endpoint: 'https://api.test/v1',
+    providerKind: "compatible",
+    endpoint: "https://api.test/v1",
     model: model,
     inputRateNanoUsdPerMillion: 1000000000,
     cachedInputRateNanoUsdPerMillion: 500000000,
     outputRateNanoUsdPerMillion: 2000000000,
   );
 
-  test('aggregates reported values and explains every cost gap', () async {
-    await price('m');
+  test("aggregates reported values and explains every cost gap", () async {
+    await price("m");
     await record(
       usage: const AiTokenUsage(
         inputTokens: 100,
@@ -60,11 +60,10 @@ void main() {
     );
     // Total-only usage has no split, so it cannot be priced even with a price.
     await record(usage: const AiTokenUsage(reportedTotalTokens: 10));
-    // The provider returned no usage at all.
     await record();
     await record(
-      providerKind: 'chatgpt',
-      model: 'gpt',
+      providerKind: "chatgpt",
+      model: "gpt",
       usage: const AiTokenUsage(
         inputTokens: 10,
         outputTokens: 5,
@@ -74,12 +73,12 @@ void main() {
     // Backfilled rows keep only a total and never count as requests.
     await record(
       usage: const AiTokenUsage(reportedTotalTokens: 7),
-      usageSource: 'legacy_total',
+      usageSource: "legacy_total",
     );
     // Input/output exist but no price is configured for this model.
     await record(
-      model: 'unpriced',
-      feature: 'context_compaction',
+      model: "unpriced",
+      feature: "context_compaction",
       usage: const AiTokenUsage(
         inputTokens: 10,
         outputTokens: 5,
@@ -112,17 +111,17 @@ void main() {
     expect(summary.missingDetail, 2);
     expect(summary.missingPrice, 1);
     expect(summary.hasPartialSums, isTrue);
-    expect(summary.models.first.label, 'compatible · m');
+    expect(summary.models.first.label, "compatible · m");
     expect(summary.models.first.estimatedCostNanoUsd, 125000);
-    expect(summary.features.first.id, 'chat');
+    expect(summary.features.first.id, "chat");
     expect(summary.recent, hasLength(6));
   });
 
-  test('sorts feature and model buckets by estimated cost', () async {
-    await price('a');
-    await price('b');
+  test("sorts feature and model buckets by estimated cost", () async {
+    await price("a");
+    await price("b");
     await record(
-      model: 'a',
+      model: "a",
       usage: const AiTokenUsage(
         inputTokens: 100,
         cachedInputTokens: 0,
@@ -131,8 +130,8 @@ void main() {
       ),
     );
     await record(
-      model: 'b',
-      feature: 'context_compaction',
+      model: "b",
+      feature: "context_compaction",
       usage: const AiTokenUsage(
         inputTokens: 1000,
         cachedInputTokens: 0,
@@ -143,14 +142,14 @@ void main() {
 
     final summary = AiUsageSummary.fromRows(await store.events());
 
-    expect(summary.features.first.id, 'context_compaction');
-    expect(summary.models.first.label, 'compatible · b');
-    expect(summary.models.last.label, 'compatible · a');
+    expect(summary.features.first.id, "context_compaction");
+    expect(summary.models.first.label, "compatible · b");
+    expect(summary.models.last.label, "compatible · a");
     expect(summary.features.first.requests, 1);
     expect(summary.features.first.tokens.value, 2000);
   });
 
-  test('builds a continuous local-day trend within the requested window', () async {
+  test("builds a continuous local-day trend within the requested window", () async {
     await record(
       occurredAt: DateTime(2026, 11, 14, 9),
       usage: const AiTokenUsage(reportedTotalTokens: 100),
@@ -167,7 +166,7 @@ void main() {
     await record(
       occurredAt: DateTime(2026, 11, 14, 11),
       usage: const AiTokenUsage(reportedTotalTokens: 25),
-      usageSource: 'legacy_total',
+      usageSource: "legacy_total",
     );
 
     final summary = AiUsageSummary.fromRows(
@@ -187,7 +186,7 @@ void main() {
   });
 
   test(
-    'empty history stays empty instead of showing zeroed averages',
+    "empty history stays empty instead of showing zeroed averages",
     () async {
       final summary = AiUsageSummary.fromRows(const [], trendDays: 30);
 

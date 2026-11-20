@@ -1,8 +1,8 @@
-import 'dart:math' as math;
+import "dart:math" as math;
 
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../l10n/app_strings.dart';
+import "../l10n/app_strings.dart";
 
 const _menuMotion = AnimationStyle(
   duration: Duration(milliseconds: 180),
@@ -257,7 +257,6 @@ class _AppSelectFieldState<T> extends State<AppSelectField<T>> {
   );
 }
 
-/// Form validation for the same anchored selection control used in settings.
 class AppSelectFormField<T> extends FormField<T> {
   AppSelectFormField({
     required List<DropdownMenuItem<T>> items,

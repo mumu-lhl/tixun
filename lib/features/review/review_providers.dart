@@ -1,14 +1,14 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_riverpod/legacy.dart";
 
-import '../../app/controller.dart';
-import '../practice/practice_providers.dart';
-import '../library/library_providers.dart';
-import '../progress/learning_profile.dart';
-import '../progress/learning_progress.dart';
-import 'review_store.dart';
+import "../../app/controller.dart";
+import "../practice/practice_providers.dart";
+import "../library/library_providers.dart";
+import "../progress/learning_profile.dart";
+import "../progress/learning_progress.dart";
+import "review_store.dart";
 
 final reviewStoreProvider = ChangeNotifierProvider<ReviewStore>(
   (ref) => ref.read(appControllerProvider).review,
@@ -33,8 +33,8 @@ final reviewListProvider = FutureProvider.autoDispose
       return ref
           .watch(reviewStoreProvider)
           .list(
-            dueOnly: f.filter == 'due',
-            paused: f.filter == 'paused',
+            dueOnly: f.filter == "due",
+            paused: f.filter == "paused",
             subject: f.subject,
             limit: f.limit,
           );

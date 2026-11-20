@@ -1,17 +1,17 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 // WeChat picker delegates still use the legacy Material types.
 // ignore: deprecated_member_use
-import 'package:flutter/material.dart' as legacy;
-import 'package:wechat_assets_picker/wechat_assets_picker.dart' as assets;
-import 'package:tixun/core/platform/photo_picker_delegate.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/platform/photo_picker.dart';
-import 'package:tixun/core/platform/camera_capture_screen.dart';
-import 'package:wechat_camera_picker/wechat_camera_picker.dart' as camera;
+import "package:flutter/material.dart" as legacy;
+import "package:wechat_assets_picker/wechat_assets_picker.dart" as assets;
+import "package:tixun/core/platform/photo_picker_delegate.dart";
+import "package:flutter/foundation.dart";
+import "package:flutter/services.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/platform/photo_picker.dart";
+import "package:tixun/core/platform/camera_capture_screen.dart";
+import "package:wechat_camera_picker/wechat_camera_picker.dart" as camera;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,47 +21,47 @@ void main() {
       (t) async {
         debugDefaultTargetPlatformOverride = TargetPlatform.android;
         try {
-          final original = File('assets/demo/two_problems.png').absolute;
+          final original = File("assets/demo/two_problems.png").absolute;
           final bytes = original.readAsBytesSync();
-          const photos = MethodChannel('com.fluttercandies/photo_manager');
+          const photos = MethodChannel("com.fluttercandies/photo_manager");
           final messenger =
               TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
           messenger.setMockMethodCallHandler(photos, (call) async {
             switch (call.method) {
-              case 'requestPermissionExtend':
+              case "requestPermissionExtend":
                 return assets.PermissionState.authorized.index;
-              case 'getAssetPathList':
+              case "getAssetPathList":
                 return {
-                  'data': empty
+                  "data": empty
                       ? []
                       : [
                           {
-                            'id': 'all',
-                            'name': '相册',
-                            'assetCount': 1,
-                            'isAll': true,
+                            "id": "all",
+                            "name": "相册",
+                            "assetCount": 1,
+                            "isAll": true,
                           },
                         ],
                 };
-              case 'getAssetListPaged':
+              case "getAssetListPaged":
                 return {
-                  'data': [
+                  "data": [
                     {
-                      'id': 'photo',
-                      'type': 1,
-                      'width': 100,
-                      'height': 100,
-                      'title': 'photo.png',
+                      "id": "photo",
+                      "type": 1,
+                      "width": 100,
+                      "height": 100,
+                      "title": "photo.png",
                     },
                   ],
                 };
-              case 'getAssetCountFromPath':
-              case 'getAssetCount':
+              case "getAssetCountFromPath":
+              case "getAssetCount":
                 return empty ? 0 : 1;
-              case 'getThumb':
-              case 'getOriginBytes':
+              case "getThumb":
+              case "getOriginBytes":
                 return bytes;
-              case 'isLocallyAvailable':
+              case "isLocallyAvailable":
                 return true;
               default:
                 return null;
@@ -84,29 +84,29 @@ void main() {
                       expect(picked, isEmpty);
                       returned = true;
                     },
-                    child: const Text('Import'),
+                    child: const Text("Import"),
                   ),
                 ),
               ),
             ),
           );
-          await t.tap(find.text('Import'));
+          await t.tap(find.text("Import"));
           for (var i = 0; i < 8; i++) {
             await t.pump(const Duration(milliseconds: 100));
           }
           expect(t.takeException(), isNull);
           if (empty) {
-            expect(find.text('列表为空', findRichText: true), findsOneWidget);
+            expect(find.text("列表为空", findRichText: true), findsOneWidget);
             navigator.currentState!.pop();
           } else {
-            expect(find.text('确认'), findsOneWidget);
+            expect(find.text("确认"), findsOneWidget);
             final tile = t.getRect(
               find.byType(assets.AssetEntityGridItemBuilder),
             );
             await t.tapAt(tile.topRight + const Offset(-18, 18));
             await t.pump();
-            expect(find.text('确认 (1)'), findsOneWidget);
-            await t.tap(find.text('预览 (1)', findRichText: true));
+            expect(find.text("确认 (1)"), findsOneWidget);
+            await t.tap(find.text("预览 (1)", findRichText: true));
             for (var i = 0; i < 8; i++) {
               await t.pump(const Duration(milliseconds: 100));
             }
@@ -115,10 +115,10 @@ void main() {
               find.byWidgetPredicate((w) => w is assets.AssetPickerViewer),
               findsOneWidget,
             );
-            expect(find.text('确认 (1)'), findsOneWidget);
+            expect(find.text("确认 (1)"), findsOneWidget);
             navigator.currentState!.pop();
             await t.pumpAndSettle();
-            expect(find.text('确认 (1)'), findsOneWidget);
+            expect(find.text("确认 (1)"), findsOneWidget);
             navigator.currentState!.pop();
           }
           await t.pumpAndSettle();
@@ -133,16 +133,16 @@ void main() {
   }
   for (final english in [false, true]) {
     testWidgets(
-      'Photo counts hide unlimited sentinel in both views ($english)',
+      "Photo counts hide unlimited sentinel in both views ($english)",
       (t) async {
         final first = assets.AssetEntity(
-          id: 'first',
+          id: "first",
           typeInt: 1,
           width: 10,
           height: 10,
         );
         final second = assets.AssetEntity(
-          id: 'second',
+          id: "second",
           typeInt: 1,
           width: 10,
           height: 10,
@@ -173,7 +173,7 @@ void main() {
           maxAssets: selected.maxAssets,
           themeData: legacy.ThemeData(),
         );
-        final label = english ? 'Confirm' : '确认';
+        final label = english ? "Confirm" : "确认";
         await t.pumpWidget(
           MaterialApp(
             // ignore: deprecated_member_use
@@ -190,12 +190,12 @@ void main() {
             ),
           ),
         );
-        expect(find.text('$label (1)'), findsNWidgets(2));
-        expect(find.textContaining('2147483647'), findsNothing);
+        expect(find.text("$label (1)"), findsNWidgets(2));
+        expect(find.textContaining("2147483647"), findsNothing);
         selected.selectAsset(second);
         viewerProvider.selectAsset(second);
         await t.pump();
-        expect(find.text('$label (2)'), findsNWidgets(2));
+        expect(find.text("$label (2)"), findsNWidgets(2));
         selected.unSelectAsset(first);
         selected.unSelectAsset(second);
         viewerProvider.unSelectAsset(first);
@@ -208,19 +208,19 @@ void main() {
       },
     );
   }
-  const channel = MethodChannel('plugins.flutter.io/image_picker');
+  const channel = MethodChannel("plugins.flutter.io/image_picker");
   for (final outcome in <Object?>[
-    '/camera/original.jpg',
+    "/camera/original.jpg",
     null,
-    PlatformException(code: 'camera_access_denied'),
+    PlatformException(code: "camera_access_denied"),
   ]) {
     final description = outcome is PlatformException
-        ? 'reports a readable failure'
+        ? "reports a readable failure"
         : outcome == null
-        ? 'handles cancellation'
-        : 'returns the original photo';
+        ? "handles cancellation"
+        : "returns the original photo";
     testWidgets(
-      'Android system camera $description without an embedded preview',
+      "Android system camera $description without an embedded preview",
       (t) async {
         debugDefaultTargetPlatformOverride = TargetPlatform.android;
         try {
@@ -241,8 +241,8 @@ void main() {
               throwsA(
                 isA<FormatException>().having(
                   (e) => e.message,
-                  'message',
-                  contains('系统相机'),
+                  "message",
+                  contains("系统相机"),
                 ),
               ),
             );
@@ -254,11 +254,11 @@ void main() {
             );
           }
           expect(calls, hasLength(1));
-          expect(calls.single.method, 'pickImage');
+          expect(calls.single.method, "pickImage");
           final args = calls.single.arguments as Map;
-          expect(args['source'], 0);
-          expect(args['maxWidth'], isNull);
-          expect(args['maxHeight'], isNull);
+          expect(args["source"], 0);
+          expect(args["maxWidth"], isNull);
+          expect(args["maxHeight"], isNull);
         } finally {
           debugDefaultTargetPlatformOverride = null;
         }
@@ -266,19 +266,19 @@ void main() {
     );
   }
   testWidgets(
-    'Embedded camera failure shows an error and can release to the system fallback',
+    "Embedded camera failure shows an error and can release to the system fallback",
     (t) async {
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
       const channels = [
-        'plugins.flutter.io/camera',
-        'dev.fluttercommunity.plus/sensors/method',
-        'dev.fluttercommunity.plus/sensors/accelerometer',
+        "plugins.flutter.io/camera",
+        "dev.fluttercommunity.plus/sensors/method",
+        "dev.fluttercommunity.plus/sensors/accelerometer",
       ];
       for (final name in channels) {
         messenger.setMockMethodCallHandler(
           MethodChannel(name),
-          (call) async => call.method == 'availableCameras' ? <Object>[] : null,
+          (call) async => call.method == "availableCameras" ? <Object>[] : null,
         );
         addTearDown(
           () => messenger.setMockMethodCallHandler(MethodChannel(name), null),
@@ -300,8 +300,8 @@ void main() {
         await t.pump(const Duration(milliseconds: 30));
       }
       expect(find.byType(camera.CameraPicker), findsOneWidget);
-      expect(find.text('相机报告异常，可返回重试或使用系统相机。'), findsOneWidget);
-      await t.tap(find.byKey(const Key('system-camera-fallback')));
+      expect(find.text("相机报告异常，可返回重试或使用系统相机。"), findsOneWidget);
+      await t.tap(find.byKey(const Key("system-camera-fallback")));
       await t.pumpAndSettle();
       expect((await result)?.useSystemCamera, true);
       expect(t.takeException(), isNull);

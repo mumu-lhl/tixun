@@ -1,994 +1,455 @@
-import 'dart:convert';
-import 'dart:io';
+import "dart:convert";
+import "dart:io";
 
-import 'package:dio/dio.dart';
-import 'package:drift/drift.dart' hide isNull, isNotNull;
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/app/theme.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/ai/quiz_tool.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/core/visual/render/visual_painter.dart';
-import 'package:tixun/features/practice/question_card.dart';
-import 'package:tixun/features/practice/question_spec.dart';
-import 'package:tixun/features/visual/study_visuals.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/app/theme.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/ai/quiz_tool.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/core/visual/render/visual_painter.dart";
+import "package:tixun/features/practice/question_card.dart";
+import "package:tixun/features/practice/question_spec.dart";
+import "package:tixun/features/visual/study_visuals.dart";
+
+import "support/visual_fixtures.dart";
+
+part "visual_question_answer_cases.dart";
+part "visual_question_fixture.dart";
 
 const _sceneV1 =
     '{"v":1,"kind":"plot2d","title":"V1","model":{"expression":"x^2-4"},"view":{"x":[-3,3],"y":[-5,6]},"meta":{"alt":"抛物线"}}';
 const _sceneV2 =
     '{"v":1,"kind":"plot2d","title":"V2","model":{"expression":"x^2-4"},"view":{"x":[-3,3],"y":[-5,6]},"meta":{"alt":"抛物线"}}';
 
-Future<void> _seedSession(
-  AppDatabase db,
-  String sessionId,
-  String messageId,
-) async {
-  final now = DateTime.now();
-  await db
-      .into(db.chatSessions)
-      .insert(
-        ChatSessionsCompanion.insert(
-          id: sessionId,
-          title: '会话',
-          createdAt: now,
-          updatedAt: now,
-        ),
-        mode: InsertMode.insertOrIgnore,
-      );
-  await db
-      .into(db.chatMessages)
-      .insert(
-        ChatMessagesCompanion.insert(
-          id: messageId,
-          sessionId: sessionId,
-          role: 'assistant',
-          content: '请看图',
-          createdAt: now,
-        ),
-      );
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
   setUpAll(() async {
     final manifest =
-        jsonDecode(await rootBundle.loadString('FontManifest.json')) as List;
+        jsonDecode(await rootBundle.loadString("FontManifest.json")) as List;
     for (final font in manifest) {
-      final loader = FontLoader(font['family'] as String);
-      for (final asset in font['fonts'] as List) {
-        loader.addFont(rootBundle.load(asset['asset'] as String));
+      final loader = FontLoader(font["family"] as String);
+      for (final asset in font["fonts"] as List) {
+        loader.addFont(rootBundle.load(asset["asset"] as String));
       }
       await loader.load();
     }
   });
 
-  late AppController c;
-  late ProviderContainer container;
+  final fixture = _VisualQuestionFixture();
+  tearDown(fixture._closeController);
+  fixture._previewCases();
+  fixture._answerCases();
+}
 
-  Future<void> openController() async {
-    final root = await Directory.systemTemp.createTemp(
-      'tixun-visual-question-card',
-    );
-    c = AppController(
-      AppDatabase.memory(),
-      AttachmentStore(root),
-      MemoryKeyStore(),
-      MockChatProvider(),
-    );
-    await c.initialize();
-    container = ProviderContainer(
-      overrides: [appControllerProvider.overrideWith((ref) => c)],
-    );
-  }
-
-  tearDown(() async {
-    container.dispose();
-    await c.db.close();
-    if (await c.files.root.exists()) {
-      await c.files.root.delete(recursive: true);
-    }
-  });
-
-  Future<void> pumpScaffold(WidgetTester tester, Widget child) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(390, 1000);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: appTheme(Brightness.light),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: child,
+extension _VisualQuestionPreviewCases on _VisualQuestionFixture {
+  void _previewCases() {
+    testWidgets(
+      "question fullscreen is a fixed preview with a return-to-answer action",
+      (tester) async {
+        late String questionId;
+        await tester.runAsync(() async {
+          await openController();
+          await seedVisualMessage(c.db, "s", "r1");
+          final visualId = await c.visual.create(
+            sceneJson: jsonEncode({
+              "v": 1,
+              "kind": "geometry",
+              "model": {
+                "parameters": {"a": 1},
+              },
+              "view": {
+                "x": [-5, 5],
+                "y": [-5, 5],
+              },
+              "elements": [
+                {
+                  "id": "answer",
+                  "type": "point",
+                  "at": [1, 1],
+                },
+              ],
+              "controls": [
+                {
+                  "id": "a",
+                  "kind": "slider",
+                  "label": "a",
+                  "min": 0,
+                  "max": 5,
+                  "step": 1,
+                  "value": 1,
+                },
+              ],
+              "timeline": {
+                "durationMs": 1000,
+                "tracks": [
+                  {
+                    "id": "track",
+                    "target": "a",
+                    "from": 3,
+                    "to": 5,
+                    "startMs": 0,
+                    "endMs": 1000,
+                  },
+                ],
+                "steps": [
+                  {
+                    "atMs": 0,
+                    "hide": ["answer"],
+                  },
+                  {
+                    "atMs": 500,
+                    "show": ["answer"],
+                    "note": "SOLUTION",
+                  },
+                ],
+              },
+              "meta": {"alt": "固定题图"},
+            }),
+            messageId: "r1",
+          );
+          questionId = await c.practice.create(
+            QuestionSpec(
+              kind: "numeric",
+              stem: "读图",
+              answers: const [
+                ["1"],
+              ],
+              visualId: visualId,
             ),
-          ),
-        ),
-      ),
+          );
+        });
+        await pumpScaffold(tester, QuestionCard(questionId));
+        await tester.tap(find.byIcon(Icons.open_in_full));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key("visual-play-pause")), findsNothing);
+        expect(find.byType(Slider), findsNothing);
+        expect(find.text("SOLUTION"), findsNothing);
+        final painter = tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .map((p) => p.painter)
+            .whereType<VisualPainter>()
+            .last;
+        expect(painter.parameters["a"], 3);
+        expect(painter.hiddenElementIds, contains("answer"));
+        await tester.tap(find.byKey(const Key("visual-return-to-answer")));
+        await tester.pumpAndSettle();
+        expect(find.byType(QuestionCard), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
     );
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 150)),
-    );
-    await tester.pumpAndSettle();
-  }
 
-  testWidgets(
-    'question fullscreen is a fixed preview with a return-to-answer action',
-    (tester) async {
+    testWidgets("QuestionCard shows the pinned visual, frozen after edits", (
+      tester,
+    ) async {
       late String questionId;
       await tester.runAsync(() async {
         await openController();
-        await _seedSession(c.db, 's', 'r1');
+        await seedVisualMessage(c.db, "s", "r1");
         final visualId = await c.visual.create(
-          sceneJson: jsonEncode({
-            'v': 1,
-            'kind': 'geometry',
-            'model': {
-              'parameters': {'a': 1},
-            },
-            'view': {
-              'x': [-5, 5],
-              'y': [-5, 5],
-            },
-            'elements': [
-              {
-                'id': 'answer',
-                'type': 'point',
-                'at': [1, 1],
-              },
-            ],
-            'controls': [
-              {
-                'id': 'a',
-                'kind': 'slider',
-                'label': 'a',
-                'min': 0,
-                'max': 5,
-                'step': 1,
-                'value': 1,
-              },
-            ],
-            'timeline': {
-              'durationMs': 1000,
-              'tracks': [
-                {
-                  'id': 'track',
-                  'target': 'a',
-                  'from': 3,
-                  'to': 5,
-                  'startMs': 0,
-                  'endMs': 1000,
-                },
-              ],
-              'steps': [
-                {
-                  'atMs': 0,
-                  'hide': ['answer'],
-                },
-                {
-                  'atMs': 500,
-                  'show': ['answer'],
-                  'note': 'SOLUTION',
-                },
-              ],
-            },
-            'meta': {'alt': '固定题图'},
-          }),
-          messageId: 'r1',
+          sceneJson: _sceneV1,
+          messageId: "r1",
         );
-        questionId = await c.practice.create(
-          QuestionSpec(
-            kind: 'numeric',
-            stem: '读图',
-            answers: const [
-              ['1'],
-            ],
-            visualId: visualId,
+        final result = await executeQuizTool(
+          c.practice,
+          ToolCall(
+            "c1",
+            "create_quiz",
+            jsonEncode({
+              "kind": "numeric",
+              "stem": "抛物线与 x 轴交点的横坐标是多少？",
+              "subject": "数学",
+              "answers": [
+                ["2"],
+              ],
+              "explanation": "x^2 - 4 = 0 的根是 ±2。",
+              "visual_id": visualId,
+            }),
           ),
+          sessionId: "s",
+          runId: "r1",
+          cancel: CancelToken(),
+          visual: c.visual,
         );
+        expect(result["ok"], true);
+        questionId = result["question_id"] as String;
       });
       await pumpScaffold(tester, QuestionCard(questionId));
-      await tester.tap(find.byIcon(Icons.open_in_full));
+      expect(find.text("V1"), findsOneWidget);
+      expect(find.textContaining("抛物线与 x 轴交点"), findsOneWidget);
+      await tester.runAsync(() async {
+        final scenes = await c.visual.listByMessage("r1");
+        await c.visual.revise(scenes.single.id, _sceneV2);
+      });
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('visual-play-pause')), findsNothing);
-      expect(find.byType(Slider), findsNothing);
-      expect(find.text('SOLUTION'), findsNothing);
-      final painter = tester
-          .widgetList<CustomPaint>(find.byType(CustomPaint))
-          .map((p) => p.painter)
-          .whereType<VisualPainter>()
-          .last;
-      expect(painter.parameters['a'], 3);
-      expect(painter.hiddenElementIds, contains('answer'));
-      await tester.tap(find.byKey(const Key('visual-return-to-answer')));
-      await tester.pumpAndSettle();
-      expect(find.byType(QuestionCard), findsOneWidget);
+      expect(find.text("V1"), findsOneWidget);
+      expect(find.text("V2"), findsNothing);
       expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('QuestionCard shows the pinned visual, frozen after edits', (
-    tester,
-  ) async {
-    late String questionId;
-    await tester.runAsync(() async {
-      await openController();
-      await _seedSession(c.db, 's', 'r1');
-      final visualId = await c.visual.create(
-        sceneJson: _sceneV1,
-        messageId: 'r1',
-      );
-      final result = await executeQuizTool(
-        c.practice,
-        ToolCall(
-          'c1',
-          'create_quiz',
-          jsonEncode({
-            'kind': 'numeric',
-            'stem': '抛物线与 x 轴交点的横坐标是多少？',
-            'subject': '数学',
-            'answers': [
-              ['2'],
-            ],
-            'explanation': 'x^2 - 4 = 0 的根是 ±2。',
-            'visual_id': visualId,
-          }),
-        ),
-        sessionId: 's',
-        runId: 'r1',
-        cancel: CancelToken(),
-        visual: c.visual,
-      );
-      expect(result['ok'], true);
-      questionId = result['question_id'] as String;
     });
-    await pumpScaffold(tester, QuestionCard(questionId));
-    // The card shows the pinned revision's title above the stem.
-    expect(find.text('V1'), findsOneWidget);
-    expect(find.textContaining('抛物线与 x 轴交点'), findsOneWidget);
-    // Editing the scene afterwards must not change the question's figure.
-    await tester.runAsync(() async {
-      final scenes = await c.visual.listByMessage('r1');
-      await c.visual.revise(scenes.single.id, _sceneV2);
-    });
-    await tester.pumpAndSettle();
-    expect(find.text('V1'), findsOneWidget);
-    expect(find.text('V2'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
 
-  testWidgets('StudyVisuals shows linked visuals and hides when empty', (
-    tester,
-  ) async {
-    await tester.runAsync(() async {
-      await openController();
-      await _seedSession(c.db, 's', 'r1');
-      final now = DateTime.now();
-      await c.db
-          .into(c.db.knowledgeItems)
-          .insert(
-            KnowledgeItemsCompanion.insert(
-              id: 'k',
-              title: '二次函数',
-              content: '正文',
-              subject: '数学',
-              createdAt: now,
-              updatedAt: now,
-            ),
-          );
-      final visualId = await c.visual.create(
-        sceneJson: _sceneV1,
-        messageId: 'r1',
-      );
-      await c.visual.linkToStudy(visualId, knowledgeId: 'k');
-    });
-    await pumpScaffold(
-      tester,
-      const StudyVisuals(knowledgeId: 'k', mistakeId: null, panelTitle: '图形'),
-    );
-    expect(find.text('图形'), findsOneWidget);
-    expect(find.text('V1'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('StudyVisuals renders nothing for an unlinked study item', (
-    tester,
-  ) async {
-    await tester.runAsync(() async {
-      await openController();
-    });
-    await pumpScaffold(
-      tester,
-      const StudyVisuals(
-        knowledgeId: 'missing',
-        mistakeId: null,
-        panelTitle: '图形',
-      ),
-    );
-    expect(find.text('图形'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
-
-  /// The card's painter: the only CustomPaint in the tree carrying a
-  /// VisualPainter (the selection overlays use their own painters).
-  VisualPainter questionPainter(WidgetTester tester) {
-    final paints = tester.widgetList<CustomPaint>(find.byType(CustomPaint));
-    final visual = paints.where((p) => p.painter is VisualPainter).toList();
-    return visual.single.painter as VisualPainter;
-  }
-
-  /// Creates a visual question through the real tool path and returns
-  /// its id. The scene is created first so the tool can snapshot it.
-  Future<String> createVisualQuestion(
-    WidgetTester tester,
-    String kind,
-    String sceneJson,
-    List<List<String>> answers, {
-    Map<String, String> options = const {},
-  }) async {
-    late String questionId;
-    await tester.runAsync(() async {
-      await openController();
-      await _seedSession(c.db, 's', 'r1');
-      final visualId = await c.visual.create(
-        sceneJson: sceneJson,
-        messageId: 'r1',
-      );
-      final result = await executeQuizTool(
-        c.practice,
-        ToolCall(
-          'c1',
-          'create_quiz',
-          jsonEncode({
-            'kind': kind,
-            'stem': '请在图上作答。',
-            'subject': '数学',
-            'options': options,
-            'answers': answers,
-            'explanation': '见图。',
-            'visual_id': visualId,
-          }),
-        ),
-        sessionId: 's',
-        runId: 'r1',
-        cancel: CancelToken(),
-        visual: c.visual,
-      );
-      expect(result['ok'], true);
-      questionId = result['question_id'] as String;
-    });
-    return questionId;
-  }
-
-  Future<void> submitAndCheck(
-    WidgetTester tester,
-    String questionId,
-    bool correct,
-  ) async {
-    await tester.tap(find.byKey(const Key('submit-quiz')));
-    // The submit runs a Drift transaction that only advances in real
-    // async time: alternate runAsync windows with pumps until the
-    // graded view appears (same pattern as ui_test.dart). Reading the
-    // store inside runAsync while the submit is still in flight can
-    // deadlock on the zone-scoped transaction lock, so the store is
-    // only read after the graded view proves the submit finished.
-    for (var i = 0; i < 20; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 150)),
-      );
-      await tester.pumpAndSettle();
-      // The graded view renders '参考答案：…' (with the colon); the
-      // header's 'AI 参考答案待核对' must not match.
-      if (find.textContaining('参考答案：').evaluate().isNotEmpty) break;
-      if (i == 19) fail('the attempt was never graded');
-    }
-    await tester.runAsync(() async {
-      expect((await c.practice.detail(questionId)).latest!.correct, correct);
-    });
-    expect(tester.takeException(), isNull);
-  }
-
-  for (final kind in ['point_select', 'region_select', 'read_value']) {
-    testWidgets('fullscreen $kind shares selection, submission and retry', (
+    testWidgets("StudyVisuals shows linked visuals and hides when empty", (
       tester,
     ) async {
-      const scene =
-          '{"v":1,"kind":"geometry","title":"Question figure","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true}]}';
-      final questionId = await createVisualQuestion(tester, kind, scene, [
-        [
-          kind == 'region_select'
-              ? 'r'
-              : kind == 'read_value'
-              ? '2'
-              : '0,0',
-        ],
-      ], options: kind == 'region_select' ? {'r': 'Region'} : const {});
-      await pumpScaffold(tester, QuestionCard(questionId));
-      await tester.tap(find.byIcon(Icons.open_in_full));
-      await tester.pumpAndSettle();
-      if (kind == 'read_value') {
-        await tester.ensureVisible(find.byKey(const Key('quiz-answer-0')));
-        await tester.enterText(find.byKey(const Key('quiz-answer-0')), '2');
-      } else {
-        await tester.tap(find.byKey(const Key('visual-tap-answer')));
-        await tester.pumpAndSettle();
-        expect(
-          find.byKey(
-            Key(
-              kind == 'region_select'
-                  ? 'visual-selection-region'
-                  : 'visual-selection-point',
-            ),
-          ),
-          findsOneWidget,
-        );
-      }
-      await tester.ensureVisible(find.byKey(const Key('submit-quiz')));
-      await submitAndCheck(tester, questionId, true);
-      await tester.tap(find.byKey(const Key('visual-return-to-answer')));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('参考答案：'), findsOneWidget);
-      await tester.runAsync(() async {
-        final detail = await c.practice.detail(questionId);
-        expect(detail.attempts, hasLength(1));
-      });
-      await tester.ensureVisible(find.text('再做一次'));
-      await tester.tap(find.text('再做一次'));
-      for (var i = 0; i < 10; i++) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 100)),
-        );
-        await tester.pumpAndSettle();
-        if (find.byKey(const Key('submit-quiz')).evaluate().isNotEmpty) break;
-      }
-      expect(find.byKey(const Key('visual-selection-region')), findsNothing);
-      expect(find.byKey(const Key('visual-selection-point')), findsNothing);
-      if (kind == 'read_value') {
-        expect(
-          tester
-              .widget<TextField>(find.byKey(const Key('quiz-answer-0')))
-              .controller!
-              .text,
-          isEmpty,
-        );
-      }
-      expect(tester.takeException(), isNull);
-    });
-  }
-
-  testWidgets(
-    'solution figures are gated by the current attempt in both routes and on retry',
-    (tester) async {
-      late String id;
       await tester.runAsync(() async {
         await openController();
-        id = await c.practice.create(
-          const QuestionSpec(
-            kind: 'numeric',
-            stem: 'Read the graph',
-            answers: [
-              ['2'],
-            ],
-            questionScene: {
-              'v': 1,
-              'kind': 'plot2d',
-              'title': 'QUESTION ONLY',
-              'model': {'expression': 'x^2'},
-            },
-            solutionScene: {
-              'v': 1,
-              'kind': 'geometry',
-              'title': 'SOLUTION SECRET',
-              'elements': [
-                {
-                  'id': 'text',
-                  'type': 'text',
-                  'at': [0, 0],
-                  'text': 'ANSWER 2',
-                },
-              ],
-            },
-          ),
+        await seedVisualMessage(c.db, "s", "r1");
+        final now = DateTime.now();
+        await c.db
+            .into(c.db.knowledgeItems)
+            .insert(
+              KnowledgeItemsCompanion.insert(
+                id: "k",
+                title: "二次函数",
+                content: "正文",
+                subject: "数学",
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+        final visualId = await c.visual.create(
+          sceneJson: _sceneV1,
+          messageId: "r1",
         );
+        await c.visual.linkToStudy(visualId, knowledgeId: "k");
       });
-      await pumpScaffold(tester, QuestionCard(id));
-      expect(find.text('SOLUTION SECRET'), findsNothing);
-      await tester.tap(find.byIcon(Icons.open_in_full));
-      await tester.pumpAndSettle();
-      expect(find.text('SOLUTION SECRET'), findsNothing);
-      await tester.ensureVisible(find.byKey(const Key('quiz-answer-0')));
-      await tester.enterText(find.byKey(const Key('quiz-answer-0')), '2');
-      await tester.ensureVisible(find.byKey(const Key('submit-quiz')));
-      await submitAndCheck(tester, id, true);
-      for (var i = 0; i < 5; i++) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 80)),
-        );
-        await tester.pumpAndSettle();
-      }
-      expect(find.text('SOLUTION SECRET'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('visual-return-to-answer')));
-      await tester.pumpAndSettle();
-      expect(find.text('SOLUTION SECRET'), findsOneWidget);
-      await tester.ensureVisible(find.text('再做一次'));
-      await tester.tap(find.text('再做一次'));
-      for (var i = 0; i < 10; i++) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 80)),
-        );
-        await tester.pumpAndSettle();
-        if (find.byKey(const Key('submit-quiz')).evaluate().isNotEmpty) break;
-      }
-      expect(find.text('SOLUTION SECRET'), findsNothing);
-      await tester.tap(find.byIcon(Icons.open_in_full));
-      await tester.pumpAndSettle();
-      expect(find.text('SOLUTION SECRET'), findsNothing);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets(
-    'fullscreen view navigation cannot change answers and transformed taps still use model coordinates',
-    (tester) async {
-      const scene =
-          '{"v":1,"kind":"geometry","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p","type":"point","at":[0,0]}]}';
-      final id = await createVisualQuestion(
+      await pumpScaffold(
         tester,
-        'point_select',
-        scene,
-        const [
-          ['0,0'],
-        ],
+        const StudyVisuals(knowledgeId: "k", mistakeId: null, panelTitle: "图形"),
       );
-      await pumpScaffold(tester, QuestionCard(id));
-      await tester.tap(find.byIcon(Icons.open_in_full));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('visual-tap-answer')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('visual-navigation-mode')));
-      await tester.pumpAndSettle();
-      final canvas = find.byKey(const Key('visual-canvas-paint'));
-      final before = tester.getCenter(canvas);
-      final initialWidth = tester.getRect(canvas).width;
-      final finger1 = await tester.createGesture(pointer: 1);
-      final finger2 = await tester.createGesture(pointer: 2);
-      await finger1.down(before - const Offset(35, 0));
-      await finger2.down(before + const Offset(35, 0));
-      await tester.pump();
-      await finger1.moveTo(before - const Offset(60, 0));
-      await finger2.moveTo(before + const Offset(60, 0));
-      await tester.pump();
-      await finger1.moveTo(before - const Offset(95, 0));
-      await finger2.moveTo(before + const Offset(95, 0));
-      await tester.pump();
-      await finger1.up();
-      await finger2.up();
-      await tester.pumpAndSettle();
-      expect(tester.getRect(canvas).width, greaterThan(initialWidth * 1.2));
-      await tester.timedDragFrom(
-        before,
-        const Offset(50, 30),
-        const Duration(milliseconds: 300),
-      );
-      await tester.pumpAndSettle();
-      final after = tester.getCenter(canvas);
-      expect((after - before).distance, greaterThan(10));
-      expect(find.textContaining('已选点：(0.00, 0.00)'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('visual-navigation-mode')));
-      await tester.pumpAndSettle();
-      await tester.tapAt(after);
-      await tester.pumpAndSettle();
-      expect(find.textContaining('已选点：'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('visual-reset-view')));
-      await tester.pumpAndSettle();
-      expect((tester.getCenter(canvas) - before).distance, lessThan(.1));
-      await tester.ensureVisible(find.byKey(const Key('submit-quiz')));
-      await submitAndCheck(tester, id, true);
+      expect(find.text("图形"), findsOneWidget);
+      expect(find.text("V1"), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets("StudyVisuals renders nothing for an unlinked study item", (
+      tester,
+    ) async {
       await tester.runAsync(() async {
-        final d = await c.practice.detail(id);
-        final saved = parseVisualPoint(d.responses[d.latest!.id]!.single)!;
-        expect(saved.$1, closeTo(0, .00001));
-        expect(saved.$2, closeTo(0, .00001));
+        await openController();
       });
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('Point-select: tapping the visual answers and grades', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"geometry","title":"点选图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"原点"}],"meta":{"alt":"点选"}}';
-    final questionId = await createVisualQuestion(
-      tester,
-      'point_select',
-      scene,
-      [
-        ['0,0'],
-      ],
-    );
-    await pumpScaffold(tester, QuestionCard(questionId));
-    // No text field and no option rows: the visual is the control.
-    expect(find.byType(TextField), findsNothing);
-    expect(find.byKey(const Key('option-A')), findsNothing);
-    // The canvas center is model (0,0) for this symmetric view.
-    await tester.tap(find.byKey(const Key('visual-tap-answer')));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('已选点：'), findsOneWidget);
-    await submitAndCheck(tester, questionId, true);
-  });
-
-  testWidgets('Region-select: tapping inside a region answers with its id', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"geometry","title":"区域图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r1","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true},{"id":"r2","type":"polygon","points":[[1.5,1.5],[2.5,1.5],[2.5,2.5],[1.5,2.5]],"fill":true}],"meta":{"alt":"区域"}}';
-    final questionId = await createVisualQuestion(
-      tester,
-      'region_select',
-      scene,
-      [
-        ['r1'],
-      ],
-      options: {'r1': '中心区域', 'r2': '右上区域'},
-    );
-    await pumpScaffold(tester, QuestionCard(questionId));
-    expect(find.byType(TextField), findsNothing);
-    // The option rows must not render: the visual is the control.
-    expect(find.byKey(const Key('option-r1')), findsNothing);
-    await tester.tap(find.byKey(const Key('visual-tap-answer')));
-    await tester.pumpAndSettle();
-    expect(find.text('已选区域：中心区域'), findsOneWidget);
-    await submitAndCheck(tester, questionId, true);
-  });
-
-  testWidgets('Region-select: a tap outside every region selects nothing', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"geometry","title":"区域图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r2","type":"polygon","points":[[1.5,1.5],[2.5,1.5],[2.5,2.5],[1.5,2.5]],"fill":true}],"meta":{"alt":"区域"}}';
-    final questionId = await createVisualQuestion(
-      tester,
-      'region_select',
-      scene,
-      [
-        ['r2'],
-      ],
-      options: {'r2': '右上区域'},
-    );
-    await pumpScaffold(tester, QuestionCard(questionId));
-    // The canvas center (0,0) is outside the only region.
-    await tester.tap(find.byKey(const Key('visual-tap-answer')));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('已选区域：'), findsNothing);
-    // The tap is not silent: the card asks for a region.
-    expect(find.text('请选择'), findsOneWidget);
-    // With no selection the submit is rejected: the attempt stays a
-    // draft and the card reports that the answer is incomplete.
-    await tester.tap(find.byKey(const Key('submit-quiz')));
-    for (var i = 0; i < 20; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 150)),
-      );
-      await tester.pumpAndSettle();
-      if (find.textContaining('请先完成作答').evaluate().isNotEmpty) break;
-      if (i == 19) fail('the incomplete-answer hint never appeared');
-    }
-    await tester.runAsync(() async {
-      expect((await c.practice.detail(questionId)).latest!.status, 'draft');
-    });
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Drag-to-target: dragging the point answers and grades', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"geometry","title":"拖点图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"P","draggable":true}],"meta":{"alt":"拖点"}}';
-    final questionId = await createVisualQuestion(
-      tester,
-      'drag_to_target',
-      scene,
-      [
-        ['2,0'],
-      ],
-    );
-    await pumpScaffold(tester, QuestionCard(questionId));
-    // No text field and no option rows: the visual is the control.
-    expect(find.byType(TextField), findsNothing);
-    expect(find.byKey(const Key('option-A')), findsNothing);
-    // The canvas is 358 wide for a 6-unit view, letterboxed to a
-    // 44.75 px/unit scale: dragging 90 px right moves the point from
-    // model (0,0) to about (2.01, 0), inside the 0.5 tolerance.
-    final canvas = find.byKey(const Key('visual-canvas-paint'));
-    await tester.dragFrom(tester.getCenter(canvas), const Offset(90, 0));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('已选点：'), findsOneWidget);
-    await submitAndCheck(tester, questionId, true);
-  });
-
-  testWidgets('Read-value: typing the value read off the graph grades', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"plot2d","title":"抛物线","model":{"expression":"x^2-4"},"view":{"x":[-3,3],"y":[-5,6]},"meta":{"alt":"抛物线"}}';
-    final questionId = await createVisualQuestion(tester, 'read_value', scene, [
-      ['-4'],
-    ]);
-    await pumpScaffold(tester, QuestionCard(questionId));
-    // Read-value keeps the typed input: the visual is shown, and the
-    // answer is typed like a numeric question — with a numeric
-    // keyboard, not the default one.
-    expect(find.byType(TextField), findsOneWidget);
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).keyboardType,
-      const TextInputType.numberWithOptions(decimal: true),
-    );
-    await tester.enterText(find.byType(TextField), '-4');
-    await tester.pumpAndSettle();
-    await submitAndCheck(tester, questionId, true);
-  });
-
-  testWidgets('Read-value: a non-numeric answer is rejected before grading', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"plot2d","title":"抛物线","model":{"expression":"x^2-4"},"view":{"x":[-3,3],"y":[-5,6]},"meta":{"alt":"抛物线"}}';
-    final questionId = await createVisualQuestion(tester, 'read_value', scene, [
-      ['-4'],
-    ]);
-    await pumpScaffold(tester, QuestionCard(questionId));
-    await tester.enterText(find.byType(TextField), 'abc');
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('submit-quiz')));
-    for (var i = 0; i < 20; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 150)),
-      );
-      await tester.pumpAndSettle();
-      if (find.textContaining('请输入有限数值').evaluate().isNotEmpty) break;
-      if (i == 19) fail('the non-numeric hint never appeared');
-    }
-    await tester.runAsync(() async {
-      expect((await c.practice.detail(questionId)).latest!.status, 'draft');
-    });
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Drag-to-target: graded view keeps the point at the answer', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"geometry","title":"拖点图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"P","draggable":true}],"meta":{"alt":"拖点"}}';
-    final questionId = await createVisualQuestion(
-      tester,
-      'drag_to_target',
-      scene,
-      [
-        ['2,0'],
-      ],
-    );
-    await pumpScaffold(tester, QuestionCard(questionId));
-    final canvas = find.byKey(const Key('visual-canvas-paint'));
-    await tester.dragFrom(tester.getCenter(canvas), const Offset(90, 0));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('已选点：'), findsOneWidget);
-    // The live drag position, for comparison with the graded view.
-    final dragged = questionPainter(tester).pointOverrides['p1']!;
-    expect(dragged.dx, greaterThan(1.5));
-    await submitAndCheck(tester, questionId, true);
-    // Graded view: the answer hint stays, and the point still renders
-    // at the submitted position instead of snapping back to the origin.
-    expect(find.textContaining('已选点：'), findsOneWidget);
-    final overrides = questionPainter(tester).pointOverrides;
-    expect(overrides.keys, ['p1']);
-    expect(overrides['p1']!.dx, closeTo(dragged.dx, 0.01));
-    expect(overrides['p1']!.dy, closeTo(dragged.dy, 0.01));
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Point-select: graded view keeps the selection marker', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"geometry","title":"点选图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"原点"}],"meta":{"alt":"点选"}}';
-    final questionId = await createVisualQuestion(
-      tester,
-      'point_select',
-      scene,
-      [
-        ['0,0'],
-      ],
-    );
-    await pumpScaffold(tester, QuestionCard(questionId));
-    await tester.tap(find.byKey(const Key('visual-tap-answer')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('visual-selection-point')), findsOneWidget);
-    await submitAndCheck(tester, questionId, true);
-    // The marker and the hint survive grading: the student's own
-    // answer stays visible on the figure.
-    expect(find.textContaining('已选点：'), findsOneWidget);
-    expect(find.byKey(const Key('visual-selection-point')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Region-select: graded view keeps the region highlight', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"geometry","title":"区域图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r1","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true},{"id":"r2","type":"polygon","points":[[1.5,1.5],[2.5,1.5],[2.5,2.5],[1.5,2.5]],"fill":true}],"meta":{"alt":"区域"}}';
-    final questionId = await createVisualQuestion(
-      tester,
-      'region_select',
-      scene,
-      [
-        ['r1'],
-      ],
-      options: {'r1': '中心区域', 'r2': '右上区域'},
-    );
-    await pumpScaffold(tester, QuestionCard(questionId));
-    await tester.tap(find.byKey(const Key('visual-tap-answer')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('visual-selection-region')), findsOneWidget);
-    await submitAndCheck(tester, questionId, true);
-    expect(find.text('已选区域：中心区域'), findsOneWidget);
-    expect(find.byKey(const Key('visual-selection-region')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Drag-to-target: retry clears the previous drag position', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"geometry","title":"拖点图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"P","draggable":true}],"meta":{"alt":"拖点"}}';
-    final questionId = await createVisualQuestion(
-      tester,
-      'drag_to_target',
-      scene,
-      [
-        ['2,0'],
-      ],
-    );
-    await pumpScaffold(tester, QuestionCard(questionId));
-    final canvas = find.byKey(const Key('visual-canvas-paint'));
-    await tester.dragFrom(tester.getCenter(canvas), const Offset(90, 0));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('已选点：'), findsOneWidget);
-    await submitAndCheck(tester, questionId, true);
-    expect(find.text('再做一次'), findsOneWidget);
-    await tester.tap(find.text('再做一次'));
-    await tester.pumpAndSettle();
-    // Retry starts a new attempt (a Drift round-trip): wait for the
-    // draft view to come back, like the submit flow does.
-    for (var i = 0; i < 20; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 150)),
-      );
-      await tester.pumpAndSettle();
-      if (find.byKey(const Key('submit-quiz')).evaluate().isNotEmpty) break;
-      if (i == 19) fail('the retry never returned to the draft view');
-    }
-    // No answer yet: the hint is gone and the point is back at the
-    // scene's original position (no stale overrides).
-    expect(find.textContaining('已选点：'), findsNothing);
-    expect(questionPainter(tester).pointOverrides, isEmpty);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets(
-    'Drag-to-target: a point inside a group restores from the saved answer',
-    (tester) async {
-      const scene =
-          '{"v":1,"kind":"geometry","title":"分组拖点","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[-2,-2],"label":"A","draggable":true},{"id":"g1","type":"group","children":[{"id":"p2","type":"point","at":[0,0],"label":"B","draggable":true}]}],"meta":{"alt":"分组拖点"}}';
-      final questionId = await createVisualQuestion(
+      await pumpScaffold(
         tester,
-        'drag_to_target',
-        scene,
-        [
-          ['2,0'],
-        ],
+        const StudyVisuals(
+          knowledgeId: "missing",
+          mistakeId: null,
+          panelTitle: "图形",
+        ),
       );
-      await pumpScaffold(tester, QuestionCard(questionId));
-      final canvas = find.byKey(const Key('visual-canvas-paint'));
-      // The canvas center is model (0,0): the grouped point p2, not p1.
-      await tester.dragFrom(tester.getCenter(canvas), const Offset(90, 0));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('已选点：'), findsOneWidget);
-      final dragged = questionPainter(tester).pointOverrides['p2']!;
-      expect(dragged.dx, greaterThan(1.5));
-      await submitAndCheck(tester, questionId, true);
-      // Reload the question: a fresh state must restore the grouped
-      // point from the saved "p2:x,y" answer, not the first point.
-      await pumpScaffold(tester, QuestionCard(questionId));
-      final restored = questionPainter(tester).pointOverrides;
-      expect(restored.keys, ['p2']);
-      expect(restored['p2']!.dx, closeTo(dragged.dx, 0.01));
-      expect(restored['p2']!.dy, closeTo(dragged.dy, 0.01));
+      expect(find.text("图形"), findsNothing);
       expect(tester.takeException(), isNull);
-    },
-  );
-
-  test('parseVisualPoint accepts an id-prefixed drag answer', () {
-    expect(parseVisualPoint('p2:1.5,-2'), (1.5, -2));
-    expect(parseVisualPoint('1.5,-2'), (1.5, -2));
-    expect(parseVisualPoint('p2:abc'), isNull);
-    expect(parseVisualPoint('p2:'), isNull);
-  });
-
-  testWidgets('fullscreen drag shares the card answer and persists the draft', (
-    tester,
-  ) async {
-    const scene =
-        '{"v":1,"kind":"geometry","title":"拖点图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p1","type":"point","at":[0,0],"label":"P","draggable":true}],"meta":{"alt":"拖点"}}';
-    final questionId = await createVisualQuestion(
-      tester,
-      'drag_to_target',
-      scene,
-      [
-        ['2,0'],
-      ],
-    );
-    await pumpScaffold(tester, QuestionCard(questionId));
-    await tester.tap(find.byIcon(Icons.open_in_full));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('visual-play-pause')), findsNothing);
-    expect(find.byKey(const Key('visual-reset-drag')), findsNothing);
-    final center = tester.getCenter(
-      find.byKey(const Key('visual-canvas-paint')).last,
-    );
-    await tester.dragFrom(center, const Offset(90, 0));
-    await tester.pump();
-    final paints = tester.widgetList<CustomPaint>(find.byType(CustomPaint));
-    final visual = paints.where((p) => p.painter is VisualPainter).toList();
-    final moved = (visual.last.painter as VisualPainter).pointOverrides['p1'];
-    expect(moved, isNotNull);
-    await tester.tap(find.byKey(const Key('visual-return-to-answer')));
-    await tester.pumpAndSettle();
-    expect(questionPainter(tester).pointOverrides['p1'], moved);
-    for (var i = 0; i < 5; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 80)),
-      );
-      await tester.pumpAndSettle();
-    }
-    await tester.runAsync(() async {
-      await c.practice.flushDrafts();
-      final d = await c.practice.detail(questionId);
-      expect(d.responses[d.latest!.id]!.single, startsWith('p1:'));
-      expect(d.attempts, hasLength(1));
     });
-    expect(tester.takeException(), isNull);
-  });
 
-  testWidgets(
-    'Region-select: a region hidden by the first step cannot be tapped',
-    (tester) async {
-      const scene =
-          '{"v":1,"kind":"geometry","title":"区域图","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r1","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true},{"id":"r2","type":"polygon","points":[[1.5,1.5],[2.5,1.5],[2.5,2.5],[1.5,2.5]],"fill":true}],"timeline":{"durationMs":1000,"steps":[{"atMs":0,"show":[],"hide":["r1"],"note":"藏起"}]},"meta":{"alt":"区域"}}';
-      final questionId = await createVisualQuestion(
+    for (final kind in ["point_select", "region_select", "read_value"]) {
+      testWidgets("fullscreen $kind shares selection, submission and retry", (
         tester,
-        'region_select',
-        scene,
-        [
-          ['r2'],
-        ],
-        options: {'r2': '右上区域'},
-      );
-      await pumpScaffold(tester, QuestionCard(questionId));
-      // The canvas center (0,0) is inside r1, but the first step hides
-      // it — the card renders the t=0 frame, so the tap selects nothing.
-      await tester.tap(find.byKey(const Key('visual-tap-answer')));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('已选区域：'), findsNothing);
-      expect(tester.takeException(), isNull);
-    },
-  );
+      ) async {
+        const scene =
+            '{"v":1,"kind":"geometry","title":"Question figure","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"r","type":"polygon","points":[[-1,-1],[1,-1],[1,1],[-1,1]],"fill":true}]}';
+        final questionId = await createVisualQuestion(tester, kind, scene, [
+          [
+            kind == "region_select"
+                ? "r"
+                : kind == "read_value"
+                ? "2"
+                : "0,0",
+          ],
+        ], options: kind == "region_select" ? {"r": "Region"} : const {});
+        await pumpScaffold(tester, QuestionCard(questionId));
+        await tester.tap(find.byIcon(Icons.open_in_full));
+        await tester.pumpAndSettle();
+        if (kind == "read_value") {
+          await tester.ensureVisible(find.byKey(const Key("quiz-answer-0")));
+          await tester.enterText(find.byKey(const Key("quiz-answer-0")), "2");
+        } else {
+          await tester.tap(find.byKey(const Key("visual-tap-answer")));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(
+              Key(
+                kind == "region_select"
+                    ? "visual-selection-region"
+                    : "visual-selection-point",
+              ),
+            ),
+            findsOneWidget,
+          );
+        }
+        await tester.ensureVisible(find.byKey(const Key("submit-quiz")));
+        await submitAndCheck(tester, questionId, true);
+        await tester.tap(find.byKey(const Key("visual-return-to-answer")));
+        await tester.pumpAndSettle();
+        expect(find.textContaining("参考答案："), findsOneWidget);
+        await tester.runAsync(() async {
+          final detail = await c.practice.detail(questionId);
+          expect(detail.attempts, hasLength(1));
+        });
+        await tester.ensureVisible(find.text("再做一次"));
+        await tester.tap(find.text("再做一次"));
+        for (var i = 0; i < 10; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 100)),
+          );
+          await tester.pumpAndSettle();
+          if (find.byKey(const Key("submit-quiz")).evaluate().isNotEmpty) break;
+        }
+        expect(find.byKey(const Key("visual-selection-region")), findsNothing);
+        expect(find.byKey(const Key("visual-selection-point")), findsNothing);
+        if (kind == "read_value") {
+          expect(
+            tester
+                .widget<TextField>(find.byKey(const Key("quiz-answer-0")))
+                .controller!
+                .text,
+            isEmpty,
+          );
+        }
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets(
+      "solution figures are gated by the current attempt in both routes and on retry",
+      (tester) async {
+        late String id;
+        await tester.runAsync(() async {
+          await openController();
+          id = await c.practice.create(
+            const QuestionSpec(
+              kind: "numeric",
+              stem: "Read the graph",
+              answers: [
+                ["2"],
+              ],
+              questionScene: {
+                "v": 1,
+                "kind": "plot2d",
+                "title": "QUESTION ONLY",
+                "model": {"expression": "x^2"},
+              },
+              solutionScene: {
+                "v": 1,
+                "kind": "geometry",
+                "title": "SOLUTION SECRET",
+                "elements": [
+                  {
+                    "id": "text",
+                    "type": "text",
+                    "at": [0, 0],
+                    "text": "ANSWER 2",
+                  },
+                ],
+              },
+            ),
+          );
+        });
+        await pumpScaffold(tester, QuestionCard(id));
+        expect(find.text("SOLUTION SECRET"), findsNothing);
+        await tester.tap(find.byIcon(Icons.open_in_full));
+        await tester.pumpAndSettle();
+        expect(find.text("SOLUTION SECRET"), findsNothing);
+        await tester.ensureVisible(find.byKey(const Key("quiz-answer-0")));
+        await tester.enterText(find.byKey(const Key("quiz-answer-0")), "2");
+        await tester.ensureVisible(find.byKey(const Key("submit-quiz")));
+        await submitAndCheck(tester, id, true);
+        for (var i = 0; i < 5; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 80)),
+          );
+          await tester.pumpAndSettle();
+        }
+        expect(find.text("SOLUTION SECRET"), findsOneWidget);
+        await tester.tap(find.byKey(const Key("visual-return-to-answer")));
+        await tester.pumpAndSettle();
+        expect(find.text("SOLUTION SECRET"), findsOneWidget);
+        await tester.ensureVisible(find.text("再做一次"));
+        await tester.tap(find.text("再做一次"));
+        for (var i = 0; i < 10; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 80)),
+          );
+          await tester.pumpAndSettle();
+          if (find.byKey(const Key("submit-quiz")).evaluate().isNotEmpty) break;
+        }
+        expect(find.text("SOLUTION SECRET"), findsNothing);
+        await tester.tap(find.byIcon(Icons.open_in_full));
+        await tester.pumpAndSettle();
+        expect(find.text("SOLUTION SECRET"), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      "fullscreen view navigation cannot change answers and transformed taps still use model coordinates",
+      (tester) async {
+        const scene =
+            '{"v":1,"kind":"geometry","view":{"x":[-3,3],"y":[-3,3]},"elements":[{"id":"p","type":"point","at":[0,0]}]}';
+        final id = await createVisualQuestion(
+          tester,
+          "point_select",
+          scene,
+          const [
+            ["0,0"],
+          ],
+        );
+        await pumpScaffold(tester, QuestionCard(id));
+        await tester.tap(find.byIcon(Icons.open_in_full));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key("visual-tap-answer")));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key("visual-navigation-mode")));
+        await tester.pumpAndSettle();
+        final canvas = find.byKey(const Key("visual-canvas-paint"));
+        final before = tester.getCenter(canvas);
+        final initialWidth = tester.getRect(canvas).width;
+        final finger1 = await tester.createGesture(pointer: 1);
+        final finger2 = await tester.createGesture(pointer: 2);
+        await finger1.down(before - const Offset(35, 0));
+        await finger2.down(before + const Offset(35, 0));
+        await tester.pump();
+        await finger1.moveTo(before - const Offset(60, 0));
+        await finger2.moveTo(before + const Offset(60, 0));
+        await tester.pump();
+        await finger1.moveTo(before - const Offset(95, 0));
+        await finger2.moveTo(before + const Offset(95, 0));
+        await tester.pump();
+        await finger1.up();
+        await finger2.up();
+        await tester.pumpAndSettle();
+        expect(tester.getRect(canvas).width, greaterThan(initialWidth * 1.2));
+        await tester.timedDragFrom(
+          before,
+          const Offset(50, 30),
+          const Duration(milliseconds: 300),
+        );
+        await tester.pumpAndSettle();
+        final after = tester.getCenter(canvas);
+        expect((after - before).distance, greaterThan(10));
+        expect(find.textContaining("已选点：(0.00, 0.00)"), findsOneWidget);
+        await tester.tap(find.byKey(const Key("visual-navigation-mode")));
+        await tester.pumpAndSettle();
+        await tester.tapAt(after);
+        await tester.pumpAndSettle();
+        expect(find.textContaining("已选点："), findsOneWidget);
+        await tester.tap(find.byKey(const Key("visual-reset-view")));
+        await tester.pumpAndSettle();
+        expect((tester.getCenter(canvas) - before).distance, lessThan(.1));
+        await tester.ensureVisible(find.byKey(const Key("submit-quiz")));
+        await submitAndCheck(tester, id, true);
+        await tester.runAsync(() async {
+          final d = await c.practice.detail(id);
+          final saved = parseVisualPoint(d.responses[d.latest!.id]!.single)!;
+          expect(saved.$1, closeTo(0, .00001));
+          expect(saved.$2, closeTo(0, .00001));
+        });
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 }

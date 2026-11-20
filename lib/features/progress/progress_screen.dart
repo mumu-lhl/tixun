@@ -1,12 +1,12 @@
-import '../library/study_localization.dart';
+import "../library/study_localization.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../core/l10n/app_strings.dart';
-import '../review/review_providers.dart';
-import '../review/review_screen.dart';
+import "../../core/l10n/app_strings.dart";
+import "../review/review_providers.dart";
+import "../review/review_screen.dart";
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
@@ -27,7 +27,7 @@ class ProgressScreen extends ConsumerWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
-                onPressed: () => context.go('/study'),
+                onPressed: () => context.go("/study"),
                 icon: const Icon(Icons.arrow_back),
                 label: Text(context.l10n.backToStudy),
               ),
@@ -43,19 +43,19 @@ class ProgressScreen extends ConsumerWidget {
               spacing: 28,
               runSpacing: 12,
               children: [
-                _metric(context, context.l10n.completedAttempts, '${p.total}'),
+                _metric(context, context.l10n.completedAttempts, "${p.total}"),
                 _metric(
                   context,
                   context.l10n.gradingAgainstVerifiedAnswers,
-                  '${p.checked}',
+                  "${p.checked}",
                 ),
-                _metric(context, context.l10n.selfAssessed, '${p.self}'),
+                _metric(context, context.l10n.selfAssessed, "${p.self}"),
                 _metric(
                   context,
                   context.l10n.uncheckedAIReferenceGrading,
-                  '${p.unverified}',
+                  "${p.unverified}",
                 ),
-                _metric(context, context.l10n.hintUsed, '${p.hinted}'),
+                _metric(context, context.l10n.hintUsed, "${p.hinted}"),
               ],
             ),
             const Divider(height: 40),
@@ -76,7 +76,7 @@ class ProgressScreen extends ConsumerWidget {
             for (final t in p.topics)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text('${context.subjectName(t.subject)} · ${t.name}'),
+                title: Text("${context.subjectName(t.subject)} · ${t.name}"),
                 subtitle: Text(
                   t.questions < 3
                       ? context.l10n.notEnoughEvidenceDistinctQuestions(

@@ -1,7 +1,7 @@
-import 'package:flutter/widgets.dart';
+import "package:flutter/widgets.dart";
 
-import '../../core/l10n/app_strings.dart';
-import 'update_models.dart';
+import "../../core/l10n/app_strings.dart";
+import "update_models.dart";
 
 /// Resolves update state codes at display time, so locale changes take effect
 /// without repeating the check or storing translated strings.
@@ -10,7 +10,7 @@ String updateMessageText(
   UpdateMessage message, {
   String? tag,
 }) => switch (message) {
-  UpdateMessage.newVersion => context.l10n.newVersionAvailable(tag ?? ''),
+  UpdateMessage.newVersion => context.l10n.newVersionAvailable(tag ?? ""),
   UpdateMessage.upToDate => context.l10n.youAreOnTheLatest,
   UpdateMessage.checkFailed => context.l10n.checkFailedPleaseTryAgain,
   UpdateMessage.unsupportedPlatform => context.l10n.inAppUpdatesAreNot,

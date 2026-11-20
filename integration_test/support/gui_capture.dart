@@ -1,42 +1,42 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:flutter_test/flutter_test.dart';
+import "package:flutter_test/flutter_test.dart";
 
 Future<String?> guiWindow() async {
   if (!Platform.isLinux) return null;
-  final result = await Process.run('xdotool', [
-    'search',
-    '--onlyvisible',
-    '--class',
-    'org.tixun.tixun',
+  final result = await Process.run("xdotool", [
+    "search",
+    "--onlyvisible",
+    "--class",
+    "org.tixun.tixun",
   ]);
-  if (result.exitCode != 0) throw StateError('No visible TiXun window');
-  return result.stdout.toString().trim().split('\n').first;
+  if (result.exitCode != 0) throw StateError("No visible TiXun window");
+  return result.stdout.toString().trim().split("\n").first;
 }
 
 Future<void> guiCapture(String group, String name) async {
   final window = await guiWindow();
   if (window == null) return;
-  await Directory('artifacts/gui-$group').create(recursive: true);
-  final magick = await Process.run('which', ['magick']);
-  final result = await Process.run(magick.exitCode == 0 ? 'magick' : 'import', [
-    if (magick.exitCode == 0) 'import',
-    '-window',
+  await Directory("artifacts/gui-$group").create(recursive: true);
+  final magick = await Process.run("which", ["magick"]);
+  final result = await Process.run(magick.exitCode == 0 ? "magick" : "import", [
+    if (magick.exitCode == 0) "import",
+    "-window",
     window,
-    'artifacts/gui-$group/$name.png',
+    "artifacts/gui-$group/$name.png",
   ]);
-  expect(result.exitCode, 0, reason: 'Capture $name');
+  expect(result.exitCode, 0, reason: "Capture $name");
 }
 
 Future<void> resizeGui(WidgetTester tester, int width, int height) async {
   final window = await guiWindow();
   if (window == null) return;
   expect(
-    (await Process.run('xdotool', [
-      'windowsize',
+    (await Process.run("xdotool", [
+      "windowsize",
       window,
-      '$width',
-      '$height',
+      "$width",
+      "$height",
     ])).exitCode,
     0,
   );

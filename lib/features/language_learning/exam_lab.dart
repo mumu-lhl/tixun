@@ -1,18 +1,18 @@
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
 
-import 'language_layout.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/ui/actions.dart';
-import 'exam_ai.dart';
-import 'exam_labels.dart';
-import 'exam_material.dart';
-import 'exam_paper_screen.dart';
-import 'exam_store.dart';
-import 'sentence_content.dart';
-import 'sentence_practice.dart';
+import "language_layout.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/ui/actions.dart";
+import "exam_ai.dart";
+import "exam_labels.dart";
+import "exam_material.dart";
+import "exam_paper_screen.dart";
+import "exam_store.dart";
+import "sentence_content.dart";
+import "sentence_practice.dart";
 
 class ExamLab extends StatefulWidget {
   const ExamLab({
@@ -215,7 +215,7 @@ class _ExamSettingsState extends State<_ExamSettings> {
               decoration: InputDecoration(labelText: l10n.languageExamCount),
               items: [
                 for (final count in _counts)
-                  DropdownMenuItem(value: count, child: Text('$count')),
+                  DropdownMenuItem(value: count, child: Text("$count")),
               ],
               onChanged: (value) => setState(() => _count = value!),
             ),

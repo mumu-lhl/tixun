@@ -3,28 +3,28 @@
 /// queue that understands Markdown.
 library;
 
-import 'study_export.dart';
+import "study_export.dart";
 
 String buildStudyMarkdown(StudyExportBundle bundle, StudyExportChrome chrome) {
   final out = StringBuffer()
-    ..writeln('# ${chrome.title}')
+    ..writeln("# ${chrome.title}")
     ..writeln()
     ..writeln(chrome.dateLine);
   if (chrome.imagesExcluded.isNotEmpty && bundle.imageCount > 0) {
     out
       ..writeln()
-      ..writeln('> ${chrome.imagesExcluded}');
+      ..writeln("> ${chrome.imagesExcluded}");
   }
   out.writeln();
   for (final entry in bundle.bySubject.entries) {
     if (bundle.bySubject.length > 1) {
       out
-        ..writeln('## ${entry.key}')
+        ..writeln("## ${entry.key}")
         ..writeln();
     }
     for (final note in entry.value) {
       out
-        ..writeln('### ${note.title}')
+        ..writeln("### ${note.title}")
         ..writeln()
         ..writeln(chrome.noteMeta(note))
         ..writeln()
@@ -32,5 +32,5 @@ String buildStudyMarkdown(StudyExportBundle bundle, StudyExportChrome chrome) {
         ..writeln();
     }
   }
-  return out.toString().replaceAll(RegExp(r'\n{3,}'), '\n\n');
+  return out.toString().replaceAll(RegExp(r"\n{3,}"), "\n\n");
 }

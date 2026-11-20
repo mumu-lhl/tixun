@@ -1,16 +1,18 @@
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:drift/drift.dart' hide Column;
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "dart:async";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/cached_stream_builder.dart';
-import 'exam_calendar.dart';
-import 'exam_store.dart';
+import "package:tixun/core/l10n/app_error.dart";
+import "package:drift/drift.dart" hide Column;
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
+
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/cached_stream_builder.dart";
+import "exam_calendar.dart";
+import "exam_store.dart";
 
 class ExamDetailScreen extends ConsumerWidget {
   const ExamDetailScreen(this.id, {super.key});
@@ -20,7 +22,7 @@ class ExamDetailScreen extends ConsumerWidget {
     final c = ref.watch(appControllerProvider);
     return CachedStreamBuilder<ExamEvent?>(
       owner: c.exams,
-      cacheKey: ('event', id),
+      cacheKey: ("event", id),
       stream: (c.db.select(
         c.db.examEvents,
       )..where((t) => t.id.equals(id))).watchSingleOrNull(),
@@ -50,7 +52,7 @@ class ExamDetailScreen extends ConsumerWidget {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () => context.go('/exams'),
+                          onPressed: () => context.go("/exams"),
                           tooltip: context.l10n.back,
                           icon: const Icon(Icons.arrow_back),
                         ),
@@ -91,7 +93,7 @@ class ExamDetailScreen extends ConsumerWidget {
                             if (yes == true && context.mounted) {
                               await act(context, () async {
                                 await c.exams.deleteEvent(id);
-                                if (context.mounted) context.go('/exams');
+                                if (context.mounted) context.go("/exams");
                               });
                             }
                           },
@@ -102,7 +104,7 @@ class ExamDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 24),
                     CachedStreamBuilder<List<ExamSubject>>(
                       owner: c.exams,
-                      cacheKey: ('subjects', id),
+                      cacheKey: ("subjects", id),
                       stream:
                           (c.db.select(c.db.examSubjects)
                                 ..where((t) => t.eventId.equals(id))
@@ -112,7 +114,7 @@ class ExamDetailScreen extends ConsumerWidget {
                         duration: const Duration(milliseconds: 220),
                         child: Column(
                           key: ValueKey(
-                            subjects.data?.map((s) => s.id).join('|'),
+                            subjects.data?.map((s) => s.id).join("|"),
                           ),
                           children: [
                             if (subjects.hasError)
@@ -132,7 +134,7 @@ class ExamDetailScreen extends ConsumerWidget {
                                 ),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () => context.push(
-                                  '/exams/$id/subject/${subject.id}',
+                                  "/exams/$id/subject/${subject.id}",
                                 ),
                               ),
                           ],
@@ -240,20 +242,20 @@ Future<void> editSubject(
         existing?.subject ??
         (c.subjectFilter.isNotEmpty
             ? c.subjectFilter
-            : c.learningSubjects.contains('数学')
-            ? '数学'
+            : c.learningSubjects.contains("数学")
+            ? "数学"
             : c.learningSubjects.first),
   );
   final raw = TextEditingController(
-    text: existing?.rawScore == null ? '' : points(existing!.rawScore),
+    text: existing?.rawScore == null ? "" : points(existing!.rawScore),
   );
   final scaled = TextEditingController(
-    text: existing?.scaledScore == null ? '' : points(existing!.scaledScore),
+    text: existing?.scaledScore == null ? "" : points(existing!.scaledScore),
   );
   final max = TextEditingController(
-    text: existing?.maximum == null ? '' : points(existing!.maximum),
+    text: existing?.maximum == null ? "" : points(existing!.maximum),
   );
-  final notes = TextEditingController(text: existing?.notes ?? '');
+  final notes = TextEditingController(text: existing?.notes ?? "");
   var scaling = existing?.usesScaling ?? false;
   String? error;
   bool saving = false;
@@ -398,7 +400,7 @@ Future<void> editSubject(
       ),
     );
     if (saved != null && context.mounted && existing == null) {
-      context.push('/exams/$eventId/subject/$saved');
+      unawaited(context.push("/exams/$eventId/subject/$saved"));
     }
   } finally {
     for (final t in [subject, raw, scaled, max, notes]) {
@@ -413,7 +415,7 @@ double? parsePoints(String text) {
   if (value == null || !value.isFinite) {
     throw const AppFormatException(
       AppErrorCode.errorInvalidScoreFormat,
-      '分数格式无效。',
+      "分数格式无效。",
     );
   }
   return value;

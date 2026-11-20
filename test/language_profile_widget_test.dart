@@ -1,16 +1,16 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/l10n/generated/app_localizations.dart';
-import 'package:tixun/core/ui/app_menu.dart';
-import 'package:tixun/features/language_learning/language_profile_screen.dart';
-import 'package:tixun/features/language_learning/language_skills.dart';
-import 'package:tixun/features/language_learning/language_store.dart';
-import 'package:tixun/features/language_learning/sentence_content.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:material_ui/material_ui.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/l10n/generated/app_localizations.dart";
+import "package:tixun/core/ui/app_menu.dart";
+import "package:tixun/features/language_learning/language_profile_screen.dart";
+import "package:tixun/features/language_learning/language_skills.dart";
+import "package:tixun/features/language_learning/language_store.dart";
+import "package:tixun/features/language_learning/sentence_content.dart";
 
 void main() {
   testWidgets(
-    'narrow profile uses anchored controls and opens a recommendation',
+    "narrow profile uses anchored controls and opens a recommendation",
     (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(360, 850);
@@ -20,10 +20,10 @@ void main() {
       final store = LanguageLearningStore(db);
       await tester.runAsync(
         () => store.saveEntries(
-          language: 'en',
-          groupTitle: 'Foundation',
+          language: "en",
+          groupTitle: "Foundation",
           groupType: VocabularyGroupType.topic,
-          entries: const [VocabularyEntry(form: 'go', meaning: '去')],
+          entries: const [VocabularyEntry(form: "go", meaning: "去")],
         ),
       );
       LanguageGoal? goal;
@@ -31,12 +31,12 @@ void main() {
       var reviews = 0;
       await tester.pumpWidget(
         MaterialApp(
-          locale: const Locale('en'),
+          locale: const Locale("en"),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: LanguageProfileScreen(
             store: store,
-            language: 'en',
+            language: "en",
             onReview: () => reviews++,
             onPractice: (_, plan, selected) {
               chosen = plan;
@@ -59,7 +59,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byType(AppSelectField<SentenceLevel>));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(MenuItemButton, 'Intermediate'));
+      await tester.tap(find.widgetWithText(MenuItemButton, "Intermediate"));
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.schedule));
       expect(reviews, 1);

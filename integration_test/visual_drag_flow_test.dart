@@ -1,20 +1,20 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:tixun/core/visual/model/visual_scene.dart';
-import 'package:tixun/core/visual/render/visual_painter.dart';
-import 'package:tixun/features/visual/visual_card.dart';
+import "package:tixun/core/visual/model/visual_scene.dart";
+import "package:tixun/core/visual/render/visual_painter.dart";
+import "package:tixun/features/visual/visual_card.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:integration_test/integration_test.dart';
-import 'package:tixun/app/app.dart';
-import 'package:tixun/app/controller.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:integration_test/integration_test.dart";
+import "package:tixun/app/app.dart";
+import "package:tixun/app/controller.dart";
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('Real Linux GUI: a draggable point moves and resets', (
+  testWidgets("Real Linux GUI: a draggable point moves and resets", (
     tester,
   ) async {
     final c = await AppController.open(demo: true);
@@ -26,11 +26,11 @@ void main() {
       UncontrolledProviderScope(container: container, child: const TixunApp()),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('start-chat')));
+    await tester.tap(find.byKey(const Key("start-chat")));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const Key('chat-input')),
-      '请画图，画出 y = x^2 的函数图',
+      find.byKey(const Key("chat-input")),
+      "请画图，画出 y = x^2 的函数图",
     );
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -43,31 +43,29 @@ void main() {
     await tester.pumpAndSettle();
     final scenes = await c.visual.listByMessage(c.messages.last.id);
     expect(scenes, hasLength(1));
-    // Replace the static mock scene with a geometry scene carrying one
-    // draggable point (p1) and one fixed point (p2).
     final dragScene = {
-      'v': 1,
-      'kind': 'geometry',
-      'title': '拖拽点',
-      'view': {
-        'x': [-3, 3],
-        'y': [-3, 3],
+      "v": 1,
+      "kind": "geometry",
+      "title": "拖拽点",
+      "view": {
+        "x": [-3, 3],
+        "y": [-3, 3],
       },
-      'elements': [
+      "elements": [
         {
-          'id': 'p1',
-          'type': 'point',
-          'at': [1, 1],
-          'draggable': true,
-          'label': 'P',
+          "id": "p1",
+          "type": "point",
+          "at": [1, 1],
+          "draggable": true,
+          "label": "P",
         },
         {
-          'id': 'p2',
-          'type': 'point',
-          'at': [-1, -1],
+          "id": "p2",
+          "type": "point",
+          "at": [-1, -1],
         },
       ],
-      'meta': {'alt': '拖拽点'},
+      "meta": {"alt": "拖拽点"},
     };
     await c.visual.revise(scenes.single.id, jsonEncode(dragScene));
     await tester.pumpAndSettle();
@@ -95,18 +93,15 @@ void main() {
     }
 
     expect(painter().pointOverrides, isEmpty);
-    // Drag p1 by (60, -30) canvas pixels.
     final start = pointGlobal(const Offset(1, 1));
     await tester.dragFrom(start, const Offset(60, -30));
     await tester.pump();
     final overrides = painter().pointOverrides;
-    expect(overrides.keys, ['p1']);
-    // The point moved right and up in model space.
-    expect(overrides['p1']!.dx, greaterThan(1.0));
-    expect(overrides['p1']!.dy, greaterThan(1.0));
+    expect(overrides.keys, ["p1"]);
+    expect(overrides["p1"]!.dx, greaterThan(1.0));
+    expect(overrides["p1"]!.dy, greaterThan(1.0));
 
-    // Reset restores the scene coordinates.
-    await tester.tap(find.byKey(const Key('visual-reset-drag')));
+    await tester.tap(find.byKey(const Key("visual-reset-drag")));
     await tester.pump();
     expect(painter().pointOverrides, isEmpty);
   });

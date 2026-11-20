@@ -1,17 +1,18 @@
-import 'dart:async';
+import "dart:async";
 
-import '../../core/ui/app_menu.dart';
+import "../../core/ui/app_menu.dart";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/search_snippet.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/search_snippet.dart";
 
-/// One row in the history list: a recency header or a session tile.
+part "session_list_trash.dart";
+
 sealed class _HistoryRow {
   const _HistoryRow();
 }
@@ -38,7 +39,7 @@ List<_HistoryRow> _groupedRows(
   required String earlier,
 }) {
   final todayStart = DateTime(now.year, now.month, now.day);
-  var currentLabel = '';
+  var currentLabel = "";
   final rows = <_HistoryRow>[];
   for (final s in sessions) {
     final day = DateTime(s.updatedAt.year, s.updatedAt.month, s.updatedAt.day);
@@ -69,7 +70,7 @@ class SessionList extends ConsumerStatefulWidget {
 class _SessionListState extends ConsumerState<SessionList> {
   late final TextEditingController _search;
   Timer? _searchDebounce;
-  String _snippetQuery = '';
+  String _snippetQuery = "";
   int _selectionEpoch = 0;
   final _snippetFutures = <String, Future<ChatMessage?>>{};
 
@@ -97,7 +98,7 @@ class _SessionListState extends ConsumerState<SessionList> {
       _snippetFutures.clear();
     }
     final liveSnippetKeys = c.sessions
-        .map((s) => '${s.id}:${s.updatedAt.microsecondsSinceEpoch}')
+        .map((s) => "${s.id}:${s.updatedAt.microsecondsSinceEpoch}")
         .toSet();
     _snippetFutures.removeWhere((key, _) => !liveSnippetKeys.contains(key));
     // The query can be cleared outside this widget (e.g. starting a new
@@ -137,7 +138,7 @@ class _SessionListState extends ConsumerState<SessionList> {
               ),
               IconButton(
                 tooltip: context.l10n.newConversation,
-                key: const Key('new-session'),
+                key: const Key("new-session"),
                 onPressed: () => act(context, () async {
                   _searchDebounce?.cancel();
                   await c.newSession();
@@ -162,11 +163,11 @@ class _SessionListState extends ConsumerState<SessionList> {
                   ),
                 ),
                 TextButton(
-                  key: const Key('session-show-all'),
+                  key: const Key("session-show-all"),
                   onPressed: () => act(context, () async {
                     _searchDebounce?.cancel();
-                    await c.searchSessions('');
-                    await c.setSubjectFilter('');
+                    await c.searchSessions("");
+                    await c.setSubjectFilter("");
                   }),
                   child: Text(context.l10n.showAllConversations),
                 ),
@@ -176,13 +177,13 @@ class _SessionListState extends ConsumerState<SessionList> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: TextField(
-            key: const Key('session-search'),
+            key: const Key("session-search"),
             onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
             controller: _search,
             onChanged: (value) {
               _searchDebounce?.cancel();
               _searchDebounce = Timer(const Duration(milliseconds: 250), () {
-                if (mounted) c.searchSessions(value);
+                if (mounted) unawaited(c.searchSessions(value));
               });
               setState(() {});
             },
@@ -197,7 +198,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                       onPressed: () {
                         _searchDebounce?.cancel();
                         _search.clear();
-                        c.searchSessions('');
+                        unawaited(c.searchSessions(""));
                       },
                     ),
               filled: true,
@@ -237,7 +238,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                         if (c.search.isNotEmpty && c.subjectFilter.isNotEmpty)
                           TextButton(
                             onPressed: () =>
-                                act(context, () => c.setSubjectFilter('')),
+                                act(context, () => c.setSubjectFilter("")),
                             child: Text(context.l10n.clearSubjectFilter),
                           ),
                       ],
@@ -325,9 +326,9 @@ class _SessionListState extends ConsumerState<SessionList> {
                                   l10nArgument((s.updatedAt.month)),
                                   l10nArgument((s.updatedAt.day)),
                                   l10nArgument(
-                                    (s.mode == 'guided'
+                                    (s.mode == "guided"
                                         ? context.l10n.guidedLearning
-                                        : s.mode == 'direct'
+                                        : s.mode == "direct"
                                         ? context.l10n.directAnswer
                                         : context.l10n.examMode),
                                   ),
@@ -340,12 +341,12 @@ class _SessionListState extends ConsumerState<SessionList> {
                               if (c.search.trim().isNotEmpty)
                                 FutureBuilder<ChatMessage?>(
                                   future: _snippetFutures.putIfAbsent(
-                                    '${s.id}:${s.updatedAt.microsecondsSinceEpoch}',
+                                    "${s.id}:${s.updatedAt.microsecondsSinceEpoch}",
                                     () => c.db.matchingMessage(s.id, c.search),
                                   ),
                                   builder: (context, snapshot) {
                                     final excerpt = searchExcerpt(
-                                      snapshot.data?.content ?? '',
+                                      snapshot.data?.content ?? "",
                                       c.search,
                                     );
                                     return excerpt == null
@@ -361,7 +362,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                             final match = query.isEmpty
                                 ? null
                                 : await _snippetFutures.putIfAbsent(
-                                    '${s.id}:${s.updatedAt.microsecondsSinceEpoch}',
+                                    "${s.id}:${s.updatedAt.microsecondsSinceEpoch}",
                                     () => c.db.matchingMessage(s.id, query),
                                   );
                             if (!mounted || selection != _selectionEpoch) {
@@ -383,11 +384,11 @@ class _SessionListState extends ConsumerState<SessionList> {
                                 _action(context, c, s, action),
                             itemBuilder: (_) => [
                               PopupMenuItem(
-                                value: 'rename',
+                                value: "rename",
                                 child: Text(context.l10n.rename),
                               ),
                               PopupMenuItem(
-                                value: 'delete',
+                                value: "delete",
                                 child: Text(context.l10n.deleteConversation),
                               ),
                             ],
@@ -426,7 +427,7 @@ class _SessionListState extends ConsumerState<SessionList> {
     ChatSession s,
     String action,
   ) async {
-    if (action == 'rename') {
+    if (action == "rename") {
       final title = await editText(
         context,
         title: context.l10n.renameConversation,
@@ -451,111 +452,5 @@ class _SessionListState extends ConsumerState<SessionList> {
         }
       });
     }
-  }
-
-  Future<void> _trash(BuildContext context, AppController c) async {
-    final items = await c.db.trash();
-    if (!context.mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, update) => AlertDialog(
-          title: Text(context.l10n.trash),
-          content: SizedBox(
-            width: 480,
-            height: 320,
-            child: items.isEmpty
-                ? Center(child: Text(context.l10n.trashIsEmpty))
-                : ListView.builder(
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return ListTile(
-                        title: Text(
-                          item.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: PopupMenuButton<String>(
-                          popUpAnimationStyle: menuAnimation(context),
-                          tooltip: context.l10n.deletedConversationActions,
-                          itemBuilder: (_) => [
-                            PopupMenuItem(
-                              value: 'restore',
-                              child: Text(context.l10n.restoreConversation),
-                            ),
-                            PopupMenuItem(
-                              value: 'purge',
-                              child: Text(
-                                context.l10n.deleteConversationPermanently,
-                              ),
-                            ),
-                          ],
-                          onSelected: (action) => act(context, () async {
-                            if (action == 'restore') {
-                              await c.restoreSession(item);
-                            } else {
-                              final ok = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: Text(
-                                    context.l10n.permanentlyDeleteConversation,
-                                  ),
-                                  content: Text(
-                                    context.l10n
-                                        .permanentlyDeleteMessagesImageReferences(
-                                          l10nArgument((item.title)),
-                                        ),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(ctx, false),
-                                      child: Text(context.l10n.cancel),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      child: Text(
-                                        context.l10n.deletePermanently,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (ok != true) return;
-                              final failed = await c.purgeSession(item.id);
-                              if (context.mounted && failed > 0) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      context.l10n
-                                          .recordsDeletedUnusedImagesNotRemoved(
-                                            l10nArgument((failed)),
-                                          ),
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                            if (context.mounted) {
-                              update(
-                                () => items.removeWhere((s) => s.id == item.id),
-                              );
-                            }
-                          }),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(context.l10n.close),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

@@ -1,27 +1,27 @@
-import '../../core/ui/app_menu.dart';
+import "../../core/ui/app_menu.dart";
 
-import 'dart:io';
+import "dart:io";
 
-import 'package:file_selector/file_selector.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:file_selector/file_selector.dart";
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import '../../core/ui/image_viewer.dart';
-import 'image_editor.dart';
-import 'library_providers.dart';
-import 'study_photo_intake.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "../../core/ui/image_viewer.dart";
+import "image_editor.dart";
+import "library_providers.dart";
+import "study_photo_intake.dart";
 
 Future<List<XFile>> pickStudyImages(BuildContext context) => openFiles(
   acceptedTypeGroups: [
     XTypeGroup(
       label: context.l10n.questionImage,
-      extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-      mimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+      extensions: ["jpg", "jpeg", "png", "gif", "webp"],
+      mimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
     ),
   ],
 );
@@ -79,7 +79,7 @@ class StudyImages extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Text(
-                          image.role == 'original'
+                          image.role == "original"
                               ? context.l10n.originalTapToEnlarge
                               : context.l10n.editedCopyTapToEnlarge,
                           style: const TextStyle(fontSize: 11),
@@ -95,7 +95,7 @@ class StudyImages extends ConsumerWidget {
                               for (final item in images)
                                 ImageViewerItem(
                                   file: files.resolve(item.relativePath),
-                                  heroTag: 'study-image-${item.id}',
+                                  heroTag: "study-image-${item.id}",
                                   cacheWidth: 1600,
                                   errorText: context.l10n.couldNotReadImageThe,
                                 ),
@@ -103,12 +103,12 @@ class StudyImages extends ConsumerWidget {
                             initialIndex: images.indexWhere(
                               (item) => item.id == image.id,
                             ),
-                            title: image.role == 'original'
+                            title: image.role == "original"
                                 ? context.l10n.originalTapToEnlarge
                                 : context.l10n.editedCopyTapToEnlarge,
                           ),
                           child: Hero(
-                            tag: 'study-image-${image.id}',
+                            tag: "study-image-${image.id}",
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
                               child: picture(),
@@ -156,13 +156,13 @@ class StudyImages extends ConsumerWidget {
                               if (confirmed != true) return;
                             }
                             await c.newSession();
-                            await c.renameSession(c.selected!, '图片分题 · 检查与整理');
+                            await c.renameSession(c.selected!, "图片分题 · 检查与整理");
                             await c.addImage(
                               files.resolve(image.relativePath).path,
                             );
                             await c.useToolReasoning();
-                            await c.draft(c.prompts.text('split'));
-                            if (context.mounted) context.go('/chat');
+                            await c.draft(c.prompts.text("split"));
+                            if (context.mounted) context.go("/chat");
                           }),
                           icon: const Icon(
                             Icons.auto_awesome_outlined,
@@ -282,7 +282,7 @@ class StudyImages extends ConsumerWidget {
                                                 ),
                                           ),
                                           title: Text(
-                                            image.role == 'original'
+                                            image.role == "original"
                                                 ? context.l10n.original
                                                 : context.l10n.editedCopy,
                                           ),
@@ -330,7 +330,7 @@ class StudyImages extends ConsumerWidget {
                         popUpAnimationStyle: menuAnimation(context),
                         tooltip: context.l10n.addQuestionImage,
                         onSelected: (kind) => act(context, () async {
-                          if (kind == 'file') {
+                          if (kind == "file") {
                             if (!context.mounted) return;
                             final picked = await pickStudyImages(context);
                             for (final file in picked) {
@@ -354,21 +354,21 @@ class StudyImages extends ConsumerWidget {
                               context: context,
                               ownerId: id,
                               isMistake: isMistake,
-                              camera: kind == 'camera',
+                              camera: kind == "camera",
                             );
                           }
                         }),
                         itemBuilder: (_) => [
                           PopupMenuItem(
-                            value: 'camera',
+                            value: "camera",
                             child: Text(context.l10n.takePhoto),
                           ),
                           PopupMenuItem(
-                            value: 'gallery',
+                            value: "gallery",
                             child: Text(context.l10n.photoLibrary),
                           ),
                           PopupMenuItem(
-                            value: 'file',
+                            value: "file",
                             child: Text(context.l10n.imageFiles),
                           ),
                         ],

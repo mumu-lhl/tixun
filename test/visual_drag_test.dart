@@ -1,39 +1,39 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:flutter/services.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/visual/model/visual_scene.dart';
-import 'package:tixun/core/visual/render/visual_painter.dart';
-import 'package:tixun/core/visual/validation/visual_validator.dart';
-import 'package:tixun/features/visual/visual_card.dart';
+import "package:flutter/services.dart";
+import "package:material_ui/material_ui.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/visual/model/visual_scene.dart";
+import "package:tixun/core/visual/render/visual_painter.dart";
+import "package:tixun/core/visual/validation/visual_validator.dart";
+import "package:tixun/features/visual/visual_card.dart";
 
 /// A geometry scene with one draggable point (p1), one fixed point (p2),
 /// and one draggable-flagged but `$param`-bound point (p3, built in code —
 /// the validator rejects this combination, the widget must refuse it too).
 VisualScene _dragScene() => VisualScene.fromJson({
-  'v': 1,
-  'kind': 'geometry',
-  'title': '拖拽',
-  'view': {
-    'x': [-3, 3],
-    'y': [-3, 3],
+  "v": 1,
+  "kind": "geometry",
+  "title": "拖拽",
+  "view": {
+    "x": [-3, 3],
+    "y": [-3, 3],
   },
-  'elements': [
+  "elements": [
     {
-      'id': 'p1',
-      'type': 'point',
-      'at': [1, 1],
-      'draggable': true,
-      'label': 'P',
+      "id": "p1",
+      "type": "point",
+      "at": [1, 1],
+      "draggable": true,
+      "label": "P",
     },
     {
-      'id': 'p2',
-      'type': 'point',
-      'at': [-1, -1],
+      "id": "p2",
+      "type": "point",
+      "at": [-1, -1],
     },
   ],
-  'meta': {'alt': '拖拽点'},
+  "meta": {"alt": "拖拽点"},
 });
 
 /// A draggable-flagged but `$param`-bound point, built directly through
@@ -42,73 +42,71 @@ VisualScene _dragScene() => VisualScene.fromJson({
 /// the widget's own guard.
 const VisualScene _boundDragScene = VisualScene(
   kind: VisualSceneKind.geometry,
-  title: '绑定点',
-  model: VisualModel(expression: 'a*x', parameters: {'a': 1.0}),
+  title: "绑定点",
+  model: VisualModel(expression: "a*x", parameters: {"a": 1.0}),
   view: VisualView(x: VisualRange(-3, 3), y: VisualRange(-3, 3)),
   controls: [
-    SliderControl(id: 'a', label: 'a', min: -3, max: 3, step: 0.1, value: 1),
+    SliderControl(id: "a", label: "a", min: -3, max: 3, step: 0.1, value: 1),
   ],
   elements: [
     PointElement(
-      id: 'p3',
+      id: "p3",
       style: VisualStyle.primary,
       layer: 0,
       visible: true,
-      at: VisualPoint(VisualCoord.param('a'), VisualCoord.literal(1)),
+      at: VisualPoint(VisualCoord.param("a"), VisualCoord.literal(1)),
       draggable: true,
     ),
   ],
-  meta: VisualMeta(alt: '绑定点'),
+  meta: VisualMeta(alt: "绑定点"),
 );
 
-/// The drag scene plus a 5s timeline (track `a` 1→3), for the
-/// drag-pauses-playback test. p1 stays draggable.
 VisualScene _animatedDragScene() => VisualScene.fromJson({
-  'v': 1,
-  'kind': 'plot2d',
-  'title': '动画拖拽',
-  'model': {
-    'expression': 'a*x',
-    'parameters': {'a': 1.0},
+  "v": 1,
+  "kind": "plot2d",
+  "title": "动画拖拽",
+  "model": {
+    "expression": "a*x",
+    "parameters": {"a": 1.0},
   },
-  'view': {
-    'x': [-3, 3],
-    'y': [-3, 3],
+  "view": {
+    "x": [-3, 3],
+    "y": [-3, 3],
   },
-  'elements': [
+  "elements": [
     {
-      'id': 'p1',
-      'type': 'point',
-      'at': [1, 1],
-      'draggable': true,
+      "id": "p1",
+      "type": "point",
+      "at": [1, 1],
+      "draggable": true,
     },
   ],
-  'controls': [
+  "controls": [
     {
-      'id': 'a',
-      'kind': 'slider',
-      'label': 'a',
-      'min': -3,
-      'max': 3,
-      'step': 0.1,
-      'value': 1,
+      "id": "a",
+      "kind": "slider",
+      "label": "a",
+      "min": -3,
+      "max": 3,
+      "step": 0.1,
+      "value": 1,
     },
   ],
-  'timeline': {
-    'durationMs': 5000,
-    'tracks': [
+  "timeline": {
+    "durationMs": 5000,
+    "tracks": [
       {
-        'id': 't1',
-        'target': 'a',
-        'from': 1,
-        'to': 3,
-        'startMs': 0,
-        'endMs': 5000,
+        "id": "t1",
+        "target": "a",
+        "from": 1,
+        "to": 3,
+        "startMs": 0,
+        "endMs": 5000,
       },
     ],
-    'steps': [],
+    "steps": [],
   },
-  'meta': {'alt': '动画拖拽'},
+  "meta": {"alt": "动画拖拽"},
 });
 
 VisualPainter _fullscreenPainter(WidgetTester tester) {
@@ -156,76 +154,76 @@ void main() {
 
   setUpAll(() async {
     final manifest =
-        jsonDecode(await rootBundle.loadString('FontManifest.json')) as List;
+        jsonDecode(await rootBundle.loadString("FontManifest.json")) as List;
     for (final font in manifest) {
-      final loader = FontLoader(font['family'] as String);
-      for (final asset in font['fonts'] as List) {
-        loader.addFont(rootBundle.load(asset['asset'] as String));
+      final loader = FontLoader(font["family"] as String);
+      for (final asset in font["fonts"] as List) {
+        loader.addFont(rootBundle.load(asset["asset"] as String));
       }
       await loader.load();
     }
   });
 
-  test('point draggable defaults to false and round-trips', () {
+  test("point draggable defaults to false and round-trips", () {
     final element = VisualElement.fromJson({
-      'id': 'p',
-      'type': 'point',
-      'at': [1, 2],
+      "id": "p",
+      "type": "point",
+      "at": [1, 2],
     }) as PointElement;
     expect(element.draggable, isFalse);
-    expect(element.toJson().containsKey('draggable'), isFalse);
+    expect(element.toJson().containsKey("draggable"), isFalse);
 
     final draggable = VisualElement.fromJson({
-      'id': 'p',
-      'type': 'point',
-      'at': [1, 2],
-      'draggable': true,
+      "id": "p",
+      "type": "point",
+      "at": [1, 2],
+      "draggable": true,
     }) as PointElement;
     expect(draggable.draggable, isTrue);
-    expect(draggable.toJson()['draggable'], isTrue);
+    expect(draggable.toJson()["draggable"], isTrue);
     final reparsed = VisualElement.fromJson(draggable.toJson()) as PointElement;
     expect(reparsed.draggable, isTrue);
     expect(reparsed.at, draggable.at);
   });
 
-  test('validator accepts a draggable literal point', () {
+  test("validator accepts a draggable literal point", () {
     final scene = _dragScene().toJson();
     final result = validateVisualScene(scene);
     expect(result.ok, isTrue);
   });
 
-  test('validator rejects a draggable parameter-bound point', () {
+  test("validator rejects a draggable parameter-bound point", () {
     // A raw map: VisualScene.fromJson throws before the validator
     // result is reachable, so the validator is checked directly.
     final scene = _animatedDragScene().toJson();
-    (scene['elements'] as List).first['at'] = [
-      {'\$param': 'a'},
+    (scene["elements"] as List).first["at"] = [
+      {"\$param": "a"},
       1,
     ];
     final result = validateVisualScene(scene);
     expect(result.ok, isFalse);
     expect(
       result.errors.any(
-        (e) => e.code == 'invalid_value' && e.message.contains('draggable'),
+        (e) => e.code == "invalid_value" && e.message.contains("draggable"),
       ),
       isTrue,
     );
   });
 
-  test('validator rejects a non-boolean draggable flag', () {
+  test("validator rejects a non-boolean draggable flag", () {
     final scene = _dragScene().toJson();
-    (scene['elements'] as List).first['draggable'] = 'yes';
+    (scene["elements"] as List).first["draggable"] = "yes";
     final result = validateVisualScene(scene);
     expect(result.ok, isFalse);
     expect(
       result.errors.any(
-        (e) => e.code == 'invalid_type' && e.path == 'elements[0].draggable',
+        (e) => e.code == "invalid_type" && e.path == "elements[0].draggable",
       ),
       isTrue,
     );
   });
 
-  testWidgets('dragging a draggable point moves it', (tester) async {
+  testWidgets("dragging a draggable point moves it", (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -247,19 +245,19 @@ void main() {
     await tester.pump();
 
     final overrides = _fullscreenPainter(tester).pointOverrides;
-    expect(overrides.keys, ['p1']);
+    expect(overrides.keys, ["p1"]);
     final expected = _expectedAfterDrag(
       tester,
       scene,
       const Offset(1, 1),
       drag,
     );
-    expect(overrides['p1']!.dx, closeTo(expected.dx, 1e-6));
-    expect(overrides['p1']!.dy, closeTo(expected.dy, 1e-6));
+    expect(overrides["p1"]!.dx, closeTo(expected.dx, 1e-6));
+    expect(overrides["p1"]!.dy, closeTo(expected.dy, 1e-6));
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('dragging a fixed point does nothing', (tester) async {
+  testWidgets("dragging a fixed point does nothing", (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -282,7 +280,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('dragging empty canvas space does nothing', (tester) async {
+  testWidgets("dragging empty canvas space does nothing", (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -305,7 +303,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a parameter-bound point cannot be dragged', (tester) async {
+  testWidgets("a parameter-bound point cannot be dragged", (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -328,7 +326,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('reset button restores dragged points', (tester) async {
+  testWidgets("reset button restores dragged points", (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -348,13 +346,13 @@ void main() {
     await tester.pump();
     expect(_fullscreenPainter(tester).pointOverrides, isNotEmpty);
 
-    await tester.tap(find.byKey(const Key('visual-reset-drag')));
+    await tester.tap(find.byKey(const Key("visual-reset-drag")));
     await tester.pump();
     expect(_fullscreenPainter(tester).pointOverrides, isEmpty);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('dragging pauses playback', (tester) async {
+  testWidgets("dragging pauses playback", (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -369,7 +367,7 @@ void main() {
     await tester.pump();
     await _openFullscreen(tester);
 
-    await tester.tap(find.byKey(const Key('visual-play-pause')));
+    await tester.tap(find.byKey(const Key("visual-play-pause")));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(_fullscreenPainter(tester).timeMs, greaterThan(0));
@@ -379,9 +377,8 @@ void main() {
     await tester.pump();
     expect(_fullscreenPainter(tester).pointOverrides, isNotEmpty);
 
-    // Paused: the button shows the play icon again, and time stops.
     final button = tester.widget<IconButton>(
-      find.byKey(const Key('visual-play-pause')),
+      find.byKey(const Key("visual-play-pause")),
     );
     expect((button.icon as Icon).icon, Icons.play_arrow);
     final frozenTime = _fullscreenPainter(tester).timeMs;

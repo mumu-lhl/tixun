@@ -1,15 +1,15 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:uuid/uuid.dart';
+import "package:material_ui/material_ui.dart";
+import "package:uuid/uuid.dart";
 
-import 'language_layout.dart';
-import '../../core/database/database.dart' show LearningLexicalForm;
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/l10n/generated/app_localizations.dart';
-import '../../core/ui/actions.dart';
-import 'language_store.dart';
-import 'lexical_form.dart';
-import 'lexical_form_store.dart';
+import "language_layout.dart";
+import "../../core/database/database.dart" show LearningLexicalForm;
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/l10n/generated/app_localizations.dart";
+import "../../core/ui/actions.dart";
+import "language_store.dart";
+import "lexical_form.dart";
+import "lexical_form_store.dart";
 
 String inflectionLabel(AppLocalizations l10n, Inflection inflection) =>
     switch (inflection) {
@@ -111,7 +111,7 @@ class _LexicalFormsScreenState extends State<LexicalFormsScreen> {
 
   Future<void> _add(LanguageCard card) async {
     final item = card.item;
-    var surface = '';
+    var surface = "";
     Inflection? feature;
     final formKey = GlobalKey<FormState>();
     final candidate = await showDialog<LexicalFormDraft>(
@@ -134,7 +134,7 @@ class _LexicalFormsScreenState extends State<LexicalFormsScreen> {
                 validator: (value) {
                   try {
                     LexicalFormDraft(
-                      value ?? '',
+                      value ?? "",
                       Inflection.past,
                     ).validate(item.form);
                     return null;

@@ -1,0 +1,526 @@
+part of "architecture_test.dart";
+
+void _learningRunCases() {
+  group("Learning run public interface", () {
+    late AppDatabase db;
+    late Directory dir;
+    late StudyStore study;
+    late PracticeStore practice;
+    late ReviewStore review;
+    late ChatSession session;
+    late ProviderConfig config;
+    setUp(() async {
+      db = AppDatabase.memory();
+      dir = await Directory.systemTemp.createTemp("tixun-learning-run");
+      study = StudyStore(db, AttachmentStore(dir));
+      practice = PracticeStore(db);
+      review = ReviewStore(db);
+      session = await db.createSession(mode: "exam");
+      config = (await db.config()).copyWith(
+        kind: "chatgpt",
+        model: "gpt-6.1-sol",
+        baseUrl: "https://api.openai.com/v1",
+        thinking: true,
+      );
+      await db
+          .into(db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: "reply",
+              sessionId: session.id,
+              role: "assistant",
+              content: "",
+              createdAt: DateTime.now(),
+            ),
+          );
+    });
+    tearDown(() async {
+      study.dispose();
+      practice.dispose();
+      review.dispose();
+      await db.close();
+      await dir.delete(recursive: true);
+    });
+    Future<LearningRunResult> run(
+      ScriptProvider p, {
+      String mode = "guided",
+      CancelToken? cancel,
+      Future<void> Function(LearningRunResult)? progress,
+    }) => LearningRun(db, AttachmentStore(dir), study, practice, review, p).run(
+      sessionId: session.id,
+      runId: "reply",
+      requestConfig: config,
+      requestPrompts: PromptSettings(),
+      history: [],
+      images: [],
+      mode: mode,
+      authorized: true,
+      cancel: cancel ?? CancelToken(),
+      confirm: (_, _, _) async => false,
+      onProgress: progress ?? (_) async {},
+    );
+
+    test(
+      "Incomplete or duplicate terminal events cannot execute a data tool",
+      () async {
+        const call = ToolCall(
+          "write",
+          "create_knowledge",
+          '{"title":"injected","subject":"数学","content":"content"}',
+        );
+        for (final events in [
+          [const AiChunk(text: "partial")],
+          [
+            const AiChunk(calls: [call]),
+          ],
+          [
+            const AiChunk(completed: true),
+            const AiChunk(completed: true, calls: [call]),
+          ],
+        ]) {
+          await expectLater(
+            run(ScriptProvider((_) => events)),
+            throwsA(isA<AiFailure>()),
+          );
+          expect(await study.searchKnowledge(), isEmpty);
+          expect(await db.select(db.aiToolOperations).get(), isEmpty);
+        }
+      },
+    );
+
+    test("Exam progress and failures never publish an answer before a submitted question", () async {
+      final progress = <LearningRunResult>[];
+      await expectLater(
+        run(
+          ScriptProvider((_) => [const AiChunk(text: "答案是 42")]),
+          mode: "exam",
+          progress: (p) async => progress.add(p),
+        ),
+        throwsA(isA<AiFailure>()),
+      );
+      expect(progress, isNotEmpty);
+      expect(progress.every((p) => p.text.isEmpty && !p.quizCreated), true);
+    });
+
+    test("Exam quiz creation rejects an external exploration visual", () async {
+      // A visual could carry the answer, and exam questions are
+      // generated live and unreviewed: the executor must refuse the
+      // attachment in exam mode, so no question is created at all.
+      const call = ToolCall(
+        "q1",
+        "create_quiz",
+        '{"kind":"numeric","stem":"2+2","subject":"数学","answers":[["4"]],"explanation":"","visual_id":"v1"}',
+      );
+      await expectLater(
+        run(
+          ScriptProvider(
+            (_) => [
+              const AiChunk(completed: true, calls: [call]),
+            ],
+          ),
+          mode: "exam",
+        ),
+        throwsA(isA<AiFailure>()),
+      );
+      expect(await db.select(db.practiceQuestions).get(), isEmpty);
+    });
+
+    test("Exam uses atomic private figures without exposing teaching tools or solution progress", () async {
+      await AppPreferences(
+        db,
+        MemoryKeyStore(),
+        demo: false,
+      ).setAiDrawingEnabled(true);
+      final visual = VisualStore(db);
+      addTearDown(visual.dispose);
+      final provider = ScriptProvider(
+        (turn) => turn == 1
+            ? [
+                const AiChunk(
+                  completed: true,
+                  calls: [ToolCall("load", "enable_visual_tools", "{}")],
+                ),
+              ]
+            : [
+                AiChunk(
+                  text: "SECRET SOLUTION",
+                  completed: true,
+                  calls: [
+                    ToolCall(
+                      "exam",
+                      "create_quiz",
+                      jsonEncode({
+                        "kind": "read_value",
+                        "stem": "Read the point",
+                        "subject": "数学",
+                        "answers": [
+                          ["2"],
+                        ],
+                        "explanation": "SOLUTION",
+                        "question_scene": {
+                          "v": 1,
+                          "kind": "geometry",
+                          "title": "Question",
+                          "view": {
+                            "x": [-3, 3],
+                            "y": [-3, 3],
+                          },
+                          "elements": [
+                            {
+                              "id": "p",
+                              "type": "point",
+                              "at": [2, 0],
+                            },
+                          ],
+                        },
+                        "solution_scene": {
+                          "v": 1,
+                          "kind": "geometry",
+                          "title": "SOLUTION",
+                          "elements": [
+                            {
+                              "id": "s",
+                              "type": "text",
+                              "at": [0, 0],
+                              "text": "Answer 2",
+                            },
+                          ],
+                        },
+                      }),
+                    ),
+                  ],
+                ),
+              ],
+      );
+      final progress = <LearningRunResult>[];
+      final result =
+          await LearningRun(
+            db,
+            AttachmentStore(dir),
+            study,
+            practice,
+            review,
+            provider,
+            visual: visual,
+          ).run(
+            sessionId: session.id,
+            runId: "reply",
+            requestConfig: config,
+            requestPrompts: PromptSettings(),
+            history: [],
+            images: [],
+            mode: "exam",
+            authorized: true,
+            cancel: CancelToken(),
+            confirm: (_, _, _) async => false,
+            onProgress: (p) async => progress.add(p),
+          );
+      expect(result.quizCreated, isTrue);
+      expect(result.text, isNot(contains("SECRET")));
+      expect(progress.every((p) => !p.text.contains("SECRET")), isTrue);
+      expect(provider.requests, hasLength(2));
+      final request = provider.requests.last;
+      expect(
+        request.tools.map((t) => t.name),
+        isNot(contains("create_visual")),
+      );
+      expect(
+        request.tools.map((t) => t.name),
+        isNot(contains("update_visual")),
+      );
+      expect(request.tools.map((t) => t.name), isNot(contains("get_visual")));
+      final properties =
+          request.tools
+                  .singleWhere((t) => t.name == "create_quiz")
+                  .parameters["properties"]
+              as Map;
+      expect(properties, contains("question_scene"));
+      expect(properties, isNot(contains("visual_id")));
+      expect(await visual.listByMessage("reply"), isEmpty);
+      final detail = await practice.detail((await practice.list()).single.id);
+      expect(detail.visualLinks, hasLength(1));
+      expect(detail.solutionVisualLinks, hasLength(1));
+    });
+
+    test(
+      "Runtime enforces the configured call count and supports no count limit",
+      () async {
+        final preferences = AppPreferences(db, MemoryKeyStore(), demo: false);
+        try {
+          for (final limit in [3, 0]) {
+            await preferences.setMaxToolCalls(limit);
+            final provider = ScriptProvider(
+              (turn) => [
+                if (turn == 10)
+                  const AiChunk(text: "完成", completed: true)
+                else
+                  AiChunk(
+                    completed: true,
+                    calls: [
+                      ToolCall("read-$turn", "get_learning_progress", "{}"),
+                    ],
+                  ),
+              ],
+            );
+            if (limit == 0) {
+              expect((await run(provider)).text, "完成");
+              expect(provider.turns, 10);
+            } else {
+              await expectLater(
+                run(provider),
+                throwsA(
+                  isA<AiFailure>()
+                      .having(
+                        (e) => e.code,
+                        "code",
+                        AppErrorCode.toolCallLimitReached,
+                      )
+                      .having((e) => e.arguments, "limit", ["3"]),
+                ),
+              );
+              expect(provider.turns, 4);
+            }
+            expect(
+              provider.requests.last.messages.where(
+                (m) => m.role == AiRole.tool,
+              ),
+              hasLength(limit == 0 ? 9 : 3),
+            );
+          }
+        } finally {
+          preferences.dispose();
+        }
+      },
+    );
+
+    Future<LearningRunResult> runConfirmed(
+      ScriptProvider provider, {
+      List<ChatMessage> history = const [],
+    }) =>
+        LearningRun(
+          db,
+          AttachmentStore(dir),
+          study,
+          practice,
+          review,
+          provider,
+        ).run(
+          sessionId: session.id,
+          runId: "reply",
+          requestConfig: config,
+          requestPrompts: PromptSettings(),
+          history: history,
+          images: [],
+          mode: "guided",
+          authorized: true,
+          cancel: CancelToken(),
+          confirm: (_, _, _) async => true,
+          onProgress: (_) async {},
+        );
+
+    test("A successful study write with empty final text returns a placeholder instead of failing", () async {
+      final provider = ScriptProvider(
+        (turn) => turn == 1
+            ? [
+                const AiChunk(
+                  completed: true,
+                  calls: [
+                    ToolCall(
+                      "write",
+                      "create_knowledge",
+                      '{"title":"t","subject":"数学","content":"c"}',
+                    ),
+                  ],
+                ),
+              ]
+            : [const AiChunk(text: "", completed: true)],
+      );
+      final result = await runConfirmed(provider);
+      expect(result.text, "已保存，可在知识库查看。");
+      expect((await study.searchKnowledge()).single.title, "t");
+    });
+
+    test("A duplicate completed chunk from a trailing usage frame does not fail the round", () async {
+      final provider = ScriptProvider(
+        (_) => [
+          const AiChunk(text: "正文"),
+          const AiChunk(completed: true),
+          const AiChunk(tokens: 7, completed: true),
+        ],
+      );
+      final result = await run(provider);
+      expect(result.text, "正文");
+      expect(result.tokens, 7);
+    });
+
+    test(
+      "A session deleted before the run starts reports a missing session",
+      () async {
+        await (db.delete(
+          db.chatSessions,
+        )..where((s) => s.id.equals(session.id))).go();
+        await expectLater(
+          run(
+            ScriptProvider((_) => [const AiChunk(text: "x", completed: true)]),
+          ),
+          throwsA(
+            isA<AiFailure>().having(
+              (e) => e.message,
+              "message",
+              contains("会话不存在"),
+            ),
+          ),
+        );
+      },
+    );
+
+    test("Practice state is associated with its source without mutating assistant history", () async {
+      await db
+          .into(db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: "u1",
+              sessionId: session.id,
+              role: "user",
+              content: "出题",
+              createdAt: DateTime.now(),
+            ),
+          );
+      const assistantId = "a1";
+      await db
+          .into(db.chatMessages)
+          .insert(
+            ChatMessagesCompanion.insert(
+              id: assistantId,
+              sessionId: session.id,
+              role: "assistant",
+              content: "已出题",
+              createdAt: DateTime.now(),
+            ),
+          );
+      await practice.create(
+        const QuestionSpec(
+          kind: "numeric",
+          stem: "2+2",
+          answers: [
+            ["4"],
+          ],
+        ),
+        origin: "ai",
+        verification: "unverified",
+        sessionId: session.id,
+        messageId: assistantId,
+      );
+      final provider = ScriptProvider(
+        (_) => [const AiChunk(text: "好的", completed: true)],
+      );
+      final history = await db.messages(session.id);
+      final result = await runConfirmed(provider, history: history);
+      expect(result.text, "好的");
+      final sent = provider.requests.single.messages;
+      expect(sent.singleWhere((m) => m.role == AiRole.assistant).text, "已出题");
+      expect(
+        sent.singleWhere((m) => m.role == AiRole.user).text,
+        allOf(contains("应用保存的练习状态"), contains('"source_message_id":"a1"')),
+      );
+    });
+
+    test(
+      "Teaching state survives when history ends with an assistant message",
+      () async {
+        await db
+            .into(db.chatMessages)
+            .insert(
+              ChatMessagesCompanion.insert(
+                id: "u1",
+                sessionId: session.id,
+                role: "user",
+                content: "问题",
+                createdAt: DateTime.now(),
+              ),
+            );
+        await db
+            .into(db.chatMessages)
+            .insert(
+              ChatMessagesCompanion.insert(
+                id: "a1",
+                sessionId: session.id,
+                role: "assistant",
+                content: "回答",
+                createdAt: DateTime.now(),
+              ),
+            );
+        final provider = ScriptProvider(
+          (_) => [const AiChunk(text: "好的", completed: true)],
+        );
+        final history = await db.messages(session.id);
+        await runConfirmed(provider, history: history);
+        final sent = provider.requests.single.messages;
+        final userMessage = sent.firstWhere((m) => m.role == AiRole.user);
+        expect(userMessage.text, contains("应用教学状态"));
+        expect(
+          sent
+              .where((m) => m.role == AiRole.assistant)
+              .every((m) => !m.text.contains("应用教学状态")),
+          true,
+        );
+      },
+    );
+
+    test(
+      "Turn totals replace streaming estimates and sum correctly across tools",
+      () async {
+        final provider = ScriptProvider(
+          (turn) => turn == 1
+              ? [
+                  const AiChunk(text: "before", tokens: 5),
+                  const AiChunk(
+                    completed: true,
+                    tokens: 10,
+                    calls: [ToolCall("read", "get_learning_progress", "{}")],
+                  ),
+                ]
+              : [
+                  const AiChunk(text: "after", tokens: 12),
+                  const AiChunk(completed: true, tokens: 14),
+                ],
+        );
+        final result = await run(provider);
+        expect(result.tokens, 24);
+        expect(result.text, "before\n\nafter");
+        expect(
+          provider.requests.last.messages
+              .where((m) => m.role == AiRole.tool)
+              .single
+              .callId,
+          "read",
+        );
+      },
+    );
+
+    test(
+      "Cancellation is enforced even if a custom provider forgets to check it",
+      () async {
+        final cancel = CancelToken();
+        final values = <String>[];
+        await expectLater(
+          run(
+            ScriptProvider(
+              (_) => [
+                const AiChunk(text: "first"),
+                const AiChunk(text: "second", completed: true),
+              ],
+            ),
+            cancel: cancel,
+            progress: (p) async {
+              values.add(p.text);
+              cancel.cancel("user");
+            },
+          ),
+          throwsA(isA<DioException>()),
+        );
+        expect(values, ["first"]);
+      },
+    );
+  });
+}

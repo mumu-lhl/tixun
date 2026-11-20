@@ -1,14 +1,14 @@
-import 'package:tixun/core/l10n/app_error_localization.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import "package:tixun/core/l10n/app_error_localization.dart";
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/actions.dart';
-import 'practice_providers.dart';
-import 'practice_run.dart';
-import 'question_card.dart';
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
+import "practice_providers.dart";
+import "practice_run.dart";
+import "question_card.dart";
 
 final practiceRunProvider = FutureProvider<PracticeRun?>(
   (ref) => ref.watch(practiceStoreProvider).loadRun(),
@@ -18,7 +18,7 @@ final runAttemptsProvider = FutureProvider.autoDispose
       final db = ref.watch(practiceStoreProvider).db;
       return (db.select(
         db.practiceAttempts,
-      )..where((a) => a.id.isIn(key.split('|')))).get();
+      )..where((a) => a.id.isIn(key.split("|")))).get();
     });
 
 class PracticeRunScreen extends ConsumerWidget {
@@ -42,7 +42,7 @@ class PracticeRunScreen extends ConsumerWidget {
                 TextButton(
                   onPressed: () => act(context, () async {
                     await ref.read(practiceStoreProvider).clearRun();
-                    if (context.mounted) context.go('/practice');
+                    if (context.mounted) context.go("/practice");
                   }),
                   child: Text(context.l10n.endThisQuizKeepRecords),
                 ),
@@ -64,7 +64,7 @@ class PracticeRunScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     TextButton(
-                      onPressed: () => context.go('/practice'),
+                      onPressed: () => context.go("/practice"),
                       child: Text(context.l10n.returnToTheBankTo),
                     ),
                   ],
@@ -80,7 +80,7 @@ class PracticeRunScreen extends ConsumerWidget {
                       .value
                       ?.singleOrNull
                       ?.status ==
-                  'graded';
+                  "graded";
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
@@ -89,7 +89,7 @@ class PracticeRunScreen extends ConsumerWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   TextButton.icon(
-                    onPressed: () => context.go('/practice'),
+                    onPressed: () => context.go("/practice"),
                     icon: const Icon(Icons.arrow_back),
                     label: Text(context.l10n.backToQuestionBank),
                   ),
@@ -105,7 +105,7 @@ class PracticeRunScreen extends ConsumerWidget {
                   TextButton(
                     onPressed: () => act(context, () async {
                       await store.clearRun();
-                      if (context.mounted) context.go('/practice');
+                      if (context.mounted) context.go("/practice");
                     }),
                     child: Text(context.l10n.endQuiz),
                   ),
@@ -131,7 +131,7 @@ class PracticeRunScreen extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       FilledButton(
-                        key: const Key('next-run-question'),
+                        key: const Key("next-run-question"),
                         onPressed: !graded
                             ? null
                             : () => act(context, () async {
@@ -165,7 +165,7 @@ class PracticeRunScreen extends ConsumerWidget {
                 ref
                     .watch(
                       runAttemptsProvider(
-                        run.attempts.whereType<String>().join('|'),
+                        run.attempts.whereType<String>().join("|"),
                       ),
                     )
                     .when(
@@ -202,13 +202,13 @@ class PracticeRunScreen extends ConsumerWidget {
                                 l10nArgument(
                                   (attempts
                                       .where(
-                                        (a) => a.gradingBasis == 'ai_reference',
+                                        (a) => a.gradingBasis == "ai_reference",
                                       )
                                       .length),
                                 ),
                                 l10nArgument(
                                   (attempts
-                                      .where((a) => a.gradingBasis == 'self')
+                                      .where((a) => a.gradingBasis == "self")
                                       .length),
                                 ),
                               ),
@@ -221,22 +221,22 @@ class PracticeRunScreen extends ConsumerWidget {
                                   : byId[attemptId];
                               final outcome = attempt == null
                                   ? null
-                                  : attempt.status == 'graded'
+                                  : attempt.status == "graded"
                                   ? (attempt.correct == true
-                                        ? 'correct'
-                                        : 'wrong')
-                                  : 'pending';
+                                        ? "correct"
+                                        : "wrong")
+                                  : "pending";
                               return ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 leading: Icon(
-                                  outcome == 'correct'
+                                  outcome == "correct"
                                       ? Icons.check_circle
-                                      : outcome == 'wrong'
+                                      : outcome == "wrong"
                                       ? Icons.cancel
                                       : Icons.help_outline,
-                                  color: outcome == 'correct'
+                                  color: outcome == "correct"
                                       ? colors.primary
-                                      : outcome == 'wrong'
+                                      : outcome == "wrong"
                                       ? colors.error
                                       : colors.onSurfaceVariant,
                                 ),
@@ -248,15 +248,15 @@ class PracticeRunScreen extends ConsumerWidget {
                                 subtitle: outcome == null
                                     ? null
                                     : Text(
-                                        outcome == 'correct'
+                                        outcome == "correct"
                                             ? context.l10n.answerCorrect
-                                            : outcome == 'wrong'
+                                            : outcome == "wrong"
                                             ? context.l10n.needsCorrection
                                             : context.l10n.notGradedYet,
                                       ),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () => context.go(
-                                  '/practice/${run.ids[i]}?attempt=${run.attempts[i]}',
+                                  "/practice/${run.ids[i]}?attempt=${run.attempts[i]}",
                                 ),
                               );
                             }),

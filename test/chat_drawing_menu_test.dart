@@ -1,25 +1,25 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/app.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/ai/visual_toolset.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/app.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/ai/visual_toolset.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
 
 void main() {
   for (final width in [320.0, 1200.0]) {
-    testWidgets('temporary chat drawing menu works at width $width', (
+    testWidgets("temporary chat drawing menu works at width $width", (
       tester,
     ) async {
       late Directory root;
       late AppController c;
       await tester.runAsync(() async {
-        root = await Directory.systemTemp.createTemp('chat-drawing-menu');
+        root = await Directory.systemTemp.createTemp("chat-drawing-menu");
         c = AppController(
           AppDatabase.memory(),
           AttachmentStore(root),
@@ -49,15 +49,15 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(container: scope, child: const TixunApp()),
       );
-      scope.read(routerProvider).go('/chat');
+      scope.read(routerProvider).go("/chat");
       await tester.pumpAndSettle();
-      final menu = find.byKey(const Key('chat-more'));
-      expect(find.byKey(const Key('chat-drawing-menu')), findsNothing);
+      final menu = find.byKey(const Key("chat-more"));
+      expect(find.byKey(const Key("chat-drawing-menu")), findsNothing);
       expect(tester.getCenter(menu).dy, lessThan(100));
       Future<void> choose(String value) async {
         await tester.tap(menu);
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(Key('chat-drawing-$value')));
+        await tester.tap(find.byKey(Key("chat-drawing-$value")));
         await tester.pumpAndSettle();
       }
 
@@ -69,7 +69,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.textContaining(status), findsOneWidget);
         expect(
-          find.textContaining('跟随默认'),
+          find.textContaining("跟随默认"),
           followDefault ? findsOneWidget : findsNothing,
         );
         await tester.binding.handlePopRoute();
@@ -77,12 +77,12 @@ void main() {
       }
 
       expect(menu, findsOneWidget);
-      await expectStatus('绘图已关闭', followDefault: true);
-      await choose('on');
+      await expectStatus("绘图已关闭", followDefault: true);
+      await choose("on");
       expect(c.sessionDrawingOverride, true);
       expect(c.aiDrawingEnabled, false);
-      await expectStatus('绘图已开启');
-      await choose('off');
+      await expectStatus("绘图已开启");
+      await choose("off");
       expect(c.sessionDrawingEnabled, false);
       await tester.runAsync(() async {
         expect(await c.db.preference(aiDrawingEnabledKey), isNull);
@@ -90,18 +90,17 @@ void main() {
       });
       await tester.pumpAndSettle();
       expect(c.sessionDrawingEnabled, false);
-      await choose('default');
+      await choose("default");
       expect(c.sessionDrawingOverride, isNull);
       expect(c.sessionDrawingEnabled, true);
       await tester.runAsync(() => c.setAiDrawingEnabled(false));
       await tester.pumpAndSettle();
       expect(c.sessionDrawingEnabled, false);
 
-      // The title menu remains accessible with the software keyboard open.
       tester.view.viewInsets = const FakeViewPadding(bottom: 300);
       await tester.pumpAndSettle();
       expect(menu.hitTestable(), findsOneWidget);
-      await choose('on');
+      await choose("on");
       tester.view.resetViewInsets();
       await tester.pumpAndSettle();
       await tester.runAsync(() => c.newSession());
@@ -110,20 +109,20 @@ void main() {
       expect(c.sessionDrawingEnabled, false);
       await tester.runAsync(() async {
         await c.selectSession(first);
-        await c.setLanguage('en');
+        await c.setLanguage("en");
       });
       await tester.pumpAndSettle();
       expect(c.sessionDrawingOverride, true);
-      await expectStatus('Drawing on');
+      await expectStatus("Drawing on");
       await tester.tap(menu);
       await tester.pumpAndSettle();
-      expect(find.text('Enable drawing for this chat'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('chat-drawing-default')));
+      expect(find.text("Enable drawing for this chat"), findsOneWidget);
+      await tester.tap(find.byKey(const Key("chat-drawing-default")));
       await tester.pumpAndSettle();
       expect(c.sessionDrawingOverride, isNull);
       await tester.tap(menu);
       await tester.pumpAndSettle();
-      final disable = find.byKey(const Key('chat-a2ui-off'));
+      final disable = find.byKey(const Key("chat-a2ui-off"));
       await tester.ensureVisible(disable);
       await tester.runAsync(() async {
         await tester.tap(disable);
@@ -137,11 +136,11 @@ void main() {
       await tester.pump();
       await tester.tap(menu);
       await tester.pumpAndSettle();
-      for (final choice in ['default', 'on', 'off']) {
+      for (final choice in ["default", "on", "off"]) {
         expect(
           tester
               .widget<CheckedPopupMenuItem<String>>(
-                find.byKey(Key('chat-drawing-$choice')),
+                find.byKey(Key("chat-drawing-$choice")),
               )
               .enabled,
           false,
@@ -149,7 +148,7 @@ void main() {
       }
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
-      c.setSessionDrawingEnabled(true);
+      await c.setSessionDrawingEnabled(true);
       expect(c.sessionDrawingOverride, isNull);
       c.busy = false;
       c.changed();

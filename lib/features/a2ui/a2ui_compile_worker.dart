@@ -1,8 +1,8 @@
-import 'dart:isolate';
+import "dart:isolate";
 
-import 'package:dio/dio.dart';
+import "package:dio/dio.dart";
 
-import 'a2ui_catalog.dart';
+import "a2ui_catalog.dart";
 
 Future<SendPort>? _worker;
 
@@ -22,7 +22,7 @@ Future<String> compileInlineSurface(
       cancel.whenCancel.then<Never>((error) => throw error),
     ]);
     if (result is! String) {
-      throw const FormatException('Invalid Express surface.');
+      throw const FormatException("Invalid Express surface.");
     }
     return result;
   } finally {
@@ -33,7 +33,7 @@ Future<String> compileInlineSurface(
 Future<SendPort> _start() async {
   final ready = ReceivePort();
   try {
-    await Isolate.spawn(_compile, ready.sendPort, debugName: 'a2ui-compiler');
+    await Isolate.spawn(_compile, ready.sendPort, debugName: "a2ui-compiler");
     return await ready.first as SendPort;
   } finally {
     ready.close();

@@ -1,41 +1,41 @@
-import 'dart:io';
-import 'dart:convert';
+import "dart:io";
+import "dart:convert";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/app/app.dart';
-import 'package:tixun/app/controller.dart';
-import 'package:tixun/app/theme.dart';
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/platform/attachment_store.dart';
-import 'package:tixun/core/platform/key_store.dart';
-import 'package:tixun/core/ui/learning_markdown.dart';
-import 'package:tixun/features/practice/question_card.dart';
-import 'package:tixun/features/practice/question_spec.dart';
+import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/app/app.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/app/theme.dart";
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/core/ui/learning_markdown.dart";
+import "package:tixun/features/practice/question_card.dart";
+import "package:tixun/features/practice/question_spec.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
     final manifest =
-        jsonDecode(await rootBundle.loadString('FontManifest.json')) as List;
+        jsonDecode(await rootBundle.loadString("FontManifest.json")) as List;
     for (final font in manifest) {
-      final loader = FontLoader(font['family'] as String);
-      for (final asset in font['fonts'] as List) {
-        loader.addFont(rootBundle.load(asset['asset'] as String));
+      final loader = FontLoader(font["family"] as String);
+      for (final asset in font["fonts"] as List) {
+        loader.addFont(rootBundle.load(asset["asset"] as String));
       }
       await loader.load();
     }
   });
   testWidgets(
-    'Interactive quiz hides answers, persists submission and fits narrow phones',
+    "Interactive quiz hides answers, persists submission and fits narrow phones",
     (tester) async {
       late AppController c;
       late String id;
       await tester.runAsync(() async {
-        final root = await Directory.systemTemp.createTemp('tixun-quiz-widget');
+        final root = await Directory.systemTemp.createTemp("tixun-quiz-widget");
         c = AppController(
           AppDatabase.memory(),
           AttachmentStore(root),
@@ -45,22 +45,22 @@ void main() {
         await c.initialize();
         id = await c.practice.create(
           const QuestionSpec(
-            kind: 'single_choice',
-            stem: r'函数 $y=x^2-4x+3$ 的顶点坐标是？',
+            kind: "single_choice",
+            stem: r"函数 $y=x^2-4x+3$ 的顶点坐标是？",
             options: {
-              'A': r'$(2,-1)$',
-              'B': r'$(-2,-1)$',
-              'C': r'$(2,3)$',
-              'D': r'$(-2,3)$',
+              "A": r"$(2,-1)$",
+              "B": r"$(-2,-1)$",
+              "C": r"$(2,3)$",
+              "D": r"$(-2,3)$",
             },
             answers: [
-              ['A'],
+              ["A"],
             ],
-            explanation: '作答后才显示这段解析。',
-            hint: '先配方。',
+            explanation: "作答后才显示这段解析。",
+            hint: "先配方。",
           ),
-          origin: 'ai',
-          verification: 'unverified',
+          origin: "ai",
+          verification: "unverified",
         );
       });
       final container = ProviderContainer(
@@ -97,17 +97,17 @@ void main() {
         () => Future<void>.delayed(const Duration(milliseconds: 150)),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('作答后才显示这段解析'), findsNothing);
-      await tester.tap(find.byKey(const Key('option-A')));
+      expect(find.textContaining("作答后才显示这段解析"), findsNothing);
+      await tester.tap(find.byKey(const Key("option-A")));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('submit-quiz')));
+      await tester.tap(find.byKey(const Key("submit-quiz")));
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 150)),
       );
       await tester.pumpAndSettle();
       for (
         var i = 0;
-        i < 20 && find.textContaining('作答后才显示这段解析').evaluate().isEmpty;
+        i < 20 && find.textContaining("作答后才显示这段解析").evaluate().isEmpty;
         i++
       ) {
         await tester.runAsync(
@@ -115,7 +115,7 @@ void main() {
         );
         await tester.pumpAndSettle();
       }
-      expect(find.textContaining('作答后才显示这段解析'), findsOneWidget);
+      expect(find.textContaining("作答后才显示这段解析"), findsOneWidget);
       await tester.runAsync(() async {
         expect((await c.practice.detail(id)).latest!.correct, true);
       });
@@ -124,11 +124,11 @@ void main() {
     },
   );
   testWidgets(
-    'Responsive real app navigation, long math and settings in light/dark',
+    "Responsive real app navigation, long math and settings in light/dark",
     (tester) async {
       late AppController c;
       await tester.runAsync(() async {
-        final dir = await Directory.systemTemp.createTemp('tixun-widget');
+        final dir = await Directory.systemTemp.createTemp("tixun-widget");
         c = AppController(
           AppDatabase.memory(),
           AttachmentStore(dir),
@@ -161,20 +161,20 @@ void main() {
         );
         await tester.pumpAndSettle();
         for (final route in [
-          '/study',
-          '/chat',
-          '/settings',
-          '/settings/prompts',
-          '/settings/prompts/guided',
-          '/knowledge',
-          '/mistakes',
-          '/practice',
-          '/review',
-          '/progress',
+          "/study",
+          "/chat",
+          "/settings",
+          "/settings/prompts",
+          "/settings/prompts/guided",
+          "/knowledge",
+          "/mistakes",
+          "/practice",
+          "/review",
+          "/progress",
         ]) {
           container.read(routerProvider).go(route);
           await tester.pumpAndSettle();
-          expect(tester.takeException(), isNull, reason: '$width $route');
+          expect(tester.takeException(), isNull, reason: "$width $route");
         }
       }
       final note = await tester.runAsync(
@@ -183,7 +183,7 @@ void main() {
       final wrong = await tester.runAsync(
         () async => (await c.study.searchMistakes()).first,
       );
-      for (final path in ['/knowledge/${note!.id}', '/mistakes/${wrong!.id}']) {
+      for (final path in ["/knowledge/${note!.id}", "/mistakes/${wrong!.id}"]) {
         container.read(routerProvider).go(path);
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: path);
@@ -191,51 +191,51 @@ void main() {
       await tester.runAsync(() => c.theme(ThemeMode.dark));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      container.read(routerProvider).go('/chat');
+      container.read(routerProvider).go("/chat");
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('chat-input')), findsOneWidget);
-      await tester.enterText(find.byKey(const Key('chat-input')), '不会丢失的草稿');
+      expect(find.byKey(const Key("chat-input")), findsOneWidget);
+      await tester.enterText(find.byKey(const Key("chat-input")), "不会丢失的草稿");
       await tester.pump();
       await tester.runAsync(() async {
         await Future<void>.delayed(const Duration(milliseconds: 30));
       });
-      expect(c.selected!.draft, '不会丢失的草稿');
+      expect(c.selected!.draft, "不会丢失的草稿");
       tester.view.physicalSize = const Size(360, 760);
       tester.view.viewInsets = const FakeViewPadding(bottom: 360);
       addTearDown(tester.view.resetViewInsets);
       tester.platformDispatcher.textScaleFactorTestValue = 1.5;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      await tester.runAsync(() => c.addImage('assets/demo/two_problems.png'));
+      await tester.runAsync(() => c.addImage("assets/demo/two_problems.png"));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.byKey(const Key('chat-input')),
-        '第一行\n第二行\n第三行\n第四行\n第五行\n第六行',
+        find.byKey(const Key("chat-input")),
+        "第一行\n第二行\n第三行\n第四行\n第五行\n第六行",
       );
       await tester.pumpAndSettle();
       expect(
         tester.takeException(),
         isNull,
-        reason: 'Keyboard, image preview, long draft and large text must fit together',
+        reason: "Keyboard, image preview, long draft and large text must fit together",
       );
       expect(
-        tester.getRect(find.byKey(const Key('chat-input'))).bottom,
+        tester.getRect(find.byKey(const Key("chat-input"))).bottom,
         lessThanOrEqualTo(400),
       );
       expect(
-        tester.getRect(find.byKey(const Key('send-message'))).bottom,
+        tester.getRect(find.byKey(const Key("send-message"))).bottom,
         lessThanOrEqualTo(400),
-        reason: 'Send stays above the keyboard',
+        reason: "Send stays above the keyboard",
       );
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
   testWidgets(
-    'Search target opens the matching message in a long conversation',
+    "Search target opens the matching message in a long conversation",
     (tester) async {
       late AppController c;
       await tester.runAsync(() async {
         final dir = await Directory.systemTemp.createTemp(
-          'tixun-search-widget',
+          "tixun-search-widget",
         );
         c = AppController(
           AppDatabase.memory(),
@@ -248,12 +248,12 @@ void main() {
         final session = c.selected!;
         for (var i = 0; i < 80; i++) {
           await c.db.customStatement(
-            'INSERT INTO chat_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)',
+            "INSERT INTO chat_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)",
             [
-              'search-test-$i',
+              "search-test-$i",
               session.id,
-              'user',
-              'Search message number $i',
+              "user",
+              "Search message number $i",
               i + 1,
             ],
           );
@@ -279,24 +279,24 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      container.read(routerProvider).go('/chat');
+      container.read(routerProvider).go("/chat");
       await tester.pumpAndSettle();
-      c.showSearchMessage(c.selected!.id, 'search-test-15');
+      c.showSearchMessage(c.selected!.id, "search-test-15");
       await tester.pumpAndSettle();
-      final target = find.byKey(const ValueKey('message-search-test-15'));
+      final target = find.byKey(const ValueKey("message-search-test-15"));
       expect(target, findsOneWidget);
       expect(
         tester.getRect(target).overlaps(const Rect.fromLTWH(0, 0, 1280, 800)),
         isTrue,
       );
       expect(tester.takeException(), isNull);
-      await tester.enterText(find.byKey(const Key('session-search')), 'first');
+      await tester.enterText(find.byKey(const Key("session-search")), "first");
       await tester.pump(const Duration(milliseconds: 150));
-      await tester.enterText(find.byKey(const Key('session-search')), 'last');
+      await tester.enterText(find.byKey(const Key("session-search")), "last");
       await tester.pump(const Duration(milliseconds: 249));
       expect(c.search, isEmpty);
       await tester.pump(const Duration(milliseconds: 1));
-      expect(c.search, 'last');
+      expect(c.search, "last");
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 50)),
       );
@@ -305,13 +305,13 @@ void main() {
     },
   );
   testWidgets(
-    'Math supports fractions, matrix, aligned and invalid syntax fallback',
+    "Math supports fractions, matrix, aligned and invalid syntax fallback",
     (tester) async {
       tester.view.physicalSize = const Size(390, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      const content = r'''# 公式与推导
+      const content = r"""# 公式与推导
 行内 $x_1^2+\frac{1}{2}$ 与中文混排。
 
 $$\begin{pmatrix}1&2\\3&4\end{pmatrix}$$
@@ -325,7 +325,7 @@ $$
 ```dart
 final answer = 42;
 ```
-''';
+""";
       await tester.pumpWidget(
         MaterialApp(
           theme: appTheme(Brightness.light),

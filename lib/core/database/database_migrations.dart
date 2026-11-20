@@ -1,12 +1,12 @@
-part of 'database.dart';
+part of "database.dart";
 
 extension _DatabaseMigrations on AppDatabase {
   Future<void> _createA2uiIndexes() async {
     await customStatement(
-      'CREATE INDEX chat_a2ui_message ON chat_a2ui_surfaces(message_id)',
+      "CREATE INDEX chat_a2ui_message ON chat_a2ui_surfaces(message_id)",
     );
     await customStatement(
-      'CREATE INDEX chat_a2ui_action_revision ON chat_a2ui_actions(session_id, surface_id)',
+      "CREATE INDEX chat_a2ui_action_revision ON chat_a2ui_actions(session_id, surface_id)",
     );
   }
 
@@ -25,19 +25,19 @@ extension _DatabaseMigrations on AppDatabase {
       await _createVisualIndexes();
       await _createA2uiIndexes();
       await customStatement(
-        'CREATE INDEX learning_due ON learning_review_schedules(due_at)',
+        "CREATE INDEX learning_due ON learning_review_schedules(due_at)",
       );
       await customStatement(
-        'CREATE INDEX ai_usage_occurred ON ai_usage_events(occurred_at)',
+        "CREATE INDEX ai_usage_occurred ON ai_usage_events(occurred_at)",
       );
       await customStatement(
-        'CREATE INDEX ai_usage_action ON ai_usage_events(action_id)',
+        "CREATE INDEX ai_usage_action ON ai_usage_events(action_id)",
       );
       await customStatement(
-        'CREATE INDEX messages_session_time ON chat_messages(session_id, created_at)',
+        "CREATE INDEX messages_session_time ON chat_messages(session_id, created_at)",
       );
       await customStatement(
-        'CREATE INDEX attachments_message ON attachments(message_id)',
+        "CREATE INDEX attachments_message ON attachments(message_id)",
       );
       await customStatement(
         "CREATE VIRTUAL TABLE message_search USING fts5(content, session_id UNINDEXED, content='chat_messages', content_rowid='rowid', tokenize='trigram')",
@@ -103,7 +103,7 @@ extension _DatabaseMigrations on AppDatabase {
           await m.createTable(table);
         }
         await customStatement(
-          'CREATE INDEX learning_due ON learning_review_schedules(due_at)',
+          "CREATE INDEX learning_due ON learning_review_schedules(due_at)",
         );
       }
       if (from >= 14 && from < 20) {
@@ -152,7 +152,7 @@ extension _DatabaseMigrations on AppDatabase {
         await _createPracticeIndexes();
       }
       if (from < 4) {
-        await customStatement('DROP INDEX IF EXISTS tool_write_dedup');
+        await customStatement("DROP INDEX IF EXISTS tool_write_dedup");
         await customStatement(
           "CREATE UNIQUE INDEX tool_write_dedup ON ai_tool_operations(run_id,name,arguments) WHERE name IN ('create_knowledge','update_knowledge','delete_knowledge','create_mistake','update_mistake','delete_mistake','link_mistake_to_knowledge','schedule_review') AND status IN ('pending','running','succeeded')",
         );
@@ -165,7 +165,7 @@ extension _DatabaseMigrations on AppDatabase {
         await m.createTable(practiceChatLinks);
         await _createPracticeLinkIndex();
         await customStatement(
-          'INSERT INTO practice_chat_links(question_id,message_id) SELECT id,source_message_id FROM practice_questions WHERE source_message_id IS NOT NULL',
+          "INSERT INTO practice_chat_links(question_id,message_id) SELECT id,source_message_id FROM practice_questions WHERE source_message_id IS NOT NULL",
         );
       }
       if (from < 6) {
@@ -200,10 +200,10 @@ extension _DatabaseMigrations on AppDatabase {
           "INSERT INTO ai_usage_events (id,action_id,session_id,message_id,provider_kind,endpoint,model,feature,status,usage_source,occurred_at,total_tokens,cost_basis) SELECT 'legacy:' || id,id,session_id,id,'unknown','',COALESCE(model,'unknown'),'chat',status,'legacy_total',created_at,total_tokens,'unknown' FROM chat_messages WHERE role='assistant' AND total_tokens IS NOT NULL",
         );
         await customStatement(
-          'CREATE INDEX ai_usage_occurred ON ai_usage_events(occurred_at)',
+          "CREATE INDEX ai_usage_occurred ON ai_usage_events(occurred_at)",
         );
         await customStatement(
-          'CREATE INDEX ai_usage_action ON ai_usage_events(action_id)',
+          "CREATE INDEX ai_usage_action ON ai_usage_events(action_id)",
         );
       }
       if (from >= 14 && from < 15) {
@@ -283,30 +283,30 @@ extension _DatabaseMigrations on AppDatabase {
       }
     },
     beforeOpen: (_) async {
-      await customStatement('PRAGMA foreign_keys = ON');
+      await customStatement("PRAGMA foreign_keys = ON");
       for (final owner in {
-        'chat_sessions': 'chat',
-        'mistakes': 'mistake',
-        'practice_questions': 'practice',
+        "chat_sessions": "chat",
+        "mistakes": "mistake",
+        "practice_questions": "practice",
       }.entries) {
         await customStatement(
           "CREATE TRIGGER IF NOT EXISTS scratch_delete_${owner.value} AFTER DELETE ON ${owner.key} BEGIN DELETE FROM scratchpads WHERE context_key = '${owner.value}:' || old.id; END",
         );
       }
-      await customStatement('PRAGMA journal_mode = WAL');
+      await customStatement("PRAGMA journal_mode = WAL");
       await (update(
         aiToolOperations,
-      )..where((t) => t.status.isIn(['pending', 'running']))).write(
+      )..where((t) => t.status.isIn(["pending", "running"]))).write(
         const AiToolOperationsCompanion(
-          status: Value('cancelled'),
+          status: Value("cancelled"),
           result: Value('{"ok":false,"error":"应用关闭，未完成的操作已取消。"}'),
         ),
       );
       await (update(
         chatMessages,
-      )..where((t) => t.status.equals('generating'))).write(
+      )..where((t) => t.status.equals("generating"))).write(
         const ChatMessagesCompanion(
-          status: Value('interrupted'),
+          status: Value("interrupted"),
           error: Value(interruptedChatFailure),
         ),
       );
@@ -315,16 +315,16 @@ extension _DatabaseMigrations on AppDatabase {
 
   Future<void> _createVisualIndexes() async {
     await customStatement(
-      'CREATE INDEX visual_message_lookup ON visual_message_links(message_id)',
+      "CREATE INDEX visual_message_lookup ON visual_message_links(message_id)",
     );
     await customStatement(
-      'CREATE INDEX visual_question_lookup ON visual_question_links(question_id)',
+      "CREATE INDEX visual_question_lookup ON visual_question_links(question_id)",
     );
     await customStatement(
-      'CREATE INDEX visual_study_knowledge ON visual_study_links(knowledge_id)',
+      "CREATE INDEX visual_study_knowledge ON visual_study_links(knowledge_id)",
     );
     await customStatement(
-      'CREATE INDEX visual_study_mistake ON visual_study_links(mistake_id)',
+      "CREATE INDEX visual_study_mistake ON visual_study_links(mistake_id)",
     );
   }
 
@@ -333,50 +333,50 @@ extension _DatabaseMigrations on AppDatabase {
       "CREATE UNIQUE INDEX subject_module_name ON subject_modules(subject,ifnull(parent_id,''),name COLLATE NOCASE)",
     );
     await customStatement(
-      'CREATE INDEX knowledge_module_lookup ON knowledge_module_links(module_id,knowledge_id)',
+      "CREATE INDEX knowledge_module_lookup ON knowledge_module_links(module_id,knowledge_id)",
     );
     await customStatement(
-      'CREATE INDEX mistake_module_lookup ON mistake_module_links(module_id,mistake_id)',
+      "CREATE INDEX mistake_module_lookup ON mistake_module_links(module_id,mistake_id)",
     );
   }
 
   Future<void> _createTimelineIndex() async {
     await customStatement(
-      'CREATE INDEX timeline_event_start ON timeline_events(start_date)',
+      "CREATE INDEX timeline_event_start ON timeline_events(start_date)",
     );
   }
 
   Future<void> _createLanguageExamIndexes() async {
     await customStatement(
-      'CREATE INDEX language_exam_materials_lookup ON learning_exam_materials(kind, profile, level, created_at)',
+      "CREATE INDEX language_exam_materials_lookup ON learning_exam_materials(kind, profile, level, created_at)",
     );
     await customStatement(
-      'CREATE INDEX language_exam_attempts_lookup ON learning_exam_attempts(material_id, submitted_at)',
+      "CREATE INDEX language_exam_attempts_lookup ON learning_exam_attempts(material_id, submitted_at)",
     );
   }
 
   Future<void> _createExamIndexes() async {
-    await customStatement('CREATE INDEX exam_event_date ON exam_events(date)');
+    await customStatement("CREATE INDEX exam_event_date ON exam_events(date)");
     await customStatement(
-      'CREATE INDEX exam_rows_subject ON exam_score_rows(subject_id,position)',
+      "CREATE INDEX exam_rows_subject ON exam_score_rows(subject_id,position)",
     );
     await customStatement(
-      'CREATE INDEX exam_photos_subject ON exam_attachments(subject_id,created_at)',
+      "CREATE INDEX exam_photos_subject ON exam_attachments(subject_id,created_at)",
     );
   }
 
   Future<void> _createPracticeLinkIndex() async {
     await customStatement(
-      'CREATE INDEX practice_chat_message ON practice_chat_links(message_id)',
+      "CREATE INDEX practice_chat_message ON practice_chat_links(message_id)",
     );
   }
 
   Future<void> _createReviewIndexes() async {
     await customStatement(
-      'CREATE INDEX review_due ON review_schedules(enabled, due_at)',
+      "CREATE INDEX review_due ON review_schedules(enabled, due_at)",
     );
     await customStatement(
-      'CREATE INDEX review_history ON review_records(schedule_id, recorded_at)',
+      "CREATE INDEX review_history ON review_records(schedule_id, recorded_at)",
     );
   }
 
@@ -385,51 +385,51 @@ extension _DatabaseMigrations on AppDatabase {
       "CREATE UNIQUE INDEX one_pending_attempt ON practice_attempts(question_id) WHERE status IN ('draft','awaiting_self_grade')",
     );
     await customStatement(
-      'CREATE INDEX attempts_question_time ON practice_attempts(question_id, started_at)',
+      "CREATE INDEX attempts_question_time ON practice_attempts(question_id, started_at)",
     );
     await customStatement(
-      'CREATE INDEX questions_source ON practice_questions(source_message_id, deleted)',
+      "CREATE INDEX questions_source ON practice_questions(source_message_id, deleted)",
     );
     await customStatement(
-      'CREATE INDEX questions_subject ON practice_questions(deleted, subject, created_at)',
+      "CREATE INDEX questions_subject ON practice_questions(deleted, subject, created_at)",
     );
     await customStatement(
-      'CREATE INDEX question_topic_lookup ON practice_question_topics(topic_id)',
+      "CREATE INDEX question_topic_lookup ON practice_question_topics(topic_id)",
     );
   }
 
   Future<void> _createStudyIndexes() async {
     await customStatement(
-      'CREATE INDEX knowledge_subject_updated ON knowledge_items(deleted, subject, updated_at)',
+      "CREATE INDEX knowledge_subject_updated ON knowledge_items(deleted, subject, updated_at)",
     );
     await customStatement(
-      'CREATE INDEX mistakes_subject_updated ON mistakes(deleted, subject, updated_at)',
+      "CREATE INDEX mistakes_subject_updated ON mistakes(deleted, subject, updated_at)",
     );
     await customStatement(
-      'CREATE INDEX study_attachments_knowledge ON study_attachments(knowledge_id)',
+      "CREATE INDEX study_attachments_knowledge ON study_attachments(knowledge_id)",
     );
     await customStatement(
-      'CREATE INDEX study_attachments_mistake ON study_attachments(mistake_id)',
+      "CREATE INDEX study_attachments_mistake ON study_attachments(mistake_id)",
     );
     await customStatement(
       "CREATE UNIQUE INDEX tool_write_dedup ON ai_tool_operations(run_id, name, arguments) WHERE name IN ('create_knowledge','update_knowledge','delete_knowledge','create_mistake','update_mistake','delete_mistake','link_mistake_to_knowledge','schedule_review') AND status IN ('pending','running','succeeded')",
     );
     for (final (table, fts, content) in [
-      ('knowledge_items', 'knowledge_search', 'title, content, chapter'),
+      ("knowledge_items", "knowledge_search", "title, content, chapter"),
       (
-        'mistakes',
-        'mistake_search',
-        'title, question, chapter, correct_answer, original_answer, own_analysis, ai_analysis, error_reason, suggested_reason',
+        "mistakes",
+        "mistake_search",
+        "title, question, chapter, correct_answer, original_answer, own_analysis, ai_analysis, error_reason, suggested_reason",
       ),
     ]) {
-      final names = content.split(', ');
-      final newValues = names.map((n) => 'new.$n').join(', ');
-      final oldValues = names.map((n) => 'old.$n').join(', ');
+      final names = content.split(", ");
+      final newValues = names.map((n) => "new.$n").join(", ");
+      final oldValues = names.map((n) => "old.$n").join(", ");
       await customStatement(
         "CREATE VIRTUAL TABLE $fts USING fts5($content, content='$table', content_rowid='rowid', tokenize='trigram')",
       );
       await customStatement(
-        'CREATE TRIGGER ${fts}_ai AFTER INSERT ON $table BEGIN INSERT INTO $fts(rowid, $content) VALUES(new.rowid, $newValues); END',
+        "CREATE TRIGGER ${fts}_ai AFTER INSERT ON $table BEGIN INSERT INTO $fts(rowid, $content) VALUES(new.rowid, $newValues); END",
       );
       await customStatement(
         "CREATE TRIGGER ${fts}_ad AFTER DELETE ON $table BEGIN INSERT INTO $fts($fts, rowid, $content) VALUES('delete', old.rowid, $oldValues); END",
@@ -444,21 +444,21 @@ extension _DatabaseMigrations on AppDatabase {
 extension _LanguageQuickMigration on AppDatabase {
   Future<void> _createLanguageQuickSearch() async {
     await customStatement(
-      'CREATE INDEX language_quick_time ON language_quick_lookups(created_at)',
+      "CREATE INDEX language_quick_time ON language_quick_lookups(created_at)",
     );
     await customStatement(
-      'CREATE INDEX language_quick_action_time ON language_quick_lookups(action_id, created_at)',
+      "CREATE INDEX language_quick_action_time ON language_quick_lookups(action_id, created_at)",
     );
     await customStatement(
-      'CREATE INDEX language_quick_cache ON language_quick_lookups(cache_key, created_at)',
+      "CREATE INDEX language_quick_cache ON language_quick_lookups(cache_key, created_at)",
     );
     await customStatement(
       "CREATE VIRTUAL TABLE language_quick_search USING fts5(input, summary, content, content='language_quick_lookups', content_rowid='rowid', tokenize='trigram')",
     );
     await customStatement(
-      'CREATE TRIGGER language_quick_insert AFTER INSERT ON language_quick_lookups BEGIN '
-      'INSERT INTO language_quick_search(rowid, input, summary, content) '
-      'VALUES(new.rowid, new.input, new.summary, new.content); END',
+      "CREATE TRIGGER language_quick_insert AFTER INSERT ON language_quick_lookups BEGIN "
+      "INSERT INTO language_quick_search(rowid, input, summary, content) "
+      "VALUES(new.rowid, new.input, new.summary, new.content); END",
     );
     await customStatement(
       "CREATE TRIGGER language_quick_delete AFTER DELETE ON language_quick_lookups BEGIN "

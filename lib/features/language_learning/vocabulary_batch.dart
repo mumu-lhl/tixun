@@ -1,14 +1,16 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:uuid/uuid.dart';
+import "dart:async";
 
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/l10n/generated/app_localizations.dart';
-import '../../core/ui/actions.dart';
-import 'language_store.dart';
-import 'lexical_form_screen.dart';
-import 'lexical_form_store.dart';
-import 'vocabulary_editor.dart';
+import "package:material_ui/material_ui.dart";
+import "package:uuid/uuid.dart";
+
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/l10n/generated/app_localizations.dart";
+import "../../core/ui/actions.dart";
+import "language_store.dart";
+import "lexical_form_screen.dart";
+import "lexical_form_store.dart";
+import "vocabulary_editor.dart";
 
 enum VocabularyMode { study, recall, context, recognition }
 
@@ -159,7 +161,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
             content = Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('${_current + 1} / ${cards.length}'),
+                Text("${_current + 1} / ${cards.length}"),
                 const SizedBox(height: 12),
                 if (widget.mode == VocabularyMode.recall)
                   _recall(card)
@@ -289,16 +291,18 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     final result = _result;
     void submit() {
       if (_answer.text.trim().isEmpty) return;
-      _save(() async {
-        final attempt = await widget.store.recordApplication(
-          attemptId: _attemptId,
-          senseId: card.sense.id,
-          answer: _answer.text,
-          usedHelp: false,
-          groupPrompt: widget.group != null,
-        );
-        if (mounted) setState(() => _result = attempt);
-      });
+      unawaited(
+        _save(() async {
+          final attempt = await widget.store.recordApplication(
+            attemptId: _attemptId,
+            senseId: card.sense.id,
+            answer: _answer.text,
+            usedHelp: false,
+            groupPrompt: widget.group != null,
+          );
+          if (mounted) setState(() => _result = attempt);
+        }),
+      );
     }
 
     return Column(
@@ -368,10 +372,10 @@ class _VocabularyDetailsState extends State<VocabularyDetails> {
             LexicalType.values.byName(card.item.lexicalType),
           ),
         ),
-        if (card.sense.source == 'ai')
-          Text(l10n.languageAiSource(card.sense.aiModel ?? '')),
-        if (card.sense.source == 'mock') Text(l10n.languageAiMockSource),
-        if (widget.store case final store? when card.item.language == 'en')
+        if (card.sense.source == "ai")
+          Text(l10n.languageAiSource(card.sense.aiModel ?? "")),
+        if (card.sense.source == "mock") Text(l10n.languageAiMockSource),
+        if (widget.store case final store? when card.item.language == "en")
           TextButton(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(

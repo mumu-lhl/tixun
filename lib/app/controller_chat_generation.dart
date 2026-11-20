@@ -1,4 +1,4 @@
-part of 'controller.dart';
+part of "controller.dart";
 
 extension _ChatGeneration on AppController {
   Future<void> _setSessionReasoningImpl(String value) =>
@@ -6,39 +6,39 @@ extension _ChatGeneration on AppController {
         if (busy || selected == null) {
           throw const AiFailure.localized(
             AppErrorCode.stopGeneratingBeforeChangingReasoning,
-            '请先停止生成，再调整本会话思考强度。',
+            "请先停止生成，再调整本会话思考强度。",
           );
         }
-        if (value.isNotEmpty && value != 'off' && !config.supportsThinking) {
+        if (value.isNotEmpty && value != "off" && !config.supportsThinking) {
           throw const AiFailure.localized(
             AppErrorCode.theCurrentModelHasNot,
-            '当前模型未声明支持思考参数。',
+            "当前模型未声明支持思考参数。",
           );
         }
         if (!AiOptions(config).supportsOverride(value)) {
           throw const AppFormatException(
             AppErrorCode.invalidReasoningEffort,
-            '思考强度无效。',
+            "思考强度无效。",
           );
         }
         final thinking = AiOptions(AiOptions.forSession(config, value))
             .reasoningEnabled;
         if (thinking &&
             !AiOptions(config).reasoningWithTools &&
-            (selected!.toolsEnabled || selected!.mode == 'exam')) {
+            (selected!.toolsEnabled || selected!.mode == "exam")) {
           throw const AiFailure.localized(
             AppErrorCode.thisTaskRequiresNonThinking,
-            '当前任务需要非思考工具调用，请保持关闭；普通讲解可在其他会话开启。',
+            "当前任务需要非思考工具调用，请保持关闭；普通讲解可在其他会话开启。",
           );
         }
-        await db.setPreference('ai_reasoning:${selected!.id}', value);
+        await db.setPreference("ai_reasoning:${selected!.id}", value);
         sessionReasoning = value;
         changed();
       });
 
   Future<void> _useToolReasoningImpl() async {
     if (AiOptions(config).reasoningWithTools) return;
-    await setSessionReasoning('off');
+    await setSessionReasoning("off");
     if (config.thinking) {
       notice = const AppNotice(AppNoticeKind.sessionReasoningFallback);
       changed();
@@ -69,11 +69,11 @@ extension _ChatGeneration on AppController {
       throw sessionConfig.supportsTools
           ? const AiFailure.localized(
               AppErrorCode.materialToolsRequireModelWithoutThinking,
-              '资料工具需要支持工具调用的模型，并关闭深度思考。',
+              "资料工具需要支持工具调用的模型，并关闭深度思考。",
             )
           : const AiFailure.localized(
               AppErrorCode.materialToolsRequireToolCapableModel,
-              '资料工具需要支持工具调用的模型。',
+              "资料工具需要支持工具调用的模型。",
             );
     }
     final sessionId = selected!.id;
@@ -81,7 +81,7 @@ extension _ChatGeneration on AppController {
     await db.transaction(() async {
       await db.setPreference(
         studyToolCategoriesKey(sessionId),
-        saved.map((c) => c.name).join(','),
+        saved.map((c) => c.name).join(","),
       );
       await (db.update(db.chatSessions)..where((s) => s.id.equals(sessionId)))
           .write(ChatSessionsCompanion(toolsEnabled: Value(enabled)));
@@ -113,51 +113,51 @@ extension _ChatGeneration on AppController {
       if (value == null) {
         throw AppFormatException(
           AppErrorCode.errorMissingParameter,
-          '缺少参数：$key。',
+          "缺少参数：$key。",
           [key],
         );
       }
       if (value is! String) {
         throw AppFormatException(
           AppErrorCode.errorInvalidParameterType,
-          '参数 $key 类型无效。',
+          "参数 $key 类型无效。",
           [key],
         );
       }
       return value;
     }
 
-    var target = '';
-    if (name.endsWith('knowledge') && args['id'] is String) {
-      target = (await study.knowledge(args['id'] as String)).title;
+    var target = "";
+    if (name.endsWith("knowledge") && args["id"] is String) {
+      target = (await study.knowledge(args["id"] as String)).title;
     }
-    if (name.endsWith('mistake') && args['id'] is String) {
-      target = (await study.mistake(args['id'] as String)).title;
+    if (name.endsWith("mistake") && args["id"] is String) {
+      target = (await study.mistake(args["id"] as String)).title;
     }
-    if (name == 'link_mistake_to_knowledge') {
+    if (name == "link_mistake_to_knowledge") {
       target =
           '${(await study.mistake(argString('mistake_id'))).title} ↔ ${(await study.knowledge(argString('knowledge_id'))).title}';
     }
-    if (name == 'create_subject_module' && args['parent_id'] is String) {
-      final all = await study.modules.list(argString('subject'));
-      final parent = all.where((m) => m.id == args['parent_id']).firstOrNull;
+    if (name == "create_subject_module" && args["parent_id"] is String) {
+      final all = await study.modules.list(argString("subject"));
+      final parent = all.where((m) => m.id == args["parent_id"]).firstOrNull;
       if (parent == null) {
         throw const AppFormatException(
           AppErrorCode.errorTheParentModuleDoesNotExist,
-          '上级模块不存在。',
+          "上级模块不存在。",
         );
       }
       target = '${parent.name} / ${argString('name')}';
     }
-    if (name == 'link_study_module') {
-      if (!['knowledge', 'mistake'].contains(args['kind'])) {
+    if (name == "link_study_module") {
+      if (!["knowledge", "mistake"].contains(args["kind"])) {
         throw const AppFormatException(
           AppErrorCode.errorInvalidMaterialType,
-          '资料类型无效。',
+          "资料类型无效。",
         );
       }
-      final isMistake = args['kind'] == 'mistake';
-      final id = argString('id');
+      final isMistake = args["kind"] == "mistake";
+      final id = argString("id");
       final subject = isMistake
           ? (await study.mistake(id)).subject
           : (await study.knowledge(id)).subject;
@@ -165,23 +165,23 @@ extension _ChatGeneration on AppController {
           ? (await study.mistake(id)).title
           : (await study.knowledge(id)).title;
       final all = await study.modules.list(subject);
-      final moduleId = argString('module_id');
+      final moduleId = argString("module_id");
       final module = all.where((m) => m.id == moduleId).firstOrNull;
       if (module == null) {
         throw const AppFormatException(
           AppErrorCode.errorTheFolderDoesNotExistOr,
-          '目录不存在或科目不匹配。',
+          "目录不存在或科目不匹配。",
         );
       }
-      target = '$title → $subject / ${modulePath(module, all)}';
+      target = "$title → $subject / ${modulePath(module, all)}";
     }
-    if (name == 'schedule_review') {
+    if (name == "schedule_review") {
       try {
-        target = (await practice.detail(argString('question_id'))).row.stem;
+        target = (await practice.detail(argString("question_id"))).row.stem;
       } on StateError {
         throw const AppFormatException(
           AppErrorCode.errorTheQuestionDoesNotExist,
-          '题目不存在。',
+          "题目不存在。",
         );
       }
     }
@@ -258,37 +258,34 @@ extension _ChatGeneration on AppController {
               ChatMessagesCompanion.insert(
                 id: userId,
                 sessionId: s.id,
-                role: 'user',
-                content: input.trim().isEmpty ? '请帮我理解图片中的题目。' : input.trim(),
+                role: "user",
+                content: input.trim().isEmpty ? "请帮我理解图片中的题目。" : input.trim(),
                 createdAt: now,
               ),
             );
         await (db.update(db.attachments)
               ..where((a) => a.sessionId.equals(s.id) & a.messageId.isNull()))
             .write(AttachmentsCompanion(messageId: Value(userId)));
-        // The input stays editable while the send is being prepared, so the
-        // user may already have typed past the sent text. Only clear the
-        // stored draft when it still holds exactly the sent text; otherwise
-        // keep it — wiping it would discard the newer typing.
+        // Preserve text typed after sending while the draft is still being saved.
         final stored = await (db.select(
           db.chatSessions,
         )..where((t) => t.id.equals(s.id))).getSingle();
         final untitledFirstSend =
             messages.isEmpty &&
-            const ['新的学习对话', 'New study conversation'].contains(stored.title);
+            const ["新的学习对话", "New study conversation"].contains(stored.title);
         requestConversationTitle =
-            untitledFirstSend && sessionConfig.kind == 'deepseek';
+            untitledFirstSend && sessionConfig.kind == "deepseek";
         final clearDraft = stored.draft.isEmpty || stored.draft == input;
         await (db.update(
           db.chatSessions,
         )..where((t) => t.id.equals(s.id))).write(
           ChatSessionsCompanion(
-            draft: clearDraft ? const Value('') : const Value.absent(),
+            draft: clearDraft ? const Value("") : const Value.absent(),
             updatedAt: Value(now),
             title: untitledFirstSend
                 ? Value(
                     input.trim().isEmpty
-                        ? '图片题目'
+                        ? "图片题目"
                         : input.trim().characters.take(30).toString(),
                   )
                 : const Value.absent(),
@@ -298,7 +295,7 @@ extension _ChatGeneration on AppController {
       selected = await (db.select(
         db.chatSessions,
       )..where((t) => t.id.equals(s.id))).getSingle();
-      await db.setPreference('selected_session', s.id);
+      await db.setPreference("selected_session", s.id);
       await _refreshSelected();
       await reload();
       return (
@@ -316,12 +313,8 @@ extension _ChatGeneration on AppController {
     changed();
   }
 
-  // Streaming progress used to reload the whole conversation from the
-  // database on every tick (~12/s), which re-parsed every visible message's
-  // Markdown. Progress ticks now persist the partial text (so a crash keeps
-  // it) but update only the generating message in memory, at a slower
-  // cadence. Unclosed fences/formulas can still re-layout mid-stream —
-  // fixing that needs a streaming-aware Markdown renderer, not a throttle.
+  // Persist partial replies for crash recovery. Update the in-memory message in
+  // place so each streamed tick does not reparse the rest of the conversation.
   static const _progressThrottleMs = 250;
 
   void _publishProgress(
@@ -342,7 +335,7 @@ extension _ChatGeneration on AppController {
       ...messages.sublist(0, index),
       messages[index].copyWith(
         content: text,
-        status: 'generating',
+        status: "generating",
         reasoningContent: Value(reasoning),
         reasoningTrace: Value(trace),
         totalTokens: tokens == null ? const Value.absent() : Value(tokens),
@@ -357,7 +350,7 @@ extension _ChatGeneration on AppController {
     bool enableConversationTitle = false,
   }) async {
     busy = true;
-    if (demo) debugPrint('TIXUN_GENERATION_STARTED');
+    if (demo) debugPrint("TIXUN_GENERATION_STARTED");
     final cancel = CancelToken();
     _cancel = cancel;
     final id = const Uuid().v4();
@@ -366,14 +359,14 @@ extension _ChatGeneration on AppController {
     final requestPrompts = prompts;
     final requestDrawingEnabled = sessionDrawingEnabled;
     final requestA2uiEnabled = sessionA2uiEnabled;
-    var text = '';
-    var status = 'complete';
+    var text = "";
+    var status = "complete";
     String? failure;
     int? tokens;
     String? reasoning, trace;
     var lastWrite = DateTime.now();
     var progressStarted = false;
-    final exam = selected!.mode == 'exam';
+    final exam = selected!.mode == "exam";
     var quizCreated = false;
     try {
       await db
@@ -382,10 +375,10 @@ extension _ChatGeneration on AppController {
             ChatMessagesCompanion.insert(
               id: id,
               sessionId: sessionId,
-              role: 'assistant',
-              content: '',
-              status: const Value('generating'),
-              model: Value(demo ? 'Mock · 离线演示' : requestConfig.model),
+              role: "assistant",
+              content: "",
+              status: const Value("generating"),
+              model: Value(demo ? "Mock · 离线演示" : requestConfig.model),
               createdAt: DateTime.now(),
             ),
           );
@@ -419,7 +412,7 @@ extension _ChatGeneration on AppController {
             await _writeMessage(
               id,
               text,
-              'generating',
+              "generating",
               null,
               tokens,
               reasoning,
@@ -444,28 +437,28 @@ extension _ChatGeneration on AppController {
       reasoning = result.reasoning;
       trace = result.reasoningTrace;
     } on AiFailure catch (e) {
-      status = 'error';
+      status = "error";
       failure = e.code == null
           ? encodeRawChatFailure(e.message)
           : encodeChatFailure(e.code!, e.arguments);
     } on DioException catch (e) {
-      status = CancelToken.isCancel(e) ? 'stopped' : 'error';
+      status = CancelToken.isCancel(e) ? "stopped" : "error";
       failure = encodeChatFailure(
-        cancel.cancelError?.error == 'timeout'
+        cancel.cancelError?.error == "timeout"
             ? AppErrorCode.generationTimedOutPartialContent
-            : (status == 'stopped'
+            : (status == "stopped"
                   ? AppErrorCode.generationStopped
                   : AppErrorCode.theNetworkRequestFailedTry),
       );
     } catch (_) {
-      status = 'error';
+      status = "error";
       failure = encodeChatFailure(
         AppErrorCode.generationFailedCheckSecureStorage,
       );
     } finally {
-      cancel.cancel('finished');
+      cancel.cancel("finished");
       try {
-        if (exam && !quizCreated && status != 'complete') text = '';
+        if (exam && !quizCreated && status != "complete") text = "";
         await _writeMessage(
           id,
           text,
@@ -481,10 +474,10 @@ extension _ChatGeneration on AppController {
           ChatSessionsCompanion(
             stage: Value(
               (await practice.list(messageId: id)).isNotEmpty
-                  ? 'practice'
+                  ? "practice"
                   : text.isNotEmpty
-                  ? 'explaining'
-                  : 'diagnosing',
+                  ? "explaining"
+                  : "diagnosing",
             ),
           ),
         );
@@ -495,7 +488,7 @@ extension _ChatGeneration on AppController {
       }
       busy = false;
       _cancel = null;
-      if (demo) debugPrint('TIXUN_GENERATION_FINISHED status=$status');
+      if (demo) debugPrint("TIXUN_GENERATION_FINISHED status=$status");
       changed();
     }
   }
@@ -522,15 +515,15 @@ extension _ChatGeneration on AppController {
   }
 
   Future<void> _stopImpl() async {
-    _cancel?.cancel('user');
+    _cancel?.cancel("user");
     await _preparation?.future;
-    _cancel?.cancel('user');
+    _cancel?.cancel("user");
     await _generation;
   }
 
   Future<void> _regenerateImpl() async {
     if (busy || selected == null || messages.isEmpty) return;
-    final user = messages.where((m) => m.role == 'user').lastOrNull;
+    final user = messages.where((m) => m.role == "user").lastOrNull;
     if (user != null) await editAndResend(user, user.content);
   }
 }

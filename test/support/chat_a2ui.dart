@@ -1,7 +1,7 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:tixun/core/ai/chat_provider.dart';
-import 'package:tixun/core/database/database.dart';
+import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/database/database.dart";
 
 const expressForm = r'''
 $/word = "pleasure"
@@ -38,18 +38,18 @@ class A2uiTestProvider extends MockChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       AiConversation((request, cancel) async* {
         requests.add(request);
-        if (!request.instructions.contains('raw <a2ui>') ||
+        if (!request.instructions.contains("raw <a2ui>") ||
             (plainFollowUp && requests.length > 1)) {
-          yield const AiChunk(text: 'Plain reply', completed: true);
+          yield const AiChunk(text: "Plain reply", completed: true);
           return;
         }
-        yield const AiChunk(text: 'Before the interface.\n\n<a2');
-        final introductory = request.instructions.contains('NumberLine')
+        yield const AiChunk(text: "Before the interface.\n\n<a2");
+        final introductory = request.instructions.contains("NumberLine")
             ? expressPlot
             : 'root = Text("First")';
         yield AiChunk(
           text:
-              'ui>$introductory</a2ui>\n\n'
+              "ui>$introductory</a2ui>\n\n"
               '<a2ui>root = Image("https://example.com")</a2ui>',
         );
         yield AiChunk(
@@ -63,7 +63,7 @@ class A2uiTestProvider extends MockChatProvider {
         }
         yield const AiChunk(
           text:
-              '\n\nAfter the interface.\n\n'
+              "\n\nAfter the interface.\n\n"
               '```md\n<a2ui>root = Text("Sample")</a2ui>\n```\n\nFinal prose.',
           completed: true,
         );

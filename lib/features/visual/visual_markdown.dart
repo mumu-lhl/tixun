@@ -1,18 +1,18 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../a2ui/a2ui_markdown.dart';
-import '../a2ui/a2ui_surface_card.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/markdown/visual_references.dart';
-import '../../core/ui/learning_markdown.dart';
-import '../../core/visual/model/visual_scene.dart';
-import 'visual_card.dart';
-import 'visual_providers.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../a2ui/a2ui_markdown.dart";
+import "../a2ui/a2ui_surface_card.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/markdown/visual_references.dart";
+import "../../core/ui/learning_markdown.dart";
+import "../../core/visual/model/visual_scene.dart";
+import "visual_card.dart";
+import "visual_providers.dart";
 
 final _a2uiByMessage = StreamProvider.autoDispose
     .family<List<ChatA2uiSurface>, (String, String)>((ref, owner) {
@@ -59,15 +59,15 @@ class VisualMarkdown extends ConsumerWidget {
             ),
           );
     // Private render destinations are minted only for parsed Markdown images.
-    var renderScheme = 'tixun-a2ui-inline';
-    while (data.contains('$renderScheme:')) {
-      renderScheme += 'x';
+    var renderScheme = "tixun-a2ui-inline";
+    while (data.contains("$renderScheme:")) {
+      renderScheme += "x";
     }
     final parts = chatA2uiMarkdown(
       data,
       surfaces,
       renderScheme: renderScheme,
-      interrupted: const {'error', 'stopped', 'interrupted'}.contains(status),
+      interrupted: const {"error", "stopped", "interrupted"}.contains(status),
     );
     final references = visualReferences(data);
     final owner = knowledgeId;
@@ -105,14 +105,14 @@ class VisualMarkdown extends ConsumerWidget {
           final scene = scenes[id];
           return scene == null
               ? null
-              : VisualCard(scene: scene, key: ValueKey('inline-$id'));
+              : VisualCard(scene: scene, key: ValueKey("inline-$id"));
         }
 
         Widget surfaceWidget(String id) {
           final surface = surfaceIndex[id];
           if (surface == null) return Text(context.l10n.chatA2uiUnavailable);
           return ChatA2uiSurfaceCard(
-            key: ValueKey('a2ui-${surface.sessionId}-$id'),
+            key: ValueKey("a2ui-${surface.sessionId}-$id"),
             row: surface,
             visualBuilder: visualWidget,
           );
@@ -127,7 +127,7 @@ class VisualMarkdown extends ConsumerWidget {
               else
                 LearningMarkdown(
                   part.markdown!,
-                  key: ValueKey('markdown-$index'),
+                  key: ValueKey("markdown-$index"),
                   streaming: streaming && index == parts.length - 1,
                   visualBuilder: (uri) {
                     final surfaceId = chatA2uiReference(
@@ -157,11 +157,11 @@ class VisualMarkdown extends ConsumerWidget {
             // in the body; earlier figures are not repeated below every message.
             if (owner == null)
               for (final row in attached)
-                if (row.source != 'a2ui_promotion' &&
+                if (row.source != "a2ui_promotion" &&
                     !references.contains(row.id) &&
                     scenes[row.id] != null)
                   Padding(
-                    key: ValueKey('fallback-${row.id}'),
+                    key: ValueKey("fallback-${row.id}"),
                     padding: const EdgeInsets.only(top: 16),
                     child: VisualCard(scene: scenes[row.id]!),
                   ),

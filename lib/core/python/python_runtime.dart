@@ -1,14 +1,14 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
+import "dart:async";
+import "dart:convert";
+import "dart:io";
+import "dart:typed_data";
 
-import '../ai/ai_types.dart';
-import 'android_python_runtime.dart';
+import "../ai/ai_types.dart";
+import "android_python_runtime.dart";
 
-import 'package:dio/dio.dart';
-import 'package:path/path.dart' as p;
-import 'package:uuid/uuid.dart';
+import "package:dio/dio.dart";
+import "package:path/path.dart" as p;
+import "package:uuid/uuid.dart";
 
 /// Executes only in Linux bubblewrap or an Android isolated-UID service.
 class PythonRuntime {
@@ -25,9 +25,9 @@ class PythonRuntime {
     required CancelToken cancel,
   }) async {
     if (!isSupportedPlatform) {
-      return {'ok': false, 'error': 'Python 沙盒暂不可用于此平台。'};
+      return {"ok": false, "error": "Python 沙盒暂不可用于此平台。"};
     }
-    if (_busy) return {'ok': false, 'error': 'Python 仍在运行，结束后才能执行下一段代码。'};
+    if (_busy) return {"ok": false, "error": "Python 仍在运行，结束后才能执行下一段代码。"};
     _busy = true;
     if (Platform.isAndroid) {
       try {
@@ -52,71 +52,71 @@ class PythonRuntime {
     try {
       cancel.checkCancelled();
       final workspacesRoot = Directory(p.dirname(workspace.absolute.path));
-      if (p.basename(workspacesRoot.path) != 'python-workspaces') {
-        return {'ok': false, 'error': 'Python 工作目录无效，执行已阻止。'};
+      if (p.basename(workspacesRoot.path) != "python-workspaces") {
+        return {"ok": false, "error": "Python 工作目录无效，执行已阻止。"};
       }
       await workspace.create(recursive: true);
       final canonicalRoot = await workspacesRoot.resolveSymbolicLinks();
       final canonicalWorkspace = await workspace.resolveSymbolicLinks();
       if (p.dirname(canonicalWorkspace) != canonicalRoot ||
-          p.basename(canonicalWorkspace) == '.tixun-runtime') {
-        return {'ok': false, 'error': 'Python 工作目录无效，执行已阻止。'};
+          p.basename(canonicalWorkspace) == ".tixun-runtime") {
+        return {"ok": false, "error": "Python 工作目录无效，执行已阻止。"};
       }
 
       final bundle = p.dirname(Platform.resolvedExecutable);
-      final launcher = p.join(bundle, 'libexec', 'tixun-python-sandbox');
+      final launcher = p.join(bundle, "libexec", "tixun-python-sandbox");
       if (!await File(launcher).exists()) {
-        return {'ok': false, 'error': 'Python 沙盒运行时未安装。'};
+        return {"ok": false, "error": "Python 沙盒运行时未安装。"};
       }
       script = File(
-        p.join(canonicalWorkspace, '.tixun-${const Uuid().v4()}.py'),
+        p.join(canonicalWorkspace, ".tixun-${const Uuid().v4()}.py"),
       );
       await script.writeAsString(code, flush: true);
       cancel.checkCancelled();
       process = await Process.start(
-        'bwrap',
+        "bwrap",
         [
-          '--die-with-parent',
-          '--new-session',
-          '--unshare-user',
-          '--unshare-pid',
-          '--unshare-ipc',
-          '--unshare-uts',
-          '--cap-drop',
-          'ALL',
-          '--ro-bind',
-          '/',
-          '/',
-          '--proc',
-          '/proc',
-          '--bind',
+          "--die-with-parent",
+          "--new-session",
+          "--unshare-user",
+          "--unshare-pid",
+          "--unshare-ipc",
+          "--unshare-uts",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/",
+          "/",
+          "--proc",
+          "/proc",
+          "--bind",
           canonicalWorkspace,
           canonicalWorkspace,
-          '--chdir',
+          "--chdir",
           canonicalWorkspace,
-          '--setenv',
-          'HOME',
+          "--setenv",
+          "HOME",
           canonicalWorkspace,
-          '--setenv',
-          'TMPDIR',
+          "--setenv",
+          "TMPDIR",
           canonicalWorkspace,
-          '--setenv',
-          'XDG_CACHE_HOME',
+          "--setenv",
+          "XDG_CACHE_HOME",
           canonicalWorkspace,
-          '--',
+          "--",
           launcher,
-          '--bundle',
+          "--bundle",
           bundle,
           script.path,
         ],
         runInShell: false,
         includeParentEnvironment: false,
         environment: const {
-          'PATH': '/usr/bin:/bin',
-          'LANG': 'C.UTF-8',
-          'PYTHONDONTWRITEBYTECODE': '1',
-          'PYTHONNOUSERSITE': '1',
-          'PYTHONUNBUFFERED': '1',
+          "PATH": "/usr/bin:/bin",
+          "LANG": "C.UTF-8",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "PYTHONNOUSERSITE": "1",
+          "PYTHONUNBUFFERED": "1",
         },
       );
 
@@ -155,29 +155,29 @@ class PythonRuntime {
       final err = await stderr;
       if (timedOut) {
         return {
-          'ok': false,
-          'error': 'Python 执行超时，隔离进程已终止。',
-          'stdout': out.text,
-          'stderr': err.text,
-          'output_truncated': out.truncated || err.truncated,
-          'elapsed_ms': DateTime.now().difference(started).inMilliseconds,
+          "ok": false,
+          "error": "Python 执行超时，隔离进程已终止。",
+          "stdout": out.text,
+          "stderr": err.text,
+          "output_truncated": out.truncated || err.truncated,
+          "elapsed_ms": DateTime.now().difference(started).inMilliseconds,
         };
       }
       return {
-        'ok': exitCode == 0,
-        if (exitCode != 0) 'error': 'Python 进程退出，状态码 $exitCode。',
-        'stdout': out.text,
-        'stderr': err.text,
-        'output_truncated': out.truncated || err.truncated,
-        'elapsed_ms': DateTime.now().difference(started).inMilliseconds,
+        "ok": exitCode == 0,
+        if (exitCode != 0) "error": "Python 进程退出，状态码 $exitCode。",
+        "stdout": out.text,
+        "stderr": err.text,
+        "output_truncated": out.truncated || err.truncated,
+        "elapsed_ms": DateTime.now().difference(started).inMilliseconds,
       };
     } on DioException {
       rethrow;
     } on ProcessException catch (error) {
-      return {'ok': false, 'error': 'Python 沙盒启动失败：${error.message}'};
+      return {"ok": false, "error": "Python 沙盒启动失败：${error.message}"};
     } catch (error) {
       if (cancel.isCancelled) rethrow;
-      return {'ok': false, 'error': 'Python 沙盒执行失败：$error'};
+      return {"ok": false, "error": "Python 沙盒执行失败：$error"};
     } finally {
       timer?.cancel();
       try {

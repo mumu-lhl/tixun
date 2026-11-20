@@ -1,4 +1,4 @@
-part of 'database.dart';
+part of "database.dart";
 
 class ExamEvents extends Table {
   TextColumn get id => text()();
@@ -18,10 +18,10 @@ class ExamSubjects extends Table {
   RealColumn get scaledScore => real().nullable()();
   RealColumn get maximum => real().nullable()();
   IntColumn get scoreRevision => integer().withDefault(const Constant(0))();
-  TextColumn get aiReasoning => text().withDefault(const Constant(''))();
+  TextColumn get aiReasoning => text().withDefault(const Constant(""))();
   TextColumn get aiModel => text().nullable()();
   BoolColumn get usesScaling => boolean().withDefault(const Constant(false))();
-  TextColumn get notes => text().withDefault(const Constant(''))();
+  TextColumn get notes => text().withDefault(const Constant(""))();
   DateTimeColumn get updatedAt => dateTime()();
   @override
   Set<Column> get primaryKey => {id};
@@ -44,7 +44,7 @@ class ExamScoreRows extends Table {
   TextColumn get label => text()();
   RealColumn get earned => real().nullable()();
   RealColumn get maximum => real().nullable()();
-  TextColumn get note => text().withDefault(const Constant(''))();
+  TextColumn get note => text().withDefault(const Constant(""))();
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -67,7 +67,7 @@ class TimelineEvents extends Table {
   TextColumn get title => text()();
   DateTimeColumn get startDate => dateTime()();
   DateTimeColumn get endDate => dateTime().nullable()();
-  TextColumn get notes => text().withDefault(const Constant(''))();
+  TextColumn get notes => text().withDefault(const Constant(""))();
   DateTimeColumn get updatedAt => dateTime()();
   @override
   Set<Column> get primaryKey => {id};

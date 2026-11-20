@@ -1,4 +1,4 @@
-part of 'chat_screen.dart';
+part of "chat_screen.dart";
 
 class Conversation extends ConsumerStatefulWidget {
   const Conversation({super.key});
@@ -27,7 +27,7 @@ class _ConversationState extends ConsumerState<Conversation> {
   void initState() {
     super.initState();
     _input = TextEditingController(
-      text: ref.read(appControllerProvider).selected?.draft ?? '',
+      text: ref.read(appControllerProvider).selected?.draft ?? "",
     );
     _scroll.addListener(() => _refreshScrollState(positionChanged: true));
   }
@@ -81,8 +81,8 @@ class _ConversationState extends ConsumerState<Conversation> {
     await act(context, () async {
       final picked = await pickPhotos(
         context,
-        takePhoto: type == 'camera',
-        filesOnly: type == 'file',
+        takePhoto: type == "camera",
+        filesOnly: type == "file",
       );
       final added = <Attachment>[];
       for (final file in picked) {
@@ -105,10 +105,10 @@ class _ConversationState extends ConsumerState<Conversation> {
       if (!mounted || _reportedViewport == viewport) return;
       RenderBox? input, send;
       void visit(Element e) {
-        if (e.widget.key == const Key('chat-input')) {
+        if (e.widget.key == const Key("chat-input")) {
           input = e.findRenderObject() as RenderBox?;
         }
-        if (e.widget.key == const Key('send-message')) {
+        if (e.widget.key == const Key("send-message")) {
           send = e.findRenderObject() as RenderBox?;
         }
         e.visitChildElements(visit);
@@ -123,7 +123,7 @@ class _ConversationState extends ConsumerState<Conversation> {
             ) *
             ratio;
         if (_composerSessionId != sessionId || _lastComposerPoint != p) {
-          debugPrint('TIXUN_COMPOSER_POINT ${p.dx.round()} ${p.dy.round()}');
+          debugPrint("TIXUN_COMPOSER_POINT ${p.dx.round()} ${p.dy.round()}");
           _lastComposerPoint = p;
           _composerSessionId = sessionId;
         }
@@ -131,7 +131,7 @@ class _ConversationState extends ConsumerState<Conversation> {
           final button =
               send!.localToGlobal(send!.size.center(Offset.zero)) * ratio;
           debugPrint(
-            'TIXUN_SEND_POINT ${button.dx.round()} ${button.dy.round()}',
+            "TIXUN_SEND_POINT ${button.dx.round()} ${button.dy.round()}",
           );
           _reportedViewport = viewport;
         }
@@ -183,7 +183,7 @@ class _ConversationState extends ConsumerState<Conversation> {
     // Data-writing flows can send outside this widget. Observe committed
     // messages rather than a local send-button flag, including instant replies.
     // A newer draft or different text must survive the send.
-    final sent = c.messages.where((m) => m.role == 'user').lastOrNull;
+    final sent = c.messages.where((m) => m.role == "user").lastOrNull;
     if (c.selected?.draft.isEmpty == true &&
         _input.text.isNotEmpty &&
         _input.text.trim() == sent?.content.trim()) {
@@ -205,7 +205,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                 final hasPending = c.attachments.any(
                   (a) => a.messageId == null,
                 );
-                if (!c.busy && (hasText || hasPending)) _send();
+                if (!c.busy && (hasText || hasPending)) unawaited(_send());
                 return null;
               },
             ),
@@ -245,7 +245,7 @@ class _ConversationState extends ConsumerState<Conversation> {
                                 ),
                                 onPressed: () {
                                   _input.text = text;
-                                  c.draft(text);
+                                  unawaited(c.draft(text));
                                   _focus.requestFocus();
                                 },
                               ),

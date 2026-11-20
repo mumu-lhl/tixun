@@ -1,11 +1,11 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../core/visual/model/visual_scene.dart';
-import 'visual_card.dart';
-import 'visual_providers.dart';
+import "../../core/visual/model/visual_scene.dart";
+import "visual_card.dart";
+import "visual_providers.dart";
 
 /// The visuals linked to one study owner (a knowledge item or a mistake),
 /// rendered as [VisualCard]s.
@@ -64,7 +64,7 @@ class StudyVisuals extends ConsumerWidget {
             groups.putIfAbsent(stored.source, () => []).add(scene);
           }
           if (groups.isEmpty) return const SizedBox.shrink();
-          const order = ['original', 'ai', 'student'];
+          const order = ["original", "ai", "student"];
           final keys = groups.keys.toList()
             ..sort((a, b) {
               final ai = order.indexOf(a), bi = order.indexOf(b);

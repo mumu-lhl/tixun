@@ -1,11 +1,11 @@
-import 'package:markdown/markdown.dart' as md;
+import "package:markdown/markdown.dart" as md;
 
-import '../../core/database/database.dart';
+import "../../core/database/database.dart";
 
 final _surfaceId = RegExp(
-  r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+  r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
 );
-final _image = RegExp(r'!\[(?:\\.|[^\]\\\n])*\]\(a2ui:([0-9a-f-]+)\)');
+final _image = RegExp(r"!\[(?:\\.|[^\]\\\n])*\]\(a2ui:([0-9a-f-]+)\)");
 
 String? chatA2uiReference(Uri uri, {required String scheme}) =>
     uri.scheme == scheme &&
@@ -35,7 +35,7 @@ List<A2uiMarkdownPart> chatA2uiMarkdown(
   final seen = {for (final row in automatic) row.id};
   final legacy = {
     for (final surface in surfaces)
-      if (!surface.toolCallId.startsWith('inline:')) surface.id,
+      if (!surface.toolCallId.startsWith("inline:")) surface.id,
   };
   final matches = legacy.isEmpty
       ? <RegExpMatch>[]
@@ -46,21 +46,21 @@ List<A2uiMarkdownPart> chatA2uiMarkdown(
   final real = <int>{};
   if (matches.isNotEmpty) {
     var occurrence = 0;
-    var marker = 'tixun-occurrence';
+    var marker = "tixun-occurrence";
     while (body.contains(marker)) {
-      marker += 'x';
+      marker += "x";
     }
     final marked = body.replaceAllMapped(_image, (match) {
       if (!_surfaceId.hasMatch(match[1]!)) return match[0]!;
       final text = match[0]!;
-      return '${text.substring(0, text.length - 1)}?$marker=${occurrence++})';
+      return "${text.substring(0, text.length - 1)}?$marker=${occurrence++})";
     });
     void visit(md.Node node) {
       if (node is! md.Element) return;
-      if (node.tag == 'img') {
-        final uri = Uri.tryParse(node.attributes['src'] ?? '');
-        final index = int.tryParse(uri?.queryParameters[marker] ?? '');
-        if (uri?.scheme == 'a2ui' &&
+      if (node.tag == "img") {
+        final uri = Uri.tryParse(node.attributes["src"] ?? "");
+        final index = int.tryParse(uri?.queryParameters[marker] ?? "");
+        if (uri?.scheme == "a2ui" &&
             index != null &&
             index >= 0 &&
             index < matches.length &&
@@ -86,7 +86,7 @@ List<A2uiMarkdownPart> chatA2uiMarkdown(
           end: match.end,
           id: null,
           replacement: !seen.add(match[1]!)
-              ? ''
+              ? ""
               : renderScheme == null
               ? match[0]
               : _replaceDestination(match[0]!, renderScheme),
@@ -136,6 +136,6 @@ List<A2uiMarkdownPart> chatA2uiMarkdown(
 }
 
 String _replaceDestination(String image, String scheme) {
-  final end = image.lastIndexOf('(a2ui:') + 1;
-  return image.replaceRange(end, end + 'a2ui'.length, scheme);
+  final end = image.lastIndexOf("(a2ui:") + 1;
+  return image.replaceRange(end, end + "a2ui".length, scheme);
 }

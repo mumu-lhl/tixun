@@ -1,4 +1,4 @@
-import '../database/database.dart';
+import "../database/database.dart";
 
 /// Sum of one optional numeric field across request rows.
 ///
@@ -33,7 +33,6 @@ class UsageSum {
   }
 }
 
-/// One "by feature" or "by model" bucket.
 class UsageSlice {
   const UsageSlice({
     required this.id,
@@ -59,7 +58,6 @@ class UsageSlice {
   final bool hasEstimate;
 }
 
-/// One local calendar day in the trend chart.
 class UsageDay {
   const UsageDay(
     this.day,
@@ -129,29 +127,29 @@ class AiUsageSummary {
     var missingPrice = 0;
     final latencyRows = <int>[];
     for (final row in rows) {
-      final legacy = row.usageSource == 'legacy_total';
+      final legacy = row.usageSource == "legacy_total";
       if (legacy) {
         legacyRows++;
       } else {
         requests++;
-        if (row.status == 'error') errors++;
+        if (row.status == "error") errors++;
       }
       imageInputs += row.imageCount;
       toolCalls += row.toolCallCount;
       if (row.durationMs != null) latencyRows.add(row.durationMs!);
       final priceable =
           !legacy &&
-          row.costBasis != 'subscription' &&
-          row.costBasis != 'mock' &&
+          row.costBasis != "subscription" &&
+          row.costBasis != "mock" &&
           row.inputTokens != null &&
           row.outputTokens != null;
       if (priceable) priceableRows++;
-      if (row.costBasis == 'estimate' && row.costNanoUsd != null) {
+      if (row.costBasis == "estimate" && row.costNanoUsd != null) {
         estimatedCost += row.costNanoUsd!;
         estimatedRows++;
-      } else if (row.costBasis == 'subscription') {
+      } else if (row.costBasis == "subscription") {
         subscriptionRows++;
-      } else if (row.costBasis != 'mock') {
+      } else if (row.costBasis != "mock") {
         if (row.inputTokens == null &&
             row.outputTokens == null &&
             row.totalTokens == null) {
@@ -183,7 +181,7 @@ class AiUsageSummary {
       byFeature.putIfAbsent(row.feature, () => []).add(row);
       byModel
           .putIfAbsent(
-            '${row.providerKind}\u0000${row.endpoint}\u0000${row.model}',
+            "${row.providerKind}\u0000${row.endpoint}\u0000${row.model}",
             () => [],
           )
           .add(row);
@@ -203,7 +201,7 @@ class AiUsageSummary {
         _slice(
           id: entry.key,
           label:
-              '${entry.value.first.providerKind} · ${entry.value.first.model}',
+              "${entry.value.first.providerKind} · ${entry.value.first.model}",
           detail: entry.value.first.endpoint.isEmpty
               ? null
               : entry.value.first.endpoint,
@@ -225,13 +223,13 @@ class AiUsageSummary {
       final local = row.occurredAt.toLocal();
       final bucket = buckets[DateTime(local.year, local.month, local.day)];
       if (bucket == null) continue;
-      if (row.usageSource != 'legacy_total') bucket.requests++;
+      if (row.usageSource != "legacy_total") bucket.requests++;
       bucket.tokens +=
           row.totalTokens ??
           (row.inputTokens != null && row.outputTokens != null
               ? row.inputTokens! + row.outputTokens!
               : 0);
-      if (row.costBasis == 'estimate' && row.costNanoUsd != null) {
+      if (row.costBasis == "estimate" && row.costNanoUsd != null) {
         bucket.cost += row.costNanoUsd!;
       }
     }
@@ -328,8 +326,8 @@ class AiUsageSummary {
     var hasEstimate = false;
     var requests = 0;
     for (final row in rows) {
-      if (row.usageSource != 'legacy_total') requests++;
-      if (row.costBasis == 'estimate' && row.costNanoUsd != null) {
+      if (row.usageSource != "legacy_total") requests++;
+      if (row.costBasis == "estimate" && row.costNanoUsd != null) {
         cost += row.costNanoUsd!;
         hasEstimate = true;
       }

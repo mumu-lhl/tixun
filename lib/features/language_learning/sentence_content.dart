@@ -1,4 +1,4 @@
-import 'package:uuid/uuid.dart';
+import "package:uuid/uuid.dart";
 
 enum SentenceStyle { written, dialogue }
 
@@ -45,9 +45,9 @@ class SentenceCard {
     required this.correctIndex,
     required this.skill,
     required this.level,
-    this.checkExplanation = '',
+    this.checkExplanation = "",
     this.revision = 1,
-    this.language = 'en',
+    this.language = "en",
   });
 
   const SentenceCard.study({
@@ -57,11 +57,11 @@ class SentenceCard {
     required this.hint,
     required this.level,
     this.revision = 1,
-    this.language = 'en',
+    this.language = "en",
     this.skill,
   }) : choices = const [],
-       question = '',
-       checkExplanation = '',
+       question = "",
+       checkExplanation = "",
        correctIndex = -1;
 
   final String id,

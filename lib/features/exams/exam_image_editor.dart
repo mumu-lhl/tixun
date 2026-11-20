@@ -1,9 +1,9 @@
-import 'package:material_ui/material_ui.dart';
+import "package:material_ui/material_ui.dart";
 
-import '../../app/controller.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_strings.dart';
-import '../library/image_editor.dart';
+import "../../app/controller.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_strings.dart";
+import "../library/image_editor.dart";
 
 Future<void> editExamPhoto(
   BuildContext context,
@@ -21,7 +21,7 @@ Future<void> editExamPhoto(
         relativePath: image.relativePath,
         mime: image.mime,
         byteLength: size,
-        role: 'original',
+        role: "original",
         deleted: false,
       ),
       isMistake: true,

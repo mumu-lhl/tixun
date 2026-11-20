@@ -1,11 +1,11 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:tixun/core/database/database.dart';
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:tixun/features/practice/practice_store.dart';
-import 'package:tixun/features/practice/question_spec.dart';
-import 'package:tixun/features/visual/visual_store.dart';
+import "package:flutter_test/flutter_test.dart";
+import "package:tixun/core/database/database.dart";
+import "package:tixun/core/l10n/app_error.dart";
+import "package:tixun/features/practice/practice_store.dart";
+import "package:tixun/features/practice/question_spec.dart";
+import "package:tixun/features/visual/visual_store.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,8 +21,8 @@ void main() {
         .into(db.chatSessions)
         .insert(
           ChatSessionsCompanion.insert(
-            id: 's',
-            title: 'Test',
+            id: "s",
+            title: "Test",
             createdAt: now,
             updatedAt: now,
           ),
@@ -31,10 +31,10 @@ void main() {
         .into(db.chatMessages)
         .insert(
           ChatMessagesCompanion.insert(
-            id: 'm',
-            sessionId: 's',
-            role: 'assistant',
-            content: 'Figure',
+            id: "m",
+            sessionId: "s",
+            role: "assistant",
+            content: "Figure",
             createdAt: now,
           ),
         );
@@ -46,16 +46,16 @@ void main() {
   });
 
   Map<String, dynamic> point({bool draggable = true}) => {
-    'id': 'p',
-    'type': 'point',
-    'at': [0, 0],
-    'draggable': draggable,
+    "id": "p",
+    "type": "point",
+    "at": [0, 0],
+    "draggable": draggable,
   };
   Map<String, dynamic> polygon(String id, {double x = -1, double size = 2}) => {
-    'id': id,
-    'type': 'polygon',
-    'fill': true,
-    'points': [
+    "id": id,
+    "type": "polygon",
+    "fill": true,
+    "points": [
       [x, -1],
       [x + size, -1],
       [x + size, -1 + size],
@@ -63,26 +63,26 @@ void main() {
     ],
   };
   Map<String, dynamic> scene(List<Map<String, dynamic>> elements) => {
-    'v': 1,
-    'kind': 'geometry',
-    'view': {
-      'x': [-5, 5],
-      'y': [-5, 5],
+    "v": 1,
+    "kind": "geometry",
+    "view": {
+      "x": [-5, 5],
+      "y": [-5, 5],
     },
-    'elements': elements,
-    'meta': {'alt': 'Question fixture'},
+    "elements": elements,
+    "meta": {"alt": "Question fixture"},
   };
   Future<String> createVisual(Map<String, dynamic> json) =>
-      visual.create(sceneJson: jsonEncode(json), messageId: 'm');
+      visual.create(sceneJson: jsonEncode(json), messageId: "m");
   QuestionSpec spec(
     String id, {
-    String kind = 'drag_to_target',
+    String kind = "drag_to_target",
     int? revision,
-    String answer = '2,0',
+    String answer = "2,0",
     Map<String, String> options = const {},
   }) => QuestionSpec(
     kind: kind,
-    stem: 'Interact',
+    stem: "Interact",
     answers: [
       [answer],
     ],
@@ -92,13 +92,13 @@ void main() {
   );
   final notAnswerable = isA<AppFormatException>().having(
     (e) => e.code,
-    'code',
+    "code",
     AppErrorCode.errorVisualQuestionNotAnswerable,
   );
   Future<void> rejectWithoutWrites(
     Map<String, dynamic> json, {
-    String kind = 'drag_to_target',
-    String answer = '2,0',
+    String kind = "drag_to_target",
+    String answer = "2,0",
     Map<String, String> options = const {},
   }) async {
     final id = await createVisual(json);
@@ -114,7 +114,7 @@ void main() {
     expect(await db.select(db.visualSceneRevisions).get(), hasLength(1));
   }
 
-  test('direct Store creation owns and persists the visual pin', () async {
+  test("direct Store creation owns and persists the visual pin", () async {
     final id = await createVisual(scene([point()]));
     final q = await practice.create(spec(id));
     final detail = await practice.detail(q);
@@ -125,7 +125,7 @@ void main() {
     expect(await visual.getRevisionSceneJson(id, 2), isNotNull);
   });
 
-  test('a text-only revision inherits its old snapshot, not the changed live scene', () async {
+  test("a text-only revision inherits its old snapshot, not the changed live scene", () async {
     final id = await createVisual(scene([point()]));
     final q = await practice.create(spec(id));
     final original = await practice.detail(q);
@@ -134,18 +134,18 @@ void main() {
       original.spec.visualRevision!,
     );
     final changed = scene([point()])
-      ..['view'] = {
-        'x': [100, 110],
-        'y': [100, 110],
+      ..["view"] = {
+        "x": [100, 110],
+        "y": [100, 110],
       };
     await visual.revise(id, jsonEncode(changed));
     final revised = await practice.revise(
       q,
       const QuestionSpec(
-        kind: 'drag_to_target',
-        stem: 'Edited',
+        kind: "drag_to_target",
+        stem: "Edited",
         answers: [
-          ['2,0'],
+          ["2,0"],
         ],
       ),
     );
@@ -160,13 +160,13 @@ void main() {
   });
 
   test(
-    'same operation replay reuses the pin even after the live scene changes',
+    "same operation replay reuses the pin even after the live scene changes",
     () async {
       final id = await createVisual(scene([point()]));
-      final q = await practice.create(spec(id), operation: 'operation');
+      final q = await practice.create(spec(id), operation: "operation");
       final original = await practice.detail(q);
       await visual.revise(id, jsonEncode(scene([point(draggable: false)])));
-      expect(await practice.create(spec(id), operation: 'operation'), q);
+      expect(await practice.create(spec(id), operation: "operation"), q);
       expect(
         (await practice.detail(q)).spec.visualRevision,
         original.spec.visualRevision,
@@ -177,20 +177,20 @@ void main() {
   );
 
   test(
-    'same operation cannot silently substitute a different explicit pin',
+    "same operation cannot silently substitute a different explicit pin",
     () async {
       final id = await createVisual(scene([point()]));
-      await practice.create(spec(id), operation: 'operation');
+      await practice.create(spec(id), operation: "operation");
       await visual.revise(id, jsonEncode(scene([point()])));
       await expectLater(
-        practice.create(spec(id, revision: 3), operation: 'operation'),
+        practice.create(spec(id, revision: 3), operation: "operation"),
         throwsA(isA<AppFormatException>()),
       );
       expect(await practice.list(), hasLength(1));
     },
   );
 
-  test('an explicit older answerable snapshot is checked instead of the live scene', () async {
+  test("an explicit older answerable snapshot is checked instead of the live scene", () async {
     final id = await createVisual(scene([point()]));
     await visual.revise(id, jsonEncode(scene([point(draggable: false)])));
     final q = await practice.create(spec(id, revision: 1));
@@ -198,114 +198,114 @@ void main() {
     expect((await visual.get(id))!.revision, 2);
   });
 
-  test('drag points hidden by an ancestor are not answer controls', () async {
+  test("drag points hidden by an ancestor are not answer controls", () async {
     await rejectWithoutWrites(
       scene([
         {
-          'id': 'g',
-          'type': 'group',
-          'visible': false,
-          'children': [point()],
+          "id": "g",
+          "type": "group",
+          "visible": false,
+          "children": [point()],
         },
       ]),
     );
   });
-  test('drag points hidden by the first timeline step are rejected', () async {
+  test("drag points hidden by the first timeline step are rejected", () async {
     final json = scene([point()])
-      ..['timeline'] = {
-        'durationMs': 1000,
-        'steps': [
+      ..["timeline"] = {
+        "durationMs": 1000,
+        "steps": [
           {
-            'atMs': 0,
-            'hide': ['p'],
+            "atMs": 0,
+            "hide": ["p"],
           },
         ],
       };
     await rejectWithoutWrites(json);
   });
   test(
-    'parameter-bound draggable points are rejected by visual persistence',
+    "parameter-bound draggable points are rejected by visual persistence",
     () async {
       final p = point()
-        ..['at'] = [
-          {r'$param': 'a'},
+        ..["at"] = [
+          {r"$param": "a"},
           0,
         ];
       final json = scene([p])
-        ..['model'] = {
-          'parameters': {'a': 0},
+        ..["model"] = {
+          "parameters": {"a": 0},
         };
       await expectLater(createVisual(json), throwsA(isA<AppFormatException>()));
       expect(await practice.list(), isEmpty);
       expect(await db.select(db.visualScenes).get(), isEmpty);
     },
   );
-  test('drag points outside the initial viewport are rejected', () async {
-    final p = point()..['at'] = [10, 0];
+  test("drag points outside the initial viewport are rejected", () async {
+    final p = point()..["at"] = [10, 0];
     await rejectWithoutWrites(scene([p]));
   });
-  for (final kind in ['point_select', 'drag_to_target']) {
-    test('$kind targets outside the viewport are rejected', () async {
-      await rejectWithoutWrites(scene([point()]), kind: kind, answer: '10,0');
+  for (final kind in ["point_select", "drag_to_target"]) {
+    test("$kind targets outside the viewport are rejected", () async {
+      await rejectWithoutWrites(scene([point()]), kind: kind, answer: "10,0");
     });
   }
   for (final which in [
-    'missing',
-    'hidden',
-    'outside',
-    'degenerate',
-    'covered',
+    "missing",
+    "hidden",
+    "outside",
+    "degenerate",
+    "covered",
   ]) {
-    test('region options must remain selectable: $which', () async {
-      final p = polygon('r');
-      if (which == 'hidden') p['visible'] = false;
-      if (which == 'outside') p['points'] = polygon('r', x: 10)['points'];
-      if (which == 'degenerate') {
-        p['points'] = [
+    test("region options must remain selectable: $which", () async {
+      final p = polygon("r");
+      if (which == "hidden") p["visible"] = false;
+      if (which == "outside") p["points"] = polygon("r", x: 10)["points"];
+      if (which == "degenerate") {
+        p["points"] = [
           [0, 0],
           [1, 1],
           [2, 2],
         ];
       }
       final elements = [
-        if (which != 'missing') p,
-        if (which == 'covered') polygon('cover'),
+        if (which != "missing") p,
+        if (which == "covered") polygon("cover"),
       ];
       await rejectWithoutWrites(
         scene(elements),
-        kind: 'region_select',
-        answer: 'r',
-        options: {'r': 'Region'},
+        kind: "region_select",
+        answer: "r",
+        options: {"r": "Region"},
       );
     });
   }
   test(
-    'partially covered regions with reachable areas are still accepted',
+    "partially covered regions with reachable areas are still accepted",
     () async {
       final id = await createVisual(
-        scene([polygon('r'), polygon('cover', x: 0)]),
+        scene([polygon("r"), polygon("cover", x: 0)]),
       );
       final q = await practice.create(
         spec(
           id,
-          kind: 'region_select',
-          answer: 'r',
-          options: {'r': 'Left', 'cover': 'Right'},
+          kind: "region_select",
+          answer: "r",
+          options: {"r": "Left", "cover": "Right"},
         ),
       );
       expect((await practice.detail(q)).visualLinks, hasLength(1));
     },
   );
   test(
-    'region reachability uses canvas-space precision at large offsets',
+    "region reachability uses canvas-space precision at large offsets",
     () async {
       final json =
           scene([
               {
-                'id': 'r',
-                'type': 'polygon',
-                'fill': true,
-                'points': [
+                "id": "r",
+                "type": "polygon",
+                "fill": true,
+                "points": [
                   [1e16 + 16, -1],
                   [1e16 + 32, -1],
                   [1e16 + 32, 1],
@@ -313,18 +313,18 @@ void main() {
                 ],
               },
             ])
-            ..['view'] = {
-              'x': [1e16, 1e16 + 128],
-              'y': [-5, 5],
+            ..["view"] = {
+              "x": [1e16, 1e16 + 128],
+              "y": [-5, 5],
             };
       final id = await createVisual(json);
       final q = await practice.create(
-        spec(id, kind: 'region_select', answer: 'r', options: {'r': 'Visible'}),
+        spec(id, kind: "region_select", answer: "r", options: {"r": "Visible"}),
       );
       expect((await practice.detail(q)).spec.visualId, id);
     },
   );
-  test('revisions specifying the same visual ID without a revision keep the old pin', () async {
+  test("revisions specifying the same visual ID without a revision keep the old pin", () async {
     final id = await createVisual(scene([point()]));
     final q = await practice.create(spec(id));
     final oldPin = (await practice.detail(q)).spec.visualRevision;
@@ -334,12 +334,12 @@ void main() {
     expect((await visual.get(id))!.revision, 3);
   });
 
-  test('unreachable distractor options are rejected too', () async {
+  test("unreachable distractor options are rejected too", () async {
     await rejectWithoutWrites(
-      scene([polygon('r')]),
-      kind: 'region_select',
-      answer: 'r',
-      options: {'r': 'Visible', 'absent': 'Missing'},
+      scene([polygon("r")]),
+      kind: "region_select",
+      answer: "r",
+      options: {"r": "Visible", "absent": "Missing"},
     );
   });
 }

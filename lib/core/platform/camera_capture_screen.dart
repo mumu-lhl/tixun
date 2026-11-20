@@ -1,9 +1,9 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:material_ui/material_ui.dart';
-import 'package:wechat_camera_picker/wechat_camera_picker.dart' as camera;
+import "package:material_ui/material_ui.dart";
+import "package:wechat_camera_picker/wechat_camera_picker.dart" as camera;
 
-import '../l10n/app_strings.dart';
+import "../l10n/app_strings.dart";
 
 typedef CameraCaptureResult = ({String? path, bool useSystemCamera});
 
@@ -51,7 +51,7 @@ class _CameraCaptureState extends State<CameraCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final english = Localizations.maybeLocaleOf(context)?.languageCode == 'en';
+    final english = Localizations.maybeLocaleOf(context)?.languageCode == "en";
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -91,7 +91,7 @@ class _CameraCaptureState extends State<CameraCaptureScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextButton.icon(
-                      key: const Key('system-camera-fallback'),
+                      key: const Key("system-camera-fallback"),
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white,
                         backgroundColor: Colors.black54,

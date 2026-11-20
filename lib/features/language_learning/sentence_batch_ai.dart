@@ -1,17 +1,17 @@
-import 'dart:convert';
-import 'dart:math' as math;
+import "dart:convert";
+import "dart:math" as math;
 
-import 'package:dio/dio.dart';
-import 'package:uuid/uuid.dart';
+import "package:dio/dio.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/ai/ai_usage_store.dart';
-import '../../core/ai/chat_provider.dart';
-import '../../core/ai/prompt_settings.dart';
-import '../../core/database/database.dart';
-import 'language_json_request.dart';
-import 'language_store.dart';
-import 'sentence_batch_store.dart';
-import 'sentence_content.dart';
+import "../../core/ai/ai_usage_store.dart";
+import "../../core/ai/chat_provider.dart";
+import "../../core/ai/prompt_settings.dart";
+import "../../core/database/database.dart";
+import "language_json_request.dart";
+import "language_store.dart";
+import "sentence_batch_store.dart";
+import "sentence_content.dart";
 
 class SentenceBatchAi {
   const SentenceBatchAi({
@@ -40,7 +40,7 @@ class SentenceBatchAi {
     Iterable<String> exclude = const [],
   }) async {
     if (count < 1 || count > maximumCount) {
-      throw const FormatException('Invalid sentence batch count');
+      throw const FormatException("Invalid sentence batch count");
     }
     cancel.checkCancelled();
     final id = const Uuid().v4();
@@ -48,7 +48,7 @@ class SentenceBatchAi {
     final cards = <SentenceCard>[];
     if (provider is MockChatProvider) {
       throw const FormatException(
-        'Sentence generation requires an AI provider',
+        "Sentence generation requires an AI provider",
       );
     }
     while (cards.length < count) {
@@ -58,22 +58,22 @@ class SentenceBatchAi {
           provider: provider,
           config: config,
           usageStore: usageStore,
-          feature: 'language_sentence_batch',
+          feature: "language_sentence_batch",
           request: AiRequest(
             instructions: LanguagePrompt.sentenceBatch.instructions(prompts),
             messages: [
               AiMessage.user(
                 jsonEncode({
-                  'topic': topic.name,
-                  'style': style.name,
-                  'level': level?.name ?? 'mixed',
-                  'count': requested,
-                  'glossLanguage': glossLanguage,
-                  'skills': SentenceSkill.values
+                  "topic": topic.name,
+                  "style": style.name,
+                  "level": level?.name ?? "mixed",
+                  "count": requested,
+                  "glossLanguage": glossLanguage,
+                  "skills": SentenceSkill.values
                       .map((skill) => skill.name)
                       .toList(),
-                  if (focus != null) 'focus': focus.name,
-                  'exclude': [
+                  if (focus != null) "focus": focus.name,
+                  "exclude": [
                     for (final text in excluded.take(12))
                       text.substring(0, math.min(text.length, 140)),
                     for (final card in cards.reversed.take(10)) card.text,
@@ -99,7 +99,7 @@ class SentenceBatchAi {
     }
     cancel.checkCancelled();
     if (cards.isEmpty) {
-      throw const FormatException('No suitable English examples');
+      throw const FormatException("No suitable English examples");
     }
     return SentenceBatchProposal(
       id: id,
@@ -123,7 +123,7 @@ class SentenceBatchAi {
     provider: provider,
     config: config,
     usageStore: usageStore,
-    feature: 'language_sentence_batch',
+    feature: "language_sentence_batch",
     cancel: cancel,
     maxChars: 4000,
     request: AiRequest(
@@ -131,10 +131,10 @@ class SentenceBatchAi {
       messages: [
         AiMessage.user(
           jsonEncode({
-            'sentence': card.text,
-            'level': card.level.name,
-            'glossLanguage': glossLanguage,
-            'skills': SentenceSkill.values.map((skill) => skill.name).toList(),
+            "sentence": card.text,
+            "level": card.level.name,
+            "glossLanguage": glossLanguage,
+            "skills": SentenceSkill.values.map((skill) => skill.name).toList(),
           }),
         ),
       ],
@@ -142,15 +142,15 @@ class SentenceBatchAi {
     parse: (data) {
       if (data is! Map ||
           data.length != 2 ||
-          !data.containsKey('skill') ||
-          !data.containsKey('check')) {
-        throw const FormatException('Invalid saved sentence check');
+          !data.containsKey("skill") ||
+          !data.containsKey("check")) {
+        throw const FormatException("Invalid saved sentence check");
       }
-      final skill = SentenceSkill.values.asNameMap()[data['skill']];
+      final skill = SentenceSkill.values.asNameMap()[data["skill"]];
       return _withCheck(
         card,
         skill,
-        data['check'],
+        data["check"],
         revision: card.revision + 1,
       );
     },
@@ -166,46 +166,46 @@ class SentenceBatchAi {
     Set<String> seen,
   ) {
     if (data is! Map ||
-        data['language'] != 'en' ||
-        data['sentences'] is! List) {
-      throw const FormatException('Expected English sentences');
+        data["language"] != "en" ||
+        data["sentences"] is! List) {
+      throw const FormatException("Expected English sentences");
     }
-    final rows = data['sentences'] as List;
+    final rows = data["sentences"] as List;
     if (rows.length != count) {
-      throw const FormatException('Invalid sentence batch size');
+      throw const FormatException("Invalid sentence batch size");
     }
     final cards = <SentenceCard>[];
     for (final row in rows) {
       if (row is! Map ||
           row.keys.any(
             (key) => !const {
-              'text',
-              'hint',
-              'translation',
-              'level',
-              'skill',
-              'check',
+              "text",
+              "hint",
+              "translation",
+              "level",
+              "skill",
+              "check",
             }.contains(key),
           )) {
-        throw const FormatException('Invalid sentence fields');
+        throw const FormatException("Invalid sentence fields");
       }
-      final text = _text(row['text']);
-      final level = SentenceLevel.values.asNameMap()[row['level']];
-      final skill = SentenceSkill.values.asNameMap()[row['skill']];
+      final text = _text(row["text"]);
+      final level = SentenceLevel.values.asNameMap()[row["level"]];
+      final skill = SentenceSkill.values.asNameMap()[row["skill"]];
       if (level == null ||
           requestedLevel != null && level != requestedLevel ||
           !_latin.hasMatch(text) ||
           !_latinText.hasMatch(text) ||
-          row['skill'] != null && skill == null ||
+          row["skill"] != null && skill == null ||
           !seen.add(normalizeLanguageText(text))) {
         throw const FormatException(
-          'Unexpected or repeated sentence, skill, or level',
+          "Unexpected or repeated sentence, skill, or level",
         );
       }
-      final cardId = '$id:${offset + cards.length}';
-      final translation = _text(row['translation']);
-      final hint = _text(row['hint']);
-      final check = row['check'];
+      final cardId = "$id:${offset + cards.length}";
+      final translation = _text(row["translation"]);
+      final hint = _text(row["hint"]);
+      final check = row["check"];
       if (check == null) {
         cards.add(
           SentenceCard.study(
@@ -240,7 +240,7 @@ class SentenceBatchAi {
                 .length <
             (count + 1) ~/ 2) {
       throw const FormatException(
-        'Insufficient checks for the requested skill',
+        "Insufficient checks for the requested skill",
       );
     }
     return cards;
@@ -256,31 +256,31 @@ class SentenceBatchAi {
         skill == null ||
         check.keys.any(
           (key) => !const {
-            'question',
-            'choices',
-            'correctIndex',
-            'explanation',
+            "question",
+            "choices",
+            "correctIndex",
+            "explanation",
           }.contains(key),
         )) {
-      throw const FormatException('Invalid sentence comprehension check');
+      throw const FormatException("Invalid sentence comprehension check");
     }
-    final options = check['choices'];
-    final correctIndex = check['correctIndex'];
+    final options = check["choices"];
+    final correctIndex = check["correctIndex"];
     if (options is! List ||
         options.length < 3 ||
         options.length > 4 ||
         correctIndex is! int ||
         correctIndex < 0 ||
         correctIndex >= options.length) {
-      throw const FormatException('Invalid comprehension check options');
+      throw const FormatException("Invalid comprehension check options");
     }
     final choices = options.map(_text).toList();
     if (choices.map(normalizeLanguageText).toSet().length != choices.length) {
-      throw const FormatException('Duplicate comprehension check choices');
+      throw const FormatException("Duplicate comprehension check choices");
     }
-    final question = _text(check['question']);
+    final question = _text(check["question"]);
     if (_answerLeak.hasMatch(question)) {
-      throw const FormatException('Comprehension check reveals an answer');
+      throw const FormatException("Comprehension check reveals an answer");
     }
     return SentenceCard(
       id: card.id,
@@ -294,24 +294,24 @@ class SentenceBatchAi {
       question: question,
       choices: choices,
       correctIndex: correctIndex,
-      checkExplanation: _text(check['explanation']),
+      checkExplanation: _text(check["explanation"]),
     );
   }
 
   static String _text(Object? value) {
     if (value is! String || value.trim().isEmpty || value.length > 420) {
-      throw const FormatException('Missing or oversized sentence content');
+      throw const FormatException("Missing or oversized sentence content");
     }
     return value.trim();
   }
 
-  static final _latin = RegExp(r'\p{Script=Latin}', unicode: true);
+  static final _latin = RegExp(r"\p{Script=Latin}", unicode: true);
   static final _latinText = RegExp(
-    r'^[\p{Script=Latin}\p{M}\p{N}\p{P}\p{Zs}\r\n]+$',
+    r"^[\p{Script=Latin}\p{M}\p{N}\p{P}\p{Zs}\r\n]+$",
     unicode: true,
   );
   static final _answerLeak = RegExp(
-    r'(?:answer\s*key|correct\s*answer)\s*[:：]',
+    r"(?:answer\s*key|correct\s*answer)\s*[:：]",
     caseSensitive: false,
   );
 }

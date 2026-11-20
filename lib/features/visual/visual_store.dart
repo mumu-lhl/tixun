@@ -1,14 +1,14 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:drift/drift.dart';
-import 'package:tixun/core/l10n/app_error.dart';
-import 'package:uuid/uuid.dart';
+import "package:drift/drift.dart";
+import "package:tixun/core/l10n/app_error.dart";
+import "package:uuid/uuid.dart";
 
-import '../../core/database/database.dart';
-import '../../core/database/database_notifier.dart';
-import '../../core/visual/model/visual_scene.dart';
-import '../../core/visual/validation/visual_quality.dart';
-import '../../core/visual/validation/visual_validator.dart';
+import "../../core/database/database.dart";
+import "../../core/database/database_notifier.dart";
+import "../../core/visual/model/visual_scene.dart";
+import "../../core/visual/validation/visual_quality.dart";
+import "../../core/visual/validation/visual_validator.dart";
 
 /// Persistent storage for Visual DSL scenes and their links to chat
 /// messages, practice questions and study records.
@@ -43,7 +43,7 @@ class VisualStore extends DatabaseNotifier {
     if (row == null) {
       throw const AppFormatException(
         AppErrorCode.errorVisualSceneDoesNotExist,
-        '图形不存在。',
+        "图形不存在。",
       );
     }
     return row;
@@ -59,7 +59,7 @@ class VisualStore extends DatabaseNotifier {
     if (sceneJson.trim().isEmpty) {
       throw const AppFormatException(
         AppErrorCode.errorVisualSceneJsonEmpty,
-        '图形场景内容不能为空。',
+        "图形场景内容不能为空。",
       );
     }
     late final Map<String, dynamic> decoded;
@@ -68,8 +68,8 @@ class VisualStore extends DatabaseNotifier {
     } catch (_) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
-        '图形场景 JSON 无效。',
-        ['scene'],
+        "图形场景 JSON 无效。",
+        ["scene"],
       );
     }
     final validation = validateVisualScene(decoded);
@@ -77,7 +77,7 @@ class VisualStore extends DatabaseNotifier {
       throw AppFormatException(
         AppErrorCode.errorInvalidParameterType,
         validation.errors.first.message,
-        ['scene'],
+        ["scene"],
       );
     }
     return (json: decoded, validation: validation);
@@ -89,15 +89,15 @@ class VisualStore extends DatabaseNotifier {
     required String sceneJson,
     String? messageId,
     String? title,
-    String source = 'ai',
-    String verification = 'unverified',
+    String source = "ai",
+    String verification = "unverified",
     String? promotionKey,
   }) => runOperation(() async {
     final decoded = _decodeAndValidateSceneJson(sceneJson);
     if (promotionKey != null &&
         checkVisualQuality(VisualScene.fromJson(decoded.json)).isNotEmpty) {
       throw const FormatException(
-        'The diagram did not pass visual quality checks.',
+        "The diagram did not pass visual quality checks.",
       );
     }
     final now = DateTime.now();
@@ -105,7 +105,7 @@ class VisualStore extends DatabaseNotifier {
         ? const Uuid().v4()
         : const Uuid().v5(
             Namespace.url.value,
-            'https://tixun.app/visual/$promotionKey',
+            "https://tixun.app/visual/$promotionKey",
           );
     await db.transaction(() async {
       if (promotionKey != null) {
@@ -114,7 +114,7 @@ class VisualStore extends DatabaseNotifier {
         )..where((row) => row.id.equals(id))).getSingleOrNull();
         if (existing != null) {
           if (existing.deleted) {
-            throw const FormatException('The promoted figure was deleted.');
+            throw const FormatException("The promoted figure was deleted.");
           }
           if (messageId != null) {
             await db
@@ -196,12 +196,12 @@ class VisualStore extends DatabaseNotifier {
   Future<List<StoredVisualScene>> listBySession(String sessionId) async {
     final rows = await db
         .customSelect(
-          'SELECT DISTINCT v.* FROM visual_scenes v '
-          'JOIN visual_message_links l ON l.visual_id = v.id '
-          'JOIN chat_messages m ON m.id = l.message_id '
-          'JOIN chat_sessions s ON s.id = m.session_id '
-          'WHERE s.id = ? AND s.deleted = 0 AND v.deleted = 0 '
-          'ORDER BY v.created_at',
+          "SELECT DISTINCT v.* FROM visual_scenes v "
+          "JOIN visual_message_links l ON l.visual_id = v.id "
+          "JOIN chat_messages m ON m.id = l.message_id "
+          "JOIN chat_sessions s ON s.id = m.session_id "
+          "WHERE s.id = ? AND s.deleted = 0 AND v.deleted = 0 "
+          "ORDER BY v.created_at",
           variables: [Variable(sessionId)],
           readsFrom: {
             db.visualScenes,
@@ -240,7 +240,7 @@ class VisualStore extends DatabaseNotifier {
     ]);
     joined.where(
       db.visualQuestionLinks.questionId.equals(questionId) &
-          db.visualQuestionLinks.role.equals('question') &
+          db.visualQuestionLinks.role.equals("question") &
           db.visualScenes.deleted.equals(false),
     );
     joined.orderBy([OrderingTerm.asc(db.visualScenes.createdAt)]);
@@ -256,7 +256,7 @@ class VisualStore extends DatabaseNotifier {
     if ((knowledgeId == null) == (mistakeId == null)) {
       throw const AppFormatException(
         AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
-        '请指定一条知识或一个错题。',
+        "请指定一条知识或一个错题。",
       );
     }
     final joined = db.select(db.visualScenes).join([
@@ -287,20 +287,20 @@ class VisualStore extends DatabaseNotifier {
     String visualId,
     String questionId,
     int revision, {
-    String role = 'question',
+    String role = "question",
   }) => runOperation(() async {
     if (revision < 1) {
       throw const AppFormatException(
         AppErrorCode.errorInvalidParameterType,
-        '图形修订号无效。',
-        ['revision'],
+        "图形修订号无效。",
+        ["revision"],
       );
     }
     final scene = await _scene(visualId);
     if (revision > scene.revision) {
       throw const AppFormatException(
         AppErrorCode.errorVisualSceneRevisionDoesNotExist,
-        '图形修订不存在。',
+        "图形修订不存在。",
       );
     }
     await db
@@ -329,7 +329,7 @@ class VisualStore extends DatabaseNotifier {
     ]);
     joined.where(
       db.visualQuestionLinks.questionId.equals(questionId) &
-          db.visualQuestionLinks.role.equals('question') &
+          db.visualQuestionLinks.role.equals("question") &
           db.visualScenes.deleted.equals(false),
     );
     joined.orderBy([OrderingTerm.asc(db.visualScenes.createdAt)]);
@@ -355,7 +355,7 @@ class VisualStore extends DatabaseNotifier {
     if ((knowledgeId == null) == (mistakeId == null)) {
       throw const AppFormatException(
         AppErrorCode.errorVisualStudyLinkNeedsOneOwner,
-        '请指定一条知识或一个错题。',
+        "请指定一条知识或一个错题。",
       );
     }
     await _scene(visualId);
@@ -424,8 +424,6 @@ class VisualStore extends DatabaseNotifier {
     return result;
   });
 
-  /// Replaces the scene JSON, bumps the revision and appends a snapshot
-  /// row for the new revision. Returns the updated scene.
   Future<StoredVisualScene> revise(
     String id,
     String newSceneJson,
@@ -440,7 +438,7 @@ class VisualStore extends DatabaseNotifier {
       final now = DateTime.now();
       // Keep the row's title / verification columns in sync with the
       // new scene JSON (the JSON is the source of truth).
-      final title = validated.json['title'];
+      final title = validated.json["title"];
       final titleValue = Value(
         title is String && title.isNotEmpty ? title : null,
       );

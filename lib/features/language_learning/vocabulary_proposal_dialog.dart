@@ -1,17 +1,17 @@
-import 'package:dio/dio.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:dio/dio.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../core/ai/chat_provider.dart';
-import '../../core/database/database.dart';
-import '../../core/l10n/app_error_localization.dart';
-import '../../core/l10n/app_strings.dart';
-import '../../core/ui/app_menu.dart';
-import '../../core/ui/actions.dart';
-import 'language_store.dart';
-import 'sentence_content.dart';
-import 'sentence_practice.dart' show sentenceSkillLabel;
-import 'vocabulary_ai.dart';
-import 'vocabulary_editor.dart';
+import "../../core/ai/chat_provider.dart";
+import "../../core/database/database.dart";
+import "../../core/l10n/app_error_localization.dart";
+import "../../core/l10n/app_strings.dart";
+import "../../core/ui/app_menu.dart";
+import "../../core/ui/actions.dart";
+import "language_store.dart";
+import "sentence_content.dart";
+import "sentence_practice.dart" show sentenceSkillLabel;
+import "vocabulary_ai.dart";
+import "vocabulary_editor.dart";
 
 Future<void> showVocabularyProposal(
   BuildContext context, {
@@ -81,7 +81,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
     final token = CancelToken();
     final gloss =
         widget.feedbackLanguage ??
-        (Localizations.localeOf(context).languageCode == 'zh' ? 'zh' : 'en');
+        (Localizations.localeOf(context).languageCode == "zh" ? "zh" : "en");
     setState(() {
       _running = token;
       _error = null;
@@ -90,7 +90,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
       final group = widget.group;
       final current = group == null
           ? const <LanguageCard>[]
-          : await widget.store.cards(language: 'en', groupId: group.id);
+          : await widget.store.cards(language: "en", groupId: group.id);
       token.checkCancelled();
       final proposal = await widget.ai.propose(
         config: widget.config,
@@ -108,7 +108,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
       );
       token.checkCancelled();
       final matches = await widget.store.existingGroupsForEntries(
-        'en',
+        "en",
         proposal.entries,
       );
       if (!mounted || token.isCancelled) return;
@@ -139,7 +139,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
     setState(() => _saving = true);
     await act(context, () async {
       await widget.store.saveEntries(
-        language: 'en',
+        language: "en",
         groupTitle: _title,
         groupType: _groupType,
         entries: _entries.where(_chosen.contains).toList(),
@@ -241,7 +241,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                           for (final count in [5, 10, 20])
                             DropdownMenuItem(
                               value: count,
-                              child: Text('$count'),
+                              child: Text("$count"),
                             ),
                         ],
                         onChanged: running == null
@@ -339,7 +339,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
         );
         return;
       }
-      final matches = await widget.store.existingGroupsForEntries('en', [
+      final matches = await widget.store.existingGroupsForEntries("en", [
         edited,
       ]);
       if (!mounted) return;
@@ -373,7 +373,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                       _chosen.remove(entry);
                     }
                   }),
-            title: Text('${entry.form} — ${entry.meaning}'),
+            title: Text("${entry.form} — ${entry.meaning}"),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -382,9 +382,9 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                 if (entry.translation case final translation?)
                   Text(translation),
                 if (entry.application case final application?)
-                  Text('$application → ${entry.applicationAnswer}'),
+                  Text("$application → ${entry.applicationAnswer}"),
                 if (groups.isNotEmpty)
-                  Text(l10n.languageAiExistingGroups(groups.join(', '))),
+                  Text(l10n.languageAiExistingGroups(groups.join(", "))),
               ],
             ),
           ),

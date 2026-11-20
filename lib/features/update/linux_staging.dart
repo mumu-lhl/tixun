@@ -1,8 +1,8 @@
-import 'dart:convert';
-import 'dart:io';
+import "dart:convert";
+import "dart:io";
 
-import 'package:archive/archive.dart';
-import 'package:path/path.dart' as p;
+import "package:archive/archive.dart";
+import "package:path/path.dart" as p;
 
 /// Linux staged in-app update support.
 ///
@@ -36,26 +36,23 @@ enum ApplyResult {
   // (see [applyPendingUpdate]).
 }
 
-/// The directory containing the running executable.
 Directory bundleDirectory() =>
     Directory(File(Platform.resolvedExecutable).parent.path);
 
-/// Marker file for [bundleDir]: `<bundleDir>.pending.json`.
-File _markerFile(Directory bundleDir) => File('${bundleDir.path}.pending.json');
+File _markerFile(Directory bundleDir) => File("${bundleDir.path}.pending.json");
 
 /// Staging directory for [bundleDir] and [tag]:
 /// `<bundleDir>.new-<tag>` — a sibling of the bundle dir, so the swap
 /// is a rename on the same filesystem.
 Directory _stagingDir(Directory bundleDir, String tag) =>
-    Directory('${bundleDir.path}.new-${_sanitizeTag(tag)}');
+    Directory("${bundleDir.path}.new-${_sanitizeTag(tag)}");
 
-/// Backup directory for [bundleDir]: `<bundleDir>.old`.
-Directory _oldDir(Directory bundleDir) => Directory('${bundleDir.path}.old');
+Directory _oldDir(Directory bundleDir) => Directory("${bundleDir.path}.old");
 
 /// Tags come from release names; keep only filename-safe characters so
 /// the staging directory name can never escape its parent.
 String _sanitizeTag(String tag) =>
-    tag.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    tag.replaceAll(RegExp(r"[^A-Za-z0-9._-]"), "_");
 
 /// Maximum accepted update archive size. Staging reads the whole archive
 /// into memory (and decodes it twice more), so an explicit cap bounds
@@ -88,13 +85,10 @@ Future<Directory> stageLinuxUpdateInto({
     await staging.delete(recursive: true);
   }
   try {
-    // Bound the in-memory decode: the archive is read fully into memory
-    // (and decoded twice more), so refuse absurd sizes up front instead
-    // of letting a corrupt or hostile tarball exhaust memory.
     final tarGzLength = await tarGzFile.length();
     if (tarGzLength > _maxTarGzBytes) {
       throw const FormatException(
-        'Update archive exceeds the 256 MiB size limit.',
+        "Update archive exceeds the 256 MiB size limit.",
       );
     }
     final gzBytes = await tarGzFile.readAsBytes();
@@ -105,20 +99,15 @@ Future<Directory> stageLinuxUpdateInto({
       final relative = p.normalize(entry.name);
       // Reject absolute paths and anything escaping the staging dir.
       if (p.isAbsolute(relative) ||
-          relative == '..' ||
-          relative.startsWith('../') ||
-          p.split(relative).contains('..')) {
-        throw FormatException('Unsafe entry in update archive: ${entry.name}');
+          relative == ".." ||
+          relative.startsWith("../") ||
+          p.split(relative).contains("..")) {
+        throw FormatException("Unsafe entry in update archive: ${entry.name}");
       }
-      // Symlinks (and hard links, which the decoder reports the same
-      // way) must never be materialised: a link inside the bundle could
-      // point outside it, and the old fallback created an empty
-      // directory of the same name instead, failing later at binary
-      // verification. The archive is SHA-256 verified, so this is a
-      // defence-in-depth rejection, not a trust decision.
+      // An archive link could redirect an extracted file outside the staging directory.
       if (entry.isSymbolicLink) {
         throw FormatException(
-          'Update archive contains a symbolic link: ${entry.name}',
+          "Update archive contains a symbolic link: ${entry.name}",
         );
       }
       final outPath = p.join(staging.path, relative);
@@ -130,15 +119,15 @@ Future<Directory> stageLinuxUpdateInto({
         await Directory(outPath).create(recursive: true);
       }
     }
-    final binary = File(p.join(staging.path, 'tixun'));
+    final binary = File(p.join(staging.path, "tixun"));
     if (!await binary.exists()) {
-      throw StateError('Update archive does not contain a tixun binary.');
+      throw StateError("Update archive does not contain a tixun binary.");
     }
     if (Platform.isLinux) {
-      final result = await Process.run('chmod', ['755', binary.path]);
+      final result = await Process.run("chmod", ["755", binary.path]);
       if (result.exitCode != 0) {
         throw StateError(
-          'Failed to make staged tixun binary executable: ${result.stderr}',
+          "Failed to make staged tixun binary executable: ${result.stderr}",
         );
       }
     }
@@ -171,7 +160,7 @@ Future<void> markPendingUpdateFor({
 }) async {
   final marker = _markerFile(bundleDir);
   await marker.writeAsString(
-    jsonEncode({'tag': tag, 'stagedPath': stagedPath}),
+    jsonEncode({"tag": tag, "stagedPath": stagedPath}),
   );
 }
 
@@ -186,8 +175,8 @@ PendingUpdate? readPendingUpdateFor({required Directory bundleDir}) {
   try {
     final decoded = jsonDecode(marker.readAsStringSync());
     if (decoded is! Map<String, dynamic>) throw const FormatException();
-    final tag = decoded['tag'];
-    final stagedPath = decoded['stagedPath'];
+    final tag = decoded["tag"];
+    final stagedPath = decoded["stagedPath"];
     if (tag is! String ||
         tag.isEmpty ||
         stagedPath is! String ||
@@ -240,13 +229,11 @@ Future<bool> swapBundleDirectories({
     try {
       await stagingDir.rename(bundleDir.path);
     } catch (_) {
-      // Second rename failed: put the old bundle back.
       await oldDir.rename(bundleDir.path);
       return false;
     }
     return true;
   } catch (_) {
-    // Attempt to restore the old bundle if the bundle dir is missing.
     try {
       if (!await bundleDir.exists() && await oldDir.exists()) {
         await oldDir.rename(bundleDir.path);
@@ -315,12 +302,10 @@ Future<void> discardPendingUpdateFor({required Directory bundleDir}) async {
     try {
       final decoded = jsonDecode(marker.readAsStringSync());
       if (decoded is Map<String, dynamic>) {
-        final value = decoded['stagedPath'];
+        final value = decoded["stagedPath"];
         if (value is String && value.isNotEmpty) stagedPath = value;
       }
-    } catch (_) {
-      // Corrupt marker: still delete it below.
-    }
+    } catch (_) {}
     try {
       await marker.delete();
     } catch (_) {}

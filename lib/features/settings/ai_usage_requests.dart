@@ -1,4 +1,4 @@
-part of 'ai_usage_screen.dart';
+part of "ai_usage_screen.dart";
 
 class _SessionUsage extends ConsumerWidget {
   const _SessionUsage({required this.rows});
@@ -20,7 +20,7 @@ class _SessionUsage extends ConsumerWidget {
             session.id: session.title,
         };
         return ExpansionTile(
-          key: const Key('ai-usage-sessions'),
+          key: const Key("ai-usage-sessions"),
           tilePadding: EdgeInsets.zero,
           title: Text(context.l10n.usageSessions),
           children: [
@@ -34,7 +34,7 @@ class _SessionUsage extends ConsumerWidget {
                   return ExpansionTile(
                     title: Text(titles[entry.key] ?? entry.key),
                     subtitle: Text(
-                      '${context.l10n.tokenTotal}: ${_sumText(summary.total)} · ${context.l10n.requestCount}: ${summary.requests}',
+                      "${context.l10n.tokenTotal}: ${_sumText(summary.total)} · ${context.l10n.requestCount}: ${summary.requests}",
                     ),
                     children: [
                       TextButton(
@@ -51,12 +51,12 @@ class _SessionUsage extends ConsumerWidget {
                       UsageTokenBreakdown(rows: entry.value),
                       ListTile(
                         title: Text(
-                          '${context.l10n.inputTokens}: ${_sumText(summary.input)} · ${context.l10n.outputTokens}: ${_sumText(summary.output)}',
+                          "${context.l10n.inputTokens}: ${_sumText(summary.input)} · ${context.l10n.outputTokens}: ${_sumText(summary.output)}",
                         ),
                       ),
                       ListTile(
                         title: Text(
-                          '${context.l10n.cachedInputTokens}: ${_sumText(summary.cachedInput)} · ${context.l10n.reasoningTokens}: ${_sumText(summary.reasoning)}',
+                          "${context.l10n.cachedInputTokens}: ${_sumText(summary.cachedInput)} · ${context.l10n.reasoningTokens}: ${_sumText(summary.reasoning)}",
                         ),
                       ),
                       for (final row in summary.recent)
@@ -112,17 +112,17 @@ class _SessionUsagePageState extends ConsumerState<_SessionUsagePage> {
             ),
             ListTile(
               title: Text(
-                '${context.l10n.tokenTotal}: ${_sumText(summary.total)} · ${context.l10n.requestCount}: ${summary.requests}',
+                "${context.l10n.tokenTotal}: ${_sumText(summary.total)} · ${context.l10n.requestCount}: ${summary.requests}",
               ),
             ),
             ListTile(
               title: Text(
-                '${context.l10n.inputTokens}: ${_sumText(summary.input)} · ${context.l10n.outputTokens}: ${_sumText(summary.output)}',
+                "${context.l10n.inputTokens}: ${_sumText(summary.input)} · ${context.l10n.outputTokens}: ${_sumText(summary.output)}",
               ),
             ),
             ListTile(
               title: Text(
-                '${context.l10n.cachedInputTokens}: ${_sumText(summary.cachedInput)} · ${context.l10n.reasoningTokens}: ${_sumText(summary.reasoning)}',
+                "${context.l10n.cachedInputTokens}: ${_sumText(summary.cachedInput)} · ${context.l10n.reasoningTokens}: ${_sumText(summary.reasoning)}",
               ),
             ),
             UsageTokenBreakdown(rows: rows),
@@ -148,8 +148,8 @@ class _UsageRequestTile extends StatelessWidget {
     final l10n = context.l10n;
     final colors = Theme.of(context).colorScheme;
     final (icon, color) = switch (row.status) {
-      'complete' => (Icons.check_circle_outline, colors.primary),
-      'cancelled' || 'incomplete' => (Icons.pending_outlined, colors.tertiary),
+      "complete" => (Icons.check_circle_outline, colors.primary),
+      "cancelled" || "incomplete" => (Icons.pending_outlined, colors.tertiary),
       _ => (Icons.error_outline, colors.error),
     };
     final details = [
@@ -158,12 +158,12 @@ class _UsageRequestTile extends StatelessWidget {
       _dateTime(row.occurredAt.toLocal()),
       row.totalTokens == null
           ? l10n.providerUsageUnavailable
-          : '${l10n.tokenTotal}: ${usageTokenCount(row.totalTokens!)}',
-      if (row.rateSource?.endsWith('_off_peak') ?? false)
+          : "${l10n.tokenTotal}: ${usageTokenCount(row.totalTokens!)}",
+      if (row.rateSource?.endsWith("_off_peak") ?? false)
         l10n.usageOffPeakShort,
       if (row.durationMs != null) _duration(row.durationMs!),
-      if (row.usageSource == 'legacy_total') l10n.legacyUsageTotalOnly,
-    ].join(' · ');
+      if (row.usageSource == "legacy_total") l10n.legacyUsageTotalOnly,
+    ].join(" · ");
     return ListTile(
       contentPadding: EdgeInsets.zero,
       dense: true,
@@ -172,7 +172,7 @@ class _UsageRequestTile extends StatelessWidget {
         child: Icon(icon, size: 18, color: color),
       ),
       title: Text(
-        '${row.providerKind} · ${row.model}',
+        "${row.providerKind} · ${row.model}",
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -183,10 +183,10 @@ class _UsageRequestTile extends StatelessWidget {
 
   Widget _costLabel(BuildContext context, AiUsageEvent row) {
     final l10n = context.l10n;
-    if (row.costBasis == 'estimate' && row.costNanoUsd != null) {
+    if (row.costBasis == "estimate" && row.costNanoUsd != null) {
       return Text(_usd(row.costNanoUsd!));
     }
-    if (row.costBasis == 'subscription') {
+    if (row.costBasis == "subscription") {
       return Tooltip(
         message: l10n.subscriptionUsage,
         child: Text(l10n.usageSubscriptionShort),
@@ -200,15 +200,15 @@ class _UsageRequestTile extends StatelessWidget {
 }
 
 String _statusLabel(BuildContext context, String status) => switch (status) {
-  'complete' => context.l10n.usageStatusComplete,
-  'error' => context.l10n.usageStatusError,
-  'incomplete' => context.l10n.usageStatusIncomplete,
-  'cancelled' => context.l10n.quickUsageStatusCancelled,
+  "complete" => context.l10n.usageStatusComplete,
+  "error" => context.l10n.usageStatusError,
+  "incomplete" => context.l10n.usageStatusIncomplete,
+  "cancelled" => context.l10n.quickUsageStatusCancelled,
   _ => status,
 };
 
 String _sumText(UsageSum sum) => sum.isEmpty
-    ? '—'
+    ? "—"
     : '${usageTokenCount(sum.value)}${sum.isPartial ? '*' : ''}';
 
 String _usd(int nanoUsd) {
@@ -220,31 +220,31 @@ String _usd(int nanoUsd) {
       : 6;
   final text = usd
       .toStringAsFixed(digits)
-      .replaceFirst(RegExp(r'0+$'), '')
-      .replaceFirst(RegExp(r'\.$'), '');
-  return '\$$text';
+      .replaceFirst(RegExp(r"0+$"), "")
+      .replaceFirst(RegExp(r"\.$"), "");
+  return "\$$text";
 }
 
 String _usdRate(int nanoUsd) => (nanoUsd / 1000000000)
     .toStringAsFixed(6)
-    .replaceFirst(RegExp(r'0+$'), '')
-    .replaceFirst(RegExp(r'\.$'), '');
+    .replaceFirst(RegExp(r"0+$"), "")
+    .replaceFirst(RegExp(r"\.$"), "");
 
 String _rateText(int nanoUsd) => (nanoUsd / 1000000000)
     .toStringAsFixed(9)
-    .replaceFirst(RegExp(r'0+$'), '')
-    .replaceFirst(RegExp(r'\.$'), '');
+    .replaceFirst(RegExp(r"0+$"), "")
+    .replaceFirst(RegExp(r"\.$"), "");
 
 String _duration(int milliseconds) => milliseconds < 1000
-    ? '$milliseconds ms'
-    : '${(milliseconds / 1000).toStringAsFixed(1)} s';
+    ? "$milliseconds ms"
+    : "${(milliseconds / 1000).toStringAsFixed(1)} s";
 
 String _dateTime(DateTime value) =>
-    '${_dateOnly(value)} ${_two(value.hour)}:${_two(value.minute)}';
+    "${_dateOnly(value)} ${_two(value.hour)}:${_two(value.minute)}";
 
 String _dateOnly(DateTime value) =>
-    '${value.year}-${_two(value.month)}-${_two(value.day)}';
+    "${value.year}-${_two(value.month)}-${_two(value.day)}";
 
-String _shortDate(DateTime value) => '${_two(value.month)}-${_two(value.day)}';
+String _shortDate(DateTime value) => "${_two(value.month)}-${_two(value.day)}";
 
-String _two(int value) => value.toString().padLeft(2, '0');
+String _two(int value) => value.toString().padLeft(2, "0");

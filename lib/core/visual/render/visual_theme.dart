@@ -1,7 +1,7 @@
-import 'dart:ui';
+import "dart:ui";
 
-import 'package:material_ui/material_ui.dart' show ColorScheme;
-import 'package:tixun/core/visual/model/visual_elements.dart';
+import "package:material_ui/material_ui.dart" show ColorScheme;
+import "package:tixun/core/visual/model/visual_elements.dart";
 
 /// Resolved colors for rendering a [VisualScene].
 ///
@@ -25,10 +25,8 @@ class VisualPalette {
   /// `primary` style; also the curve color for `model.expression`.
   final Color primary;
 
-  /// `highlight` style.
   final Color highlight;
 
-  /// `muted` style.
   final Color muted;
 
   /// `success` style. There is no green in the seed-based scheme, so this
@@ -36,16 +34,12 @@ class VisualPalette {
   /// so color alone never carries meaning.
   final Color success;
 
-  /// `danger` style.
   final Color danger;
 
-  /// Axis lines.
   final Color axis;
 
-  /// Gridlines.
   final Color grid;
 
-  /// Canvas background.
   final Color background;
 
   /// Default text / foreground on [background].

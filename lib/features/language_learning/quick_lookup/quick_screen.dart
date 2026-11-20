@@ -1,30 +1,30 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:material_ui/material_ui.dart';
+import "package:dio/dio.dart";
+import "package:flutter/services.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
+import "package:material_ui/material_ui.dart";
 
-import '../../../app/controller.dart';
-import '../../../app/preferences.dart';
-import '../../../core/ai/ai_usage_store.dart';
-import '../../../core/l10n/app_error.dart';
-import '../../../core/database/database.dart';
-import '../../../core/l10n/app_error_localization.dart';
-import '../../../core/l10n/app_strings.dart';
-import '../../../core/ui/app_menu.dart';
-import '../../../core/ui/actions.dart';
-import 'quick_action_editor.dart';
-import 'quick_ai.dart';
-import 'quick_labels.dart';
-import 'quick_learning.dart';
-import 'quick_models.dart';
-import 'quick_result.dart';
-import 'quick_store.dart';
+import "../../../app/controller.dart";
+import "../../../app/preferences.dart";
+import "../../../core/ai/ai_usage_store.dart";
+import "../../../core/l10n/app_error.dart";
+import "../../../core/database/database.dart";
+import "../../../core/l10n/app_error_localization.dart";
+import "../../../core/l10n/app_strings.dart";
+import "../../../core/ui/app_menu.dart";
+import "../../../core/ui/actions.dart";
+import "quick_action_editor.dart";
+import "quick_ai.dart";
+import "quick_labels.dart";
+import "quick_learning.dart";
+import "quick_models.dart";
+import "quick_result.dart";
+import "quick_store.dart";
 
 class QuickLookupScreen extends ConsumerStatefulWidget {
-  const QuickLookupScreen({super.key, this.initialInput = ''});
+  const QuickLookupScreen({super.key, this.initialInput = ""});
 
   final String initialInput;
 
@@ -46,9 +46,9 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   Map<String, String> _deletedLabels = {};
   late String? _actionId = widget.initialInput.isEmpty
       ? null
-      : 'language_meaning';
+      : "language_meaning";
   String? _filterId;
-  String _keyword = '';
+  String _keyword = "";
   var _searchOpen = false;
   var _loadingHistory = false;
   var _historyFailed = false;
@@ -151,7 +151,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
     if (_searchOpen) {
       _debounce?.cancel();
       _search.clear();
-      _keyword = '';
+      _keyword = "";
       _searchFocus.unfocus();
       setState(() => _searchOpen = false);
       unawaited(_refreshHistory());
@@ -181,7 +181,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   void _submit(LanguageQuickAction action) {
     final settings = _controller.preferences.languageStudy;
     final language = Localizations.localeOf(context).languageCode;
-    final gloss = action.glossLanguage != 'app'
+    final gloss = action.glossLanguage != "app"
         ? action.glossLanguage
         : settings.feedbackLanguage == LanguageFeedbackLanguage.app
         ? language
@@ -347,7 +347,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
               child: Text(quickDescription(context, current)),
             ),
           TextField(
-            key: const ValueKey('quick-input'),
+            key: const ValueKey("quick-input"),
             controller: _input,
             readOnly: _cancel != null,
             maxLength: quickInputLimit,
@@ -355,7 +355,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             maxLines: 5,
             decoration: InputDecoration(
               hintText: quickHint(context, current),
-              counterText: '',
+              counterText: "",
             ),
           ),
           const SizedBox(height: 8),
@@ -399,7 +399,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
           ),
         if (_result case final row?)
           Card(
-            key: const ValueKey('quick-current-result'),
+            key: const ValueKey("quick-current-result"),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -418,7 +418,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
       for (final action in _actions ?? <LanguageQuickAction>[])
         action.id: quickName(context, action),
       for (final entry in _deletedLabels.entries)
-        entry.key: '${entry.value} (${l10n.quickDeletedAction})',
+        entry.key: "${entry.value} (${l10n.quickDeletedAction})",
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -429,12 +429,12 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             Expanded(
               child: _searchOpen
                   ? TextField(
-                      key: const ValueKey('quick-search'),
+                      key: const ValueKey("quick-search"),
                       controller: _search,
                       focusNode: _searchFocus,
                       maxLength: quickSearchLimit,
                       inputFormatters: [
-                        FilteringTextInputFormatter.deny(RegExp(r'\x00')),
+                        FilteringTextInputFormatter.deny(RegExp(r"\x00")),
                       ],
                       textInputAction: TextInputAction.search,
                       onChanged: _searchChanged,
@@ -445,7 +445,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                       },
                       decoration: InputDecoration(
                         hintText: l10n.quickHistorySearch,
-                        counterText: '',
+                        counterText: "",
                       ),
                     )
                   : Text(
@@ -468,15 +468,15 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             child: Semantics(
               label: l10n.quickHistoryFilter,
               child: AppSelectField<String>(
-                key: const ValueKey('quick-filter'),
+                key: const ValueKey("quick-filter"),
                 decoration: const InputDecoration(
                   isDense: true,
                   prefixIcon: Icon(Icons.filter_list_rounded),
                 ),
-                initialValue: labels.containsKey(_filterId) ? _filterId : '',
+                initialValue: labels.containsKey(_filterId) ? _filterId : "",
                 items: [
                   DropdownMenuItem(
-                    value: '',
+                    value: "",
                     child: Text(l10n.quickAllActions),
                   ),
                   for (final entry in labels.entries)
@@ -488,7 +488,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                 onChanged: (value) {
                   _debounce?.cancel();
                   setState(() {
-                    _filterId = value == '' ? null : value;
+                    _filterId = value == "" ? null : value;
                     _keyword = _search.text;
                   });
                   unawaited(_refreshHistory());
@@ -532,7 +532,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
               } else if (context.canPop()) {
                 context.pop();
               } else {
-                context.go('/language');
+                context.go("/language");
               }
             },
           ),

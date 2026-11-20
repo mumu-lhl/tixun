@@ -1,4 +1,4 @@
-part of 'database.dart';
+part of "database.dart";
 
 class SubjectModules extends Table {
   TextColumn get id => text()();
