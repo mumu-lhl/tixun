@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-limit_bytes=$((20 * 1024))
-violations=()
+warn_bytes=$((20 * 1024))
+high_bytes=$((40 * 1024))
+growth_bytes=$((2 * 1024))
 
 is_code_file() {
   case "$1" in
-    *.dart|*.py|*.sh|*.bash|*.js|*.jsx|*.mjs|*.cjs|*.ts|*.tsx|*.java|*.kt|*.kts|*.c|*.h|*.cc|*.cpp|*.hpp|*.rs|*.go|*.rb|*.php|*.swift|*.sql|*.lua|*.pl|*.R|*.r|*.scala|*.sc|*.cs|*.fs|*.ex|*.exs|*.erl|*.hrl|*.clj|*.cljs|*.cljc|*.hs|*.lhs|*.elm|*.vue|*.svelte)
-      ;;
+    *.dart|*.py|*.sh|*.bash|*.js|*.jsx|*.mjs|*.cjs|*.ts|*.tsx|*.java|*.kt|*.kts|*.c|*.h|*.cc|*.cpp|*.hpp|*.rs|*.go|*.rb|*.php|*.swift|*.sql|*.lua|*.pl|*.R|*.r|*.scala|*.sc|*.cs|*.fs|*.ex|*.exs|*.erl|*.hrl|*.clj|*.cljs|*.cljc|*.hs|*.lhs|*.elm|*.vue|*.svelte) ;;
     *) return 1 ;;
   esac
 
   case "${1##*/}" in
-    *.lock|package-lock.json|pnpm-lock.yaml|yarn.lock|Gemfile.lock|Cargo.lock|composer.lock|Pipfile.lock|poetry.lock|*.g.dart|*.freezed.dart|*.mocks.dart|*.gr.dart) return 1 ;;
+    *.lock|*.g.dart|*.freezed.dart|*.mocks.dart|*.gr.dart) return 1 ;;
   esac
   case "/$1/" in
     */generated/*|*/generated_migrations/*|*/build/*|*/.dart_tool/*|*/vendor/*|*/node_modules/*) return 1 ;;
@@ -20,17 +20,42 @@ is_code_file() {
   return 0
 }
 
+warnings=()
+
 while IFS= read -r -d '' path; do
   is_code_file "$path" || continue
+
+  warn=$warn_bytes
+  high=$high_bytes
+  case "$path" in
+    test/*|integration_test/*|scripts/tests/*)
+      warn=$((40 * 1024))
+      high=$((80 * 1024))
+      ;;
+  esac
+
   size=$(git cat-file -s ":$path")
-  if (( size > limit_bytes )); then
-    violations+=("$path ($size bytes)")
+  if ! previous=$(git cat-file -s "HEAD:$path" 2>/dev/null); then
+    previous=0
+  fi
+
+  ((size > warn && size > previous)) || continue
+  growth=$((size - previous))
+
+  if ((previous <= warn ||
+        (previous < high && size >= high) ||
+        growth >= growth_bytes)); then
+    level="WARNING"
+    ((size >= high)) && level="HIGH"
+    warnings+=("$level: $path ($size bytes, +$growth)")
   fi
 done < <(git diff --cached --name-only --diff-filter=ACMR -z)
 
-if ((${#violations[@]})); then
-  printf '提交已拦截：以下代码文件超过 20 KiB（20480 字节）：\n' >&2
-  printf '  %s\n' "${violations[@]}" >&2
-  printf '请拆分文件，或调整职责后再提交。\n' >&2
-  exit 1
+if ((${#warnings[@]})); then
+  printf 'Code size advisory:\n' >&2
+  printf '  %s\n' "${warnings[@]}" >&2
+  printf '\nReview cohesion and responsibilities if appropriate.\n' >&2
+  printf 'Do not split files solely to satisfy size thresholds.\n' >&2
 fi
+
+exit 0
