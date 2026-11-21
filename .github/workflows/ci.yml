@@ -140,7 +140,7 @@ jobs:
           cache: true
           pub-cache: true
           cache-key: flutter-${{ runner.os }}-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}-tixun-engines-v1
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' || github.ref_name != github.event.repository.default_branch }}
           cache-cleanup: on-success
