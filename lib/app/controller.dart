@@ -82,7 +82,19 @@ class AppController extends ChangeNotifier {
   late final StudyStore study = StudyStore(db, files);
   late final ExamStore exams = ExamStore(db, files);
   late final TimelineStore timeline = TimelineStore(db);
-  late final ScratchStore scratch = ScratchStore(db);
+  late final ScratchStore scratch = ScratchStore(
+    db,
+    createChatOwner: (id) async {
+      final session = selected;
+      if (_unsavedSessionId != id || session?.id != id) return false;
+      await _insertNewSession(session!);
+      return true;
+    },
+    onChatOwnerSaved: (id) async {
+      if (_unsavedSessionId == id) _unsavedSessionId = null;
+      if (!_disposed) await reload();
+    },
+  );
   late final ReviewStore review = ReviewStore(db);
   late final VisualStore visual = VisualStore(db);
   late final ChatA2uiStore a2ui = ChatA2uiStore(db);
@@ -124,6 +136,7 @@ class AppController extends ChangeNotifier {
     if (_disposed || busy || id == null) return Future.value();
     sessionDrawingOverride = value;
     changed();
+    if (_unsavedSessionId == id) return Future.value();
     return preferences.runOperation(
       () => db.setPreference("ai_drawing:$id", value?.toString() ?? ""),
     );
@@ -137,7 +150,9 @@ class AppController extends ChangeNotifier {
   Future<void> setSessionA2uiEnabled(bool? value) async {
     final id = selected?.id;
     if (_disposed || busy || id == null) return;
-    await preferences.saveChatA2uiOverride(id, value);
+    if (_unsavedSessionId != id) {
+      await preferences.saveChatA2uiOverride(id, value);
+    }
     if (_disposed || selected?.id != id) return;
     sessionA2uiOverride = value;
     changed();
@@ -152,7 +167,9 @@ class AppController extends ChangeNotifier {
   Future<void> setSessionWebEnabled(bool? value) async {
     final id = selected?.id;
     if (_disposed || busy || id == null) return;
-    await preferences.saveChatWebOverride(id, value);
+    if (_unsavedSessionId != id) {
+      await preferences.saveChatWebOverride(id, value);
+    }
     if (_disposed || selected?.id != id) return;
     sessionWebOverride = value;
     changed();
@@ -175,6 +192,7 @@ class AppController extends ChangeNotifier {
   List<ChatMessage> messages = [];
   List<Attachment> attachments = [];
   ChatSession? selected;
+  String? _unsavedSessionId;
   ThemeMode get themeMode => preferences.themeMode;
   bool busy = false;
   AppTransientError? error;
@@ -232,8 +250,10 @@ class AppController extends ChangeNotifier {
   // Session subjects are free text like knowledge subjects (custom
   // subjects are allowed); configured custom subjects are also filterable.
   Future<void> setSessionSubject(ChatSession s, String subject) async {
-    await db.setSessionSubject(s.id, subject);
-    await reload();
+    if (_unsavedSessionId != s.id) {
+      await db.setSessionSubject(s.id, subject);
+      await reload();
+    }
     if (selected?.id == s.id) {
       selected = selected!.copyWith(subject: Value(subject));
       changed();
@@ -329,6 +349,10 @@ class AppController extends ChangeNotifier {
       _ChatSessions(this)._prepareSubjectChatImpl();
 
   Future<void> newSession() => _ChatSessions(this)._newSessionImpl();
+
+  /// Reopens the destination retained for an interrupted photo import.
+  Future<void> resumePhotoRecoveryChat(String? id) =>
+      _ChatSessions(this)._resumePhotoRecoveryChat(id);
 
   Future<void> renameSession(ChatSession s, String title) =>
       _ChatSessions(this)._renameSessionImpl(s, title);

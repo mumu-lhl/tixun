@@ -253,7 +253,9 @@ void _earlyMigrationCases() {
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
     await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
-    final byId = {for (final s in await db.sessions()) s.id: s};
+    final byId = {
+      for (final s in await db.select(db.chatSessions).get()) s.id: s,
+    };
     expect(byId["s1"]!.subject, "数学");
     expect(byId["s2"]!.subject, "物理");
     expect(byId["s3"]!.subject, isNull);

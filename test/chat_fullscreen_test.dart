@@ -163,6 +163,7 @@ void main() {
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
+    await c.draft("历史会话");
     final session = c.selected!;
     for (var i = 0; i < 35; i++) {
       await c.db

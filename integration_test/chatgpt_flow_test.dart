@@ -66,13 +66,12 @@ void main() {
       expect(fixture.exchanges, 1);
       await click(t, find.widgetWithText(AppSelectField<String>, "模型"));
       await click(t, find.text("Fixture vision model").last);
+      await ready(t, () => c.config.kind == "chatgpt");
       await click(t, find.text("测试连接"));
       await ready(t, () => find.text("连接成功，已收到模型回复。").evaluate().isNotEmpty);
-      expect(c.config.kind, "deepseek");
       await click(t, find.widgetWithText(AppSelectField<String>, "默认思考强度"));
       await click(t, find.text("中").last);
-      await click(t, find.byKey(const Key("use-chatgpt")));
-      await ready(t, () => c.config.kind == "chatgpt");
+      await ready(t, () => c.config.thinking && c.config.effort == "medium");
       expect(c.config.vision, true);
       expect(c.config.effort, "medium");
       expect(AiOptions(c.config).reasoningEfforts, [

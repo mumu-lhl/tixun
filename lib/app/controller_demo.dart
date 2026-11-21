@@ -30,8 +30,23 @@ Future<void> _seedDemo(
           createdAt: DateTime(2026, 11, 3, 9, 0, 1),
         ),
       );
-  await db.createSession(title: "英语阅读：怎样理解长难句");
-  await db.createSession(title: "物理 · 受力分析的学习计划", subject: "物理");
+  for (final (title, subject, question) in [
+    ("英语阅读：怎样理解长难句", "英语", "读长句时，怎么先找出句子的主干？"),
+    ("物理 · 受力分析的学习计划", "物理", "可以从哪些题开始练习画受力图？"),
+  ]) {
+    final session = await db.createSession(title: title, subject: subject);
+    await db
+        .into(db.chatMessages)
+        .insert(
+          ChatMessagesCompanion.insert(
+            id: "demo-question:${session.id}",
+            sessionId: session.id,
+            role: "user",
+            content: question,
+            createdAt: DateTime(2026, 11, 3, 9),
+          ),
+        );
+  }
   final demoSessions = await db.sessions();
   for (final item in demoSessions) {
     final hour = item.id == s.id

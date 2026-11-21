@@ -259,7 +259,14 @@ class AppDatabase extends _$AppDatabase {
   ]) async {
     final term = query.trim();
     final variables = <Variable>[];
-    var where = "s.deleted = 0";
+    var where = """
+      s.deleted = 0 AND (
+        trim(s.draft, char(9, 10, 11, 12, 13, 32)) <> '' OR
+        EXISTS (SELECT 1 FROM chat_messages WHERE session_id = s.id) OR
+        EXISTS (SELECT 1 FROM attachments WHERE session_id = s.id) OR
+        EXISTS (SELECT 1 FROM scratchpads WHERE context_key = 'chat:' || s.id)
+      )
+      """;
     if (subject.isNotEmpty) {
       where += " AND s.subject = ?";
       variables.add(Variable(subject));
@@ -291,7 +298,7 @@ class AppDatabase extends _$AppDatabase {
     final rows = await customSelect(
       "SELECT s.* FROM chat_sessions s WHERE $where ORDER BY $order",
       variables: variables,
-      readsFrom: {chatSessions, chatMessages},
+      readsFrom: {chatSessions, chatMessages, attachments, scratchpads},
     ).get();
     return Future.wait(rows.map(chatSessions.mapFromRow));
   }
@@ -351,7 +358,7 @@ class AppDatabase extends _$AppDatabase {
       (select(attachments)..where((a) => a.sessionId.equals(session))).get();
   Future<void> saveDraft(String id, String draft) =>
       (update(chatSessions)..where((s) => s.id.equals(id))).write(
-        ChatSessionsCompanion(draft: Value(draft)),
+        ChatSessionsCompanion(draft: Value(draft.trim().isEmpty ? "" : draft)),
       );
   Future<void> rename(String id, String title) async {
     if (title.trim().isEmpty) {

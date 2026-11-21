@@ -209,7 +209,7 @@ class AppPreferences extends DatabaseNotifier {
         for (final (oldKey, newKey) in [
           ("ai_reasoning:$source", "ai_reasoning:$target"),
           ("ai_drawing:$source", "ai_drawing:$target"),
-          (_webPreference(source), _webPreference(target)),
+          (chatWebPreference(source), chatWebPreference(target)),
           (chatA2uiPreference(source), chatA2uiPreference(target)),
           (studyToolCategoriesKey(source), studyToolCategoriesKey(target)),
         ]) {
@@ -224,7 +224,7 @@ class AppPreferences extends DatabaseNotifier {
     changed();
   });
 
-  static String _webPreference(String id) => "ai_web:$id";
+  static String chatWebPreference(String id) => "ai_web:$id";
 
   Future<void> setAiWebEnabled(bool value) => runOperation(() async {
     await db.setPreference("ai_web_enabled", value.toString());
@@ -233,14 +233,14 @@ class AppPreferences extends DatabaseNotifier {
   });
 
   Future<bool?> chatWebOverride(String id) async =>
-      switch (await db.preference(_webPreference(id))) {
+      switch (await db.preference(chatWebPreference(id))) {
         "true" => true,
         "false" => false,
         _ => null,
       };
 
   Future<void> saveChatWebOverride(String id, bool? value) => runOperation(
-    () => db.setPreference(_webPreference(id), value?.toString() ?? ""),
+    () => db.setPreference(chatWebPreference(id), value?.toString() ?? ""),
   );
 
   Future<String> pythonExecutionPolicy() async {
@@ -332,6 +332,12 @@ class AppPreferences extends DatabaseNotifier {
               jsonEncode(config.toJson()),
             );
           }
+          if (config.kind == "chatgpt" && next.kind != "chatgpt") {
+            await db.setPreference(
+              "previous_chatgpt_provider",
+              jsonEncode(config.toJson()),
+            );
+          }
           await db.saveConfig(next);
         });
         if (key != null) {
@@ -359,13 +365,22 @@ class AppPreferences extends DatabaseNotifier {
         changed();
       });
 
+  Future<ProviderConfig?> previousChatGptProvider() async {
+    final previous = await _previousProvider("previous_chatgpt_provider");
+    return previous?.kind == "chatgpt" ? previous : null;
+  }
+
   Future<ProviderConfig?> previousApiProvider() async {
-    final raw = await db.preference("previous_api_provider");
+    final previous = await _previousProvider("previous_api_provider");
+    return previous?.kind == "chatgpt" ? null : previous;
+  }
+
+  Future<ProviderConfig?> _previousProvider(String key) async {
+    final raw = await db.preference(key);
     if (raw == null || raw.isEmpty) return null;
     final decoded = jsonDecode(raw);
     if (decoded is! Map<String, dynamic>) return null;
-    final previous = ProviderConfig.fromJson(decoded);
-    return previous.kind == "chatgpt" ? null : previous;
+    return ProviderConfig.fromJson(decoded);
   }
 
   Future<void> restoreApiProvider() => runOperation(() async {

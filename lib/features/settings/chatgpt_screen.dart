@@ -18,7 +18,13 @@ import "../../core/l10n/app_error_localization.dart";
 import "../../core/ui/reasoning_labels.dart";
 
 class ChatGptSettings extends ConsumerStatefulWidget {
-  const ChatGptSettings({super.key});
+  const ChatGptSettings({
+    required this.activateRememberedModel,
+    required this.onSavingChanged,
+    super.key,
+  });
+  final bool activateRememberedModel;
+  final ValueChanged<bool> onSavingChanged;
   @override
   ConsumerState<ChatGptSettings> createState() => _ChatGptSettingsState();
 }
@@ -62,7 +68,20 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
       vision = c.config.vision;
       effort = c.config.thinking ? c.config.effort : "default";
     }
-    unawaited(load());
+    unawaited(_initialize(c));
+  }
+
+  Future<void> _initialize(AppController c) async {
+    await load();
+    if (!mounted || !widget.activateRememberedModel) return;
+    await _activateRememberedModel(c);
+  }
+
+  Future<void> _activateRememberedModel(AppController c) async {
+    if (c.config.kind == "chatgpt" || !models.any((m) => m.id == model)) {
+      return;
+    }
+    await _changeModelSettings(c, () {});
   }
 
   @override
@@ -73,8 +92,18 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
   }
 
   Future<void> load() async {
-    final auth = ref.read(appControllerProvider).chatGpt;
+    final c = ref.read(appControllerProvider);
     try {
+      if (c.config.kind != "chatgpt" && model == null) {
+        final previous = await c.preferences.previousChatGptProvider();
+        if (previous != null && mounted) {
+          setState(() {
+            model = previous.model;
+            vision = previous.vision;
+            effort = previous.thinking ? previous.effort : "default";
+          });
+        }
+      }
       final snapshot = await auth.snapshot();
       final saved = snapshot.accounts;
       final selected = snapshot.activeId;
@@ -84,19 +113,17 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
           active = selected;
         });
       }
-      if (saved.any((a) => a.id == selected && a.connected)) {
-        final choices = await auth.models();
-        if (mounted) {
-          setState(() {
-            models = choices;
-          });
-        }
-      }
+      final choices = saved.any((a) => a.id == selected && a.connected)
+          ? await auth.models()
+          : <ChatGptModel>[];
+      if (!mounted) return;
+      setState(() => models = choices);
     } catch (e) {
       if (mounted) {
-        setState(
-          () => message = e is AiFailure ? e : _ChatGptStatus.loadFailed,
-        );
+        setState(() {
+          models = [];
+          message = e is AiFailure ? e : _ChatGptStatus.loadFailed;
+        });
       }
     } finally {
       if (mounted) setState(() => working = false);
@@ -133,6 +160,30 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
     }
   }
 
+  Future<void> _changeModelSettings(AppController c, VoidCallback change) =>
+      perform(() async {
+        final previous = (model, vision, effort);
+        setState(change);
+        final next = candidate();
+        final onSavingChanged = widget.onSavingChanged;
+        onSavingChanged(true);
+        try {
+          await c.stop();
+          await c.saveSettings(next, null);
+        } catch (_) {
+          if (mounted) {
+            setState(() {
+              model = previous.$1;
+              vision = previous.$2;
+              effort = previous.$3;
+            });
+          }
+          rethrow;
+        } finally {
+          if (mounted) onSavingChanged(false);
+        }
+      }, reload: false);
+
   ProviderConfig modelConfiguration() {
     final declared = models
         .where((m) => m.id == model)
@@ -159,6 +210,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
   ProviderConfig candidate() => modelConfiguration().copyWith(
     supportsThinking: availableEfforts.isNotEmpty,
     thinking: selectedEffort != "default",
+    effort: selectedEffort == "default" ? "high" : selectedEffort,
   );
 
   @override
@@ -178,14 +230,9 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
           style: Theme.of(context).textTheme.titleSmall,
         ),
         const SizedBox(height: 8),
-        Text(context.l10n.useTheChatGPTPlanAllowance),
+        Text(context.l10n.chatGptPlanUsage),
         const SizedBox(height: 12),
         Text(context.l10n.signInUsesYourSystem),
-        if (c.demo)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Text(context.l10n.mockModeDoesNotSign),
-          ),
         const SizedBox(height: 20),
         if (accounts.isNotEmpty)
           AppSelectField<String>(
@@ -230,8 +277,6 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
                     if (mounted) {
                       setState(() {
                         models = [];
-                        model = null;
-                        vision = false;
                       });
                     }
                   }),
@@ -262,9 +307,7 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
                       await login;
                       if (mounted) {
                         setState(() {
-                          model = null;
                           models = [];
-                          vision = false;
                         });
                       }
                     }),
@@ -354,7 +397,8 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
               ],
               onChanged: working
                   ? null
-                  : (value) => setState(() {
+                  : (value) => _changeModelSettings(c, () {
+                      if (model == value) return;
                       model = value;
                       vision = models.firstWhere((m) => m.id == value).vision;
                     }),
@@ -364,21 +408,6 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
             spacing: 10,
             runSpacing: 8,
             children: [
-              FilledButton(
-                key: const Key("use-chatgpt"),
-                onPressed: !canUseModel
-                    ? null
-                    : () {
-                        final next = candidate();
-                        unawaited(
-                          perform(() async {
-                            await c.stop();
-                            await c.saveSettings(next, null);
-                          }, reload: false),
-                        );
-                      },
-                child: Text(context.l10n.useThisAccountAndModel),
-              ),
               OutlinedButton(
                 onPressed: !canUseModel
                     ? null
@@ -413,7 +442,9 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
             title: Text(context.l10n.supportsImageInput),
             subtitle: Text(context.l10n.enableOnlyIfTheModel),
             value: vision,
-            onChanged: working ? null : (v) => setState(() => vision = v),
+            onChanged: !canUseModel
+                ? null
+                : (v) => _changeModelSettings(c, () => vision = v),
           ),
           const SizedBox(height: 12),
           AppSelectField<String>(
@@ -435,12 +466,9 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
               }.entries)
                 DropdownMenuItem(value: e.key, child: Text(e.value)),
             ],
-            onChanged: working ? null : (v) => setState(() => effort = v!),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.l10n.levelsFollowTheModelS,
-            style: Theme.of(context).textTheme.bodySmall,
+            onChanged: !canUseModel || availableEfforts.isEmpty
+                ? null
+                : (v) => _changeModelSettings(c, () => effort = v!),
           ),
         ],
         const SizedBox(height: 16),
@@ -458,14 +486,6 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
             }
           },
           child: Text(context.l10n.manageUsageAndPermissionsIn),
-        ),
-        Text(
-          context.l10n.chatGptSubscriptionHasNoBalance,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        Text(
-          context.l10n.connectionTestsAndLearningRequests,
-          style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );

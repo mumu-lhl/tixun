@@ -132,6 +132,8 @@ void main() {
       );
       await c.newSession();
       final key = "chat:${c.selected!.id}";
+      await c.scratch.load(key);
+      expect(await c.db.select(c.db.chatSessions).get(), isEmpty);
       c.scratch.stage(
         key,
         ScratchDocument().addPage().replace(
@@ -150,6 +152,7 @@ void main() {
         chatProvider: MockChatProvider(),
       );
       expect((await c.scratch.load(key)).pages.length, 2);
+      expect("chat:${(await c.db.sessions()).single.id}", key);
       final archive = File("${temp.path}/backup.tixun-backup");
       await BackupService.export(c.db, c.files, archive);
       final prepared = await BackupService.prepare(archive, root);

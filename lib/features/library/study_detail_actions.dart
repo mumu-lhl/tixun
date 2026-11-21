@@ -49,6 +49,7 @@ extension _StudyDetailActions on StudyDetailScreen {
     await c.setSessionSubject(c.selected!, k?.item.subject ?? m!.item.subject);
     await c.mode(direct ? "direct" : "guided");
     try {
+      await c.draft(text);
       await store.linkChat(
         c.selected!.id,
         knowledgeId: k?.item.id,
@@ -61,7 +62,6 @@ extension _StudyDetailActions on StudyDetailScreen {
       }
       c.attachments = await c.db.images(c.selected!.id);
       c.changed();
-      await c.draft(text);
     } catch (_) {
       // Roll back the empty session so no orphan session (and its link,
       // which is cascade-deleted when the session is purged) is left behind.

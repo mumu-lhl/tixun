@@ -45,6 +45,7 @@ void main() {
       );
       await controller.initialize(seed: false);
       await controller.newSession();
+      await controller.draft("查找二次函数的资料");
       final runner = StudyToolRunner(
         controller.study,
         sessionId: controller.selected!.id,

@@ -90,9 +90,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
         decoration: InputDecoration(
           labelText: "API Key",
           hintText: context.l10n.leaveBlankToKeepThe,
-          helperText: c.demo
-              ? context.l10n.noKeyNeededInMock
-              : context.l10n.androidSystemEncryptedStorageLinux,
+          helperText: c.demo ? null : context.l10n.apiKeyUsesSecureStorage,
           helperMaxLines: 2,
           suffixIcon: IconButton(
             tooltip: (_keyVisible
@@ -132,14 +130,11 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
           onRefresh: _working || _balanceLoading ? null : _loadBalance,
         ),
       const SizedBox(height: 16),
-      if (_kind == "compatible")
+      if (_kind == "compatible") ...[
+        Text(context.l10n.enableSupportedModelFeatures),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(context.l10n.supportsToolCalls),
-          subtitle: Text(
-            context.l10n.enableAfterCheckingTheProvider,
-            style: TextStyle(fontSize: 12),
-          ),
           value: _supportsTools,
           onChanged: _working
               ? null
@@ -148,33 +143,20 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
                   _scheduleSave();
                 },
         ),
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(context.l10n.supportsImageInput),
-        subtitle: Text(
-          // DeepSeek derives vision from the model (Flash yes,
-          // V4 Pro no), so the switch is fixed here.
-          _kind == "deepseek"
-              ? context.l10n.decidedByTheModelFlash
-              : context.l10n.enableOnlyIfTheProvider,
-          style: TextStyle(fontSize: 12),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(context.l10n.supportsImageInput),
+          value: _vision,
+          onChanged: _working
+              ? null
+              : (v) {
+                  _mutate(() => _vision = v);
+                  _scheduleSave();
+                },
         ),
-        value: _vision,
-        onChanged: _working || (_kind == "deepseek")
-            ? null
-            : (v) {
-                _mutate(() => _vision = v);
-                _scheduleSave();
-              },
-      ),
-      if (_kind == "compatible")
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(context.l10n.supportsReasoningEffort),
-          subtitle: Text(
-            context.l10n.enableAfterConsultingYourProvider,
-            style: TextStyle(fontSize: 12),
-          ),
           value: _supportsThinking,
           onChanged: _working
               ? null
@@ -186,6 +168,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
                   _scheduleSave();
                 },
         ),
+      ],
       if (_supportsThinking) ...[
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
@@ -252,13 +235,7 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
           helperMaxLines: 3,
         ),
       ),
-      Padding(
-        padding: EdgeInsets.only(bottom: 16),
-        child: Text(
-          context.l10n.enableMaterialToolsPerConversation,
-          style: TextStyle(fontSize: 12),
-        ),
-      ),
+      const SizedBox(height: 16),
       if (_status != null)
         Padding(
           padding: const EdgeInsets.only(bottom: 16),

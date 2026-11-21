@@ -21,7 +21,12 @@ class _Auth extends ChatGptAuth {
   _Auth(super.keys);
   @override
   Future<List<ChatGptModel>> models() async => const [
-    ChatGptModel("fixture-gpt", "Fixture GPT", false),
+    ChatGptModel(
+      "fixture-gpt",
+      "Fixture GPT",
+      false,
+      reasoningEfforts: ["low", "medium"],
+    ),
   ];
 }
 
@@ -159,26 +164,63 @@ void main() {
           await tester.tap(settings);
           await tester.pumpAndSettle();
 
-          Future<void> choose(String key, String label) async {
-            final field = find.byKey(Key(key));
-            await tester.ensureVisible(field);
-            await tester.tap(field);
-            await tester.pumpAndSettle();
-            await tester.tap(find.text(label).last);
-            await tester.pumpAndSettle();
+          Future<void> choose(String key, String label, {String? kind}) async {
+            await tester.runAsync(() async {
+              final field = find.byKey(Key(key));
+              await tester.ensureVisible(field);
+              await tester.pumpAndSettle();
+              await tester.tap(field);
+              await tester.pumpAndSettle();
+              await tester.tap(find.widgetWithText(MenuItemButton, label));
+              await tester.pumpAndSettle();
+              if (kind != null) {
+                for (var i = 0; i < 50 && c.config.kind != kind; i++) {
+                  await Future<void>.delayed(const Duration(milliseconds: 10));
+                  await tester.pump();
+                }
+                await tester.pumpAndSettle();
+              }
+            });
           }
 
           await choose("provider-selector", "ChatGPT 订阅");
           expect(find.text("ChatGPT 尚未启用"), findsOneWidget);
           expect(c.config.kind, "deepseek");
-          final activate = find.byKey(const Key("use-chatgpt"));
-          expect(tester.widget<FilledButton>(activate).onPressed, isNull);
           await choose("chatgpt-model-selector", "Fixture GPT");
+          expect(c.config.kind, "chatgpt");
+          expect(find.byKey(const Key("use-chatgpt")), findsNothing);
+          final vision = find.byType(SwitchListTile).first;
+          await tester.runAsync(() async {
+            await tester.ensureVisible(vision);
+            await tester.tap(vision);
+            await tester.pumpAndSettle();
+          });
+          await choose("chatgpt-effort-selector", "中");
+          await tester.runAsync(() async {
+            final saved = await c.db.config();
+            expect(saved.kind, "chatgpt");
+            expect(saved.model, "fixture-gpt");
+            expect(saved.vision, true);
+            expect(saved.thinking, true);
+            expect(saved.effort, "medium");
+          });
+          await choose("provider-selector", "DeepSeek", kind: "deepseek");
           expect(c.config.kind, "deepseek");
+          await open("/settings/chatgpt");
           expect(
-            tester.getTopLeft(activate).dy,
-            lessThan(tester.getTopLeft(find.byType(SwitchListTile).first).dy),
+            c.config.kind,
+            "deepseek",
+            reason: "Visiting settings does not activate a provider",
           );
+          await choose("provider-selector", "DeepSeek");
+          await choose("provider-selector", "ChatGPT 订阅", kind: "chatgpt");
+          expect(c.config.kind, "chatgpt");
+          expect(c.config.vision, true);
+          expect(c.config.effort, "medium");
+          await open("/settings");
+          await tester.ensureVisible(settings);
+          await tester.tap(settings);
+          await tester.pumpAndSettle();
           expect(find.byKey(const Key("chatgpt-quota-refresh")), findsNothing);
           const launcher = MethodChannel("plugins.flutter.io/url_launcher");
           final messenger = tester.binding.defaultBinaryMessenger;
@@ -190,6 +232,7 @@ void main() {
           addTearDown(() => messenger.setMockMethodCallHandler(launcher, null));
           final usage = find.text("在 ChatGPT 中管理用量和授权");
           await tester.ensureVisible(usage);
+          await tester.pumpAndSettle();
           await tester.tap(usage);
           await tester.pump();
           expect(launch?.method, "launch");
@@ -198,15 +241,6 @@ void main() {
             "https://chatgpt.com/settings/usage",
           );
 
-          await tester.ensureVisible(activate);
-          await tester.runAsync(() async {
-            await tester.tap(activate);
-            await tester.pumpAndSettle();
-            final saved = await c.db.config();
-            expect(saved.kind, "chatgpt");
-            expect(saved.model, "fixture-gpt");
-          });
-          await tester.pumpAndSettle();
           expect(find.text("当前生效的 ChatGPT 模型：fixture-gpt"), findsOneWidget);
           final back = find.byType(BackButton);
           await tester.ensureVisible(back);

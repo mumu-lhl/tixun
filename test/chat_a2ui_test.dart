@@ -285,6 +285,7 @@ void main() {
     });
 
     test("An identical inline retry is idempotent and forks isolate editable state", () async {
+      await c.draft("创建一个交互组件");
       final sessionId = c.selected!.id;
       await c.db
           .into(c.db.chatMessages)

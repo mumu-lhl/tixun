@@ -225,11 +225,11 @@ void main() {
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
     await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
-    final session = (await db.sessions()).single;
+    final session = await db.select(db.chatSessions).getSingle();
     expect(session.contextSummary, isNull);
     expect(session.contextSummaryUpToId, isNull);
     await db.setContextSummary("s", "已学二次函数", "m1");
-    final updated = (await db.sessions()).single;
+    final updated = await db.select(db.chatSessions).getSingle();
     expect(updated.contextSummary, "已学二次函数");
     expect(updated.contextSummaryUpToId, "m1");
     expect(await db.customSelect("PRAGMA foreign_key_check").get(), isEmpty);

@@ -72,7 +72,18 @@ extension _ChatSessions on AppController {
     )..where((s) => s.id.equals(session.id))).getSingleOrNull();
     // Re-check after the second await: another select may have completed
     // meanwhile, and the session may have been deleted in between.
-    if (_epoch != current || row == null) return;
+    if (_epoch != current) return;
+    if (row == null) {
+      // Photo recovery can roll back the transaction that first saved this chat.
+      if (selected?.id == session.id) {
+        _unsavedSessionId = session.id;
+        messages = [];
+        attachments = [];
+        await reload();
+      }
+      return;
+    }
+    _unsavedSessionId = null;
     selected = row;
     messages = loaded[0] as List<ChatMessage>;
     attachments = loaded[1] as List<Attachment>;
@@ -93,23 +104,96 @@ extension _ChatSessions on AppController {
     changed();
   }
 
-  Future<void> _newSessionImpl() async {
+  Future<void> _resumePhotoRecoveryChat(String? id) async {
+    final row = id == null
+        ? null
+        : await (db.select(
+            db.chatSessions,
+          )..where((s) => s.id.equals(id))).getSingleOrNull();
+    if (row != null && !row.deleted) {
+      await selectSession(row);
+    } else {
+      // A failed first import may have rolled back the row, but the retry
+      // cursor still identifies the same destination.
+      await _newSessionImpl(id: row == null ? id : null);
+    }
+  }
+
+  Future<void> _newSessionImpl({String? id}) async {
     await stop();
-    final profile = await LearningProfile.load(db);
-    await selectSession(
-      await db.createSession(
-        mode: profile.teaching,
-        title: l10n.newStudyConversation,
-        subject: subjectFilter.isEmpty ? null : subjectFilter,
-      ),
-    );
+    final epoch = ++_epoch;
+    final session = await _blankSession(id: id);
+    if (_epoch != epoch || _disposed) return;
+    _unsavedSessionId = session.id;
+    selected = session;
+    messages = [];
+    attachments = [];
+    sessionReasoning = "";
+    sessionDrawingOverride = null;
+    sessionA2uiOverride = null;
+    sessionWebOverride = null;
+    studyToolCategories = allStudyToolCategories;
+    error = null;
     search = "";
     await reload();
   }
 
+  Future<ChatSession> _blankSession({String? id}) async {
+    final profile = await LearningProfile.load(db);
+    final now = DateTime.now();
+    return ChatSession(
+      id: id ?? const Uuid().v4(),
+      title: l10n.newStudyConversation,
+      subject: subjectFilter.isEmpty ? null : subjectFilter,
+      mode: profile.teaching,
+      stage: "diagnosing",
+      toolsEnabled: false,
+      draft: "",
+      createdAt: now,
+      updatedAt: now,
+      deleted: false,
+    );
+  }
+
+  // Called inside the transaction that saves the first draft, photo or message.
+  Future<void> _insertNewSession(ChatSession session) async {
+    final existing = await (db.select(
+      db.chatSessions,
+    )..where((s) => s.id.equals(session.id))).getSingleOrNull();
+    if (existing != null) return;
+    await db.into(db.chatSessions).insert(session);
+    final id = session.id;
+    if (selected?.id == id) {
+      if (sessionReasoning.isNotEmpty) {
+        await db.setPreference("ai_reasoning:$id", sessionReasoning);
+      }
+      if (sessionDrawingOverride case final value?) {
+        await db.setPreference("ai_drawing:$id", value.toString());
+      }
+      if (sessionA2uiOverride case final value?) {
+        await db.setPreference(chatA2uiPreference(id), value.toString());
+      }
+      if (sessionWebOverride case final value?) {
+        await db.setPreference(
+          AppPreferences.chatWebPreference(id),
+          value.toString(),
+        );
+      }
+      if (studyToolCategories != allStudyToolCategories) {
+        await db.setPreference(
+          studyToolCategoriesKey(id),
+          studyToolCategories.map((c) => c.name).join(","),
+        );
+      }
+      await db.setPreference("selected_session", id);
+    }
+  }
+
   Future<void> _renameSessionImpl(ChatSession s, String title) async {
-    await db.rename(s.id, title);
-    await reload();
+    if (title.trim().isEmpty || _unsavedSessionId != s.id) {
+      await db.rename(s.id, title);
+      await reload();
+    }
     if (selected?.id == s.id) {
       selected = selected!.copyWith(title: title.trim());
       changed();
@@ -162,6 +246,11 @@ extension _ChatSessions on AppController {
       messages = [];
       attachments = [];
     }
+    if (_unsavedSessionId == s.id) {
+      _unsavedSessionId = null;
+      changed();
+      return;
+    }
     await db.setDeleted(s.id, true);
     await reload();
   }
@@ -209,7 +298,29 @@ extension _ChatSessions on AppController {
     }
     selected = s.copyWith(draft: value);
     try {
-      await db.saveDraft(s.id, value);
+      if (_unsavedSessionId == s.id) {
+        if (value.trim().isEmpty) {
+          // A preceding nonblank edit may still be committing the session.
+          if (s.draft.trim().isEmpty) return;
+          await db.saveDraft(s.id, value);
+        } else {
+          final snapshot = selected!;
+          await db.transaction(() async {
+            await _insertNewSession(snapshot);
+            await db.saveDraft(s.id, value);
+          });
+        }
+        if (_unsavedSessionId == s.id) _unsavedSessionId = null;
+        await reload();
+      } else {
+        await db.saveDraft(s.id, value);
+        if (messages.isEmpty &&
+            selected?.id == s.id &&
+            attachments.isEmpty &&
+            (value.trim().isEmpty || s.draft.trim().isEmpty)) {
+          await reload();
+        }
+      }
     } catch (_) {
       error = AppTransientError.draftSaveFailed;
       changed();
@@ -219,8 +330,18 @@ extension _ChatSessions on AppController {
   Future<void> _modeImpl(String value) async {
     if (selected == null || busy) return;
     final s = selected!.copyWith(mode: value, stage: "diagnosing");
-    await db.update(db.chatSessions).replace(s);
-    selected = s;
+    if (_unsavedSessionId != s.id) {
+      await (db.update(
+        db.chatSessions,
+      )..where((row) => row.id.equals(s.id))).write(
+        ChatSessionsCompanion(
+          mode: Value(value),
+          stage: const Value("diagnosing"),
+        ),
+      );
+    }
+    if (selected?.id != s.id) return;
+    selected = selected!.copyWith(mode: value, stage: "diagnosing");
     changed();
   }
 
@@ -233,26 +354,34 @@ extension _ChatSessions on AppController {
     }
     if (selected == null) await newSession();
     final s = selected!;
+    final isNew = _unsavedSessionId == s.id;
     final image = await files.importFile(path);
     final id = const Uuid().v4();
     try {
-      await db
-          .into(db.attachments)
-          .insert(
-            AttachmentsCompanion.insert(
-              id: id,
-              sessionId: s.id,
-              relativePath: image.path,
-              mime: image.mime,
-              byteLength: image.bytes,
-            ),
-          );
+      await db.transaction(() async {
+        if (isNew) {
+          await _insertNewSession(selected?.id == s.id ? selected! : s);
+        }
+        await db
+            .into(db.attachments)
+            .insert(
+              AttachmentsCompanion.insert(
+                id: id,
+                sessionId: s.id,
+                relativePath: image.path,
+                mime: image.mime,
+                byteLength: image.bytes,
+              ),
+            );
+      });
     } catch (_) {
       await files.resolve(image.path).delete();
       rethrow;
     }
+    if (_unsavedSessionId == s.id) _unsavedSessionId = null;
     if (selected?.id == s.id) {
       attachments = await db.images(s.id);
+      if (messages.isEmpty) await reload();
       changed();
     }
     return (await (db.select(
@@ -355,7 +484,10 @@ extension _ChatSessions on AppController {
         if (await cleanupPurgedAttachments(db, files, paths) > 0) {
           notice = const AppNotice(AppNoticeKind.draftImageCleanupFailed);
         }
-        if (selected?.id == session) attachments = await db.images(session);
+        if (selected?.id == session) {
+          attachments = await db.images(session);
+          if (messages.isEmpty && attachments.isEmpty) await reload();
+        }
         changed();
       });
 

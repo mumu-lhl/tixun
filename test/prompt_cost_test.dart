@@ -266,6 +266,7 @@ void main() {
       final c = await open(provider, drawing: false);
       final first = c.selected!;
       await c.setSessionDrawingEnabled(true);
+      await c.draft("解释函数图像");
       await c.newSession();
       expect(c.sessionDrawingOverride, isNull);
       expect(c.sessionDrawingEnabled, false);
@@ -317,6 +318,7 @@ void main() {
     await active.newSession();
     await active.setAiDrawingEnabled(true);
     await active.setSessionDrawingEnabled(false);
+    await active.draft("解释函数图像");
     final session = active.selected!.id;
     expect(active.sessionDrawingEnabled, false);
     await active.shutdown();
@@ -340,6 +342,7 @@ void main() {
     () async {
       final provider = _Provider((_, _) => _done);
       final c = await open(provider);
+      await c.draft("解释一下");
       await c.db.setContextSummary(c.selected!.id, "历史摘要 A", null);
       await c.send("解释一下");
       final before = provider.requests.last;

@@ -45,6 +45,8 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   late String _kind, _effort, _provider;
   late bool _vision, _thinking, _supportsThinking, _supportsTools;
   bool _working = false;
+  bool _savingSubscription = false;
+  bool _activateRememberedModel = false;
   Timer? _saveTimer;
   bool _keyVisible = false;
   bool? _hasSavedKey;
@@ -66,7 +68,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     _AiSettingsStatus.connected => context.l10n.connectedAndReceivedAModel,
     _AiSettingsStatus.keyRemoved => context.l10n.theKeyForThisAddress,
     _AiSettingsStatus.demoSaved => context.l10n.demoSettingsLastOnlyFor,
-    _AiSettingsStatus.saved => context.l10n.settingsSavedKeysAreStored,
+    _AiSettingsStatus.saved => context.l10n.modelSettingsSaved,
     _AiSettingsStatus.secureStorageError =>
       context.l10n.secureStorageAccessFailedLinux,
     _ => failureText(context.l10n, status),
@@ -256,14 +258,17 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   void _mutate(VoidCallback callback) => setState(callback);
 
   Future<void> _selectProvider(String kind) async {
-    if (kind == _provider || _working) return;
+    if (kind == _provider || _working || _savingSubscription) return;
     if (_saveTimer?.isActive == true) {
       _saveTimer!.cancel();
       await _perform();
       if (!mounted) return;
     }
     if (kind == "chatgpt") {
-      setState(() => _provider = kind);
+      setState(() {
+        _provider = kind;
+        _activateRememberedModel = true;
+      });
       return;
     }
     final c = ref.read(appControllerProvider);
@@ -352,16 +357,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  c.demo
-                      ? context.l10n.isolatedMockBuildNoReal
-                      : context.l10n.onlyTheConversationAndImages,
-                  style: TextStyle(
-                    color: colors.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
-                ),
+                if (c.demo) ...[
+                  const SizedBox(height: 8),
+                  Text(context.l10n.isolatedMockBuildNoReal),
+                ],
                 const SizedBox(height: 20),
                 AppSelectField<String>(
                   key: const Key("provider-selector"),
@@ -381,7 +380,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       child: Text(context.l10n.chatGPTPlan),
                     ),
                   ],
-                  onChanged: _working
+                  onChanged: _working || _savingSubscription
                       ? null
                       : (value) {
                           if (value != null) {
@@ -393,14 +392,14 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                 ),
                 if (_provider == "chatgpt") ...[
                   const SizedBox(height: 24),
-                  const ChatGptSettings(),
+                  ChatGptSettings(
+                    activateRememberedModel: _activateRememberedModel,
+                    onSavingChanged: (saving) =>
+                        setState(() => _savingSubscription = saving),
+                  ),
                 ] else
                   ..._apiFields(c, colors),
-                const SizedBox(height: 24),
-                Text(
-                  context.l10n.keysAreKeptInSystem,
-                  style: TextStyle(color: colors.onSurfaceVariant),
-                ),
+
                 const SizedBox(height: 24),
               ],
             ),

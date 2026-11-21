@@ -214,6 +214,7 @@ void main() {
           reason: "A rolled-back import must not remain in the UI snapshot",
         );
         expect(await c.db.images(recoveryId), isEmpty);
+        expect(await c.db.sessions(), isEmpty);
         expect(
           await Directory("${root.path}/attachments").list().length,
           0,

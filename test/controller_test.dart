@@ -32,6 +32,16 @@ class FastProvider implements ChatProvider {
 void main() {
   late AppController c;
   late FastProvider provider;
+
+  Future<ChatSession> createDraft({
+    required String title,
+    required String subject,
+  }) async {
+    final session = await c.db.createSession(title: title, subject: subject);
+    await c.db.saveDraft(session.id, "未发送的学习草稿");
+    return session;
+  }
+
   setUp(() async {
     final root = await Directory.systemTemp.createTemp("tixun-controller-test");
     provider = FastProvider();
@@ -48,6 +58,46 @@ void main() {
     await c.shutdown();
     await c.files.root.delete(recursive: true);
   });
+  test(
+    "Empty conversations are not saved, including per-chat settings",
+    () async {
+      final legacy = await c.db.createSession(title: "旧空对话");
+      await c.reload();
+      expect(c.sessions, isEmpty);
+      final first = c.selected!.id;
+      await c.setSessionDrawingEnabled(true);
+      await c.renameSession(c.selected!, "未发送");
+      await c.draft("  ");
+      await c.newSession();
+      final next = c.selected!.id;
+      expect(next, isNot(first));
+      final rows = await c.db.select(c.db.chatSessions).get();
+      expect(rows.map((row) => row.id), [legacy.id]);
+      expect(await c.db.preference("ai_drawing:$first"), isNull);
+      expect(await c.db.preference("selected_session"), isNull);
+      expect(c.sessions, isEmpty);
+
+      await c.setSessionDrawingEnabled(true);
+      await c.send("解释二次函数");
+      expect(c.sessions.single.id, next);
+      expect(await c.db.preference("selected_session"), next);
+      expect(await c.db.preference("ai_drawing:$next"), "true");
+      expect((await c.db.messages(next)).first.content, "解释二次函数");
+    },
+  );
+
+  test("Nonempty drafts stay in history and clearing one hides it", () async {
+    final id = c.selected!.id;
+    await c.draft("未发送的内容");
+    expect(c.sessions.single.id, id);
+    expect(c.sessions.single.draft, "未发送的内容");
+    await c.draft("");
+    expect(c.sessions, isEmpty);
+    await c.newSession();
+    await Future.wait([c.draft("暂存"), c.draft("\n\t")]);
+    expect(c.sessions, isEmpty);
+  });
+
   test("First send preserves explicitly named sessions and names ordinary sessions", () async {
     await c.renameSession(c.selected!, "AI 整理知识");
     await c.send("请整理学习资料，不要出题。");
@@ -96,8 +146,9 @@ void main() {
     expect(c.selected!.subject, "数学");
   });
   test("Subject filter persists and scopes the session list only", () async {
-    final math = await c.db.createSession(title: "数学 · 检测训练", subject: "数学");
-    await c.db.createSession(title: "物理 · 受力分析", subject: "物理");
+    await c.draft("其他学习问题");
+    final math = await createDraft(title: "数学 · 检测训练", subject: "数学");
+    await createDraft(title: "物理 · 受力分析", subject: "物理");
     await c.reload();
     expect(c.sessions.length, 3);
     await c.setSubjectFilter("数学");
@@ -112,6 +163,7 @@ void main() {
   test("Subject chat entry ignores search and preserves an explicit matching session", () async {
     await c.setSubjectFilter("物理");
     await c.newSession();
+    await c.draft("受力分析");
     final older = c.selected!;
     await c.newSession();
     await c.selectSession(older);
@@ -128,7 +180,7 @@ void main() {
     expect(c.sessions, isEmpty);
   });
   test(
-    "Concurrent subject chat entries create only one conversation",
+    "Concurrent subject chat entries share one in-memory conversation",
     () async {
       await c.setSubjectFilter("物理");
       await Future.wait([
@@ -137,7 +189,10 @@ void main() {
         c.prepareSubjectChat(),
       ]);
       expect(c.selected!.subject, "物理");
-      expect((await c.db.sessions("", "物理")).length, 1);
+      expect(await c.db.sessions("", "物理"), isEmpty);
+      final id = c.selected!.id;
+      await c.prepareSubjectChat();
+      expect(c.selected!.id, id);
     },
   );
   test(
@@ -158,6 +213,7 @@ void main() {
     () async {
       await c.setSubjectFilter("物理");
       await c.newSession();
+      await c.draft("受力分析");
       final deleted = c.selected!;
       await c.deleteSession(deleted);
       await c.prepareSubjectChat();
@@ -212,8 +268,8 @@ void main() {
     expect(c.selected!.title, contains("物理"));
   });
   test("Search and subject filter stack", () async {
-    await c.db.createSession(title: "数学 · 检测训练", subject: "数学");
-    await c.db.createSession(title: "物理 · 受力分析", subject: "物理");
+    await createDraft(title: "数学 · 检测训练", subject: "数学");
+    await createDraft(title: "物理 · 受力分析", subject: "物理");
     await c.reload();
     await c.setSubjectFilter("数学");
     await c.searchSessions("检测");
@@ -340,8 +396,8 @@ void main() {
     },
   );
   test("Session search applies subject and literal title matching", () async {
-    final math = await c.db.createSession(title: 'A "数学"', subject: "数学");
-    await c.db.createSession(title: 'A "数学"', subject: "物理");
+    final math = await createDraft(title: 'A "数学"', subject: "数学");
+    await createDraft(title: 'A "数学"', subject: "物理");
     expect((await c.db.sessions("数学", "数学")).map((s) => s.id), [math.id]);
     expect((await c.db.sessions('"数学"', "数学")).map((s) => s.id), [math.id]);
     expect(await c.db.sessions("数学", "英语"), isEmpty);

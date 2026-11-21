@@ -9,8 +9,10 @@ import "scratchpad_exception.dart";
 
 /// Coalesced snapshots have a bounded save interval and a shutdown/backup barrier.
 class ScratchStore extends DatabaseNotifier {
-  ScratchStore(this.db);
+  ScratchStore(this.db, {this.createChatOwner, this.onChatOwnerSaved});
   final AppDatabase db;
+  final Future<bool> Function(String id)? createChatOwner;
+  final Future<void> Function(String id)? onChatOwnerSaved;
   final _pending = <String, String>{};
   Timer? _timer;
   Future<void>? _writes;
@@ -52,24 +54,35 @@ class ScratchStore extends DatabaseNotifier {
       if (previous != null) await previous.catchError((Object _) {});
       final batch = Map<String, String>.of(_pending);
       _pending.clear();
+      final createdChats = <String>[];
       try {
         if (batch.isNotEmpty) {
           await db.transaction(() async {
             for (final e in batch.entries) {
               final split = e.key.indexOf(":");
+              final type = e.key.substring(0, split);
+              final id = e.key.substring(split + 1);
               final table = {
                 "chat": "chat_sessions",
                 "mistake": "mistakes",
                 "practice": "practice_questions",
-              }[e.key.substring(0, split)]!;
-              // A queued autosave must never recreate data after its owner was permanently deleted.
+              }[type]!;
+              // Only the current transient chat may supply a missing owner;
+              // a queued autosave must not resurrect a deleted record.
               final owner = await db
                   .customSelect(
                     "SELECT 1 FROM $table WHERE id = ?",
-                    variables: [Variable(e.key.substring(split + 1))],
+                    variables: [Variable(id)],
                   )
                   .get();
-              if (owner.isEmpty) continue;
+              if (owner.isEmpty) {
+                if (type != "chat" ||
+                    e.value == ScratchDocument().encode() ||
+                    await createChatOwner?.call(id) != true) {
+                  continue;
+                }
+                createdChats.add(id);
+              }
               await db
                   .into(db.scratchpads)
                   .insertOnConflictUpdate(
@@ -91,6 +104,9 @@ class ScratchStore extends DatabaseNotifier {
         failure = ScratchpadError.saveFailed;
         changed();
         rethrow;
+      }
+      for (final id in createdChats) {
+        await onChatOwnerSaved?.call(id);
       }
     });
     _writes = task;

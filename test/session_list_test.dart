@@ -32,6 +32,7 @@ void main() {
       final now = DateTime.now();
       Future<void> seed(String title, Duration ago) async {
         final s = await c.db.createSession(title: title);
+        await c.db.saveDraft(s.id, "复习笔记");
         await (c.db.update(c.db.chatSessions)..where((t) => t.id.equals(s.id)))
             .write(ChatSessionsCompanion(updatedAt: Value(now.subtract(ago))));
       }

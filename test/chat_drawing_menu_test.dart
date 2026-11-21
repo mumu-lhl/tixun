@@ -103,7 +103,10 @@ void main() {
       await choose("on");
       tester.view.resetViewInsets();
       await tester.pumpAndSettle();
-      await tester.runAsync(() => c.newSession());
+      await tester.runAsync(() async {
+        await c.draft("解释函数图像");
+        await c.newSession();
+      });
       await tester.pumpAndSettle();
       expect(c.sessionDrawingOverride, isNull);
       expect(c.sessionDrawingEnabled, false);

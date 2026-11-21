@@ -51,6 +51,7 @@ void main() {
                   title: "物理讨论",
                   subject: "物理",
                 )).id;
+                await c.db.saveDraft(physicsId!, "物理草稿");
               }
             });
             final mathId = c.selected!.id;
@@ -104,7 +105,7 @@ void main() {
             expect(c.selected!.id, isNot(mathId));
             if (existing) expect(c.selected!.id, physicsId);
             final count = (await c.db.sessions()).length;
-            expect(count, 2);
+            expect(count, existing ? 2 : 1);
             final old = (await c.db.sessions()).singleWhere(
               (s) => s.id == mathId,
             );

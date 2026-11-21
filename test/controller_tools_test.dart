@@ -49,6 +49,7 @@ void main() {
         await scoped.files.root.delete(recursive: true);
       });
       await scoped.setStudyToolCategories({StudyToolCategory.knowledge});
+      await scoped.draft("请查找知识");
       final session = scoped.selected!;
       await scoped.newSession();
       await scoped.selectSession(session);

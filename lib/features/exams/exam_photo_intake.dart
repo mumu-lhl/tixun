@@ -5,11 +5,10 @@ import "../../app/app_notice.dart";
 import "dart:convert";
 
 import "package:image_picker/image_picker.dart";
-import "package:drift/drift.dart" show BooleanExpressionOperators;
 import "package:material_ui/material_ui.dart";
 
 import "../../core/platform/photo_picker.dart";
-import "../../core/database/database.dart";
+import "../../core/database/database.dart" show ExamAttachment;
 import "../../core/database/attachment_cleanup.dart";
 import "exam_image_editor.dart";
 
@@ -89,17 +88,7 @@ class ExamPhotoIntake {
       c.db.examSubjects,
     )..where((t) => t.id.equals(subject))).getSingleOrNull();
     if (owner == null) {
-      final chatId = target["chatSession"] as String?;
-      final session = chatId == null
-          ? null
-          : await (c.db.select(c.db.chatSessions)
-                  ..where((t) => t.id.equals(chatId) & t.deleted.equals(false)))
-                .getSingleOrNull();
-      if (session == null) {
-        await c.newSession();
-      } else {
-        await c.selectSession(session);
-      }
+      await c.resumePhotoRecoveryChat(target["chatSession"] as String?);
       target["chatSession"] = c.selected!.id;
     }
     await _retainRemaining(c, target, pending, 0);

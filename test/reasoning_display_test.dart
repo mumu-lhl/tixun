@@ -170,6 +170,7 @@ void main() {
           chatProvider: MockChatProvider(),
         );
         await c.newSession();
+        await c.draft("给我一道计算题");
         const id = "reasoning-message";
         await c.db
             .into(c.db.chatMessages)
@@ -302,6 +303,7 @@ void main() {
           chatProvider: MockChatProvider(),
         );
         await c.newSession();
+        await c.draft("给我一道计算题");
         const id = "reasoning-error-message";
         await c.db
             .into(c.db.chatMessages)

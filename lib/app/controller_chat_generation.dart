@@ -31,7 +31,11 @@ extension _ChatGeneration on AppController {
             "当前任务需要非思考工具调用，请保持关闭；普通讲解可在其他会话开启。",
           );
         }
-        await db.setPreference("ai_reasoning:${selected!.id}", value);
+        final id = selected!.id;
+        if (_unsavedSessionId != id) {
+          await db.setPreference("ai_reasoning:$id", value);
+        }
+        if (selected?.id != id) return;
         sessionReasoning = value;
         changed();
       });
@@ -78,14 +82,16 @@ extension _ChatGeneration on AppController {
     }
     final sessionId = selected!.id;
     final saved = Set<StudyToolCategory>.unmodifiable(categories);
-    await db.transaction(() async {
-      await db.setPreference(
-        studyToolCategoriesKey(sessionId),
-        saved.map((c) => c.name).join(","),
-      );
-      await (db.update(db.chatSessions)..where((s) => s.id.equals(sessionId)))
-          .write(ChatSessionsCompanion(toolsEnabled: Value(enabled)));
-    });
+    if (_unsavedSessionId != sessionId) {
+      await db.transaction(() async {
+        await db.setPreference(
+          studyToolCategoriesKey(sessionId),
+          saved.map((c) => c.name).join(","),
+        );
+        await (db.update(db.chatSessions)..where((s) => s.id.equals(sessionId)))
+            .write(ChatSessionsCompanion(toolsEnabled: Value(enabled)));
+      });
+    }
     if (selected?.id == sessionId) {
       selected = selected!.copyWith(toolsEnabled: enabled);
       studyToolCategories = saved;
@@ -240,18 +246,13 @@ extension _ChatGeneration on AppController {
       return;
     }
     await _startRequest(() async {
-      if (selected == null) {
-        selected = await db.createSession(
-          subject: subjectFilter.isEmpty ? null : subjectFilter,
-        );
-        messages = [];
-        attachments = [];
-      }
-      final s = selected!;
+      final isNew = selected == null || _unsavedSessionId == selected!.id;
+      final s = selected ?? await _blankSession();
       final userId = const Uuid().v4();
       final now = DateTime.now();
       var requestConversationTitle = false;
       await db.transaction(() async {
+        if (isNew) await _insertNewSession(s);
         await db
             .into(db.chatMessages)
             .insert(
@@ -292,6 +293,7 @@ extension _ChatGeneration on AppController {
           ),
         );
       });
+      if (_unsavedSessionId == s.id) _unsavedSessionId = null;
       selected = await (db.select(
         db.chatSessions,
       )..where((t) => t.id.equals(s.id))).getSingle();
