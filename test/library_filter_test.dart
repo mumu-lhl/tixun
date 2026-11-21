@@ -54,7 +54,7 @@ void main() {
     }
   });
 
-  testWidgets("Search and combine directory and tags at phone width", (
+  testWidgets("Combine library filters across phone and desktop widths", (
     t,
   ) async {
     t.view.physicalSize = const Size(390, 720);
@@ -84,6 +84,10 @@ void main() {
       await t.pumpAndSettle();
     }
 
+    expect(
+      t.getCenter(byKey("library-search")).dy,
+      lessThan(t.getCenter(byKey("module-filter")).dy),
+    );
     await tap(byKey("module-filter"));
     await tap(find.text(l10n.manageDirectory));
     expect(byKey("module-add-root"), findsOneWidget);
@@ -133,6 +137,21 @@ void main() {
     await search("library-search", "单调性");
     expect(byKey(matchingId), findsOneWidget);
     expect(byKey(singleTagId), findsNothing);
+
+    t.view.physicalSize = const Size(1440, 900);
+    await t.pumpAndSettle();
+    final searchBox = t.getRect(byKey("library-search"));
+    final directoryButton = t.getRect(byKey("module-filter"));
+    final tagsButton = t.getRect(byKey("tag-filter"));
+    final result = t.getRect(byKey("card-$matchingId"));
+    expect(searchBox.center.dy, closeTo(directoryButton.center.dy, 1));
+    expect(searchBox.center.dy, closeTo(tagsButton.center.dy, 1));
+    expect(directoryButton.right, lessThan(tagsButton.left));
+    expect(result.left, closeTo(searchBox.left, 1));
+    expect(result.center.dx, closeTo(720, 1));
+    expect(result.width, lessThan(900));
+    expect(byKey(singleTagId), findsNothing);
+    expect(byKey(outsideDirectoryId), findsNothing);
 
     await tap(byKey("clear-library-filters"));
     expect(find.text(l10n.directoryLabel), findsOneWidget);

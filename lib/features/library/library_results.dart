@@ -121,12 +121,16 @@ extension _LibraryResults on _LibraryScreenState {
               if (index == entries.length) {
                 return Padding(
                   padding: const EdgeInsets.all(16),
-                  child: TextButton(
-                    onPressed: _loadingMore ? null : () => act(context, _more),
-                    child: Text(
-                      _loadingMore
-                          ? context.l10n.loading
-                          : context.l10n.loadMore,
+                  child: Center(
+                    child: TextButton(
+                      onPressed: _loadingMore
+                          ? null
+                          : () => act(context, _more),
+                      child: Text(
+                        _loadingMore
+                            ? context.l10n.loading
+                            : context.l10n.loadMore,
+                      ),
                     ),
                   ),
                 );

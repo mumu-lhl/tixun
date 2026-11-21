@@ -10,6 +10,7 @@ import "package:tixun/app/controller.dart";
 import "package:tixun/app/theme.dart";
 import "package:tixun/core/ai/chat_provider.dart";
 import "package:tixun/core/database/database.dart";
+import "package:tixun/core/l10n/app_strings.dart";
 import "package:tixun/core/platform/attachment_store.dart";
 import "package:tixun/core/platform/key_store.dart";
 import "package:tixun/core/ui/learning_markdown.dart";
@@ -175,6 +176,17 @@ void main() {
           container.read(routerProvider).go(route);
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull, reason: "$width $route");
+          if (route == "/review") {
+            final chips = find.byType(ChoiceChip);
+            final l10n = tester.element(chips.first).l10n;
+            final titleY = tester.getCenter(find.text(l10n.spacedReview)).dy;
+            final chipY = tester.getCenter(chips.first).dy;
+            if (width > 1000) {
+              expect(chipY, closeTo(titleY, 1));
+            } else {
+              expect(chipY, greaterThan(titleY));
+            }
+          }
         }
       }
       final note = await tester.runAsync(

@@ -1,7 +1,11 @@
 part of "library_screen.dart";
 
 extension _LibraryFilterPickers on _LibraryScreenState {
-  Widget _filterButtons(BuildContext context, String subject) {
+  Widget _searchAndFilters(
+    BuildContext context,
+    String subject,
+    Widget search,
+  ) {
     final directories = ref.watch(_libraryDirectoriesProvider(subject));
     final all = directories.value ?? [];
     final selected = all.where((m) => m.id == _moduleId).firstOrNull;
@@ -17,43 +21,64 @@ extension _LibraryFilterPickers on _LibraryScreenState {
       });
     }
     final l10n = context.l10n;
+    final directory = OutlinedButton.icon(
+      key: const Key("module-filter"),
+      icon: const Icon(Icons.folder_outlined, size: 18),
+      label: Text(
+        id == "unclassified"
+            ? l10n.unclassified
+            : selected == null
+            ? l10n.directoryLabel
+            : modulePath(selected, all),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onPressed: () => _pickDirectory(context, subject),
+    );
+    final tags = OutlinedButton.icon(
+      key: const Key("tag-filter"),
+      icon: const Icon(Icons.label_outline, size: 18),
+      label: Text(
+        _tags.isEmpty ? l10n.tagsLabel : l10n.tagsFilterCount(_tags.length),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onPressed: () => _pickTags(context, subject),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                key: const Key("module-filter"),
-                icon: const Icon(Icons.folder_outlined, size: 18),
-                label: Text(
-                  id == "unclassified"
-                      ? l10n.unclassified
-                      : selected == null
-                      ? l10n.directoryLabel
-                      : modulePath(selected, all),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+            if (constraints.maxWidth >= 680 * scale) {
+              return Row(
+                children: [
+                  Expanded(child: search),
+                  const SizedBox(width: 12),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: 210 * scale),
+                    child: directory,
+                  ),
+                  const SizedBox(width: 8),
+                  tags,
+                ],
+              );
+            }
+            return Column(
+              children: [
+                search,
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(child: directory),
+                    const SizedBox(width: 8),
+                    Expanded(child: tags),
+                  ],
                 ),
-                onPressed: () => _pickDirectory(context, subject),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                key: const Key("tag-filter"),
-                icon: const Icon(Icons.label_outline, size: 18),
-                label: Text(
-                  _tags.isEmpty
-                      ? l10n.tagsLabel
-                      : l10n.tagsFilterCount(_tags.length),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                onPressed: () => _pickTags(context, subject),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
         if (_hasFilters)
           Wrap(

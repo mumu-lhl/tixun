@@ -17,6 +17,7 @@ import "../../app/controller.dart";
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
+import "../../core/ui/page_content.dart";
 import "../../core/ui/app_menu.dart";
 import "../../core/ui/search_snippet.dart";
 import "library_providers.dart";
@@ -641,12 +642,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       );
     }
     final small = MediaQuery.sizeOf(context).width < 700;
-    return Column(
-      children: [
-        ..._libraryFilters(context, name, colors, small, subjectFilter),
-        const Divider(),
-        _libraryResults(store, colors, small, subjectFilter),
-      ],
+    return PageContent(
+      maxWidth: 916,
+      child: Column(
+        children: [
+          ..._libraryFilters(context, name, colors, small, subjectFilter),
+          const Divider(),
+          _libraryResults(store, colors, small, subjectFilter),
+        ],
+      ),
     );
   }
 }

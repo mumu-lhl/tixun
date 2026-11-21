@@ -7,6 +7,7 @@ import "package:go_router/go_router.dart";
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
+import "../../core/ui/page_content.dart";
 import "practice_providers.dart";
 
 class PracticeHistoryScreen extends ConsumerStatefulWidget {
@@ -49,7 +50,10 @@ class _PracticeHistoryScreenState extends ConsumerState<PracticeHistoryScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) =>
+      PageContent(maxWidth: 860, child: _historyContent(context));
+
+  Widget _historyContent(BuildContext context) => Column(
     children: [
       Padding(
         padding: const EdgeInsets.all(16),

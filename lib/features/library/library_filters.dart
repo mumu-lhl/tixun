@@ -9,7 +9,7 @@ extension _LibraryFilters on _LibraryScreenState {
     String subjectFilter,
   ) => [
     Padding(
-      padding: EdgeInsets.fromLTRB(small ? 20 : 32, 20, small ? 16 : 32, 12),
+      padding: EdgeInsets.fromLTRB(small ? 20 : 28, 20, small ? 16 : 28, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -144,37 +144,40 @@ extension _LibraryFilters on _LibraryScreenState {
             style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
           ),
           const SizedBox(height: 18),
-          TextField(
-            key: const Key("library-search"),
-            onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-            controller: _searchController,
-            onChanged: (v) {
-              _updateLibraryView(() {});
-              _debounce?.cancel();
-              _debounce = Timer(const Duration(milliseconds: 250), () {
-                if (mounted) {
-                  _updateLibraryView(() {
-                    _query = v;
-                    _epoch = -1;
-                  });
-                }
-              });
-            },
-            decoration: InputDecoration(
-              hintText: context.l10n.searchTitlesContentChaptersOr,
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchController.text.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: context.l10n.clearSearch,
-                      onPressed: _clearSearch,
-                      icon: const Icon(Icons.clear),
-                    ),
-              isDense: true,
+          _searchAndFilters(
+            context,
+            subjectFilter,
+            TextField(
+              key: const Key("library-search"),
+              onTapOutside: (_) =>
+                  FocusManager.instance.primaryFocus?.unfocus(),
+              controller: _searchController,
+              onChanged: (v) {
+                _updateLibraryView(() {});
+                _debounce?.cancel();
+                _debounce = Timer(const Duration(milliseconds: 250), () {
+                  if (mounted) {
+                    _updateLibraryView(() {
+                      _query = v;
+                      _epoch = -1;
+                    });
+                  }
+                });
+              },
+              decoration: InputDecoration(
+                hintText: context.l10n.searchTitlesContentChaptersOr,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: context.l10n.clearSearch,
+                        onPressed: _clearSearch,
+                        icon: const Icon(Icons.clear),
+                      ),
+                isDense: true,
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          _filterButtons(context, subjectFilter),
           const SizedBox(height: 10),
           if (_importing)
             Padding(

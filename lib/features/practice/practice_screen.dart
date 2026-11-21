@@ -10,6 +10,7 @@ import "../../core/l10n/app_strings.dart";
 import "../../core/l10n/app_error.dart";
 import "../../core/l10n/app_error_localization.dart";
 import "../../core/ui/actions.dart";
+import "../../core/ui/page_content.dart";
 import "../../core/ui/markdown_editor.dart";
 import "../review/review_screen.dart";
 import "practice_providers.dart";
@@ -56,7 +57,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       limit: limit,
     );
     final rows = ref.watch(practiceListProvider(filter));
-    return Column(
+    final content = Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
@@ -195,15 +196,18 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                     ),
                     orElse: () => const SizedBox.shrink(),
                   ),
-              TextField(
-                decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: context.l10n.searchQuestions,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 540),
+                child: TextField(
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: context.l10n.searchQuestions,
+                  ),
+                  onChanged: (v) => setState(() {
+                    query = v.trim();
+                    limit = 200;
+                  }),
                 ),
-                onChanged: (v) => setState(() {
-                  query = v.trim();
-                  limit = 200;
-                }),
               ),
             ],
           ),
@@ -363,6 +367,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         ),
       ],
     );
+    return PageContent(maxWidth: 860, child: content);
   }
 }
 
@@ -371,27 +376,21 @@ class PracticeDetailScreen extends StatelessWidget {
   final String id;
   final String? attemptId;
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          onPressed: () => context.go("/practice"),
-          icon: const Icon(Icons.arrow_back),
-          label: Text(context.l10n.allPractice),
-        ),
-      ),
-      Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 820),
-          child: QuestionCard(
-            id,
-            attemptId: attemptId,
-            key: ValueKey("$id:$attemptId"),
+  Widget build(BuildContext context) => PageContent(
+    maxWidth: 860,
+    child: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => context.go("/practice"),
+            icon: const Icon(Icons.arrow_back),
+            label: Text(context.l10n.allPractice),
           ),
         ),
-      ),
-    ],
+        QuestionCard(id, attemptId: attemptId, key: ValueKey("$id:$attemptId")),
+      ],
+    ),
   );
 }

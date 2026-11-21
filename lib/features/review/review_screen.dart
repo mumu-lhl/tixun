@@ -7,6 +7,7 @@ import "package:go_router/go_router.dart";
 import "../../app/controller.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
+import "../../core/ui/page_content.dart";
 import "../practice/practice_providers.dart";
 import "review_providers.dart";
 import "review_store.dart";
@@ -67,15 +68,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final c = ref.watch(appControllerProvider);
     final key = (filter: filter, subject: c.subjectFilter, limit: limit);
     final rows = ref.watch(reviewListProvider(key));
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final title = Row(
                 children: [
                   IconButton(
                     tooltip: context.l10n.backToStudy,
@@ -90,10 +90,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 12),
-              Wrap(
+              );
+              final filters = Wrap(
                 spacing: 8,
+                runSpacing: 4,
                 children: [
                   for (final e in {
                     "due": context.l10n.reviewFilterDue,
@@ -109,8 +109,22 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       }),
                     ),
                 ],
-              ),
-            ],
+              );
+              final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+              if (constraints.maxWidth >= 650 * scale) {
+                return Row(
+                  children: [
+                    Expanded(child: title),
+                    const SizedBox(width: 16),
+                    filters,
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [title, const SizedBox(height: 12), filters],
+              );
+            },
           ),
         ),
         Expanded(
@@ -329,6 +343,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         ),
       ],
     );
+    return PageContent(maxWidth: 850, child: content);
   }
 }
 

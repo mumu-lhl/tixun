@@ -15,6 +15,7 @@ import "package:go_router/go_router.dart";
 import "../../app/controller.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
+import "../../core/ui/page_content.dart";
 import "../../core/ui/learning_markdown.dart";
 import "../visual/study_visuals.dart";
 import "../visual/visual_markdown.dart";
@@ -73,10 +74,10 @@ class StudyDetailScreen extends ConsumerWidget {
         final tags = k?.tags ?? m!.tags;
         final source = k?.item.sourceSessionId ?? m?.item.sourceSessionId;
         final store = ref.read(studyStoreProvider);
-        return Column(
+        final content = Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 12, 4),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
               child: Row(
                 children: [
                   IconButton(
@@ -146,12 +147,7 @@ class StudyDetailScreen extends ConsumerWidget {
             ),
             Expanded(
               child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  MediaQuery.sizeOf(context).width < 700 ? 20 : 36,
-                  8,
-                  20,
-                  40,
-                ),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                 children: [
                   Align(
                     alignment: Alignment.topCenter,
@@ -374,6 +370,7 @@ class StudyDetailScreen extends ConsumerWidget {
             ),
           ],
         );
+        return PageContent(maxWidth: 900, child: content);
       },
     );
   }
