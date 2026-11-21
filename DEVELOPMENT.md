@@ -4,8 +4,6 @@
 
 ## 开发环境与运行
 
-使用 Flutter **3.50.0**（Dart 3.14.0），依赖锁定于 `pubspec.lock`。 CI 与本地使用相同 SDK 版本。 Android 使用 Gradle 9.9.1、AGP 9.5.1、Kotlin 2.4.21（均为稳定版），CI 使用 Java 25 LTS。
-
 UI 使用 Flutter 官方独立的 `material_ui` 包。微信图片选择器、Markdown 等依赖仍使用旧 Material 类型，应用通过官方 `MaterialUiCompatibilityBridge` 保留主题和中英文翻译；待这些依赖迁移后移除兼容代码。
 
 界面中的单选下拉优先复用设置页的 AppSelectField。表单需要校验时使用 AppSelectFormField，两者共用菜单外观、动画和键盘交互。
@@ -27,7 +25,7 @@ flutter run -d linux --dart-define=TIXUN_DEMO=true
 flutter run -d <设备ID>
 ```
 
-Linux 系统依赖：`sudo bash scripts/install_linux_deps.sh`（包含 bubblewrap）。构建 Linux 沙盒 Python 还需要 Zig 0.17.1；将 `zig` 加入 PATH（ZVM 用户可 `export PATH="$HOME/.zvm/bin:$PATH"`）。保存 API Key 需要可用且已解锁的 Secret Service（例如 GNOME Keyring）；没有密钥环时不回退到明文存储，仍可浏览本地学习资料。
+Linux 系统依赖：`sudo bash scripts/install_linux_deps.sh`（包含 bubblewrap）。构建 Linux 沙盒 Python 还需要 Zig；将 `zig` 加入 PATH（ZVM 用户可 `export PATH="$HOME/.zvm/bin:$PATH"`）。保存 API Key 需要可用且已解锁的 Secret Service（例如 GNOME Keyring）；没有密钥环时不回退到明文存储，仍可浏览本地学习资料。
 
 ## 测试与构建
 
@@ -67,7 +65,7 @@ Flutter 单元和 Widget 测试统一使用 `flutter test -j 4`，按四个并�
 
 Linux debug / release 共享临时引擎目录，**必须顺序构建**。启动冒烟截图保存在 `artifacts/gui/`，集成场景截图在 `artifacts/gui-*/`，各入口日志由 `TIXUN_GUI_LOG_DIR` 指定（默认当前目录）；脚本通过不代表视觉审查完成，仍需读取截图检查。
 
-不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。当前数据库为 schema v29，迁移测试使用 `test/fixtures/` 中的历史快照验证保留旧数据；新增字段和表时必须继续提供显式迁移。
+不使用 Golden 像素快照；保留真实字体下的 Widget 行为、窄屏布局、键盘与公式测试，以及 Linux GUI 截图和视觉检查。迁移测试使用 `test/fixtures/` 中的历史快照验证保留旧数据；新增字段和表时必须继续提供显式迁移。
 
 ```bash
 dart run build_runner build
@@ -112,7 +110,7 @@ git push origin v0.6.1
 
 标签必须与 `pubspec.yaml` 的版本名一致，不包含 `+` 后的构建号。预发布可使用 `v0.6.1-rc.1`，对应 `version: 0.6.1-rc.1+9`；此类标签会自动标记为 GitHub Prerelease。
 
-更新说明由 git-cliff 2.14.2 和 [cliff.toml](cliff.toml) 生成，使用 GitHub 风格的 What's Changed、贡献者信息及 Full Changelog 比较链接。包含普通提交和 Conventional Commits；第一版列出完整历史；后续以当前标签可达、最近公开发布的版本为基线（包括公开的预发布版本）。草稿、失败构建和未发布标签不会截断记录，Full Changelog 链接也使用这个基线。生成的是 Release 正文，不自动提交 CHANGELOG 文件。
+更新说明由 git-cliff 和 [cliff.toml](cliff.toml) 生成，使用 GitHub 风格的 What's Changed、贡献者信息及 Full Changelog 比较链接。包含普通提交和 Conventional Commits；第一版列出完整历史；后续以当前标签可达、最近公开发布的版本为基线（包括公开的预发布版本）。草稿、失败构建和未发布标签不会截断记录，Full Changelog 链接也使用这个基线。生成的是 Release 正文，不自动提交 CHANGELOG 文件。
 
 所有构建通过后才创建草稿；附件全部上传成功才公开。失败时可在 Actions 重跑同一次标签工作流，或从该标签手动运行 Publish release。未完成的草稿可继续上传；已经公开的版本不会被覆盖。
 
@@ -137,7 +135,7 @@ python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
 界面使用 Flutter `gen-l10n` 和同步 Localizations delegate，支持 `zh` 和 `en`。不要翻译笔记正文、消息、用户标题或自定义提示词。内置科目用稳定的中文标识保存，界面可显示英文名称，自定义科目原样保留。
 
-中英文文案分别保存在 [assets/l10n/app_zh.arb](assets/l10n/app_zh.arb) 和 [assets/l10n/app_en.arb](assets/l10n/app_en.arb)，配置见 `l10n.yaml`。新增文案时在两个文件中使用相同的、具有描述性的 Dart 标识符作为 ID；在 `@消息ID` 的 `placeholders` 中声明命名参数及类型。界面通过 `context.l10n.消息ID` 调用生成的类型安全 API。不要修改已有 ID。
+中英文文案分别保存在 [assets/l10n/app_zh.arb](assets/l10n/app_zh.arb) 和 [assets/l10n/app_en.arb](assets/l10n/app_en.arb)，配置见 `l10n.yaml`。新增文案时在两个文件中使用相同的、具有描述性的 Dart 标识符作为 ID；在 `@消息ID` 的 `placeholders` 中声明命名参数及类型。界面通过 `context.l10n.消息ID` 调用生成的类型安全 API。
 
 应用生成的错误使用 `AppErrorCode`、`AppFormatException` 或 `AiFailure.localized`，界面通过 `failureText` 在展示时翻译；未知异常、服务端文本和用户内容原样保留。带参数的错误将参数与代码一起保存，参数本身不作为翻译键；内置资料字段使用 `StudyErrorField` 稳定标识。包装错误时应保留 `LocalizedAppFailure` 的代码和参数，例如使用 `AiFailure.fromFormatException`。新增错误时，同时维护 `app_error.dart` 的枚举及 `app_error_localization.dart` 中的穷举映射。持久化的聊天错误使用稳定代码和参数，原始外部消息单独标记；`chat_failure.dart` 仅为已存储的旧版应用错误提供有限的历史数据读取，不是通用文案查找表。
 
@@ -150,120 +148,31 @@ flutter test -j 4 test/localization_test.dart
 
 测试会核对源字典、生成结果及参数占位符，检查中英文切换、偏好重启保留和窄屏布局。默认提示词随界面语言切换，覆盖内容原样保存；安全规则由应用追加。
 
-动态配色使用 [`dynamic_color` 2.1.0](https://pub.dev/packages/dynamic_color/versions/2.1.0)，与 `material_ui` 共用 `ColorScheme`。Android 使用系统动态配色，Linux 可读取 XDG Desktop Portal 的强调色；系统未提供颜色时回退到默认绿色。独立 Mock 默认关闭动态配色以固定截图；测试可以显式开启。`integration_test/ai_preferences_test.dart` 覆盖提示词编辑/预览/恢复、会话思考强度、中英文切换及动态配色，并保留手机/桌面和深浅色截图。
-
-
-## ChatGPT 订阅适配的验证
-
-`flutter test -j 4 test/chatgpt_test.dart` 使用隔离的签名/JWKS、真实本机回调和 HTTP 适配器，验证授权、刷新、退出、流式失败、工具和备份边界；不需要真实账号。`integration_test/chatgpt_flow_test.dart` 通过同一业务代码驱动原生登录/模型/聊天/退出 UI，截图保存在 `artifacts/gui-chatgpt/`，CI 有独立日志。
-
-真实账号验收必须单独进行。不要把 OAuth 令牌或其他应用的登录文件放入测试、仓库、环境日志或备份；通过应用的 Continue with ChatGPT 打开官方登录页。没有安全存储或浏览器时会报错，不提供明文凭据回退。
-
-
-## AI 与偏好模块的维护
-
-先阅读 [接口与约定](docs/ARCHITECTURE_REVIEW.md)。新增 Provider 实现 `ChatProvider.start`，返回单次 `AiConversation`；请求使用 `AiRequest`，事件只发布完整工具调用和明确完成状态。不要把厂商 JSON 或令牌带回控制器。
-
-知识打印导出的三个写出器是纯函数，改排版先跑 `flutter test -j 4 test/study_export_test.dart`（LaTeX 转文本、块解析、PDF 字体子集体积、DOCX 部件与 XML 合法性），改读库或图片加载再跑 `flutter test -j 4 test/study_export_flow_test.dart`。字体来自 `assets/fonts/`，PDF 只嵌入实际用到的字形，单份打印稿应保持在几十 KB；渲染后可用 `pdftotext` / `pdftoppm` 抽查中文换行与分页，但不替代真实打印机和 Word/WPS 打开验证。
-
-修改模型参数先调整 `AiOptions` 并补能力矩阵；修改进度、调用上限、取消或结束判定时运行 `flutter test -j 4 test/architecture_test.dart`，再跑对应协议和控制器回归。偏好写入通过 AppPreferences，跨文件与数据库的学习资料写入通过 Store，确保关闭/备份屏障可追踪。
+动态配色使用 [`dynamic_color`](https://pub.dev/packages/dynamic_color)，与 `material_ui` 共用 `ColorScheme`。Android 使用系统动态配色，Linux 可读取 XDG Desktop Portal 的强调色；系统未提供颜色时回退到默认绿色。独立 Mock 默认关闭动态配色以固定截图；测试可以显式开启。`integration_test/ai_preferences_test.dart` 覆盖提示词编辑/预览/恢复、会话思考强度、中英文切换及动态配色，并保留手机/桌面和深浅色截图。
 
 ## 每日 Nightly
 
-[Publish nightly](.github/workflows/nightly.yml) 每天 UTC 20:30（北京时间次日 04:30）从默认分支运行，也支持手动触发。GitHub 定时任务可能延迟；不承诺精确到分钟。
-
-主 Nightly Release 使用固定标签 `nightly`。每次构建生成独立 UTC 标识 `nightly-YYYYMMDD-HHMMSS` 并通过 `--dart-define=TIXUN_NIGHTLY_TAG` 写入应用，同时写入 Release 标题，应用用它比较两次构建；正式发布与普通构建不带标识。构建复用 CI（跳过单元测试和 GUI），产出签名 APK、Linux Release 和校验文件。旧版应用只识别时间戳标签，需要手动更新一次；新版应用可识别固定标签。发布成功后清理旧的公开时间戳 Nightly Release 和标签。更新固定 Release 的附件时先设为草稿，全部上传后重新公开，避免客户端读取混合版本。固定标签通过带租约的推送移动；发布不设为 Latest。
-
-更新日志继续使用 git-cliff。正式版以最近的已公开、可达正式版为基线，忽略预发布和 Nightly；Nightly 在上一公开 Nightly 的提交和最近公开正式版之间选择更近的基线。正式版比较链接使用版本标签；Nightly 链接使用明确的基线与当前提交 SHA，因此固定标签移动或旧标签清理后仍可使用。首次没有基线时包含完整历史。首次从开发签名迁移仍需备份并卸载旧版。
-
-Golden 像素比对及基线图片已移除；Widget 行为、窄屏/键盘布局、公式回退和原生 GUI 回归继续执行，不再因颜色、间距等像素变化更新快照。
-
-## CI 缓存与 job 名称
-
-Flutter SDK、Android/Linux 引擎和 Pub 依赖使用版本化缓存；SDK 缓存未命中时先在检查任务预下载双平台引擎，供后续构建复用。Pub 缓存按锁文件区分。Gradle 使用官方 `setup-gradle` 管理依赖与任务缓存，并开启 `org.gradle.caching`。PR 与非默认分支只读 Gradle 缓存，默认分支成功构建后写入；版本标签可复用默认分支缓存。签名密钥只在 Runner 临时目录中保存，打包/签名校验任务禁用输出缓存，不缓存最终签名 APK。不缓存测试通过结果或开启 Gradle configuration cache。
-
-首次缓存是冷启动，后续收益以 Actions 的命中记录和 Gradle 任务统计为准，不能承诺固定提速比例。缓存丢失时仍能完整构建。普通 CI 始终运行完整的原生 GUI 回归，不以缓存命中代替测试结果。
-
-job 内部 ID 保持不变，仅增加显示名：`Analyze and test`、动态的 `Android Debug APK` / `Android Release APK and signature`、`Linux Release and GUI tests`。两个发布入口分别显示标签准备、构建验证和对应发布阶段；若分支保护绑定了旧的检查显示名，需要同步规则。
-
-## 思考面板与画板验证
-
-`test/reasoning_display_test.dart` 覆盖流式思考、跨轮显示与协议隔离、错误后保留、Responses 公开摘要及作答前隐藏。`test/scratchpad_test.dart` 覆盖多页、局部擦除、串行保存、关联删除和完整备份；旧 schema v7 的思考可迁移到 v8。画板不含任何外部 AI 请求。
-
-`integration_test/scratchpad_reasoning_test.dart` 覆盖流式展示、彩色短笔画起点、橡皮/撤销、多页保存、平移缩放/复位与重开，并生成手机、桌面英文截图。普通 push / PR 默认执行启动冒烟及完整 GUI；手动及复用工作流可显式关闭完整 GUI。
-
-CI 的签名测试与 Android 构建统一使用 Temurin **Java 25 LTS**；Flutter 显式选择 CI 的 JAVA_HOME。Gradle 9.3.1 支持运行在 Java 25（[兼容性表](https://docs.gradle.org/9.3.1/userguide/compatibility.html)）。Android Java/Kotlin 字节码目标仍为 17，不因此提高 Android 最低版本。
-
-## 考试记录
-
-考试使用 schema v9 的四张独立表，按日期查询并关联科目、两级小分表与分类照片。小分表整表替换在事务中完成，以独立 revision 检测并发修改；裸分与明细合计独立。完整备份验证考试附件引用。`exam_flow_test.dart` 覆盖考试原生 GUI。真实模型识别准确率及 Android 实机拍照/活动恢复仍需设备验证。
-
-## 科目目录
-
-schema v10 新增两级科目目录、知识目录关联与错题目录关联三张表。根模块名用 SQLite 表达式唯一索引去重；分类与正文修订独立，改名不会重写每条笔记，旧章节保持原样。资料科目变更时移除不匹配关联；手动整组选取比较旧关联集合，防止覆盖并发分类。删除目录有 UI 确认，级联解除关联，资料和练习保留。完整备份包含目录与关联。
-
-AI 工具 `list_subject_modules`、`create_subject_module` 和 `link_study_module` 复用原有授权、参数校验、确认与操作审计，不执行任意 SQL。新增关联为幂等追加，不覆盖其他模块。查询工具可按模块过滤。`modules_flow_test.dart` 覆盖创建目录、两类归类、筛选和准备专项训练请求。没有新增 Golden 比较。
+[Publish nightly](.github/workflows/nightly.yml) 是发布每日 Nightly 的 CI
 
 ## GPT 思考档位
 
-`AiOptions` 统一设置、聊天和考试图片整理的档位策略。优先保留官方 `/models` 的 `supported_reasoning_levels` / `supported_reasoning_efforts`，并将选中模型的公开能力元数据保存到 Provider 配置；列表未声明时采用明确的模型文档回退，未知订阅模型只使用模型默认。兼容 API 的自定义模型由用户声明推理参数能力，具体支持范围以服务商为准。
-
-`xhigh`、`max` 按原值发送，`none` 与省略参数独立。只有模型目录明确声明时才展示额外档位（例如 `ultra`）。schema v11 将旧 ChatGPT `max` 别名迁移为 `xhigh`，保留旧配置的实际请求行为；DeepSeek 和兼容 API 的 `max` 不变。
-
-核对来源（2026-11-09）：[推理指南](https://developers.openai.com/api/docs/guides/reasoning)、[Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)、[GPT‑6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol)、[GPT‑5](https://developers.openai.com/api/docs/models/gpt-5)、[GPT‑5.2 Pro](https://developers.openai.com/api/docs/models/gpt-5.2-pro)、[GPT‑5.5 Pro](https://developers.openai.com/api/docs/models/gpt-5.5-pro)、[Codex 配置参考](https://developers.openai.com/codex/config-reference)。Codex 客户端参数不一概等同于公开 Responses API 支持的取值。
-
-## 照片导入
-
-Android 图库使用 `wechat_assets_picker`，支持预览多选。拍照保留 `wechat_camera_picker` 4.6，通过直接依赖 `camera_android` 选择官方 Camera2 实现，替代默认 CameraX 后端；实际注册文件确认使用 `AndroidCamera.registerWith()`。页面允许切换系统相机，先释放应用内控制器，再调用 `image_picker`。保留 CAMERA，移除录音及旧版外部写入权限。Linux 使用 `file_selector`。该调整针对 vivo Y35 / Android 13 预览黑屏，仍需设备复验。
-
-所有入口先复制到应用附件目录，再复用 `StudyImageEditor`。普通编辑隐藏分题动作；退出编辑保留原导入。考试照片在 schema v12 增加可空原图引用，覆盖编辑使用当前路径并发校验；清理和备份同时检查两条引用。GUI 的文件选择器测试只替换系统返回的文件路径，导入、裁剪、保存和磁盘检查均真实执行。Android 相机、相册权限与设备恢复仍需实机验证。
-
-消融：未引入第二套裁剪库、通用媒体工作流引擎或媒体 Repository；共用一个平台选择函数和已有编辑器，保留各业务现有的恢复目标。
-
-
-## 长对话与应用内更新
-
-`context_compactor.dart` / `token_estimator.dart` 按估算 Token 预算选择上下文；不再使用固定 30 条/32000 字符。默认预算 128000，设置范围 4096–1048576，保留回复与指令空间。旧对话分批摘要，schema v13 持久化摘要与覆盖位置；原始消息保留，摘要失败有降级反馈。普通聊天不设置固定输出上限，连接测试等窄用途可以显式限制。修改时运行 `test/context_compactor_test.dart` 及对应 Provider/控制器测试。
-
-`features/update/` 按正式版、预发布、Nightly 选择 GitHub 发布，核对下载校验信息；Android 选择匹配 ABI 并交给系统安装器，Linux 暂存后在重启时切换。自动检查与手动检查共用节流记录，启动检查不阻塞页面。下载与程序更新不写入学习资料目录；不能把这类发布信息请求描述成学习数据遥测。
-
-## 维护文档
-
-README 面向使用者，中英文同步；DESIGN 说明当前边界，ROADMAP 区分代码实现、自动化结果与真实账号/设备验收。按代码和工作流更新入口、限制及运行命令，不把旧版本说明继续追加成当前结论。历史验证注明日期和代码，Nightly 下载链接使用稳定的筛选入口，避免引用会被保留策略删除的 Tag。
-
-## 提示词与工具精简（2026-11-10）
-
-默认引导提示词去除与应用规则重复的资料优先说明；出题参数、图片引用和未核验状态保留在工具描述中，不在每次请求另拼一份。无图不声明分题工具；显式资料整理不开放出题。考试分数提取的未知留空、两级结构、禁止反推分数等规则影响正确性，予以保留，且不注入无关的学习地区背景。
-
-AI 资料整理按操作筛选工具，本地 `estimateTokens` 对同一套序列化 schema 的估算如下（不是实际账单或模型 tokenizer，也不代表真实模型教学质量的 A/B 评估）：
-
-| 范围 | 估算 tokens |
-| --- | ---: |
-| 全部资料工具 | 2625 |
-| 新建知识：检索、读取、新建 | 464 |
-| 编辑指定知识：读取、更新 | 380 |
-| 新建错题 | 361 |
-
-消融：复用现有生成和审批链，只保留任务权限元数据与共享对话框；没有新建通用工作流、另一套 AI 客户端或地区身份模型。`test/study_writing_test.dart` 覆盖真实写入、拒绝、合并修订、来源关联、越界与截断保护、背景和工具预算；原生资料 GUI 测试覆盖手机操作及英文桌面。
+参考：[推理指南](https://developers.openai.com/api/docs/guides/reasoning)、[Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)、[GPT‑6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol)
 
 ## 嵌入 Python 的构建与验证
 
-运行时使用 CPython 3.13（具体补丁版本由锁定插件决定）；Linux 通过 Zig 构建独立 CPython launcher，并用 bubblewrap、用户/PID 命名空间和只读根文件系统隔离执行，仅把当前 Python 工作区重新挂载为可写。缺少 bubblewrap 或命名空间不可用时拒绝执行。Linux 隔离限制文件写入，不限制读取其他应用文件或网络访问。Android 使用独立隔离 UID 服务和 Zig/JNI launcher，已完成 V2230A / Android 13 实机验收并开放工具入口；不继承应用文件及网络权限。依赖固定在 `python/requirements.txt`，包含 SymPy、mpmath 和 NumPy 2.4.6。安装脚本明确指定 CPython 3.13 ABI；Android NumPy 来自 [Flet wheel 索引](https://pypi.flet.dev/numpy/)，三个架构分别安装，Linux 使用 PyPI wheel。不能跨架构复制原生扩展。
-
-Python 包保留最新兼容版本：Flet 目前为 CPython 3.13 提供的三个 Android ABI 的 NumPy wheel 均为 2.4.6，因此 Android 和 Linux 统一使用此版本；SymPy 1.14.0 要求 `mpmath < 1.4`，保留 mpmath 1.3.0。升级时须同时检查 Android wheel 可用性和包之间的版本约束。
+依赖固定在 `python/requirements.txt`，包含 SymPy、mpmath 和 NumPy。安装脚本明确指定 CPython 3.13 ABI；Android NumPy 来自 [Flet wheel 索引](https://pypi.flet.dev/numpy/)，三个架构分别安装，Linux 使用 PyPI wheel。不能跨架构复制原生扩展。
 
 ```bash
 bash scripts/prepare_python.sh Linux
 bash scripts/flutter_python.sh build linux --release
-# 构建依赖 Zig 0.17.1、bubblewrap 和允许 unprivileged user namespaces 的 Linux 内核。
+# 构建依赖 Zig、bubblewrap 和允许 unprivileged user namespaces 的 Linux 内核。
 # Android 同样需要 Zig；改为 prepare_python.sh Android，再用 wrapper 构建 APK。
-# Debug application ID 为 org.tixun.tixun.debug，不覆盖 Release。
 python3 -m pip install -r python/requirements.txt
 python3 -m unittest discover -s python -p 'test_*.py'
 bash scripts/flutter_python.sh test integration_test/python_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true
 ```
 
-需要 Python 3 与 pip。CI 的构建任务自动准备包并缓存上游运行时下载；Android 保留 arm64-v8a、armeabi-v7a、x86_64 与 Universal 产物。宿主 Python 版本可以不同，pip 按目标解释器版本选择 wheel，不在应用运行时安装依赖。普通 `flutter build` 也必须设置 wrapper 中的环境变量；Android 需 `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES='numpy*'`，将 NumPy 的 Python 文件和元数据放入 `extract.zip`；隔离服务直接从内存归档导入，原生模块仍由插件按 ABI 打包。
+普通 `flutter build` 也必须设置 wrapper 中的环境变量；Android 需 `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES='numpy*'`，将 NumPy 的 Python 文件和元数据放入 `extract.zip`；隔离服务直接从内存归档导入，原生模块仍由插件按 ABI 打包。
 
 复用原工具循环、审批卡与审计表。`test/python_tool_test.dart` 验证审批、参数和重复执行；Python 单测确保旧的进程内入口 fail-closed；Linux GUI 集成验证隔离进程真实运行打包 SymPy/NumPy、工作区写入成功、工作区外写入被拒绝、硬超时和停止。Android 在 V2230A / Android 13 上已通过 CPython/SymPy/NumPy、工作区跨次同步、直接 libc 读取/写入应用私有文件被拒绝、网络被拒绝、硬超时、停止和进程异常退出后恢复测试。原生 UI 流程也已验证代码审批、真实执行结果、权限设置及自动允许。实机回归命令：
 
@@ -271,8 +180,6 @@ bash scripts/flutter_python.sh test integration_test/python_flow_test.dart -d li
 bash scripts/flutter_python.sh test integration_test/android/python_sandbox_test.dart -d <设备ID>
 ```
 
-当前 Android Zig 构建脚本使用 Linux x86_64 NDK 主机工具链（与 CI 一致）。
+当前 Android Zig 构建脚本使用 Linux x86_64 NDK 主机工具链。
 
 Android 不向隔离 UID 共享应用目录 FD（SELinux 会拒绝读取），而由服务从 APK 读取运行时并放入自身 memfd，CPython 通过 zipimport 使用这些只驻留内存的归档。宿主只传递有界输入/结果管道。CPython 的低层归档读取保持真实只读 IO，避免 ZIP 导入与 pyfakefs 回溯源代码读取互相递归；Python 单测包含完整 ZIP 运行时回归。工作区使用 pyfakefs 提供 Python 文件 API 兼容层；它**不是安全边界**，真正的边界是 Android 隔离 UID、无应用权限和 SELinux。返回文件必须经 `PythonWorkspaceStore` 的路径、类型、总大小及数量校验后才能写回当前会话目录；禁止符号链接、特殊文件及目录穿越。快照上限 8 MiB、1000 项；超时/取消/进程崩溃不写回未完成的快照。原生扩展需要使用 file-like 对象，直接使用虚拟路径的原生文件操作（如 mmap/SQLite 文件路径）不受支持，不宣称完整 POSIX 文件系统。虚拟工作区之外的虚拟临时文件不会被导出；不允许通过主进程代理任意真实路径或网络请求。隔离服务的网络权限也不继承主应用的 INTERNET 权限。
-
-发布检查还会逐个确认 APK 与 Linux 包内含实际 Python 运行时、工作脚本、NumPy、SymPy 和 mpmath，并校验 Android NumPy 核心原生模块的 ELF 架构，防止仅编译成功却漏打包依赖。
