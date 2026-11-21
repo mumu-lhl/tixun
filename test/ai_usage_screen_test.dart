@@ -8,9 +8,11 @@ import "package:tixun/app/controller.dart";
 import "package:tixun/core/ai/ai_usage_store.dart";
 import "package:tixun/core/ai/chat_provider.dart";
 import "package:tixun/core/database/database.dart";
+import "package:tixun/core/l10n/app_strings.dart";
 import "package:tixun/core/platform/attachment_store.dart";
 import "package:tixun/core/platform/key_store.dart";
 import "package:tixun/core/ui/usage_token_breakdown.dart";
+import "package:tixun/features/settings/ai_usage_screen.dart";
 
 void main() {
   testWidgets("usage screen shows summary, trend, and request details", (
@@ -131,7 +133,8 @@ void main() {
     final source = find.byKey(const Key("ai-usage-scope"));
     await tester.scrollUntilVisible(source, -250);
     Future<void> selectScope(String label) async {
-      await tester.ensureVisible(source);
+      await Scrollable.ensureVisible(tester.element(source), alignment: .2);
+      await tester.pumpAndSettle();
       await tester.tap(source);
       await tester.pumpAndSettle();
       await tester.tap(find.text(label).last);
@@ -157,5 +160,123 @@ void main() {
     expect(find.byType(UsageTokenBreakdown), findsOneWidget);
     expect(find.text("思考 Token · 50"), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets("Custom usage starts as one day and supports an optional end", (
+    t,
+  ) async {
+    final now = DateTime.now();
+    final month = DateTime(now.year, now.month - 1);
+    final controller = await t.runAsync(() async {
+      final c = AppController(
+        AppDatabase.memory(),
+        AttachmentStore(await Directory.systemTemp.createTemp("tixun-usage")),
+        MemoryKeyStore(),
+        MockChatProvider(),
+        demo: true,
+      );
+      await c.initialize(seed: false);
+      for (final (day, hour, minute, second) in [
+        (9, 23, 59, 59),
+        (10, 0, 0, 0),
+        (10, 23, 59, 59),
+        (11, 23, 59, 59),
+        (12, 0, 0, 0),
+      ]) {
+        await AiUsageStore(c.db).record(
+          AiUsageCapture(
+            actionId: "usage-$day-$hour",
+            providerKind: "compatible",
+            endpoint: "https://api.test/v1",
+            model: "mock",
+            feature: "chat",
+            status: "complete",
+            occurredAt: DateTime(
+              month.year,
+              month.month,
+              day,
+              hour,
+              minute,
+              second,
+            ),
+          ),
+        );
+      }
+      return c;
+    });
+    addTearDown(() async {
+      await controller!.db.close();
+      await controller.files.root.delete(recursive: true);
+    });
+    t.view.devicePixelRatio = 1;
+    t.view.physicalSize = const Size(1440, 900);
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [appControllerProvider.overrideWith((ref) => controller!)],
+        child: const MaterialApp(home: AiUsageScreen()),
+      ),
+    );
+    await t.pumpAndSettle();
+    final start = find.byKey(const Key("ai-usage-custom-range"));
+    final end = find.byKey(const Key("ai-usage-end-date"));
+    final scope = find.byKey(const Key("ai-usage-scope"));
+    final presets = find.byType(SegmentedButton<String>);
+    final l10n = t.element(start).l10n;
+    final desktopScope = t.getRect(scope);
+    final desktopPresets = t.getRect(presets);
+    expect(desktopPresets.left, greaterThan(desktopScope.right));
+    expect(t.getSize(start).width, lessThan(desktopScope.width));
+    expect(t.getTopLeft(start).dy, greaterThan(desktopPresets.bottom));
+
+    t.view.physicalSize = const Size(360, 800);
+    await t.pumpAndSettle();
+    expect(t.getTopLeft(presets).dy, greaterThan(t.getBottomLeft(scope).dy));
+    expect(end, findsNothing);
+
+    Future<void> tap(Finder target) async {
+      await t.tap(target);
+      await t.pumpAndSettle();
+    }
+
+    final dialog = find.byType(DatePickerDialog);
+    Future<void> choose(Finder button, int day) async {
+      await tap(button);
+      final material = MaterialLocalizations.of(t.element(dialog));
+      await tap(find.byTooltip(material.inputDateModeButtonLabel));
+      await t.enterText(
+        find.descendant(of: dialog, matching: find.byType(TextField)),
+        material.formatCompactDate(DateTime(month.year, month.month, day)),
+      );
+      await tap(find.text(material.okButtonLabel));
+      expect(dialog, findsNothing);
+    }
+
+    void expectRequests(int count) {
+      final card = find.ancestor(
+        of: find.text(l10n.requestCount),
+        matching: find.byType(Card),
+      );
+      expect(
+        find.descendant(of: card, matching: find.text("$count")),
+        findsOneWidget,
+      );
+    }
+
+    await choose(start, 10);
+    expect(find.text(l10n.usageAddEndDate), findsOneWidget);
+    expectRequests(2);
+    await tap(end);
+    await tap(
+      find.text(MaterialLocalizations.of(t.element(dialog)).cancelButtonLabel),
+    );
+    expectRequests(2);
+    await choose(end, 11);
+    expectRequests(3);
+    await tap(find.byTooltip(l10n.usageRemoveEndDate));
+    expectRequests(2);
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox.shrink());
   });
 }
