@@ -570,17 +570,9 @@
       }
     }
   },
-  "actualRequestsAlsoIncludeThe": "{arg0}{arg1}\n\nActual requests also include the current tool permissions, learning state and selected material as needed.",
-  "@actualRequestsAlsoIncludeThe": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      },
-      "arg1": {
-        "type": "String"
-      }
-    }
-  },
+  "promptPreviewContextNotice": "Actual requests also include the current tool permissions, learning state and selected material as needed.",
+  "promptPreviewApplicationRules": "Application rules (read-only)",
+  "promptPreviewRequestContract": "Request format (read-only)",
   "monthDayWithLabel": "{arg0}/{arg1} · {arg2}",
   "@monthDayWithLabel": {
     "placeholders": {
@@ -2216,14 +2208,6 @@
   "thisIsAMaterialWriting": "This is a material-writing task. Complete it directly without an interactive quiz.",
   "saveTheResultUsingThe": "Save the result using the supplied material tools. Treat it as saved only after application approval.",
   "organizeOneRealMistakeFrom": "Organize one real mistake from the selected conversation, distinguishing the question, answer and explanation. Do not invent my original answer or error cause.",
-  "taskPrompt": "\n\n[Task prompt]\n{arg0}",
-  "@taskPrompt": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
   "imageActions": "Image actions",
   "newKnowledge": "New knowledge",
   "subjectCustomizable": "Subject (customizable)",

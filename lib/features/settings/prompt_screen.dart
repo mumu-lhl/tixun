@@ -196,23 +196,80 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
           .prompts
           .update(widget.id, input.text);
       final prompt = definition!;
-      final previewText = prompt.requestContract != null
-          ? languagePromptInstructions(prompt, settings.text(widget.id))
+      final hasContract = prompt.requestContract != null;
+      final sections = hasContract
+          ? [
+              (promptId: null, text: languagePromptContract(prompt)),
+              (promptId: prompt.id, text: settings.text(prompt.id)),
+            ]
           : _chatPreview(settings);
-      await showDialog<void>(
+      final target = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(context.l10n.promptPreview),
+          title: Text(ctx.l10n.promptPreview),
           scrollable: true,
-          content: SizedBox(width: 700, child: SelectableText(previewText)),
+          content: SizedBox(
+            width: 700,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                for (final section in sections)
+                  Card(
+                    child: switch (section.promptId) {
+                      final String id => ListTile(
+                        key: Key("prompt-preview-$id"),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        title: Text(
+                          promptTitle(
+                            ctx,
+                            promptDefinitions.firstWhere((p) => p.id == id),
+                          ),
+                        ),
+                        subtitle: Text(section.text),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.pop(ctx, id),
+                      ),
+                      null => Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 8,
+                          children: [
+                            Text(
+                              hasContract
+                                  ? ctx.l10n.promptPreviewRequestContract
+                                  : ctx.l10n.promptPreviewApplicationRules,
+                              style: Theme.of(ctx).textTheme.titleMedium,
+                            ),
+                            SelectableText(section.text),
+                          ],
+                        ),
+                      ),
+                    },
+                  ),
+                if (!hasContract)
+                  Text(
+                    ctx.l10n.promptPreviewContextNotice,
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+              ],
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(context.l10n.close),
+              child: Text(ctx.l10n.close),
             ),
           ],
         ),
       );
+      if (mounted && target != null && target != widget.id) {
+        await context.push<void>("/settings/prompts/$target");
+      }
     } catch (error) {
       if (mounted) {
         setState(
@@ -226,7 +283,9 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
     }
   }
 
-  String _chatPreview(PromptSettings settings) {
+  List<({String? promptId, String text})> _chatPreview(
+    PromptSettings settings,
+  ) {
     final mode = ["guided", "direct", "exam"].contains(widget.id)
         ? widget.id
         : ["knowledge_writing", "knowledge_editing"].contains(widget.id)
@@ -234,7 +293,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
         : widget.id == "quiz"
         ? "exam"
         : "guided";
-    final system = teachingPrompt(
+    final sections = teachingPromptSections(
       mode,
       prompts: settings,
       toolsEnabled: [
@@ -242,13 +301,11 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
         "knowledge_editing",
       ].contains(widget.id),
     );
-    final task = ["global", "guided", "direct", "exam"].contains(widget.id)
-        ? ""
-        : context.l10n.taskPrompt(l10nArgument(settings.text(widget.id)));
-    return context.l10n.actualRequestsAlsoIncludeThe(
-      l10nArgument(system),
-      l10nArgument(task),
-    );
+    return [
+      ...sections,
+      if (!sections.any((section) => section.promptId == widget.id))
+        (promptId: widget.id, text: settings.text(widget.id)),
+    ];
   }
 
   @override
@@ -335,9 +392,10 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      SizedBox(
-                        height: 48,
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
                         child: FilledButton(
                           key: const Key("save-prompt"),
                           onPressed: saving ? null : save,
@@ -348,15 +406,15 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(
-                        height: 48,
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
                         child: OutlinedButton(
                           onPressed: saving ? null : preview,
                           child: Text(context.l10n.preview),
                         ),
                       ),
-                      SizedBox(
-                        height: 48,
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
                         child: TextButton(
                           onPressed: saving
                               ? null

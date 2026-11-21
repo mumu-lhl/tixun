@@ -570,17 +570,9 @@
       }
     }
   },
-  "actualRequestsAlsoIncludeThe": "{arg0}{arg1}\n\n实际请求还会按当前工具授权、学习状态及所选资料补入必要内容。",
-  "@actualRequestsAlsoIncludeThe": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      },
-      "arg1": {
-        "type": "String"
-      }
-    }
-  },
+  "promptPreviewContextNotice": "实际请求还会按当前工具授权、学习状态及所选资料补入必要内容。",
+  "promptPreviewApplicationRules": "应用规则（只读）",
+  "promptPreviewRequestContract": "请求格式（只读）",
   "monthDayWithLabel": "{arg0}月{arg1}日 · {arg2}",
   "@monthDayWithLabel": {
     "placeholders": {
@@ -2216,14 +2208,6 @@
   "thisIsAMaterialWriting": "这是资料整理任务，直接完成整理，不进行互动测验。",
   "saveTheResultUsingThe": "使用提供的资料工具保存结果，等待应用确认后再视为已保存。",
   "organizeOneRealMistakeFrom": "请从所选对话中整理一道真实错题，区分原题、答案和解析。不要编造我的原答案或错误原因。",
-  "taskPrompt": "\n\n【任务提示词】\n{arg0}",
-  "@taskPrompt": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
   "imageActions": "图片操作",
   "newKnowledge": "新建知识",
   "subjectCustomizable": "科目（可以自定义）",

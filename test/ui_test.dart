@@ -241,6 +241,71 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+  testWidgets("Prompt editor shows full labels and links preview sections", (
+    tester,
+  ) async {
+    final c = (await tester.runAsync(() async {
+      final dir = await Directory.systemTemp.createTemp("tixun-prompt-widget");
+      final c = AppController(
+        AppDatabase.memory(),
+        AttachmentStore(dir),
+        MemoryKeyStore(),
+        MockChatProvider(),
+      );
+      await c.initialize();
+      return c;
+    }))!;
+    final container = ProviderContainer(
+      overrides: [appControllerProvider.overrideWith((ref) => c)],
+    );
+    addTearDown(() async {
+      await tester.runAsync(() async {
+        container.dispose();
+        await c.db.close();
+        await c.files.root.delete(recursive: true);
+      });
+    });
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 860);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const TixunApp()),
+    );
+    final router = container.read(routerProvider);
+    router.go("/settings/prompts/guided");
+    await tester.pumpAndSettle();
+    final save = find.byKey(const Key("save-prompt"));
+    final label = find.descendant(of: save, matching: find.byType(RichText));
+    final richText = tester.widget<RichText>(label);
+    final painter = TextPainter(
+      text: richText.text,
+      textDirection: Directionality.of(tester.element(label)),
+      textScaler: richText.textScaler,
+    )..layout();
+    expect(tester.getSize(label).height, greaterThanOrEqualTo(painter.height));
+    painter.dispose();
+
+    final editor = find.byKey(const Key("prompt-content"));
+    const draft = "先给一个简短的提示。";
+    await tester.enterText(editor, draft);
+    final l10n = tester.element(save).l10n;
+    await tester.tap(find.text(l10n.preview));
+    await tester.pumpAndSettle();
+    expect(find.text(draft), findsWidgets);
+    final global = find.byKey(const Key("prompt-preview-global"));
+    await tester.tap(global);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(editor).controller!.text,
+      c.prompts.text("global"),
+    );
+    await tester.tap(find.byKey(const Key("prompt-back")));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(editor).controller!.text, draft);
+    expect(c.prompts.text("guided"), isNot(draft));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets(
     "Search target opens the matching message in a long conversation",
     (tester) async {

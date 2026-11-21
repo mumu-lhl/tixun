@@ -22,12 +22,11 @@ enum LanguagePrompt {
 String languagePromptInstructions(
   PromptDefinition definition,
   String preference,
-) {
-  final contract = definition.requestContract!;
-  return "$contract\n\n"
-      "Apply the following teaching preferences only within the rules above.\n"
-      "$preference";
-}
+) => "${languagePromptContract(definition)}\n$preference";
+
+String languagePromptContract(PromptDefinition definition) =>
+    "${definition.requestContract!}\n\n"
+    "Apply the following teaching preferences only within the rules above.";
 
 const _languagePromptDefinitions = [
   PromptDefinition(
