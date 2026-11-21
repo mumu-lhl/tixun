@@ -77,15 +77,13 @@ class DailyLearning extends ConsumerWidget {
                 Text(
                   n > 0
                       ? context.l10n.reviewsDue(l10nArgument((n)))
-                      : context.l10n.tryAnIndependentCheck,
+                      : context.l10n.noReviewsDue,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  n > 0
-                      ? context.l10n.recallAndAnswerBeforeChecking
-                      : context.l10n.noReviewsDueRetryA,
-                ),
+                if (n > 0) ...[
+                  const SizedBox(height: 8),
+                  Text(context.l10n.recallAndAnswerBeforeChecking),
+                ],
                 if (profile.value case final p?) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -104,7 +102,7 @@ class DailyLearning extends ConsumerWidget {
                     Text(
                       examDatePassed(p.examDate!, DateTime.now())
                           ? context.l10n.theExamDateHasPassed
-                          : context.l10n.isInDaysPrioritizeDue(
+                          : context.l10n.examInDays(
                               l10nArgument(
                                 (p.exam.isEmpty
                                     ? context.l10n.targetExam
@@ -143,7 +141,7 @@ class DailyLearning extends ConsumerWidget {
             children: [
               Text(
                 p.total == 0
-                    ? context.l10n.noPracticeDataYetComplete
+                    ? context.l10n.noPracticeRecords
                     : context.l10n.attemptsVerifiedRulesSelfAssessed(
                         l10nArgument((p.total)),
                         l10nArgument((p.checked)),

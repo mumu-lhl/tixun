@@ -91,9 +91,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Text(context.l10n.recallFirstThenCheckDue),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 children: [
@@ -133,7 +131,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         children: [
                           Text(
                             filter == "due"
-                                ? context.l10n.nothingIsDueAfterPractice
+                                ? context.l10n.noReviewsDue
                                 : context.l10n.noReviewsInThisCategory,
                           ),
                           const SizedBox(height: 12),

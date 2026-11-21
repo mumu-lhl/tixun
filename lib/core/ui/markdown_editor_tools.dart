@@ -297,8 +297,6 @@ extension _MarkdownEditorTools on _MarkdownEditorState {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             children: [
               Text(l.markdownMath, style: Theme.of(ctx).textTheme.titleLarge),
-              const SizedBox(height: 6),
-              Text(l.markdownMathHelp),
               for (final (heading, choices) in groups) ...[
                 const SizedBox(height: 18),
                 Text(heading, style: Theme.of(ctx).textTheme.titleMedium),

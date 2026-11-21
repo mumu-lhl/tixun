@@ -138,13 +138,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 48, bottom: 12),
-                    child: Text(
-                      context.l10n.timelineHelp,
-                      style: TextStyle(color: colors.onSurfaceVariant),
-                    ),
-                  ),
+                  const SizedBox(height: 12),
                   SegmentedButton<bool>(
                     key: const Key("timeline-view"),
                     segments: [

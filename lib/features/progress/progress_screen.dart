@@ -36,9 +36,7 @@ class ProgressScreen extends ConsumerWidget {
               context.l10n.learningInsights,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(height: 12),
-            Text(context.l10n.basedOnlyOnRealRecords),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Wrap(
               spacing: 28,
               runSpacing: 12,
@@ -117,7 +115,7 @@ class ProgressScreen extends ConsumerWidget {
             if (p.recent.isEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text(context.l10n.yourActualRecordsWillAppear),
+                child: Text(context.l10n.noPracticeRecords),
               ),
             for (final a in p.recent)
               ListTile(

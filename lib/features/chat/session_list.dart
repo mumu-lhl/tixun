@@ -232,7 +232,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                               ? context.l10n.noMatchingConversations
                               : c.subjectFilter.isNotEmpty
                               ? context.l10n.noConversationsInThisSubject
-                              : context.l10n.noConversationsYetStartWith,
+                              : context.l10n.noConversationsYet,
                           textAlign: TextAlign.center,
                         ),
                         if (c.search.isNotEmpty && c.subjectFilter.isNotEmpty)

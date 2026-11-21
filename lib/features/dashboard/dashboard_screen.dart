@@ -91,56 +91,9 @@ class DashboardScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  context.l10n.study,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  context.l10n.everyIndependentAttemptIsA,
-                                  style: TextStyle(
-                                    color: colors.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (!compact)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: colors.outlineVariant,
-                                ),
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.lock_outline,
-                                    size: 14,
-                                    color: colors.primary,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    context.l10n.localFirst,
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
+                      Text(
+                        context.l10n.study,
+                        style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 24),
                       Wrap(
@@ -175,67 +128,34 @@ class DashboardScreen extends ConsumerWidget {
                             ),
                             borderRadius: BorderRadius.circular(22),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 10,
                             children: [
-                              Text(
-                                context.l10n.understandTryMaster,
-                                style: TextStyle(
-                                  color: colors.primary,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 2,
-                                  fontSize: 12,
+                              FilledButton.icon(
+                                key: const Key("start-chat"),
+                                onPressed: () => act(context, () async {
+                                  await c.newSession();
+                                  if (context.mounted) context.go("/chat");
+                                }),
+                                icon: const Icon(Icons.add, size: 18),
+                                label: Text(
+                                  context.l10n.startLearningConversation,
                                 ),
                               ),
-                              const SizedBox(height: 18),
-                              Text(
-                                context.l10n.turnConfusionIntoUnderstanding,
-                                style: TextStyle(
-                                  fontSize: compact ? 30 : 38,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.45,
-                                  color: colors.onSurface,
-                                ),
+                              FilledButton.tonalIcon(
+                                key: const Key("start-practice"),
+                                onPressed: () => context.go("/practice"),
+                                icon: const Icon(Icons.edit_note),
+                                label: Text(context.l10n.practice),
                               ),
-                              const SizedBox(height: 14),
-                              Text(
-                                context.l10n.startWithOneQuestionOr,
-                                style: TextStyle(
-                                  color: colors.onSurfaceVariant,
-                                  height: 1.8,
+                              OutlinedButton.icon(
+                                onPressed: () => context.go("/mistakes"),
+                                icon: const Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                  size: 18,
                                 ),
-                              ),
-                              const SizedBox(height: 24),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 10,
-                                children: [
-                                  FilledButton.icon(
-                                    key: const Key("start-chat"),
-                                    onPressed: () => act(context, () async {
-                                      await c.newSession();
-                                      if (context.mounted) context.go("/chat");
-                                    }),
-                                    icon: const Icon(Icons.add, size: 18),
-                                    label: Text(
-                                      context.l10n.startLearningConversation,
-                                    ),
-                                  ),
-                                  FilledButton.tonalIcon(
-                                    key: const Key("start-practice"),
-                                    onPressed: () => context.go("/practice"),
-                                    icon: const Icon(Icons.edit_note),
-                                    label: Text(context.l10n.practice),
-                                  ),
-                                  OutlinedButton.icon(
-                                    onPressed: () => context.go("/mistakes"),
-                                    icon: const Icon(
-                                      Icons.add_photo_alternate_outlined,
-                                      size: 18,
-                                    ),
-                                    label: Text(context.l10n.addAMistake),
-                                  ),
-                                ],
+                                label: Text(context.l10n.addAMistake),
                               ),
                             ],
                           ),
@@ -273,7 +193,7 @@ class DashboardScreen extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              context.l10n.keepExploring,
+                              context.l10n.recentConversations,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                           ),
@@ -303,7 +223,7 @@ class DashboardScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Text(
-                            context.l10n.noLearningRecordsYetStart,
+                            context.l10n.noConversationsYet,
                             style: TextStyle(color: colors.onSurfaceVariant),
                           ),
                         )
@@ -366,28 +286,6 @@ class DashboardScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                      const SizedBox(height: 28),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            size: 18,
-                            color: colors.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              context.l10n.studyTipAfterUnderstandingAn,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: colors.onSurfaceVariant,
-                                height: 1.8,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 24),
                     ],
                   ),

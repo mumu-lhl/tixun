@@ -21,14 +21,9 @@ Future<void> editLanguageStudy(
         spacing: 12,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l10n.languageStudySettingsIntro),
-          const SizedBox(height: 16),
           AppSelectField<EnglishStudyLevel>(
             initialValue: settings.level,
-            decoration: InputDecoration(
-              labelText: l10n.languageDifficulty,
-              hintText: l10n.languageSentenceMixed,
-            ),
+            decoration: InputDecoration(labelText: l10n.languageDifficulty),
             items: [
               for (final value in EnglishStudyLevel.values)
                 DropdownMenuItem(
@@ -49,7 +44,6 @@ Future<void> editLanguageStudy(
               }
             },
           ),
-          const SizedBox(height: 16),
           AppSelectField<LanguageFeedbackLanguage>(
             initialValue: settings.feedbackLanguage,
             decoration: InputDecoration(

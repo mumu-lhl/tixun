@@ -44,8 +44,6 @@ class SettingsScreen extends ConsumerWidget {
                   context.l10n.settings,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 8),
-                Text(context.l10n.makeTheAssistantWorkFor),
                 heading(context.l10n.study),
                 _SettingsGroup(
                   children: [
@@ -104,7 +102,6 @@ class SettingsScreen extends ConsumerWidget {
                       key: const Key("settings-ai-usage"),
                       leading: const _SettingsIcon(Icons.analytics_outlined),
                       title: Text(context.l10n.aiUsage),
-                      subtitle: Text(context.l10n.aiUsageHelp),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.push("/settings/ai-usage"),
                     ),
@@ -127,7 +124,6 @@ class SettingsScreen extends ConsumerWidget {
                     ListTile(
                       leading: const _SettingsIcon(Icons.edit_note_outlined),
                       title: Text(context.l10n.promptManager),
-                      subtitle: Text(context.l10n.teachingStyleAndStudyTask),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.push("/settings/prompts"),
                     ),
@@ -135,7 +131,6 @@ class SettingsScreen extends ConsumerWidget {
                       key: const Key("settings-ai-tools"),
                       leading: const _SettingsIcon(Icons.tune),
                       title: Text(context.l10n.aiToolsSettings),
-                      subtitle: Text(context.l10n.aiToolsSettingsHelp),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.push("/settings/tools"),
                     ),

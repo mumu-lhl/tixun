@@ -51,8 +51,6 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(context.l10n.editTeachingStylesAndTask),
-                const SizedBox(height: 18),
                 TextField(
                   key: const Key("prompt-search"),
                   onTapOutside: (_) =>

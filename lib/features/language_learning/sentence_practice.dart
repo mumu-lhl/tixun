@@ -159,8 +159,6 @@ class _SentencePracticeState extends State<SentencePractice> {
           ),
         const SizedBox(height: 12),
       ],
-      Text(l10n.languageSentencePracticeIntro),
-      const SizedBox(height: 12),
       AppSelectField<SentenceStyle>(
         initialValue: _style,
         decoration: InputDecoration(labelText: l10n.languageSentenceStyle),

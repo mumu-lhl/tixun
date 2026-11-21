@@ -329,7 +329,9 @@ class _GlobalToolPreferences extends ConsumerWidget {
             leading: const Icon(Icons.tune),
             title: Text(context.l10n.maxToolCalls),
             subtitle: Text(
-              "${c.maxToolCalls == 0 ? context.l10n.toolCallsUnlimited : c.maxToolCalls}\n${context.l10n.maxToolCallsHelp}",
+              c.maxToolCalls == 0
+                  ? context.l10n.toolCallsUnlimited
+                  : c.maxToolCalls.toString(),
             ),
             onTap: () => editToolCallLimit(context, c),
           ),

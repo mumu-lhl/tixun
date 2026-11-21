@@ -57,31 +57,13 @@ extension _LibraryResults on _LibraryScreenState {
                             ? context.l10n.trashIsEmpty
                             : hasFilters
                             ? context.l10n.noMatchingMaterial
-                            : context.l10n.startWith(
-                                l10nArgument(
-                                  (widget.isMistake
-                                      ? context.l10n.aMistake
-                                      : context.l10n.aKnowledgePoint),
-                                ),
-                              ),
+                            : widget.isMistake
+                            ? context.l10n.noMistakesYet
+                            : context.l10n.noKnowledgeNotesYet,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        hasFilters
-                            ? context.l10n.tryAnotherKeywordOrClear
-                            : _trash
-                            ? context.l10n.deletedMaterialCanBeRestored
-                            : widget.isMistake
-                            ? context.l10n.importAndCropAQuestion
-                            : context.l10n.writeDownYourUnderstandingWith,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: colors.onSurfaceVariant,
-                          height: 1.8,
-                        ),
-                      ),
                       if (subjectFilter.isNotEmpty) ...[
+                        const SizedBox(height: 10),
                         Text(
                           context.l10n.currentSubject(
                             l10nArgument(context.subjectName(subjectFilter)),

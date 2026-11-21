@@ -101,7 +101,6 @@ class _ExamLabState extends State<ExamLab> {
       appBar: AppBar(title: Text(examKindLabel(l10n, widget.kind))),
       body: languagePage(
         children: [
-          Text(l10n.languageExamPracticeIntro),
           FilledButton.icon(
             onPressed: busy ? null : _generate,
             icon: const Icon(Icons.auto_awesome_outlined),

@@ -95,12 +95,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                trash
-                    ? context.l10n.restoredQuestionsKeepTheirAnswers
-                    : context.l10n.closeTheExplanationAndTry,
-              ),
+              if (trash) ...[
+                const SizedBox(height: 10),
+                Text(context.l10n.restoredQuestionsKeepTheirAnswers),
+              ],
               const SizedBox(height: 14),
               if (!trash)
                 Wrap(
@@ -223,7 +221,13 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                 ? Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
-                      child: Text(context.l10n.noPracticeQuestionsYetAsk),
+                      child: Text(
+                        query.isNotEmpty
+                            ? context.l10n.noMatchingQuestions
+                            : trash
+                            ? context.l10n.trashIsEmpty
+                            : context.l10n.noPracticeQuestionsYet,
+                      ),
                     ),
                   )
                 : ListView.separated(

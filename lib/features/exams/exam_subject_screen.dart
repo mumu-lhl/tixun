@@ -132,7 +132,6 @@ class ExamSubjectScreen extends ConsumerWidget {
                       context.l10n.examDocuments,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    Text(context.l10n.originalPhotosAreStoredLocally),
                     _documents(c, subject),
                     if (subject.aiReasoning.isNotEmpty)
                       ReasoningPanel(text: subject.aiReasoning),
@@ -171,8 +170,7 @@ class ExamSubjectScreen extends ConsumerWidget {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (rows.isEmpty)
-                              Text(ctx.l10n.noQuestionMarksYetEnter),
+                            if (rows.isEmpty) Text(ctx.l10n.noQuestionMarksYet),
                             if (rows.isNotEmpty)
                               Text(
                                 '${ctx.l10n.breakdownTotal} ${points(earned)} / ${rows.any((r) => !parents.contains(r.id) && r.maximum == null) ? '—' : points(maximum)} · ${(complete ? ctx.l10n.allMarksEntered : ctx.l10n.unknownMarksTotalIsIncomplete)}',

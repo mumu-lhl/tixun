@@ -110,8 +110,6 @@ class _ManagerState extends ConsumerState<ModuleManager> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Text(context.l10n.organizeModulesAndSubmodulesLike),
-              const SizedBox(height: 16),
               TextField(
                 controller: subject,
                 maxLength: 40,

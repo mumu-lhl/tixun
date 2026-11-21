@@ -75,7 +75,6 @@ extension _TimelineEventEditor on _TimelineScreenState {
                         maxLength: 2000,
                         decoration: InputDecoration(
                           labelText: ctx.l10n.timelineNotes,
-                          hintText: ctx.l10n.timelineNotesHint,
                         ),
                       ),
                       TextButton.icon(

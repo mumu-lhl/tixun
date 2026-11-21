@@ -42,15 +42,7 @@ extension _ChatMessagePanel on _ConversationState {
                               context.l10n.whatWouldYouLikeToUnderstand,
                               style: Theme.of(context).textTheme.headlineMedium,
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              context.l10n.yourQuestionDoesNotNeed,
-                              style: TextStyle(
-                                color: colors.onSurfaceVariant,
-                                height: 1.8,
-                              ),
-                            ),
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 20),
                             for (final (prompt, icon) in [
                               (
                                 context.l10n.chatStarterConcept,
