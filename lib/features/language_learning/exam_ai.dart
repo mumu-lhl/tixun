@@ -28,7 +28,7 @@ class ExamAi {
   final AiUsageStore? usageStore;
   final PromptSettings? prompts;
   bool get isMock => provider is MockChatProvider;
-  static const promptVersion = 1;
+  static const promptVersion = 2;
 
   Future<ExamMaterial> acquire(
     ExamTarget target, {

@@ -111,7 +111,9 @@ void main() {
         glossLanguage: "en",
         cancel: CancelToken(),
       );
-      expect(provider.requests.single.tools, isEmpty);
+      final request = provider.requests.single;
+      expect(request.tools, isEmpty);
+      expect(request.instructions, contains("intended answers restored"));
       expect(material.source, ExamSource.aiGenerated);
       expect(material.row.profile, ExamProfile.zhejiang2026.id);
       expect(material.verification, ExamVerification.structureChecked);

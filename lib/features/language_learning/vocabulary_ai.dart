@@ -31,7 +31,7 @@ class VocabularyAi {
   final PromptSettings? prompts;
   static const maximumEntries = 20;
   static const _perRequest = 6;
-  static const promptVersion = 2;
+  static const promptVersion = 3;
 
   Future<VocabularyProposal> propose({
     required ProviderConfig config,

@@ -178,7 +178,10 @@ void main() {
     final story = await generate(WritingTaskKind.continuation);
     expect(story.passage, source);
     expect(story.rubric, contains("source"));
-    expect(provider.requests.last.tools, isEmpty);
+    expect(provider.requests, hasLength(2));
+    final request = provider.requests.last;
+    expect(request.tools, isEmpty);
+    expect(request.instructions, contains("clear motivation"));
     final saved = await store.savedWritingTasks().first;
     expect(
       saved.map((row) => openWritingTask(row).id),

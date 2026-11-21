@@ -52,7 +52,7 @@ class WritingTaskAi {
   final ProviderConfig config;
   final AiUsageStore? usageStore;
   final PromptSettings? prompts;
-  static const promptVersion = 1;
+  static const promptVersion = 2;
 
   Future<WritingTask> generate({
     required WritingTaskKind kind,
