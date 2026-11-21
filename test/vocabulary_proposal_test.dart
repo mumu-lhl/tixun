@@ -67,7 +67,10 @@ class _ChunkProvider implements ChatProvider {
         final count = data["count"] as int;
         counts.add(count);
         expect(request.tools, isEmpty);
-        expect(request.instructions, contains("usual collocations and register"));
+        expect(
+          request.instructions,
+          contains("usual collocations and register"),
+        );
         yield AiChunk(
           completed: !interruptSecond || counts.length == 1,
           text: jsonEncode({
