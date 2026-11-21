@@ -21,7 +21,7 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
       should_build: ${{ steps.check.outputs.should_build }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Check for changes since the published nightly
@@ -86,7 +86,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
       LINUX_SUFFIX: ${{ needs.verify-and-build.outputs.linux_suffix }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/download-artifact@v7

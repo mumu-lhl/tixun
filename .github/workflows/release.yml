@@ -18,7 +18,7 @@ jobs:
     outputs:
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Require a tag and matching application version
         id: version
         env:
@@ -58,7 +58,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
       LINUX_SUFFIX: ${{ needs.verify-and-build.outputs.linux_suffix }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/download-artifact@v7
