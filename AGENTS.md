@@ -22,3 +22,8 @@
 - Add lasting tests for meaningful failure risks not adequately covered by existing tests. Avoid redundant, low-value, or one-off tests; use temporary checks when appropriate.
 - Derive test expectations from requirements, contracts, or independent evidence—not from the implementation under test. For bug fixes, verify that regression tests detect the original failure when practical.
 - Test behavior and invariants at the most appropriate level, avoiding unnecessary coupling to implementation details or mocks. Use realistic integration or device testing where isolated tests cannot cover the relevant risks.
+
+## UI Copy
+
+- Do not add explanatory UI text by default. Include subtitles, hints, or notices only when they help users make decisions, complete tasks, understand results, or recover from errors. Avoid obvious, repetitive, or implementation-focused explanations.
+- Keep essential instructions and material risks visible when relevant. Move optional details to discoverable contextual help only when needed, rather than replacing redundant text with extra UI. Preserve accessibility and necessary educational content.
