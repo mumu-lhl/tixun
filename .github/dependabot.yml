@@ -4,13 +4,25 @@ updates:
     directory: "/android"
     schedule:
       interval: "weekly"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "pub"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
