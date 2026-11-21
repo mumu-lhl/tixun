@@ -1622,7 +1622,7 @@
   "enableOnlyIfTheModel": "仅在模型文档明确支持图片时开启；模型列表未声明时默认关闭。",
   "useTheChatGPTPlanAllowance": "使用 ChatGPT 账号授权的订阅额度，无需填写 API Key。模型及可用额度取决于账号与工作区，额度不足时不会转用 API 计费。",
   "signInThroughYourBrowser": "使用 Plus/Pro 等账号获准共享的额度，通过浏览器登录",
-  "useThisAccountAndModel": "使用此账号和模型",
+  "useThisAccountAndModel": "保存并启用 ChatGPT",
   "refreshList": "刷新列表",
   "cancelSignIn": "取消登录",
   "availableModels": "可用模型",
@@ -1639,7 +1639,9 @@
   "signedOutSignInAgain": "已退出，可重新登录此账号",
   "signedOutOfChatGPT": "已退出 ChatGPT 登录。",
   "localTokensWereClearedBut": "本机登录已清除，但远程撤销未确认。请到 ChatGPT 设置检查授权。",
-  "chatGPTPlanEnabled": "已启用 ChatGPT 订阅。",
+  "chatGptNotActive": "ChatGPT 尚未启用",
+  "chatGptActiveModel": "当前生效的 ChatGPT 模型：{model}",
+  "@chatGptActiveModel": {"placeholders": {"model": {"type": "String"}}},
   "usingChatGPTPlan": "使用 ChatGPT 订阅 · {arg0} · {arg1}",
   "@usingChatGPTPlan": {
     "placeholders": {
@@ -1655,7 +1657,6 @@
   "chatGptUnsupportedMessageContent": "ChatGPT 不支持此消息内容。",
   "invalidChatGPTMessageRole": "ChatGPT 消息角色无效。",
   "yourChatGPTSignInHas": "ChatGPT 登录已失效，请重新登录。",
-  "chatGptQuotaAccessDenied": "额度接口拒绝了查询，但这不代表登录失效。请在 ChatGPT 官方用量页查看。",
   "chatGPTPlanAllowanceOrPermissions": "ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。",
   "chatGptUnsupportedModelOrParameter": "ChatGPT 不支持当前模型或参数，请刷新模型列表或改用模型默认思考设置。",
   "theChatGPTRequestFailedCheck": "ChatGPT 请求失败，请检查网络后重试。",
@@ -2801,104 +2802,6 @@
   "saveAnAPIKeyBeforeQueryingTheBalance": "请先保存 API Key 再查询余额。",
   "chatGptSubscriptionHasNoBalance": "ChatGPT 订阅没有公开的余额或额度查询接口，额度与用量请在官方页面查看。",
   "thisProviderHasNoBalanceEndpoint": "该服务商没有提供查询余额的公开接口。",
-  "chatGptQuota": "订阅额度",
-  "chatGptQuotaCheck": "查询额度",
-  "chatGptQuotaChecking": "正在查询订阅额度…",
-  "chatGptQuotaPlan": "订阅类型：{arg0}",
-  "@chatGptQuotaPlan": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaPlanUnknown": "未知",
-  "chatGptQuotaHours": "{arg0} 小时窗口",
-  "@chatGptQuotaHours": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaDays": "{arg0} 天窗口",
-  "@chatGptQuotaDays": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaUsed": "{arg0} · 已用 {arg1}%",
-  "@chatGptQuotaUsed": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      },
-      "arg1": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaResetsIn": "{arg0} 后重置",
-  "@chatGptQuotaResetsIn": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaLimitReached": "该窗口已达上限，等待重置后才能继续。",
-  "chatGptQuotaCredits": "剩余额度 {arg0}",
-  "@chatGptQuotaCredits": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaUnlimited": "额度不限。",
-  "chatGptQuotaFetchedAt": "查询于 {arg0}",
-  "@chatGptQuotaFetchedAt": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaExperimental": "此数值来自 ChatGPT 官方 Codex 客户端使用的未公开接口，字段可能随时变化；请在官方用量页核对。",
-  "chatGptQuotaDurationDays": "{arg0} 天",
-  "@chatGptQuotaDurationDays": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaDurationHours": "{arg0} 小时",
-  "@chatGptQuotaDurationHours": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaDurationMinutes": "{arg0} 分钟",
-  "@chatGptQuotaDurationMinutes": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaDurationSeconds": "{arg0} 秒",
-  "@chatGptQuotaDurationSeconds": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
   "toolActivityCount": "{count} 次工具调用",
   "@toolActivityCount": {"placeholders": {"count": {"type": "String"}}},
   "toolSearchKnowledge": "知识：搜索",

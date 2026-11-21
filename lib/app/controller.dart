@@ -22,7 +22,6 @@ import "package:uuid/uuid.dart";
 import "preferences.dart";
 
 import "../core/ai/chat_provider.dart";
-import "../core/ai/chatgpt/usage.dart";
 import "../core/ai/provider_balance.dart";
 import "../core/ai/ai_usage_store.dart";
 import "../core/ai/chatgpt/auth.dart";
@@ -431,15 +430,7 @@ class AppController extends ChangeNotifier {
   Future<bool> hasApiKey(ProviderConfig provider) =>
       preferences.hasApiKey(provider);
 
-  late final _quotaClient = ChatGptUsageClient(auth: chatGpt);
   late final _balanceClient = ProviderBalanceClient();
-
-  ChatGptQuota? get cachedChatGptQuota => _quotaClient.cached;
-
-  Future<ChatGptQuota> chatGptQuota({
-    ChatGptUsageClient? client,
-    bool refresh = false,
-  }) => (client ?? _quotaClient).fetch(refresh: refresh);
 
   Future<ProviderBalance?> cachedProviderBalance(
     ProviderConfig candidate,

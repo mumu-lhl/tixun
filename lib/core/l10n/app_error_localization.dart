@@ -71,7 +71,6 @@ String? _generalErrorText(
   AppErrorCode.theServiceDoesNotSupport => l10n.theServiceDoesNotSupport,
   AppErrorCode.theConnectionFailedOrThe => l10n.theConnectionFailedOrThe,
   AppErrorCode.yourChatGPTSignInHas => l10n.yourChatGPTSignInHas,
-  AppErrorCode.chatGptQuotaAccessDenied => l10n.chatGptQuotaAccessDenied,
   AppErrorCode.chatGPTPlanAllowanceOrPermissions =>
     l10n.chatGPTPlanAllowanceOrPermissions,
   AppErrorCode.chatGptUnsupportedModelOrParameter =>

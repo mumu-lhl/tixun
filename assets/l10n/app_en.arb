@@ -1622,7 +1622,7 @@
   "enableOnlyIfTheModel": "Enable only if the model documentation confirms image support. Off by default when the catalog does not declare it.",
   "useTheChatGPTPlanAllowance": "Use the ChatGPT plan allowance authorized by your account, without an API key. Models and limits depend on your account and workspace. Requests never fall back to API billing.",
   "signInThroughYourBrowser": "Sign in through your browser to use eligible Plus/Pro plan allowance",
-  "useThisAccountAndModel": "Use this account and model",
+  "useThisAccountAndModel": "Save and use ChatGPT",
   "refreshList": "Refresh list",
   "cancelSignIn": "Cancel sign-in",
   "availableModels": "Available models",
@@ -1639,7 +1639,9 @@
   "signedOutSignInAgain": "Signed out; sign in again to reconnect",
   "signedOutOfChatGPT": "Signed out of ChatGPT.",
   "localTokensWereClearedBut": "Local tokens were cleared, but remote revocation could not be confirmed. Check permissions in ChatGPT settings.",
-  "chatGPTPlanEnabled": "ChatGPT plan enabled.",
+  "chatGptNotActive": "ChatGPT is not active",
+  "chatGptActiveModel": "Active ChatGPT model: {model}",
+  "@chatGptActiveModel": {"placeholders": {"model": {"type": "String"}}},
   "usingChatGPTPlan": "Using ChatGPT plan · {arg0} · {arg1}",
   "@usingChatGPTPlan": {
     "placeholders": {
@@ -1655,7 +1657,6 @@
   "chatGptUnsupportedMessageContent": "ChatGPT does not support this message content.",
   "invalidChatGPTMessageRole": "Invalid ChatGPT message role.",
   "yourChatGPTSignInHas": "Your ChatGPT sign-in has expired. Sign in again.",
-  "chatGptQuotaAccessDenied": "The quota endpoint denied the request. This does not mean your sign-in expired. Check the official ChatGPT usage page.",
   "chatGPTPlanAllowanceOrPermissions": "ChatGPT plan allowance or permissions are unavailable. Check usage in ChatGPT. Requests will not fall back to API billing.",
   "chatGptUnsupportedModelOrParameter": "ChatGPT does not support this model or parameter. Refresh the model list or use the default reasoning setting.",
   "theChatGPTRequestFailedCheck": "The ChatGPT request failed. Check your network and try again.",
@@ -2801,104 +2802,6 @@
   "saveAnAPIKeyBeforeQueryingTheBalance": "Save an API key before checking the balance.",
   "chatGptSubscriptionHasNoBalance": "A ChatGPT subscription has no public balance or quota API. Check allowance and usage on the official page.",
   "thisProviderHasNoBalanceEndpoint": "This provider has no public balance API.",
-  "chatGptQuota": "Subscription quota",
-  "chatGptQuotaCheck": "Check quota",
-  "chatGptQuotaChecking": "Checking the subscription quota…",
-  "chatGptQuotaPlan": "Plan: {arg0}",
-  "@chatGptQuotaPlan": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaPlanUnknown": "unknown",
-  "chatGptQuotaHours": "{arg0}-hour window",
-  "@chatGptQuotaHours": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaDays": "{arg0}-day window",
-  "@chatGptQuotaDays": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaUsed": "{arg0} · {arg1}% used",
-  "@chatGptQuotaUsed": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      },
-      "arg1": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaResetsIn": "resets in {arg0}",
-  "@chatGptQuotaResetsIn": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaLimitReached": "This window is used up; wait for it to reset.",
-  "chatGptQuotaCredits": "Remaining credits {arg0}",
-  "@chatGptQuotaCredits": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaUnlimited": "Unlimited.",
-  "chatGptQuotaFetchedAt": "Checked {arg0}",
-  "@chatGptQuotaFetchedAt": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaExperimental": "These figures come from the undocumented endpoint the official ChatGPT Codex client uses, so fields can change at any time. Cross-check on the official usage page.",
-  "chatGptQuotaDurationDays": "{arg0} d",
-  "@chatGptQuotaDurationDays": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaDurationHours": "{arg0} h",
-  "@chatGptQuotaDurationHours": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaDurationMinutes": "{arg0} min",
-  "@chatGptQuotaDurationMinutes": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
-  "chatGptQuotaDurationSeconds": "{arg0} s",
-  "@chatGptQuotaDurationSeconds": {
-    "placeholders": {
-      "arg0": {
-        "type": "String"
-      }
-    }
-  },
   "toolActivityCount": "Tool calls · {count}",
   "@toolActivityCount": {"placeholders": {"count": {"type": "String"}}},
   "toolSearchKnowledge": "Knowledge: search",

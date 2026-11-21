@@ -12,12 +12,10 @@ import "package:url_launcher/url_launcher.dart";
 import "../../app/controller.dart";
 import "../../core/ai/chat_provider.dart";
 import "../../core/ai/chatgpt/auth.dart";
-import "../../core/ai/chatgpt/usage.dart";
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/l10n/app_error_localization.dart";
 import "../../core/ui/reasoning_labels.dart";
-import "chatgpt_quota_panel.dart";
 
 class ChatGptSettings extends ConsumerStatefulWidget {
   const ChatGptSettings({super.key});
@@ -30,7 +28,6 @@ enum _ChatGptStatus {
   operationFailed,
   signedOut,
   revocationUnconfirmed,
-  enabled,
   connected,
   browserFailed,
 }
@@ -40,10 +37,6 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
   List<ChatGptModel> models = [];
   String? active, model;
   Object? message;
-  ChatGptQuota? quota;
-  Object? quotaFailure;
-  bool quotaLoading = false;
-  int quotaRequest = 0;
 
   String _messageText(Object value) => switch (value) {
     _ChatGptStatus.loadFailed => context.l10n.couldNotReadChatGPTSign,
@@ -51,7 +44,6 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
     _ChatGptStatus.signedOut => context.l10n.signedOutOfChatGPT,
     _ChatGptStatus.revocationUnconfirmed =>
       context.l10n.localTokensWereClearedBut,
-    _ChatGptStatus.enabled => context.l10n.chatGPTPlanEnabled,
     _ChatGptStatus.connected => context.l10n.connectedAndReceivedAModel,
     _ChatGptStatus.browserFailed => context.l10n.couldNotOpenSystemBrowser,
     _ => failureText(context.l10n, value),
@@ -90,16 +82,9 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
         setState(() {
           accounts = saved;
           active = selected;
-          quotaRequest++;
-          quotaLoading = false;
-          quota = ref.read(appControllerProvider).cachedChatGptQuota;
-          quotaFailure = null;
         });
       }
       if (saved.any((a) => a.id == selected && a.connected)) {
-        if (mounted && !ref.read(appControllerProvider).demo) {
-          unawaited(loadQuota(refresh: false));
-        }
         final choices = await auth.models();
         if (mounted) {
           setState(() {
@@ -118,38 +103,14 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
     }
   }
 
-  /// Page entry uses the cache; the explicit refresh bypasses its lifetime.
-  Future<void> loadQuota({bool refresh = true}) async {
-    if (quotaLoading) return;
-    final request = ++quotaRequest;
-    final revision = auth.accountRevision;
-    bool current() =>
-        mounted && request == quotaRequest && revision == auth.accountRevision;
-    setState(() {
-      quotaLoading = true;
-      quotaFailure = null;
-    });
-    try {
-      final value = await ref
-          .read(appControllerProvider)
-          .chatGptQuota(refresh: refresh);
-      if (current()) setState(() => quota = value);
-    } catch (e) {
-      if (current()) setState(() => quotaFailure = e);
-    } finally {
-      if (current()) setState(() => quotaLoading = false);
-    }
-  }
-
-  Future<void> perform(Future<void> Function() task) async {
+  Future<void> perform(
+    Future<void> Function() task, {
+    bool reload = true,
+  }) async {
     if (working) return;
     setState(() {
       working = true;
       message = null;
-      quotaRequest++;
-      quotaLoading = false;
-      quota = null;
-      quotaFailure = null;
     });
     try {
       await task();
@@ -163,7 +124,11 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
       }
     } finally {
       if (mounted) {
-        await load();
+        if (reload) {
+          await load();
+        } else {
+          setState(() => working = false);
+        }
       }
     }
   }
@@ -201,9 +166,18 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
     final c = ref.watch(appControllerProvider), auth = c.chatGpt;
     final account = accounts.where((a) => a.id == active).firstOrNull;
     final connected = account?.connected == true;
+    final configured = c.config.kind == "chatgpt";
+    final canUseModel = !working && models.any((m) => m.id == model);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          configured
+              ? context.l10n.chatGptActiveModel(c.config.model)
+              : context.l10n.chatGptNotActive,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
         Text(context.l10n.useTheChatGPTPlanAllowance),
         const SizedBox(height: 12),
         Text(context.l10n.signInUsesYourSystem),
@@ -386,6 +360,54 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
                     }),
             ),
           const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              FilledButton(
+                key: const Key("use-chatgpt"),
+                onPressed: !canUseModel
+                    ? null
+                    : () {
+                        final next = candidate();
+                        unawaited(
+                          perform(() async {
+                            await c.stop();
+                            await c.saveSettings(next, null);
+                          }, reload: false),
+                        );
+                      },
+                child: Text(context.l10n.useThisAccountAndModel),
+              ),
+              OutlinedButton(
+                onPressed: !canUseModel
+                    ? null
+                    : () => perform(() async {
+                        final cancel = CancelToken();
+                        setState(() => connectionCancel = cancel);
+                        try {
+                          await c.testConnection(
+                            candidate(),
+                            null,
+                            cancellation: cancel,
+                          );
+                        } finally {
+                          connectionCancel = null;
+                        }
+                        if (mounted) {
+                          setState(() => message = _ChatGptStatus.connected);
+                        }
+                      }, reload: false),
+                child: Text(context.l10n.testConnection),
+              ),
+            ],
+          ),
+          if (message != null && message != _ChatGptStatus.browserFailed)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SelectableText(_messageText(message!)),
+            ),
+          const SizedBox(height: 12),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(context.l10n.supportsImageInput),
@@ -420,57 +442,11 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
             context.l10n.levelsFollowTheModelS,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 16),
-          ChatGptQuotaPanel(
-            quota: quota,
-            loading: quotaLoading,
-            failure: quotaFailure,
-            onRefresh: working || quotaLoading ? null : loadQuota,
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: [
-              FilledButton(
-                key: const Key("use-chatgpt"),
-                onPressed: working || !models.any((m) => m.id == model)
-                    ? null
-                    : () => perform(() async {
-                        await c.stop();
-                        await c.saveSettings(candidate(), null);
-                        if (mounted) {
-                          setState(() => message = _ChatGptStatus.enabled);
-                        }
-                      }),
-                child: Text(context.l10n.useThisAccountAndModel),
-              ),
-              OutlinedButton(
-                onPressed: working || !models.any((m) => m.id == model)
-                    ? null
-                    : () => perform(() async {
-                        final cancel = CancelToken();
-                        setState(() => connectionCancel = cancel);
-                        try {
-                          await c.testConnection(
-                            candidate(),
-                            null,
-                            cancellation: cancel,
-                          );
-                        } finally {
-                          connectionCancel = null;
-                        }
-                        if (mounted) {
-                          setState(() => message = _ChatGptStatus.connected);
-                        }
-                      }),
-                child: Text(context.l10n.testConnection),
-              ),
-            ],
-          ),
         ],
         const SizedBox(height: 16),
-        if (message != null) SelectableText(_messageText(message!)),
+        if (message != null &&
+            (!connected || message == _ChatGptStatus.browserFailed))
+          SelectableText(_messageText(message!)),
         TextButton(
           onPressed: () async {
             if (!await launchUrl(

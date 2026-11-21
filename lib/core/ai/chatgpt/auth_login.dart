@@ -264,16 +264,11 @@ extension _ChatGptLogin on ChatGptAuth {
         "ChatGPT 账号身份校验失败，请重新登录。",
       );
     }
-    final auth = claims["https://api.openai.com/auth"];
     return {
       "sub": claims.subject,
       "id_token": raw,
       if (claims["email"] is String) "email": claims["email"],
       if (claims["name"] is String) "name": claims["name"],
-      if (auth is Map && auth["chatgpt_account_id"] is String)
-        "account_id": auth["chatgpt_account_id"],
-      if (auth is Map && auth["chatgpt_plan_type"] is String)
-        "plan_type": auth["chatgpt_plan_type"],
     };
   }
 

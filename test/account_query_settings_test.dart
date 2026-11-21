@@ -2,6 +2,7 @@ import "dart:convert";
 import "dart:io";
 
 import "package:dio/dio.dart";
+import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
@@ -9,7 +10,6 @@ import "package:tixun/app/app.dart";
 import "package:tixun/app/controller.dart";
 import "package:tixun/core/ai/chat_provider.dart";
 import "package:tixun/core/ai/chatgpt/auth.dart";
-import "package:tixun/core/ai/chatgpt/usage.dart";
 import "package:tixun/core/ai/provider_balance.dart";
 import "package:tixun/core/database/database.dart";
 import "package:tixun/core/platform/attachment_store.dart";
@@ -20,8 +20,9 @@ import "support/chatgpt_fixture.dart";
 class _Auth extends ChatGptAuth {
   _Auth(super.keys);
   @override
-  Future<List<ChatGptModel>> models() async =>
-      throw StateError("catalog offline");
+  Future<List<ChatGptModel>> models() async => const [
+    ChatGptModel("fixture-gpt", "Fixture GPT", false),
+  ];
 }
 
 class _Controller extends AppController {
@@ -33,7 +34,7 @@ class _Controller extends AppController {
         MockChatProvider(),
       );
 
-  int balanceRequests = 0, quotaRequests = 0;
+  int balanceRequests = 0;
   Future<void> pending = Future.value();
   bool fail = false;
   Dio http(ResponseBody Function() response) =>
@@ -41,7 +42,7 @@ class _Controller extends AppController {
         ..httpClientAdapter = FixtureAdapter((_) => response());
   late final _auth = _Auth(keys);
   @override
-  ChatGptAuth get chatGpt => _auth; // Catalog failure must not block quota.
+  ChatGptAuth get chatGpt => _auth;
   late final balanceClient = ProviderBalanceClient(
     client: http(() {
       balanceRequests++;
@@ -55,18 +56,6 @@ class _Controller extends AppController {
             "topped_up_balance": "42.00",
           },
         ],
-      }, status: fail ? 500 : 200);
-    }),
-  );
-  late final usageClient = ChatGptUsageClient(
-    auth: chatGpt,
-    client: http(() {
-      quotaRequests++;
-      return fixtureJson({
-        "plan_type": "plus",
-        "rate_limit": {
-          "primary_window": {"used_percent": 23, "limit_window_seconds": 18000},
-        },
       }, status: fail ? 500 : 200);
     }),
   );
@@ -94,27 +83,17 @@ class _Controller extends AppController {
     pending = result.then<void>((_) {}, onError: (Object _) {});
     return result;
   }
-
-  @override
-  ChatGptQuota? get cachedChatGptQuota => usageClient.cached;
-  @override
-  Future<ChatGptQuota> chatGptQuota({
-    ChatGptUsageClient? client,
-    bool refresh = false,
-  }) {
-    final result = super.chatGptQuota(
-      client: client ?? usageClient,
-      refresh: refresh,
-    );
-    pending = result.then<void>((_) {}, onError: (Object _) {});
-    return result;
-  }
 }
 
 void main() {
   for (final service in ["DeepSeek", "ChatGPT", "demo", "disconnected"]) {
     testWidgets(
-      "$service page entry uses cache; refresh is explicit and failures preserve data",
+      switch (service) {
+        "ChatGPT" =>
+          "activate a ChatGPT model, update Settings, and offer web usage",
+        "DeepSeek" => "DeepSeek uses cached balance until explicit refresh",
+        _ => "$service skips DeepSeek balance queries",
+      },
       (tester) async {
         late Directory root;
         late _Controller c;
@@ -172,22 +151,83 @@ void main() {
 
         if (service == "demo" || service == "disconnected") {
           await open("/settings/ai");
-          await open("/settings/chatgpt");
           expect(c.balanceRequests, 0);
-          expect(c.quotaRequests, 0);
+        } else if (service == "ChatGPT") {
+          await open("/settings");
+          final settings = find.byKey(const Key("settings-ai"));
+          await tester.ensureVisible(settings);
+          await tester.tap(settings);
+          await tester.pumpAndSettle();
+
+          Future<void> choose(String key, String label) async {
+            final field = find.byKey(Key(key));
+            await tester.ensureVisible(field);
+            await tester.tap(field);
+            await tester.pumpAndSettle();
+            await tester.tap(find.text(label).last);
+            await tester.pumpAndSettle();
+          }
+
+          await choose("provider-selector", "ChatGPT 订阅");
+          expect(find.text("ChatGPT 尚未启用"), findsOneWidget);
+          expect(c.config.kind, "deepseek");
+          final activate = find.byKey(const Key("use-chatgpt"));
+          expect(tester.widget<FilledButton>(activate).onPressed, isNull);
+          await choose("chatgpt-model-selector", "Fixture GPT");
+          expect(c.config.kind, "deepseek");
+          expect(
+            tester.getTopLeft(activate).dy,
+            lessThan(tester.getTopLeft(find.byType(SwitchListTile).first).dy),
+          );
+          expect(find.byKey(const Key("chatgpt-quota-refresh")), findsNothing);
+          const launcher = MethodChannel("plugins.flutter.io/url_launcher");
+          final messenger = tester.binding.defaultBinaryMessenger;
+          MethodCall? launch;
+          messenger.setMockMethodCallHandler(launcher, (call) async {
+            launch = call;
+            return true;
+          });
+          addTearDown(() => messenger.setMockMethodCallHandler(launcher, null));
+          final usage = find.text("在 ChatGPT 中管理用量和授权");
+          await tester.ensureVisible(usage);
+          await tester.tap(usage);
+          await tester.pump();
+          expect(launch?.method, "launch");
+          expect(
+            launch?.arguments["url"],
+            "https://chatgpt.com/settings/usage",
+          );
+
+          await tester.ensureVisible(activate);
+          await tester.runAsync(() async {
+            await tester.tap(activate);
+            await tester.pumpAndSettle();
+            final saved = await c.db.config();
+            expect(saved.kind, "chatgpt");
+            expect(saved.model, "fixture-gpt");
+          });
+          await tester.pumpAndSettle();
+          expect(find.text("当前生效的 ChatGPT 模型：fixture-gpt"), findsOneWidget);
+          final back = find.byType(BackButton);
+          await tester.ensureVisible(back);
+          await tester.pumpAndSettle();
+          await tester.tap(back);
+          await tester.pumpAndSettle();
+          expect(scope.read(routerProvider).state.uri.path, "/settings");
+          expect(find.text("ChatGPT · fixture-gpt"), findsOneWidget);
+          await tester.ensureVisible(settings);
+          await tester.tap(settings);
+          await tester.pumpAndSettle();
+          expect(find.text("当前生效的 ChatGPT 模型：fixture-gpt"), findsOneWidget);
         } else {
-          final balance = service == "DeepSeek";
-          final path = balance ? "/settings/ai" : "/settings/chatgpt";
-          int requests() => balance ? c.balanceRequests : c.quotaRequests;
+          const path = "/settings/ai";
           await open(path);
-          expect(requests(), 1);
+          expect(c.balanceRequests, 1);
           await open("/settings");
           await open(path);
-          expect(requests(), 1);
+          expect(c.balanceRequests, 1);
           c.fail = true;
-          final refresh = find.byKey(
-            Key(balance ? "provider-balance-refresh" : "chatgpt-quota-refresh"),
-          );
+          final refresh = find.byKey(const Key("provider-balance-refresh"));
           await tester.ensureVisible(refresh);
           await tester.pumpAndSettle();
           await tester.runAsync(() async {
@@ -196,24 +236,20 @@ void main() {
             await tester.pumpAndSettle();
           });
           await tester.pumpAndSettle();
-          expect(requests(), 2);
-          expect(
-            find.text(balance ? "可用余额 ¥42.00" : "5 小时窗口 · 已用 23%"),
-            findsOneWidget,
-          );
+          expect(c.balanceRequests, 2);
+          expect(find.text("可用余额 ¥42.00"), findsOneWidget);
           expect(find.text("上次查询结果，可能已过期。"), findsOneWidget);
-          if (balance) {
-            // Editing a key hides the old account immediately, without querying the draft.
-            final keyInput = find.byWidgetPredicate(
-              (widget) => widget is TextField && widget.obscureText,
-            );
-            await tester.ensureVisible(keyInput);
-            await tester.enterText(keyInput, "unsaved-key");
-            await tester.pump();
-            expect(find.text("可用余额 ¥42.00"), findsNothing);
-            expect(requests(), 2);
-            await open("/settings"); // Dispose the form and its autosave timer.
-          }
+
+          // Editing a key hides the old account without querying the draft.
+          final keyInput = find.byWidgetPredicate(
+            (widget) => widget is TextField && widget.obscureText,
+          );
+          await tester.ensureVisible(keyInput);
+          await tester.enterText(keyInput, "unsaved-key");
+          await tester.pump();
+          expect(find.text("可用余额 ¥42.00"), findsNothing);
+          expect(c.balanceRequests, 2);
+          await open("/settings"); // Dispose the form and its autosave timer.
         }
         expect(tester.takeException(), isNull);
       },

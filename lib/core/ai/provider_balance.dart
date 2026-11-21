@@ -3,7 +3,7 @@
 /// DeepSeek documents a public endpoint for this (`GET /user/balance`), so the
 /// number shown in Settings is the provider's own figure rather than an
 /// estimate derived from local usage. This module uses no private web balance
-/// endpoints; ChatGPT subscription quota is handled separately in chatgpt/usage.
+/// endpoints; ChatGPT subscription usage is managed on the official website.
 library;
 
 import "dart:convert";

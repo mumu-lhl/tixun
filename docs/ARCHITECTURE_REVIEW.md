@@ -10,8 +10,7 @@
 | `core/ai/chat_provider.dart`、`chatgpt/responses.dart` | Chat Completions、Responses 与 Mock 三个 Adapter。各自编码 HTTP、解析流、处理完整工具调用。API Key 在实现内部读取；未保存的密钥只允许配置页连接测试显式覆盖。Responses 加密推理上下文属于当前 Conversation，不写入 AiRequest 或消息历史。 |
 | `core/ai/context_compactor.dart`、`token_estimator.dart` | 按完整轮次估算上下文预算、生成摘要及覆盖位置；失败可降级，原始消息及模型上下文保留。估算不冒充精确 tokenizer。 |
 | `core/ai/ai_usage_store.dart`、`model_tokenizer.dart` | 请求用量及价格快照；离线 tokenizer 提供已知 DeepSeek/GPT 模型的可见文本分类，后台复用词表，统计只保存数值。服务商用量单独存储。 |
-| `core/ai/chatgpt/usage.dart` | ChatGPT 订阅额度：读取 `chatgpt.com/backend-api/wham/usage`（官方 Codex 客户端使用的私有端点，经用户批准的唯一例外）。`ChatGptAuth.session()` 同时给出访问令牌与 `chatgpt_account_id` 声明（`ChatGPT-Account-Id` 缺少时省略），字段全部可选、数字兼容字符串。设置页进入时自动读取，五分钟内复用内存结果，手动刷新绕过缓存；不轮询、不落库，账号选择、登录与退出使旧缓存失效；401/403 分别归因登录失效与订阅权限。 |
-| `core/ai/provider_balance.dart` | DeepSeek 官方 `GET /user/balance` 的余额查询：Bearer Key、状态码到既定错误码的映射、容错解析（未知字段忽略、缺 `balance_infos` 不抛错）。数字保留服务商原始字符串，不在本地重算。设置页进入时用已保存的 Key 自动查询，五分钟内复用内存结果，手动刷新绕过缓存；端点或 Key 变化时隔离缓存。ChatGPT 额度只使用上一行经批准的例外，不当作现金余额。 |
+| `core/ai/provider_balance.dart` | DeepSeek 官方 `GET /user/balance` 的余额查询：Bearer Key、状态码到既定错误码的映射、容错解析（未知字段忽略、缺 `balance_infos` 不抛错）。数字保留服务商原始字符串，不在本地重算。设置页进入时用已保存的 Key 自动查询，五分钟内复用内存结果，手动刷新绕过缓存；端点或 Key 变化时隔离缓存。ChatGPT 订阅用量通过设置中的官方网页入口查看，不当作现金余额。 |
 | `core/ai/web_activity.dart` | 联网偏好默认为关闭，可按会话覆盖。适配器将服务端搜索、网页读取和引用转换为展示记录，不交给本地工具执行器，不消耗本地工具调用上限。DeepSeek 仅官方 Flash，按[联网工具指南](https://api-docs.deepseek.com/zh-cn/guides/web_tools)在思考模式优先读取用户消息中的链接，否则按需搜索；ChatGPT 仅已登录的订阅路线，受模型、账号和工作区策略限制。 |
 | `core/ai/ai_options.dart` | 统一配置校验、会话思考覆盖、图片与联网能力、思考与工具兼容性，以及实际发送的强度参数。DeepSeek 可显式关闭思考；其他兼容路线省略强度参数表示模型默认，界面按该语义显示。 |
 | `features/chat/learning_run.dart` | 学习上下文、教学提示、用量汇总、三分钟超时、用户可设的累计工具调用次数上限（默认 8，0 不限；批量逐个计数，包含协议加载；无额外固定轮数限制）、结束判定和受控工具执行。Android/Linux 隔离运行器可用时才提供 Python 工具；通过进度与结果返回给调用方，考试过程中不会把原始模型答案当进度发布。 |

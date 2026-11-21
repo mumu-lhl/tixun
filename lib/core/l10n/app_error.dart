@@ -33,7 +33,6 @@ enum AppErrorCode {
   theServiceDoesNotSupport,
   theConnectionFailedOrThe,
   yourChatGPTSignInHas,
-  chatGptQuotaAccessDenied,
   chatGPTPlanAllowanceOrPermissions,
   chatGptUnsupportedModelOrParameter,
   theChatGPTRequestFailedCheck,
