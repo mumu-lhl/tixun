@@ -49,6 +49,7 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     ListTile(
                       key: const Key("settings-subjects"),
+                      minTileHeight: 72,
                       leading: const _SettingsIcon(Icons.school_outlined),
                       title: Text(context.l10n.studySubjects),
                       subtitle: Text(
@@ -63,6 +64,7 @@ class SettingsScreen extends ConsumerWidget {
                         .watch(learningProfileProvider)
                         .when(
                           data: (p) => ListTile(
+                            minTileHeight: 72,
                             leading: const _SettingsIcon(Icons.flag_outlined),
                             title: Text(context.l10n.learningGoals),
                             subtitle: Text(
@@ -107,6 +109,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     ListTile(
                       key: const Key("settings-ai"),
+                      minTileHeight: 72,
                       leading: const _SettingsIcon(Icons.hub_outlined),
                       title: Text(context.l10n.modelsAndConnections),
                       subtitle: Text(
@@ -331,21 +334,18 @@ class _SettingsGroup extends StatelessWidget {
           : colors.surfaceContainerLow,
       borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
-      child: ListTileTheme(
-        data: ListTileTheme.of(context).copyWith(minTileHeight: 78),
-        child: Column(
-          children: [
-            for (var i = 0; i < children.length; i++) ...[
-              if (i > 0)
-                Divider(
-                  indent: 70,
-                  endIndent: 16,
-                  color: colors.outlineVariant.withValues(alpha: .45),
-                ),
-              children[i],
-            ],
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0)
+              Divider(
+                indent: 70,
+                endIndent: 16,
+                color: colors.outlineVariant.withValues(alpha: .45),
+              ),
+            children[i],
           ],
-        ),
+        ],
       ),
     );
   }
