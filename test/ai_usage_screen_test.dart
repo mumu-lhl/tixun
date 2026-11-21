@@ -227,12 +227,14 @@ void main() {
     final desktopScope = t.getRect(scope);
     final desktopPresets = t.getRect(presets);
     expect(desktopPresets.left, greaterThan(desktopScope.right));
-    expect(t.getSize(start).width, lessThan(desktopScope.width));
-    expect(t.getTopLeft(start).dy, greaterThan(desktopPresets.bottom));
+    final desktopCustom = t.getRect(start);
+    expect(desktopCustom.left, greaterThan(desktopPresets.right));
+    expect(desktopCustom.center.dy, closeTo(desktopPresets.center.dy, 1));
 
     t.view.physicalSize = const Size(360, 800);
     await t.pumpAndSettle();
     expect(t.getTopLeft(presets).dy, greaterThan(t.getBottomLeft(scope).dy));
+    expect(t.getTopLeft(start).dy, greaterThan(t.getBottomLeft(presets).dy));
     expect(end, findsNothing);
 
     Future<void> tap(Finder target) async {

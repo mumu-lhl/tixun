@@ -102,6 +102,7 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     ListTile(
                       key: const Key("settings-ai-usage"),
+                      minTileHeight: 64,
                       leading: const _SettingsIcon(Icons.analytics_outlined),
                       title: Text(context.l10n.aiUsage),
                       trailing: const Icon(Icons.chevron_right),
@@ -125,6 +126,7 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () => context.push("/settings/ai"),
                     ),
                     ListTile(
+                      minTileHeight: 64,
                       leading: const _SettingsIcon(Icons.edit_note_outlined),
                       title: Text(context.l10n.promptManager),
                       trailing: const Icon(Icons.chevron_right),
@@ -132,6 +134,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     ListTile(
                       key: const Key("settings-ai-tools"),
+                      minTileHeight: 64,
                       leading: const _SettingsIcon(Icons.tune),
                       title: Text(context.l10n.aiToolsSettings),
                       trailing: const Icon(Icons.chevron_right),
@@ -144,6 +147,9 @@ class SettingsScreen extends ConsumerWidget {
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: SegmentedButton<ThemeMode>(
+                    style: SegmentedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
                     segments: [
                       ButtonSegment(
                         value: ThemeMode.system,

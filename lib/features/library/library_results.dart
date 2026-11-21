@@ -85,25 +85,6 @@ extension _LibraryResults on _LibraryScreenState {
                           icon: const Icon(Icons.filter_alt_off_outlined),
                           label: Text(context.l10n.clearFilters),
                         ),
-                      if (!_trash)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20),
-                          child: OutlinedButton(
-                            onPressed: _importing
-                                ? null
-                                : () => act(
-                                    context,
-                                    widget.isMistake
-                                        ? _pickMistakePhotos
-                                        : _create,
-                                  ),
-                            child: Text(
-                              widget.isMistake
-                                  ? context.l10n.importPhotos
-                                  : context.l10n.newKnowledge,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),

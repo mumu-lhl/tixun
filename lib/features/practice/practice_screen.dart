@@ -56,6 +56,23 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       subject: c.subjectFilter,
       limit: limit,
     );
+    final runState = trash ? null : ref.watch(practiceRunProvider);
+    final run = runState?.value;
+    final resume = run != null && !run.completed;
+    final aiQuiz = (resume ? OutlinedButton.icon : FilledButton.icon)(
+      key: const Key("ai-quiz"),
+      style: const ButtonStyle(
+        minimumSize: WidgetStatePropertyAll(Size(0, 52)),
+      ),
+      onPressed: c.busy
+          ? null
+          : () => act(context, () async {
+              await c.prepareQuickQuiz();
+              if (context.mounted) context.go("/chat");
+            }),
+      icon: const Icon(Icons.auto_awesome),
+      label: Text(context.l10n.aiQuiz),
+    );
     final rows = ref.watch(practiceListProvider(filter));
     final content = Column(
       children: [
@@ -106,19 +123,12 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    FilledButton.icon(
-                      key: const Key("ai-quiz"),
-                      onPressed: c.busy
-                          ? null
-                          : () => act(context, () async {
-                              await c.prepareQuickQuiz();
-                              if (context.mounted) context.go("/chat");
-                            }),
-                      icon: const Icon(Icons.auto_awesome, size: 18),
-                      label: Text(context.l10n.aiQuiz),
-                    ),
-                    OutlinedButton.icon(
+                    if (!resume) aiQuiz,
+                    (resume ? FilledButton.icon : OutlinedButton.icon)(
                       key: const Key("random-practice"),
+                      style: const ButtonStyle(
+                        minimumSize: WidgetStatePropertyAll(Size(0, 52)),
+                      ),
                       onPressed: () => act(context, () async {
                         final prior = await ref
                             .read(practiceStoreProvider)
@@ -132,10 +142,18 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                             .startRandomRun(subject: c.subjectFilter);
                         if (context.mounted) context.go("/practice/run");
                       }),
-                      icon: const Icon(Icons.shuffle, size: 18),
-                      label: Text(context.l10n.randomQuizFromExistingQuestions),
+                      icon: Icon(resume ? Icons.play_arrow : Icons.shuffle),
+                      label: Text(
+                        resume
+                            ? context.l10n.resumeQuizQuestion(
+                                l10nArgument(run.index + 1),
+                                l10nArgument(run.ids.length),
+                              )
+                            : context.l10n.randomQuizFromExistingQuestions,
+                      ),
                     ),
-                    OutlinedButton(
+                    if (resume) aiQuiz,
+                    TextButton(
                       onPressed: () => showDialog<void>(
                         context: context,
                         builder: (_) => const QuestionEditor(),
@@ -172,30 +190,18 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   ],
                 ),
               const SizedBox(height: 12),
-              ref
-                  .watch(practiceRunProvider)
-                  .maybeWhen(
-                    data: (run) => run == null
-                        ? const SizedBox.shrink()
-                        : TextButton(
-                            onPressed: () => context.go("/practice/run"),
-                            child: Text(
-                              run.completed
-                                  ? context.l10n.viewThePreviousQuiz
-                                  : context.l10n.resumeQuizQuestion(
-                                      l10nArgument((run.index + 1)),
-                                      l10nArgument((run.ids.length)),
-                                    ),
-                            ),
-                          ),
-                    error: (_, _) => TextButton(
-                      onPressed: () => act(context, () async {
-                        await ref.read(practiceStoreProvider).clearRun();
-                      }),
-                      child: Text(context.l10n.endUnavailableQuizKeepRecords),
-                    ),
-                    orElse: () => const SizedBox.shrink(),
-                  ),
+              if (run?.completed == true)
+                TextButton(
+                  onPressed: () => context.go("/practice/run"),
+                  child: Text(context.l10n.viewThePreviousQuiz),
+                ),
+              if (runState?.hasError == true)
+                TextButton(
+                  onPressed: () => act(context, () async {
+                    await ref.read(practiceStoreProvider).clearRun();
+                  }),
+                  child: Text(context.l10n.endUnavailableQuizKeepRecords),
+                ),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 540),
                 child: TextField(

@@ -270,94 +270,76 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     final l10n = context.l10n;
     final from = range == "custom" ? customFrom : null;
     final through = range == "custom" ? customThrough : null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 244),
-              child: AppSelectField<AiUsageScope>(
-                key: const Key("ai-usage-scope"),
-                initialValue: scope,
-                decoration: InputDecoration(labelText: context.l10n.usageScope),
-                items: [
-                  DropdownMenuItem(
-                    value: AiUsageScope.all,
-                    child: Text(context.l10n.usageAllSources),
-                  ),
-                  DropdownMenuItem(
-                    value: AiUsageScope.chats,
-                    child: Text(context.l10n.usageChatOnly),
-                  ),
-                  DropdownMenuItem(
-                    value: AiUsageScope.language,
-                    child: Text(context.l10n.usageLanguageOnly),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value == null || scope == value) return;
-                  setState(() {
-                    scope = value;
-                    events = _queryEvents();
-                  });
-                },
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 244),
+          child: AppSelectField<AiUsageScope>(
+            key: const Key("ai-usage-scope"),
+            initialValue: scope,
+            decoration: InputDecoration(labelText: context.l10n.usageScope),
+            items: [
+              DropdownMenuItem(
+                value: AiUsageScope.all,
+                child: Text(context.l10n.usageAllSources),
               ),
-            ),
-            SegmentedButton<String>(
-              segments: [
-                ButtonSegment(value: "7d", label: Text(context.l10n.last7Days)),
-                ButtonSegment(
-                  value: "30d",
-                  label: Text(context.l10n.last30Days),
-                ),
-                ButtonSegment(value: "all", label: Text(context.l10n.allTime)),
-              ],
-              emptySelectionAllowed: true,
-              selected: range == "custom" ? {} : {range},
-              onSelectionChanged: (value) {
-                if (value.isNotEmpty) _setRange(value.first);
-              },
-            ),
-          ],
+              DropdownMenuItem(
+                value: AiUsageScope.chats,
+                child: Text(context.l10n.usageChatOnly),
+              ),
+              DropdownMenuItem(
+                value: AiUsageScope.language,
+                child: Text(context.l10n.usageLanguageOnly),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null || scope == value) return;
+              setState(() {
+                scope = value;
+                events = _queryEvents();
+              });
+            },
+          ),
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            TextButton.icon(
-              key: const Key("ai-usage-custom-range"),
-              onPressed: _pickDate,
-              icon: const Icon(Icons.date_range),
-              label: Text(
-                from == null ? l10n.usageChooseDate : _dateOnly(from),
-              ),
-            ),
-            if (from != null)
-              TextButton.icon(
-                key: const Key("ai-usage-end-date"),
-                onPressed: () => _pickDate(end: true),
-                icon: Icon(through == null ? Icons.add : Icons.arrow_forward),
-                label: Text(
-                  through == null ? l10n.usageAddEndDate : _dateOnly(through),
-                ),
-              ),
-            if (through != null)
-              IconButton(
-                tooltip: l10n.usageRemoveEndDate,
-                onPressed: () => setState(() {
-                  customThrough = null;
-                  events = _queryEvents();
-                }),
-                icon: const Icon(Icons.close),
-              ),
+        SegmentedButton<String>(
+          segments: [
+            ButtonSegment(value: "7d", label: Text(context.l10n.last7Days)),
+            ButtonSegment(value: "30d", label: Text(context.l10n.last30Days)),
+            ButtonSegment(value: "all", label: Text(context.l10n.allTime)),
           ],
+          emptySelectionAllowed: true,
+          selected: range == "custom" ? {} : {range},
+          onSelectionChanged: (value) {
+            if (value.isNotEmpty) _setRange(value.first);
+          },
         ),
+        OutlinedButton.icon(
+          key: const Key("ai-usage-custom-range"),
+          onPressed: _pickDate,
+          icon: const Icon(Icons.date_range),
+          label: Text(from == null ? l10n.usageChooseDate : _dateOnly(from)),
+        ),
+        if (from != null)
+          OutlinedButton.icon(
+            key: const Key("ai-usage-end-date"),
+            onPressed: () => _pickDate(end: true),
+            icon: Icon(through == null ? Icons.add : Icons.arrow_forward),
+            label: Text(
+              through == null ? l10n.usageAddEndDate : _dateOnly(through),
+            ),
+          ),
+        if (through != null)
+          IconButton(
+            tooltip: l10n.usageRemoveEndDate,
+            onPressed: () => setState(() {
+              customThrough = null;
+              events = _queryEvents();
+            }),
+            icon: const Icon(Icons.close),
+          ),
       ],
     );
   }

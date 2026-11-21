@@ -23,18 +23,6 @@ extension _LibraryFilters on _LibraryScreenState {
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ),
-              if (!widget.isMistake && !_trash)
-                IconButton(
-                  key: const Key("ai-create-knowledge"),
-                  tooltip: context.l10n.createKnowledgeWithAI,
-                  icon: const Icon(Icons.auto_awesome_outlined),
-                  onPressed: _bulkBusy
-                      ? null
-                      : () => act(
-                          context,
-                          () => startAiStudyWriting(context, ref),
-                        ),
-                ),
               PopupMenuButton<String>(
                 tooltip: context.l10n.moreActions,
                 enabled: !_bulkBusy,
@@ -81,69 +69,76 @@ extension _LibraryFilters on _LibraryScreenState {
                     ),
                 ],
               ),
-              if (!widget.isMistake)
-                FilledButton.icon(
-                  key: const Key("create-study"),
-                  onPressed: _trash || _bulkBusy
-                      ? null
-                      : () => act(context, _create),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: Text(context.l10n.newItem),
-                ),
             ],
           ),
-          if (widget.isMistake && !_trash)
+          if (!_trash)
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Wrap(
-                spacing: 8,
-                runSpacing: 6,
+                spacing: 12,
+                runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  FilledButton.icon(
-                    key: const Key("import-mistake"),
-                    onPressed: _importing || _bulkBusy
-                        ? null
-                        : () => act(context, _pickMistakePhotos),
-                    icon: _importing
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(
-                            Icons.add_photo_alternate_outlined,
-                            size: 18,
-                          ),
-                    label: Text(context.l10n.importPhotos),
-                  ),
-                  if (Platform.isAndroid)
-                    IconButton.outlined(
-                      tooltip: context.l10n.photographAQuestion,
+                  if (!widget.isMistake) ...[
+                    FilledButton.icon(
+                      key: const Key("create-study"),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                      ),
+                      onPressed: _bulkBusy ? null : () => act(context, _create),
+                      icon: const Icon(Icons.add),
+                      label: Text(context.l10n.newKnowledge),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key("ai-create-knowledge"),
+                      onPressed: _bulkBusy
+                          ? null
+                          : () => act(
+                              context,
+                              () => startAiStudyWriting(context, ref),
+                            ),
+                      icon: const Icon(Icons.auto_awesome_outlined),
+                      label: Text(context.l10n.createKnowledgeWithAI),
+                    ),
+                  ] else ...[
+                    FilledButton.icon(
+                      key: const Key("import-mistake"),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                      ),
                       onPressed: _importing || _bulkBusy
                           ? null
-                          : () => act(context, () => _nativeImport("camera")),
-                      icon: const Icon(Icons.camera_alt_outlined),
+                          : () => act(context, _pickMistakePhotos),
+                      icon: _importing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.add_photo_alternate_outlined),
+                      label: Text(context.l10n.importPhotos),
                     ),
-                  TextButton.icon(
-                    key: const Key("create-study"),
-                    onPressed: _importing || _bulkBusy
-                        ? null
-                        : () => act(context, _create),
-                    icon: const Icon(Icons.edit_note, size: 18),
-                    label: Text(context.l10n.textEntry),
-                  ),
+                    if (Platform.isAndroid)
+                      IconButton.outlined(
+                        tooltip: context.l10n.photographAQuestion,
+                        onPressed: _importing || _bulkBusy
+                            ? null
+                            : () => act(context, () => _nativeImport("camera")),
+                        icon: const Icon(Icons.camera_alt_outlined),
+                      ),
+                    TextButton.icon(
+                      key: const Key("create-study"),
+                      onPressed: _importing || _bulkBusy
+                          ? null
+                          : () => act(context, _create),
+                      icon: const Icon(Icons.edit_note, size: 18),
+                      label: Text(context.l10n.textEntry),
+                    ),
+                  ],
                 ],
               ),
             ),
-          const SizedBox(height: 8),
-          Text(
-            widget.isMistake
-                ? context.l10n.keepTheOriginalQuestionAnd
-                : context.l10n.keepConceptsFormulasAndYour,
-            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           _searchAndFilters(
             context,
             subjectFilter,

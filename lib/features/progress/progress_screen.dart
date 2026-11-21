@@ -27,41 +27,54 @@ class ProgressScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => context.go("/study"),
-                    icon: const Icon(Icons.arrow_back),
-                    label: Text(context.l10n.backToStudy),
-                  ),
-                ),
-                Text(
-                  context.l10n.learningInsights,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Row(
+                  children: [
+                    BackButton(onPressed: () => context.go("/study")),
+                    Expanded(
+                      child: Text(
+                        context.l10n.learningInsights,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
-                Wrap(
-                  spacing: 28,
-                  runSpacing: 12,
-                  children: [
-                    _metric(
-                      context,
-                      context.l10n.completedAttempts,
-                      "${p.total}",
-                    ),
-                    _metric(
-                      context,
-                      context.l10n.gradingAgainstVerifiedAnswers,
-                      "${p.checked}",
-                    ),
-                    _metric(context, context.l10n.selfAssessed, "${p.self}"),
-                    _metric(
-                      context,
-                      context.l10n.uncheckedAIReferenceGrading,
-                      "${p.unverified}",
-                    ),
-                    _metric(context, context.l10n.hintUsed, "${p.hinted}"),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final scale =
+                        MediaQuery.textScalerOf(context).scale(14) / 14;
+                    const gap = 12.0;
+                    final width = constraints.maxWidth;
+                    final columns = width >= 730 * scale
+                        ? 5
+                        : width >= 304 * scale
+                        ? 2
+                        : 1;
+                    final tileWidth = (width - (columns - 1) * gap) / columns;
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
+                      children: [
+                        for (final (label, value) in [
+                          (context.l10n.completedAttempts, p.total),
+                          (
+                            context.l10n.gradingAgainstVerifiedAnswers,
+                            p.checked,
+                          ),
+                          (context.l10n.selfAssessed, p.self),
+                          (
+                            context.l10n.uncheckedAIReferenceGrading,
+                            p.unverified,
+                          ),
+                          (context.l10n.hintUsed, p.hinted),
+                        ])
+                          SizedBox(
+                            width: tileWidth,
+                            child: _metric(context, label, "$value"),
+                          ),
+                      ],
+                    );
+                  },
                 ),
                 const Divider(height: 40),
                 Text(

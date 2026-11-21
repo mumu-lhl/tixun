@@ -246,21 +246,6 @@ class _LanguageLearningScreenState
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context).textTheme;
-    final actions = [
-      FilledButton.tonalIcon(
-        onPressed: () => context.push("/language/quick"),
-        icon: const Icon(Icons.manage_search),
-        label: Text(l10n.quickLookup),
-      ),
-      OutlinedButton(
-        onPressed: _openProfile,
-        child: Text(l10n.languageProfile, textAlign: TextAlign.center),
-      ),
-      OutlinedButton(
-        onPressed: _foundations,
-        child: Text(l10n.languageFoundations, textAlign: TextAlign.center),
-      ),
-    ];
     return Scaffold(
       appBar: AppBar(
         leading: BackButton(
@@ -287,49 +272,41 @@ class _LanguageLearningScreenState
                 children: [
                   Text(l10n.languageEnglish, style: theme.headlineMedium),
                   const SizedBox(height: 12),
-                  if (MediaQuery.sizeOf(context).width < 460)
-                    Column(
-                      spacing: 10,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        actions.first,
-                        Row(
-                          spacing: 10,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: actions[1]),
-                            Expanded(child: actions[2]),
-                          ],
-                        ),
-                      ],
-                    )
-                  else
-                    Wrap(spacing: 12, runSpacing: 10, children: actions),
-                  const SizedBox(height: 20),
                   StreamBuilder<int>(
                     stream: _due,
                     builder: (context, snapshot) {
                       final count = snapshot.data;
+                      final hasDue = count != null && count > 0;
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 10),
+                          if (count != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Text(l10n.languageDue(count)),
+                            ),
                           Wrap(
                             spacing: 12,
                             runSpacing: 8,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              if (count != null) Text(l10n.languageDue(count)),
                               if (snapshot.hasError)
                                 Text(l10n.couldNotCompleteTheAction),
-                              FilledButton.icon(
-                                onPressed: count == null || count == 0
-                                    ? null
-                                    : _review,
-                                icon: const Icon(Icons.schedule),
-                                label: Text(l10n.languageReview),
-                              ),
-                              OutlinedButton(
+                              if (hasDue)
+                                FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    minimumSize: const Size(0, 52),
+                                  ),
+                                  onPressed: _review,
+                                  icon: const Icon(Icons.schedule),
+                                  label: Text(l10n.languageReview),
+                                ),
+                              (hasDue ? OutlinedButton.new : FilledButton.new)(
+                                style: const ButtonStyle(
+                                  minimumSize: WidgetStatePropertyAll(
+                                    Size(0, 52),
+                                  ),
+                                ),
                                 onPressed: () => _openBatch(
                                   context,
                                   _store,
@@ -346,6 +323,26 @@ class _LanguageLearningScreenState
                         ],
                       );
                     },
+                  ),
+                  const SizedBox(height: 24),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => context.push("/language/quick"),
+                        icon: const Icon(Icons.manage_search),
+                        label: Text(l10n.quickLookup),
+                      ),
+                      TextButton(
+                        onPressed: _openProfile,
+                        child: Text(l10n.languageProfile),
+                      ),
+                      TextButton(
+                        onPressed: _foundations,
+                        child: Text(l10n.languageFoundations),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   Text(l10n.languageExamSkills, style: theme.titleLarge),

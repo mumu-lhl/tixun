@@ -149,7 +149,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                 : context.l10n.noReviewsInThisCategory,
                           ),
                           const SizedBox(height: 12),
-                          OutlinedButton(
+                          FilledButton(
                             onPressed: () => context.go("/practice"),
                             child: Text(context.l10n.practiceNow),
                           ),
@@ -219,8 +219,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                 runSpacing: 4,
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  FilledButton.tonal(
+                                  FilledButton(
                                     key: Key("review-start-${s.id}"),
+                                    style: FilledButton.styleFrom(
+                                      minimumSize: const Size(0, 48),
+                                    ),
                                     onPressed: () => act(context, () async {
                                       await ref
                                           .read(appControllerProvider)

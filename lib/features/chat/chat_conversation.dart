@@ -220,40 +220,10 @@ class _ConversationState extends ConsumerState<Conversation> {
                 maintainState: reserveQuickActions,
                 maintainAnimation: reserveQuickActions,
                 maintainSize: reserveQuickActions,
-                child: SizedBox(
-                  height: 40,
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 830),
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        children: [
-                          for (final text in [
-                            context.l10n.giveMeAHint,
-                            context.l10n.explainDifferently,
-                            context.l10n.makeItSimpler,
-                            context.l10n.showTheAnswer,
-                            context.l10n.giveMeAnotherQuestion,
-                          ])
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ActionChip(
-                                label: Text(
-                                  text,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                onPressed: () {
-                                  _input.text = text;
-                                  unawaited(c.draft(text));
-                                  _focus.requestFocus();
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
+                child: _quickActions(
+                  context,
+                  c,
+                  wrap: constraints.maxWidth >= 700,
                 ),
               ),
               _composer(
@@ -271,6 +241,53 @@ class _ConversationState extends ConsumerState<Conversation> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _quickActions(
+    BuildContext context,
+    AppController c, {
+    required bool wrap,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    final quickActions = [
+      for (final text in [
+        context.l10n.giveMeAHint,
+        context.l10n.explainDifferently,
+        context.l10n.makeItSimpler,
+        context.l10n.showTheAnswer,
+        context.l10n.giveMeAnotherQuestion,
+      ])
+        ActionChip(
+          label: Text(text),
+          labelStyle: Theme.of(context).textTheme.labelLarge
+              ?.copyWith(color: colors.onSurface),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+          onPressed: () {
+            _input.text = text;
+            unawaited(c.draft(text));
+            _focus.requestFocus();
+          },
+        ),
+    ];
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 850),
+        child: wrap
+            ? SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Wrap(spacing: 8, children: quickActions),
+                ),
+              )
+            : SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(spacing: 8, children: quickActions),
+              ),
       ),
     );
   }

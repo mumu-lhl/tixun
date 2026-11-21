@@ -64,8 +64,40 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      SegmentedButton<bool>(
+                        key: const Key("exam-view"),
+                        segments: [
+                          ButtonSegment(
+                            value: false,
+                            icon: const Icon(Icons.calendar_month_outlined),
+                            label: Text(context.l10n.calendar),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            icon: const Icon(Icons.view_list_outlined),
+                            label: Text(context.l10n.list),
+                          ),
+                        ],
+                        selected: {listView},
+                        onSelectionChanged: (value) => setState(() {
+                          listView = value.single;
+                          events = null;
+                        }),
+                      ),
                       FilledButton.icon(
                         key: const Key("exam-add"),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                        ),
                         onPressed: () => _create(
                           listView
                               ? DateUtils.dateOnly(DateTime.now())
@@ -75,27 +107,6 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                         label: Text(context.l10n.recordExam),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 16),
-                  SegmentedButton<bool>(
-                    key: const Key("exam-view"),
-                    segments: [
-                      ButtonSegment(
-                        value: false,
-                        icon: const Icon(Icons.calendar_month_outlined),
-                        label: Text(context.l10n.calendar),
-                      ),
-                      ButtonSegment(
-                        value: true,
-                        icon: const Icon(Icons.view_list_outlined),
-                        label: Text(context.l10n.list),
-                      ),
-                    ],
-                    selected: {listView},
-                    onSelectionChanged: (value) => setState(() {
-                      listView = value.single;
-                      events = null;
-                    }),
                   ),
                   const SizedBox(height: 16),
                 ],
