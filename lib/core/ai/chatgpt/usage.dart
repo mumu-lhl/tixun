@@ -104,7 +104,9 @@ class ChatGptUsageClient {
               "ChatGPT-Account-Id": session.accountId,
             "Accept": "application/json",
           },
-          responseType: ResponseType.json,
+          // Handle the status before parsing: this endpoint may send non-JSON
+          // error pages.
+          responseType: ResponseType.plain,
           validateStatus: (_) => true,
         ),
       );
@@ -115,16 +117,10 @@ class ChatGptUsageClient {
       );
     }
     final status = response.statusCode ?? 0;
-    if (status == 401) {
+    if (status == 401 || status == 403) {
       throw const AiFailure.localized(
-        AppErrorCode.yourChatGPTSignInHas,
-        "ChatGPT 登录已失效，请重新登录。",
-      );
-    }
-    if (status == 403) {
-      throw const AiFailure.localized(
-        AppErrorCode.chatGPTPlanAllowanceOrPermissions,
-        "ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。",
+        AppErrorCode.chatGptQuotaAccessDenied,
+        "额度接口拒绝了查询，但这不代表登录失效。请在 ChatGPT 官方用量页查看。",
       );
     }
     if (status == 429) {

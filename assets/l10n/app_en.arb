@@ -1655,6 +1655,7 @@
   "chatGptUnsupportedMessageContent": "ChatGPT does not support this message content.",
   "invalidChatGPTMessageRole": "Invalid ChatGPT message role.",
   "yourChatGPTSignInHas": "Your ChatGPT sign-in has expired. Sign in again.",
+  "chatGptQuotaAccessDenied": "The quota endpoint denied the request. This does not mean your sign-in expired. Check the official ChatGPT usage page.",
   "chatGPTPlanAllowanceOrPermissions": "ChatGPT plan allowance or permissions are unavailable. Check usage in ChatGPT. Requests will not fall back to API billing.",
   "chatGptUnsupportedModelOrParameter": "ChatGPT does not support this model or parameter. Refresh the model list or use the default reasoning setting.",
   "theChatGPTRequestFailedCheck": "The ChatGPT request failed. Check your network and try again.",

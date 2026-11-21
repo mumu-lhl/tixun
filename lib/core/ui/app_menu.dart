@@ -187,7 +187,8 @@ class _AppSelectFieldState<T> extends State<AppSelectField<T>> {
                       child: _row(label, textStyle, enabled, colors),
                     )
                   : InputDecorator(
-                      isEmpty: choice == null,
+                      // The placeholder is already rendered as the child, so
+                      // the decorator must leave it room below the label.
                       isFocused: open,
                       decoration: widget.decoration
                           .copyWith(

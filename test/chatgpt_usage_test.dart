@@ -278,11 +278,12 @@ void main() {
       expect(seen.headers.containsKey("ChatGPT-Account-Id"), isFalse);
     });
 
-    test("401 asks for a new sign-in, 403 reports plan limits", () async {
-      Future<void> expectCode(int status, AppErrorCode code) async {
+    test("quota endpoint errors are independent of sign-in", () async {
+      final auth = await _auth(_record());
+      Future<void> expectCode(ResponseBody response, AppErrorCode code) async {
         final client = ChatGptUsageClient(
-          auth: await _auth(_record()),
-          client: _dio((_) => fixtureJson({"error": "x"}, status: status)),
+          auth: auth,
+          client: _dio((_) => response),
         );
         await expectLater(
           client.fetch(),
@@ -290,10 +291,30 @@ void main() {
         );
       }
 
-      await expectCode(401, AppErrorCode.yourChatGPTSignInHas);
-      await expectCode(403, AppErrorCode.chatGPTPlanAllowanceOrPermissions);
-      await expectCode(429, AppErrorCode.tooManyRequestsTryAgain);
-      await expectCode(500, AppErrorCode.theChatGPTRequestFailedCheck);
+      await expectCode(
+        fixtureJson({"error": "x"}, status: 401),
+        AppErrorCode.chatGptQuotaAccessDenied,
+      );
+      await expectCode(
+        ResponseBody.fromString(
+          "not JSON",
+          403,
+          headers: {
+            "content-type": ["application/json"],
+          },
+        ),
+        AppErrorCode.chatGptQuotaAccessDenied,
+      );
+      expect(await auth.accessToken(), "access-token");
+
+      await expectCode(
+        fixtureJson({"error": "x"}, status: 429),
+        AppErrorCode.tooManyRequestsTryAgain,
+      );
+      await expectCode(
+        fixtureJson({"error": "x"}, status: 500),
+        AppErrorCode.theChatGPTRequestFailedCheck,
+      );
     });
 
     test("a transport failure never leaks the raw Dio message", () async {
@@ -471,14 +492,15 @@ void main() {
             quota: null,
             loading: false,
             failure: const AiFailure.localized(
-              AppErrorCode.yourChatGPTSignInHas,
+              AppErrorCode.chatGptQuotaAccessDenied,
               "raw provider text",
             ),
             onRefresh: () {},
           ),
         ),
       );
-      expect(find.text("ChatGPT 登录已失效，请重新登录。"), findsOneWidget);
+      expect(find.textContaining("请在 ChatGPT 官方用量页查看"), findsOneWidget);
+      expect(find.textContaining("请重新登录"), findsNothing);
       expect(find.textContaining("raw provider text"), findsNothing);
     });
 

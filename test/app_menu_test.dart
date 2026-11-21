@@ -4,6 +4,25 @@ import "package:flutter_test/flutter_test.dart";
 import "package:tixun/core/ui/app_menu.dart";
 
 void main() {
+  testWidgets("an unselected field keeps its label above the placeholder", (
+    t,
+  ) async {
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AppSelectField<String>(
+            decoration: const InputDecoration(labelText: "模型"),
+            items: const [DropdownMenuItem(value: "A", child: Text("Alpha"))],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+    final label = t.getRect(find.text("模型"));
+    final placeholder = t.getRect(find.text("请选择"));
+    expect(label.bottom, lessThanOrEqualTo(placeholder.top));
+  });
+
   testWidgets("selection fields support intrinsic dialog layout", (t) async {
     await t.pumpWidget(
       MaterialApp(

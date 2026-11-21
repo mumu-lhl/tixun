@@ -1655,6 +1655,7 @@
   "chatGptUnsupportedMessageContent": "ChatGPT 不支持此消息内容。",
   "invalidChatGPTMessageRole": "ChatGPT 消息角色无效。",
   "yourChatGPTSignInHas": "ChatGPT 登录已失效，请重新登录。",
+  "chatGptQuotaAccessDenied": "额度接口拒绝了查询，但这不代表登录失效。请在 ChatGPT 官方用量页查看。",
   "chatGPTPlanAllowanceOrPermissions": "ChatGPT 订阅额度或权限不可用，请在 ChatGPT 中检查用量。不会转用 API 计费。",
   "chatGptUnsupportedModelOrParameter": "ChatGPT 不支持当前模型或参数，请刷新模型列表或改用模型默认思考设置。",
   "theChatGPTRequestFailedCheck": "ChatGPT 请求失败，请检查网络后重试。",

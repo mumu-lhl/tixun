@@ -16,7 +16,7 @@
 - 推理固定使用公共 `/v1/responses`，请求 `store:false`、`stream:true`、按上下文预算准备的历史与摘要。系统提示转换为 instructions，图片转换为 input_image，省略当前订阅路线不支持的字段。
 - 联网开启时，同一公开订阅 Responses 请求声明服务端 `web_search` 并请求来源。搜索、打开网页和页内查找均由服务商执行，是否执行由模型决定，不切换到 Codex 私有接口或 API Key。支持范围取决于模型、账号和工作区；展开「联网记录与来源」可见服务商实际返回的搜索词、网页与链接。
 - 应用工具置于命名空间中，继续经过现有参数校验、会话权限、逐项写入确认和调用上限。加密推理与相关输出只在当前请求的多轮工具过程中回传，不写入聊天记录。思考档位按模型目录或明确的能力回退选择，`xhigh` 与 `max` 原样区分；模型默认不发送强度参数，支持的 `none` 则明确请求不推理。
-- 订阅额度（经用户明确批准的私有端点例外）：OpenAI 没有公开的额度接口，应用改为读取官方 Codex 客户端使用的 `GET https://chatgpt.com/backend-api/wham/usage`，契约取自 `openai/codex` 仓库的生成响应模型（`rate_limit_status_payload`、`rate_limit_window_snapshot`、`credit_status_details`）。这是唯一允许的私有 `backend-api` 调用，边界如下：只由用户在 ChatGPT 设置页点击「查询额度」触发，不做后台轮询、不写入数据库或备份、不与其他私有端点混用；字段全部可选，缺窗口/缺积分/数字以字符串给出都不算失败；401 提示重新登录，403 归因于订阅额度或权限，其余错误一律「请求失败」。该端点未公开、可能随时变化，界面固定显示这一说明并提供官方用量页入口。DeepSeek 等提供公开余额接口的服务商另见 `core/ai/provider_balance.dart`。
+- 订阅额度（经用户明确批准的私有端点例外）：OpenAI 没有公开的额度接口，应用改为读取官方 Codex 客户端使用的 `GET https://chatgpt.com/backend-api/wham/usage`，契约取自 `openai/codex` 仓库的生成响应模型（`rate_limit_status_payload`、`rate_limit_window_snapshot`、`credit_status_details`）。这是唯一允许的私有 `backend-api` 调用，边界如下：仅在打开已登录的 ChatGPT 设置页或手动刷新时查询，成功结果在内存中缓存五分钟，不做后台轮询、不写入数据库或备份、不与其他私有端点混用；字段全部可选，缺窗口/缺积分/数字以字符串给出都不算失败；401/403 仅表示额度查询被拒绝，提示查看官方用量页，不据此判定登录失效或额度耗尽。该端点未公开、可能随时变化，界面固定显示这一说明并提供官方用量页入口。DeepSeek 等提供公开余额接口的服务商另见 `core/ai/provider_balance.dart`。
 - 误标媒体类型的 SSE 根据字节前缀即时转发，保留 UTF-8 分包；完整结束响应可补齐与已接收正文一致的缺失尾段，避免重复。只有 `response.completed` 算成功；空 SSE 心跳不算错误或成功，可选用量统计字段不应导致有效的工具回复失败；中途额度错误、未完成、断流和错误 JSON 都有失败反馈，不切换到 API 计费。页面提供官方用量/授权管理入口。
 
 ## JOSE 依赖与验证约束
