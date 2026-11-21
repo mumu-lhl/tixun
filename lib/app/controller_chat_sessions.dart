@@ -55,7 +55,7 @@ extension _ChatSessions on AppController {
 
   Future<void> _loadSession(ChatSession session) async {
     final current = ++_epoch;
-    final loaded = await Future.wait<Object>([
+    final loaded = await Future.wait<Object?>([
       db.messages(session.id),
       db.images(session.id),
       db.preference("ai_reasoning:${session.id}").then((v) => v ?? ""),
@@ -64,6 +64,7 @@ extension _ChatSessions on AppController {
           .then((v) => readStudyToolCategories(v)),
       db.preference("ai_drawing:${session.id}").then((v) => v ?? ""),
       db.preference(chatA2uiPreference(session.id)).then((v) => v ?? ""),
+      preferences.chatWebOverride(session.id),
     ]);
     if (_epoch != current) return;
     final row = await (db.select(
@@ -83,6 +84,7 @@ extension _ChatSessions on AppController {
       _ => null,
     };
     sessionA2uiOverride = readA2uiOverride(loaded[5] as String);
+    sessionWebOverride = loaded[6] as bool?;
     sessionReasoning = AiOptions(config).supportsOverride(override)
         ? override
         : "";

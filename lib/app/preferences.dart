@@ -62,6 +62,7 @@ class AppPreferences extends DatabaseNotifier {
   String languageChoice = "zh";
   bool dynamicColors = true;
   bool aiDrawingEnabled = false;
+  bool aiWebEnabled = false;
   bool aiA2uiEnabled = true;
   Locale? get appLocale =>
       languageChoice == "system" ? null : Locale(languageChoice);
@@ -75,6 +76,7 @@ class AppPreferences extends DatabaseNotifier {
     maxContextTokens = await loadMaxContextTokens(db);
     maxToolCalls = await loadMaxToolCalls(db);
     aiDrawingEnabled = await db.preference(aiDrawingEnabledKey) == "true";
+    aiWebEnabled = await db.preference("ai_web_enabled") == "true";
     aiA2uiEnabled =
         readA2uiOverride(await db.preference(aiA2uiEnabledKey)) ?? true;
     await loadSubjects();
@@ -207,6 +209,7 @@ class AppPreferences extends DatabaseNotifier {
         for (final (oldKey, newKey) in [
           ("ai_reasoning:$source", "ai_reasoning:$target"),
           ("ai_drawing:$source", "ai_drawing:$target"),
+          (_webPreference(source), _webPreference(target)),
           (chatA2uiPreference(source), chatA2uiPreference(target)),
           (studyToolCategoriesKey(source), studyToolCategoriesKey(target)),
         ]) {
@@ -220,6 +223,25 @@ class AppPreferences extends DatabaseNotifier {
     aiDrawingEnabled = value;
     changed();
   });
+
+  static String _webPreference(String id) => "ai_web:$id";
+
+  Future<void> setAiWebEnabled(bool value) => runOperation(() async {
+    await db.setPreference("ai_web_enabled", value.toString());
+    aiWebEnabled = value;
+    changed();
+  });
+
+  Future<bool?> chatWebOverride(String id) async =>
+      switch (await db.preference(_webPreference(id))) {
+        "true" => true,
+        "false" => false,
+        _ => null,
+      };
+
+  Future<void> saveChatWebOverride(String id, bool? value) => runOperation(
+    () => db.setPreference(_webPreference(id), value?.toString() ?? ""),
+  );
 
   Future<String> pythonExecutionPolicy() async {
     final value = await db.preference(pythonPolicyKey);

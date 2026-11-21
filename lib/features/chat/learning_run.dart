@@ -50,6 +50,7 @@ class LearningRunResult {
     this.surfaceInserted = false,
     this.reasoning,
     this.reasoningTrace,
+    this.webAction,
   });
   final String text;
   final int? tokens;
@@ -68,6 +69,7 @@ class LearningRunResult {
 
   /// Display-only trace across rounds; never replay this as protocol reasoning.
   final String? reasoningTrace;
+  final WebAction? webAction;
 }
 
 /// Complete learning inference, including context, protocol turns and tool policy.
@@ -110,6 +112,7 @@ class LearningRun {
     bool enableConversationTitle = false,
     bool? drawingOverride,
     bool? a2uiOverride,
+    bool webEnabled = false,
     required CancelToken cancel,
     required Future<bool> Function(
       String name,
@@ -148,6 +151,7 @@ class LearningRun {
     var titleRequestPending =
         enableConversationTitle && requestConfig.kind == "deepseek";
     var activeReasoning = "", trace = "";
+    WebAction? activeWebAction;
     var exam = mode == "exam";
     var surfaceCreated = false, nextBlock = 0;
     Future<void> publish({bool surfaceInserted = false}) => onProgress(
@@ -160,6 +164,7 @@ class LearningRun {
         reasoning: activeReasoning.isEmpty ? null : activeReasoning,
         reasoningTrace: trace.isEmpty ? null : trace,
         title: generatedTitle,
+        webAction: activeWebAction,
       ),
     );
     try {
@@ -174,6 +179,7 @@ class LearningRun {
         authorized: authorized,
         drawingOverride: drawingOverride,
         a2uiOverride: a2uiOverride,
+        webEnabled: webEnabled,
         cancel: cancel,
         approve: approve,
       );
@@ -243,7 +249,10 @@ class LearningRun {
         }
 
         var roundReasoning = "";
+        String? webReplay, continuationReasoning;
+        WebActivity? webActivity;
         activeReasoning = "";
+        activeWebAction = null;
         var traceStarted = false;
         var roundTokens = 0;
         var completed = false;
@@ -267,6 +276,17 @@ class LearningRun {
             final title = chunk.title?.trim();
             if (title != null && title.isNotEmpty) generatedTitle = title;
             if (chunk.usage != null) roundUsage = chunk.usage;
+            if (chunk.webAction != null) activeWebAction = chunk.webAction;
+            if (chunk.completed ||
+                chunk.text.isNotEmpty ||
+                chunk.reasoning.isNotEmpty) {
+              activeWebAction = null;
+            }
+            if (chunk.completed && !completed) {
+              webReplay = chunk.webReplay;
+              webActivity = chunk.webActivity;
+              continuationReasoning = chunk.continuationReasoning;
+            }
             rawRoundText += chunk.text;
             if (chunk.reasoning.isNotEmpty) {
               if (!traceStarted && trace.isNotEmpty) trace += "\n\n---\n\n";
@@ -354,7 +374,8 @@ class LearningRun {
         );
         // Keep the reasoning of the round that just streamed, even if the
         // text is later replaced by the quiz placeholder below.
-        lastRoundReasoning = roundReasoning.isEmpty ? null : roundReasoning;
+        final replayReasoning = continuationReasoning ?? roundReasoning;
+        lastRoundReasoning = replayReasoning.isEmpty ? null : replayReasoning;
         if (!completed) {
           throw const AiFailure.localized(
             AppErrorCode.theConnectionEndedEarlyReceived,
@@ -362,7 +383,13 @@ class LearningRun {
           );
         }
         validateToolCalls(calls);
-        await contextRun?.output(roundText, roundReasoning, calls);
+        await contextRun?.output(
+          roundText,
+          replayReasoning,
+          calls,
+          webActivity: webActivity,
+          webReplay: webReplay,
+        );
         if (calls.isEmpty) break;
         if (!quizEnabled ||
             calls.any(
@@ -406,7 +433,8 @@ class LearningRun {
             AiMessage.assistant(
               roundText,
               calls: calls,
-              reasoningContent: roundReasoning.isEmpty ? null : roundReasoning,
+              reasoningContent: lastRoundReasoning,
+              webReplay: webReplay,
             ),
           ],
         );

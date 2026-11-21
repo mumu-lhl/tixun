@@ -2937,6 +2937,25 @@
   "aiToolsSettingsHelp": "Drawing, interactive interfaces, Python execution and tool-call limits",
   "aiA2ui": "Interactive interfaces (A2UI)",
   "aiA2uiHelp": "Allow AI to create interactive cards and forms in chat. Individual conversations can override this default.",
+  "aiWebAccess": "Web search and page reading",
+  "aiWebAccessHelp": "Off by default. When enabled, DeepSeek Flash on the official API and eligible ChatGPT subscription models can search the web or read pages through the provider. Chats can override this setting.",
+  "webUnavailableForModel": "The current model does not offer web access in this app. You can still save a preference for when you switch to a supported model.",
+  "webEnableForChat": "Enable for this chat",
+  "webDisableForChat": "Disable for this chat",
+  "webSearching": "Searching the web…",
+  "webReading": "Reading a web page…",
+  "webActivityTitle": "Web activity and sources",
+  "webActivityCounts": "Searches: {searches} · Page reads: {reads}",
+  "webSearchOperation": "Web search",
+  "webReadOperation": "Page read",
+  "webOperationFailed": "Request failed",
+  "webSourceList": "Sources",
+  "@webActivityCounts": {
+    "placeholders": {
+      "searches": {"type": "int"},
+      "reads": {"type": "int"}
+    }
+  },
   "a2uiUseDefault": "A2UI · Use global default",
   "enableA2uiForChat": "Enable A2UI for this chat",
   "disableA2uiForChat": "Disable A2UI for this chat",

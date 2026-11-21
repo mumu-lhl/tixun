@@ -2937,6 +2937,25 @@
   "aiToolsSettingsHelp": "绘图、交互界面、Python 执行及工具调用上限",
   "aiA2ui": "交互界面（A2UI）",
   "aiA2uiHelp": "允许 AI 在聊天中生成交互卡片和表单。可在单个会话中覆盖此默认设置。",
+  "aiWebAccess": "网页搜索与读取",
+  "aiWebAccessHelp": "默认关闭。开启后，官方接口上的 DeepSeek Flash 和支持联网的 ChatGPT 订阅模型可通过服务商搜索或读取网页。每个会话可覆盖此设置。",
+  "webUnavailableForModel": "当前模型在本应用中不支持联网。仍可保存会话设置，切换到支持联网的模型后生效。",
+  "webEnableForChat": "为此会话开启",
+  "webDisableForChat": "为此会话关闭",
+  "webSearching": "正在搜索网页…",
+  "webReading": "正在读取网页…",
+  "webActivityTitle": "联网记录与来源",
+  "webActivityCounts": "搜索 {searches} 次 · 读网页 {reads} 次",
+  "@webActivityCounts": {
+    "placeholders": {
+      "searches": {"type": "int"},
+      "reads": {"type": "int"}
+    }
+  },
+  "webSearchOperation": "网页搜索",
+  "webReadOperation": "读取网页",
+  "webOperationFailed": "请求未成功",
+  "webSourceList": "来源",
   "a2uiUseDefault": "A2UI · 跟随全局设置",
   "enableA2uiForChat": "在此会话开启 A2UI",
   "disableA2uiForChat": "在此会话关闭 A2UI",

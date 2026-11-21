@@ -299,6 +299,15 @@ class _GlobalToolPreferences extends ConsumerWidget {
       child: Column(
         children: [
           SwitchListTile(
+            key: const Key("settings-ai-web"),
+            secondary: const Icon(Icons.language),
+            title: Text(context.l10n.aiWebAccess),
+            subtitle: Text(context.l10n.aiWebAccessHelp),
+            value: c.preferences.aiWebEnabled,
+            onChanged: (value) =>
+                act(context, () => c.preferences.setAiWebEnabled(value)),
+          ),
+          SwitchListTile(
             key: const Key("settings-ai-drawing"),
             secondary: const Icon(Icons.draw_outlined),
             title: Text(context.l10n.aiDrawing),

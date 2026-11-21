@@ -359,6 +359,7 @@ extension _ChatGeneration on AppController {
     final requestPrompts = prompts;
     final requestDrawingEnabled = sessionDrawingEnabled;
     final requestA2uiEnabled = sessionA2uiEnabled;
+    final requestWebEnabled = sessionWebEnabled;
     var text = "";
     var status = "complete";
     String? failure;
@@ -395,6 +396,7 @@ extension _ChatGeneration on AppController {
         enableConversationTitle: enableConversationTitle,
         drawingOverride: requestDrawingEnabled,
         a2uiOverride: requestA2uiEnabled,
+        webEnabled: requestWebEnabled,
         cancel: cancel,
         confirm: (name, args, count) =>
             _confirmTool(name, args, cancel, imageCount: count),
@@ -404,6 +406,10 @@ extension _ChatGeneration on AppController {
           quizCreated = progress.quizCreated;
           reasoning = progress.reasoning;
           trace = progress.reasoningTrace;
+          if (activeWebAction != progress.webAction) {
+            activeWebAction = progress.webAction;
+            changed();
+          }
           if (progress.surfaceInserted ||
               DateTime.now().difference(lastWrite).inMilliseconds >=
                   _progressThrottleMs ||
@@ -488,6 +494,7 @@ extension _ChatGeneration on AppController {
       }
       busy = false;
       _cancel = null;
+      activeWebAction = null;
       if (demo) debugPrint("TIXUN_GENERATION_FINISHED status=$status");
       changed();
     }

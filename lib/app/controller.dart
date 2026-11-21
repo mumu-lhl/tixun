@@ -144,6 +144,21 @@ class AppController extends ChangeNotifier {
     changed();
   }
 
+  bool? sessionWebOverride;
+  bool get webAvailable => !demo && AiOptions(sessionConfig).webAvailable;
+  bool get sessionWebEnabled =>
+      webAvailable && (sessionWebOverride ?? preferences.aiWebEnabled);
+  WebAction? activeWebAction;
+
+  Future<void> setSessionWebEnabled(bool? value) async {
+    final id = selected?.id;
+    if (_disposed || busy || id == null) return;
+    await preferences.saveChatWebOverride(id, value);
+    if (_disposed || selected?.id != id) return;
+    sessionWebOverride = value;
+    changed();
+  }
+
   int get maxToolCalls => preferences.maxToolCalls;
   Future<void> setMaxToolCalls(int value) => preferences.setMaxToolCalls(value);
 

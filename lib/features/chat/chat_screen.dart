@@ -14,6 +14,7 @@ import "package:go_router/go_router.dart";
 import "../../app/controller.dart";
 import "../../core/database/database.dart";
 import "../../core/ai/study_tools.dart";
+import "../../core/ai/web_activity.dart";
 import "../../core/ai/ai_usage_store.dart";
 import "../../core/ai/ai_usage_summary.dart";
 import "../../core/l10n/app_strings.dart";
@@ -30,6 +31,8 @@ import "../settings/tool_call_limit_setting.dart";
 import "reasoning_menu.dart";
 import "drawing_menu.dart";
 import "message_reasoning.dart";
+import "message_web_activity.dart";
+import "chat_web_settings.dart";
 import "chat_failure.dart";
 import "session_list.dart";
 
@@ -189,6 +192,10 @@ class ChatScreen extends ConsumerWidget {
                         if (handleDrawingMenuSelection(context, c, action)) {
                           return;
                         }
+                        if (action == "web") {
+                          unawaited(showChatWebSettings(context, c));
+                          return;
+                        }
                         if (action == "tool-call-limit") {
                           unawaited(editToolCallLimit(context, c));
                           return;
@@ -211,6 +218,14 @@ class ChatScreen extends ConsumerWidget {
                         }
                       },
                       itemBuilder: (ctx) => [
+                        if (c.selected != null)
+                          CheckedPopupMenuItem(
+                            key: const Key("chat-web-settings"),
+                            value: "web",
+                            checked: c.sessionWebEnabled,
+                            enabled: !c.busy,
+                            child: Text(ctx.l10n.aiWebAccess),
+                          ),
                         ...drawingMenuItems(ctx, c),
                         if (compact) const PopupMenuDivider(),
                         if (compact)

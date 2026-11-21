@@ -3,6 +3,9 @@ import "package:dio/dio.dart";
 import "../database/database.dart";
 import "../l10n/app_error.dart";
 import "ai_usage.dart";
+import "web_activity.dart";
+
+export "web_activity.dart";
 
 class AiFailure implements Exception, LocalizedAppFailure {
   const AiFailure(this.message) : code = null, arguments = const [];
@@ -58,18 +61,21 @@ class AiMessage {
     this.reasoningContent,
   }) : role = AiRole.user,
        calls = const [],
-       callId = null;
+       callId = null,
+       webReplay = null;
   const AiMessage.assistant(
     this.text, {
     this.calls = const [],
     this.reasoningContent,
+    this.webReplay,
   }) : role = AiRole.assistant,
        images = const [],
        callId = null;
   const AiMessage.tool(String this.callId, this.text, {this.reasoningContent})
     : role = AiRole.tool,
       images = const [],
-      calls = const [];
+      calls = const [],
+      webReplay = null;
   final AiRole role;
   final String text;
   final List<AiImage> images;
@@ -79,6 +85,11 @@ class AiMessage {
   /// The model's reasoning for this turn, when the provider returned one.
   /// Passed back verbatim on later requests that carry tools.
   final String? reasoningContent;
+
+  /// Opaque continuation data for a read page, only restored under the same
+  /// provider/model and when web access is still enabled.
+  final String? webReplay;
+
   AiMessage withText(String value) => switch (role) {
     AiRole.user => AiMessage.user(
       value,
@@ -89,6 +100,7 @@ class AiMessage {
       value,
       calls: calls,
       reasoningContent: reasoningContent,
+      webReplay: webReplay,
     ),
     AiRole.tool => AiMessage.tool(
       callId!,
@@ -106,6 +118,7 @@ class AiRequest {
     List<AiTool> tools = const [],
     this.maxOutputTokens,
     this.enableConversationTitle = false,
+    this.webAccess = WebAccess.off,
   }) : messages = List.unmodifiable(messages),
        tools = List.unmodifiable(tools);
   final String instructions;
@@ -116,6 +129,7 @@ class AiRequest {
   final int? maxOutputTokens;
 
   final bool enableConversationTitle;
+  final WebAccess webAccess;
 
   AiRequest copyWith({
     String? instructions,
@@ -123,6 +137,7 @@ class AiRequest {
     List<AiTool>? tools,
     int? maxOutputTokens,
     bool? enableConversationTitle,
+    WebAccess? webAccess,
   }) => AiRequest(
     instructions: instructions ?? this.instructions,
     messages: messages ?? this.messages,
@@ -130,6 +145,7 @@ class AiRequest {
     maxOutputTokens: maxOutputTokens ?? this.maxOutputTokens,
     enableConversationTitle:
         enableConversationTitle ?? this.enableConversationTitle,
+    webAccess: webAccess ?? this.webAccess,
   );
 }
 
@@ -144,6 +160,10 @@ class AiChunk {
     this.usage,
     this.completed = false,
     this.calls = const [],
+    this.webAction,
+    this.webActivity,
+    this.webReplay,
+    this.continuationReasoning,
   });
   final String text;
 
@@ -157,6 +177,14 @@ class AiChunk {
   final AiTokenUsage? usage;
   final bool completed;
   final List<ToolCall> calls;
+
+  final WebAction? webAction;
+  final WebActivity? webActivity;
+  final String? webReplay;
+
+  /// Some hosted tools split thinking into steps. Only the last step belongs
+  /// in the assistant's ordinary reasoning field on replay.
+  final String? continuationReasoning;
 }
 
 abstract interface class ChatProvider {

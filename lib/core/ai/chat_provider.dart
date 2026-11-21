@@ -14,6 +14,7 @@ import "ai_options.dart";
 export "ai_options.dart";
 export "ai_usage.dart";
 import "tool_call_collector.dart";
+import "deepseek_web.dart";
 import "../platform/key_store.dart";
 export "ai_types.dart";
 
@@ -41,8 +42,12 @@ Stream<String> sseData(Stream<List<int>> bytes) async* {
   if (data.isNotEmpty) yield data.join("\n");
 }
 
-Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
-  var ended = false;
+Stream<AiChunk> decodeCompletion(
+  Stream<List<int>> stream, {
+  bool hostedWeb = false,
+}) async* {
+  var ended = false, splitReasoning = false;
+  var stepReasoning = StringBuffer();
   final collector = ToolCallCollector();
   await for (final data in sseData(stream)) {
     if (data == "[DONE]") {
@@ -84,6 +89,20 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
       if (choices.isEmpty) continue;
       final choice = choices.first as Map<String, dynamic>;
       final delta = choice["delta"] as Map<String, dynamic>? ?? {};
+      final serverEvent = hostedWeb ? choice["server_tool_event"] : null;
+      if (serverEvent is Map) {
+        if (serverEvent["type"] == "step_reasoning_done") {
+          splitReasoning = true;
+          stepReasoning = StringBuffer();
+        } else if (serverEvent["type"] == "call_started") {
+          if (serverEvent["call"] case {
+            "action": {"type": final String type},
+          }) {
+            final action = deepSeekWebAction(type);
+            if (action != null) yield AiChunk(webAction: action);
+          }
+        }
+      }
       final title = delta["title"];
       if (title is String && title.trim().isNotEmpty) {
         yield AiChunk(title: title.trim());
@@ -102,6 +121,7 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
       }
       final reasoning = delta["reasoning_content"] ?? delta["reasoning"];
       if (reasoning is String) {
+        if (hostedWeb) stepReasoning.write(reasoning);
         yield AiChunk(reasoning: reasoning);
       }
       final finish = choice["finish_reason"] as String?;
@@ -132,7 +152,17 @@ Stream<AiChunk> decodeCompletion(Stream<List<int>> stream) async* {
             "工具响应未正常结束，未执行本轮资料修改。",
           );
         }
-        yield AiChunk(completed: true, calls: calls);
+        yield AiChunk(
+          completed: true,
+          calls: calls,
+          webActivity: hostedWeb ? deepSeekWebActivity(delta) : null,
+          webReplay: hostedWeb
+              ? deepSeekWebReplay(delta["server_tool_calls"])
+              : null,
+          continuationReasoning: splitReasoning
+              ? stepReasoning.toString()
+              : null,
+        );
       }
     } on AiFailure {
       rethrow;
@@ -285,66 +315,90 @@ Future<AiRequest> prepareAiRequest(
   return AiRequest(instructions: teachingPrompt(mode), messages: messages);
 }
 
+bool _useDeepSeekWeb(ProviderConfig config, AiRequest request) =>
+    config.kind == "deepseek" &&
+    AiOptions(config).webAvailable &&
+    request.webAccess != WebAccess.off;
+
 Map<String, dynamic> encodeCompletion(
   ProviderConfig config,
   AiRequest request,
-) => {
-  "model": config.model,
-  "stream": true,
-  if (config.kind == "deepseek" && request.enableConversationTitle)
-    "title": {"enabled": true},
-  "stream_options": {"include_usage": true},
-  if (request.maxOutputTokens != null) "max_tokens": request.maxOutputTokens,
-  if (config.kind == "deepseek")
-    "thinking": {"type": config.thinking ? "enabled" : "disabled"},
-  if (config.supportsThinking && config.thinking)
-    "reasoning_effort": AiOptions(config).effortParameter,
-  "messages": [
-    if (request.instructions.isNotEmpty)
-      {"role": "system", "content": request.instructions},
-    for (final m in request.messages)
-      {
-        "role": m.role.name,
-        "content": m.images.isEmpty
-            ? m.text
-            : [
-                {"type": "text", "text": m.text},
-                for (final i in m.images)
-                  {
-                    "type": "image_url",
-                    "image_url": {"url": i.dataUrl},
-                  },
-              ],
-        if (m.callId != null) "tool_call_id": m.callId,
-        if (m.role == AiRole.assistant &&
-            m.reasoningContent != null &&
-            m.reasoningContent!.isNotEmpty &&
-            config.kind == "deepseek")
-          "reasoning_content": m.reasoningContent,
-        if (m.calls.isNotEmpty)
-          "tool_calls": [
-            for (final c in m.calls)
-              {
-                "id": c.id,
-                "type": "function",
-                "function": {"name": c.name, "arguments": c.arguments},
-              },
-          ],
-      },
-  ],
-  if (request.tools.isNotEmpty)
-    "tools": [
-      for (final t in request.tools)
+) {
+  final useWeb = _useDeepSeekWeb(config, request);
+  final webHistory = Map<AiMessage, List<dynamic>>.identity();
+  if (useWeb) {
+    var remaining = 2 * 1024 * 1024;
+    // Keep the newest signed reads when the accumulated payload is large.
+    for (final message in request.messages.reversed) {
+      final replay = message.webReplay;
+      if (replay == null || replay.length > remaining) continue;
+      final decoded = decodeDeepSeekWebReplay(replay);
+      if (decoded == null) continue;
+      webHistory[message] = decoded;
+      remaining -= replay.length;
+    }
+  }
+  return {
+    "model": config.model,
+    "stream": true,
+    if (config.kind == "deepseek" && request.enableConversationTitle)
+      "title": {"enabled": true},
+    "stream_options": {"include_usage": true},
+    if (request.maxOutputTokens != null) "max_tokens": request.maxOutputTokens,
+    if (config.kind == "deepseek")
+      "thinking": {"type": config.thinking ? "enabled" : "disabled"},
+    if (config.supportsThinking && config.thinking)
+      "reasoning_effort": AiOptions(config).effortParameter,
+    "messages": [
+      if (request.instructions.isNotEmpty)
+        {"role": "system", "content": request.instructions},
+      for (final m in request.messages)
         {
-          "type": "function",
-          "function": {
-            "name": t.name,
-            "description": t.description,
-            "parameters": t.parameters,
-          },
+          "role": m.role.name,
+          "content": m.images.isEmpty
+              ? m.text
+              : [
+                  {"type": "text", "text": m.text},
+                  for (final i in m.images)
+                    {
+                      "type": "image_url",
+                      "image_url": {"url": i.dataUrl},
+                    },
+                ],
+          if (m.callId != null) "tool_call_id": m.callId,
+          if (m.role == AiRole.assistant &&
+              m.reasoningContent != null &&
+              m.reasoningContent!.isNotEmpty &&
+              config.kind == "deepseek")
+            "reasoning_content": m.reasoningContent,
+          "server_tool_calls": ?webHistory[m],
+          if (m.calls.isNotEmpty)
+            "tool_calls": [
+              for (final c in m.calls)
+                {
+                  "id": c.id,
+                  "type": "function",
+                  "function": {"name": c.name, "arguments": c.arguments},
+                },
+            ],
         },
     ],
-};
+    if (request.tools.isNotEmpty || useWeb)
+      "tools": [
+        if (useWeb)
+          ...deepSeekWebTools(request.webAccess, thinking: config.thinking),
+        for (final t in request.tools)
+          {
+            "type": "function",
+            "function": {
+              "name": t.name,
+              "description": t.description,
+              "parameters": t.parameters,
+            },
+          },
+      ],
+  };
+}
 
 class OpenAiChatProvider implements ChatProvider {
   OpenAiChatProvider({Dio? client, KeyStore? keys})
@@ -378,7 +432,13 @@ class OpenAiChatProvider implements ChatProvider {
       secret ??= resolve();
       final key = await secret!;
       cancel.checkCancelled();
-      yield* _complete(config, key, encodeCompletion(config, request), cancel);
+      yield* _complete(
+        config,
+        key,
+        encodeCompletion(config, request),
+        cancel,
+        hostedWeb: _useDeepSeekWeb(config, request),
+      );
     });
   }
 
@@ -386,8 +446,9 @@ class OpenAiChatProvider implements ChatProvider {
     ProviderConfig config,
     String key,
     Map<String, dynamic> body,
-    CancelToken cancel,
-  ) async* {
+    CancelToken cancel, {
+    required bool hostedWeb,
+  }) async* {
     if (key.trim().isEmpty) {
       throw const AiFailure.localized(
         AppErrorCode.saveAnAPIKeyIn,
@@ -410,6 +471,7 @@ class OpenAiChatProvider implements ChatProvider {
           cancelToken: cancel,
           options: Options(
             responseType: ResponseType.stream,
+            followRedirects: hostedWeb ? false : null,
             headers: {
               "Authorization": "Bearer $key",
               "Content-Type": "application/json",
@@ -427,6 +489,7 @@ class OpenAiChatProvider implements ChatProvider {
         }
         await for (final chunk in decodeCompletion(
           response.data!.stream.timeout(const Duration(seconds: 60)),
+          hostedWeb: hostedWeb,
         )) {
           received = true;
           yield chunk;

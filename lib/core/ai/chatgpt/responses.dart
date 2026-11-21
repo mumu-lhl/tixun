@@ -9,6 +9,7 @@ import "../../database/database.dart";
 import "../chat_provider.dart";
 import "../../platform/key_store.dart";
 import "auth.dart";
+import "responses_web.dart";
 
 class RoutedChatProvider implements ChatProvider {
   RoutedChatProvider(
@@ -27,6 +28,11 @@ class RoutedChatProvider implements ChatProvider {
       ? responses.start(config, apiKeyOverride: apiKeyOverride)
       : api.start(config, apiKeyOverride: apiKeyOverride);
 }
+
+bool _useHostedWeb(ProviderConfig config, AiRequest request) =>
+    config.kind == "chatgpt" &&
+    AiOptions(config).webAvailable &&
+    request.webAccess != WebAccess.off;
 
 class ChatGptResponses implements ChatProvider {
   ChatGptResponses(this.auth, {Dio? client})
@@ -69,6 +75,7 @@ class ChatGptResponses implements ChatProvider {
     AiRequest request,
     Map<ToolCall, List<dynamic>> context,
   ) {
+    final useWeb = _useHostedWeb(config, request);
     final input = <dynamic>[];
     for (final m in request.messages) {
       if (m.role == AiRole.tool) {
@@ -115,30 +122,35 @@ class ChatGptResponses implements ChatProvider {
       "input": input,
       // The subscription route omits the output cap. Connection tests still
       // read through the terminal event before reporting success.
-      "include": ["reasoning.encrypted_content"],
+      "include": [
+        "reasoning.encrypted_content",
+        if (useWeb) "web_search_call.action.sources",
+      ],
       if (request.instructions.isNotEmpty) "instructions": request.instructions,
       if (config.thinking)
         "reasoning": {
           "effort": AiOptions(config).effortParameter,
           if (AiOptions(config).reasoningEnabled) "summary": "auto",
         },
-      if (request.tools.isNotEmpty)
+      if (request.tools.isNotEmpty || useWeb)
         "tools": [
-          {
-            "type": "namespace",
-            "name": "tixun",
-            "description": "User-approved TiXun learning data and interactive practice tools.",
-            "tools": [
-              for (final t in request.tools)
-                {
-                  "type": "function",
-                  "name": t.name,
-                  "description": t.description,
-                  "parameters": t.parameters,
-                  "strict": false,
-                },
-            ],
-          },
+          if (useWeb) {"type": "web_search"},
+          if (request.tools.isNotEmpty)
+            {
+              "type": "namespace",
+              "name": "tixun",
+              "description": "User-approved TiXun learning data and interactive practice tools.",
+              "tools": [
+                for (final t in request.tools)
+                  {
+                    "type": "function",
+                    "name": t.name,
+                    "description": t.description,
+                    "parameters": t.parameters,
+                    "strict": false,
+                  },
+              ],
+            },
         ],
     };
   }
@@ -175,6 +187,7 @@ class ChatGptResponses implements ChatProvider {
       await for (final chunk in decodeResponses(
         responseEvents,
         (id, items) => context[id] = items,
+        hostedWeb: _useHostedWeb(config, request),
       )) {
         cancel.checkCancelled();
         yield chunk;
@@ -346,8 +359,9 @@ Stream<List<int>> _compatibleResponseEvents(
 
 Stream<AiChunk> decodeResponses(
   Stream<List<int>> bytes,
-  void Function(ToolCall call, List<dynamic> context)? retainContext,
-) async* {
+  void Function(ToolCall call, List<dynamic> context)? retainContext, {
+  bool hostedWeb = false,
+}) async* {
   var completed = false, summarySeen = false;
   final streamedText = StringBuffer();
   await for (final data in sseData(bytes)) {
@@ -363,7 +377,12 @@ Stream<AiChunk> decodeResponses(
       );
     }
     final type = event["type"];
-    if ([
+    if (hostedWeb &&
+        type == "response.output_item.added" &&
+        event["item"] is Map) {
+      final action = responsesWebAction(event["item"] as Map);
+      if (action != null) yield AiChunk(webAction: action);
+    } else if ([
           "response.output_text.delta",
           "response.refusal.delta",
         ].contains(type) &&
@@ -417,6 +436,7 @@ Stream<AiChunk> decodeResponses(
         );
       }
       final output = response["output"] as List;
+      final webActivity = hostedWeb ? responsesWebActivity(output) : null;
       // Usage is optional accounting metadata. A different numeric encoding
       // must not invalidate an otherwise complete response or tool call.
       final rawUsage = response["usage"];
@@ -459,7 +479,12 @@ Stream<AiChunk> decodeResponses(
             .where(
               (o) =>
                   o is Map &&
-                  ["reasoning", "function_call", "message"].contains(o["type"]),
+                  ([
+                        "reasoning",
+                        "function_call",
+                        "message",
+                      ].contains(o["type"]) ||
+                      (hostedWeb && o["type"] == "web_search_call")),
             )
             .toList();
         if (jsonEncode(context).length > 2 * 1024 * 1024) {
@@ -500,11 +525,17 @@ Stream<AiChunk> decodeResponses(
           completed: true,
           tokens: tokens,
           usage: usage,
+          webActivity: webActivity,
         );
         completed = true;
         break;
       }
-      yield AiChunk(tokens: tokens, completed: true, usage: usage);
+      yield AiChunk(
+        tokens: tokens,
+        completed: true,
+        usage: usage,
+        webActivity: webActivity,
+      );
       completed = true;
       break;
     }

@@ -12,7 +12,8 @@
 | `core/ai/ai_usage_store.dart`、`model_tokenizer.dart` | 请求用量及价格快照；离线 tokenizer 提供已知 DeepSeek/GPT 模型的可见文本分类，后台复用词表，统计只保存数值。服务商用量单独存储。 |
 | `core/ai/chatgpt/usage.dart` | ChatGPT 订阅额度：读取 `chatgpt.com/backend-api/wham/usage`（官方 Codex 客户端使用的私有端点，经用户批准的唯一例外）。`ChatGptAuth.session()` 同时给出访问令牌与 `chatgpt_account_id` 声明（`ChatGPT-Account-Id` 缺少时省略），字段全部可选、数字兼容字符串。设置页进入时自动读取，五分钟内复用内存结果，手动刷新绕过缓存；不轮询、不落库，账号选择、登录与退出使旧缓存失效；401/403 分别归因登录失效与订阅权限。 |
 | `core/ai/provider_balance.dart` | DeepSeek 官方 `GET /user/balance` 的余额查询：Bearer Key、状态码到既定错误码的映射、容错解析（未知字段忽略、缺 `balance_infos` 不抛错）。数字保留服务商原始字符串，不在本地重算。设置页进入时用已保存的 Key 自动查询，五分钟内复用内存结果，手动刷新绕过缓存；端点或 Key 变化时隔离缓存。ChatGPT 额度只使用上一行经批准的例外，不当作现金余额。 |
-| `core/ai/ai_options.dart` | 统一配置校验、会话思考覆盖、图片能力、思考与工具兼容性，以及实际发送的强度参数。DeepSeek 可显式关闭思考；其他兼容路线省略强度参数表示模型默认，界面按该语义显示。 |
+| `core/ai/web_activity.dart` | 联网偏好默认为关闭，可按会话覆盖。适配器将服务端搜索、网页读取和引用转换为展示记录，不交给本地工具执行器，不消耗本地工具调用上限。DeepSeek 仅官方 Flash，按[联网工具指南](https://api-docs.deepseek.com/zh-cn/guides/web_tools)在思考模式优先读取用户消息中的链接，否则按需搜索；ChatGPT 仅已登录的订阅路线，受模型、账号和工作区策略限制。 |
+| `core/ai/ai_options.dart` | 统一配置校验、会话思考覆盖、图片与联网能力、思考与工具兼容性，以及实际发送的强度参数。DeepSeek 可显式关闭思考；其他兼容路线省略强度参数表示模型默认，界面按该语义显示。 |
 | `features/chat/learning_run.dart` | 学习上下文、教学提示、用量汇总、三分钟超时、用户可设的累计工具调用次数上限（默认 8，0 不限；批量逐个计数，包含协议加载；无额外固定轮数限制）、结束判定和受控工具执行。Android/Linux 隔离运行器可用时才提供 Python 工具；通过进度与结果返回给调用方，考试过程中不会把原始模型答案当进度发布。 |
 | `core/python/python_runtime.dart` / `python_workspace_store.dart` | Linux 使用独立 CPython 进程和 bubblewrap：只读根文件系统、当前会话工作区可写、超时/停止终止隔离进程；隔离不限制读取和网络，缺少 bwrap/user namespace 时失败关闭。Android 使用隔离 UID 服务、Zig/JNI launcher 和有界管道，不继承应用文件及网络权限；工作区以有界虚拟文件系统快照传输，不共享应用目录。V2230A / Android 13 已通过真实包执行、工作区同步、直接 libc 越界读写拒绝、网络拒绝、超时/停止、崩溃恢复及审批 UI 回归；工作区管理与传输验证由本地 Store 提供。 |
 | `features/language_learning/exam_store.dart`、`sentence_batch_store.dart` | 专项保存结构校验后的材料快照与整篇作答，句子批次保留内容 ID、技能和可选理解检测。两条生成路径通过单次 `AiRequest` 请求并独立记账，复用已保存内容时使用本地查询。 |
@@ -48,7 +49,7 @@ flowchart TD
 
 ## 必须保持的约定
 
-- 每个学习请求独立创建 Conversation，在该请求内顺序调用。Opaque 推理状态不跨运行共享、不进入数据库或备份。
+- 每个学习请求独立创建 Conversation，在该请求内顺序调用。Opaque 推理状态不跨运行共享、不进入数据库或备份。DeepSeek 阅读链接的签名不是推理状态：它随完整会话上下文保存在本机（及其完整备份），仅在兼容的会话历史中、联网仍开启时原样回传。搜索词、待读取的 URL 和来源是展示数据，不会触发客户端联网；点击来源才在系统浏览器打开。
 - 工具调用仅可出现在明确完成的事件中。没有完成事件、重复结束或不完整调用均不得触发写入。流式片段的拼接与格式校验属于对应 Adapter。
 - `AiChunk.tokens` 是本轮累计用量，后续值覆盖此前估计；LearningRun 再汇总不同工具轮次。端点不支持的输出限制不强行发送。
 - 停止生成不取消其他等待者共用的 OAuth 刷新；退出先失效本机令牌，后台刷新不能使其重新生效。

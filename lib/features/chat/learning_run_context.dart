@@ -26,6 +26,7 @@ extension _LearningRunContext on LearningRun {
     required bool authorized,
     required bool? drawingOverride,
     required bool? a2uiOverride,
+    required bool webEnabled,
     required CancelToken cancel,
     required Future<bool> Function(String, Map<String, dynamic>, int) approve,
   }) async {
@@ -51,7 +52,16 @@ extension _LearningRunContext on LearningRun {
     );
     final subjectScope = await readStudySubjectScope(db);
     final pythonPolicy = await db.preference(pythonPolicyKey) ?? "ask";
-    final quizEnabled = AiOptions(requestConfig).toolsAvailable;
+    final options = AiOptions(requestConfig);
+    final webAccess = !webEnabled || !options.webAvailable
+        ? WebAccess.off
+        : RegExp(
+            r"https?://[^\s<>]+",
+            caseSensitive: false,
+          ).hasMatch(latestUser)
+        ? WebAccess.readLink
+        : WebAccess.automatic;
+    final quizEnabled = options.toolsAvailable;
     final toolsEnabled = authorized;
     final a2uiEnabled =
         a2ui != null &&
@@ -99,6 +109,7 @@ extension _LearningRunContext on LearningRun {
       subject: subjectScope,
       studyAuthorized: toolsEnabled,
       drawingEnabled: drawingEnabled,
+      replayWeb: webAccess != WebAccess.off,
       writingScope: studyTask == null
           ? null
           : jsonEncode([studyTask.context, studyTask.sourceSessionId]),
@@ -428,7 +439,7 @@ extension _LearningRunContext on LearningRun {
       cancel: cancel,
     );
     return (
-      request: request,
+      request: request.copyWith(webAccess: webAccess),
       exam: exam,
       quizEnabled: quizEnabled,
       drawingEnabled: drawingEnabled,

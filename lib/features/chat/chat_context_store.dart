@@ -17,6 +17,7 @@ class ChatContextScope {
     required bool studyAuthorized,
     required bool drawingEnabled,
     required String? writingScope,
+    this.replayWeb = false,
   }) : _effort = config.thinking ? config.effort : null,
        _data = {
          // Do not store endpoint userinfo, query strings, or credentials.
@@ -33,6 +34,7 @@ class ChatContextScope {
 
   final Map<String, Object?> _data;
   final String? _effort;
+  final bool replayWeb;
   bool get isExam => _data["mode"] == "exam";
   bool matches(Object? recorded) =>
       recorded is Map &&
@@ -65,6 +67,23 @@ class ChatContextStore {
     return ChatContextHistory._([
       for (final row in rows) row.readTable(events),
     ]);
+  }
+
+  Future<List<WebActivity>> webActivity(String messageId) async {
+    final events = db.chatContextEvents;
+    final rows =
+        await (db.select(events)
+              ..where(
+                (e) =>
+                    e.messageId.equals(messageId) &
+                    e.sequence.isBiggerThanValue(_input),
+              )
+              ..orderBy([(e) => OrderingTerm.asc(e.sequence)]))
+            .get();
+    return [
+      for (final row in rows)
+        ?WebActivity.fromJson(_decode(row.payload)?["webActivity"]),
+    ];
   }
 
   /// A run owns its rounds even when stopped. Only a complete assistant bubble
@@ -245,11 +264,19 @@ class ChatContextHistory {
           "text": final String text,
           "calls": final List rawCalls,
         }) {
-          final reasoning = (round!["output"] as Map)["reasoning"] as String?;
+          final output = round!["output"] as Map;
+          final reasoning = output["reasoning"] as String?;
+          final webReplay = scope.replayWeb && output["webReplay"] is String
+              ? output["webReplay"] as String
+              : null;
           if (rawCalls.isEmpty) {
-            if (text.isNotEmpty) {
+            if (text.isNotEmpty || webReplay != null) {
               messages.add(
-                AiMessage.assistant(text, reasoningContent: reasoning),
+                AiMessage.assistant(
+                  text,
+                  reasoningContent: reasoning,
+                  webReplay: webReplay,
+                ),
               );
             }
             continue;
@@ -291,6 +318,7 @@ class ChatContextHistory {
               text,
               calls: calls,
               reasoningContent: reasoning,
+              webReplay: webReplay,
             ),
           );
           messages.addAll(outputs);
@@ -340,6 +368,8 @@ class ChatContextRun {
         "instructions": request.instructions,
       if (_tools != toolState) "tools": tools,
       if (request.enableConversationTitle) "title": true,
+      if (request.webAccess != WebAccess.off)
+        "webAccess": request.webAccess.name,
       if (request.maxOutputTokens != null)
         "maxOutputTokens": request.maxOutputTokens,
     };
@@ -352,8 +382,13 @@ class ChatContextRun {
   Future<void> output(
     String text,
     String reasoning,
-    List<ToolCall> calls,
-  ) async {
+    List<ToolCall> calls, {
+    WebActivity? webActivity,
+    String? webReplay,
+  }) async {
+    if (!_isExam && webActivity != null) {
+      _round["webActivity"] = webActivity.toJson();
+    }
     // Do not duplicate hidden answer keys, solution scenes, or exam output in
     // the transcript. Their owning practice records enforce access rules.
     if (_isExam || calls.any((call) => call.name == "create_quiz")) {
@@ -364,6 +399,7 @@ class ChatContextRun {
     _round["output"] = {
       "text": text,
       if (reasoning.isNotEmpty) "reasoning": reasoning,
+      "webReplay": ?webReplay,
       "calls": [
         for (final call in calls)
           {"id": call.id, "name": call.name, "arguments": call.arguments},

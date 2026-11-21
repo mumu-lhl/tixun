@@ -112,6 +112,8 @@ class MessageView extends ConsumerWidget {
             ),
           if (!user) MessageQuestions(message.id),
           if (!user) ToolHistory(message.id),
+          if (!user && message.status != "generating")
+            MessageWebActivity(message.id),
           if (message.status == "generating")
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -133,9 +135,13 @@ class MessageView extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    c.pendingTool == null
-                        ? context.l10n.thinkingThroughYourQuestion
-                        : context.l10n.waitingForYourConfirmation,
+                    c.pendingTool != null
+                        ? context.l10n.waitingForYourConfirmation
+                        : switch (c.activeWebAction) {
+                            WebAction.search => context.l10n.webSearching,
+                            WebAction.read => context.l10n.webReading,
+                            null => context.l10n.thinkingThroughYourQuestion,
+                          },
                     style: TextStyle(
                       fontSize: 12,
                       color: colors.onSurfaceVariant,
