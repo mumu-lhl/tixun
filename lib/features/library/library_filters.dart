@@ -49,6 +49,7 @@ extension _LibraryFilters on _LibraryScreenState {
                   } else if (action == "trash") {
                     _updateLibraryView(() {
                       _trash = !_trash;
+                      _tags = const {};
                       _epoch = -1;
                     });
                   } else if (action == "import-files") {
@@ -173,48 +174,7 @@ extension _LibraryFilters on _LibraryScreenState {
             ),
           ),
           const SizedBox(height: 10),
-          ModuleFilter(
-            value: _moduleId,
-            subject: subjectFilter,
-            mistake: widget.isMistake,
-            onChanged: (value) {
-              ref
-                      .read(
-                        libraryModuleFilterProvider(widget.isMistake).notifier,
-                      )
-                      .state =
-                  value;
-              _updateLibraryView(() {
-                _moduleId = value;
-                _epoch = -1;
-              });
-            },
-          ),
-          if (_query.isNotEmpty || _moduleId.isNotEmpty)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                key: const Key("clear-library-filters"),
-                onPressed: () => act(context, () async {
-                  _debounce?.cancel();
-                  _searchController.clear();
-                  ref
-                          .read(
-                            libraryModuleFilterProvider(widget.isMistake)
-                                .notifier,
-                          )
-                          .state =
-                      "";
-                  _updateLibraryView(() {
-                    _query = "";
-                    _moduleId = "";
-                    _epoch = -1;
-                  });
-                }),
-                icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
-                label: Text(context.l10n.clearFilters),
-              ),
-            ),
+          _filterButtons(context, subjectFilter),
           const SizedBox(height: 10),
           if (_importing)
             Padding(

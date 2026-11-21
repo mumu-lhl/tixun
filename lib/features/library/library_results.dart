@@ -33,7 +33,7 @@ extension _LibraryResults on _LibraryScreenState {
           final entries = [...base, ..._extra];
           _visible = entries;
           final canLoadMore = base.length == 100 && _hasMore;
-          final hasFilters = _query.isNotEmpty || _moduleId.isNotEmpty;
+          final hasFilters = _hasFilters;
           if (entries.isEmpty) {
             // Scrollable so the empty state fits short screens
             // (the shell subject bar takes 48px of height).
@@ -81,23 +81,7 @@ extension _LibraryResults on _LibraryScreenState {
                       if (hasFilters)
                         TextButton.icon(
                           key: const Key("clear-empty-library-filters"),
-                          onPressed: () => act(context, () async {
-                            _debounce?.cancel();
-                            _searchController.clear();
-                            ref
-                                    .read(
-                                      libraryModuleFilterProvider(
-                                        widget.isMistake,
-                                      ).notifier,
-                                    )
-                                    .state =
-                                "";
-                            _updateLibraryView(() {
-                              _query = "";
-                              _moduleId = "";
-                              _epoch = -1;
-                            });
-                          }),
+                          onPressed: _clearFilters,
                           icon: const Icon(Icons.filter_alt_off_outlined),
                           label: Text(context.l10n.clearFilters),
                         ),

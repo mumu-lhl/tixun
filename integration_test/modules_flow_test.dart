@@ -51,6 +51,7 @@ void main() {
       scope.read(routerProvider).go("/knowledge");
       await t.pumpAndSettle();
       await resizeGui(t, 390, 844);
+      await click(t, find.byKey(const Key("module-filter")));
       await click(t, find.text("管理目录"));
       await click(t, find.byKey(const Key("module-add-root")));
       await t.enterText(find.byType(TextField).last, "函数与导数");
@@ -66,7 +67,9 @@ void main() {
           .firstWhere((m) => m.parentId == root.id);
       await guiCapture("modules", "directory-phone");
       await click(t, find.byType(BackButton));
-      await t.pumpAndSettle();
+      await ready(t, () => find.text("单调性与最值").evaluate().isNotEmpty);
+      await guiCapture("modules", "directory-picker-phone");
+      await click(t, find.byTooltip("关闭"));
       scope.read(routerProvider).go("/knowledge/${note.id}");
       await t.pumpAndSettle();
       await ready(

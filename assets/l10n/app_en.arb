@@ -1862,6 +1862,31 @@
   "theExamSubjectWasDeleted": "The exam subject was deleted. Photos were recovered to a chat draft and were not uploaded.",
   "subjectModules": "Subject modules",
   "directoryName": "Directory name",
+  "directoryLabel": "Directory",
+  "allDirectories": "All directories",
+  "searchDirectories": "Search directories",
+  "noDirectoriesYet": "No directories yet",
+  "noMatchingDirectories": "No matching directories",
+  "searchTags": "Search tags",
+  "noTagsYet": "No tags yet",
+  "noMatchingTags": "No matching tags",
+  "tagsFilterCount": "Tags ({count})",
+  "removeFilterTag": "Remove tag: {tag}",
+  "applyFilters": "Apply filters",
+  "@tagsFilterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@removeFilterTag": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
   "addModule": "Add module",
   "addSubmodule": "Add submodule",
   "couldNotLoadTheDirectory": "Could not load the directory. Please reopen this page.",
@@ -1878,7 +1903,6 @@
   "selectMultipleEntriesIfNeeded": "Select multiple entries if needed. Submodules are also included when filtering by their parent module.",
   "thisSubjectHasNoModules": "This subject has no modules yet. Add a module first.",
   "manageDirectory": "Manage directory",
-  "allModules": "All modules",
   "filterByDirectory": "Filter by directory",
   "practiceThisModule": "Practice this module",
   "createSubjectDirectoryEntry": "Create subject directory entry",

@@ -5,18 +5,22 @@ import "ai_study_actions.dart";
 import "module_widgets.dart";
 
 import "dart:async";
+import "dart:convert";
 import "dart:io";
 
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_riverpod/legacy.dart";
 import "package:go_router/go_router.dart";
 
 import "../../app/controller.dart";
+import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
 import "../../core/ui/app_menu.dart";
 import "../../core/ui/search_snippet.dart";
 import "library_providers.dart";
+import "module_store.dart";
 import "study_editor.dart";
 import "study_export.dart";
 import "study_export_dialog.dart";
@@ -26,7 +30,20 @@ import "study_store.dart";
 
 part "library_filters.dart";
 
+part "library_filter_pickers.dart";
+
 part "library_results.dart";
+
+final _libraryModuleFilterProvider = StateProvider.family<String, bool>(
+  (ref, mistake) => "",
+);
+
+final _libraryDirectoriesProvider = StreamProvider.autoDispose
+    .family<List<SubjectModule>, String>(
+      (ref, subject) => ref
+          .watch(studyStoreProvider.select((store) => store.modules))
+          .watch(subject),
+    );
 
 // Keep only a few first pages per store; full records and image bytes stay on disk.
 final _libraryCache = Expando<Map<Object, List<_Entry>>>();
@@ -43,18 +60,16 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String _query = "";
   String _moduleId = "";
+  Set<String> _tags = const {};
   @override
   void initState() {
     super.initState();
     _moduleId =
         widget.initialModule ??
-        ref.read(libraryModuleFilterProvider(widget.isMistake));
+        ref.read(_libraryModuleFilterProvider(widget.isMistake));
     _appliedSubject = ref.read(appControllerProvider).subjectFilter;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref.read(libraryModuleFilterProvider(widget.isMistake).notifier).state =
-            _moduleId;
-      }
+      if (mounted) _rememberModule();
     });
   }
 
@@ -100,6 +115,35 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     });
   }
 
+  bool get _hasFilters =>
+      _query.isNotEmpty || _moduleId.isNotEmpty || _tags.isNotEmpty;
+
+  void _rememberModule() {
+    ref.read(_libraryModuleFilterProvider(widget.isMistake).notifier).state =
+        _moduleId;
+  }
+
+  void _setModule(String value) {
+    if (value == _moduleId) return;
+    setState(() {
+      _moduleId = value;
+      _epoch = -1;
+    });
+    _rememberModule();
+  }
+
+  void _clearFilters() {
+    _debounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _query = "";
+      _moduleId = "";
+      _tags = const {};
+      _epoch = -1;
+    });
+    _rememberModule();
+  }
+
   void _refresh() => setState(() => _epoch = -1);
   String _defaultSubject() {
     final filter = ref.read(appControllerProvider).subjectFilter;
@@ -113,6 +157,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final module = _moduleId;
     final subject = ref.read(appControllerProvider).subjectFilter;
     final trash = _trash;
+    final tags = _tags;
     final entries = widget.isMistake
         ? (await store.searchMistakes(
                 query: query,
@@ -121,6 +166,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 trash: trash,
                 limit: 100,
                 offset: offset,
+                tags: tags,
               ))
               .map(
                 (m) => _Entry(
@@ -155,6 +201,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 trash: trash,
                 limit: 100,
                 offset: offset,
+                tags: tags,
               ))
               .map(
                 (k) => _Entry(
@@ -181,14 +228,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         : entries
               .where((entry) => searchExcerpt(entry.preview, query) == null)
               .toList();
-    final tags = await store.tagsForIds(
+    final previewTags = await store.tagsForIds(
       missingPreview.map((entry) => entry.id),
       isMistake: widget.isMistake,
     );
     final tagMatches = <String, String>{
       for (final entry in missingPreview)
         entry.id:
-            (tags[entry.id] ?? [])
+            (previewTags[entry.id] ?? [])
                 .map((tag) => searchExcerpt(tag, query))
                 .whereType<String>()
                 .firstOrNull ??
@@ -227,7 +274,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   Future<void> _more() async {
     if (_loadingMore) return;
-    final epoch = _epoch,
+    final future = _future,
+        epoch = _epoch,
+        tags = _tags,
         query = _query,
         subject = ref.read(appControllerProvider).subjectFilter,
         trash = _trash,
@@ -239,7 +288,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         offset: _nextOffset,
       );
       if (mounted &&
+          identical(future, _future) &&
           epoch == _epoch &&
+          identical(tags, _tags) &&
           query == _query &&
           subject == ref.read(appControllerProvider).subjectFilter &&
           trash == _trash &&
@@ -529,13 +580,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (_appliedSubject != subjectFilter) {
       _appliedSubject = subjectFilter;
       _moduleId = "";
+      _tags = const {};
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ref
-                  .read(libraryModuleFilterProvider(widget.isMistake).notifier)
-                  .state =
-              "";
-        }
+        if (mounted) _rememberModule();
       });
       // Only the UI filter changes; learning records keep their own subjects.
       _epoch = -1;
@@ -543,7 +590,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (_epoch != store.epoch) {
       _epoch = store.epoch;
       _extra.clear();
-      final key = (widget.isMistake, _query, _moduleId, subjectFilter, _trash);
+      final key = (
+        widget.isMistake,
+        _query,
+        _moduleId,
+        subjectFilter,
+        _trash,
+        jsonEncode(_tags.toList()..sort()),
+      );
       final cache = _libraryCache[store] ??= {};
       _cached = cache.remove(key);
       if (_cached != null) cache[key] = _cached!;

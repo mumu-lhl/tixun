@@ -79,6 +79,44 @@ mixin _StudyQueries on DatabaseNotifier {
     return result;
   }
 
+  Future<String> _listSubject(String subject) async {
+    final scope = await readStudySubjectScope(db);
+    if (scope != null && subject.isNotEmpty) {
+      requireStudySubject(subject, scope);
+    }
+    return scope ?? subject;
+  }
+
+  Future<List<({String tag, int count})>> tagUsage({
+    required bool isMistake,
+    String subject = "",
+    bool trash = false,
+  }) async {
+    final effectiveSubject = await _listSubject(subject);
+    final table = isMistake ? "mistakes" : "knowledge_items";
+    final tags = isMistake ? "mistake_tags" : "knowledge_tags";
+    final id = isMistake ? "mistake_id" : "knowledge_id";
+    final rows = await db
+        .customSelect(
+          """
+      SELECT tags.tag AS tag, count(*) AS n
+      FROM $tags tags JOIN $table t ON t.id = tags.$id
+      WHERE t.deleted = ? ${effectiveSubject.isEmpty ? "" : "AND t.subject = ?"}
+      GROUP BY tags.tag
+      ORDER BY n DESC, tags.tag COLLATE NOCASE, tags.tag
+      """,
+          variables: [
+            Variable(trash ? 1 : 0),
+            if (effectiveSubject.isNotEmpty) Variable(effectiveSubject),
+          ],
+        )
+        .get();
+    return [
+      for (final row in rows)
+        (tag: row.read<String>("tag"), count: row.read<int>("n")),
+    ];
+  }
+
   Future<List<KnowledgeRevision>> revisions(String id) =>
       (db.select(db.knowledgeRevisions)
             ..where((t) => t.knowledgeId.equals(id))
@@ -89,6 +127,7 @@ mixin _StudyQueries on DatabaseNotifier {
     String query = "",
     String subject = "",
     String moduleId = "",
+    Set<String> tags = const {},
     bool trash = false,
     int limit = 100,
     int offset = 0,
@@ -103,6 +142,7 @@ mixin _StudyQueries on DatabaseNotifier {
       limit,
       offset,
       moduleId,
+      tags,
     );
     return Future.wait(rows.map(db.knowledgeItems.mapFromRow));
   }
@@ -111,6 +151,7 @@ mixin _StudyQueries on DatabaseNotifier {
     String query = "",
     String subject = "",
     String moduleId = "",
+    Set<String> tags = const {},
     bool trash = false,
     int limit = 100,
     int offset = 0,
@@ -125,6 +166,7 @@ mixin _StudyQueries on DatabaseNotifier {
       limit,
       offset,
       moduleId,
+      tags,
     );
     return Future.wait(rows.map(db.mistakes.mapFromRow));
   }
@@ -139,12 +181,9 @@ mixin _StudyQueries on DatabaseNotifier {
     int limit,
     int offset,
     String moduleId,
+    Set<String> tags,
   ) async {
-    final scope = await readStudySubjectScope(db);
-    if (scope != null && subject.isNotEmpty) {
-      requireStudySubject(subject, scope);
-    }
-    final effectiveSubject = scope ?? subject;
+    final effectiveSubject = await _listSubject(subject);
     final term = _checked(
       query,
       StudyErrorField.searchTerm,
@@ -171,6 +210,12 @@ mixin _StudyQueries on DatabaseNotifier {
             " AND EXISTS (SELECT 1 FROM $links ml JOIN subject_modules sm ON sm.id=ml.module_id WHERE ml.$idColumn=t.id AND (sm.id=? OR sm.parent_id=?))";
         vars.addAll([Variable(moduleId), Variable(moduleId)]);
       }
+    }
+    if (tags.isNotEmpty) {
+      // Each (item, tag) is unique. Count exact matches, not keyword hits.
+      where +=
+          " AND (SELECT count(*) FROM $tagTable tags WHERE tags.$idColumn = t.id AND tags.tag IN (SELECT value FROM json_each(?))) = ?";
+      vars.addAll([Variable(jsonEncode(tags.toList())), Variable(tags.length)]);
     }
     if (term.isNotEmpty) {
       final bodyExpression = table == "mistakes"

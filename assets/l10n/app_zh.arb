@@ -1862,6 +1862,31 @@
   "theExamSubjectWasDeleted": "原考试科目已删除，照片已恢复到对话草稿，未自动上传。",
   "subjectModules": "科目目录",
   "directoryName": "目录名称",
+  "directoryLabel": "目录",
+  "allDirectories": "全部目录",
+  "searchDirectories": "搜索目录",
+  "noDirectoriesYet": "暂无目录",
+  "noMatchingDirectories": "没有匹配的目录",
+  "searchTags": "搜索标签",
+  "noTagsYet": "暂无标签",
+  "noMatchingTags": "没有匹配的标签",
+  "tagsFilterCount": "标签（{count}）",
+  "removeFilterTag": "移除标签：{tag}",
+  "applyFilters": "应用筛选",
+  "@tagsFilterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@removeFilterTag": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
   "addModule": "新增模块",
   "addSubmodule": "新增子模块",
   "couldNotLoadTheDirectory": "目录读取失败，请重新打开。",
@@ -1878,7 +1903,6 @@
   "selectMultipleEntriesIfNeeded": "可选择多个模块；选择子模块后，按上级模块筛选时也能找到。",
   "thisSubjectHasNoModules": "此科目还没有目录，请先新增模块。",
   "manageDirectory": "管理目录",
-  "allModules": "全部模块",
   "filterByDirectory": "按目录筛选",
   "practiceThisModule": "本模块专项训练",
   "createSubjectDirectoryEntry": "新增科目目录",

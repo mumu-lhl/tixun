@@ -86,6 +86,112 @@ void main() {
     expect((await store.searchKnowledge(query: "求顶点")).single.id, first.id);
     expect((await store.revisions(first.id)).length, 5);
   });
+  for (final isMistake in [false, true]) {
+    test(
+      "Tag filtering and usage counts for ${isMistake ? "mistakes" : "knowledge"}",
+      () async {
+        Future<String> save(
+          String title,
+          List<String> tags, {
+          String subject = "数学",
+        }) async => isMistake
+            ? (await store.saveMistake(
+                MistakeDraft(
+                  title: title,
+                  question: "求表达式",
+                  subject: subject,
+                  tags: tags,
+                ),
+              )).id
+            : (await store.saveKnowledge(
+                KnowledgeDraft(
+                  title: title,
+                  content: "求表达式",
+                  subject: subject,
+                  tags: tags,
+                ),
+              )).id;
+        Future<Set<String>> search(
+          Set<String> tags, {
+          String query = "",
+          String directory = "",
+          bool trash = false,
+        }) async => isMistake
+            ? (await store.searchMistakes(
+                query: query,
+                subject: "数学",
+                moduleId: directory,
+                tags: tags,
+                trash: trash,
+              )).map((row) => row.id).toSet()
+            : (await store.searchKnowledge(
+                query: query,
+                subject: "数学",
+                moduleId: directory,
+                tags: tags,
+                trash: trash,
+              )).map((row) => row.id).toSet();
+
+        final root = await store.modules.create("数学", "函数");
+        final child = await store.modules.create("数学", "单调性", parentId: root);
+        final both = await save("第一题", ["代数", "复盘"]);
+        await store.modules.assign(both, isMistake, [child]);
+        final singleTag = await save("第二题", ["代数"]);
+        await store.modules.assign(singleTag, isMistake, [child]);
+        await save("第三题", ["线性代数", "复盘"]);
+        final outsideDirectory = await save("第四题", ["代数", "复盘"]);
+        await save("其他科目", ["代数", "物理"], subject: "物理");
+        final deleted = await save("已删除", ["代数", "归档"]);
+        await store.setDeleted(
+          deleted,
+          isMistake: isMistake,
+          deleted: true,
+          expectedRevision: 1,
+        );
+        if (isMistake) {
+          await store.saveKnowledge(
+            const KnowledgeDraft(title: "其他库", content: "正文", tags: ["跨库"]),
+          );
+        } else {
+          await store.saveMistake(
+            const MistakeDraft(title: "其他库", tags: ["跨库"]),
+          );
+        }
+
+        expect(await search({"代数", "复盘"}), {both, outsideDirectory});
+        expect(await search({"代数", "复盘"}, query: "求表达式", directory: root), {
+          both,
+        });
+        expect(
+          await search({"代数", "复盘"}, query: "第三题", directory: root),
+          isEmpty,
+        );
+        expect(await search({"代数"}, trash: true), {deleted});
+        expect(await store.tagUsage(isMistake: isMistake, subject: "数学"), [
+          (tag: "代数", count: 3),
+          (tag: "复盘", count: 3),
+          (tag: "线性代数", count: 1),
+        ]);
+        expect((await store.tagUsage(isMistake: isMistake)).first, (
+          tag: "代数",
+          count: 4,
+        ));
+        expect(await store.tagUsage(isMistake: isMistake, subject: "物理"), [
+          (tag: "代数", count: 1),
+          (tag: "物理", count: 1),
+        ]);
+        expect(
+          await store.tagUsage(
+            isMistake: isMistake,
+            subject: "数学",
+            trash: true,
+          ),
+          [(tag: "代数", count: 1), (tag: "归档", count: 1)],
+        );
+      },
+    );
+  }
+
   test(
     "Body text over 60000 characters is rejected, not silently truncated",
     () async {

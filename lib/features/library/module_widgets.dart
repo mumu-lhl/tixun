@@ -5,7 +5,6 @@ import "../../core/ui/app_menu.dart";
 import "package:drift/drift.dart" hide Column;
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:flutter_riverpod/legacy.dart";
 import "package:go_router/go_router.dart";
 
 import "../../app/controller.dart";
@@ -16,10 +15,6 @@ import "study_store.dart";
 import "module_store.dart";
 
 part "module_assignment.dart";
-
-final libraryModuleFilterProvider = StateProvider.family<String, bool>(
-  (ref, mistake) => "",
-);
 
 Future<String?> moduleNameDialog(
   BuildContext context,
@@ -271,128 +266,6 @@ class _ManagerState extends ConsumerState<ModuleManager> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class ModuleFilter extends ConsumerWidget {
-  const ModuleFilter({
-    required this.value,
-    required this.subject,
-    required this.onChanged,
-    required this.mistake,
-    super.key,
-  });
-  final String value, subject;
-  final bool mistake;
-  final ValueChanged<String> onChanged;
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = ref.read(appControllerProvider);
-    return StreamBuilder<List<SubjectModule>>(
-      stream: c.study.modules.watch(subject),
-      builder: (ctx, snap) {
-        final all = snap.data ?? [];
-        final selected = all.where((m) => m.id == value).firstOrNull;
-        if (snap.hasData &&
-            value.isNotEmpty &&
-            value != "unclassified" &&
-            selected == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (ctx.mounted) onChanged("");
-          });
-        }
-        return Wrap(
-          spacing: 8,
-          runSpacing: 6,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            OutlinedButton.icon(
-              key: const Key("module-filter"),
-              icon: const Icon(Icons.folder_outlined),
-              label: Text(
-                value == "unclassified"
-                    ? ctx.l10n.unclassified
-                    : selected == null
-                    ? ctx.l10n.allModules
-                    : '${subject.isEmpty ? '${context.subjectName(selected.subject)} · ' : ''}${modulePath(selected, all)}',
-              ),
-              onPressed: snap.hasData
-                  ? () async {
-                      final result = await showDialog<String>(
-                        context: ctx,
-                        builder: (d) => SimpleDialog(
-                          title: Text(d.l10n.filterByDirectory),
-                          children: [
-                            SimpleDialogOption(
-                              onPressed: () => Navigator.pop(d, ""),
-                              child: Text(d.l10n.allModules),
-                            ),
-                            SimpleDialogOption(
-                              onPressed: () => Navigator.pop(d, "unclassified"),
-                              child: Text(d.l10n.unclassified),
-                            ),
-                            for (final root in all.where(
-                              (m) => m.parentId == null,
-                            )) ...[
-                              SimpleDialogOption(
-                                onPressed: () => Navigator.pop(d, root.id),
-                                child: Text(
-                                  '${subject.isEmpty ? '${context.subjectName(root.subject)} · ' : ''}${root.name}',
-                                ),
-                              ),
-                              for (final child in all.where(
-                                (m) => m.parentId == root.id,
-                              ))
-                                SimpleDialogOption(
-                                  onPressed: () => Navigator.pop(d, child.id),
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(left: 20),
-                                    child: Text(child.name),
-                                  ),
-                                ),
-                            ],
-                          ],
-                        ),
-                      );
-                      if (result != null && ctx.mounted) onChanged(result);
-                    }
-                  : null,
-            ),
-            TextButton(
-              onPressed: () async {
-                await Navigator.of(ctx, rootNavigator: true).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ModuleManager(
-                      initialSubject: subject.isEmpty
-                          ? selected?.subject ??
-                                (c.learningSubjects.contains("数学")
-                                    ? "数学"
-                                    : c.learningSubjects.first)
-                          : subject,
-                    ),
-                  ),
-                );
-                // Keep the current filter when the user just looked: if the
-                // selected directory was deleted, the build-time check above
-                // already resets it via onChanged('').
-              },
-              child: Text(ctx.l10n.manageDirectory),
-            ),
-            if (selected != null)
-              TextButton.icon(
-                onPressed: c.busy
-                    ? null
-                    : () => act(ctx, () async {
-                        await c.prepareModulePractice(value, mistake: mistake);
-                        if (ctx.mounted) ctx.go("/chat");
-                      }),
-                icon: const Icon(Icons.quiz_outlined, size: 18),
-                label: Text(ctx.l10n.practiceThisModule),
-              ),
-          ],
-        );
-      },
     );
   }
 }
