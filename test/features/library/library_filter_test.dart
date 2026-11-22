@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
 import "package:tixun/app/controller.dart";
+import "package:tixun/app/theme.dart";
 import "package:tixun/core/ai/chat_provider.dart";
 import "package:tixun/core/database/database.dart";
 import "package:tixun/core/l10n/app_strings.dart";
@@ -64,14 +65,19 @@ void main() {
     await t.pumpWidget(
       UncontrolledProviderScope(
         container: scope,
-        child: const MaterialApp(
-          home: Scaffold(body: LibraryScreen(isMistake: false)),
+        child: MaterialApp(
+          theme: appTheme(Brightness.light),
+          home: const Scaffold(body: LibraryScreen(isMistake: false)),
         ),
       ),
     );
     await t.pumpAndSettle();
     final l10n = t.element(find.byType(LibraryScreen)).l10n;
     Finder byKey(String key) => find.byKey(ValueKey(key));
+    expect(
+      t.getSize(byKey("create-study")).height,
+      t.getSize(byKey("ai-create-knowledge")).height,
+    );
     Future<void> tap(Finder finder) async {
       await t.ensureVisible(finder);
       await t.tap(finder);

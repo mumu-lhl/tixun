@@ -78,6 +78,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    final add = find.widgetWithText(OutlinedButton, "Add subject");
+    final custom = find.byKey(const Key("custom-subject"));
+    expect(tester.getSize(add).width, lessThan(tester.getSize(custom).width));
+    expect(tester.getTopLeft(add).dx, tester.getTopLeft(custom).dx);
     await tester.tap(find.byKey(const ValueKey("edit-study-subject-$subject")));
     await tester.pumpAndSettle();
     final label = find.text("Language subject");

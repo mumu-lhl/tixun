@@ -82,9 +82,6 @@ extension _LibraryFilters on _LibraryScreenState {
                   if (!widget.isMistake) ...[
                     FilledButton.icon(
                       key: const Key("create-study"),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 52),
-                      ),
                       onPressed: _bulkBusy ? null : () => act(context, _create),
                       icon: const Icon(Icons.add),
                       label: Text(context.l10n.newKnowledge),

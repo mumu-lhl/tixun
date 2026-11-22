@@ -69,7 +69,7 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
               padding: const EdgeInsets.only(bottom: 12),
               child: TextField(
                 controller: ctrl,
-                enabled: !saving,
+                readOnly: saving,
                 keyboardType: keyboard,
                 minLines: lines,
                 maxLines: lines + 2,
@@ -153,7 +153,10 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
         onPressed: saving
             ? null
             : () async {
-                setState(() => saving = true);
+                setState(() {
+                  saving = true;
+                  failure = null;
+                });
                 try {
                   final n = int.tryParse(minutes.text.trim());
                   if (n == null) {
@@ -171,23 +174,23 @@ class _ProfileEditorState extends ConsumerState<ProfileEditor> {
                     scope: scope.text,
                     teaching: teaching,
                   ).save(ref.read(appControllerProvider).db);
+                  if (!context.mounted) return;
                   ref.invalidate(learningProfileProvider);
-                  if (context.mounted) Navigator.pop(context);
+                  Navigator.pop(context);
                 } catch (e) {
-                  if (mounted) {
-                    setState(
-                      () => failure = e is FormatException
-                          ? e
-                          : const AppFormatException(
-                              AppErrorCode.errorSaveTryAgain,
-                              "保存失败，请重试。",
-                            ),
-                    );
-                  }
+                  if (!mounted) return;
+                  setState(() {
+                    saving = false;
+                    failure = e is FormatException
+                        ? e
+                        : const AppFormatException(
+                            AppErrorCode.errorSaveTryAgain,
+                            "保存失败，请重试。",
+                          );
+                  });
                 }
-                if (mounted) setState(() => saving = false);
               },
-        child: Text(saving ? context.l10n.savingEllipsis : context.l10n.save),
+        child: Text(context.l10n.save),
       ),
     ],
   );

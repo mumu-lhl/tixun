@@ -223,10 +223,13 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                 onSubmitted: (_) => add(),
               ),
               const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: add,
-                icon: const Icon(Icons.add),
-                label: Text(context.l10n.addSubject),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  onPressed: add,
+                  icon: const Icon(Icons.add),
+                  label: Text(context.l10n.addSubject),
+                ),
               ),
               if (error != null)
                 Padding(
