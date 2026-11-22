@@ -74,6 +74,8 @@
   "languageFormExample": "一个可接受的答案是 {answer}。",
   "@languageFormExample": {"placeholders": {"answer": {"type": "String"}}},
   "languageNoForms": "先从词汇卡或速查结果添加词形。",
+  "languageRecommendedPractice": "推荐练习",
+  "languageCourses": "多语言入门课程",
   "languageProfile": "语言学习画像",
   "languageGoal": "学习目标",
   "languageGoalCommunication": "语言理解与运用",

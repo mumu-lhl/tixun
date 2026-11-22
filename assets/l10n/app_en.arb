@@ -74,6 +74,8 @@
   "languageFormExample": "One accepted answer is {answer}.",
   "@languageFormExample": {"placeholders": {"answer": {"type": "String"}}},
   "languageNoForms": "Add forms from a vocabulary card or a lookup first.",
+  "languageRecommendedPractice": "Recommended practice",
+  "languageCourses": "Multilingual beginner courses",
   "languageProfile": "Learning profile",
   "languageGoal": "Learning goal",
   "languageGoalCommunication": "Language understanding and use",

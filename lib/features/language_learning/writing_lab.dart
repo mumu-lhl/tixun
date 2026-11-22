@@ -2,6 +2,7 @@ import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
 import "language_layout.dart";
+import "language_data.dart";
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/app_menu.dart";
@@ -23,7 +24,8 @@ class WritingLab extends StatefulWidget {
 }
 
 class _WritingLabState extends State<WritingLab> {
-  late final _tasks = widget.ai.store.savedWritingTasks();
+  Stream<List<LearningWritingTaskRow>> _load() =>
+      widget.ai.store.savedWritingTasks();
   CancelToken? _pending;
   bool _choosing = false;
 
@@ -103,14 +105,9 @@ class _WritingLabState extends State<WritingLab> {
             l10n.languageWritingTasksSaved,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          StreamBuilder<List<LearningWritingTaskRow>>(
-            stream: _tasks,
-            builder: (context, snapshot) {
-              final rows = snapshot.data;
-              if (snapshot.hasError) {
-                return Text(l10n.couldNotCompleteTheAction);
-              }
-              if (rows == null) return const LinearProgressIndicator();
+          LanguageDataBuilder<List<LearningWritingTaskRow>>(
+            load: _load,
+            builder: (context, rows) {
               if (rows.isEmpty) return Text(l10n.languageWritingTasksEmpty);
               return Column(
                 children: [

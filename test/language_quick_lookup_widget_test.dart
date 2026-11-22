@@ -90,6 +90,11 @@ void main() {
       final router = scope.read(routerProvider);
       router.go("/language");
       await settled();
+      expect(
+        find.widgetWithText(FilledButton, "Recommended practice"),
+        findsOneWidget,
+      );
+      expect(find.text("Multilingual beginner courses"), findsOneWidget);
       await tap(find.text("Language quick lookup"));
       await settled();
       expect(find.byKey(const ValueKey("quick-search")), findsNothing);

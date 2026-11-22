@@ -2,6 +2,7 @@ import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
 import "language_layout.dart";
+import "language_data.dart";
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/app_menu.dart";
@@ -33,7 +34,8 @@ class ExamLab extends StatefulWidget {
 }
 
 class _ExamLabState extends State<ExamLab> {
-  late final _library = widget.ai.store.examLibrary(widget.kind);
+  Stream<List<LearningExamMaterialRow>> _load() =>
+      widget.ai.store.examLibrary(widget.kind);
   CancelToken? _request;
   bool _opening = false;
 
@@ -117,14 +119,9 @@ class _ExamLabState extends State<ExamLab> {
             l10n.languageExamLibrary,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          StreamBuilder<List<LearningExamMaterialRow>>(
-            stream: _library,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Text(l10n.couldNotCompleteTheAction);
-              }
-              final rows = snapshot.data;
-              if (rows == null) return const LinearProgressIndicator();
+          LanguageDataBuilder<List<LearningExamMaterialRow>>(
+            load: _load,
+            builder: (context, rows) {
               if (rows.isEmpty) return Text(l10n.languageExamLibraryEmpty);
               return Column(
                 children: [

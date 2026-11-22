@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 
 import "language_layout.dart";
+import "language_data.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/app_menu.dart";
 import "../../core/l10n/generated/app_localizations.dart";
@@ -67,7 +68,8 @@ class LanguageProfileScreen extends StatefulWidget {
 }
 
 class _LanguageProfileScreenState extends State<LanguageProfileScreen> {
-  late final _source = widget.store.languageProfile(widget.language);
+  Stream<LanguageProfile> _load() =>
+      widget.store.languageProfile(widget.language);
   late LanguageGoal _goal = widget.goal;
   SentenceLevel? _level;
   final _skip = <LanguageSkill>{};
@@ -77,14 +79,9 @@ class _LanguageProfileScreenState extends State<LanguageProfileScreen> {
     final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.languageProfile)),
-      body: StreamBuilder<LanguageProfile>(
-        stream: _source,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text(l10n.couldNotCompleteTheAction));
-          }
-          final profile = snapshot.data;
-          if (profile == null) return const LinearProgressIndicator();
+      body: LanguageDataBuilder<LanguageProfile>(
+        load: _load,
+        builder: (context, profile) {
           final plan = recommendLanguage(
             profile,
             _goal,

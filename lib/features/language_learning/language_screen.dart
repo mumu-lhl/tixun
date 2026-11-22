@@ -11,6 +11,7 @@ import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
 import "language_course.dart";
+import "language_data.dart";
 import "language_profile_screen.dart";
 import "language_recommendation.dart";
 import "language_skills.dart";
@@ -53,8 +54,10 @@ class _LanguageLearningScreenState
     return value == LanguageFeedbackLanguage.app ? null : value.name;
   }
 
-  late final _groups = _store.groups(_language);
-  late final _evidence = _store.recentEvidence(_language);
+  Stream<List<LearningVocabularyGroup>> _loadGroups() =>
+      _store.groups(_language);
+  Stream<List<LearningEvidenceData>> _loadEvidence() =>
+      _store.recentEvidence(_language);
   late Stream<int> _due = _store.dueCount(_language);
   late final Timer _dueRefresh;
 
@@ -272,6 +275,12 @@ class _LanguageLearningScreenState
                 children: [
                   Text(l10n.languageEnglish, style: theme.headlineMedium),
                   const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _openProfile,
+                    icon: const Icon(Icons.tips_and_updates_outlined),
+                    label: Text(l10n.languageRecommendedPractice),
+                  ),
+                  const SizedBox(height: 12),
                   StreamBuilder<int>(
                     stream: _due,
                     builder: (context, snapshot) {
@@ -291,9 +300,15 @@ class _LanguageLearningScreenState
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               if (snapshot.hasError)
-                                Text(l10n.couldNotCompleteTheAction),
+                                TextButton.icon(
+                                  onPressed: () => setState(
+                                    () => _due = _store.dueCount(_language),
+                                  ),
+                                  icon: const Icon(Icons.refresh),
+                                  label: Text(l10n.retry),
+                                ),
                               if (hasDue)
-                                FilledButton.icon(
+                                OutlinedButton.icon(
                                   style: FilledButton.styleFrom(
                                     minimumSize: const Size(0, 52),
                                   ),
@@ -301,7 +316,7 @@ class _LanguageLearningScreenState
                                   icon: const Icon(Icons.schedule),
                                   label: Text(l10n.languageReview),
                                 ),
-                              (hasDue ? OutlinedButton.new : FilledButton.new)(
+                              OutlinedButton(
                                 style: const ButtonStyle(
                                   minimumSize: WidgetStatePropertyAll(
                                     Size(0, 52),
@@ -335,12 +350,8 @@ class _LanguageLearningScreenState
                         label: Text(l10n.quickLookup),
                       ),
                       TextButton(
-                        onPressed: _openProfile,
-                        child: Text(l10n.languageProfile),
-                      ),
-                      TextButton(
                         onPressed: _foundations,
-                        child: Text(l10n.languageFoundations),
+                        child: Text(l10n.languageCourses),
                       ),
                     ],
                   ),
@@ -401,16 +412,9 @@ class _LanguageLearningScreenState
                     ],
                   ),
                   const SizedBox(height: 12),
-                  StreamBuilder<List<LearningVocabularyGroup>>(
-                    stream: _groups,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return Text(l10n.couldNotCompleteTheAction);
-                      }
-                      final groups = snapshot.data;
-                      if (groups == null) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                  LanguageDataBuilder<List<LearningVocabularyGroup>>(
+                    load: _loadGroups,
+                    builder: (context, groups) {
                       if (groups.isEmpty) return Text(l10n.languageNoGroups);
                       return Column(
                         children: [
@@ -429,14 +433,9 @@ class _LanguageLearningScreenState
                   ),
                   const SizedBox(height: 24),
                   Text(l10n.languageEvidence, style: theme.titleLarge),
-                  StreamBuilder<List<LearningEvidenceData>>(
-                    stream: _evidence,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return Text(l10n.couldNotCompleteTheAction);
-                      }
-                      final records = snapshot.data;
-                      if (records == null) return const SizedBox.shrink();
+                  LanguageDataBuilder<List<LearningEvidenceData>>(
+                    load: _loadEvidence,
+                    builder: (context, records) {
                       if (records.isEmpty) return Text(l10n.languageNoEvidence);
                       final recall = records
                           .where((row) => row.rating != null)
