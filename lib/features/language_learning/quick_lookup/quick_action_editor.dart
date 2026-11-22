@@ -347,6 +347,8 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                   (value) => _target = value,
                 ),
                 ExpansionTile(
+                  shape: const Border(),
+                  collapsedShape: const Border(),
                   key: const Key("quick-action-advanced"),
                   maintainState: true,
                   tilePadding: EdgeInsets.zero,

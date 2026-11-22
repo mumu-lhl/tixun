@@ -342,6 +342,8 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
     final response = result.responses[index];
     final correct = item.matches(response);
     return ExpansionTile(
+      shape: const Border(),
+      collapsedShape: const Border(),
       tilePadding: EdgeInsets.zero,
       initiallyExpanded: !correct,
       title: Text("${index + 1}. ${item.prompt}"),

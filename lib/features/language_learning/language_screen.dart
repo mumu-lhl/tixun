@@ -372,6 +372,8 @@ class _LanguageLearningScreenState
                           onTap: _writtenMock,
                         ),
                         ExpansionTile(
+                          shape: const Border(),
+                          collapsedShape: const Border(),
                           title: Text(l10n.languageExamSkills),
                           leading: const Icon(Icons.school_outlined),
                           children: [
@@ -508,6 +510,8 @@ class _Group extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return ExpansionTile(
+      shape: const Border(),
+      collapsedShape: const Border(),
       title: Text(group.title),
       subtitle: Text(
         vocabularyGroupLabel(

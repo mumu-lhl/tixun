@@ -67,6 +67,32 @@ void main() {
       expect(goal, LanguageGoal.exam);
       expect(chosen?.level, SentenceLevel.intermediate);
       expect(chosen?.skill, LanguageSkill.reading);
+
+      final tile = find.byType(ExpansionTile).first;
+      await tester.ensureVisible(tile);
+      await tester.tap(tile);
+      bool hasHorizontalOutline(Widget widget) {
+        final shape = switch (widget) {
+          DecoratedBox(decoration: ShapeDecoration(:final shape)) => shape,
+          Material(:final shape) => shape,
+          _ => null,
+        };
+        return shape is Border &&
+            [
+              shape.top,
+              shape.bottom,
+            ].any((side) => side.style != BorderStyle.none && side.color.a > 0);
+      }
+
+      final outline = find.descendant(
+        of: tile,
+        matching: find.byWidgetPredicate(hasHorizontalOutline),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(outline, findsNothing);
+      await tester.pumpAndSettle();
+      expect(outline, findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();

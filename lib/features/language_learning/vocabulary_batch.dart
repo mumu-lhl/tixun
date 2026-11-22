@@ -143,6 +143,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                 for (final card in cards)
                   Card(
                     child: ExpansionTile(
+                      shape: const Border(),
+                      collapsedShape: const Border(),
                       title: Text(card.item.form),
                       subtitle: Text(card.sense.meaning),
                       children: [

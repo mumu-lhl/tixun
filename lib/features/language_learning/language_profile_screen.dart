@@ -249,6 +249,8 @@ class _SkillEvidence extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return ExpansionTile(
+      shape: const Border(),
+      collapsedShape: const Border(),
       key: ValueKey(row.skill),
       title: Text(languageSkillLabel(l10n, row.skill)),
       subtitle: Text(
