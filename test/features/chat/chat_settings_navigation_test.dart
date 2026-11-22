@@ -155,15 +155,29 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(preview);
       await tester.pumpAndSettle();
-      final previewText = find.byWidgetPredicate(
-        (widget) =>
-            widget is SelectableText &&
-            (widget.data?.contains("at most three short sentences") ?? false) &&
-            (widget.data?.contains("突出句子中的固定搭配。") ?? false),
+      final dialog = find.byType(AlertDialog);
+      final requestContract = find.descendant(
+        of: dialog,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is SelectableText &&
+              (widget.data?.contains("at most three short sentences") ?? false),
+        ),
       );
-      expect(previewText, findsOneWidget);
+      expect(requestContract, findsOneWidget);
+      final editableSection = find.descendant(
+        of: dialog,
+        matching: find.byKey(const Key("prompt-preview-language_explanation")),
+      );
+      expect(
+        find.descendant(
+          of: editableSection,
+          matching: find.text("突出句子中的固定搭配。"),
+        ),
+        findsOneWidget,
+      );
       final close = find.descendant(
-        of: find.byType(AlertDialog),
+        of: dialog,
         matching: find.byType(TextButton),
       );
       await tester.tap(close);

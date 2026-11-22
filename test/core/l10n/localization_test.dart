@@ -448,9 +448,22 @@ void main() {
           await t.pumpAndSettle();
           expect(t.takeException(), isNull, reason: "$width $path");
           if (path == "/language") {
-            expect(find.text("Sentence insertion"), findsOneWidget);
+            final examSkills = find.text("Exam skills");
+            final insertion = find.text("Sentence insertion");
+            await t.scrollUntilVisible(examSkills, 150);
+            expect(insertion, findsNothing);
+            await t.tap(examSkills);
+            await t.pumpAndSettle();
+            expect(insertion, findsOneWidget);
             expect(find.text("Cloze"), findsOneWidget);
             expect(find.text("Grammar gap-fill"), findsOneWidget);
+            expect(
+              t.takeException(),
+              isNull,
+              reason: "$width expanded exam skills",
+            );
+            await t.tap(examSkills);
+            await t.pumpAndSettle();
           }
         }
       }
