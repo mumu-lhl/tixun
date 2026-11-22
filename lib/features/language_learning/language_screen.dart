@@ -419,6 +419,7 @@ class _LanguageLearningScreenState
                     builder: (context, groups) {
                       if (groups.isEmpty) return Text(l10n.languageNoGroups);
                       return Column(
+                        spacing: 12,
                         children: [
                           for (final group in groups)
                             Card(

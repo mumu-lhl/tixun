@@ -1,6 +1,7 @@
 import "../../support/exam_bundled.dart";
 
 import "package:tixun/features/language_learning/exam_store.dart";
+import "package:tixun/app/theme.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_ui/material_ui.dart";
@@ -54,25 +55,102 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
     await db.close();
   });
 
-  Widget app(Widget page, {double scale = 1}) => ProviderScope(
-    child: MaterialApp(
-      locale: const Locale("en"),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(scale)),
-        child: child!,
-      ),
-      home: page,
-    ),
-  );
+  Widget app(Widget page, {double scale = 1, ThemeData? theme}) =>
+      ProviderScope(
+        child: MaterialApp(
+          theme: theme,
+          locale: const Locale("en"),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+          home: page,
+        ),
+      );
   Future<void> flush(WidgetTester tester) async {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 150)),
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    "study spaces list entries and keeps flashcard translations private until revealed",
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 800);
+      addTearDown(tester.view.reset);
+      await tester.runAsync(() async {
+        for (final (index, word) in ["station", "ticket"].indexed) {
+          await store.saveEntries(
+            language: "en",
+            groupTitle: "Travel",
+            groupType: VocabularyGroupType.topic,
+            now: DateTime.utc(2026, 1, index + 1),
+            entries: [
+              VocabularyEntry(
+                form: word,
+                meaning: "Meaning of $word",
+                example: "Example with $word",
+                translation: "Translation of $word",
+              ),
+            ],
+          );
+        }
+      });
+      await tester.pumpWidget(
+        app(
+          VocabularyBatch(
+            store: store,
+            language: "en",
+            mode: VocabularyMode.study,
+          ),
+          scale: 1.6,
+          theme: appTheme(Brightness.light),
+        ),
+      );
+      await flush(tester);
+      final cards = find.byType(Card);
+      expect(cards, findsNWidgets(2));
+      expect(
+        tester.getTopLeft(cards.last).dy - tester.getBottomLeft(cards.first).dy,
+        greaterThanOrEqualTo(8),
+      );
+
+      Future<void> tap(Finder finder) async {
+        await tester.ensureVisible(finder);
+        await tester.tap(finder);
+        await tester.pumpAndSettle();
+      }
+
+      await tap(find.text("Flashcards"));
+      expect(cards, findsOneWidget);
+      expect(find.text("station"), findsOneWidget);
+      expect(find.text("ticket"), findsNothing);
+      expect(find.text("Example with station"), findsOneWidget);
+      expect(find.text("Translation of station"), findsNothing);
+      await tap(find.text("Show translation"));
+      expect(find.text("Translation of station"), findsOneWidget);
+
+      await tap(find.byTooltip("Next"));
+      expect(find.text("2 / 2"), findsOneWidget);
+      expect(find.text("Example with ticket"), findsOneWidget);
+      expect(find.text("Translation of ticket"), findsNothing);
+      await tap(find.byTooltip("Previous card"));
+      expect(find.text("Example with station"), findsOneWidget);
+      expect(find.text("Translation of station"), findsNothing);
+      await tap(find.byTooltip("Random card"));
+      expect(find.text("ticket"), findsOneWidget);
+      expect(find.text("station"), findsNothing);
+
+      await tap(find.text("List"));
+      expect(cards, findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   for (final width in [360.0, 1200.0]) {
     testWidgets("practice screens at width $width and large text", (

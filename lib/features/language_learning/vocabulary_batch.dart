@@ -1,15 +1,14 @@
 import "dart:async";
+import "dart:math";
 
 import "package:material_ui/material_ui.dart";
-
-import "language_layout.dart";
-
 import "package:uuid/uuid.dart";
 
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/l10n/generated/app_localizations.dart";
 import "../../core/ui/actions.dart";
+import "language_layout.dart";
 import "language_store.dart";
 import "lexical_form_screen.dart";
 import "lexical_form_store.dart";
@@ -44,6 +43,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   bool? _recognized;
   int _current = 0;
   int _offset = 0;
+  bool _showFlashcards = false;
+  int _studyIndex = 0;
   String _attemptId = _uuid.v4();
   bool _revealed = false;
   bool _saving = false;
@@ -79,6 +80,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   void _nextBatch() => setState(() {
     _offset += languageBatchSize;
     _current = 0;
+    _studyIndex = 0;
     _resetCard();
     _batch = _load();
   });
@@ -137,30 +139,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               ],
             );
           } else if (widget.mode == VocabularyMode.study) {
-            content = Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final card in cards)
-                  Card(
-                    child: ExpansionTile(
-                      shape: const Border(),
-                      collapsedShape: const Border(),
-                      title: Text(card.item.form),
-                      subtitle: Text(card.sense.meaning),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: VocabularyDetails(
-                            card: card,
-                            store: widget.store,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (canContinue) nextBatch,
-              ],
-            );
+            content = _study(cards, nextBatch: canContinue ? nextBatch : null);
           } else {
             final card = cards[_current];
             content = Column(
@@ -198,6 +177,109 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _study(List<LanguageCard> cards, {Widget? nextBatch}) {
+    final l10n = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 12,
+      children: [
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: Text(l10n.languageVocabularyList),
+                selected: !_showFlashcards,
+                onSelected: (_) => setState(() => _showFlashcards = false),
+              ),
+              ChoiceChip(
+                label: Text(l10n.languageVocabularyFlashcards),
+                selected: _showFlashcards,
+                onSelected: (_) => setState(() => _showFlashcards = true),
+              ),
+            ],
+          ),
+        ),
+        if (_showFlashcards) ...[
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              IconButton(
+                tooltip: l10n.languagePrevious,
+                onPressed: _studyIndex == 0
+                    ? null
+                    : () => setState(() => _studyIndex--),
+                icon: const Icon(Icons.arrow_back),
+              ),
+              Text("${_studyIndex + 1} / ${cards.length}"),
+              IconButton(
+                tooltip: l10n.languageNext,
+                onPressed: _studyIndex == cards.length - 1
+                    ? null
+                    : () => setState(() => _studyIndex++),
+                icon: const Icon(Icons.arrow_forward),
+              ),
+              IconButton(
+                tooltip: l10n.languageRandomCard,
+                onPressed: cards.length < 2
+                    ? null
+                    : () => setState(() {
+                        final index = Random().nextInt(cards.length - 1);
+                        _studyIndex = index < _studyIndex ? index : index + 1;
+                      }),
+                icon: const Icon(Icons.shuffle),
+              ),
+            ],
+          ),
+          _flashcard(cards[_studyIndex]),
+        ] else
+          for (final card in cards)
+            Card(
+              key: ValueKey(card.sense.id),
+              child: ExpansionTile(
+                shape: const Border(),
+                collapsedShape: const Border(),
+                title: Text(card.item.form),
+                subtitle: Text(card.sense.meaning),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: VocabularyDetails(card: card, store: widget.store),
+                  ),
+                ],
+              ),
+            ),
+        ?nextBatch,
+      ],
+    );
+  }
+
+  Widget _flashcard(LanguageCard card) {
+    final textTheme = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 12,
+          children: [
+            Text(card.item.form, style: textTheme.headlineMedium),
+            Text(card.sense.meaning, style: textTheme.titleMedium),
+            VocabularyDetails(
+              key: ValueKey(card.sense.id),
+              card: card,
+              store: widget.store,
+            ),
+          ],
+        ),
       ),
     );
   }
