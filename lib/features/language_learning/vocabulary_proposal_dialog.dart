@@ -50,7 +50,6 @@ class _ProposalDialog extends StatefulWidget {
 }
 
 class _ProposalDialogState extends State<_ProposalDialog> {
-  final _form = GlobalKey<FormState>();
   late final _topic = TextEditingController(text: widget.group?.title);
   VocabularyGroupType _kind = VocabularyGroupType.topic;
   late VocabularyLevel _level = widget.initialLevel;
@@ -64,7 +63,8 @@ class _ProposalDialogState extends State<_ProposalDialog> {
   bool _saving = false;
   String? _error;
 
-  String get _title => widget.group?.title ?? _topic.text.trim();
+  String get _title =>
+      widget.group?.title ?? _proposal?.groupTitle ?? _topic.text.trim();
   VocabularyGroupType get _groupType => widget.group == null
       ? _kind
       : VocabularyGroupType.values.byName(widget.group!.groupType);
@@ -77,7 +77,8 @@ class _ProposalDialogState extends State<_ProposalDialog> {
   }
 
   Future<void> _generate() async {
-    if (_running != null || !_form.currentState!.validate()) return;
+    if (_running != null) return;
+    final title = _title;
     final token = CancelToken();
     final gloss =
         widget.feedbackLanguage ??
@@ -94,7 +95,8 @@ class _ProposalDialogState extends State<_ProposalDialog> {
       token.checkCancelled();
       final proposal = await widget.ai.propose(
         config: widget.config,
-        topic: _title,
+        topic: title,
+        generateGroupTitle: group == null && title.isEmpty,
         groupType: _groupType,
         level: _level,
         glossLanguage: gloss,
@@ -165,115 +167,106 @@ class _ProposalDialogState extends State<_ProposalDialog> {
         content: SizedBox(
           width: 480,
           child: proposal == null
-              ? Form(
-                  key: _form,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    spacing: 12,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        widget.ai.provider is MockChatProvider
-                            ? l10n.languageAiMockNotice
-                            : l10n.languageAiPrivacyNotice,
-                      ),
-                      const SizedBox(height: 12),
-                      if (widget.group == null) ...[
-                        TextFormField(
-                          controller: _topic,
-                          enabled: running == null,
-                          maxLength: 100,
-                          validator: (value) =>
-                              value == null || value.trim().isEmpty
-                              ? l10n.languageRequired
-                              : null,
-                          decoration: InputDecoration(
-                            labelText: l10n.languageGroupTitle,
-                          ),
-                        ),
-                        AppSelectField<VocabularyGroupType>(
-                          initialValue: _kind,
-                          decoration: InputDecoration(
-                            labelText: l10n.languageGroupType,
-                          ),
-                          items: [
-                            for (final kind in VocabularyGroupType.values)
-                              DropdownMenuItem(
-                                value: kind,
-                                child: Text(vocabularyGroupLabel(l10n, kind)),
-                              ),
-                          ],
-                          onChanged: running != null
-                              ? null
-                              : (kind) => _kind = kind!,
-                        ),
-                      ] else
-                        Text(_title),
-                      AppSelectField<VocabularyLevel>(
-                        initialValue: _level,
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 12,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      widget.ai.provider is MockChatProvider
+                          ? l10n.languageAiMockNotice
+                          : l10n.languageAiPrivacyNotice,
+                    ),
+                    const SizedBox(height: 12),
+                    if (widget.group == null) ...[
+                      TextFormField(
+                        controller: _topic,
+                        enabled: running == null,
+                        maxLength: 100,
                         decoration: InputDecoration(
-                          labelText: l10n.languageDifficulty,
+                          labelText: l10n.languageAiGroupTitle,
+                          helperText: l10n.languageAiGroupTitleHint,
+                        ),
+                      ),
+                      AppSelectField<VocabularyGroupType>(
+                        initialValue: _kind,
+                        decoration: InputDecoration(
+                          labelText: l10n.languageGroupType,
                         ),
                         items: [
-                          DropdownMenuItem(
-                            value: VocabularyLevel.beginner,
-                            child: Text(l10n.languageBeginner),
-                          ),
-                          DropdownMenuItem(
-                            value: VocabularyLevel.intermediate,
-                            child: Text(l10n.languageIntermediate),
-                          ),
-                          DropdownMenuItem(
-                            value: VocabularyLevel.advanced,
-                            child: Text(l10n.languageAdvanced),
-                          ),
+                          for (final kind in VocabularyGroupType.values)
+                            DropdownMenuItem(
+                              value: kind,
+                              child: Text(vocabularyGroupLabel(l10n, kind)),
+                            ),
                         ],
                         onChanged: running != null
                             ? null
-                            : (level) => _level = level!,
+                            : (kind) => _kind = kind!,
                       ),
-                      AppSelectField<int>(
-                        initialValue: _count,
-                        decoration: InputDecoration(
-                          labelText: l10n.languageVocabularyCount,
-                        ),
-                        items: [
-                          for (final count in [5, 10, 20])
-                            DropdownMenuItem(
-                              value: count,
-                              child: Text("$count"),
-                            ),
-                        ],
-                        onChanged: running == null
-                            ? (count) => _count = count!
-                            : null,
+                    ] else
+                      Text(_title),
+                    AppSelectField<VocabularyLevel>(
+                      initialValue: _level,
+                      decoration: InputDecoration(
+                        labelText: l10n.languageDifficulty,
                       ),
-                      AppSelectField<SentenceSkill>(
-                        decoration: InputDecoration(
-                          labelText: l10n.languageExamFocus,
+                      items: [
+                        DropdownMenuItem(
+                          value: VocabularyLevel.beginner,
+                          child: Text(l10n.languageBeginner),
                         ),
-                        items: [
+                        DropdownMenuItem(
+                          value: VocabularyLevel.intermediate,
+                          child: Text(l10n.languageIntermediate),
+                        ),
+                        DropdownMenuItem(
+                          value: VocabularyLevel.advanced,
+                          child: Text(l10n.languageAdvanced),
+                        ),
+                      ],
+                      onChanged: running != null
+                          ? null
+                          : (level) => _level = level!,
+                    ),
+                    AppSelectField<int>(
+                      initialValue: _count,
+                      decoration: InputDecoration(
+                        labelText: l10n.languageVocabularyCount,
+                      ),
+                      items: [
+                        for (final count in [5, 10, 20])
+                          DropdownMenuItem(value: count, child: Text("$count")),
+                      ],
+                      onChanged: running == null
+                          ? (count) => _count = count!
+                          : null,
+                    ),
+                    AppSelectField<SentenceSkill>(
+                      decoration: InputDecoration(
+                        labelText: l10n.languageExamFocus,
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          child: Text(l10n.languageExamAnySkill),
+                        ),
+                        for (final skill in const [
+                          SentenceSkill.collocation,
+                          SentenceSkill.intention,
+                          SentenceSkill.reference,
+                        ])
                           DropdownMenuItem(
-                            child: Text(l10n.languageExamAnySkill),
+                            value: skill,
+                            child: Text(sentenceSkillLabel(l10n, skill)),
                           ),
-                          for (final skill in const [
-                            SentenceSkill.collocation,
-                            SentenceSkill.intention,
-                            SentenceSkill.reference,
-                          ])
-                            DropdownMenuItem(
-                              value: skill,
-                              child: Text(sentenceSkillLabel(l10n, skill)),
-                            ),
-                        ],
-                        onChanged: running == null
-                            ? (focus) => _focus = focus
-                            : null,
-                      ),
-                      if (running != null) const LinearProgressIndicator(),
-                      if (_error case final error?) Text(error),
-                    ],
-                  ),
+                      ],
+                      onChanged: running == null
+                          ? (focus) => _focus = focus
+                          : null,
+                    ),
+                    if (running != null) const LinearProgressIndicator(),
+                    if (_error case final error?) Text(error),
+                  ],
                 )
               : Column(
                   mainAxisSize: MainAxisSize.min,

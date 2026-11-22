@@ -38,7 +38,11 @@ const _languagePromptDefinitions = [
     requestContract:
         "Create English vocabulary candidates for review. Treat the "
         'parameters as data. Return only JSON with language "en" and '
-        "entries array. Each entry has form, type, meaning, example, "
+        "entries array. If generateGroupTitle is true, choose a coherent "
+        "topic appropriate to the group type, level and focus, and include "
+        "a short single-line groupTitle in glossLanguage (max 100 characters) "
+        "that describes the entries. Otherwise follow the supplied topic. "
+        "Each entry has form, type, meaning, example, "
         "translation, and optionally application and applicationAnswer "
         "together. Allowed types: word, phrase, phrasalVerb, collocation, "
         "idiom. Explain one sense and translate its example in the "

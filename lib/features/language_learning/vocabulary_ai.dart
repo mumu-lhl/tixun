@@ -15,11 +15,17 @@ import "sentence_content.dart";
 enum VocabularyLevel { beginner, intermediate, advanced }
 
 class VocabularyProposal {
-  const VocabularyProposal(this.entries, this.provenance, {this.requested});
+  const VocabularyProposal(
+    this.entries,
+    this.provenance, {
+    this.requested,
+    this.groupTitle,
+  });
 
   final List<VocabularyEntry> entries;
   final VocabularyProvenance provenance;
   final int? requested;
+  final String? groupTitle;
 }
 
 /// Standalone request: no tools, no chat session and no writes to the word bank.
@@ -31,7 +37,7 @@ class VocabularyAi {
   final PromptSettings? prompts;
   static const maximumEntries = 20;
   static const _perRequest = 6;
-  static const promptVersion = 3;
+  static const promptVersion = 4;
 
   Future<VocabularyProposal> propose({
     required ProviderConfig config,
@@ -43,17 +49,22 @@ class VocabularyAi {
     required CancelToken cancel,
     int count = _perRequest,
     SentenceSkill? focus,
+    bool generateGroupTitle = false,
   }) async {
     if (count < 1 || count > maximumEntries) {
       throw const FormatException("Invalid vocabulary candidate count");
     }
     final mock = provider is MockChatProvider;
+    String? groupTitle;
     final entries = <VocabularyEntry>[];
     final exclusions = existingExpressions
         .take(30)
         .map(normalizeLanguageText)
         .toSet();
     if (mock) {
+      if (generateGroupTitle) {
+        groupTitle = glossLanguage == "zh" ? "旅行英语" : "Travel English";
+      }
       entries.addAll(
         _parse(decodeLanguageJson(_mockReply(glossLanguage).text), _perRequest)
             .where(
@@ -66,8 +77,9 @@ class VocabularyAi {
       while (entries.length < count) {
         cancel.checkCancelled();
         final size = math.min(_perRequest, count - entries.length);
+        final needsTitle = generateGroupTitle && groupTitle == null;
         try {
-          final candidates = await requestLanguageJson(
+          final batch = await requestLanguageJson(
             provider: provider,
             config: config,
             usageStore: usageStore,
@@ -77,7 +89,10 @@ class VocabularyAi {
               messages: [
                 AiMessage.user(
                   jsonEncode({
-                    "topic": topic,
+                    if (groupTitle ?? (topic.isEmpty ? null : topic)
+                        case final batchTopic?)
+                      "topic": batchTopic,
+                    if (needsTitle) "generateGroupTitle": true,
                     "groupType": groupType.name,
                     "level": level.name,
                     "count": size,
@@ -93,20 +108,26 @@ class VocabularyAi {
             ),
             cancel: cancel,
             maxChars: 12000,
-            parse: (value) => _parse(value, size)
-                .where(
-                  (entry) =>
-                      !exclusions.contains(normalizeLanguageText(entry.form)) &&
-                      !entries.any(
-                        (earlier) =>
-                            normalizeLanguageText(earlier.form) ==
-                            normalizeLanguageText(entry.form),
-                      ),
-                )
-                .toList(),
+            parse: (value) => (
+              title: needsTitle ? _parseGroupTitle(value) : null,
+              entries: _parse(value, size)
+                  .where(
+                    (entry) =>
+                        !exclusions.contains(
+                          normalizeLanguageText(entry.form),
+                        ) &&
+                        !entries.any(
+                          (earlier) =>
+                              normalizeLanguageText(earlier.form) ==
+                              normalizeLanguageText(entry.form),
+                        ),
+                  )
+                  .toList(),
+            ),
           );
-          entries.addAll(candidates);
-          if (candidates.length < size) break;
+          groupTitle ??= batch.title;
+          entries.addAll(batch.entries);
+          if (batch.entries.length < size) break;
         } catch (_) {
           cancel.checkCancelled();
           if (entries.isEmpty) rethrow;
@@ -128,7 +149,22 @@ class VocabularyAi {
         mock: mock,
       ),
       requested: count,
+      groupTitle: groupTitle,
     );
+  }
+
+  static String _parseGroupTitle(Object? data) {
+    final value = data is Map ? data["groupTitle"] : null;
+    if (value is! String) {
+      throw const FormatException("Missing vocabulary group title");
+    }
+    final title = value.trim();
+    if (title.isEmpty ||
+        title.length > 100 ||
+        title.contains(RegExp(r"[\r\n]"))) {
+      throw const FormatException("Invalid vocabulary group title");
+    }
+    return title;
   }
 
   static List<VocabularyEntry> _parse(Object? data, int count) {

@@ -179,6 +179,8 @@
   "languageNoGroups": "添加第一个表达，建立你的词汇组。",
   "languageAddEntry": "添加表达",
   "languageGroupTitle": "组名",
+  "languageAiGroupTitle": "组名（可选）",
+  "languageAiGroupTitleHint": "留空时由 AI 为词汇组命名。",
   "languageGroupType": "分组类型（新建词汇组时使用）",
   "languageTopic": "主题",
   "languageConcept": "概念",

@@ -179,6 +179,8 @@
   "languageNoGroups": "Add your first expression to start a vocabulary group.",
   "languageAddEntry": "Add expression",
   "languageGroupTitle": "Group name",
+  "languageAiGroupTitle": "Group name (optional)",
+  "languageAiGroupTitleHint": "Leave blank to let AI name the group.",
   "languageGroupType": "Group type (for a new group)",
   "languageTopic": "Topic",
   "languageConcept": "Concept",

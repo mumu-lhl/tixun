@@ -27,6 +27,7 @@ class _VocabularyProvider implements ChatProvider {
 
   final bool completed;
   int requests = 0;
+  late Map parameters;
 
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
@@ -36,10 +37,11 @@ class _VocabularyProvider implements ChatProvider {
           isFalse,
         );
         requests++;
+        parameters = jsonDecode(request.messages.single.text) as Map;
         yield AiChunk(
           completed: completed,
           text:
-              '{"language":"en","entries":['
+              '{"language":"en","groupTitle":" Station English ","entries":['
               '{"form":"platform","type":"word","meaning":"a boarding area",'
               '"example":"The train leaves from platform two.",'
               '"translation":"We board at platform two.",'
@@ -95,8 +97,9 @@ class _ChunkProvider implements ChatProvider {
 Future<void> _openProposal(
   WidgetTester tester,
   LanguageLearningStore store,
-  _VocabularyProvider provider,
-) async {
+  _VocabularyProvider provider, {
+  String? title,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       locale: const Locale("en"),
@@ -120,7 +123,9 @@ Future<void> _openProposal(
   await tester.tap(find.text("Open"));
   await tester.pumpAndSettle();
   expect(provider.requests, 0);
-  await tester.enterText(find.byType(TextFormField), "Rail travel");
+  if (title != null) {
+    await tester.enterText(find.byType(TextFormField), title);
+  }
   await tester.runAsync(() async {
     await tester.tap(find.widgetWithText(FilledButton, "Generate vocabulary"));
     await tester.pump();
@@ -177,6 +182,9 @@ void main() {
     await _openProposal(tester, store, provider);
     expect(find.text("Review vocabulary candidates"), findsOneWidget);
     expect(provider.requests, 1);
+    expect(provider.parameters["generateGroupTitle"], isTrue);
+    expect(provider.parameters, isNot(contains("topic")));
+    expect(find.text("Station English"), findsOneWidget);
     await tester.runAsync(() async {
       expect(await store.cards(language: "en"), isEmpty);
     });
@@ -213,6 +221,8 @@ void main() {
     expect(find.text("Review vocabulary candidates"), findsNothing);
     await tester.runAsync(() async {
       final saved = (await store.cards(language: "en")).single;
+      final groups = await db.select(db.learningVocabularyGroups).get();
+      expect(groups.single.title, "Station English");
       expect(saved.item.form, "platform");
       expect(saved.sense.meaning, "a place to board");
       expect(saved.sense.aiModel, _config.model);
@@ -223,6 +233,17 @@ void main() {
       expect(saved.sense.applicationAnswer, "platform");
       expect(await db.select(db.chatMessages).get(), isEmpty);
     });
+  });
+
+  testWidgets("a supplied name takes precedence over the model's title", (
+    tester,
+  ) async {
+    final provider = _VocabularyProvider(completed: true);
+    await _openProposal(tester, store, provider, title: "Rail travel");
+    expect(provider.parameters["topic"], "Rail travel");
+    expect(provider.parameters, isNot(contains("generateGroupTitle")));
+    expect(find.text("Rail travel"), findsOneWidget);
+    expect(find.text("Station English"), findsNothing);
   });
 
   testWidgets("an interrupted reply cannot become a saveable preview", (
