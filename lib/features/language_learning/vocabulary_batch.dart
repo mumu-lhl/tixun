@@ -1,6 +1,9 @@
 import "dart:async";
 
 import "package:material_ui/material_ui.dart";
+
+import "language_layout.dart";
+
 import "package:uuid/uuid.dart";
 
 import "../../core/database/database.dart";
@@ -181,12 +184,12 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               ],
             );
           }
-          return ListView(
-            padding: const EdgeInsets.all(24),
+          return languagePage(
+            gap: 0,
             children: [
               Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 680),
+                  constraints: const BoxConstraints(maxWidth: 760),
                   child: content,
                 ),
               ),

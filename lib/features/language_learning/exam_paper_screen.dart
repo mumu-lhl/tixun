@@ -1,6 +1,9 @@
 import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
+import "language_layout.dart";
+import "language_data.dart";
+
 import "../../core/l10n/app_strings.dart";
 import "../../core/l10n/generated/app_localizations.dart";
 import "../../core/ui/actions.dart";
@@ -32,7 +35,8 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
   ExamPaper get _paper => _material.paper;
   late final _answers = List.filled(_paper.items.length, "");
   late var _attempt = widget.ai.store.newExamAttemptId();
-  late final _history = widget.ai.store.examHistory(_material.row.id);
+  Stream<List<ExamResult>> _loadHistory() =>
+      widget.ai.store.examHistory(_material.row.id);
   final _hints = <int>{};
   ExamConfidence? _confidence;
   ExamResult? _result;
@@ -146,12 +150,12 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
         !_lookedUp;
     return Scaffold(
       appBar: AppBar(title: Text(examSourceLabel(l10n, _material))),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: languagePage(
+        gap: 0,
         children: [
           Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 780),
+              constraints: const BoxConstraints(maxWidth: 760),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -379,11 +383,10 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
 
   Widget _historyButton(
     BuildContext context,
-  ) => StreamBuilder<List<ExamResult>>(
-    stream: _history,
-    builder: (context, snapshot) {
-      final history = snapshot.data;
-      if (history == null || history.isEmpty) return const SizedBox.shrink();
+  ) => LanguageDataBuilder<List<ExamResult>>(
+    load: _loadHistory,
+    builder: (context, history) {
+      if (history.isEmpty) return const SizedBox.shrink();
       return TextButton(
         onPressed: _saving || _review != null
             ? null

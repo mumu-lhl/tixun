@@ -3,6 +3,9 @@ import "dart:async";
 import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
+import "language_layout.dart";
+import "language_data.dart";
+
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
@@ -29,7 +32,8 @@ class WritingPractice extends StatefulWidget {
 
 class _WritingPracticeState extends State<WritingPractice> {
   final _controller = TextEditingController();
-  late final _history = widget.store.writingHistory(taskId: widget.ai.task.id);
+  Stream<List<WritingHistory>> _loadHistory() =>
+      widget.store.writingHistory(taskId: widget.ai.task.id);
   String _saved = "";
   bool _loaded = false;
   bool _loadError = false;
@@ -151,7 +155,7 @@ class _WritingPracticeState extends State<WritingPractice> {
     final l10n = context.l10n;
     final theme = Theme.of(context).textTheme;
     return PopScope(
-      canPop: _leaving || !_dirty || _pending != null,
+      canPop: _leaving || (!_dirty && !_busy),
       onPopInvokedWithResult: (popped, _) {
         if (!popped) unawaited(_confirmExit());
       },
@@ -163,12 +167,12 @@ class _WritingPracticeState extends State<WritingPractice> {
                 : l10n.languageContinuation,
           ),
         ),
-        body: ListView(
-          padding: const EdgeInsets.all(24),
+        body: languagePage(
+          gap: 0,
           children: [
             Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 740),
+                constraints: const BoxConstraints(maxWidth: 760),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -231,14 +235,9 @@ class _WritingPracticeState extends State<WritingPractice> {
                         l10n.languageWritingVersions,
                         style: theme.titleLarge,
                       ),
-                      StreamBuilder<List<WritingHistory>>(
-                        stream: _history,
-                        builder: (context, snapshot) {
-                          if (snapshot.hasError) {
-                            return Text(l10n.couldNotCompleteTheAction);
-                          }
-                          final versions = snapshot.data;
-                          if (versions == null) return const SizedBox.shrink();
+                      LanguageDataBuilder<List<WritingHistory>>(
+                        load: _loadHistory,
+                        builder: (context, versions) {
                           if (versions.isEmpty) {
                             return Text(l10n.languageWritingNoVersions);
                           }
@@ -291,7 +290,7 @@ class _WritingVersionDialog extends StatefulWidget {
 }
 
 class _WritingVersionDialogState extends State<_WritingVersionDialog> {
-  late final _annotations = widget.store.writingNotes(widget.entry.version.id);
+  late var _annotations = widget.store.writingNotes(widget.entry.version.id);
   LearningWritingNote? _active;
 
   @override
@@ -354,7 +353,15 @@ class _WritingVersionDialogState extends State<_WritingVersionDialog> {
                 future: _annotations,
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return Text(l10n.couldNotCompleteTheAction);
+                    return TextButton.icon(
+                      onPressed: () => setState(
+                        () => _annotations = widget.store.writingNotes(
+                          widget.entry.version.id,
+                        ),
+                      ),
+                      icon: const Icon(Icons.refresh),
+                      label: Text(l10n.retry),
+                    );
                   }
                   return Column(
                     children: [

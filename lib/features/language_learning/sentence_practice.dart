@@ -1,6 +1,8 @@
 import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
+import "language_layout.dart";
+
 import "../../core/ai/chat_provider.dart";
 import "../../core/l10n/app_error_localization.dart";
 import "../../core/l10n/app_strings.dart";
@@ -105,12 +107,12 @@ class _SentencePracticeState extends State<SentencePractice> {
     final batch = _batch;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.languageSentencePractice)),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
+      body: languagePage(
+        gap: 0,
         children: [
           Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 660),
+              constraints: const BoxConstraints(maxWidth: 760),
               child: batch == null
                   ? _setup(l10n)
                   : _results.length == batch.cards.length
