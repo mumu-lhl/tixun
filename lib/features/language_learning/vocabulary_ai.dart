@@ -89,9 +89,7 @@ class VocabularyAi {
               messages: [
                 AiMessage.user(
                   jsonEncode({
-                    if (groupTitle ?? (topic.isEmpty ? null : topic)
-                        case final batchTopic?)
-                      "topic": batchTopic,
+                    "topic": ?(groupTitle ?? (topic.isEmpty ? null : topic)),
                     if (needsTitle) "generateGroupTitle": true,
                     "groupType": groupType.name,
                     "level": level.name,
