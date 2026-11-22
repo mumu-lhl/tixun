@@ -61,13 +61,29 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key("study-title")), "Example");
-      await tester.ensureVisible(find.text("函数"));
-      await tester.tap(find.text("函数"));
+      await tester.ensureVisible(find.byKey(const Key("choose-study-modules")));
+      await tester.tap(find.byKey(const Key("choose-study-modules")));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 80)),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key("module-search")), "函数");
+      await tester.pump();
+      await tester.ensureVisible(find.byType(CheckboxListTile));
+      await tester.tap(find.byType(CheckboxListTile));
       await tester.pump();
       expect(
         tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
         true,
       );
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, "Save"),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(InputChip), findsOneWidget);
       await tester.tap(find.byKey(const Key("save-study")));
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 100)),

@@ -77,7 +77,7 @@ class ModuleAssignment extends ConsumerWidget {
                       TextButton.icon(
                         key: const Key("assign-modules"),
                         onPressed: modules.hasData && links.hasData
-                            ? () => _pick(ctx, ref, all, ids.toList())
+                            ? () => _pick(ctx, ref, ids.toList())
                             : null,
                         icon: const Icon(Icons.folder_copy_outlined, size: 18),
                         label: Text(ctx.l10n.chooseModules),
@@ -95,102 +95,22 @@ class ModuleAssignment extends ConsumerWidget {
   Future<void> _pick(
     BuildContext context,
     WidgetRef ref,
-    List<SubjectModule> all,
     List<String> before,
   ) async {
-    final selected = before.toSet();
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) => AlertDialog(
-          title: Text(ctx.l10n.chooseModules),
-          content: SizedBox(
-            width: 500,
-            height: 400,
-            child: ListView(
-              children: [
-                Text(ctx.l10n.selectMultipleEntriesIfNeeded),
-                Text(
-                  ctx.l10n.selectedEntriesOutOf20(
-                    l10nArgument((selected.length)),
-                  ),
-                ),
-                if (all.isEmpty) Text(ctx.l10n.thisSubjectHasNoModules),
-                for (final root in all.where((m) => m.parentId == null)) ...[
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(root.name),
-                    value: selected.contains(root.id),
-                    onChanged: (v) => set(() {
-                      v == true
-                          ? selected.add(root.id)
-                          : selected.remove(root.id);
-                    }),
-                  ),
-                  for (final child in all.where((m) => m.parentId == root.id))
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20),
-                      child: CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(child.name),
-                        value: selected.contains(child.id),
-                        onChanged: (v) => set(() {
-                          v == true
-                              ? selected.add(child.id)
-                              : selected.remove(child.id);
-                        }),
-                      ),
-                    ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(ctx.l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(ctx.l10n.manageDirectory),
-            ),
-            FilledButton(
-              onPressed: selected.length > 20
-                  ? null
-                  : () => Navigator.pop(ctx, true),
-              child: Text(ctx.l10n.save),
-            ),
-          ],
-        ),
-      ),
+    final selected = await pickModules(
+      context,
+      ref.read(appControllerProvider).study.modules,
+      subject,
+      before,
     );
-    if (!context.mounted) return;
-    if (yes == false) {
-      await Navigator.of(context, rootNavigator: true).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ModuleManager(initialSubject: subject),
-        ),
-      );
-      if (context.mounted) {
-        final store = ref.read(appControllerProvider).study.modules;
-        final updated = await store.list(subject);
-        // Only reopen the picker when the directory set actually changed;
-        // if the user just looked, land back on the detail page.
-        if (_moduleSignature(updated) != _moduleSignature(all)) {
-          final current = await store.ids(id, mistake);
-          if (context.mounted) await _pick(context, ref, updated, current);
-        }
-      }
-      return;
-    }
-    if (yes == true) {
+    if (selected != null && context.mounted) {
       await act(
         context,
         () => ref
             .read(appControllerProvider)
             .study
             .modules
-            .assign(id, mistake, selected.toList(), expected: before),
+            .assign(id, mistake, selected, expected: before),
       );
     }
   }

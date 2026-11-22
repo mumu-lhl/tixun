@@ -78,6 +78,35 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
   var _groupType = VocabularyGroupType.topic;
   late var _lexicalType = widget.initial?.type ?? LexicalType.word;
   var _saving = false;
+  var _dirty = false;
+  var _confirmingClose = false;
+
+  Future<void> _close() async {
+    if (_saving || _confirmingClose) return;
+    if (!_dirty) {
+      Navigator.pop(context);
+      return;
+    }
+    _confirmingClose = true;
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Text(context.l10n.discardUnsavedChanges),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(context.l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(context.l10n.discard),
+          ),
+        ],
+      ),
+    );
+    _confirmingClose = false;
+    if (mounted && discard == true) Navigator.pop(context);
+  }
 
   @override
   void dispose() {
@@ -140,7 +169,10 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
       validator: validate,
     );
     return PopScope(
-      canPop: !_saving,
+      canPop: !_saving && !_dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (!didPop) await _close();
+      },
       child: AlertDialog(
         title: Text(widget.initial == null ? l10n.languageAddEntry : l10n.edit),
         scrollable: true,
@@ -148,6 +180,9 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
           width: 480,
           child: Form(
             key: _form,
+            onChanged: () {
+              if (!_dirty) setState(() => _dirty = true);
+            },
             child: Column(
               mainAxisSize: MainAxisSize.min,
               spacing: 12,
@@ -166,7 +201,12 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
                           child: Text(vocabularyGroupLabel(l10n, type)),
                         ),
                     ],
-                    onChanged: _saving ? null : (type) => _groupType = type!,
+                    onChanged: _saving
+                        ? null
+                        : (type) => setState(() {
+                            _groupType = type!;
+                            _dirty = true;
+                          }),
                   ),
                 ] else if (widget.group case final group?)
                   Text(group.title),
@@ -184,7 +224,12 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
                         child: Text(lexicalTypeLabel(l10n, type)),
                       ),
                   ],
-                  onChanged: _saving ? null : (type) => _lexicalType = type!,
+                  onChanged: _saving
+                      ? null
+                      : (type) => setState(() {
+                          _lexicalType = type!;
+                          _dirty = true;
+                        }),
                 ),
                 field(_example, l10n.languageExample),
                 field(_translation, l10n.languageTranslation),
@@ -204,7 +249,7 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
         ),
         actions: [
           TextButton(
-            onPressed: _saving ? null : () => Navigator.pop(context),
+            onPressed: _saving ? null : _close,
             child: Text(l10n.cancel),
           ),
           FilledButton(

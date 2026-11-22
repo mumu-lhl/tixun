@@ -323,44 +323,6 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                       ? l10n.languageRequired
                       : null,
                 ),
-                AppSelectField<String>(
-                  initialValue: _icon,
-                  decoration: InputDecoration(labelText: l10n.quickActionIcon),
-                  items: [
-                    for (final icon in quickIcons)
-                      DropdownMenuItem(
-                        value: icon,
-                        child: Icon(
-                          quickIcon(icon),
-                          semanticLabel: switch (icon) {
-                            "express" => l10n.quickExpress,
-                            "meaning" => l10n.quickMeaning,
-                            "usage" => l10n.quickUsage,
-                            "translate" => l10n.quickActionTarget,
-                            _ => l10n.quickActionIcon,
-                          },
-                        ),
-                      ),
-                  ],
-                  onChanged: (value) => setState(() => _icon = value!),
-                ),
-                field(
-                  l10n.quickActionDescription,
-                  _description,
-                  180,
-                  (value) => _description = value,
-                  hint: quickDescription(
-                    context,
-                    _original.copyWith(description: ""),
-                  ),
-                ),
-                field(
-                  l10n.quickActionInputHint,
-                  _hint,
-                  180,
-                  (value) => _hint = value,
-                  hint: quickHint(context, _original.copyWith(inputHint: "")),
-                ),
                 field(
                   l10n.quickActionPrompt,
                   _prompt,
@@ -378,25 +340,82 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                   },
                 ),
                 PromptTokenCount(_prompt),
-                language(l10n.quickActionSource, _source, [
-                  "auto",
-                  ...quickLanguages,
-                ], (value) => _source = value),
                 language(
                   l10n.quickActionTarget,
                   _target,
                   quickLanguages,
                   (value) => _target = value,
                 ),
-                language(l10n.quickActionGloss, _gloss, [
-                  "app",
-                  ...quickLanguages,
-                ], (value) => _gloss = value),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.quickDetailed),
-                  value: _detailed,
-                  onChanged: (value) => setState(() => _detailed = value),
+                ExpansionTile(
+                  key: const Key("quick-action-advanced"),
+                  maintainState: true,
+                  tilePadding: EdgeInsets.zero,
+                  title: Text(l10n.languageAdvanced),
+                  children: [
+                    Column(
+                      spacing: 12,
+                      children: [
+                        AppSelectField<String>(
+                          initialValue: _icon,
+                          decoration: InputDecoration(
+                            labelText: l10n.quickActionIcon,
+                          ),
+                          items: [
+                            for (final icon in quickIcons)
+                              DropdownMenuItem(
+                                value: icon,
+                                child: Icon(
+                                  quickIcon(icon),
+                                  semanticLabel: switch (icon) {
+                                    "express" => l10n.quickExpress,
+                                    "meaning" => l10n.quickMeaning,
+                                    "usage" => l10n.quickUsage,
+                                    "translate" => l10n.quickActionTarget,
+                                    _ => l10n.quickActionIcon,
+                                  },
+                                ),
+                              ),
+                          ],
+                          onChanged: (value) => setState(() => _icon = value!),
+                        ),
+                        field(
+                          l10n.quickActionDescription,
+                          _description,
+                          180,
+                          (value) => _description = value,
+                          hint: quickDescription(
+                            context,
+                            _original.copyWith(description: ""),
+                          ),
+                        ),
+                        field(
+                          l10n.quickActionInputHint,
+                          _hint,
+                          180,
+                          (value) => _hint = value,
+                          hint: quickHint(
+                            context,
+                            _original.copyWith(inputHint: ""),
+                          ),
+                        ),
+                        language(l10n.quickActionSource, _source, [
+                          "auto",
+                          ...quickLanguages,
+                        ], (value) => _source = value),
+                        language(l10n.quickActionGloss, _gloss, [
+                          "app",
+                          ...quickLanguages,
+                        ], (value) => _gloss = value),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(l10n.quickDetailed),
+                          value: _detailed,
+                          onChanged: (value) =>
+                              setState(() => _detailed = value),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,

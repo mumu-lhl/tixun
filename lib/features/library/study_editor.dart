@@ -12,7 +12,7 @@ import "../../core/ui/markdown_editor.dart";
 import "../visual/visual_markdown.dart";
 import "library_providers.dart";
 import "study_store.dart";
-import "module_store.dart";
+import "module_widgets.dart";
 
 class StudyEditor extends ConsumerStatefulWidget {
   const StudyEditor({
@@ -335,64 +335,18 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                             if (_creating)
                               ValueListenableBuilder<TextEditingValue>(
                                 valueListenable: field("subject"),
-                                builder: (context, value, _) => StreamBuilder(
-                                  key: ValueKey(value.text.trim()),
-                                  stream: ref
-                                      .read(studyStoreProvider)
-                                      .modules
-                                      .watch(value.text.trim()),
-                                  builder: (context, snapshot) => Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(context.l10n.chooseModules),
-                                      if (snapshot.hasError)
-                                        Text(
-                                          context.l10n.couldNotLoadTheDirectory,
-                                        ),
-                                      if (snapshot.data != null &&
-                                          snapshot.data!.isEmpty)
-                                        Text(
-                                          context.l10n.thisSubjectHasNoModules,
-                                        ),
-                                      for (final module in snapshot.data ?? [])
-                                        if (module.subject == value.text.trim())
-                                          CheckboxListTile(
-                                            title: Text(
-                                              modulePath(
-                                                module,
-                                                snapshot.data!,
-                                              ),
-                                            ),
-                                            value: _moduleIds.contains(
-                                              module.id,
-                                            ),
-                                            onChanged:
-                                                _saving ||
-                                                    (_moduleIds.length >= 20 &&
-                                                        !_moduleIds.contains(
-                                                          module.id,
-                                                        ))
-                                                ? null
-                                                : (selected) => setState(() {
-                                                    if (selected == true) {
-                                                      if (_moduleIds.length <
-                                                          20) {
-                                                        _moduleIds.add(
-                                                          module.id,
-                                                        );
-                                                      }
-                                                    } else {
-                                                      _moduleIds.remove(
-                                                        module.id,
-                                                      );
-                                                    }
-                                                    _dirty = true;
-                                                  }),
-                                          ),
-                                    ],
-                                  ),
-                                ),
+                                builder: (context, value, _) =>
+                                    ModuleSelectionField(
+                                      subject: value.text.trim(),
+                                      selected: _moduleIds,
+                                      enabled: !_saving,
+                                      onChanged: (ids) => setState(() {
+                                        _moduleIds
+                                          ..clear()
+                                          ..addAll(ids);
+                                        _dirty = true;
+                                      }),
+                                    ),
                               ),
                             if (field("chapter").text.isNotEmpty)
                               _input(

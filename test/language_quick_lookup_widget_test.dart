@@ -11,6 +11,7 @@ import "package:tixun/core/platform/attachment_store.dart";
 import "package:tixun/core/platform/key_store.dart";
 import "package:tixun/core/ui/learning_markdown.dart";
 import "package:tixun/features/language_learning/quick_lookup/quick_ai.dart";
+import "package:tixun/features/language_learning/quick_lookup/quick_action_editor.dart";
 import "package:tixun/features/language_learning/quick_lookup/quick_models.dart";
 import "package:tixun/features/language_learning/quick_lookup/quick_store.dart";
 import "package:dio/dio.dart" show CancelToken;
@@ -221,6 +222,51 @@ void main() {
       expect(historyRow, findsOneWidget);
       expect(find.byType(LearningMarkdown), findsOneWidget);
       expect(tester.takeException(), isNull);
+
+      late LanguageQuickAction action;
+      await tester.runAsync(() async {
+        action = (await controller.language.quickActions()).first;
+      });
+      final editing = editQuickAction(
+        tester.element(historyRow),
+        controller.language,
+        action,
+      );
+      await settled();
+      expect(
+        find.widgetWithText(TextFormField, "Short description"),
+        findsNothing,
+      );
+      final prompt = find.widgetWithText(TextFormField, "Task instructions");
+      await tester.enterText(prompt, "{unsupported}");
+      await tap(find.widgetWithText(FilledButton, "Save"));
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(
+        find.text("Enter task instructions using only supported variables."),
+        findsOneWidget,
+      );
+      await tester.enterText(prompt, "Explain {input}");
+      await tap(find.byKey(const Key("quick-action-advanced")));
+      final description = find.widgetWithText(
+        TextFormField,
+        "Short description",
+      );
+      await tester.ensureVisible(description);
+      await tester.enterText(description, "Custom description");
+      await tap(find.byKey(const Key("quick-action-advanced")));
+      await tap(find.widgetWithText(FilledButton, "Save"));
+      await tester.runAsync(() => editing);
+      await settled();
+      expect(find.byType(AlertDialog), findsNothing);
+      await tester.runAsync(() async {
+        final saved = (await controller.language.quickActions()).firstWhere(
+          (a) => a.id == action.id,
+        );
+        expect(saved.description, "Custom description");
+        expect(saved.prompt, "Explain {input}");
+        expect(saved.sourceLanguage, action.sourceLanguage);
+        expect(saved.glossLanguage, action.glossLanguage);
+      });
 
       await tester.pumpWidget(const SizedBox.shrink());
       await settled();

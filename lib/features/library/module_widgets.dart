@@ -15,6 +15,7 @@ import "study_store.dart";
 import "module_store.dart";
 
 part "module_assignment.dart";
+part "module_selection.dart";
 
 Future<String?> moduleNameDialog(
   BuildContext context,
@@ -269,8 +270,3 @@ class _ManagerState extends ConsumerState<ModuleManager> {
     );
   }
 }
-
-/// Identity of a directory set for change detection after managing
-/// directories: id, name and parent of every module, in list order.
-String _moduleSignature(List<SubjectModule> modules) =>
-    modules.map((m) => "${m.id}:${m.name}:${m.parentId}").join("|");
