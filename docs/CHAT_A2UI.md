@@ -28,5 +28,8 @@
 固定夹具核对函数奇点分段、无定义区间、数轴开闭端点、几何顶点和向量方向。客户端 Express 编译比验证已有 DSL JSON 多一步，因此移到后台 isolate。以上对比来自本地夹具，真实模型的延迟、生成成功率和数学正确率仍需实测。
 
 ```bash
-flutter test -j 4 test/a2ui_diagram_test.dart test/a2ui_drawing_cost_test.dart test/chat_a2ui_test.dart test/chat_a2ui_widget_test.dart test/a2ui_migration_test.dart
+flutter test -j 4 test/features/a2ui \
+  test/features/chat/chat_a2ui_test.dart \
+  test/features/chat/chat_a2ui_widget_test.dart \
+  test/core/database/a2ui_migration_test.dart
 ```

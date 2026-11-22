@@ -21,7 +21,7 @@
 
 ## 本轮布局验证
 
-`test/language_practice_layout_test.dart` 覆盖 360/1200 宽度、1.6 倍字体、长写作任务、长译文与提示展开、词汇语境作答反馈；写作及试卷输入模拟 300 高度键盘遮挡并滚动到输入框。另覆盖写作丢弃取消和等待反馈时系统返回。键盘遮挡使用测试窗口 inset，并非 Android 输入法。
+`test/features/language_learning/language_practice_layout_test.dart` 覆盖 360/1200 宽度、1.6 倍字体、长写作任务、长译文与提示展开、词汇语境作答反馈；写作及试卷输入模拟 300 高度键盘遮挡并滚动到输入框。另覆盖写作丢弃取消和等待反馈时系统返回。键盘遮挡使用测试窗口 inset，并非 Android 输入法。
 
 `integration_test/language_practice_flow_test.dart` 在 Linux 原生窗口复用上述流程，截图位于 `artifacts/gui-language/`。已检查窄屏四页面与宽屏写作、试卷截图；无布局异常。题目来自测试夹具，不调用收费服务。该测试不覆盖服务商真实响应和全部主页导航。
 

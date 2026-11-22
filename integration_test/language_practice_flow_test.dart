@@ -1,6 +1,6 @@
 import "package:integration_test/integration_test.dart";
 
-import "../test/language_practice_layout_test.dart" as suite;
+import "../test/features/language_learning/language_practice_layout_test.dart" as suite;
 import "support/gui_capture.dart";
 
 void main() {

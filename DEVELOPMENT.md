@@ -36,6 +36,8 @@ Linux 系统依赖：`sudo bash scripts/install_linux_deps.sh`（包含 bubblewr
 - 涉及跨模块公共边界、数据库迁移、全局配置或依赖等高风险改动且难以界定影响范围，或进行发布验收、用户明确要求时，再运行全量测试。普通 CI 的完整检查保持不变。
 - 纯文档修改只检查差异、链接和命令示例；不因此运行 Flutter 测试或构建。构建及 GUI 验证也按变更需要选择，不要求每次全部执行。
 
+新增或迁移测试时，优先镜像 `lib/` 的模块边界，按被验证的契约归档，不要求与源码逐文件对应。跨模块流程放在业务入口所属模块，全局架构测试保留在 `test/` 根目录，共用辅助代码仍放 `test/support/`。
+
 日常开发命令（测试文件仅为示例，按实际影响范围替换）：
 
 ```bash
@@ -82,7 +84,10 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 组件白名单、工具及交互权限见 [聊天 A2UI](docs/CHAT_A2UI.md)。对 Catalog 或渲染进行改动时，运行：
 
 ```bash
-flutter test -j 4 test/a2ui_diagram_test.dart test/a2ui_drawing_cost_test.dart test/chat_a2ui_test.dart test/chat_a2ui_widget_test.dart test/a2ui_migration_test.dart
+flutter test -j 4 test/features/a2ui \
+  test/features/chat/chat_a2ui_test.dart \
+  test/features/chat/chat_a2ui_widget_test.dart \
+  test/core/database/a2ui_migration_test.dart
 ```
 
 原生 Mock 场景 `integration_test/a2ui_flow_test.dart` 由 GUI 回归脚本执行。
@@ -91,9 +96,9 @@ flutter test -j 4 test/a2ui_diagram_test.dart test/a2ui_drawing_cost_test.dart t
 
 图形用声明式 DSL v1 描述：场景 JSON、元素、表达式、控件、时间线与几何约束都在 `lib/core/visual/`（模型、验证器、采样、渲染）与 `lib/features/visual/`（存储、卡片）里实现；三个 AI 工具（`create_visual` / `update_visual` / `get_visual`）在 `lib/core/ai/visual_tool.dart`。图形表在 schema v16 引入，题目图形的修订钉住在 v17；v18 增加题面/解析角色，显式迁移旧 pin 为题面图。
 
-新增图形功能时，先补 `test/visual_*_test.dart` 的行为测试。DSL 对模型公开的契约在 `lib/core/ai/visual_schema.dart`，示例须通过真实验证器。题图的可作答性规则在 `lib/features/practice/question_visual.dart`，由 `PracticeStore` 事务调用；不要在 AI 工具或 UI 另行补写 pin。首帧以 `resolveVisualFrame(scene, 0)` 为准，测评全屏不开放教学播放或参数控制；全屏复用题卡的 attempt、答案、提交和重做状态。考试通过 `create_quiz` 的 `question_scene` / `solution_scene` 原子保存独立图形，不链接消息、不开放探索图工具；解析图只在当前尝试提交后显示。新增 `integration_test/assessment_flow_test.dart` 覆盖手机尺寸全屏作答、提交后解析和桌面重做；可用 `GDK_BACKEND=x11 scripts/flutter_python.sh test integration_test/assessment_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true` 在隔离 Xvfb 中验证。
+新增图形功能时，按所验证的契约补行为测试：场景模型、验证和渲染在 `test/core/visual/`，AI 工具在 `test/core/ai/`，图形存储和交互在 `test/features/visual/`，题图在 `test/features/practice/`。DSL 对模型公开的契约在 `lib/core/ai/visual_schema.dart`，示例须通过真实验证器。题图的可作答性规则在 `lib/features/practice/question_visual.dart`，由 `PracticeStore` 事务调用；不要在 AI 工具或 UI 另行补写 pin。首帧以 `resolveVisualFrame(scene, 0)` 为准，测评全屏不开放教学播放或参数控制；全屏复用题卡的 attempt、答案、提交和重做状态。考试通过 `create_quiz` 的 `question_scene` / `solution_scene` 原子保存独立图形，不链接消息、不开放探索图工具；解析图只在当前尝试提交后显示。新增 `integration_test/assessment_flow_test.dart` 覆盖手机尺寸全屏作答、提交后解析和桌面重做；可用 `GDK_BACKEND=x11 scripts/flutter_python.sh test integration_test/assessment_flow_test.dart -d linux --dart-define=TIXUN_DEMO=true` 在隔离 Xvfb 中验证。
 
-审查回归覆盖在 `visual_review_regression_test.dart`、`visual_axis_safety_test.dart`、`visual_question_invariants_test.dart` 和 `visual_question_editor_test.dart`。修改刻度循环后，先用外部超时运行绘制安全测试：`timeout --kill-after=3s 30s flutter test -j 4 test/visual_axis_safety_test.dart`，避免同步绘制回归阻塞整个测试进程。Widget 测试里数据库操作必须放在 `tester.runAsync` 内；`PracticeStore.detail()` 不能在提交事务进行中调用（参考 `test/visual_question_card_test.dart` 的 `submitAndCheck` 模式：先点提交，再循环 `runAsync` + `pumpAndSettle` 等判分视图出现，之后才读 Store）。
+审查回归覆盖在 `test/core/ai/visual_review_regression_test.dart`、`test/core/visual/visual_axis_safety_test.dart`、`test/features/practice/visual_question_invariants_test.dart` 和 `test/features/practice/visual_question_editor_test.dart`。修改刻度循环后，先用外部超时运行绘制安全测试：`timeout --kill-after=3s 30s flutter test -j 4 test/core/visual/visual_axis_safety_test.dart`，避免同步绘制回归阻塞整个测试进程。Widget 测试里数据库操作必须放在 `tester.runAsync` 内；`PracticeStore.detail()` 不能在提交事务进行中调用（参考 `test/features/practice/visual_question_card_test.dart` 的 `submitAndCheck` 模式：先点提交，再循环 `runAsync` + `pumpAndSettle` 等判分视图出现，之后才读 Store）。
 
 ## 按版本标签发布
 
@@ -143,7 +148,7 @@ ARB 可使用 Flutter `gen-l10n` 支持的 ICU plural/select。生成文件 `lib
 
 ```bash
 flutter gen-l10n
-flutter test -j 4 test/localization_test.dart
+flutter test -j 4 test/core/l10n/localization_test.dart
 ```
 
 测试会核对源字典、生成结果及参数占位符，检查中英文切换、偏好重启保留和窄屏布局。默认提示词随界面语言切换，覆盖内容原样保存；安全规则由应用追加。
@@ -174,7 +179,7 @@ bash scripts/flutter_python.sh test integration_test/python_flow_test.dart -d li
 
 普通 `flutter build` 也必须设置 wrapper 中的环境变量；Android 需 `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES='numpy*'`，将 NumPy 的 Python 文件和元数据放入 `extract.zip`；隔离服务直接从内存归档导入，原生模块仍由插件按 ABI 打包。
 
-复用原工具循环、审批卡与审计表。`test/python_tool_test.dart` 验证审批、参数和重复执行；Python 单测确保旧的进程内入口 fail-closed；Linux GUI 集成验证隔离进程真实运行打包 SymPy/NumPy、工作区写入成功、工作区外写入被拒绝、硬超时和停止。Android 在 V2230A / Android 13 上已通过 CPython/SymPy/NumPy、工作区跨次同步、直接 libc 读取/写入应用私有文件被拒绝、网络被拒绝、硬超时、停止和进程异常退出后恢复测试。原生 UI 流程也已验证代码审批、真实执行结果、权限设置及自动允许。实机回归命令：
+复用原工具循环、审批卡与审计表。`test/core/python/python_tool_test.dart` 验证审批、参数和重复执行；Python 单测确保旧的进程内入口 fail-closed；Linux GUI 集成验证隔离进程真实运行打包 SymPy/NumPy、工作区写入成功、工作区外写入被拒绝、硬超时和停止。Android 在 V2230A / Android 13 上已通过 CPython/SymPy/NumPy、工作区跨次同步、直接 libc 读取/写入应用私有文件被拒绝、网络被拒绝、硬超时、停止和进程异常退出后恢复测试。原生 UI 流程也已验证代码审批、真实执行结果、权限设置及自动允许。实机回归命令：
 
 ```bash
 bash scripts/flutter_python.sh test integration_test/android/python_sandbox_test.dart -d <设备ID>
