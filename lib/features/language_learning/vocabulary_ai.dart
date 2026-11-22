@@ -37,7 +37,7 @@ class VocabularyAi {
   final PromptSettings? prompts;
   static const maximumEntries = 20;
   static const _perRequest = 6;
-  static const promptVersion = 4;
+  static const promptVersion = 5;
 
   Future<VocabularyProposal> propose({
     required ProviderConfig config,
@@ -215,6 +215,13 @@ class VocabularyAi {
       if (type == null || !_latinText(form) || !_latinText(example)) {
         throw const FormatException("Invalid vocabulary language or type");
       }
+      final partOfSpeech =
+          type == LexicalType.word || row["partOfSpeech"] != null
+          ? requiredText("partOfSpeech", 24)
+          : null;
+      if (partOfSpeech != null && !_latinText(partOfSpeech)) {
+        throw const FormatException("Invalid vocabulary part of speech");
+      }
       if (!seen.add((
         normalizeLanguageText(form),
         type,
@@ -227,6 +234,7 @@ class VocabularyAi {
           form: form,
           meaning: meaning,
           type: type,
+          partOfSpeech: partOfSpeech,
           example: example,
           translation: translation,
           application: application,
@@ -256,6 +264,7 @@ class VocabularyAi {
           {
             "form": "ticket",
             "type": "word",
+            "partOfSpeech": "n.",
             "meaning": zh ? "车票" : "a pass for a journey",
             "example": "I bought a ticket at the station.",
             "translation": zh
@@ -265,6 +274,7 @@ class VocabularyAi {
           {
             "form": "check in",
             "type": "phrasalVerb",
+            "partOfSpeech": "v.",
             "meaning": zh ? "办理入住手续" : "register upon arrival",
             "example": "We can check in at the hotel after three.",
             "translation": zh

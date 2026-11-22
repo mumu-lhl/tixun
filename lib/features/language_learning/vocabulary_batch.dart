@@ -207,7 +207,14 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
           ),
         ),
         if (_showFlashcards) ...[
+          _VocabularyFlashcard(
+            key: ValueKey(cards[_studyIndex].sense.id),
+            card: cards[_studyIndex],
+            store: widget.store,
+            revealed: true,
+          ),
           Wrap(
+            alignment: WrapAlignment.center,
             spacing: 8,
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
@@ -239,7 +246,6 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               ),
             ],
           ),
-          _flashcard(cards[_studyIndex]),
         ] else
           for (final card in cards)
             Card(
@@ -259,28 +265,6 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
             ),
         ?nextBatch,
       ],
-    );
-  }
-
-  Widget _flashcard(LanguageCard card) {
-    final textTheme = Theme.of(context).textTheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: 12,
-          children: [
-            Text(card.item.form, style: textTheme.headlineMedium),
-            Text(card.sense.meaning, style: textTheme.titleMedium),
-            VocabularyDetails(
-              key: ValueKey(card.sense.id),
-              card: card,
-              store: widget.store,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -328,22 +312,17 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   Widget _recall(LanguageCard card) {
     final l10n = context.l10n;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 16,
       children: [
-        Text(card.item.form, style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 12),
-        if (_revealed) ...[
-          Text(
-            card.sense.meaning,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          VocabularyDetails(
-            key: ValueKey(_attemptId),
-            card: card,
-            store: widget.store,
-          ),
-          const SizedBox(height: 12),
+        _VocabularyFlashcard(
+          key: ValueKey(_attemptId),
+          card: card,
+          store: widget.store,
+          revealed: _revealed,
+        ),
+        if (_revealed)
           Wrap(
+            alignment: WrapAlignment.center,
             spacing: 8,
             runSpacing: 8,
             children: [
@@ -363,8 +342,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                   child: Text(_rating(l10n, rating)),
                 ),
             ],
-          ),
-        ] else
+          )
+        else
           FilledButton(
             onPressed: () => setState(() => _revealed = true),
             child: Text(l10n.languageReveal),
@@ -433,23 +412,87 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
       };
 }
 
-class VocabularyDetails extends StatefulWidget {
+class _VocabularyFlashcard extends StatelessWidget {
+  const _VocabularyFlashcard({
+    super.key,
+    required this.card,
+    required this.store,
+    required this.revealed,
+  });
+
+  final LanguageCard card;
+  final LanguageLearningStore store;
+  final bool revealed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final sense = card.sense;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Card(
+          color: colors.surfaceContainerHigh,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 260),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 16,
+              children: [
+                Column(
+                  spacing: 4,
+                  children: [
+                    Text(
+                      card.item.form,
+                      style: theme.textTheme.headlineLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    if (sense.partOfSpeech case final partOfSpeech?)
+                      Text(
+                        partOfSpeech,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                  ],
+                ),
+                if (revealed) ...[
+                  SizedBox(
+                    width: 40,
+                    child: Divider(height: 1, color: colors.outlineVariant),
+                  ),
+                  Text(
+                    sense.meaning,
+                    style: theme.textTheme.titleLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  _VocabularyExample(card: card, centered: true),
+                  if (card.item.language == "en")
+                    _VocabularyFormsLink(store: store, card: card),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class VocabularyDetails extends StatelessWidget {
   const VocabularyDetails({super.key, required this.card, this.store});
 
   final LanguageCard card;
   final LanguageLearningStore? store;
 
   @override
-  State<VocabularyDetails> createState() => _VocabularyDetailsState();
-}
-
-class _VocabularyDetailsState extends State<VocabularyDetails> {
-  bool _translation = false;
-
-  @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final card = widget.card;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -459,30 +502,80 @@ class _VocabularyDetailsState extends State<VocabularyDetails> {
             LexicalType.values.byName(card.item.lexicalType),
           ),
         ),
+        if (card.sense.partOfSpeech case final partOfSpeech?)
+          Text(partOfSpeech),
         if (card.sense.source == "ai")
           Text(l10n.languageAiSource(card.sense.aiModel ?? "")),
         if (card.sense.source == "mock") Text(l10n.languageAiMockSource),
-        if (widget.store case final store? when card.item.language == "en")
-          TextButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => LexicalFormsScreen(
-                  store,
-                  language: card.item.language,
-                  card: card,
-                ),
-              ),
-            ),
-            child: Text(l10n.languageForms),
-          ),
-        if (card.sense.example case final example?) Text(example),
-        if (card.sense.exampleTranslation case final translation?)
+        if (store case final store? when card.item.language == "en")
+          _VocabularyFormsLink(store: store, card: card),
+        _VocabularyExample(card: card),
+      ],
+    );
+  }
+}
+
+class _VocabularyFormsLink extends StatelessWidget {
+  const _VocabularyFormsLink({required this.store, required this.card});
+
+  final LanguageLearningStore store;
+  final LanguageCard card;
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+    onPressed: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            LexicalFormsScreen(store, language: card.item.language, card: card),
+      ),
+    ),
+    child: Text(context.l10n.languageForms),
+  );
+}
+
+class _VocabularyExample extends StatefulWidget {
+  const _VocabularyExample({required this.card, this.centered = false});
+
+  final LanguageCard card;
+  final bool centered;
+
+  @override
+  State<_VocabularyExample> createState() => _VocabularyExampleState();
+}
+
+class _VocabularyExampleState extends State<_VocabularyExample> {
+  bool _translation = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final sense = widget.card.sense;
+    final centered = widget.centered;
+    final alignment = centered ? TextAlign.center : TextAlign.start;
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: centered
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
+      spacing: centered ? 4 : 0,
+      children: [
+        if (sense.example case final example?)
+          Text(example, textAlign: alignment),
+        if (sense.exampleTranslation case final translation?)
           if (_translation)
-            Text(translation)
+            Text(
+              translation,
+              textAlign: alignment,
+              style: centered
+                  ? TextStyle(color: theme.colorScheme.onSurfaceVariant)
+                  : null,
+            )
           else
             TextButton(
               onPressed: () => setState(() => _translation = true),
-              child: Text(l10n.languageTranslationReveal),
+              child: Text(
+                context.l10n.languageTranslationReveal,
+                textAlign: alignment,
+              ),
             ),
       ],
     );

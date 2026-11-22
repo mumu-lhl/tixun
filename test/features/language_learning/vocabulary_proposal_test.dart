@@ -30,28 +30,30 @@ class _VocabularyProvider implements ChatProvider {
   late Map parameters;
 
   @override
-  AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
-      AiConversation((request, cancel) async* {
-        expect(
-          encodeCompletion(config, request).containsKey("max_tokens"),
-          isFalse,
-        );
-        requests++;
-        parameters = jsonDecode(request.messages.single.text) as Map;
-        yield AiChunk(
-          completed: completed,
-          text:
-              '{"language":"en","groupTitle":" Station English ","entries":['
-              '{"form":"platform","type":"word","meaning":"a boarding area",'
-              '"example":"The train leaves from platform two.",'
-              '"translation":"We board at platform two.",'
-              '"application":"Please wait on the ___ until the doors open.",'
-              '"applicationAnswer":"platform"},'
-              '{"form":"ticket","type":"word","meaning":"a pass for a journey",'
-              '"example":"I bought a ticket at the station.",'
-              '"translation":"I paid for my trip at the station."}]}',
-        );
-      });
+  AiConversation start(
+    ProviderConfig config, {
+    String? apiKeyOverride,
+  }) => AiConversation((request, cancel) async* {
+    expect(
+      encodeCompletion(config, request).containsKey("max_tokens"),
+      isFalse,
+    );
+    requests++;
+    parameters = jsonDecode(request.messages.single.text) as Map;
+    yield AiChunk(
+      completed: completed,
+      text:
+          '{"language":"en","groupTitle":" Station English ","entries":['
+          '{"form":"platform","type":"word","meaning":"a boarding area",'
+          '"partOfSpeech":"n.","example":"The train leaves from platform two.",'
+          '"translation":"We board at platform two.",'
+          '"application":"Please wait on the ___ until the doors open.",'
+          '"applicationAnswer":"platform"},'
+          '{"form":"ticket","type":"word","meaning":"a pass for a journey",'
+          '"partOfSpeech":"n.","example":"I bought a ticket at the station.",'
+          '"translation":"I paid for my trip at the station."}]}',
+    );
+  });
 }
 
 class _ChunkProvider implements ChatProvider {
@@ -213,6 +215,7 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(find.text("platform — a place to board"), findsOneWidget);
+    expect(find.text("n."), findsNWidgets(2));
     await tester.runAsync(() async {
       await tester.tap(find.text("Save selected expressions"));
       await store.whenIdle;
@@ -225,6 +228,7 @@ void main() {
       expect(groups.single.title, "Station English");
       expect(saved.item.form, "platform");
       expect(saved.sense.meaning, "a place to board");
+      expect(saved.sense.partOfSpeech, "n.");
       expect(saved.sense.aiModel, _config.model);
       expect(
         saved.sense.application,

@@ -94,6 +94,7 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
               VocabularyEntry(
                 form: word,
                 meaning: "Meaning of $word",
+                partOfSpeech: "n.",
                 example: "Example with $word",
                 translation: "Translation of $word",
               ),
@@ -122,6 +123,7 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
 
       Future<void> tap(Finder finder) async {
         await tester.ensureVisible(finder);
+        await tester.pumpAndSettle();
         await tester.tap(finder);
         await tester.pumpAndSettle();
       }
@@ -130,7 +132,17 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
       expect(cards, findsOneWidget);
       expect(find.text("station"), findsOneWidget);
       expect(find.text("ticket"), findsNothing);
-      expect(find.text("Example with station"), findsOneWidget);
+      for (final label in [
+        "station",
+        "n.",
+        "Meaning of station",
+        "Example with station",
+      ]) {
+        expect(
+          tester.getCenter(find.text(label)).dx,
+          closeTo(tester.getCenter(cards).dx, 1),
+        );
+      }
       expect(find.text("Translation of station"), findsNothing);
       await tap(find.text("Show translation"));
       expect(find.text("Translation of station"), findsOneWidget);
@@ -169,6 +181,8 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
             VocabularyEntry(
               form: "station",
               meaning: "A place where trains stop.",
+              partOfSpeech: "n.",
+              example: "The station is busy.",
               application:
                   "Complete the sentence: I waited for the train at the ___.",
               applicationAnswer: "station",
@@ -230,6 +244,11 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
           language: "en",
           mode: VocabularyMode.context,
         ),
+        "recall": VocabularyBatch(
+          store: store,
+          language: "en",
+          mode: VocabularyMode.recall,
+        ),
         "exam": ExamPaperScreen(ai: exam, material: material!),
       };
       for (final entry in pages.entries) {
@@ -248,6 +267,27 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
             await tester.tap(find.text(label));
             await tester.pumpAndSettle();
           }
+        }
+        if (entry.key == "recall") {
+          final card = find.byType(Card);
+          expect(find.text("A place where trains stop."), findsNothing);
+          expect(find.text("The station is busy."), findsNothing);
+          void expectCentered(String label) {
+            expect(
+              tester.getCenter(find.text(label)).dx,
+              closeTo(tester.getCenter(card).dx, 1),
+            );
+          }
+
+          expectCentered("station");
+          expectCentered("n.");
+          final reveal = find.text(l10n.languageReveal);
+          await tester.ensureVisible(reveal);
+          await tester.tap(reveal);
+          await tester.pumpAndSettle();
+          expectCentered("A place where trains stop.");
+          expectCentered("The station is busy.");
+          expect(find.text(l10n.languageRemembered), findsOneWidget);
         }
         if (entry.key == "vocabulary") {
           await tester.enterText(find.byType(TextField).first, "station");

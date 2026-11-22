@@ -52,6 +52,7 @@
   "@languageCourseCheckpointResult": {"placeholders": {"recognized": {"type": "int"}, "produced": {"type": "int"}}},
   "languageNoRecognitionOptions": "Add another word to practice choosing between meanings.",
   "languageForms": "Word forms",
+  "languagePartOfSpeech": "Part of speech",
   "languageAddForm": "Add an inflection",
   "languageConfirmForms": "Inflections of {lemma}",
   "@languageConfirmForms": {"placeholders": {"lemma": {"type": "String"}}},

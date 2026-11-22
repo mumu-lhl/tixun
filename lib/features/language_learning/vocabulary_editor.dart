@@ -65,6 +65,9 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
   final _title = TextEditingController();
   late final _expression = TextEditingController(text: widget.initial?.form);
   late final _meaning = TextEditingController(text: widget.initial?.meaning);
+  late final _partOfSpeech = TextEditingController(
+    text: widget.initial?.partOfSpeech,
+  );
   late final _example = TextEditingController(text: widget.initial?.example);
   late final _translation = TextEditingController(
     text: widget.initial?.translation,
@@ -114,6 +117,7 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
       _title,
       _expression,
       _meaning,
+      _partOfSpeech,
       _example,
       _translation,
       _application,
@@ -130,6 +134,9 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
       form: _expression.text,
       meaning: _meaning.text,
       type: _lexicalType,
+      partOfSpeech: _partOfSpeech.text.trim().isEmpty
+          ? null
+          : _partOfSpeech.text.trim(),
       example: _example.text,
       translation: _translation.text,
       application: _application.text,
@@ -212,6 +219,7 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
                   Text(group.title),
                 field(_expression, l10n.languageExpression, requiredText),
                 field(_meaning, l10n.languageMeaning, requiredText),
+                field(_partOfSpeech, l10n.languagePartOfSpeech),
                 AppSelectField<LexicalType>(
                   initialValue: _lexicalType,
                   decoration: InputDecoration(

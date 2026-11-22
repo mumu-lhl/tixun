@@ -370,6 +370,8 @@ class _ProposalDialogState extends State<_ProposalDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(lexicalTypeLabel(l10n, entry.type)),
+                if (entry.partOfSpeech case final partOfSpeech?)
+                  Text(partOfSpeech),
                 if (entry.example case final example?) Text(example),
                 if (entry.translation case final translation?)
                   Text(translation),

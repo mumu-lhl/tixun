@@ -52,6 +52,7 @@
   "@languageCourseCheckpointResult": {"placeholders": {"recognized": {"type": "int"}, "produced": {"type": "int"}}},
   "languageNoRecognitionOptions": "再添加一个单词，就可以练习辨认词义。",
   "languageForms": "词形",
+  "languagePartOfSpeech": "词性",
   "languageAddForm": "添加屈折词形",
   "languageConfirmForms": "确认 {lemma} 的词形",
   "@languageConfirmForms": {"placeholders": {"lemma": {"type": "String"}}},

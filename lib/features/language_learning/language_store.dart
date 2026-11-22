@@ -20,6 +20,7 @@ class VocabularyEntry {
     required this.form,
     required this.meaning,
     this.type = LexicalType.word,
+    this.partOfSpeech,
     this.example,
     this.translation,
     this.application,
@@ -30,7 +31,11 @@ class VocabularyEntry {
   final String form, meaning;
   final LexicalType type;
   final List<LexicalFormDraft> forms;
-  final String? example, translation, application, applicationAnswer;
+  final String? partOfSpeech,
+      example,
+      translation,
+      application,
+      applicationAnswer;
 
   (String, String, String) get _key =>
       (normalizeLanguageText(form), type.name, meaning.trim());
@@ -164,6 +169,7 @@ class LanguageLearningStore extends DatabaseNotifier {
             ))
             .getSingleOrNull();
     final senseId = sense?.id ?? _uuid.v4();
+    final partOfSpeech = _optional(entry.partOfSpeech);
     final application = _optional(entry.application);
     final answer = _optional(entry.applicationAnswer);
     if ((application != null || answer != null) &&
@@ -180,6 +186,7 @@ class LanguageLearningStore extends DatabaseNotifier {
               id: senseId,
               itemId: itemId,
               meaning: meaning,
+              partOfSpeech: Value(partOfSpeech),
               example: Value(_optional(entry.example)),
               exampleTranslation: Value(_optional(entry.translation)),
               application: Value(application),
@@ -211,6 +218,9 @@ class LanguageLearningStore extends DatabaseNotifier {
       final example = _optional(entry.example);
       final translation = _optional(entry.translation);
       final additions = LearningLexicalSensesCompanion(
+        partOfSpeech: sense.partOfSpeech == null && partOfSpeech != null
+            ? Value(partOfSpeech)
+            : const Value.absent(),
         example: sense.example == null && example != null
             ? Value(example)
             : const Value.absent(),
