@@ -36,6 +36,7 @@ tests=(
   'visual_constraints_flow:integration-visual-constraints.log'
   'visual_drag_answer_flow:integration-visual-drag-answer.log'
   'a2ui_flow:integration-a2ui.log'
+  'language_practice_flow:integration-language-practice.log'
 )
 for i in "${!tests[@]}"; do
   (( i % shard_count == shard_index )) || continue

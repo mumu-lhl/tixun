@@ -77,7 +77,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-普通 push / PR 执行静态分析、完整 Flutter 测试、Android Debug APK、Linux 正式构建、GUI 启动冒烟和完整 Native GUI 回归，并上传程序、截图与日志。手动及复用工作流默认开启 `full_gui`；手动取消该选项可只跑冒烟，`run_tests=false` 则显式跳过单元测试及完整 GUI 回归；Nightly 还通过 `run_gui=false` 跳过 GUI 启动冒烟。依赖的静态分析/测试 job 失败时，构建与 GUI job 会被跳过，需先查看前置失败日志。二十二个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 执行，CI 分成三个并行 job，各 job 内顺序执行；每个测试有独立日志、240 秒超时，单个 job 在首个失败时停止。脚本默认本地顺序运行全部测试，也可使用 `TIXUN_GUI_SHARD_COUNT` 和从 0 开始的 `TIXUN_GUI_SHARD_INDEX` 选择分片。其中 9 个是 Visual 集成测试（`visual_flow`、`visual_player_flow`、`visual_drag_flow`、`visual_quiz_flow`、`assessment_flow`、`visual_circuit_flow`、`visual_chem_geo_flow`、`visual_constraints_flow`、`visual_drag_answer_flow`）。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
+普通 push / PR 执行静态分析、完整 Flutter 测试、Android Debug APK、Linux 正式构建、GUI 启动冒烟和完整 Native GUI 回归，并上传程序、截图与日志。手动及复用工作流默认开启 `full_gui`；手动取消该选项可只跑冒烟，`run_tests=false` 则显式跳过单元测试及完整 GUI 回归；Nightly 还通过 `run_gui=false` 跳过 GUI 启动冒烟。依赖的静态分析/测试 job 失败时，构建与 GUI job 会被跳过，需先查看前置失败日志。二十三个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 执行，CI 分成三个并行 job，各 job 内顺序执行；每个测试有独立日志、240 秒超时，单个 job 在首个失败时停止。脚本默认本地顺序运行全部测试，也可使用 `TIXUN_GUI_SHARD_COUNT` 和从 0 开始的 `TIXUN_GUI_SHARD_INDEX` 选择分片。其中 9 个是 Visual 集成测试（`visual_flow`、`visual_player_flow`、`visual_drag_flow`、`visual_quiz_flow`、`assessment_flow`、`visual_circuit_flow`、`visual_chem_geo_flow`、`visual_constraints_flow`、`visual_drag_answer_flow`）。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
 
 ### 聊天 A2UI Express
 
