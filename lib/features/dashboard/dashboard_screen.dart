@@ -112,9 +112,10 @@ class DashboardScreen extends ConsumerWidget {
                             icon: const Icon(Icons.calendar_month_outlined),
                             label: Text(context.l10n.examRecords),
                           ),
+                          if (isLanguageLearningSubject(c.subjectFilter))
+                            LanguageSubjectAction(subject: c.subjectFilter),
                         ],
                       ),
-                      LanguageSubjectAction(subject: c.subjectFilter),
                       const SizedBox(height: 12),
                       const DailyLearning(),
                       const SizedBox(height: 24),

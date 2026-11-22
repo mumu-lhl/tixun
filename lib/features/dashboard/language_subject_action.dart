@@ -75,7 +75,7 @@ class LanguageSubjectAction extends StatelessWidget {
             child: visible
                 ? Padding(
                     key: const ValueKey("language-action-visible"),
-                    padding: const EdgeInsets.only(top: 10),
+                    padding: EdgeInsets.zero,
                     child: OutlinedButton.icon(
                       key: const Key("open-language-learning"),
                       onPressed: () => context.push("/language"),

@@ -54,7 +54,11 @@ String quickLanguageName(BuildContext context, String code) => switch (code) {
   _ => code,
 };
 
-Future<bool> confirmQuickDelete(BuildContext context, String message) async =>
+Future<bool> confirmQuickDelete(
+  BuildContext context,
+  String message, {
+  String? confirmLabel,
+}) async =>
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -66,7 +70,7 @@ Future<bool> confirmQuickDelete(BuildContext context, String message) async =>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(context.l10n.delete),
+            child: Text(confirmLabel ?? context.l10n.delete),
           ),
         ],
       ),

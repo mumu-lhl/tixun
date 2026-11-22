@@ -345,30 +345,40 @@ class _LanguageLearningScreenState
                     ],
                   ),
                   const SizedBox(height: 24),
-                  Text(l10n.languageExamSkills, style: theme.titleLarge),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 10,
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => _openProfile(LanguageGoal.exam),
-                        child: Text(l10n.languageExamRecommendations),
-                      ),
-                      OutlinedButton(
-                        onPressed: _writtenMock,
-                        child: Text(l10n.languageWrittenMock),
-                      ),
-                      for (final skill in ExamKind.values)
-                        OutlinedButton(
-                          onPressed: () => _practiceExam(skill),
-                          child: Text(examKindLabel(l10n, skill)),
+                  Card(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.explore_outlined),
+                          title: Text(l10n.languageExamRecommendations),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _openProfile(LanguageGoal.exam),
                         ),
-                      OutlinedButton(
-                        onPressed: _practiceWriting,
-                        child: Text(l10n.languageWriting),
-                      ),
-                    ],
+                        ListTile(
+                          leading: const Icon(Icons.assignment_outlined),
+                          title: Text(l10n.languageWrittenMock),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: _writtenMock,
+                        ),
+                        ExpansionTile(
+                          title: Text(l10n.languageExamSkills),
+                          leading: const Icon(Icons.school_outlined),
+                          children: [
+                            for (final skill in ExamKind.values)
+                              ListTile(
+                                title: Text(examKindLabel(l10n, skill)),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => _practiceExam(skill),
+                              ),
+                            ListTile(
+                              title: Text(l10n.languageWriting),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: _practiceWriting,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(l10n.languageGroups, style: theme.titleLarge),

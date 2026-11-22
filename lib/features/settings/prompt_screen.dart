@@ -9,6 +9,7 @@ import "../../core/ai/chat_provider.dart";
 import "../../core/ai/prompt_settings.dart";
 import "../../core/l10n/app_strings.dart";
 import "prompt_localization.dart";
+import "prompt_token_count.dart";
 import "prompt_groups.dart";
 
 class PromptScreen extends ConsumerStatefulWidget {
@@ -229,7 +230,13 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                             promptDefinitions.firstWhere((p) => p.id == id),
                           ),
                         ),
-                        subtitle: Text(section.text),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            PromptTokenCount(section.text),
+                            Text(section.text),
+                          ],
+                        ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.pop(ctx, id),
                       ),
@@ -245,6 +252,7 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                                   : ctx.l10n.promptPreviewApplicationRules,
                               style: Theme.of(ctx).textTheme.titleMedium,
                             ),
+                            PromptTokenCount(section.text),
                             SelectableText(section.text),
                           ],
                         ),
@@ -379,6 +387,12 @@ class _PromptEditorScreenState extends ConsumerState<PromptEditorScreen> {
                       alignLabelWithHint: true,
                     ),
                   ),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: input,
+                    builder: (context, value, _) =>
+                        PromptTokenCount(value.text),
+                  ),
+                  const SizedBox(height: 12),
                   if (failure != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),

@@ -12,6 +12,7 @@ import "../../core/ui/markdown_editor.dart";
 import "../visual/visual_markdown.dart";
 import "library_providers.dart";
 import "study_store.dart";
+import "module_store.dart";
 
 class StudyEditor extends ConsumerStatefulWidget {
   const StudyEditor({
@@ -40,6 +41,8 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
   final _fields = <String, TextEditingController>{};
   bool _saving = false, _dirty = false;
   late String _kind;
+  final _moduleIds = <String>{};
+  bool get _creating => widget.knowledge == null && widget.mistake == null;
   TextEditingController field(String name) => _fields[name]!;
   @override
   void initState() {
@@ -79,7 +82,14 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
       controller.addListener(() {
         if (controller.text == previousText) return;
         previousText = controller.text;
-        if (!_dirty) setState(() => _dirty = true);
+        if (e.key == "subject" && _moduleIds.isNotEmpty) {
+          setState(() {
+            _moduleIds.clear();
+            _dirty = true;
+          });
+        } else if (!_dirty) {
+          setState(() => _dirty = true);
+        }
       });
       _fields[e.key] = controller;
     }
@@ -149,45 +159,51 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
         }
       }
 
-      String id;
-      if (widget.isMistake) {
-        final row = await store.saveMistake(
-          MistakeDraft(
-            title: field("title").text,
-            question: field("question").text,
-            subject: field("subject").text,
-            chapter: field("chapter").text,
-            tags: labels,
-            correctAnswer: field("correctAnswer").text,
-            originalAnswer: field("originalAnswer").text,
-            ownAnalysis: field("ownAnalysis").text,
-            aiAnalysis: field("aiAnalysis").text,
-            errorReason: field("errorReason").text,
-            suggestedReason: field("suggestedReason").text,
-          ),
-          id: widget.mistake?.item.id,
-          expectedRevision: widget.mistake?.item.revision,
-          sourceSessionId: widget.sourceSessionId,
-          sourceMessageId: widget.sourceMessageId,
-        );
-        id = row.id;
-      } else {
-        final row = await store.saveKnowledge(
-          KnowledgeDraft(
-            title: field("title").text,
-            content: field("content").text,
-            subject: field("subject").text,
-            kind: _kind,
-            chapter: field("chapter").text,
-            tags: labels,
-          ),
-          id: widget.knowledge?.item.id,
-          expectedRevision: widget.knowledge?.item.revision,
-          sourceSessionId: widget.sourceSessionId,
-          sourceMessageId: widget.sourceMessageId,
-        );
-        id = row.id;
-      }
+      final id = await store.db.transaction(() async {
+        String id;
+        if (widget.isMistake) {
+          final row = await store.saveMistake(
+            MistakeDraft(
+              title: field("title").text,
+              question: field("question").text,
+              subject: field("subject").text,
+              chapter: field("chapter").text,
+              tags: labels,
+              correctAnswer: field("correctAnswer").text,
+              originalAnswer: field("originalAnswer").text,
+              ownAnalysis: field("ownAnalysis").text,
+              aiAnalysis: field("aiAnalysis").text,
+              errorReason: field("errorReason").text,
+              suggestedReason: field("suggestedReason").text,
+            ),
+            id: widget.mistake?.item.id,
+            expectedRevision: widget.mistake?.item.revision,
+            sourceSessionId: widget.sourceSessionId,
+            sourceMessageId: widget.sourceMessageId,
+          );
+          id = row.id;
+        } else {
+          final row = await store.saveKnowledge(
+            KnowledgeDraft(
+              title: field("title").text,
+              content: field("content").text,
+              subject: field("subject").text,
+              kind: _kind,
+              chapter: field("chapter").text,
+              tags: labels,
+            ),
+            id: widget.knowledge?.item.id,
+            expectedRevision: widget.knowledge?.item.revision,
+            sourceSessionId: widget.sourceSessionId,
+            sourceMessageId: widget.sourceMessageId,
+          );
+          id = row.id;
+        }
+        if (_creating) {
+          await store.modules.assign(id, widget.isMistake, _moduleIds.toList());
+        }
+        return id;
+      });
       if (mounted) {
         _dirty = false;
         Navigator.pop(context, id);
@@ -316,11 +332,74 @@ class _StudyEditorState extends ConsumerState<StudyEditor> {
                                   }),
                                 ),
                               ),
-                            _input(
-                              "chapter",
-                              context.l10n.chapterLearningScope,
-                              maxLength: 160,
-                            ),
+                            if (_creating)
+                              ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: field("subject"),
+                                builder: (context, value, _) => StreamBuilder(
+                                  key: ValueKey(value.text.trim()),
+                                  stream: ref
+                                      .read(studyStoreProvider)
+                                      .modules
+                                      .watch(value.text.trim()),
+                                  builder: (context, snapshot) => Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(context.l10n.chooseModules),
+                                      if (snapshot.hasError)
+                                        Text(
+                                          context.l10n.couldNotLoadTheDirectory,
+                                        ),
+                                      if (snapshot.data != null &&
+                                          snapshot.data!.isEmpty)
+                                        Text(
+                                          context.l10n.thisSubjectHasNoModules,
+                                        ),
+                                      for (final module in snapshot.data ?? [])
+                                        if (module.subject == value.text.trim())
+                                          CheckboxListTile(
+                                            title: Text(
+                                              modulePath(
+                                                module,
+                                                snapshot.data!,
+                                              ),
+                                            ),
+                                            value: _moduleIds.contains(
+                                              module.id,
+                                            ),
+                                            onChanged:
+                                                _saving ||
+                                                    (_moduleIds.length >= 20 &&
+                                                        !_moduleIds.contains(
+                                                          module.id,
+                                                        ))
+                                                ? null
+                                                : (selected) => setState(() {
+                                                    if (selected == true) {
+                                                      if (_moduleIds.length <
+                                                          20) {
+                                                        _moduleIds.add(
+                                                          module.id,
+                                                        );
+                                                      }
+                                                    } else {
+                                                      _moduleIds.remove(
+                                                        module.id,
+                                                      );
+                                                    }
+                                                    _dirty = true;
+                                                  }),
+                                          ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            if (field("chapter").text.isNotEmpty)
+                              _input(
+                                "chapter",
+                                context.l10n.chapterLearningScope,
+                                maxLength: 160,
+                              ),
                             _input(
                               "tags",
                               context.l10n.tagsCommaSeparated,

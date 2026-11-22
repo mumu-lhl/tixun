@@ -6,6 +6,7 @@ import "../../core/l10n/app_strings.dart";
 import "../language_learning/language_store.dart";
 import "../language_learning/quick_lookup/quick_action_editor.dart";
 import "prompt_localization.dart";
+import "prompt_token_count.dart";
 
 class PromptGroups extends StatelessWidget {
   const PromptGroups({
@@ -93,8 +94,14 @@ class PromptGroups extends StatelessWidget {
     key: Key("prompt-${prompt.id}"),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     title: Text(promptTitle(context, prompt)),
-    subtitle: Text(
-      "${settings.overrides.containsKey(prompt.id) ? context.l10n.customized : context.l10n.defaultLabel} · ${promptDescription(context, prompt)}",
+    subtitle: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PromptTokenCount(settings.text(prompt.id)),
+        Text(
+          "${settings.overrides.containsKey(prompt.id) ? context.l10n.customized : context.l10n.defaultLabel} · ${promptDescription(context, prompt)}",
+        ),
+      ],
     ),
     trailing: const Icon(Icons.chevron_right),
     onTap: () => context.push("/settings/prompts/${prompt.id}"),

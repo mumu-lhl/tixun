@@ -65,6 +65,33 @@ Future<String?> countRequestBreakdown({
     addCalls(message.calls);
   }
   addCalls(calls);
+  return _countFragments(encoding, fragments);
+}
+
+Future<int?> countPromptTokens({
+  required String provider,
+  required String model,
+  required String endpoint,
+  required String text,
+}) async {
+  final encoding = ModelTokenizer.encodingFor(
+    provider,
+    model,
+    endpoint: endpoint,
+  );
+  if (encoding == null || RootIsolateToken.instance == null) return null;
+  final result = jsonDecode(
+    await _countFragments(encoding, {
+      "prompt": [text],
+    }),
+  ) as Map<String, dynamic>;
+  return (result["counts"] as Map<String, dynamic>)["prompt"] as int;
+}
+
+Future<String> _countFragments(
+  String encoding,
+  Map<String, List<String>> fragments,
+) async {
   final worker = await (_worker ??= _startWorker());
   await _loaded.putIfAbsent(encoding, () async {
     final asset = await rootBundle.loadString(

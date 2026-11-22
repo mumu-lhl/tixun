@@ -3,6 +3,7 @@ import "dart:io";
 
 import "package:flutter_test/flutter_test.dart";
 import "package:tixun/core/ai/model_tokenizer.dart";
+import "package:tixun/core/ai/token_breakdown.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,29 @@ void main() {
       }
     },
   );
+  test("prompt counts use model vocabulary and leave unknown providers unsupported", () async {
+    final row = (jsonDecode(
+      File("test/fixtures/tokenizer_reference.json").readAsStringSync(),
+    ) as List).first;
+    expect(
+      await countPromptTokens(
+        provider: "deepseek",
+        model: "deepseek-flash",
+        endpoint: "https://api.deepseek.com",
+        text: row["text"] as String,
+      ),
+      (row["deepseek_v4"] as List).length,
+    );
+    expect(
+      await countPromptTokens(
+        provider: "compatible",
+        model: "unknown",
+        endpoint: "https://example.org",
+        text: "hello",
+      ),
+      isNull,
+    );
+  });
   test("only known models select their matching tokenizer", () {
     expect(
       ModelTokenizer.encodingFor("deepseek", "deepseek-v4-pro"),
