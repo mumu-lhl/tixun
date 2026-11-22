@@ -33,12 +33,17 @@ class LanguageSubjectAction extends StatelessWidget {
             child: visible
                 ? Padding(
                     key: const ValueKey("language-action-visible"),
-                    padding: EdgeInsets.zero,
-                    child: OutlinedButton.icon(
-                      key: const Key("open-language-learning"),
-                      onPressed: () => context.push("/language"),
-                      icon: const Icon(Icons.translate),
-                      label: Text(context.l10n.languageLearning),
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Card.filled(
+                      margin: EdgeInsets.zero,
+                      clipBehavior: Clip.antiAlias,
+                      child: ListTile(
+                        key: const Key("open-language-learning"),
+                        leading: const Icon(Icons.translate),
+                        title: Text(context.l10n.languageLearning),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push("/language"),
+                      ),
                     ),
                   )
                 : const SizedBox.shrink(

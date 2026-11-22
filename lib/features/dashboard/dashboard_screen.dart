@@ -14,6 +14,69 @@ import "language_subject_action.dart";
 
 part "dashboard_counts.dart";
 
+class _StudyOverview extends StatelessWidget {
+  const _StudyOverview({required this.showLanguageLearning});
+
+  final bool showLanguageLearning;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final learning = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DailyLearning(),
+          LanguageSubjectAction(visible: showLanguageLearning),
+        ],
+      );
+      const records = _StudyRecords();
+      if (constraints.maxWidth >= 820) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: learning),
+            const SizedBox(width: 24),
+            const SizedBox(width: 260, child: records),
+          ],
+        );
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [learning, const SizedBox(height: 16), records],
+      );
+    },
+  );
+}
+
+class _StudyRecords extends StatelessWidget {
+  const _StudyRecords();
+
+  @override
+  Widget build(BuildContext context) => Card.outlined(
+    margin: EdgeInsets.zero,
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      children: [
+        ListTile(
+          key: const Key("open-timeline"),
+          leading: const Icon(Icons.event_note_outlined),
+          title: Text(context.l10n.timelineTitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push("/timeline"),
+        ),
+        const Divider(height: 1, indent: 16, endIndent: 16),
+        ListTile(
+          key: const Key("open-exams"),
+          leading: const Icon(Icons.calendar_month_outlined),
+          title: Text(context.l10n.examRecords),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push("/exams"),
+        ),
+      ],
+    ),
+  );
+}
+
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
   @override
@@ -96,31 +159,11 @@ class DashboardScreen extends ConsumerWidget {
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 24),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            key: const Key("open-timeline"),
-                            onPressed: () => context.push("/timeline"),
-                            icon: const Icon(Icons.event_note_outlined),
-                            label: Text(context.l10n.timelineTitle),
-                          ),
-                          OutlinedButton.icon(
-                            key: const Key("open-exams"),
-                            onPressed: () => context.push("/exams"),
-                            icon: const Icon(Icons.calendar_month_outlined),
-                            label: Text(context.l10n.examRecords),
-                          ),
-                          LanguageSubjectAction(
-                            visible: c.preferences.isLanguageSubject(
-                              c.subjectFilter,
-                            ),
-                          ),
-                        ],
+                      _StudyOverview(
+                        showLanguageLearning: c.preferences.isLanguageSubject(
+                          c.subjectFilter,
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      const DailyLearning(),
                       const SizedBox(height: 24),
                       if (c.allSessions.isEmpty)
                         Container(
