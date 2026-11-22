@@ -127,7 +127,6 @@ class _ReasoningPanelState extends State<ReasoningPanel>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ListTile(
-            contentPadding: EdgeInsets.zero,
             leading: FadeTransition(
               opacity: _pulse,
               child: Icon(

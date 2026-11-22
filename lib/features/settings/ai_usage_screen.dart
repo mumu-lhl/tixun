@@ -496,7 +496,6 @@ class _AiUsageScreenState extends ConsumerState<AiUsageScreen> {
     final l10n = context.l10n;
     return ExpansionTile(
       key: const Key("ai-usage-request-details"),
-      tilePadding: EdgeInsets.zero,
       childrenPadding: const EdgeInsets.only(bottom: 8),
       title: Text(
         l10n.requestDetails,

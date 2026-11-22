@@ -242,7 +242,6 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
               ),
             for (final part in _run.sections)
               ListTile(
-                contentPadding: EdgeInsets.zero,
                 title: Text(
                   [
                     _sectionName(context, part),

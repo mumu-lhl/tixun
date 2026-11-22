@@ -90,7 +90,6 @@ extension _StudyDetailSections on StudyDetailScreen {
         ),
         const SizedBox(height: 20),
         ExpansionTile(
-          tilePadding: EdgeInsets.zero,
           title: Text(context.l10n.answerAndExplanation),
           subtitle: Text(
             context.l10n.tryIndependentlyBeforeOpeningThe,
@@ -152,7 +151,6 @@ extension _StudyDetailSections on StudyDetailScreen {
       ),
       for (final item in k?.related ?? m!.knowledge)
         ListTile(
-          contentPadding: EdgeInsets.zero,
           title: Text(item.title),
           subtitle: Text(context.subjectName(item.subject)),
           trailing: IconButton(
@@ -185,7 +183,6 @@ extension _StudyDetailSections on StudyDetailScreen {
         ),
         for (final item in k.mistakes)
           ListTile(
-            contentPadding: EdgeInsets.zero,
             title: Text(item.title),
             subtitle: Text(context.subjectName(item.subject)),
             trailing: const Icon(Icons.chevron_right),

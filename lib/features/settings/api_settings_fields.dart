@@ -133,7 +133,6 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
       if (_kind == "compatible") ...[
         Text(context.l10n.enableSupportedModelFeatures),
         SwitchListTile(
-          contentPadding: EdgeInsets.zero,
           title: Text(context.l10n.supportsToolCalls),
           value: _supportsTools,
           onChanged: _working
@@ -144,7 +143,6 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
                 },
         ),
         SwitchListTile(
-          contentPadding: EdgeInsets.zero,
           title: Text(context.l10n.supportsImageInput),
           value: _vision,
           onChanged: _working
@@ -155,7 +153,6 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
                 },
         ),
         SwitchListTile(
-          contentPadding: EdgeInsets.zero,
           title: Text(context.l10n.supportsReasoningEffort),
           value: _supportsThinking,
           onChanged: _working
@@ -171,7 +168,6 @@ extension _ApiSettingsFields on _AiSettingsScreenState {
       ],
       if (_supportsThinking) ...[
         SwitchListTile(
-          contentPadding: EdgeInsets.zero,
           title: Text(
             _kind == "deepseek"
                 ? context.l10n.deepThinking

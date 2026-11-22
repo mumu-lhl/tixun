@@ -198,7 +198,6 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                   ),
                 for (final card in proposal.cards)
                   CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
                     title: Text(card.text),
                     subtitle: Text("${card.hint}\n${card.translation}"),
                     value: _selected.contains(card.id),

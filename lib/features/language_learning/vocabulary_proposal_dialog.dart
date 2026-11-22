@@ -355,7 +355,6 @@ class _ProposalDialogState extends State<_ProposalDialog> {
       children: [
         Expanded(
           child: CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
             value: _chosen.contains(entry),
             onChanged: _saving || groups.contains(_title)
                 ? null

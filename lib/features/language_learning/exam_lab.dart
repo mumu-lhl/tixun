@@ -236,7 +236,6 @@ class _ExamSettingsState extends State<_ExamSettings> {
               decoration: InputDecoration(labelText: l10n.languageExamTopic),
             ),
             SwitchListTile(
-              contentPadding: EdgeInsets.zero,
               value: _reuse,
               onChanged: (value) => setState(() => _reuse = value),
               title: Text(l10n.languageExamReuse),

@@ -127,7 +127,6 @@ class ExamDetailScreen extends ConsumerWidget {
                             for (final subject
                                 in subjects.data ?? <ExamSubject>[])
                               ListTile(
-                                contentPadding: EdgeInsets.zero,
                                 title: Text(ctx.subjectName(subject.subject)),
                                 subtitle: Text(
                                   '${ctx.l10n.rawScore} ${points(subject.rawScore)}${subject.maximum == null ? '' : ' / ${points(subject.maximum)}'}${subject.usesScaling ? ' · ${ctx.l10n.scaledScore} ${points(subject.scaledScore)}' : ''}',
@@ -324,7 +323,6 @@ Future<void> editSubject(
                     ),
                     if (!mainExamSubjects.contains(subject.text.trim()))
                       SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
                         title: Text(ctx.l10n.recordScaledScore),
                         value: scaling,
                         onChanged: saving

@@ -280,7 +280,6 @@ class PythonHistoryCard extends StatelessWidget {
     };
     return ExpansionTile(
       key: PageStorageKey("python-history-${operation.id}"),
-      tilePadding: EdgeInsets.zero,
       leading: const Icon(Icons.code, size: 20),
       title: Text(
         context.l10n.python(l10nArgument((status))),

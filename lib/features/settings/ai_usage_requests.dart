@@ -21,7 +21,6 @@ class _SessionUsage extends ConsumerWidget {
         };
         return ExpansionTile(
           key: const Key("ai-usage-sessions"),
-          tilePadding: EdgeInsets.zero,
           title: Text(context.l10n.usageSessions),
           children: [
             for (final entry in grouped.entries)

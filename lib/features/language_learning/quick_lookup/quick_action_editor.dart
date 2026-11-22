@@ -351,7 +351,6 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                   collapsedShape: const Border(),
                   key: const Key("quick-action-advanced"),
                   maintainState: true,
-                  tilePadding: EdgeInsets.zero,
                   title: Text(l10n.languageAdvanced),
                   children: [
                     Column(
@@ -409,7 +408,6 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                           ...quickLanguages,
                         ], (value) => _gloss = value),
                         SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
                           title: Text(l10n.quickDetailed),
                           value: _detailed,
                           onChanged: (value) =>
@@ -420,7 +418,6 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                   ],
                 ),
                 SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
                   title: Text(l10n.quickEnabled),
                   value: _enabled,
                   onChanged: (value) => setState(() => _enabled = value),

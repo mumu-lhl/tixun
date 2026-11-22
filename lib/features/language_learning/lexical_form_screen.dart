@@ -259,7 +259,6 @@ class _LexicalFormsScreenState extends State<LexicalFormsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
                       title: Text(l10n.languageFormProduction),
                       value: _production,
                       onChanged: _busy

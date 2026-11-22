@@ -45,7 +45,6 @@ class _SubjectSettingsDialogState extends State<SubjectSettingsDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SwitchListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               title: Text(l.languageSubject),
               value: settings.language ?? widget.languageEnabled,
               onChanged: (value) => setState(() {

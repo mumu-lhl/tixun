@@ -153,7 +153,6 @@ class _CalendarState extends ConsumerState<ExamCalendarScreen> {
                                 key: ValueKey(
                                   "exam-event-${visible[index - 1].id}",
                                 ),
-                                contentPadding: EdgeInsets.zero,
                                 leading: const Icon(Icons.event_note_outlined),
                                 title: Text(visible[index - 1].title),
                                 subtitle: Text(

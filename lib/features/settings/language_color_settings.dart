@@ -35,7 +35,6 @@ class LanguageColorSettings extends ConsumerWidget {
         const SizedBox(height: 12),
         SwitchListTile(
           key: const Key("dynamic-colors"),
-          contentPadding: EdgeInsets.zero,
           title: Text(context.l10n.dynamicColors),
           subtitle: Text(context.l10n.useTheWallpaperOrDesktop),
           value: c.dynamicColors,

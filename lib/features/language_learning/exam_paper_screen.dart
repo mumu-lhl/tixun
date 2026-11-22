@@ -344,7 +344,6 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
     return ExpansionTile(
       shape: const Border(),
       collapsedShape: const Border(),
-      tilePadding: EdgeInsets.zero,
       initiallyExpanded: !correct,
       title: Text("${index + 1}. ${item.prompt}"),
       subtitle: Text(correct ? l10n.correct : l10n.needsCorrection),

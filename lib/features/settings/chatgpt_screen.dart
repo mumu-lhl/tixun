@@ -438,7 +438,6 @@ class _ChatGptSettingsState extends ConsumerState<ChatGptSettings> {
             ),
           const SizedBox(height: 12),
           SwitchListTile(
-            contentPadding: EdgeInsets.zero,
             title: Text(context.l10n.supportsImageInput),
             subtitle: Text(context.l10n.enableOnlyIfTheModel),
             value: vision,

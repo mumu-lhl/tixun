@@ -321,7 +321,6 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
             ),
           ExpansionTile(
             title: Text(context.l10n.gradingAndTimeSettings),
-            tilePadding: EdgeInsets.zero,
             children: [
               if ([
                 "numeric",
@@ -353,7 +352,6 @@ class _QuestionEditorState extends ConsumerState<QuestionEditor> {
               ],
               if (kind == "fill_blank")
                 SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
                   title: Text(context.l10n.caseSensitiveAnswers),
                   value: caseSensitive,
                   onChanged: saving

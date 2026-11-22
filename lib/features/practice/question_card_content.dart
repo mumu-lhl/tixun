@@ -424,7 +424,6 @@ extension _QuestionCardContent on _QuestionCardState {
             ),
           if (detail.attempts.length > 1)
             ExpansionTile(
-              tilePadding: EdgeInsets.zero,
               title: Text(context.l10n.recentAttemptsUpTo50),
               children: [
                 for (final old in detail.attempts.where(

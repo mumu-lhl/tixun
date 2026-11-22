@@ -1,5 +1,6 @@
 import "dart:convert";
 import "dart:io";
+import "dart:ui" show PointerDeviceKind;
 
 import "package:analyzer/dart/analysis/utilities.dart";
 import "package:analyzer/dart/ast/ast.dart";
@@ -471,9 +472,21 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text("Interface language"), findsOneWidget);
       expect(find.text("Dynamic colors"), findsOneWidget);
-      await t.ensureVisible(find.byKey(const Key("dynamic-colors")));
+      final tile = find.byKey(const Key("dynamic-colors"));
+      final label = find.text("Dynamic colors");
+      await t.ensureVisible(tile);
       await t.pumpAndSettle();
-      await t.tap(find.byKey(const Key("dynamic-colors")));
+      final labelStart = t.getTopLeft(label).dx;
+      final mouse = await t.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: t.getCenter(label));
+      await t.pump(const Duration(milliseconds: 200));
+      expect(labelStart - t.getTopLeft(tile).dx, greaterThanOrEqualTo(12));
+      expect(t.getTopLeft(label).dx, labelStart);
+      await mouse.down(t.getCenter(label));
+      await t.pump(const Duration(milliseconds: 80));
+      expect(t.getTopLeft(label).dx, labelStart);
+      await mouse.up();
       await t.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 100)),
       );

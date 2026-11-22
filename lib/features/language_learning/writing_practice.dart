@@ -371,7 +371,6 @@ class _WritingVersionDialogState extends State<_WritingVersionDialog> {
                             item.endOffset > item.startOffset &&
                             item.endOffset <= content.length)
                           ListTile(
-                            contentPadding: EdgeInsets.zero,
                             title: Text(
                               item.kind == "issue"
                                   ? l10n.languageWritingIssue

@@ -67,7 +67,6 @@ class _StudyExportDialogState extends State<StudyExportDialog> {
             SwitchListTile(
               key: const Key("export-include-images"),
               value: canIncludeImages && _includeImages,
-              contentPadding: EdgeInsets.zero,
               title: Text(l10n.exportIncludeImages),
               subtitle: canIncludeImages
                   ? null

@@ -408,7 +408,6 @@ class _VisualFullscreenPageState extends State<_VisualFullscreenPage>
                     ),
                   for (final control in toggles)
                     SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
                       title: Text(control.label),
                       value: _manualToggles[control.id] ?? control.value,
                       onChanged: (value) =>

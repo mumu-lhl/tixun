@@ -279,7 +279,6 @@ extension _UsagePrices on _AiUsageScreenState {
               children: [
                 for (final price in list)
                   ListTile(
-                    contentPadding: EdgeInsets.zero,
                     title: Text("${price.providerKind} · ${price.model}"),
                     subtitle: Text(
                       "${price.endpoint} · "

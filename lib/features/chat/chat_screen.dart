@@ -311,7 +311,6 @@ Future<void> _toggleStudyTools(BuildContext context, AppController c) async {
                 value: selection.contains(category),
                 title: Text(label),
                 controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
