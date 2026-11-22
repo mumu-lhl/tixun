@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
 import "package:tixun/app/controller.dart";
+import "package:tixun/app/theme.dart";
 import "package:tixun/core/ai/chat_provider.dart";
 import "package:tixun/core/database/database.dart";
 import "package:tixun/core/l10n/generated/app_localizations.dart";
@@ -54,11 +55,12 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: scope,
-        child: const MaterialApp(
-          locale: Locale("en"),
-          localizationsDelegates: [AppLocalizations.delegate],
+        child: MaterialApp(
+          theme: appTheme(Brightness.light),
+          locale: const Locale("en"),
+          localizationsDelegates: const [AppLocalizations.delegate],
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: DashboardScreen()),
+          home: const Scaffold(body: DashboardScreen()),
         ),
       ),
     );
@@ -94,6 +96,21 @@ void main() {
     expect(timelineRect.left, greaterThan(dailyRect.right));
     expect(timelineRect.top, closeTo(dailyRect.top, 2));
     expect(tester.getRect(exams).left, closeTo(timelineRect.left, 1));
+
+    // Measure the painted surfaces, not the larger tap targets.
+    Rect buttonSurface(Finder button) => tester.getRect(
+      find.descendant(of: button, matching: find.byType(Material)).first,
+    );
+    final chat = buttonSurface(find.byKey(const Key("start-chat")));
+    final practice = buttonSurface(find.byKey(const Key("start-practice")));
+    final mistake = buttonSurface(
+      find.widgetWithText(OutlinedButton, "Add a mistake"),
+    );
+    expect(practice.top, closeTo(chat.top, 0.1));
+    expect(practice.bottom, closeTo(chat.bottom, 0.1));
+    expect(mistake.top, closeTo(chat.top, 0.1));
+    expect(mistake.bottom, closeTo(chat.bottom, 0.1));
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
   });

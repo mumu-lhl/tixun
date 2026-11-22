@@ -142,9 +142,9 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         side: BorderSide(color: colors.outlineVariant),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       ),
     ),
     dividerTheme: DividerThemeData(

@@ -80,7 +80,18 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey("edit-study-subject-$subject")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text("Language subject"));
+    final label = find.text("Language subject");
+    final row = find.ancestor(of: label, matching: find.byType(SwitchListTile));
+    final labelStart = tester.getTopLeft(label).dx;
+    final press = await tester.startGesture(tester.getCenter(label));
+    await tester.pump(const Duration(milliseconds: 80));
+    expect(
+      tester.getTopLeft(label).dx - tester.getTopLeft(row).dx,
+      greaterThanOrEqualTo(12),
+    );
+    expect(tester.getTopLeft(label).dx, labelStart);
+    await press.up();
+    await tester.pumpAndSettle();
     await tester.tap(find.text("AI drawing"));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(MenuItemButton, "On"));
