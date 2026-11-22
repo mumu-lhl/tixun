@@ -19,7 +19,7 @@
 | `features/chat/chat_context_store.dart` | 按消息及轮次保存应用级模型上下文，并根据当前策略重放。完整备份包含上下文，永久删除随消息级联。参见 [AI 会话上下文](AI_CONTEXT_MIGRATION_PLAN.md)。 |
 | `features/chat/chat_branch_store.dart` | 事务复制截至指定消息（含该消息）的聊天前缀，保留图片、公开图形和练习关联；新建消息 ID，正文和顺序不变，原聊天与草稿不动。仅复用覆盖范围完全在分支内的摘要；会话偏好复制委托 AppPreferences。整理知识从分支追加授权指令，仍保留写入确认与版本校验。 |
 | `app/controller.dart` | 保留页面状态、会话/草稿、附件入口与任务准备；负责创建回复记录、节流保存进度、保存最终状态。委托 LearningRun 执行推理，不了解 tool_calls、finish_reason 或 Responses 私有字段。 |
-| `app/preferences.dart` | 语言、主题、配色、提示词与 Provider 配置。拥有独立写入跟踪；关闭、备份导出及恢复等待必要写入，不再借用 StudyStore 的空闲状态。现有控制器方法保留为 UI 的兼容入口。 |
+| `app/preferences.dart` | 语言、主题、配色、科目设置、提示词与 Provider 配置。AppController 在启动生成时按会话覆盖 → 会话所属科目覆盖 → 全局设置解析绘图与 A2UI，作为单次请求快照；语言科目未显式指定时沿用名称识别。拥有独立写入跟踪；关闭、备份导出及恢复等待必要写入，不再借用 StudyStore 的空闲状态。现有控制器方法保留为 UI 的兼容入口。 |
 | `core/ai/chatgpt/auth.dart` | 只向 UI 返回只读账号摘要和一次取得的账号快照；令牌记录、HTTP 与安全存储细节留在实现内部。保留 PKCE/JWT 校验、合并刷新、取消等待、退出与原子保存语义。 |
 | `core/export/`、`features/library/study_export.dart` | 知识打印导出：`parseLearningMarkdown` 复用学习内容的 Markdown 与公式语法，`buildStudyPdf` / `buildStudyDocx` / `buildStudyMarkdown` 是无 Flutter 依赖的纯函数；`StudyStore` 读取、附件字节和字体资源只在 `StudyExportService` 里加载，导出不写数据库、不改修订。PDF 内嵌 CJK 字体子集，公式在导出前转为文本，无法识别的命令保留原文。 |
 | `features/timeline/timeline_store.dart` | 历程事项的本地日期、可选结束日期和备注；通过数据库迁移及备份保留，日期按日历日计算。 |

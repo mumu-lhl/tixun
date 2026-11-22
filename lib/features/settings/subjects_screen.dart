@@ -3,8 +3,11 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../app/controller.dart";
+import "../../app/preferences.dart";
 import "../../core/l10n/app_strings.dart";
+import "../../core/ui/actions.dart";
 import "../library/study_store.dart";
+import "subject_settings_dialog.dart";
 
 class SubjectsScreen extends ConsumerStatefulWidget {
   const SubjectsScreen({super.key});
@@ -55,6 +58,24 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
         if (mounted && revision == _revision) setState(() => saving = false);
       }
     });
+  }
+
+  Future<void> _editSubject(String subject) async {
+    final preferences = ref.read(appControllerProvider).preferences;
+    final initial = preferences.subjectSettings(subject);
+    final settings = await showDialog<SubjectSettings>(
+      context: context,
+      builder: (_) => SubjectSettingsDialog(
+        subject: subject,
+        settings: initial,
+        languageEnabled: preferences.isLanguageSubject(subject),
+      ),
+    );
+    if (!mounted || settings == null || settings == initial) return;
+    await act(
+      context,
+      () => preferences.saveSubjectSettings(subject, settings),
+    );
   }
 
   Future<void> _leave() async {
@@ -130,16 +151,28 @@ class _SubjectsState extends ConsumerState<SubjectsScreen> {
                           child: const Icon(Icons.drag_handle),
                         ),
                         title: Text(context.subjectName(subject)),
-                        trailing: IconButton(
-                          key: ValueKey("remove-study-subject-$subject"),
-                          tooltip: context.l10n.removeSubject,
-                          onPressed: selected.length <= 1
-                              ? null
-                              : () {
-                                  setState(() => selected.removeAt(index));
-                                  _saveSelection();
-                                },
-                          icon: const Icon(Icons.close),
+                        onTap: () => _editSubject(subject),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              key: ValueKey("edit-study-subject-$subject"),
+                              tooltip: context.l10n.subjectSettings,
+                              onPressed: () => _editSubject(subject),
+                              icon: const Icon(Icons.settings_outlined),
+                            ),
+                            IconButton(
+                              key: ValueKey("remove-study-subject-$subject"),
+                              tooltip: context.l10n.removeSubject,
+                              onPressed: selected.length <= 1
+                                  ? null
+                                  : () {
+                                      setState(() => selected.removeAt(index));
+                                      _saveSelection();
+                                    },
+                              icon: const Icon(Icons.close),
+                            ),
+                          ],
                         ),
                       ),
                     );

@@ -57,6 +57,43 @@ void main() {
     expect(c.selected!.subject, "日语");
     expect(c.selected!.mode, "exam");
   });
+  test(
+    "Subject settings persist without changing legacy language defaults",
+    () async {
+      const custom = "密集阅读";
+      await c.setLearningSubjects(["数学", "日语", custom]);
+      expect(c.preferences.isLanguageSubject("日语"), isTrue);
+      expect(c.preferences.isLanguageSubject(custom), isFalse);
+      await Future.wait([
+        c.preferences.saveSubjectSettings("日语", (
+          language: false,
+          drawing: null,
+          a2ui: null,
+        )),
+        c.preferences.saveSubjectSettings(custom, (
+          language: true,
+          drawing: true,
+          a2ui: false,
+        )),
+      ]);
+
+      await c.shutdown();
+      c = await open();
+      expect(c.preferences.isLanguageSubject("日语"), isFalse);
+      expect(c.preferences.isLanguageSubject(custom), isTrue);
+      expect(c.preferences.subjectSettings(custom), (
+        language: true,
+        drawing: true,
+        a2ui: false,
+      ));
+      expect(c.preferences.subjectSettings("数学"), (
+        language: null,
+        drawing: null,
+        a2ui: null,
+      ));
+    },
+  );
+
   test("Invalid selections cannot overwrite saved preferences and malformed stored data is recoverable", () async {
     await c.setLearningSubjects(["数学", "日语"]);
     final before = await c.db.preference(AppPreferences.subjectsPreference);

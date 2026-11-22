@@ -2,6 +2,7 @@ import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
 import "package:tixun/core/l10n/generated/app_localizations.dart";
 import "package:tixun/features/dashboard/language_subject_action.dart";
+import "package:tixun/features/language_learning/language_subject.dart";
 
 void main() {
   test("only recognized language subject names expose the entry", () {
@@ -29,8 +30,10 @@ void main() {
           home: Center(
             child: ValueListenableBuilder<String>(
               valueListenable: subject,
-              builder: (context, current, _) =>
-                  LanguageSubjectAction(subject: current, key: container),
+              builder: (context, current, _) => LanguageSubjectAction(
+                visible: isLanguageLearningSubject(current),
+                key: container,
+              ),
             ),
           ),
         ),

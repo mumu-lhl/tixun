@@ -1,15 +1,17 @@
 import "dart:async";
 import "dart:io";
 
-import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_ui/material_ui.dart";
 import "package:tixun/app/app.dart";
 import "package:tixun/app/controller.dart";
 import "package:tixun/core/ai/chat_provider.dart";
 import "package:tixun/core/database/database.dart";
+import "package:tixun/core/l10n/generated/app_localizations.dart";
 import "package:tixun/core/platform/attachment_store.dart";
 import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/settings/subjects_screen.dart";
 
 class _DelayedSubjectsController extends AppController {
   _DelayedSubjectsController(
@@ -30,6 +32,79 @@ class _DelayedSubjectsController extends AppController {
 }
 
 void main() {
+  testWidgets("custom subject settings can be edited independently", (
+    tester,
+  ) async {
+    const subject = "密集阅读";
+    final controller = await tester.runAsync(() async {
+      final root = await Directory.systemTemp.createTemp(
+        "tixun-subject-settings",
+      );
+      final c = AppController(
+        AppDatabase.memory(),
+        AttachmentStore(root),
+        MemoryKeyStore(),
+        MockChatProvider(),
+        demo: true,
+      );
+      await c.initialize(seed: false);
+      await c.setLearningSubjects(["数学", subject]);
+      await c.setSubjectFilter(subject);
+      return c;
+    });
+    final c = controller!;
+    expect(c.preferences.isLanguageSubject(subject), isFalse);
+    final scope = ProviderContainer(
+      overrides: [appControllerProvider.overrideWith((_) => c)],
+    );
+    addTearDown(() async {
+      scope.dispose();
+      await c.shutdown();
+    });
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: scope,
+        child: const MaterialApp(
+          locale: Locale("en"),
+          localizationsDelegates: [AppLocalizations.delegate],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SubjectsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey("edit-study-subject-$subject")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Language subject"));
+    await tester.tap(find.text("AI drawing"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(MenuItemButton, "On"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Interactive interfaces (A2UI)"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(MenuItemButton, "Off"));
+    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      await tester.tap(find.widgetWithText(FilledButton, "Save"));
+      await c.preferences.whenIdle;
+    });
+    await tester.pumpAndSettle();
+
+    expect(c.preferences.subjectSettings(subject), (
+      language: true,
+      drawing: true,
+      a2ui: false,
+    ));
+    expect(c.preferences.isLanguageSubject(subject), isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
   testWidgets("subject order can be changed and is used by study switcher", (
     tester,
   ) async {

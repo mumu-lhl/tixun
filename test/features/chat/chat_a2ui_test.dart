@@ -101,6 +101,46 @@ void main() {
       expect(c.sessionA2uiEnabled, true);
     });
 
+    test(
+      "AI tools inherit from the conversation's subject before global settings",
+      () async {
+        await c.setAiDrawingEnabled(false);
+        await c.setAiA2uiEnabled(true);
+        await c.preferences.saveSubjectSettings("数学", (
+          language: null,
+          drawing: true,
+          a2ui: false,
+        ));
+        await c.setSubjectFilter("数学");
+        await c.newSession();
+        await c.setSubjectFilter("英语");
+
+        Future<void> checkRequest({
+          required bool drawing,
+          required bool a2ui,
+        }) async {
+          await c.send("Explain linear equations");
+          final request = provider.requests.last;
+          final toolNames = request.tools.map((tool) => tool.name);
+          expect(toolNames.contains("enable_visual_tools"), drawing);
+          expect(request.instructions.contains("raw <a2ui>"), a2ui);
+        }
+
+        expect(c.selected?.subject, "数学");
+        await checkRequest(drawing: true, a2ui: false);
+        await c.setSessionDrawingEnabled(false);
+        await c.setSessionA2uiEnabled(true);
+        await checkRequest(drawing: false, a2ui: true);
+        await c.setSessionDrawingEnabled(null);
+        await c.setSessionA2uiEnabled(null);
+        await checkRequest(drawing: true, a2ui: false);
+
+        await c.newSession();
+        expect(c.selected?.subject, "英语");
+        await checkRequest(drawing: false, a2ui: true);
+      },
+    );
+
     test("One response renders ordered blocks, skips invalid blocks and scopes follow-ups", () async {
       await c.send("Create native controls");
       final reply = c.messages.last;

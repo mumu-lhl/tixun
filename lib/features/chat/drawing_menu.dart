@@ -40,7 +40,7 @@ List<PopupMenuEntry<String>> drawingMenuItems(
       value: "drawing-default",
       enabled: canChange,
       checked: override == null,
-      child: Text(context.l10n.useGlobalDefault),
+      child: Text(context.l10n.useInheritedDefault),
     ),
     CheckedPopupMenuItem(
       key: const Key("chat-drawing-on"),

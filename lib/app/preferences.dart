@@ -2,6 +2,7 @@ import "package:tixun/core/l10n/app_error.dart";
 
 import "app_notice.dart";
 import "../features/a2ui/a2ui_tools.dart";
+import "../features/language_learning/language_subject.dart";
 
 import "dart:convert";
 import "dart:ui" show PlatformDispatcher;
@@ -30,6 +31,8 @@ typedef LanguageStudySettings = ({
   LanguageFeedbackLanguage feedbackLanguage,
 });
 
+typedef SubjectSettings = ({bool? language, bool? drawing, bool? a2ui});
+
 /// Owns preference persistence and its shutdown barrier independently of study data.
 class AppPreferences extends DatabaseNotifier {
   AppPreferences(this.db, this.keys, {required this.demo});
@@ -39,6 +42,14 @@ class AppPreferences extends DatabaseNotifier {
   AppNotice? loadNotice;
   List<String> learningSubjects = const ["语文", "数学", "英语"];
   static const subjectsPreference = "learning_subjects_v1";
+  static const _subjectSettingsKey = "learning_subject_settings";
+  Map<String, SubjectSettings> _subjectSettings = {};
+
+  SubjectSettings subjectSettings(String? subject) =>
+      _subjectSettings[subject] ?? (language: null, drawing: null, a2ui: null);
+
+  bool isLanguageSubject(String subject) =>
+      subjectSettings(subject).language ?? isLanguageLearningSubject(subject);
   late ProviderConfig config;
   int maxContextTokens = kDefaultMaxContextTokens;
   int maxToolCalls = defaultMaxToolCalls;
@@ -80,6 +91,7 @@ class AppPreferences extends DatabaseNotifier {
     aiA2uiEnabled =
         readA2uiOverride(await db.preference(aiA2uiEnabledKey)) ?? true;
     await loadSubjects();
+    _subjectSettings = await _readSubjectSettings();
     final studyLevel = await db.preference(_studyLevelKey);
     final feedbackLanguage = await db.preference(_feedbackLanguageKey);
     _languageStudy = (
@@ -174,6 +186,54 @@ class AppPreferences extends DatabaseNotifier {
     learningSubjects = values;
     changed();
   });
+
+  Future<Map<String, SubjectSettings>> _readSubjectSettings() async {
+    final raw = await db.preference(_subjectSettingsKey);
+    if (raw == null) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return {};
+      bool? flag(Object? value) => value is bool ? value : null;
+      return {
+        for (final MapEntry(:key, :value) in decoded.entries)
+          if (value is Map<String, dynamic>)
+            key: (
+              language: flag(value["language"]),
+              drawing: flag(value["drawing"]),
+              a2ui: flag(value["a2ui"]),
+            ),
+      };
+    } on FormatException {
+      return {};
+    }
+  }
+
+  Future<void> saveSubjectSettings(String subject, SubjectSettings settings) =>
+      runOperation(() async {
+        final name = checkedSubjects([subject]).single;
+        _subjectSettings = await db.transaction(() async {
+          final updated = await _readSubjectSettings();
+          if (settings == (language: null, drawing: null, a2ui: null)) {
+            updated.remove(name);
+          } else {
+            updated[name] = settings;
+          }
+          await db.setPreference(
+            _subjectSettingsKey,
+            jsonEncode({
+              for (final MapEntry(key: subject, value: value)
+                  in updated.entries)
+                subject: {
+                  "language": value.language,
+                  "drawing": value.drawing,
+                  "a2ui": value.a2ui,
+                },
+            }),
+          );
+          return updated;
+        });
+        changed();
+      });
 
   Future<void> saveLanguageStudy(LanguageStudySettings settings) =>
       runOperation(() async {

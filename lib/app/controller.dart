@@ -130,7 +130,10 @@ class AppController extends ChangeNotifier {
       preferences.setAiDrawingEnabled(value);
 
   bool? sessionDrawingOverride;
-  bool get sessionDrawingEnabled => sessionDrawingOverride ?? aiDrawingEnabled;
+  bool get sessionDrawingEnabled =>
+      sessionDrawingOverride ??
+      preferences.subjectSettings(selected?.subject).drawing ??
+      aiDrawingEnabled;
   Future<void> setSessionDrawingEnabled(bool? value) {
     final id = selected?.id;
     if (_disposed || busy || id == null) return Future.value();
@@ -146,7 +149,10 @@ class AppController extends ChangeNotifier {
   Future<void> setAiA2uiEnabled(bool value) =>
       preferences.setAiA2uiEnabled(value);
   bool? sessionA2uiOverride;
-  bool get sessionA2uiEnabled => sessionA2uiOverride ?? aiA2uiEnabled;
+  bool get sessionA2uiEnabled =>
+      sessionA2uiOverride ??
+      preferences.subjectSettings(selected?.subject).a2ui ??
+      aiA2uiEnabled;
   Future<void> setSessionA2uiEnabled(bool? value) async {
     final id = selected?.id;
     if (_disposed || busy || id == null) return;
