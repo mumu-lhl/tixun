@@ -201,12 +201,6 @@ class _SessionListState extends ConsumerState<SessionList> {
                         unawaited(c.searchSessions(""));
                       },
                     ),
-              filled: true,
-              fillColor: colors.surfaceContainerHighest.withValues(alpha: .45),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
               isDense: true,
             ),
           ),

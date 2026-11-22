@@ -111,6 +111,36 @@ void main() {
     await t.pumpWidget(const SizedBox.shrink());
     await t.pumpAndSettle();
   });
+  testWidgets("Conversation search paints a primary outline on focus", (
+    t,
+  ) async {
+    final theme = appTheme(Brightness.light);
+    await t.pumpWidget(
+      UncontrolledProviderScope(
+        container: scope,
+        child: MaterialApp(
+          theme: theme,
+          home: const Scaffold(body: SessionList()),
+        ),
+      ),
+    );
+    final field = find.byKey(const Key("session-search"));
+    final focusedOutline = paints
+      ..rrect()
+      ..rrect(
+        color: theme.colorScheme.primary,
+        strokeWidth: 2,
+        style: PaintingStyle.stroke,
+      );
+    expect(field, isNot(focusedOutline));
+    await t.tap(field);
+    await t.pumpAndSettle();
+    expect(field, focusedOutline);
+    await t.tapAt(const Offset(5, 5));
+    await t.pumpAndSettle();
+    expect(field, isNot(focusedOutline));
+  });
+
   testWidgets("Session list exposes hidden conversations by clearing filters", (
     t,
   ) async {
