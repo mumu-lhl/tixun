@@ -2,8 +2,88 @@ import "package:flutter_test/flutter_test.dart";
 import "package:gpt_markdown/custom_widgets/bidi_rich_text.dart";
 import "package:material_ui/material_ui.dart";
 import "package:tixun/core/ui/learning_markdown.dart";
+import "package:tixun/core/ui/reasoning_panel.dart";
 
 void main() {
+  for (final reasoning in [false, true]) {
+    testWidgets(
+      "${reasoning ? 'reasoning' : 'reply'} fades new text without changing its hue",
+      (tester) async {
+        const ink = Color(0xff123456);
+        const initial = "正在";
+        const full = "正在逐字解释二次函数的顶点和配方过程以及如何检查答案是否正确。";
+        Widget app(
+          String text, {
+          bool generating = true,
+          bool reduced = false,
+        }) => MaterialApp(
+          theme: ThemeData(
+            textTheme: const TextTheme(bodyLarge: TextStyle(color: ink)),
+          ),
+          home: MediaQuery(
+            data: MediaQueryData(disableAnimations: reduced),
+            child: Scaffold(
+              body: reasoning
+                  ? ReasoningPanel(text: text, generating: generating)
+                  : LearningMarkdown(text, streaming: generating),
+            ),
+          ),
+        );
+        List<InlineSpan> spans() => [
+          ...tester
+              .widgetList<RichText>(
+                find.descendant(
+                  of: find.byType(LearningMarkdown),
+                  matching: find.byType(RichText),
+                ),
+              )
+              .map((w) => w.text),
+          ...tester
+              .widgetList<BidiText>(
+                find.descendant(
+                  of: find.byType(LearningMarkdown),
+                  matching: find.byType(BidiText),
+                ),
+              )
+              .map((w) => w.textSpan),
+        ];
+        String visible() => spans().map((span) => span.toPlainText()).join();
+        await tester.pumpWidget(app(initial));
+        if (reasoning) {
+          await tester.tap(find.byType(ListTile));
+          await tester.pump(const Duration(milliseconds: 300));
+        }
+        await tester.pumpWidget(app(full));
+        expect(visible(), initial);
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 35));
+        expect(visible().length, greaterThan(initial.length));
+        expect(visible().length, lessThan(full.length));
+        expect(full.startsWith(visible()), isTrue);
+        var fading = false;
+        for (final root in spans()) {
+          root.visitChildren((span) {
+            if (span is TextSpan &&
+                span.text?.isNotEmpty == true &&
+                span.style?.color != null) {
+              final color = span.style!.color!;
+              expect((color.r, color.g, color.b), (ink.r, ink.g, ink.b));
+              if (color.a > 0 && color.a < 1) fading = true;
+            }
+            return true;
+          });
+        }
+        expect(fading, isTrue);
+        await tester.pumpWidget(app(full, reduced: true));
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(visible(), full);
+        await tester.pumpWidget(app(full, generating: false));
+        await tester.pumpAndSettle();
+        expect(visible(), full);
+      },
+    );
+  }
+
   testWidgets(
     "streaming reveals new text and completed messages appear immediately",
     (tester) async {

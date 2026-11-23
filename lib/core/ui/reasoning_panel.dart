@@ -212,7 +212,10 @@ class _ReasoningPanelState extends State<ReasoningPanel>
                                     ? Text(
                                         context.l10n.waitingForReasoningFromThe,
                                       )
-                                    : LearningMarkdown(widget.text),
+                                    : LearningMarkdown(
+                                        widget.text,
+                                        streaming: widget.generating,
+                                      ),
                               ),
                             ),
                           ),

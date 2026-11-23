@@ -116,6 +116,14 @@ final _escapedSlashMathPattern = InlinePattern(
     ],
   ),
 );
+// The package fades whitespace-delimited words. CJK has no spaces, so give
+// each ideograph its own span to keep the moving reveal head fading in.
+final _cjkRevealPattern = InlinePattern(
+  pattern: RegExp(r"[\u2E80-\u9FFF\uF900-\uFAFF]"),
+  scopes: MarkdownComponent.allScopes,
+  builder: (context, match, style) =>
+      TextSpan(text: match.group(0), style: style),
+);
 final _mathBlocks = [
   for (final syntax in [const _MathBlock(r"$$"), const _MathBlock(r"\[")])
     MarkdownBlockComponent(
@@ -154,7 +162,7 @@ class LearningMarkdown extends StatelessWidget {
       child: GptMarkdown(
         data,
         animation: streaming
-            ? GptMarkdownAnimation.wave
+            ? GptMarkdownAnimation.fade
             : GptMarkdownAnimation.none,
         blockAnimation: streaming
             ? GptMarkdownBlockAnimation.fadeIn
@@ -170,6 +178,7 @@ class LearningMarkdown extends StatelessWidget {
           _escapedDollarPattern,
           _escapedSlashMathPattern,
           _mathPattern,
+          if (streaming) _cjkRevealPattern,
         ],
         blockComponents: _mathBlocks,
         inlineLatexBuilder: (details) =>
