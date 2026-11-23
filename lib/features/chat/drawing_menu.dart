@@ -16,23 +16,25 @@ List<PopupMenuEntry<String>> drawingMenuItems(
   return [
     PopupMenuItem<String>(
       value: "tool-call-limit",
-      child: Text(
-        "${context.l10n.maxToolCalls}: ${controller.maxToolCalls == 0 ? context.l10n.toolCallsUnlimited : controller.maxToolCalls}",
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.build_outlined),
+        title: Text(
+          "${context.l10n.maxToolCalls}: ${controller.maxToolCalls == 0 ? context.l10n.toolCallsUnlimited : controller.maxToolCalls}",
+        ),
       ),
     ),
     const PopupMenuDivider(),
     PopupMenuItem<String>(
       enabled: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "${enabled ? context.l10n.chatDrawingEnabled : context.l10n.chatDrawingDisabled}"
-            '${override == null ? context.l10n.followDefaultLabel : ''}',
-          ),
-          const SizedBox(height: 4),
-          Text(context.l10n.chatDrawingHelp),
-        ],
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        enabled: false,
+        leading: const Icon(Icons.draw_outlined),
+        title: Text(
+          "${enabled ? context.l10n.chatDrawingEnabled : context.l10n.chatDrawingDisabled}"
+          '${override == null ? context.l10n.followDefaultLabel : ''}',
+        ),
       ),
     ),
     CheckedPopupMenuItem(

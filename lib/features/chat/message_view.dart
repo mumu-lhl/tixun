@@ -35,42 +35,12 @@ class MessageView extends ConsumerWidget {
                 ),
               ),
             ),
-          if (!user) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: colors.primaryContainer.withValues(alpha: .65),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Icon(
-                      Icons.auto_awesome_outlined,
-                      size: 15,
-                      color: colors.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    context.l10n.aiLearningAssistant,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          if (!user)
             MessageReasoning(
               message,
               examGenerating:
                   message.status == "generating" && c.selected?.mode == "exam",
             ),
-          ],
           if (message.content.isNotEmpty)
             user
                 ? Align(
@@ -226,7 +196,7 @@ class MessageView extends ConsumerWidget {
                         label: Text(
                           message.totalTokens == null
                               ? context.l10n.requestDetails
-                              : "${message.totalTokens} tokens",
+                              : "${usageTokenCount(message.totalTokens!)} tokens",
                         ),
                       ),
                     ),

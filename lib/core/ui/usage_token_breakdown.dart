@@ -90,7 +90,7 @@ class UsageTokenBreakdown extends StatelessWidget {
                 leading: Icon(Icons.circle, color: colors[i], size: 16),
                 title: Text(labels[i]),
                 trailing: Text(
-                  "${(values[i] * 100 / total).toStringAsFixed(1)}% · ${usageTokenCount(values[i])} (${usageInteger(values[i])})",
+                  "${(values[i] * 100 / total).toStringAsFixed(1)}% · ${usageTokenCount(values[i])}",
                 ),
               ),
         ] else
@@ -180,7 +180,7 @@ class _LocalTokenBreakdown extends StatelessWidget {
               leading: Icon(Icons.circle, color: colors[i], size: 16),
               title: Text(labels[i]),
               trailing: Text(
-                "${(values[i] * 100 / total).toStringAsFixed(1)}% · ${usageTokenCount(values[i])} (${usageInteger(values[i])})",
+                "${(values[i] * 100 / total).toStringAsFixed(1)}% · ${usageTokenCount(values[i])}",
               ),
             ),
         ] else

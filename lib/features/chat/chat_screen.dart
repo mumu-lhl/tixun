@@ -110,37 +110,11 @@ class ChatScreen extends ConsumerWidget {
                         ),
                       ),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            c.selected?.title ??
-                                context.l10n.aiLearningAssistant,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          Text(
-                            c.demo
-                                ? context.l10n.mockIsolatedDataNoAPI
-                                : c.config.kind == "chatgpt"
-                                ? context.l10n.usingChatGPTPlan(
-                                    c.config.model,
-                                    c.busy
-                                        ? context.l10n.responding
-                                        : context.l10n.savedLocally,
-                                  )
-                                : "${c.config.model} · ${c.busy ? context.l10n.responding : context.l10n.savedLocally}",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        c.selected?.title ?? context.l10n.aiLearningAssistant,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
                     if (!compact)
@@ -243,12 +217,21 @@ class ChatScreen extends ConsumerWidget {
                           PopupMenuItem(
                             value: "links",
                             enabled: c.selected != null,
-                            child: Text(ctx.l10n.linkedLearningMaterial),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(Icons.link),
+                              enabled: c.selected != null,
+                              title: Text(ctx.l10n.linkedLearningMaterial),
+                            ),
                           ),
                         if (compact)
                           PopupMenuItem(
                             value: "settings",
-                            child: Text(ctx.l10n.modelSettings),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(Icons.tune),
+                              title: Text(ctx.l10n.modelSettings),
+                            ),
                           ),
                       ],
                     ),

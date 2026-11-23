@@ -12,10 +12,8 @@ import "package:tixun/core/platform/attachment_store.dart";
 import "package:tixun/core/platform/key_store.dart";
 
 void main() {
-  for (final width in [320.0, 1200.0]) {
-    testWidgets("temporary chat drawing menu works at width $width", (
-      tester,
-    ) async {
+  for (final (width, scale) in [(320.0, 1.0), (320.0, 1.6), (1200.0, 1.0)]) {
+    testWidgets("chat menu $width / $scale", (tester) async {
       late Directory root;
       late AppController c;
       await tester.runAsync(() async {
@@ -39,6 +37,8 @@ void main() {
         await c.db.close();
         await root.delete(recursive: true);
       });
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       tester.view.devicePixelRatio = 1;
       // Give the desktop shell room for its existing navigation rail while
       // simulating a software keyboard; phone coverage stays deliberately small.
@@ -53,11 +53,13 @@ void main() {
       await tester.pumpAndSettle();
       final menu = find.byKey(const Key("chat-more"));
       expect(find.byKey(const Key("chat-drawing-menu")), findsNothing);
-      expect(tester.getCenter(menu).dy, lessThan(100));
+      expect(tester.getCenter(menu).dy, lessThan(100 * scale));
       Future<void> choose(String value) async {
         await tester.tap(menu);
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(Key("chat-drawing-$value")));
+        final choice = find.byKey(Key("chat-drawing-$value"));
+        await tester.ensureVisible(choice);
+        await tester.tap(choice);
         await tester.pumpAndSettle();
       }
 
@@ -77,6 +79,30 @@ void main() {
       }
 
       expect(menu, findsOneWidget);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      final items = find.byWidgetPredicate(
+        (widget) => widget is PopupMenuItem<String>,
+      );
+      final labelStarts = [
+        for (final item in items.evaluate())
+          tester
+              .getTopLeft(
+                find
+                    .descendant(
+                      of: find.byWidget(item.widget),
+                      matching: find.byType(Text),
+                    )
+                    .first,
+              )
+              .dx,
+      ];
+      expect(labelStarts.length, greaterThan(5));
+      for (final x in labelStarts) {
+        expect(x, closeTo(labelStarts.first, .01));
+      }
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       await expectStatus("绘图已关闭", followDefault: true);
       await choose("on");
       expect(c.sessionDrawingOverride, true);
@@ -120,6 +146,7 @@ void main() {
       await tester.tap(menu);
       await tester.pumpAndSettle();
       expect(find.text("Enable drawing for this chat"), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key("chat-drawing-default")));
       await tester.tap(find.byKey(const Key("chat-drawing-default")));
       await tester.pumpAndSettle();
       expect(c.sessionDrawingOverride, isNull);

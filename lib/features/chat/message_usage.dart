@@ -35,7 +35,7 @@ void _showMessageUsage(
                   Text(
                     message.totalTokens == null
                         ? context.l10n.providerUsageUnavailable
-                        : "${context.l10n.tokenTotal}: ${usageInteger(message.totalTokens!)}",
+                        : "${context.l10n.tokenTotal}: ${usageTokenCount(message.totalTokens!)}",
                   )
                 else ...[
                   _MessageUsageTotals(rows),
@@ -50,11 +50,17 @@ void _showMessageUsage(
                       ),
                       subtitle: Text(
                         [
-                          '${context.l10n.inputTokens}: ${row.inputTokens ?? '—'}',
-                          '${context.l10n.cachedInputTokens}: ${row.cachedInputTokens ?? '—'}',
-                          '${context.l10n.outputTokens}: ${row.outputTokens ?? '—'}',
-                          '${context.l10n.reasoningTokens}: ${row.reasoningTokens ?? '—'}',
-                          '${context.l10n.tokenTotal}: ${row.totalTokens ?? '—'}',
+                          for (final (label, value) in [
+                            (context.l10n.inputTokens, row.inputTokens),
+                            (
+                              context.l10n.cachedInputTokens,
+                              row.cachedInputTokens,
+                            ),
+                            (context.l10n.outputTokens, row.outputTokens),
+                            (context.l10n.reasoningTokens, row.reasoningTokens),
+                            (context.l10n.tokenTotal, row.totalTokens),
+                          ])
+                            "$label: ${value == null ? '—' : usageTokenCount(value)}",
                           if (row.usageSource == "legacy_total")
                             context.l10n.legacyUsageTotalOnly,
                         ].join(" · "),
@@ -100,7 +106,9 @@ class _MessageUsageTotals extends StatelessWidget {
           (l10n.outputTokens, summary.output),
           (l10n.reasoningTokens, summary.reasoning),
         ])
-          Text('$label · ${value.isEmpty ? '—' : usageInteger(value.value)}'),
+          Text(
+            '$label · ${value.isEmpty ? '—' : usageTokenCount(value.value)}',
+          ),
         if (cost.isNotEmpty)
           Text(
             "${l10n.estimatedCost} · \$${(cost.reduce((a, b) => a + b) / 1000000000).toStringAsFixed(6)}",
