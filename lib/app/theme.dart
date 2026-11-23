@@ -73,7 +73,10 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
       surfaceTintColor: Colors.transparent,
       elevation: 2,
       shadowColor: colors.shadow.withValues(alpha: .18),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: .5)),
+      ),
       menuPadding: const EdgeInsets.symmetric(vertical: 6),
       position: PopupMenuPosition.under,
       textStyle: TextStyle(color: colors.onSurface, fontSize: 14),
@@ -87,7 +90,12 @@ ThemeData appTheme(Brightness brightness, {ColorScheme? scheme}) {
           colors.shadow.withValues(alpha: .18),
         ),
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: .5),
+            ),
+          ),
         ),
         padding: const WidgetStatePropertyAll(
           EdgeInsets.symmetric(vertical: 6),
