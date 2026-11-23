@@ -1,6 +1,9 @@
 import "dart:convert";
 import "dart:io";
 
+import "package:dio/dio.dart";
+import "package:tixun/features/language_learning/generation_store.dart";
+
 import "package:archive/archive_io.dart";
 import "package:drift/drift.dart" show Value;
 import "package:flutter_test/flutter_test.dart";
@@ -205,6 +208,18 @@ void main() {
       recognized: 2,
       produced: 1,
     );
+    final run = await LanguageGenerationStore(c.db).capture(
+      feature: "language_vocabulary",
+      request: AiRequest(
+        instructions: "immutable prompt for backup",
+        messages: [const AiMessage.user("input")],
+      ),
+      config: c.config,
+      output: '{"entries":[]}',
+      format: "json",
+      cancel: CancelToken(),
+    );
+    await LanguageGenerationStore(c.db).link("test", "backup-content", run.id);
     final backup = File("${parent.path}/complete.tixun-backup");
     final preview = await BackupService.export(c.db, c.files, backup);
     expect(preview.counts["attempts"], 1);
@@ -238,6 +253,20 @@ void main() {
     );
     await BackupService.finish(activation);
     await prepared.discard();
+    final restoredRun = await LanguageGenerationStore(c.db).active(run.taskId);
+    expect(restoredRun!.output, run.output);
+    expect(restoredRun.promptId, run.promptId);
+    expect(
+      (await c.db.select(c.db.languagePromptSnapshots).get()).map(
+        (r) => r.content,
+      ),
+      contains("immutable prompt for backup"),
+    );
+    expect(
+      await LanguageGenerationStore(c.db).linkedContent("test", run.id),
+      "backup-content",
+    );
+    expect((await c.language.quickLookup(quick.id))!.prompt, quick.prompt);
     expect((await c.study.knowledge(note)).content, "恢复前的内容");
     final savedExam = ExamMaterial(
       await c.db.select(c.db.learningExamMaterials).getSingle(),

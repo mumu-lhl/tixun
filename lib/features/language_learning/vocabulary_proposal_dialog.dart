@@ -61,10 +61,15 @@ class _ProposalDialogState extends State<_ProposalDialog> {
   final _entries = <VocabularyEntry>[];
   CancelToken? _running;
   bool _saving = false;
+  bool _withAi = false;
   String? _error;
+  String? _customTitle;
 
   String get _title =>
-      widget.group?.title ?? _proposal?.groupTitle ?? _topic.text.trim();
+      widget.group?.title ??
+      _customTitle ??
+      _proposal?.groupTitle ??
+      _topic.text.trim();
   VocabularyGroupType get _groupType => widget.group == null
       ? _kind
       : VocabularyGroupType.values.byName(widget.group!.groupType);
@@ -78,7 +83,6 @@ class _ProposalDialogState extends State<_ProposalDialog> {
 
   Future<void> _generate() async {
     if (_running != null) return;
-    final title = _title;
     final token = CancelToken();
     final gloss =
         widget.feedbackLanguage ??
@@ -90,20 +94,17 @@ class _ProposalDialogState extends State<_ProposalDialog> {
     try {
       final group = widget.group;
       final current = group == null
-          ? const <LanguageCard>[]
-          : await widget.store.cards(language: "en", groupId: group.id);
+          ? const <String>[]
+          : await widget.store.groupExpressions(group.id);
       token.checkCancelled();
       final proposal = await widget.ai.propose(
         config: widget.config,
-        topic: title,
-        generateGroupTitle: group == null && title.isEmpty,
+        topic: group?.title ?? _topic.text.trim(),
+        generateGroupTitle: group == null && _topic.text.trim().isEmpty,
         groupType: _groupType,
         level: _level,
         glossLanguage: gloss,
-        existingExpressions: current
-            .map((card) => card.item.form)
-            .toSet()
-            .toList(),
+        existingExpressions: current,
         cancel: token,
         count: _count,
         focus: _focus,
@@ -116,7 +117,10 @@ class _ProposalDialogState extends State<_ProposalDialog> {
       if (!mounted || token.isCancelled) return;
       setState(() {
         _proposal = proposal;
-        _entries.addAll(proposal.entries);
+        _entries
+          ..clear()
+          ..addAll(proposal.entries);
+        _chosen.clear();
         _matches = matches;
         _chosen.addAll(
           proposal.entries.where((entry) => !matches[entry]!.contains(_title)),
@@ -135,11 +139,57 @@ class _ProposalDialogState extends State<_ProposalDialog> {
     }
   }
 
+  Future<bool> _resolveGroup() async {
+    if (widget.group != null) return true;
+    final existing = await widget.store.groupNamed("en", _title);
+    if (existing == null) return true;
+    if (!mounted) return false;
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(ctx.l10n.languageGroupExists),
+            content: Text(existing.title),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(ctx.l10n.languageRenameGroup),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(ctx.l10n.languageUseExistingGroup),
+              ),
+            ],
+          ),
+        ) ==
+        true;
+  }
+
+  Future<void> _saveEmpty() async {
+    if (_saving) return;
+    if (_title.isEmpty) {
+      setState(() => _error = context.l10n.languageGroupNameRequired);
+      return;
+    }
+    setState(() => _saving = true);
+    await act(context, () async {
+      final existing = await widget.store.groupNamed("en", _title);
+      if (!mounted) return;
+      if (existing != null) {
+        setState(() => _error = context.l10n.languageGroupExists);
+      } else {
+        await widget.store.createGroup("en", _title, _groupType);
+        if (mounted) Navigator.pop(context);
+      }
+    });
+    if (mounted) setState(() => _saving = false);
+  }
+
   Future<void> _save() async {
     final proposal = _proposal;
     if (_saving || proposal == null || _chosen.isEmpty) return;
     setState(() => _saving = true);
     await act(context, () async {
+      if (!await _resolveGroup()) return;
       await widget.store.saveEntries(
         language: "en",
         groupTitle: _title,
@@ -161,7 +211,11 @@ class _ProposalDialogState extends State<_ProposalDialog> {
       canPop: !_saving,
       child: AlertDialog(
         title: Text(
-          proposal == null ? l10n.languageAiGenerate : l10n.languageAiPreview,
+          proposal == null
+              ? (widget.group == null
+                    ? l10n.languageCreateGroup
+                    : l10n.languageAiExpand)
+              : l10n.languageAiPreview,
         ),
         scrollable: true,
         content: SizedBox(
@@ -172,11 +226,12 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                   spacing: 12,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      widget.ai.provider is MockChatProvider
-                          ? l10n.languageAiMockNotice
-                          : l10n.languageAiPrivacyNotice,
-                    ),
+                    if (widget.group != null || _withAi)
+                      Text(
+                        widget.ai.provider is MockChatProvider
+                            ? l10n.languageAiMockNotice
+                            : l10n.languageAiPrivacyNotice,
+                      ),
                     const SizedBox(height: 12),
                     if (widget.group == null) ...[
                       TextFormField(
@@ -184,8 +239,12 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                         enabled: running == null,
                         maxLength: 100,
                         decoration: InputDecoration(
-                          labelText: l10n.languageAiGroupTitle,
-                          helperText: l10n.languageAiGroupTitleHint,
+                          labelText: _withAi
+                              ? l10n.languageAiGroupTitle
+                              : l10n.languageGroupTitle,
+                          helperText: _withAi
+                              ? l10n.languageAiGroupTitleHint
+                              : null,
                         ),
                       ),
                       AppSelectField<VocabularyGroupType>(
@@ -206,64 +265,78 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                       ),
                     ] else
                       Text(_title),
-                    AppSelectField<VocabularyLevel>(
-                      initialValue: _level,
-                      decoration: InputDecoration(
-                        labelText: l10n.languageDifficulty,
+                    if (widget.group == null)
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(l10n.languageFillWithAi),
+                        value: _withAi,
+                        onChanged: running == null
+                            ? (value) => setState(() => _withAi = value)
+                            : null,
                       ),
-                      items: [
-                        DropdownMenuItem(
-                          value: VocabularyLevel.beginner,
-                          child: Text(l10n.languageBeginner),
+                    if (widget.group != null || _withAi) ...[
+                      AppSelectField<VocabularyLevel>(
+                        initialValue: _level,
+                        decoration: InputDecoration(
+                          labelText: l10n.languageDifficulty,
                         ),
-                        DropdownMenuItem(
-                          value: VocabularyLevel.intermediate,
-                          child: Text(l10n.languageIntermediate),
-                        ),
-                        DropdownMenuItem(
-                          value: VocabularyLevel.advanced,
-                          child: Text(l10n.languageAdvanced),
-                        ),
-                      ],
-                      onChanged: running != null
-                          ? null
-                          : (level) => _level = level!,
-                    ),
-                    AppSelectField<int>(
-                      initialValue: _count,
-                      decoration: InputDecoration(
-                        labelText: l10n.languageVocabularyCount,
-                      ),
-                      items: [
-                        for (final count in [5, 10, 20])
-                          DropdownMenuItem(value: count, child: Text("$count")),
-                      ],
-                      onChanged: running == null
-                          ? (count) => _count = count!
-                          : null,
-                    ),
-                    AppSelectField<SentenceSkill>(
-                      decoration: InputDecoration(
-                        labelText: l10n.languageExamFocus,
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          child: Text(l10n.languageExamAnySkill),
-                        ),
-                        for (final skill in const [
-                          SentenceSkill.collocation,
-                          SentenceSkill.intention,
-                          SentenceSkill.reference,
-                        ])
+                        items: [
                           DropdownMenuItem(
-                            value: skill,
-                            child: Text(sentenceSkillLabel(l10n, skill)),
+                            value: VocabularyLevel.beginner,
+                            child: Text(l10n.languageBeginner),
                           ),
-                      ],
-                      onChanged: running == null
-                          ? (focus) => _focus = focus
-                          : null,
-                    ),
+                          DropdownMenuItem(
+                            value: VocabularyLevel.intermediate,
+                            child: Text(l10n.languageIntermediate),
+                          ),
+                          DropdownMenuItem(
+                            value: VocabularyLevel.advanced,
+                            child: Text(l10n.languageAdvanced),
+                          ),
+                        ],
+                        onChanged: running != null
+                            ? null
+                            : (level) => _level = level!,
+                      ),
+                      AppSelectField<int>(
+                        initialValue: _count,
+                        decoration: InputDecoration(
+                          labelText: l10n.languageVocabularyCount,
+                        ),
+                        items: [
+                          for (final count in [5, 10, 20])
+                            DropdownMenuItem(
+                              value: count,
+                              child: Text("$count"),
+                            ),
+                        ],
+                        onChanged: running == null
+                            ? (count) => _count = count!
+                            : null,
+                      ),
+                      AppSelectField<SentenceSkill>(
+                        decoration: InputDecoration(
+                          labelText: l10n.languageExamFocus,
+                        ),
+                        items: [
+                          DropdownMenuItem(
+                            child: Text(l10n.languageExamAnySkill),
+                          ),
+                          for (final skill in const [
+                            SentenceSkill.collocation,
+                            SentenceSkill.intention,
+                            SentenceSkill.reference,
+                          ])
+                            DropdownMenuItem(
+                              value: skill,
+                              child: Text(sentenceSkillLabel(l10n, skill)),
+                            ),
+                        ],
+                        onChanged: running == null
+                            ? (focus) => _focus = focus
+                            : null,
+                      ),
+                    ],
                     if (running != null) const LinearProgressIndicator(),
                     if (_error case final error?) Text(error),
                   ],
@@ -297,14 +370,40 @@ class _ProposalDialogState extends State<_ProposalDialog> {
           ),
           if (proposal == null)
             FilledButton(
-              onPressed: running == null ? _generate : null,
-              child: Text(l10n.languageAiGenerate),
+              onPressed: running != null || _saving
+                  ? null
+                  : (widget.group == null && !_withAi ? _saveEmpty : _generate),
+              child: Text(
+                widget.group == null && !_withAi
+                    ? l10n.create
+                    : l10n.languageFillWithAi,
+              ),
             )
-          else
+          else ...[
+            TextButton(
+              onPressed: _saving || running != null ? null : _generate,
+              child: Text(l10n.regenerate),
+            ),
+            TextButton(
+              onPressed: _saving
+                  ? null
+                  : () async {
+                      final title = await editText(
+                        context,
+                        title: l10n.languageRenameGroup,
+                        initial: _title,
+                      );
+                      if (mounted && title != null && title.trim().isNotEmpty) {
+                        setState(() => _customTitle = title.trim());
+                      }
+                    },
+              child: Text(l10n.languageRenameGroup),
+            ),
             FilledButton(
               onPressed: _saving || _chosen.isEmpty ? null : _save,
               child: Text(l10n.languageAiSaveSelected),
             ),
+          ],
         ],
       ),
     );

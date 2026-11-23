@@ -9,10 +9,12 @@ import "../../core/ai/chat_provider.dart";
 import "../../core/ai/prompt_settings.dart";
 import "../../core/database/database.dart";
 import "exam_material.dart";
+import "generation_store.dart";
 import "language_json_request.dart";
 import "language_store.dart";
 import "sentence_content.dart";
 import "writing_store.dart";
+import "generation_provider.dart";
 
 enum WritingTaskKind { application, continuation }
 
@@ -42,14 +44,15 @@ class WritingTaskAi {
   const WritingTaskAi({
     required this.store,
     required this.provider,
-    required this.config,
+    required this._config,
     this.usageStore,
     this.prompts,
   });
 
   final LanguageLearningStore store;
   final ChatProvider provider;
-  final ProviderConfig config;
+  final ProviderConfig _config;
+  ProviderConfig get config => languageConfiguration(provider, _config);
   final AiUsageStore? usageStore;
   final PromptSettings? prompts;
   static const promptVersion = 2;
@@ -59,6 +62,7 @@ class WritingTaskAi {
     required SentenceLevel level,
     required String topic,
     required CancelToken cancel,
+    LearningWritingTaskRow? replacing,
     ExamProfile profile = ExamProfile.zhejiang2026,
   }) async {
     if (topic.length > 100) {
@@ -68,11 +72,25 @@ class WritingTaskAi {
     if (provider is MockChatProvider) {
       throw const FormatException("Writing generation requires an AI provider");
     }
+    LanguageGenerationRun? generation;
     final task = await requestLanguageJson(
       provider: provider,
       config: config,
       usageStore: usageStore,
       feature: "language_writing_task",
+      original: replacing == null
+          ? null
+          : GenerationOriginal(
+              output: jsonEncode({
+                "title": replacing.title,
+                "prompt": replacing.prompt,
+                if (replacing.passage != null) "passage": replacing.passage,
+              }),
+              model: replacing.model,
+              kind: "writing_task",
+              contentId: replacing.id,
+            ),
+      onCaptured: (run) => generation = run,
       request: AiRequest(
         instructions: LanguagePrompt.writingTask.instructions(prompts),
         messages: [
@@ -109,7 +127,11 @@ class WritingTaskAi {
                   ..limit(1))
                 .getSingleOrNull();
         cancel.checkCancelled();
-        if (existing != null) return openWritingTask(existing);
+        if (existing != null) {
+          await LanguageGenerationStore(store.db)
+              .link("writing_task", existing.id, generation?.id);
+          return openWritingTask(existing);
+        }
         final row = await store.db
             .into(table)
             .insertReturning(
@@ -122,12 +144,14 @@ class WritingTaskAi {
                 title: task.title,
                 prompt: task.prompt,
                 passage: Value(task.passage),
-                model: config.model,
+                model: generation?.model ?? config.model,
                 promptVersion: promptVersion,
                 createdAt: DateTime.now(),
               ),
             );
         cancel.checkCancelled();
+        await LanguageGenerationStore(store.db)
+            .link("writing_task", row.id, generation?.id);
         return openWritingTask(row);
       }),
     );

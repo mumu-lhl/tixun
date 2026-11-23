@@ -53,6 +53,22 @@ extension _DatabaseMigrations on AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from < 30) {
+        await m.createTable(languagePromptSnapshots);
+        await m.createTable(languageGenerationTasks);
+        await m.createTable(languageGenerationRuns);
+        await m.createTable(languageGenerationChoices);
+        await m.createTable(languageGenerationLinks);
+        if (from >= 22) {
+          await m.addColumn(learningEvidence, learningEvidence.generationRunId);
+        }
+        if (from >= 25) {
+          await m.addColumn(
+            languageQuickLookups,
+            languageQuickLookups.promptSnapshotId,
+          );
+        }
+      }
       if (from < 29) {
         await m.createTable(chatA2uiSurfaces);
         await m.createTable(chatA2uiActions);

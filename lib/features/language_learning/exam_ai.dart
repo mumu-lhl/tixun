@@ -8,22 +8,25 @@ import "../../core/ai/chat_provider.dart";
 import "../../core/ai/prompt_settings.dart";
 import "../../core/database/database.dart";
 import "exam_material.dart";
+import "generation_store.dart";
 import "exam_store.dart";
 import "language_json_request.dart";
 import "language_store.dart";
 import "sentence_content.dart";
+import "generation_provider.dart";
 
 class ExamAi {
   const ExamAi({
     required this.provider,
-    required this.config,
+    required this._config,
     required this.store,
     this.usageStore,
     this.prompts,
   });
 
   final ChatProvider provider;
-  final ProviderConfig config;
+  final ProviderConfig _config;
+  ProviderConfig get config => languageConfiguration(provider, _config);
   final LanguageLearningStore store;
   final AiUsageStore? usageStore;
   final PromptSettings? prompts;
@@ -36,6 +39,7 @@ class ExamAi {
     required CancelToken cancel,
     bool reuse = true,
     bool fresh = false,
+    ExamMaterial? replacing,
     Set<String> excludeIds = const {},
   }) async {
     target.validate();
@@ -51,11 +55,21 @@ class ExamAi {
     if (isMock) {
       throw const FormatException("Exam generation requires an AI provider");
     }
+    LanguageGenerationRun? generation;
     final paper = await requestLanguageJson(
       provider: provider,
       config: config,
       usageStore: usageStore,
       feature: "language_exam_generation",
+      original: replacing == null
+          ? null
+          : GenerationOriginal(
+              output: jsonEncode(replacing.paper.toJson()),
+              model: replacing.row.model ?? "unknown",
+              kind: "exam",
+              contentId: replacing.row.id,
+            ),
+      onCaptured: (run) => generation = run,
       request: AiRequest(
         instructions: LanguagePrompt.examGeneration.instructions(prompts),
         messages: [
@@ -80,15 +94,26 @@ class ExamAi {
       parse: (value) => ExamPaper.parse(value, target),
     );
     cancel.checkCancelled();
-    return store.saveExamMaterial(
+    final linked = await LanguageGenerationStore(store.db)
+        .linkedContent("exam", generation?.id);
+    if (linked != null) {
+      final row = await (store.db.select(
+        store.db.learningExamMaterials,
+      )..where((r) => r.id.equals(linked))).getSingleOrNull();
+      if (row != null) return ExamMaterial(row);
+    }
+    final result = await store.saveExamMaterial(
       target: target,
       paper: paper,
       source: ExamSource.aiGenerated,
       id: const Uuid().v4(),
-      model: config.model,
+      model: generation?.model ?? config.model,
       promptVersion: promptVersion,
       cancel: cancel,
     );
+    await LanguageGenerationStore(store.db)
+        .link("exam", result.row.id, generation?.id);
+    return result;
   }
 
   Future<({ExamMaterial material, String issue})> review(

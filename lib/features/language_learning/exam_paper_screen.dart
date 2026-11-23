@@ -133,6 +133,34 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
     if (mounted) setState(() => _saving = false);
   }
 
+  Future<void> _regenerate() async {
+    if (_review != null || _saving) return;
+    final cancel = CancelToken();
+    setState(() => _review = cancel);
+    await act(context, () async {
+      final fresh = await widget.ai.acquire(
+        _material.target,
+        glossLanguage:
+            widget.glossLanguage ??
+            Localizations.localeOf(context).languageCode,
+        cancel: cancel,
+        reuse: false,
+        replacing: _material,
+      );
+      if (!mounted || cancel.isCancelled) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ExamPaperScreen(
+            ai: widget.ai,
+            material: fresh,
+            glossLanguage: widget.glossLanguage,
+          ),
+        ),
+      );
+    });
+    if (mounted) setState(() => _review = null);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -149,7 +177,16 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
         _hints.isEmpty &&
         !_lookedUp;
     return Scaffold(
-      appBar: AppBar(title: Text(examSourceLabel(l10n, _material))),
+      appBar: AppBar(
+        title: Text(examSourceLabel(l10n, _material)),
+        actions: [
+          IconButton(
+            tooltip: l10n.languageRegenerateCompare,
+            onPressed: _review != null || _saving ? null : _regenerate,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
       body: languagePage(
         gap: 0,
         children: [

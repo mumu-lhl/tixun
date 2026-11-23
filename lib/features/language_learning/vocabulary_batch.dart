@@ -3,8 +3,10 @@ import "dart:math";
 
 import "package:material_ui/material_ui.dart";
 import "package:uuid/uuid.dart";
+import "package:dio/dio.dart";
 
 import "../../core/database/database.dart";
+import "../../core/ai/chat_provider.dart" show CancelGuard, MockChatProvider;
 import "../../core/l10n/app_strings.dart";
 import "../../core/l10n/generated/app_localizations.dart";
 import "../../core/ui/actions.dart";
@@ -13,8 +15,10 @@ import "language_store.dart";
 import "lexical_form_screen.dart";
 import "lexical_form_store.dart";
 import "vocabulary_editor.dart";
+import "vocabulary_example.dart";
+import "vocabulary_ai.dart";
 
-enum VocabularyMode { study, recall, context, recognition }
+enum VocabularyMode { study, recall, recognition }
 
 class VocabularyBatch extends StatefulWidget {
   const VocabularyBatch({
@@ -24,10 +28,14 @@ class VocabularyBatch extends StatefulWidget {
     required this.mode,
     this.group,
     this.dueBefore,
+    this.ai,
+    this.config,
   });
 
   final LanguageLearningStore store;
   final String language;
+  final VocabularyAi? ai;
+  final ProviderConfig? config;
   final VocabularyMode mode;
   final LearningVocabularyGroup? group;
   final DateTime? dueBefore;
@@ -38,7 +46,6 @@ class VocabularyBatch extends StatefulWidget {
 
 class _VocabularyBatchState extends State<VocabularyBatch> {
   static const _uuid = Uuid();
-  final _answer = TextEditingController();
   late Future<List<LanguageCard>> _batch = _load();
   bool? _recognized;
   int _current = 0;
@@ -49,10 +56,11 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   bool _revealed = false;
   bool _saving = false;
   LearningEvidenceData? _result;
+  CancelToken? _regenerating;
 
   @override
   void dispose() {
-    _answer.dispose();
+    _regenerating?.cancel();
     super.dispose();
   }
 
@@ -60,14 +68,12 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     language: widget.language,
     groupId: widget.group?.id,
     dueBefore: widget.dueBefore,
-    contextsOnly: widget.mode == VocabularyMode.context,
     offset: _offset,
   );
 
   void _resetCard() {
     _recognized = null;
     _attemptId = _uuid.v4();
-    _answer.clear();
     _revealed = false;
     _result = null;
   }
@@ -92,16 +98,72 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     if (mounted) setState(() => _saving = false);
   }
 
+  Future<void> _regenerate(LanguageCard card) async {
+    if (_saving || widget.ai == null || widget.config == null) return;
+    final cancel = CancelToken();
+    setState(() {
+      _saving = true;
+      _regenerating = cancel;
+    });
+    await act(context, () async {
+      final result = await widget.ai!.revise(
+        config: widget.config!,
+        card: card,
+        glossLanguage: Localizations.localeOf(context).languageCode,
+        cancel: cancel,
+      );
+      cancel.checkCancelled();
+      if (result.generation != null) {
+        await widget.store.reviseVocabulary(
+          card,
+          result.entry,
+          result.generation!,
+        );
+      }
+      if (mounted) setState(() => _batch = _load());
+    });
+    if (mounted) {
+      setState(() {
+        _saving = false;
+        _regenerating = null;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final title =
-        widget.group?.title ??
-        (widget.mode == VocabularyMode.context
-            ? l10n.languageNewContexts
-            : l10n.languageReview);
+    final title = widget.group?.title ?? l10n.languageReview;
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          if (widget.ai != null &&
+              widget.ai!.provider is! MockChatProvider &&
+              widget.mode == VocabularyMode.study)
+            FutureBuilder<List<LanguageCard>>(
+              future: _batch,
+              builder: (context, snapshot) {
+                final cards = snapshot.data ?? const <LanguageCard>[];
+                return IconButton(
+                  tooltip: l10n.languageRegenerateCompare,
+                  onPressed: _saving || cards.isEmpty
+                      ? null
+                      : () => _regenerate(
+                          cards[_studyIndex.clamp(0, cards.length - 1)],
+                        ),
+                  icon: const Icon(Icons.refresh),
+                );
+              },
+            ),
+          if (_regenerating != null)
+            IconButton(
+              tooltip: l10n.cancel,
+              onPressed: () => _regenerating?.cancel(),
+              icon: const Icon(Icons.stop),
+            ),
+        ],
+      ),
       body: FutureBuilder<List<LanguageCard>>(
         future: _batch,
         builder: (context, snapshot) {
@@ -130,9 +192,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               children: [
                 Text(
                   _offset == 0 && cards.isEmpty
-                      ? (widget.mode == VocabularyMode.context
-                            ? l10n.languageNoContexts
-                            : l10n.languageNoCards)
+                      ? l10n.languageNoCards
                       : l10n.languageBatchComplete,
                 ),
                 if (canContinue) nextBatch,
@@ -149,10 +209,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                 const SizedBox(height: 12),
                 if (widget.mode == VocabularyMode.recall)
                   _recall(card)
-                else if (widget.mode == VocabularyMode.recognition)
-                  _recognition(card, cards)
                 else
-                  _context(card),
+                  _recognition(card, cards),
                 const SizedBox(height: 12),
                 if (_result == null)
                   Align(
@@ -165,7 +223,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               ],
             );
           }
-          return languagePage(
+          final page = languagePage(
             gap: 0,
             children: [
               Center(
@@ -176,6 +234,20 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               ),
             ],
           );
+          if (widget.mode == VocabularyMode.study &&
+              _showFlashcards &&
+              cards.isNotEmpty) {
+            return Column(
+              children: [
+                Expanded(child: page),
+                _studyNavigation(
+                  cards,
+                  nextBatch: canContinue ? nextBatch : null,
+                ),
+              ],
+            );
+          }
+          return page;
         },
       ),
     );
@@ -189,21 +261,20 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
       children: [
         Align(
           alignment: AlignmentDirectional.centerStart,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ChoiceChip(
+          child: SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(
+                value: false,
                 label: Text(l10n.languageVocabularyList),
-                selected: !_showFlashcards,
-                onSelected: (_) => setState(() => _showFlashcards = false),
               ),
-              ChoiceChip(
+              ButtonSegment(
+                value: true,
                 label: Text(l10n.languageVocabularyFlashcards),
-                selected: _showFlashcards,
-                onSelected: (_) => setState(() => _showFlashcards = true),
               ),
             ],
+            selected: {_showFlashcards},
+            onSelectionChanged: (values) =>
+                setState(() => _showFlashcards = values.single),
           ),
         ),
         if (_showFlashcards) ...[
@@ -212,39 +283,6 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
             card: cards[_studyIndex],
             store: widget.store,
             revealed: true,
-          ),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              IconButton(
-                tooltip: l10n.languagePrevious,
-                onPressed: _studyIndex == 0
-                    ? null
-                    : () => setState(() => _studyIndex--),
-                icon: const Icon(Icons.arrow_back),
-              ),
-              Text("${_studyIndex + 1} / ${cards.length}"),
-              IconButton(
-                tooltip: l10n.languageNext,
-                onPressed: _studyIndex == cards.length - 1
-                    ? null
-                    : () => setState(() => _studyIndex++),
-                icon: const Icon(Icons.arrow_forward),
-              ),
-              IconButton(
-                tooltip: l10n.languageRandomCard,
-                onPressed: cards.length < 2
-                    ? null
-                    : () => setState(() {
-                        final index = Random().nextInt(cards.length - 1);
-                        _studyIndex = index < _studyIndex ? index : index + 1;
-                      }),
-                icon: const Icon(Icons.shuffle),
-              ),
-            ],
           ),
         ] else
           for (final card in cards)
@@ -263,8 +301,69 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                 ],
               ),
             ),
-        ?nextBatch,
+        if (!_showFlashcards) ?nextBatch,
       ],
+    );
+  }
+
+  Widget _studyNavigation(List<LanguageCard> cards, {Widget? nextBatch}) {
+    final l10n = context.l10n;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              key: const Key("flashcard-navigation"),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton.filledTonal(
+                    tooltip: l10n.languagePrevious,
+                    onPressed: (_saving || _studyIndex == 0)
+                        ? null
+                        : () => setState(() => _studyIndex--),
+                    icon: const Icon(Icons.arrow_back),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text("${_studyIndex + 1} / ${cards.length}"),
+                  ),
+                  IconButton.filledTonal(
+                    tooltip: l10n.languageNext,
+                    onPressed: (_saving || _studyIndex == cards.length - 1)
+                        ? null
+                        : () => setState(() => _studyIndex++),
+                    icon: const Icon(Icons.arrow_forward),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: l10n.languageRandomCard,
+                    onPressed: _saving || cards.length < 2
+                        ? null
+                        : () => setState(() {
+                            final index = Random().nextInt(cards.length - 1);
+                            _studyIndex = index < _studyIndex
+                                ? index
+                                : index + 1;
+                          }),
+                    icon: const Icon(Icons.shuffle),
+                  ),
+                ],
+              ),
+            ),
+            if (nextBatch != null)
+              Padding(padding: const EdgeInsets.only(top: 8), child: nextBatch),
+          ],
+        ),
+      ),
     );
   }
 
@@ -352,57 +451,6 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     );
   }
 
-  Widget _context(LanguageCard card) {
-    final l10n = context.l10n;
-    final result = _result;
-    void submit() {
-      if (_answer.text.trim().isEmpty) return;
-      unawaited(
-        _save(() async {
-          final attempt = await widget.store.recordApplication(
-            attemptId: _attemptId,
-            senseId: card.sense.id,
-            answer: _answer.text,
-            usedHelp: false,
-            groupPrompt: widget.group != null,
-          );
-          if (mounted) setState(() => _result = attempt);
-        }),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          card.sense.application!,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _answer,
-          enabled: !_saving && result == null,
-          decoration: InputDecoration(labelText: l10n.languageAnswer),
-          onSubmitted: (_) => submit(),
-        ),
-        const SizedBox(height: 12),
-        if (result != null) ...[
-          Text(
-            result.correct == true
-                ? l10n.languageCorrect
-                : l10n.languageIncorrect,
-          ),
-          Text(l10n.languageExpected(card.sense.applicationAnswer!)),
-          FilledButton(onPressed: _advance, child: Text(l10n.languageNext)),
-        ] else
-          FilledButton(
-            onPressed: _saving ? null : submit,
-            child: Text(l10n.languageCheck),
-          ),
-      ],
-    );
-  }
-
   String _rating(AppLocalizations l10n, RecallRating rating) =>
       switch (rating) {
         RecallRating.forgot => l10n.languageForgot,
@@ -412,7 +460,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
       };
 }
 
-class _VocabularyFlashcard extends StatelessWidget {
+class _VocabularyFlashcard extends StatefulWidget {
   const _VocabularyFlashcard({
     super.key,
     required this.card,
@@ -423,6 +471,16 @@ class _VocabularyFlashcard extends StatelessWidget {
   final LanguageCard card;
   final LanguageLearningStore store;
   final bool revealed;
+
+  @override
+  State<_VocabularyFlashcard> createState() => _VocabularyFlashcardState();
+}
+
+class _VocabularyFlashcardState extends State<_VocabularyFlashcard> {
+  bool _translation = false;
+  LanguageCard get card => widget.card;
+  LanguageLearningStore get store => widget.store;
+  bool get revealed => widget.revealed;
 
   @override
   Widget build(BuildContext context) {
@@ -471,9 +529,50 @@ class _VocabularyFlashcard extends StatelessWidget {
                     style: theme.textTheme.titleLarge,
                     textAlign: TextAlign.center,
                   ),
-                  _VocabularyExample(card: card, centered: true),
-                  if (card.item.language == "en")
-                    _VocabularyFormsLink(store: store, card: card),
+                  if (sense.example != null)
+                    VocabularyExampleText(
+                      card: card,
+                      store: store,
+                      textAlign: TextAlign.center,
+                    ),
+                  if (_translation && sense.exampleTranslation != null)
+                    Text(
+                      sense.exampleTranslation!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colors.onSurfaceVariant),
+                    ),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      if (sense.exampleTranslation != null)
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              setState(() => _translation = !_translation),
+                          icon: const Icon(Icons.translate, size: 18),
+                          label: Text(
+                            _translation
+                                ? context.l10n.languageTranslationHide
+                                : context.l10n.languageTranslationReveal,
+                          ),
+                        ),
+                      if (card.item.language == "en")
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => LexicalFormsScreen(
+                                store,
+                                language: card.item.language,
+                                card: card,
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.spellcheck, size: 18),
+                          label: Text(context.l10n.languageForms),
+                        ),
+                    ],
+                  ),
                 ],
               ],
             ),
@@ -509,7 +608,7 @@ class VocabularyDetails extends StatelessWidget {
         if (card.sense.source == "mock") Text(l10n.languageAiMockSource),
         if (store case final store? when card.item.language == "en")
           _VocabularyFormsLink(store: store, card: card),
-        _VocabularyExample(card: card),
+        _VocabularyExample(card: card, store: store),
       ],
     );
   }
@@ -534,10 +633,10 @@ class _VocabularyFormsLink extends StatelessWidget {
 }
 
 class _VocabularyExample extends StatefulWidget {
-  const _VocabularyExample({required this.card, this.centered = false});
+  const _VocabularyExample({required this.card, this.store});
 
   final LanguageCard card;
-  final bool centered;
+  final LanguageLearningStore? store;
 
   @override
   State<_VocabularyExample> createState() => _VocabularyExampleState();
@@ -549,26 +648,19 @@ class _VocabularyExampleState extends State<_VocabularyExample> {
   @override
   Widget build(BuildContext context) {
     final sense = widget.card.sense;
-    final centered = widget.centered;
-    final alignment = centered ? TextAlign.center : TextAlign.start;
-    final theme = Theme.of(context);
+    const alignment = TextAlign.start;
     return Column(
-      crossAxisAlignment: centered
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
-      spacing: centered ? 4 : 0,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (sense.example case final example?)
-          Text(example, textAlign: alignment),
+        if (sense.example != null)
+          VocabularyExampleText(
+            card: widget.card,
+            store: widget.store,
+            textAlign: alignment,
+          ),
         if (sense.exampleTranslation case final translation?)
           if (_translation)
-            Text(
-              translation,
-              textAlign: alignment,
-              style: centered
-                  ? TextStyle(color: theme.colorScheme.onSurfaceVariant)
-                  : null,
-            )
+            Text(translation, textAlign: alignment)
           else
             TextButton(
               onPressed: () => setState(() => _translation = true),

@@ -29,6 +29,7 @@ class SentencePractice extends StatefulWidget {
     this.initialLevel,
     this.recommendation,
     this.feedbackLanguage,
+    this.contextUnderstanding = false,
   });
 
   final LanguageLearningStore store;
@@ -38,6 +39,7 @@ class SentencePractice extends StatefulWidget {
   final SentenceLevel? initialLevel;
   final SentencePlan? recommendation;
   final String? feedbackLanguage;
+  final bool contextUnderstanding;
 
   @override
   State<SentencePractice> createState() => _SentencePracticeState();
@@ -60,8 +62,15 @@ class _SentencePracticeState extends State<SentencePractice> {
     });
   }
 
+  bool get _contextMode =>
+      widget.contextUnderstanding ||
+      widget.recommendation?.skill == SentenceSkill.meaningInContext;
+
   Future<void> _generate(SentenceBatchAi ai, {SentencePlan? plan}) async {
     if (_planning) return;
+    if (_contextMode && plan?.skill != SentenceSkill.meaningInContext) {
+      plan = null;
+    }
     final List<SentenceCard> saved;
     if (plan == null) {
       saved = const [];
@@ -70,7 +79,7 @@ class _SentencePracticeState extends State<SentencePractice> {
       List<SentenceCard> reusable = [];
       await act(
         context,
-        () async => reusable = await widget.store.savedForSentencePlan(plan),
+        () async => reusable = await widget.store.savedForSentencePlan(plan!),
       );
       if (!mounted) return;
       setState(() => _planning = false);
@@ -81,6 +90,24 @@ class _SentencePracticeState extends State<SentencePractice> {
       }
     }
     if (!mounted) return;
+    var vocabulary = const <LanguageCard>[];
+    if (_contextMode) {
+      setState(() => _planning = true);
+      var loaded = false;
+      await act(context, () async {
+        vocabulary = await widget.store.cards(language: "en");
+        loaded = true;
+      });
+      if (!mounted) return;
+      setState(() => _planning = false);
+      if (!loaded) return;
+      if (vocabulary.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.languageContextNeedsVocabulary)),
+        );
+        return;
+      }
+    }
     final batch = await showDialog<SentenceBatch>(
       context: context,
       builder: (_) => SentenceBatchDialog(
@@ -89,7 +116,8 @@ class _SentencePracticeState extends State<SentencePractice> {
         topic: _topic,
         style: plan?.style ?? _style,
         level: plan?.level ?? _level,
-        focus: plan?.skill,
+        focus: _contextMode ? SentenceSkill.meaningInContext : plan?.skill,
+        contextVocabulary: vocabulary,
         suggestedCount: plan == null ? null : plan.count - saved.length,
         exclusions: plan?.exclusions ?? const [],
         reused: saved,
@@ -106,7 +134,13 @@ class _SentencePracticeState extends State<SentencePractice> {
     final l10n = context.l10n;
     final batch = _batch;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.languageSentencePractice)),
+      appBar: AppBar(
+        title: Text(
+          _contextMode
+              ? l10n.languageNewContexts
+              : l10n.languageSentencePractice,
+        ),
+      ),
       body: languagePage(
         gap: 0,
         children: [
@@ -222,8 +256,13 @@ class _SentencePracticeState extends State<SentencePractice> {
           child: Text(l10n.languageSentenceGenerate),
         ),
       OutlinedButton(
-        onPressed: () async =>
-            _start(await chooseSavedSentenceBatch(context, widget.store)),
+        onPressed: () async => _start(
+          await chooseSavedSentenceBatch(
+            context,
+            widget.store,
+            contextUnderstanding: _contextMode,
+          ),
+        ),
         child: Text(l10n.languageSentenceSaved),
       ),
     ],
@@ -332,7 +371,7 @@ class _SentenceStepState extends State<_SentenceStep> {
   int? _choice;
   bool _checked = false;
   bool _saving = false;
-  bool _showCheck = false;
+  late bool _showCheck = _card.skill == SentenceSkill.meaningInContext;
   String? _explanation, _error;
   CancelToken? _pending;
 
@@ -342,7 +381,12 @@ class _SentenceStepState extends State<_SentenceStep> {
     super.dispose();
   }
 
-  Future<void> _explain({required bool simpler}) async {
+  bool _explanationSimpler = false;
+
+  Future<void> _explain({
+    required bool simpler,
+    bool regenerate = false,
+  }) async {
     if (_saving || _pending != null) return;
     final token = CancelToken();
     setState(() {
@@ -356,12 +400,15 @@ class _SentenceStepState extends State<_SentenceStep> {
             widget.feedbackLanguage ??
             Localizations.localeOf(context).languageCode,
         simpler: simpler,
+        regenerate: regenerate,
+        originalText: regenerate ? _explanation : null,
         cancel: token,
       );
       if (!mounted || token.isCancelled) return;
       setState(() {
         _help.add(SentenceHelp.explanation);
         _explanation = text;
+        _explanationSimpler = simpler;
       });
     } catch (error) {
       if (!mounted || token.isCancelled) return;
@@ -455,6 +502,15 @@ class _SentenceStepState extends State<_SentenceStep> {
           ),
         ),
         const SizedBox(height: 8),
+        if (_explanation != null)
+          TextButton.icon(
+            onPressed: _pending != null
+                ? null
+                : () =>
+                      _explain(simpler: _explanationSimpler, regenerate: true),
+            icon: const Icon(Icons.refresh),
+            label: Text(l10n.languageRegenerateCompare),
+          ),
         if (widget.batch.generatedBy case final model?) ...[
           Text(sentenceSource(l10n, model)),
           Text(l10n.languageSentenceGeneratedNotice, style: style.bodySmall),
@@ -532,18 +588,22 @@ class _SentenceStepState extends State<_SentenceStep> {
         const SizedBox(height: 16),
         if (_showCheck) ...[
           Text(card.question, style: style.titleMedium),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (var i = 0; i < card.choices.length; i++)
-                ChoiceChip(
-                  label: Text(card.choices[i]),
-                  selected: _choice == i,
-                  onSelected: _checked || _saving
-                      ? null
-                      : (_) => setState(() => _choice = i),
-                ),
-            ],
+          RadioGroup<int>(
+            groupValue: _choice,
+            onChanged: (value) {
+              if (!_checked && !_saving) setState(() => _choice = value);
+            },
+            child: Column(
+              children: [
+                for (var i = 0; i < card.choices.length; i++)
+                  RadioListTile<int>(
+                    value: i,
+                    enabled: !_checked && !_saving,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(card.choices[i]),
+                  ),
+              ],
+            ),
           ),
           if (!_checked)
             Align(
@@ -604,6 +664,7 @@ class _SentenceStepState extends State<_SentenceStep> {
 
 String sentenceSkillLabel(AppLocalizations l10n, SentenceSkill skill) =>
     switch (skill) {
+      SentenceSkill.meaningInContext => l10n.languageNewContexts,
       SentenceSkill.detail => l10n.languageSentenceDetail,
       SentenceSkill.sequence => l10n.languageSentenceSequence,
       SentenceSkill.condition => l10n.languageSentenceCondition,

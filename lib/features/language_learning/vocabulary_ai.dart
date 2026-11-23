@@ -9,6 +9,8 @@ import "../../core/ai/chat_provider.dart";
 import "../../core/ai/prompt_settings.dart";
 import "../../core/database/database.dart";
 import "language_json_request.dart";
+import "generation_provider.dart";
+import "generation_store.dart";
 import "language_store.dart";
 import "sentence_content.dart";
 
@@ -37,7 +39,7 @@ class VocabularyAi {
   final PromptSettings? prompts;
   static const maximumEntries = 20;
   static const _perRequest = 6;
-  static const promptVersion = 5;
+  static const promptVersion = 6;
 
   Future<VocabularyProposal> propose({
     required ProviderConfig config,
@@ -54,13 +56,14 @@ class VocabularyAi {
     if (count < 1 || count > maximumEntries) {
       throw const FormatException("Invalid vocabulary candidate count");
     }
+    config = languageConfiguration(provider, config);
+    final generationIds = <String>[];
+    final generationByForm = <String, String>{};
+    LanguageGenerationRun? generated;
     final mock = provider is MockChatProvider;
     String? groupTitle;
     final entries = <VocabularyEntry>[];
-    final exclusions = existingExpressions
-        .take(30)
-        .map(normalizeLanguageText)
-        .toSet();
+    final exclusions = existingExpressions.map(normalizeLanguageText).toSet();
     if (mock) {
       if (generateGroupTitle) {
         groupTitle = glossLanguage == "zh" ? "旅行英语" : "Travel English";
@@ -84,6 +87,10 @@ class VocabularyAi {
             config: config,
             usageStore: usageStore,
             feature: "language_vocabulary",
+            onCaptured: (run) {
+              generated = run;
+              generationIds.add(run.id);
+            },
             request: AiRequest(
               instructions: LanguagePrompt.vocabulary.instructions(prompts),
               messages: [
@@ -123,6 +130,12 @@ class VocabularyAi {
                   .toList(),
             ),
           );
+          if (generated != null) {
+            for (final entry in batch.entries) {
+              generationByForm[normalizeLanguageText(entry.form)] =
+                  generated!.id;
+            }
+          }
           groupTitle ??= batch.title;
           entries.addAll(batch.entries);
           if (batch.entries.length < size) break;
@@ -141,14 +154,84 @@ class VocabularyAi {
       List.unmodifiable(entries),
       VocabularyProvenance(
         batchId: const Uuid().v4(),
-        model: mock ? "Mock" : config.model,
+        model: mock ? "Mock" : (generated?.model ?? config.model),
         promptVersion: promptVersion,
         generatedAt: DateTime.now(),
         mock: mock,
+        generationIds: generationIds,
+        generationByForm: generationByForm,
       ),
       requested: count,
       groupTitle: groupTitle,
     );
+  }
+
+  Future<({VocabularyEntry entry, LanguageGenerationRun? generation})> revise({
+    required ProviderConfig config,
+    required LanguageCard card,
+    required String glossLanguage,
+    required CancelToken cancel,
+  }) async {
+    final old = {
+      "entries": [
+        {
+          "form": card.item.form,
+          "type": card.item.lexicalType,
+          "meaning": card.sense.meaning,
+          if (card.sense.partOfSpeech != null)
+            "partOfSpeech": card.sense.partOfSpeech,
+          if (card.sense.example != null) "example": card.sense.example,
+          if (card.sense.exampleTranslation != null)
+            "translation": card.sense.exampleTranslation,
+          if (card.sense.application != null)
+            "application": card.sense.application,
+          if (card.sense.applicationAnswer != null)
+            "applicationAnswer": card.sense.applicationAnswer,
+        },
+      ],
+    };
+    LanguageGenerationRun? generation;
+    final entry = await requestLanguageJson(
+      provider: provider,
+      config: config,
+      usageStore: usageStore,
+      feature: "language_vocabulary_revision",
+      request: AiRequest(
+        instructions:
+            "${LanguagePrompt.vocabulary.instructions(prompts)}\n$vocabularyRevisionContract",
+        messages: [
+          AiMessage.user(
+            jsonEncode({
+              "form": card.item.form,
+              "type": card.item.lexicalType,
+              "meaning": card.sense.meaning,
+              "count": 1,
+              "glossLanguage": glossLanguage,
+            }),
+          ),
+        ],
+      ),
+      cancel: cancel,
+      original: GenerationOriginal(
+        output: jsonEncode(old),
+        model: card.sense.aiModel ?? "unknown",
+        kind: "vocabulary",
+        contentId: card.sense.id,
+      ),
+      onCaptured: (run) => generation = run,
+      parse: (data) {
+        final entry = _parse(data, 1).single;
+        if (normalizeLanguageText(entry.form) != card.item.normalizedForm ||
+            entry.type.name != card.item.lexicalType ||
+            entry.meaning.trim() != card.sense.meaning) {
+          throw const FormatException(
+            "A vocabulary revision changed the requested sense",
+          );
+        }
+        return entry;
+      },
+    );
+    return (entry: entry, generation: generation);
   }
 
   static String _parseGroupTitle(Object? data) {
@@ -174,7 +257,7 @@ class VocabularyAi {
       throw const FormatException("Invalid candidate count");
     }
 
-    final seen = <(String, LexicalType, String)>{};
+    final seen = <String>{};
     final entries = <VocabularyEntry>[];
     for (final row in list) {
       if (row is! Map) throw const FormatException("Invalid candidate");
@@ -222,11 +305,7 @@ class VocabularyAi {
       if (partOfSpeech != null && !_latinText(partOfSpeech)) {
         throw const FormatException("Invalid vocabulary part of speech");
       }
-      if (!seen.add((
-        normalizeLanguageText(form),
-        type,
-        normalizeLanguageText(meaning),
-      ))) {
+      if (!seen.add(normalizeLanguageText(form))) {
         continue;
       }
       entries.add(

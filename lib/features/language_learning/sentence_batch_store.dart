@@ -8,6 +8,7 @@ import "../../core/ai/chat_provider.dart" show CancelGuard;
 import "../../core/database/database.dart";
 import "language_store.dart";
 import "sentence_content.dart";
+import "generation_store.dart";
 
 class SentenceBatchProposal {
   const SentenceBatchProposal({
@@ -21,6 +22,7 @@ class SentenceBatchProposal {
     required this.generatedAt,
     required this.cards,
     this.requestedCount,
+    this.generationIds = const [],
   });
 
   final String id, glossLanguage, model;
@@ -31,6 +33,7 @@ class SentenceBatchProposal {
   final DateTime generatedAt;
   final List<SentenceCard> cards;
   final int? requestedCount;
+  final List<String> generationIds;
 }
 
 extension SentenceBatchStore on LanguageLearningStore {
@@ -77,6 +80,10 @@ extension SentenceBatchStore on LanguageLearningStore {
             ),
             mode: InsertMode.insertOrIgnore,
           );
+      for (final run in proposal.generationIds) {
+        await LanguageGenerationStore(db)
+            .link("sentence_batch", proposal.id, run);
+      }
       if (quickLookupId != null) {
         await db
             .into(db.languageQuickLearningLinks)

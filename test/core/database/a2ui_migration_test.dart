@@ -8,7 +8,7 @@ import "package:tixun/features/a2ui/a2ui_store.dart";
 import "../../generated_migrations/schema.dart";
 
 void main() {
-  test("v28 chat upgrades to v29 and can save standard A2UI payloads", () async {
+  test("v28 chat upgrades to current schema and can save standard A2UI payloads", () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final old = await verifier.schemaAt(28);
     old.rawDatabase.execute(
@@ -20,7 +20,7 @@ void main() {
     );
     final db = AppDatabase(old.newConnection());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 29);
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
     expect((await db.messages("s")).single.content, "Legacy prose");
     expect(await db.select(db.chatA2uiSurfaces).get(), isEmpty);
     await db

@@ -74,7 +74,7 @@ Future<bool> _available(
 }) async {
   final content = forms
       ? "JOIN learning_lexical_senses s ON s.item_id = i.id JOIN learning_lexical_forms f ON f.sense_id = s.id"
-      : "JOIN learning_lexical_senses s ON s.item_id = i.id AND s.application IS NOT NULL AND s.application_answer IS NOT NULL";
+      : "JOIN learning_lexical_senses s ON s.item_id = i.id";
   return (await db
           .customSelect(
             "SELECT 1 FROM learning_lexical_items i $content WHERE i.language = ? LIMIT 1",

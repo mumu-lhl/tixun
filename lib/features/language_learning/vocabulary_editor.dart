@@ -241,16 +241,6 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
                 ),
                 field(_example, l10n.languageExample),
                 field(_translation, l10n.languageTranslation),
-                field(_application, l10n.languageApplication, (value) {
-                  final sentence = value?.trim() ?? "";
-                  final answer = _answer.text.trim();
-                  if (sentence.isEmpty && answer.isEmpty) return null;
-                  return answer.isNotEmpty &&
-                          "___".allMatches(sentence).length == 1
-                      ? null
-                      : l10n.languageBlankRequired;
-                }),
-                field(_answer, l10n.languageApplicationAnswer),
               ],
             ),
           ),

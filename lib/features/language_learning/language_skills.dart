@@ -29,6 +29,7 @@ enum LanguageSkill {
 }
 
 LanguageSkill sentenceAbility(SentenceSkill skill) => switch (skill) {
+  SentenceSkill.meaningInContext => LanguageSkill.wordApplication,
   SentenceSkill.sequence => LanguageSkill.sequence,
   SentenceSkill.condition => LanguageSkill.condition,
   SentenceSkill.reference => LanguageSkill.reference,

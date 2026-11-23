@@ -26,13 +26,12 @@ import "sentence_content.dart";
 import "sentence_explanation.dart";
 import "sentence_practice.dart";
 import "study_settings_dialog.dart";
-import "vocabulary_ai.dart";
 import "vocabulary_batch.dart";
-import "vocabulary_editor.dart";
-import "vocabulary_proposal_dialog.dart";
+import "vocabulary_groups_screen.dart";
 import "writing_lab.dart";
 import "writing_task_ai.dart";
 import "written_exam_lab.dart";
+import "generation_ui.dart";
 
 const _language = "en";
 
@@ -54,8 +53,6 @@ class _LanguageLearningScreenState
     return value == LanguageFeedbackLanguage.app ? null : value.name;
   }
 
-  Stream<List<LearningVocabularyGroup>> _loadGroups() =>
-      _store.groups(_language);
   Stream<List<LearningEvidenceData>> _loadEvidence() =>
       _store.recentEvidence(_language);
   late Stream<int> _due = _store.dueCount(_language);
@@ -88,12 +85,17 @@ class _LanguageLearningScreenState
     if (mounted) _refreshDue();
   }
 
-  void _practiceSentences([SentencePlan? plan]) {
+  void _practiceContexts() => _openSentences(contextUnderstanding: true);
+
+  void _practiceSentences([SentencePlan? plan]) => _openSentences(plan: plan);
+
+  void _openSentences({SentencePlan? plan, bool contextUnderstanding = false}) {
     final controller = ref.read(appControllerProvider);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SentencePractice(
           store: _store,
+          contextUnderstanding: contextUnderstanding,
           recommendation: plan,
           initialLevel: switch (_preferences.languageStudy.level) {
             EnglishStudyLevel.mixed => null,
@@ -102,14 +104,14 @@ class _LanguageLearningScreenState
           },
           feedbackLanguage: _feedbackLanguage,
           batchAi: SentenceBatchAi(
-            provider: controller.provider,
+            provider: languageGenerationProvider(context, controller),
             config: controller.config,
             usageStore: AiUsageStore(controller.db),
             prompts: controller.prompts,
           ),
           explanation: SentenceExplanation(
             store: _store,
-            provider: controller.provider,
+            provider: languageGenerationProvider(context, controller),
             config: controller.config,
             usageStore: AiUsageStore(controller.db),
             prompts: controller.prompts,
@@ -125,7 +127,7 @@ class _LanguageLearningScreenState
       MaterialPageRoute<void>(
         builder: (_) => ExamLab(
           ai: ExamAi(
-            provider: controller.provider,
+            provider: languageGenerationProvider(context, controller),
             config: controller.config,
             store: _store,
             usageStore: AiUsageStore(controller.db),
@@ -147,33 +149,13 @@ class _LanguageLearningScreenState
           glossLanguage: _feedbackLanguage,
           ai: WritingTaskAi(
             store: _store,
-            provider: controller.provider,
+            provider: languageGenerationProvider(context, controller),
             config: controller.config,
             usageStore: AiUsageStore(controller.db),
             prompts: controller.prompts,
           ),
         ),
       ),
-    );
-  }
-
-  Future<void> _generate(LearningVocabularyGroup? group) {
-    final controller = ref.read(appControllerProvider);
-    return showVocabularyProposal(
-      context,
-      store: _store,
-      ai: VocabularyAi(
-        controller.provider,
-        usageStore: AiUsageStore(controller.db),
-        prompts: controller.prompts,
-      ),
-      config: controller.config,
-      group: group,
-      initialLevel:
-          _preferences.languageStudy.level == EnglishStudyLevel.intermediate
-          ? VocabularyLevel.intermediate
-          : VocabularyLevel.beginner,
-      feedbackLanguage: _feedbackLanguage,
     );
   }
 
@@ -225,14 +207,14 @@ class _LanguageLearningScreenState
       MaterialPageRoute<void>(
         builder: (_) => WrittenExamLab(
           ai: ExamAi(
-            provider: controller.provider,
+            provider: languageGenerationProvider(context, controller),
             config: controller.config,
             store: _store,
             usageStore: usage,
             prompts: controller.prompts,
           ),
           writing: WritingTaskAi(
-            provider: controller.provider,
+            provider: languageGenerationProvider(context, controller),
             config: controller.config,
             store: _store,
             usageStore: usage,
@@ -257,6 +239,17 @@ class _LanguageLearningScreenState
         ),
         title: Text(l10n.languageLearning),
         actions: [
+          IconButton(
+            tooltip: l10n.languageGenerationHistory,
+            icon: const Icon(Icons.history),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => LanguageGenerationHistoryScreen(
+                  db: ref.read(appControllerProvider).db,
+                ),
+              ),
+            ),
+          ),
           IconButton(
             onPressed: () => editLanguageStudy(context, _preferences),
             icon: const Icon(Icons.tune),
@@ -322,11 +315,7 @@ class _LanguageLearningScreenState
                                     Size(0, 52),
                                   ),
                                 ),
-                                onPressed: () => _openBatch(
-                                  context,
-                                  _store,
-                                  VocabularyMode.context,
-                                ),
+                                onPressed: _practiceContexts,
                                 child: Text(l10n.languageNewContexts),
                               ),
                               OutlinedButton(
@@ -394,45 +383,17 @@ class _LanguageLearningScreenState
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Text(l10n.languageGroups, style: theme.titleLarge),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 10,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            addVocabularyEntry(context, _store, _language),
-                        icon: const Icon(Icons.add),
-                        label: Text(l10n.languageAddEntry),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.style_outlined),
+                      title: Text(l10n.languageGroups),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const VocabularyGroupsScreen(),
+                        ),
                       ),
-                      OutlinedButton.icon(
-                        onPressed: () => _generate(null),
-                        icon: const Icon(Icons.auto_awesome_outlined),
-                        label: Text(l10n.languageAiGenerate),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  LanguageDataBuilder<List<LearningVocabularyGroup>>(
-                    load: _loadGroups,
-                    builder: (context, groups) {
-                      if (groups.isEmpty) return Text(l10n.languageNoGroups);
-                      return Column(
-                        spacing: 12,
-                        children: [
-                          for (final group in groups)
-                            Card(
-                              key: ValueKey(group.id),
-                              child: _Group(
-                                group: group,
-                                store: _store,
-                                onGenerate: () => _generate(group),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(l10n.languageEvidence, style: theme.titleLarge),
@@ -468,108 +429,6 @@ class _LanguageLearningScreenState
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Group extends StatelessWidget {
-  const _Group({
-    required this.group,
-    required this.store,
-    required this.onGenerate,
-  });
-
-  final LearningVocabularyGroup group;
-  final LanguageLearningStore store;
-  final VoidCallback onGenerate;
-
-  Future<void> _delete(BuildContext context) async {
-    final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.languageDeleteGroup),
-        content: Text(l10n.languageDeleteGroupConfirm(group.title)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
-    if (context.mounted && confirmed == true) {
-      await act(context, () => store.deleteGroup(group.id));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return ExpansionTile(
-      shape: const Border(),
-      collapsedShape: const Border(),
-      title: Text(group.title),
-      subtitle: Text(
-        vocabularyGroupLabel(
-          l10n,
-          VocabularyGroupType.values.byName(group.groupType),
-        ),
-      ),
-      expandedCrossAxisAlignment: CrossAxisAlignment.start,
-      childrenPadding: const EdgeInsets.all(12),
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            OutlinedButton(
-              onPressed: () =>
-                  addVocabularyEntry(context, store, _language, group: group),
-              child: Text(l10n.languageAddEntry),
-            ),
-            OutlinedButton(
-              onPressed: onGenerate,
-              child: Text(l10n.languageAiExpand),
-            ),
-            OutlinedButton(
-              onPressed: () => _openBatch(
-                context,
-                store,
-                VocabularyMode.study,
-                group: group,
-              ),
-              child: Text(l10n.languageStudyGroup),
-            ),
-            OutlinedButton(
-              onPressed: () => _openBatch(
-                context,
-                store,
-                VocabularyMode.recall,
-                group: group,
-              ),
-              child: Text(l10n.languagePracticeGroup),
-            ),
-            OutlinedButton(
-              onPressed: () => _openBatch(
-                context,
-                store,
-                VocabularyMode.context,
-                group: group,
-              ),
-              child: Text(l10n.languageNewContexts),
-            ),
-            TextButton(
-              onPressed: () => _delete(context),
-              child: Text(l10n.languageDeleteGroup),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

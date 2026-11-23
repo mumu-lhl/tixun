@@ -4,6 +4,7 @@ import "package:uuid/uuid.dart";
 import "../../core/database/database.dart";
 import "../../core/database/database_notifier.dart";
 import "lexical_form.dart";
+import "generation_store.dart";
 
 const languageBatchSize = 20;
 String normalizeLanguageText(String value) =>
@@ -48,9 +49,13 @@ class VocabularyProvenance {
     required this.promptVersion,
     required this.generatedAt,
     required this.mock,
+    this.generationIds = const [],
+    this.generationByForm = const {},
   });
 
   final String batchId, model;
+  final List<String> generationIds;
+  final Map<String, String> generationByForm;
   final int promptVersion;
   final DateTime generatedAt;
   final bool mock;
@@ -67,6 +72,61 @@ class LanguageLearningStore extends DatabaseNotifier {
   LanguageLearningStore(this.db);
   final AppDatabase db;
   static const _uuid = Uuid();
+
+  Future<LearningVocabularyGroup?> groupNamed(
+    String language,
+    String title,
+  ) async {
+    final normalized = normalizeLanguageText(title);
+    final rows = await (db.select(
+      db.learningVocabularyGroups,
+    )..where((g) => g.language.equals(language))).get();
+    return rows
+        .where((g) => normalizeLanguageText(g.title) == normalized)
+        .firstOrNull;
+  }
+
+  Future<String> createGroup(
+    String language,
+    String title,
+    VocabularyGroupType type,
+  ) => runOperation(() async {
+    if (title.trim().isEmpty) throw ArgumentError("A group name is required");
+    final id = _uuid.v4();
+    await db.transaction(() async {
+      if (await groupNamed(language, title) != null) {
+        throw ArgumentError("A group with this name already exists");
+      }
+      await db
+          .into(db.learningVocabularyGroups)
+          .insert(
+            LearningVocabularyGroupsCompanion.insert(
+              id: id,
+              language: language,
+              title: title.trim(),
+              groupType: Value(type.name),
+              createdAt: DateTime.now(),
+            ),
+          );
+    });
+    changed();
+    return id;
+  });
+
+  Future<List<String>> groupExpressions(String groupId) async {
+    final rows = await db
+        .customSelect(
+          "SELECT DISTINCT i.form FROM learning_group_items g JOIN learning_lexical_senses s ON s.id = g.sense_id JOIN learning_lexical_items i ON i.id = s.item_id WHERE g.group_id = ?",
+          variables: [Variable(groupId)],
+          readsFrom: {
+            db.learningGroupItems,
+            db.learningLexicalSenses,
+            db.learningLexicalItems,
+          },
+        )
+        .get();
+    return rows.map((r) => r.read<String>("form")).toList();
+  }
 
   Future<void> saveEntries({
     required String language,
@@ -87,12 +147,7 @@ class LanguageLearningStore extends DatabaseNotifier {
       throw ArgumentError("A group title, expression and meaning are required");
     }
     await db.transaction(() async {
-      final existing =
-          await (db.select(db.learningVocabularyGroups)..where(
-                (row) =>
-                    row.language.equals(language) & row.title.equals(title),
-              ))
-              .getSingleOrNull();
+      final existing = await groupNamed(language, title);
       final groupId = existing?.id ?? _uuid.v4();
       if (existing == null) {
         await db
@@ -130,6 +185,52 @@ class LanguageLearningStore extends DatabaseNotifier {
     });
     changed();
   });
+
+  Future<void> reviseVocabulary(
+    LanguageCard card,
+    VocabularyEntry entry,
+    LanguageGenerationRun run,
+  ) => runOperation(
+    () => db.transaction(() async {
+      if (normalizeLanguageText(entry.form) != card.item.normalizedForm ||
+          entry.type.name != card.item.lexicalType ||
+          entry.meaning.trim() != card.sense.meaning) {
+        throw ArgumentError("A revision must preserve the lexical sense");
+      }
+      final current = await (db.select(
+        db.learningLexicalSenses,
+      )..where((s) => s.id.equals(card.sense.id))).getSingle();
+      if (current.example != card.sense.example ||
+          current.exampleTranslation != card.sense.exampleTranslation ||
+          current.application != card.sense.application) {
+        throw StateError("Vocabulary changed while generating");
+      }
+      if (run.provider == null) {
+        await LanguageGenerationStore(db)
+            .link("vocabulary", card.sense.id, run.id);
+        return;
+      }
+      await (db.update(
+        db.learningLexicalSenses,
+      )..where((s) => s.id.equals(card.sense.id))).write(
+        LearningLexicalSensesCompanion(
+          partOfSpeech: Value(entry.partOfSpeech),
+          example: Value(entry.example),
+          exampleTranslation: Value(entry.translation),
+          application: Value(entry.application),
+          applicationAnswer: Value(entry.applicationAnswer),
+          source: const Value("ai"),
+          aiBatchId: Value(run.id),
+          aiModel: Value(run.model),
+          aiPromptVersion: const Value(null),
+          aiGeneratedAt: Value(run.createdAt),
+        ),
+      );
+      await LanguageGenerationStore(db)
+          .link("vocabulary", card.sense.id, run.id);
+      changed();
+    }),
+  );
 
   Future<String> _saveEntry(
     String language,
@@ -255,10 +356,12 @@ class LanguageLearningStore extends DatabaseNotifier {
     for (final form in entry.forms) {
       await insertLexicalForm(db, senseId, entry.form, form);
     }
+    await LanguageGenerationStore(db)
+        .link("vocabulary", senseId, provenance?.generationByForm[normalized]);
     return senseId;
   }
 
-  /// Exact matches are scoped to the language, expression type and sense.
+  /// Matches forms across senses so rephrased definitions are still flagged.
   Future<Map<VocabularyEntry, List<String>>> existingGroupsForEntries(
     String language,
     List<VocabularyEntry> entries,
@@ -297,17 +400,14 @@ class LanguageLearningStore extends DatabaseNotifier {
                 item.normalizedForm.isIn(entries.map((entry) => entry._key.$1)),
           )
           ..orderBy([OrderingTerm.asc(group.title)]);
-    final matches = <(String, String, String), List<String>>{};
+    final matches = <(String, String), List<String>>{};
     for (final row in await query.get()) {
-      final key = (
-        row.read(item.normalizedForm)!,
-        row.read(item.lexicalType)!,
-        row.read(sense.meaning)!,
-      );
+      final key = (row.read(item.normalizedForm)!, row.read(item.lexicalType)!);
       (matches[key] ??= []).add(row.read(group.title)!);
     }
     return {
-      for (final entry in entries) entry: matches[entry._key] ?? const [],
+      for (final entry in entries)
+        entry: matches[(entry._key.$1, entry._key.$2)] ?? const [],
     };
   }
 
@@ -484,6 +584,9 @@ class LanguageLearningStore extends DatabaseNotifier {
   });
 
   Future<bool> _insertEvidence(LearningEvidenceCompanion evidence) async {
+    final generation = await LanguageGenerationStore(db)
+        .currentContentRun("vocabulary", evidence.senseId.value);
+    evidence = evidence.copyWith(generationRunId: Value(generation?.id));
     final rows = await db
         .into(db.learningEvidence)
         .insertReturningOrNull(evidence, mode: InsertMode.insertOrIgnore);

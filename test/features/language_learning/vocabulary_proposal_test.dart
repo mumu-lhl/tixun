@@ -26,6 +26,7 @@ class _VocabularyProvider implements ChatProvider {
   _VocabularyProvider({required this.completed});
 
   final bool completed;
+  bool duplicate = false;
   int requests = 0;
   late Map parameters;
 
@@ -49,7 +50,7 @@ class _VocabularyProvider implements ChatProvider {
           '"translation":"We board at platform two.",'
           '"application":"Please wait on the ___ until the doors open.",'
           '"applicationAnswer":"platform"},'
-          '{"form":"ticket","type":"word","meaning":"a pass for a journey",'
+          '{"form":"${duplicate ? "platform" : "ticket"}","type":"word","meaning":"a pass for a journey",'
           '"partOfSpeech":"n.","example":"I bought a ticket at the station.",'
           '"translation":"I paid for my trip at the station."}]}',
     );
@@ -71,10 +72,7 @@ class _ChunkProvider implements ChatProvider {
         final count = data["count"] as int;
         counts.add(count);
         expect(request.tools, isEmpty);
-        expect(
-          request.instructions,
-          contains("usual collocations and register"),
-        );
+        expect(request.instructions, contains("Do not create cloze exercises"));
         yield AiChunk(
           completed: !interruptSecond || counts.length == 1,
           text: jsonEncode({
@@ -128,8 +126,12 @@ Future<void> _openProposal(
   if (title != null) {
     await tester.enterText(find.byType(TextFormField), title);
   }
+  await tester.tap(find.byType(SwitchListTile));
+  await tester.pumpAndSettle();
   await tester.runAsync(() async {
-    await tester.tap(find.widgetWithText(FilledButton, "Generate vocabulary"));
+    await tester.tap(
+      find.widgetWithText(FilledButton, "Add vocabulary with AI"),
+    );
     await tester.pump();
     // Let the native SQLite and stream work finish on the real event loop.
     await store.existingGroupsForEntries("en", const [
@@ -151,6 +153,48 @@ void main() {
   tearDown(() async {
     store.dispose();
     await db.close();
+  });
+
+  test("expansion filters the full group and paraphrased duplicates within one response", () async {
+    await store.saveEntries(
+      language: "en",
+      groupTitle: "Large group",
+      groupType: VocabularyGroupType.topic,
+      entries: [
+        for (var i = 0; i < 35; i++)
+          VocabularyEntry(form: "word$i", meaning: "Meaning $i"),
+        const VocabularyEntry(form: "platform", meaning: "A place to board"),
+      ],
+    );
+    final group = (await store.groupNamed("en", "Large group"))!;
+    final existing = await store.groupExpressions(group.id);
+    expect(existing, hasLength(36));
+    Future<VocabularyProposal> propose(
+      _VocabularyProvider provider,
+      List<String> exclusions,
+    ) => VocabularyAi(provider).propose(
+      config: _config,
+      topic: "Travel",
+      groupType: VocabularyGroupType.topic,
+      level: VocabularyLevel.beginner,
+      glossLanguage: "en",
+      existingExpressions: exclusions,
+      cancel: CancelToken(),
+    );
+    final filtered = await propose(
+      _VocabularyProvider(completed: true),
+      existing,
+    );
+    expect(filtered.entries.map((e) => e.form), ["ticket"]);
+    final repeated = await propose(
+      _VocabularyProvider(completed: true)..duplicate = true,
+      [],
+    );
+    expect(repeated.entries, hasLength(1));
+    final crossGroup = await store.existingGroupsForEntries("en", [
+      const VocabularyEntry(form: "platform", meaning: "A paraphrased meaning"),
+    ]);
+    expect(crossGroup.values.single, ["Large group"]);
   });
 
   test("large vocabulary proposals split requests and preview only complete chunks", () async {

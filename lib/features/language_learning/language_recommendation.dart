@@ -73,7 +73,7 @@ Future<void> openLanguageRecommendation(
     final mode = switch (skill) {
       LanguageSkill.wordRecognition => VocabularyMode.recognition,
       LanguageSkill.wordRecall => VocabularyMode.recall,
-      _ => VocabularyMode.context,
+      _ => VocabularyMode.recall,
     };
     await Navigator.of(context).push(
       MaterialPageRoute<void>(

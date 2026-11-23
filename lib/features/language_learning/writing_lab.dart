@@ -81,6 +81,23 @@ class _WritingLabState extends State<WritingLab> {
     }
   }
 
+  Future<void> _regenerate(LearningWritingTaskRow row) async {
+    if (_pending != null || _choosing) return;
+    final cancel = CancelToken();
+    setState(() => _pending = cancel);
+    await act(context, () async {
+      final task = await widget.ai.generate(
+        kind: WritingTaskKind.values.byName(row.kind),
+        level: SentenceLevel.values.byName(row.level),
+        topic: row.topic,
+        cancel: cancel,
+        replacing: row,
+      );
+      if (mounted && !cancel.isCancelled) await _open(task);
+    });
+    if (mounted) setState(() => _pending = null);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -119,7 +136,11 @@ class _WritingLabState extends State<WritingLab> {
                             ? l10n.languageExamMock
                             : l10n.languageAiSource(row.model),
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: IconButton(
+                        tooltip: l10n.languageRegenerateCompare,
+                        onPressed: busy ? null : () => _regenerate(row),
+                        icon: const Icon(Icons.refresh),
+                      ),
                       onTap: busy ? null : () => _open(openWritingTask(row)),
                     ),
                 ],

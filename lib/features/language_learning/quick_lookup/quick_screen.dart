@@ -1,3 +1,5 @@
+import "../generation_ui.dart";
+
 import "dart:async";
 
 import "package:dio/dio.dart";
@@ -212,14 +214,41 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
       _error = null;
       _failedQuery = null;
     });
-    final provider = _controller.provider;
     try {
-      final row = await QuickLookupAi(
-        _store,
-        provider,
-        _controller.config,
-        AiUsageStore(_controller.db),
-      ).lookup(query, cancel, regenerate: regenerate);
+      if (regenerate) {
+        final actions = await _store.quickActions();
+        final current = actions
+            .where((a) => a.id == query.actionId)
+            .firstOrNull;
+        if (!mounted || cancel.isCancelled) return;
+        if (current != null) {
+          query = QuickQuery(
+            actionId: current.id,
+            actionName: current.name,
+            actionRevision: current.revision,
+            prompt: current.prompt,
+            input: query.input,
+            sourceLanguage: query.sourceLanguage,
+            targetLanguage: query.targetLanguage,
+            glossLanguage: query.glossLanguage,
+            level: query.level,
+            detailed: query.detailed,
+          );
+        }
+      }
+      final provider = languageGenerationProvider(context, _controller);
+      final row =
+          await QuickLookupAi(
+            _store,
+            provider,
+            _controller.config,
+            AiUsageStore(_controller.db),
+          ).lookup(
+            query,
+            cancel,
+            regenerate: regenerate,
+            original: regenerate ? _result : null,
+          );
       if (!mounted) return;
       setState(() => _result = row);
       await _refreshHistory();

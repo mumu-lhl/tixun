@@ -3,6 +3,7 @@ import "dart:convert";
 import "package:crypto/crypto.dart";
 import "package:dio/dio.dart";
 import "package:drift/drift.dart";
+import "package:uuid/uuid.dart";
 
 import "../../core/ai/chat_provider.dart" show CancelGuard;
 
@@ -51,30 +52,33 @@ extension WritingLearningStore on LanguageLearningStore {
   Future<void> saveWritingDraft(String text, {required String taskId}) =>
       runOperation(() => _saveWritingDraft(text, taskId));
 
-  Future<String> snapshotWriting(String text, {required String taskId}) =>
-      runOperation(() async {
-        if (text.trim().isEmpty || text.length > writingMaxLength) {
-          throw const FormatException("Invalid draft length");
-        }
-        final id = sha256
-            .convert(utf8.encode(jsonEncode([taskId, text])))
-            .toString();
-        await db.transaction(() async {
-          await _saveWritingDraft(text, taskId);
-          await db
-              .into(db.learningWritingVersions)
-              .insert(
-                LearningWritingVersionsCompanion.insert(
-                  id: id,
-                  taskId: taskId,
-                  content: text,
-                  createdAt: DateTime.now(),
-                ),
-                mode: InsertMode.insertOrIgnore,
-              );
-        });
-        return id;
-      });
+  Future<String> snapshotWriting(
+    String text, {
+    required String taskId,
+    bool forceNew = false,
+  }) => runOperation(() async {
+    if (text.trim().isEmpty || text.length > writingMaxLength) {
+      throw const FormatException("Invalid draft length");
+    }
+    final id = forceNew
+        ? const Uuid().v4()
+        : sha256.convert(utf8.encode(jsonEncode([taskId, text]))).toString();
+    await db.transaction(() async {
+      await _saveWritingDraft(text, taskId);
+      await db
+          .into(db.learningWritingVersions)
+          .insert(
+            LearningWritingVersionsCompanion.insert(
+              id: id,
+              taskId: taskId,
+              content: text,
+              createdAt: DateTime.now(),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+    });
+    return id;
+  });
 
   Stream<List<WritingHistory>> writingHistory({required String taskId}) {
     final versions = db.learningWritingVersions;

@@ -88,7 +88,7 @@ class _WritingPracticeState extends State<WritingPractice> {
     if (mounted) setState(() => _saving = false);
   }
 
-  Future<void> _evaluate() async {
+  Future<void> _evaluate({bool regenerate = false}) async {
     final draft = _controller.text;
     if (_busy || draft.trim().isEmpty || draft.length > writingMaxLength) {
       return;
@@ -105,6 +105,7 @@ class _WritingPracticeState extends State<WritingPractice> {
         text: draft,
         glossLanguage: gloss,
         cancel: cancel,
+        regenerate: regenerate,
       );
     } catch (error) {
       if (mounted && !cancel.isCancelled) {
@@ -217,6 +218,13 @@ class _WritingPracticeState extends State<WritingPractice> {
                                 ? null
                                 : _evaluate,
                             child: Text(l10n.languageWritingEvaluate),
+                          ),
+                          TextButton.icon(
+                            onPressed: _busy || _controller.text.trim().isEmpty
+                                ? null
+                                : () => _evaluate(regenerate: true),
+                            icon: const Icon(Icons.refresh),
+                            label: Text(l10n.languageRegenerateCompare),
                           ),
                           if (_pending case final cancel?)
                             TextButton(

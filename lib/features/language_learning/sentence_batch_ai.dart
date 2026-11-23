@@ -12,17 +12,19 @@ import "language_json_request.dart";
 import "language_store.dart";
 import "sentence_batch_store.dart";
 import "sentence_content.dart";
+import "generation_provider.dart";
 
 class SentenceBatchAi {
   const SentenceBatchAi({
     required this.provider,
-    required this.config,
+    required this._config,
     this.usageStore,
     this.prompts,
   });
 
   final ChatProvider provider;
-  final ProviderConfig config;
+  final ProviderConfig _config;
+  ProviderConfig get config => languageConfiguration(provider, _config);
   final AiUsageStore? usageStore;
   final PromptSettings? prompts;
   static const _promptVersion = 2;
@@ -38,13 +40,26 @@ class SentenceBatchAi {
     required CancelToken cancel,
     SentenceSkill? focus,
     Iterable<String> exclude = const [],
+    List<LanguageCard> vocabulary = const [],
   }) async {
     if (count < 1 || count > maximumCount) {
       throw const FormatException("Invalid sentence batch count");
     }
+    final contextMode = focus == SentenceSkill.meaningInContext;
+    if (contextMode && vocabulary.isEmpty) {
+      throw const FormatException("Context understanding requires vocabulary");
+    }
     cancel.checkCancelled();
     final id = const Uuid().v4();
-    final excluded = exclude.take(40).map(normalizeLanguageText).toSet();
+    final generationIds = <String>[];
+    final generatedModels = <String>{};
+    final excluded = {
+      ...exclude.take(40).map(normalizeLanguageText),
+      if (contextMode)
+        ...vocabulary
+            .map((c) => normalizeLanguageText(c.sense.example ?? ""))
+            .where((s) => s.isNotEmpty),
+    };
     final cards = <SentenceCard>[];
     if (provider is MockChatProvider) {
       throw const FormatException(
@@ -58,13 +73,28 @@ class SentenceBatchAi {
           provider: provider,
           config: config,
           usageStore: usageStore,
-          feature: "language_sentence_batch",
+          feature: contextMode
+              ? "language_context_understanding"
+              : "language_sentence_batch",
+          onCaptured: (run) {
+            generationIds.add(run.id);
+            generatedModels.add(run.model);
+          },
           request: AiRequest(
-            instructions: LanguagePrompt.sentenceBatch.instructions(prompts),
+            instructions:
+                (contextMode
+                        ? LanguagePrompt.contextUnderstanding
+                        : LanguagePrompt.sentenceBatch)
+                    .instructions(prompts),
             messages: [
               AiMessage.user(
                 jsonEncode({
                   "topic": topic.name,
+                  if (contextMode)
+                    "vocabulary": [
+                      for (final c in vocabulary)
+                        {"form": c.item.form, "meaning": c.sense.meaning},
+                    ],
                   "style": style.name,
                   "level": level?.name ?? "mixed",
                   "count": requested,
@@ -84,11 +114,55 @@ class SentenceBatchAi {
           ),
           cancel: cancel,
           maxChars: 13000,
-          parse: (value) =>
-              _parse(value, id, requested, cards.length, level, focus, {
+          parse: (value) {
+            final batch = _parse(
+              value,
+              id,
+              requested,
+              cards.length,
+              level,
+              focus,
+              {
                 ...excluded,
                 for (final card in cards) normalizeLanguageText(card.text),
-              }),
+              },
+            );
+            String words(String value) => RegExp(
+              r"[\p{L}\p{N}]+",
+              unicode: true,
+            ).allMatches(value.toLowerCase()).map((m) => m.group(0)).join(" ");
+            if (contextMode &&
+                batch.any(
+                  (c) => vocabulary.any(
+                    (v) =>
+                        v.sense.example != null &&
+                        words(c.text) == words(v.sense.example!),
+                  ),
+                )) {
+              throw const FormatException(
+                "A new context must differ from saved examples",
+              );
+            }
+            if (contextMode &&
+                batch.any(
+                  (c) =>
+                      c.choices.length < 3 ||
+                      c.skill != SentenceSkill.meaningInContext ||
+                      c.text.contains("_") ||
+                      c.question.contains("_") ||
+                      !vocabulary.any(
+                        (v) => RegExp(
+                          "(?<![A-Za-z0-9_])${RegExp.escape(v.item.form)}(?![A-Za-z0-9_])",
+                          caseSensitive: false,
+                        ).hasMatch(c.text),
+                      ),
+                )) {
+              throw const FormatException(
+                "Expected a new-context interpretation task, not cloze",
+              );
+            }
+            return batch;
+          },
         );
         cards.addAll(batch);
       } catch (_) {
@@ -103,10 +177,13 @@ class SentenceBatchAi {
     }
     return SentenceBatchProposal(
       id: id,
+      generationIds: generationIds,
       topic: topic,
       style: style,
       glossLanguage: glossLanguage,
-      model: config.model,
+      model: generatedModels.isEmpty
+          ? config.model
+          : generatedModels.join(" / "),
       promptVersion: _promptVersion,
       isMock: false,
       generatedAt: DateTime.now(),
@@ -123,7 +200,7 @@ class SentenceBatchAi {
     provider: provider,
     config: config,
     usageStore: usageStore,
-    feature: "language_sentence_batch",
+    feature: "language_sentence_check",
     cancel: cancel,
     maxChars: 4000,
     request: AiRequest(

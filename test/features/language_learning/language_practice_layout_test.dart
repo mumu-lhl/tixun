@@ -1,5 +1,7 @@
 import "../../support/exam_bundled.dart";
 
+import "package:flutter/rendering.dart";
+
 import "package:tixun/features/language_learning/exam_store.dart";
 import "package:tixun/app/theme.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -144,10 +146,21 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
         );
       }
       expect(find.text("Translation of station"), findsNothing);
+      final navigationY = tester
+          .getCenter(find.byKey(const Key("flashcard-navigation")))
+          .dy;
       await tap(find.text("Show translation"));
       expect(find.text("Translation of station"), findsOneWidget);
+      expect(
+        tester.getCenter(find.byKey(const Key("flashcard-navigation"))).dy,
+        navigationY,
+      );
 
       await tap(find.byTooltip("Next"));
+      expect(
+        tester.getCenter(find.byKey(const Key("flashcard-navigation"))).dy,
+        navigationY,
+      );
       expect(find.text("2 / 2"), findsOneWidget);
       expect(find.text("Example with ticket"), findsOneWidget);
       expect(find.text("Translation of ticket"), findsNothing);
@@ -239,10 +252,31 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
             config: config,
           ),
         ),
-        "vocabulary": VocabularyBatch(
+        "vocabulary": SentencePractice(
           store: store,
-          language: "en",
-          mode: VocabularyMode.context,
+          contextUnderstanding: true,
+          initialBatch: SentenceBatch([
+            const SentenceCard(
+              id: "context-station",
+              text: "Before boarding, Maya asked the station staff which platform to use.",
+              translation: "上车前，玛雅向车站工作人员询问站台。",
+              hint: "Notice boarding and platform.",
+              question: "What does station refer to here?",
+              choices: [
+                "A place where trains stop.",
+                "A radio company.",
+                "A person's social position.",
+              ],
+              correctIndex: 0,
+              skill: SentenceSkill.meaningInContext,
+              level: SentenceLevel.beginner,
+            ),
+          ]),
+          explanation: SentenceExplanation(
+            store: store,
+            provider: provider,
+            config: config,
+          ),
         ),
         "recall": VocabularyBatch(
           store: store,
@@ -290,11 +324,29 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
           expect(find.text(l10n.languageRemembered), findsOneWidget);
         }
         if (entry.key == "vocabulary") {
-          await tester.enterText(find.byType(TextField).first, "station");
-          await tester.ensureVisible(find.text(l10n.languageCheck));
-          await tester.tap(find.text(l10n.languageCheck));
+          expect(find.byType(TextField), findsNothing);
+          final option = tester.renderObject<RenderParagraph>(
+            find.text("A place where trains stop."),
+          );
+          expect(option.didExceedMaxLines, isFalse);
+          final boxes = option.getBoxesForSelection(
+            const TextSelection(baseOffset: 0, extentOffset: 26),
+          );
+          expect(
+            boxes.every((box) => box.right <= option.size.width + 1),
+            isTrue,
+          );
+          await tester.ensureVisible(find.text("A place where trains stop."));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text("A place where trains stop."));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(
+            find.text(l10n.languageSentenceCheckAnswer),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(l10n.languageSentenceCheckAnswer));
           await flush(tester);
-          expect(find.text(l10n.languageCorrect), findsOneWidget);
+          expect(find.text(l10n.languageSentenceCorrect), findsOneWidget);
         }
         expect(
           tester.takeException(),

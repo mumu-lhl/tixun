@@ -46,7 +46,7 @@ class $ChatSessionsTable extends ChatSessions
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('guided'),
+    defaultValue: const Constant("guided"),
   );
   static const VerificationMeta _stageMeta = const VerificationMeta('stage');
   @override
@@ -56,7 +56,7 @@ class $ChatSessionsTable extends ChatSessions
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('diagnosing'),
+    defaultValue: const Constant("diagnosing"),
   );
   static const VerificationMeta _toolsEnabledMeta = const VerificationMeta(
     'toolsEnabled',
@@ -81,7 +81,7 @@ class $ChatSessionsTable extends ChatSessions
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _contextSummaryMeta = const VerificationMeta(
     'contextSummary',
@@ -780,7 +780,7 @@ class $ChatMessagesTable extends ChatMessages
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('complete'),
+    defaultValue: const Constant("complete"),
   );
   static const VerificationMeta _errorMeta = const VerificationMeta('error');
   @override
@@ -2237,7 +2237,7 @@ class $ProviderConfigsTable extends ProviderConfigs
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('deepseek'),
+    defaultValue: const Constant("deepseek"),
   );
   static const VerificationMeta _baseUrlMeta = const VerificationMeta(
     'baseUrl',
@@ -2249,7 +2249,7 @@ class $ProviderConfigsTable extends ProviderConfigs
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('https://api.deepseek.com'),
+    defaultValue: const Constant("https://api.deepseek.com"),
   );
   static const VerificationMeta _modelMeta = const VerificationMeta('model');
   @override
@@ -2259,7 +2259,7 @@ class $ProviderConfigsTable extends ProviderConfigs
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('deepseek-flash'),
+    defaultValue: const Constant("deepseek-flash"),
   );
   static const VerificationMeta _visionMeta = const VerificationMeta('vision');
   @override
@@ -2327,7 +2327,7 @@ class $ProviderConfigsTable extends ProviderConfigs
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('high'),
+    defaultValue: const Constant("high"),
   );
   static const VerificationMeta _reasoningLevelsMeta = const VerificationMeta(
     'reasoningLevels',
@@ -3092,7 +3092,7 @@ class $AiUsageEventsTable extends AiUsageEvents
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _modelMeta = const VerificationMeta('model');
   @override
@@ -3133,7 +3133,7 @@ class $AiUsageEventsTable extends AiUsageEvents
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('unknown'),
+    defaultValue: const Constant("unknown"),
   );
   static const VerificationMeta _occurredAtMeta = const VerificationMeta(
     'occurredAt',
@@ -3268,7 +3268,7 @@ class $AiUsageEventsTable extends AiUsageEvents
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('unknown'),
+    defaultValue: const Constant("unknown"),
   );
   static const VerificationMeta _inputRateNanoUsdPerMillionMeta =
       const VerificationMeta('inputRateNanoUsdPerMillion');
@@ -4613,7 +4613,7 @@ class $AiModelPricesTable extends AiModelPrices
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _modelMeta = const VerificationMeta('model');
   @override
@@ -4676,7 +4676,7 @@ class $AiModelPricesTable extends AiModelPrices
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('user'),
+    defaultValue: const Constant("user"),
   );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
@@ -5271,7 +5271,7 @@ class $KnowledgeItemsTable extends KnowledgeItems
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('个人笔记'),
+    defaultValue: const Constant("个人笔记"),
   );
   static const VerificationMeta _chapterMeta = const VerificationMeta(
     'chapter',
@@ -5283,7 +5283,7 @@ class $KnowledgeItemsTable extends KnowledgeItems
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _revisionMeta = const VerificationMeta(
     'revision',
@@ -6542,7 +6542,7 @@ class $MistakesTable extends Mistakes with TableInfo<$MistakesTable, Mistake> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _subjectMeta = const VerificationMeta(
     'subject',
@@ -6565,7 +6565,7 @@ class $MistakesTable extends Mistakes with TableInfo<$MistakesTable, Mistake> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _correctAnswerMeta = const VerificationMeta(
     'correctAnswer',
@@ -6577,7 +6577,7 @@ class $MistakesTable extends Mistakes with TableInfo<$MistakesTable, Mistake> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _originalAnswerMeta = const VerificationMeta(
     'originalAnswer',
@@ -6589,7 +6589,7 @@ class $MistakesTable extends Mistakes with TableInfo<$MistakesTable, Mistake> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _ownAnalysisMeta = const VerificationMeta(
     'ownAnalysis',
@@ -6601,7 +6601,7 @@ class $MistakesTable extends Mistakes with TableInfo<$MistakesTable, Mistake> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _aiAnalysisMeta = const VerificationMeta(
     'aiAnalysis',
@@ -6613,7 +6613,7 @@ class $MistakesTable extends Mistakes with TableInfo<$MistakesTable, Mistake> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _errorReasonMeta = const VerificationMeta(
     'errorReason',
@@ -6625,7 +6625,7 @@ class $MistakesTable extends Mistakes with TableInfo<$MistakesTable, Mistake> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('暂未确定'),
+    defaultValue: const Constant("暂未确定"),
   );
   static const VerificationMeta _suggestedReasonMeta = const VerificationMeta(
     'suggestedReason',
@@ -6637,7 +6637,7 @@ class $MistakesTable extends Mistakes with TableInfo<$MistakesTable, Mistake> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _revisionMeta = const VerificationMeta(
     'revision',
@@ -8473,7 +8473,7 @@ class $StudyAttachmentsTable extends StudyAttachments
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('original'),
+    defaultValue: const Constant("original"),
   );
   static const VerificationMeta _deletedMeta = const VerificationMeta(
     'deleted',
@@ -10112,7 +10112,7 @@ class $PracticeQuestionsTable extends PracticeQuestions
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _hintMeta = const VerificationMeta('hint');
   @override
@@ -10122,7 +10122,7 @@ class $PracticeQuestionsTable extends PracticeQuestions
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _originMeta = const VerificationMeta('origin');
   @override
@@ -10143,7 +10143,7 @@ class $PracticeQuestionsTable extends PracticeQuestions
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('unverified'),
+    defaultValue: const Constant("unverified"),
   );
   static const VerificationMeta _absoluteToleranceMeta = const VerificationMeta(
     'absoluteTolerance',
@@ -12279,7 +12279,7 @@ class $PracticeAttemptsTable extends PracticeAttempts
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('draft'),
+    defaultValue: const Constant("draft"),
   );
   static const VerificationMeta _hintUsedMeta = const VerificationMeta(
     'hintUsed',
@@ -15621,7 +15621,7 @@ class $TimelineEventsTable extends TimelineEvents
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
@@ -16067,7 +16067,7 @@ class $ExamSubjectsTable extends ExamSubjects
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _aiModelMeta = const VerificationMeta(
     'aiModel',
@@ -16103,7 +16103,7 @@ class $ExamSubjectsTable extends ExamSubjects
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
@@ -16791,7 +16791,7 @@ class $ExamScoreRowsTable extends ExamScoreRows
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(""),
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -19714,7 +19714,7 @@ class $VisualScenesTable extends VisualScenes
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-        defaultValue: const Constant('unverified'),
+        defaultValue: const Constant("unverified"),
       );
   static const VerificationMeta _revisionMeta = const VerificationMeta(
     'revision',
@@ -19736,7 +19736,7 @@ class $VisualScenesTable extends VisualScenes
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('ai'),
+    defaultValue: const Constant("ai"),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -20870,7 +20870,7 @@ class $VisualQuestionLinksTable extends VisualQuestionLinks
     check: () => const CustomExpression("role IN ('question', 'solution')"),
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('question'),
+    defaultValue: const Constant("question"),
   );
   @override
   List<GeneratedColumn> get $columns => [visualId, questionId, revision, role];
@@ -21479,7 +21479,7 @@ class $LearningLexicalItemsTable extends LearningLexicalItems
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('word'),
+    defaultValue: const Constant("word"),
   );
   static const VerificationMeta _pronunciationMeta = const VerificationMeta(
     'pronunciation',
@@ -22009,7 +22009,7 @@ class $LearningLexicalSensesTable extends LearningLexicalSenses
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('user'),
+    defaultValue: const Constant("user"),
   );
   static const VerificationMeta _aiBatchIdMeta = const VerificationMeta(
     'aiBatchId',
@@ -23241,7 +23241,7 @@ class $LearningVocabularyGroupsTable extends LearningVocabularyGroups
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('topic'),
+    defaultValue: const Constant("topic"),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -23839,6 +23839,1262 @@ class LearningGroupItemsCompanion extends UpdateCompanion<LearningGroupItem> {
   }
 }
 
+class $LanguageGenerationTasksTable extends LanguageGenerationTasks
+    with TableInfo<$LanguageGenerationTasksTable, LanguageGenerationTask> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LanguageGenerationTasksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _featureMeta = const VerificationMeta(
+    'feature',
+  );
+  @override
+  late final GeneratedColumn<String> feature = GeneratedColumn<String>(
+    'feature',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _activeRunIdMeta = const VerificationMeta(
+    'activeRunId',
+  );
+  @override
+  late final GeneratedColumn<String> activeRunId = GeneratedColumn<String>(
+    'active_run_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, feature, activeRunId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'language_generation_tasks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LanguageGenerationTask> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('feature')) {
+      context.handle(
+        _featureMeta,
+        feature.isAcceptableOrUnknown(data['feature']!, _featureMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_featureMeta);
+    }
+    if (data.containsKey('active_run_id')) {
+      context.handle(
+        _activeRunIdMeta,
+        activeRunId.isAcceptableOrUnknown(
+          data['active_run_id']!,
+          _activeRunIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LanguageGenerationTask map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LanguageGenerationTask(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      feature: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}feature'],
+      )!,
+      activeRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}active_run_id'],
+      ),
+    );
+  }
+
+  @override
+  $LanguageGenerationTasksTable createAlias(String alias) {
+    return $LanguageGenerationTasksTable(attachedDatabase, alias);
+  }
+}
+
+class LanguageGenerationTask extends DataClass
+    implements Insertable<LanguageGenerationTask> {
+  final String id;
+  final String feature;
+  final String? activeRunId;
+  const LanguageGenerationTask({
+    required this.id,
+    required this.feature,
+    this.activeRunId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['feature'] = Variable<String>(feature);
+    if (!nullToAbsent || activeRunId != null) {
+      map['active_run_id'] = Variable<String>(activeRunId);
+    }
+    return map;
+  }
+
+  LanguageGenerationTasksCompanion toCompanion(bool nullToAbsent) {
+    return LanguageGenerationTasksCompanion(
+      id: Value(id),
+      feature: Value(feature),
+      activeRunId: activeRunId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(activeRunId),
+    );
+  }
+
+  factory LanguageGenerationTask.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LanguageGenerationTask(
+      id: serializer.fromJson<String>(json['id']),
+      feature: serializer.fromJson<String>(json['feature']),
+      activeRunId: serializer.fromJson<String?>(json['activeRunId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'feature': serializer.toJson<String>(feature),
+      'activeRunId': serializer.toJson<String?>(activeRunId),
+    };
+  }
+
+  LanguageGenerationTask copyWith({
+    String? id,
+    String? feature,
+    Value<String?> activeRunId = const Value.absent(),
+  }) => LanguageGenerationTask(
+    id: id ?? this.id,
+    feature: feature ?? this.feature,
+    activeRunId: activeRunId.present ? activeRunId.value : this.activeRunId,
+  );
+  LanguageGenerationTask copyWithCompanion(
+    LanguageGenerationTasksCompanion data,
+  ) {
+    return LanguageGenerationTask(
+      id: data.id.present ? data.id.value : this.id,
+      feature: data.feature.present ? data.feature.value : this.feature,
+      activeRunId: data.activeRunId.present
+          ? data.activeRunId.value
+          : this.activeRunId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageGenerationTask(')
+          ..write('id: $id, ')
+          ..write('feature: $feature, ')
+          ..write('activeRunId: $activeRunId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, feature, activeRunId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LanguageGenerationTask &&
+          other.id == this.id &&
+          other.feature == this.feature &&
+          other.activeRunId == this.activeRunId);
+}
+
+class LanguageGenerationTasksCompanion
+    extends UpdateCompanion<LanguageGenerationTask> {
+  final Value<String> id;
+  final Value<String> feature;
+  final Value<String?> activeRunId;
+  final Value<int> rowid;
+  const LanguageGenerationTasksCompanion({
+    this.id = const Value.absent(),
+    this.feature = const Value.absent(),
+    this.activeRunId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LanguageGenerationTasksCompanion.insert({
+    required String id,
+    required String feature,
+    this.activeRunId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       feature = Value(feature);
+  static Insertable<LanguageGenerationTask> custom({
+    Expression<String>? id,
+    Expression<String>? feature,
+    Expression<String>? activeRunId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (feature != null) 'feature': feature,
+      if (activeRunId != null) 'active_run_id': activeRunId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LanguageGenerationTasksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? feature,
+    Value<String?>? activeRunId,
+    Value<int>? rowid,
+  }) {
+    return LanguageGenerationTasksCompanion(
+      id: id ?? this.id,
+      feature: feature ?? this.feature,
+      activeRunId: activeRunId ?? this.activeRunId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (feature.present) {
+      map['feature'] = Variable<String>(feature.value);
+    }
+    if (activeRunId.present) {
+      map['active_run_id'] = Variable<String>(activeRunId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageGenerationTasksCompanion(')
+          ..write('id: $id, ')
+          ..write('feature: $feature, ')
+          ..write('activeRunId: $activeRunId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LanguagePromptSnapshotsTable extends LanguagePromptSnapshots
+    with TableInfo<$LanguagePromptSnapshotsTable, LanguagePromptSnapshot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LanguagePromptSnapshotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, content];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'language_prompt_snapshots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LanguagePromptSnapshot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LanguagePromptSnapshot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LanguagePromptSnapshot(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+    );
+  }
+
+  @override
+  $LanguagePromptSnapshotsTable createAlias(String alias) {
+    return $LanguagePromptSnapshotsTable(attachedDatabase, alias);
+  }
+}
+
+class LanguagePromptSnapshot extends DataClass
+    implements Insertable<LanguagePromptSnapshot> {
+  final String id;
+  final String content;
+  const LanguagePromptSnapshot({required this.id, required this.content});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['content'] = Variable<String>(content);
+    return map;
+  }
+
+  LanguagePromptSnapshotsCompanion toCompanion(bool nullToAbsent) {
+    return LanguagePromptSnapshotsCompanion(
+      id: Value(id),
+      content: Value(content),
+    );
+  }
+
+  factory LanguagePromptSnapshot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LanguagePromptSnapshot(
+      id: serializer.fromJson<String>(json['id']),
+      content: serializer.fromJson<String>(json['content']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'content': serializer.toJson<String>(content),
+    };
+  }
+
+  LanguagePromptSnapshot copyWith({String? id, String? content}) =>
+      LanguagePromptSnapshot(
+        id: id ?? this.id,
+        content: content ?? this.content,
+      );
+  LanguagePromptSnapshot copyWithCompanion(
+    LanguagePromptSnapshotsCompanion data,
+  ) {
+    return LanguagePromptSnapshot(
+      id: data.id.present ? data.id.value : this.id,
+      content: data.content.present ? data.content.value : this.content,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguagePromptSnapshot(')
+          ..write('id: $id, ')
+          ..write('content: $content')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, content);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LanguagePromptSnapshot &&
+          other.id == this.id &&
+          other.content == this.content);
+}
+
+class LanguagePromptSnapshotsCompanion
+    extends UpdateCompanion<LanguagePromptSnapshot> {
+  final Value<String> id;
+  final Value<String> content;
+  final Value<int> rowid;
+  const LanguagePromptSnapshotsCompanion({
+    this.id = const Value.absent(),
+    this.content = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LanguagePromptSnapshotsCompanion.insert({
+    required String id,
+    required String content,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       content = Value(content);
+  static Insertable<LanguagePromptSnapshot> custom({
+    Expression<String>? id,
+    Expression<String>? content,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (content != null) 'content': content,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LanguagePromptSnapshotsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? content,
+    Value<int>? rowid,
+  }) {
+    return LanguagePromptSnapshotsCompanion(
+      id: id ?? this.id,
+      content: content ?? this.content,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguagePromptSnapshotsCompanion(')
+          ..write('id: $id, ')
+          ..write('content: $content, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LanguageGenerationRunsTable extends LanguageGenerationRuns
+    with TableInfo<$LanguageGenerationRunsTable, LanguageGenerationRun> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LanguageGenerationRunsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_generation_tasks (id)',
+    ),
+  );
+  static const VerificationMeta _promptIdMeta = const VerificationMeta(
+    'promptId',
+  );
+  @override
+  late final GeneratedColumn<String> promptId = GeneratedColumn<String>(
+    'prompt_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_prompt_snapshots (id)',
+    ),
+  );
+  static const VerificationMeta _inputJsonMeta = const VerificationMeta(
+    'inputJson',
+  );
+  @override
+  late final GeneratedColumn<String> inputJson = GeneratedColumn<String>(
+    'input_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _providerMeta = const VerificationMeta(
+    'provider',
+  );
+  @override
+  late final GeneratedColumn<String> provider = GeneratedColumn<String>(
+    'provider',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _endpointMeta = const VerificationMeta(
+    'endpoint',
+  );
+  @override
+  late final GeneratedColumn<String> endpoint = GeneratedColumn<String>(
+    'endpoint',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _thinkingMeta = const VerificationMeta(
+    'thinking',
+  );
+  @override
+  late final GeneratedColumn<bool> thinking = GeneratedColumn<bool>(
+    'thinking',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("thinking" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _effortMeta = const VerificationMeta('effort');
+  @override
+  late final GeneratedColumn<String> effort = GeneratedColumn<String>(
+    'effort',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _optionsJsonMeta = const VerificationMeta(
+    'optionsJson',
+  );
+  @override
+  late final GeneratedColumn<String> optionsJson = GeneratedColumn<String>(
+    'options_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _outputMeta = const VerificationMeta('output');
+  @override
+  late final GeneratedColumn<String> output = GeneratedColumn<String>(
+    'output',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _formatMeta = const VerificationMeta('format');
+  @override
+  late final GeneratedColumn<String> format = GeneratedColumn<String>(
+    'format',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    taskId,
+    promptId,
+    inputJson,
+    provider,
+    endpoint,
+    model,
+    thinking,
+    effort,
+    optionsJson,
+    output,
+    format,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'language_generation_runs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LanguageGenerationRun> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taskIdMeta);
+    }
+    if (data.containsKey('prompt_id')) {
+      context.handle(
+        _promptIdMeta,
+        promptId.isAcceptableOrUnknown(data['prompt_id']!, _promptIdMeta),
+      );
+    }
+    if (data.containsKey('input_json')) {
+      context.handle(
+        _inputJsonMeta,
+        inputJson.isAcceptableOrUnknown(data['input_json']!, _inputJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_inputJsonMeta);
+    }
+    if (data.containsKey('provider')) {
+      context.handle(
+        _providerMeta,
+        provider.isAcceptableOrUnknown(data['provider']!, _providerMeta),
+      );
+    }
+    if (data.containsKey('endpoint')) {
+      context.handle(
+        _endpointMeta,
+        endpoint.isAcceptableOrUnknown(data['endpoint']!, _endpointMeta),
+      );
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelMeta);
+    }
+    if (data.containsKey('thinking')) {
+      context.handle(
+        _thinkingMeta,
+        thinking.isAcceptableOrUnknown(data['thinking']!, _thinkingMeta),
+      );
+    }
+    if (data.containsKey('effort')) {
+      context.handle(
+        _effortMeta,
+        effort.isAcceptableOrUnknown(data['effort']!, _effortMeta),
+      );
+    }
+    if (data.containsKey('options_json')) {
+      context.handle(
+        _optionsJsonMeta,
+        optionsJson.isAcceptableOrUnknown(
+          data['options_json']!,
+          _optionsJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_optionsJsonMeta);
+    }
+    if (data.containsKey('output')) {
+      context.handle(
+        _outputMeta,
+        output.isAcceptableOrUnknown(data['output']!, _outputMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_outputMeta);
+    }
+    if (data.containsKey('format')) {
+      context.handle(
+        _formatMeta,
+        format.isAcceptableOrUnknown(data['format']!, _formatMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_formatMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LanguageGenerationRun map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LanguageGenerationRun(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      )!,
+      promptId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt_id'],
+      ),
+      inputJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}input_json'],
+      )!,
+      provider: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider'],
+      ),
+      endpoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}endpoint'],
+      ),
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      )!,
+      thinking: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}thinking'],
+      ),
+      effort: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}effort'],
+      ),
+      optionsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}options_json'],
+      )!,
+      output: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}output'],
+      )!,
+      format: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}format'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LanguageGenerationRunsTable createAlias(String alias) {
+    return $LanguageGenerationRunsTable(attachedDatabase, alias);
+  }
+}
+
+class LanguageGenerationRun extends DataClass
+    implements Insertable<LanguageGenerationRun> {
+  final String id;
+  final String taskId;
+  final String? promptId;
+  final String inputJson;
+  final String? provider;
+  final String? endpoint;
+  final String model;
+  final bool? thinking;
+  final String? effort;
+  final String optionsJson;
+  final String output;
+  final String format;
+  final DateTime createdAt;
+  const LanguageGenerationRun({
+    required this.id,
+    required this.taskId,
+    this.promptId,
+    required this.inputJson,
+    this.provider,
+    this.endpoint,
+    required this.model,
+    this.thinking,
+    this.effort,
+    required this.optionsJson,
+    required this.output,
+    required this.format,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['task_id'] = Variable<String>(taskId);
+    if (!nullToAbsent || promptId != null) {
+      map['prompt_id'] = Variable<String>(promptId);
+    }
+    map['input_json'] = Variable<String>(inputJson);
+    if (!nullToAbsent || provider != null) {
+      map['provider'] = Variable<String>(provider);
+    }
+    if (!nullToAbsent || endpoint != null) {
+      map['endpoint'] = Variable<String>(endpoint);
+    }
+    map['model'] = Variable<String>(model);
+    if (!nullToAbsent || thinking != null) {
+      map['thinking'] = Variable<bool>(thinking);
+    }
+    if (!nullToAbsent || effort != null) {
+      map['effort'] = Variable<String>(effort);
+    }
+    map['options_json'] = Variable<String>(optionsJson);
+    map['output'] = Variable<String>(output);
+    map['format'] = Variable<String>(format);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LanguageGenerationRunsCompanion toCompanion(bool nullToAbsent) {
+    return LanguageGenerationRunsCompanion(
+      id: Value(id),
+      taskId: Value(taskId),
+      promptId: promptId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptId),
+      inputJson: Value(inputJson),
+      provider: provider == null && nullToAbsent
+          ? const Value.absent()
+          : Value(provider),
+      endpoint: endpoint == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endpoint),
+      model: Value(model),
+      thinking: thinking == null && nullToAbsent
+          ? const Value.absent()
+          : Value(thinking),
+      effort: effort == null && nullToAbsent
+          ? const Value.absent()
+          : Value(effort),
+      optionsJson: Value(optionsJson),
+      output: Value(output),
+      format: Value(format),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LanguageGenerationRun.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LanguageGenerationRun(
+      id: serializer.fromJson<String>(json['id']),
+      taskId: serializer.fromJson<String>(json['taskId']),
+      promptId: serializer.fromJson<String?>(json['promptId']),
+      inputJson: serializer.fromJson<String>(json['inputJson']),
+      provider: serializer.fromJson<String?>(json['provider']),
+      endpoint: serializer.fromJson<String?>(json['endpoint']),
+      model: serializer.fromJson<String>(json['model']),
+      thinking: serializer.fromJson<bool?>(json['thinking']),
+      effort: serializer.fromJson<String?>(json['effort']),
+      optionsJson: serializer.fromJson<String>(json['optionsJson']),
+      output: serializer.fromJson<String>(json['output']),
+      format: serializer.fromJson<String>(json['format']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'taskId': serializer.toJson<String>(taskId),
+      'promptId': serializer.toJson<String?>(promptId),
+      'inputJson': serializer.toJson<String>(inputJson),
+      'provider': serializer.toJson<String?>(provider),
+      'endpoint': serializer.toJson<String?>(endpoint),
+      'model': serializer.toJson<String>(model),
+      'thinking': serializer.toJson<bool?>(thinking),
+      'effort': serializer.toJson<String?>(effort),
+      'optionsJson': serializer.toJson<String>(optionsJson),
+      'output': serializer.toJson<String>(output),
+      'format': serializer.toJson<String>(format),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LanguageGenerationRun copyWith({
+    String? id,
+    String? taskId,
+    Value<String?> promptId = const Value.absent(),
+    String? inputJson,
+    Value<String?> provider = const Value.absent(),
+    Value<String?> endpoint = const Value.absent(),
+    String? model,
+    Value<bool?> thinking = const Value.absent(),
+    Value<String?> effort = const Value.absent(),
+    String? optionsJson,
+    String? output,
+    String? format,
+    DateTime? createdAt,
+  }) => LanguageGenerationRun(
+    id: id ?? this.id,
+    taskId: taskId ?? this.taskId,
+    promptId: promptId.present ? promptId.value : this.promptId,
+    inputJson: inputJson ?? this.inputJson,
+    provider: provider.present ? provider.value : this.provider,
+    endpoint: endpoint.present ? endpoint.value : this.endpoint,
+    model: model ?? this.model,
+    thinking: thinking.present ? thinking.value : this.thinking,
+    effort: effort.present ? effort.value : this.effort,
+    optionsJson: optionsJson ?? this.optionsJson,
+    output: output ?? this.output,
+    format: format ?? this.format,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  LanguageGenerationRun copyWithCompanion(
+    LanguageGenerationRunsCompanion data,
+  ) {
+    return LanguageGenerationRun(
+      id: data.id.present ? data.id.value : this.id,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      promptId: data.promptId.present ? data.promptId.value : this.promptId,
+      inputJson: data.inputJson.present ? data.inputJson.value : this.inputJson,
+      provider: data.provider.present ? data.provider.value : this.provider,
+      endpoint: data.endpoint.present ? data.endpoint.value : this.endpoint,
+      model: data.model.present ? data.model.value : this.model,
+      thinking: data.thinking.present ? data.thinking.value : this.thinking,
+      effort: data.effort.present ? data.effort.value : this.effort,
+      optionsJson: data.optionsJson.present
+          ? data.optionsJson.value
+          : this.optionsJson,
+      output: data.output.present ? data.output.value : this.output,
+      format: data.format.present ? data.format.value : this.format,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageGenerationRun(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('promptId: $promptId, ')
+          ..write('inputJson: $inputJson, ')
+          ..write('provider: $provider, ')
+          ..write('endpoint: $endpoint, ')
+          ..write('model: $model, ')
+          ..write('thinking: $thinking, ')
+          ..write('effort: $effort, ')
+          ..write('optionsJson: $optionsJson, ')
+          ..write('output: $output, ')
+          ..write('format: $format, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    taskId,
+    promptId,
+    inputJson,
+    provider,
+    endpoint,
+    model,
+    thinking,
+    effort,
+    optionsJson,
+    output,
+    format,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LanguageGenerationRun &&
+          other.id == this.id &&
+          other.taskId == this.taskId &&
+          other.promptId == this.promptId &&
+          other.inputJson == this.inputJson &&
+          other.provider == this.provider &&
+          other.endpoint == this.endpoint &&
+          other.model == this.model &&
+          other.thinking == this.thinking &&
+          other.effort == this.effort &&
+          other.optionsJson == this.optionsJson &&
+          other.output == this.output &&
+          other.format == this.format &&
+          other.createdAt == this.createdAt);
+}
+
+class LanguageGenerationRunsCompanion
+    extends UpdateCompanion<LanguageGenerationRun> {
+  final Value<String> id;
+  final Value<String> taskId;
+  final Value<String?> promptId;
+  final Value<String> inputJson;
+  final Value<String?> provider;
+  final Value<String?> endpoint;
+  final Value<String> model;
+  final Value<bool?> thinking;
+  final Value<String?> effort;
+  final Value<String> optionsJson;
+  final Value<String> output;
+  final Value<String> format;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LanguageGenerationRunsCompanion({
+    this.id = const Value.absent(),
+    this.taskId = const Value.absent(),
+    this.promptId = const Value.absent(),
+    this.inputJson = const Value.absent(),
+    this.provider = const Value.absent(),
+    this.endpoint = const Value.absent(),
+    this.model = const Value.absent(),
+    this.thinking = const Value.absent(),
+    this.effort = const Value.absent(),
+    this.optionsJson = const Value.absent(),
+    this.output = const Value.absent(),
+    this.format = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LanguageGenerationRunsCompanion.insert({
+    required String id,
+    required String taskId,
+    this.promptId = const Value.absent(),
+    required String inputJson,
+    this.provider = const Value.absent(),
+    this.endpoint = const Value.absent(),
+    required String model,
+    this.thinking = const Value.absent(),
+    this.effort = const Value.absent(),
+    required String optionsJson,
+    required String output,
+    required String format,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       taskId = Value(taskId),
+       inputJson = Value(inputJson),
+       model = Value(model),
+       optionsJson = Value(optionsJson),
+       output = Value(output),
+       format = Value(format),
+       createdAt = Value(createdAt);
+  static Insertable<LanguageGenerationRun> custom({
+    Expression<String>? id,
+    Expression<String>? taskId,
+    Expression<String>? promptId,
+    Expression<String>? inputJson,
+    Expression<String>? provider,
+    Expression<String>? endpoint,
+    Expression<String>? model,
+    Expression<bool>? thinking,
+    Expression<String>? effort,
+    Expression<String>? optionsJson,
+    Expression<String>? output,
+    Expression<String>? format,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (taskId != null) 'task_id': taskId,
+      if (promptId != null) 'prompt_id': promptId,
+      if (inputJson != null) 'input_json': inputJson,
+      if (provider != null) 'provider': provider,
+      if (endpoint != null) 'endpoint': endpoint,
+      if (model != null) 'model': model,
+      if (thinking != null) 'thinking': thinking,
+      if (effort != null) 'effort': effort,
+      if (optionsJson != null) 'options_json': optionsJson,
+      if (output != null) 'output': output,
+      if (format != null) 'format': format,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LanguageGenerationRunsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? taskId,
+    Value<String?>? promptId,
+    Value<String>? inputJson,
+    Value<String?>? provider,
+    Value<String?>? endpoint,
+    Value<String>? model,
+    Value<bool?>? thinking,
+    Value<String?>? effort,
+    Value<String>? optionsJson,
+    Value<String>? output,
+    Value<String>? format,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return LanguageGenerationRunsCompanion(
+      id: id ?? this.id,
+      taskId: taskId ?? this.taskId,
+      promptId: promptId ?? this.promptId,
+      inputJson: inputJson ?? this.inputJson,
+      provider: provider ?? this.provider,
+      endpoint: endpoint ?? this.endpoint,
+      model: model ?? this.model,
+      thinking: thinking ?? this.thinking,
+      effort: effort ?? this.effort,
+      optionsJson: optionsJson ?? this.optionsJson,
+      output: output ?? this.output,
+      format: format ?? this.format,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
+    if (promptId.present) {
+      map['prompt_id'] = Variable<String>(promptId.value);
+    }
+    if (inputJson.present) {
+      map['input_json'] = Variable<String>(inputJson.value);
+    }
+    if (provider.present) {
+      map['provider'] = Variable<String>(provider.value);
+    }
+    if (endpoint.present) {
+      map['endpoint'] = Variable<String>(endpoint.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (thinking.present) {
+      map['thinking'] = Variable<bool>(thinking.value);
+    }
+    if (effort.present) {
+      map['effort'] = Variable<String>(effort.value);
+    }
+    if (optionsJson.present) {
+      map['options_json'] = Variable<String>(optionsJson.value);
+    }
+    if (output.present) {
+      map['output'] = Variable<String>(output.value);
+    }
+    if (format.present) {
+      map['format'] = Variable<String>(format.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageGenerationRunsCompanion(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('promptId: $promptId, ')
+          ..write('inputJson: $inputJson, ')
+          ..write('provider: $provider, ')
+          ..write('endpoint: $endpoint, ')
+          ..write('model: $model, ')
+          ..write('thinking: $thinking, ')
+          ..write('effort: $effort, ')
+          ..write('optionsJson: $optionsJson, ')
+          ..write('output: $output, ')
+          ..write('format: $format, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $LearningEvidenceTable extends LearningEvidence
     with TableInfo<$LearningEvidenceTable, LearningEvidenceData> {
   @override
@@ -23853,6 +25109,20 @@ class $LearningEvidenceTable extends LearningEvidence
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generationRunIdMeta = const VerificationMeta(
+    'generationRunId',
+  );
+  @override
+  late final GeneratedColumn<String> generationRunId = GeneratedColumn<String>(
+    'generation_run_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_generation_runs (id)',
+    ),
   );
   static const VerificationMeta _senseIdMeta = const VerificationMeta(
     'senseId',
@@ -23965,6 +25235,7 @@ class $LearningEvidenceTable extends LearningEvidence
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    generationRunId,
     senseId,
     formId,
     skill,
@@ -23991,6 +25262,15 @@ class $LearningEvidenceTable extends LearningEvidence
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('generation_run_id')) {
+      context.handle(
+        _generationRunIdMeta,
+        generationRunId.isAcceptableOrUnknown(
+          data['generation_run_id']!,
+          _generationRunIdMeta,
+        ),
+      );
     }
     if (data.containsKey('sense_id')) {
       context.handle(
@@ -24071,6 +25351,10 @@ class $LearningEvidenceTable extends LearningEvidence
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      generationRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}generation_run_id'],
+      ),
       senseId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}sense_id'],
@@ -24119,6 +25403,7 @@ class $LearningEvidenceTable extends LearningEvidence
 class LearningEvidenceData extends DataClass
     implements Insertable<LearningEvidenceData> {
   final String id;
+  final String? generationRunId;
   final String senseId;
   final String? formId;
   final String skill;
@@ -24130,6 +25415,7 @@ class LearningEvidenceData extends DataClass
   final DateTime occurredAt;
   const LearningEvidenceData({
     required this.id,
+    this.generationRunId,
     required this.senseId,
     this.formId,
     required this.skill,
@@ -24144,6 +25430,9 @@ class LearningEvidenceData extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || generationRunId != null) {
+      map['generation_run_id'] = Variable<String>(generationRunId);
+    }
     map['sense_id'] = Variable<String>(senseId);
     if (!nullToAbsent || formId != null) {
       map['form_id'] = Variable<String>(formId);
@@ -24167,6 +25456,9 @@ class LearningEvidenceData extends DataClass
   LearningEvidenceCompanion toCompanion(bool nullToAbsent) {
     return LearningEvidenceCompanion(
       id: Value(id),
+      generationRunId: generationRunId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(generationRunId),
       senseId: Value(senseId),
       formId: formId == null && nullToAbsent
           ? const Value.absent()
@@ -24194,6 +25486,7 @@ class LearningEvidenceData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return LearningEvidenceData(
       id: serializer.fromJson<String>(json['id']),
+      generationRunId: serializer.fromJson<String?>(json['generationRunId']),
       senseId: serializer.fromJson<String>(json['senseId']),
       formId: serializer.fromJson<String?>(json['formId']),
       skill: serializer.fromJson<String>(json['skill']),
@@ -24210,6 +25503,7 @@ class LearningEvidenceData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'generationRunId': serializer.toJson<String?>(generationRunId),
       'senseId': serializer.toJson<String>(senseId),
       'formId': serializer.toJson<String?>(formId),
       'skill': serializer.toJson<String>(skill),
@@ -24224,6 +25518,7 @@ class LearningEvidenceData extends DataClass
 
   LearningEvidenceData copyWith({
     String? id,
+    Value<String?> generationRunId = const Value.absent(),
     String? senseId,
     Value<String?> formId = const Value.absent(),
     String? skill,
@@ -24235,6 +25530,9 @@ class LearningEvidenceData extends DataClass
     DateTime? occurredAt,
   }) => LearningEvidenceData(
     id: id ?? this.id,
+    generationRunId: generationRunId.present
+        ? generationRunId.value
+        : this.generationRunId,
     senseId: senseId ?? this.senseId,
     formId: formId.present ? formId.value : this.formId,
     skill: skill ?? this.skill,
@@ -24248,6 +25546,9 @@ class LearningEvidenceData extends DataClass
   LearningEvidenceData copyWithCompanion(LearningEvidenceCompanion data) {
     return LearningEvidenceData(
       id: data.id.present ? data.id.value : this.id,
+      generationRunId: data.generationRunId.present
+          ? data.generationRunId.value
+          : this.generationRunId,
       senseId: data.senseId.present ? data.senseId.value : this.senseId,
       formId: data.formId.present ? data.formId.value : this.formId,
       skill: data.skill.present ? data.skill.value : this.skill,
@@ -24270,6 +25571,7 @@ class LearningEvidenceData extends DataClass
   String toString() {
     return (StringBuffer('LearningEvidenceData(')
           ..write('id: $id, ')
+          ..write('generationRunId: $generationRunId, ')
           ..write('senseId: $senseId, ')
           ..write('formId: $formId, ')
           ..write('skill: $skill, ')
@@ -24286,6 +25588,7 @@ class LearningEvidenceData extends DataClass
   @override
   int get hashCode => Object.hash(
     id,
+    generationRunId,
     senseId,
     formId,
     skill,
@@ -24301,6 +25604,7 @@ class LearningEvidenceData extends DataClass
       identical(this, other) ||
       (other is LearningEvidenceData &&
           other.id == this.id &&
+          other.generationRunId == this.generationRunId &&
           other.senseId == this.senseId &&
           other.formId == this.formId &&
           other.skill == this.skill &&
@@ -24314,6 +25618,7 @@ class LearningEvidenceData extends DataClass
 
 class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   final Value<String> id;
+  final Value<String?> generationRunId;
   final Value<String> senseId;
   final Value<String?> formId;
   final Value<String> skill;
@@ -24326,6 +25631,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   final Value<int> rowid;
   const LearningEvidenceCompanion({
     this.id = const Value.absent(),
+    this.generationRunId = const Value.absent(),
     this.senseId = const Value.absent(),
     this.formId = const Value.absent(),
     this.skill = const Value.absent(),
@@ -24339,6 +25645,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   });
   LearningEvidenceCompanion.insert({
     required String id,
+    this.generationRunId = const Value.absent(),
     required String senseId,
     this.formId = const Value.absent(),
     required String skill,
@@ -24355,6 +25662,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
        occurredAt = Value(occurredAt);
   static Insertable<LearningEvidenceData> custom({
     Expression<String>? id,
+    Expression<String>? generationRunId,
     Expression<String>? senseId,
     Expression<String>? formId,
     Expression<String>? skill,
@@ -24368,6 +25676,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (generationRunId != null) 'generation_run_id': generationRunId,
       if (senseId != null) 'sense_id': senseId,
       if (formId != null) 'form_id': formId,
       if (skill != null) 'skill': skill,
@@ -24383,6 +25692,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
 
   LearningEvidenceCompanion copyWith({
     Value<String>? id,
+    Value<String?>? generationRunId,
     Value<String>? senseId,
     Value<String?>? formId,
     Value<String>? skill,
@@ -24396,6 +25706,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   }) {
     return LearningEvidenceCompanion(
       id: id ?? this.id,
+      generationRunId: generationRunId ?? this.generationRunId,
       senseId: senseId ?? this.senseId,
       formId: formId ?? this.formId,
       skill: skill ?? this.skill,
@@ -24414,6 +25725,9 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (generationRunId.present) {
+      map['generation_run_id'] = Variable<String>(generationRunId.value);
     }
     if (senseId.present) {
       map['sense_id'] = Variable<String>(senseId.value);
@@ -24452,6 +25766,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   String toString() {
     return (StringBuffer('LearningEvidenceCompanion(')
           ..write('id: $id, ')
+          ..write('generationRunId: $generationRunId, ')
           ..write('senseId: $senseId, ')
           ..write('formId: $formId, ')
           ..write('skill: $skill, ')
@@ -28916,6 +30231,785 @@ class LearningWritingTasksCompanion
   }
 }
 
+class $LanguageGenerationChoicesTable extends LanguageGenerationChoices
+    with TableInfo<$LanguageGenerationChoicesTable, LanguageGenerationChoice> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LanguageGenerationChoicesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_generation_tasks (id)',
+    ),
+  );
+  static const VerificationMeta _previousRunIdMeta = const VerificationMeta(
+    'previousRunId',
+  );
+  @override
+  late final GeneratedColumn<String> previousRunId = GeneratedColumn<String>(
+    'previous_run_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_generation_runs (id)',
+    ),
+  );
+  static const VerificationMeta _candidateRunIdMeta = const VerificationMeta(
+    'candidateRunId',
+  );
+  @override
+  late final GeneratedColumn<String> candidateRunId = GeneratedColumn<String>(
+    'candidate_run_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_generation_runs (id)',
+    ),
+  );
+  static const VerificationMeta _chosenRunIdMeta = const VerificationMeta(
+    'chosenRunId',
+  );
+  @override
+  late final GeneratedColumn<String> chosenRunId = GeneratedColumn<String>(
+    'chosen_run_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_generation_runs (id)',
+    ),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    taskId,
+    previousRunId,
+    candidateRunId,
+    chosenRunId,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'language_generation_choices';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LanguageGenerationChoice> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taskIdMeta);
+    }
+    if (data.containsKey('previous_run_id')) {
+      context.handle(
+        _previousRunIdMeta,
+        previousRunId.isAcceptableOrUnknown(
+          data['previous_run_id']!,
+          _previousRunIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('candidate_run_id')) {
+      context.handle(
+        _candidateRunIdMeta,
+        candidateRunId.isAcceptableOrUnknown(
+          data['candidate_run_id']!,
+          _candidateRunIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_candidateRunIdMeta);
+    }
+    if (data.containsKey('chosen_run_id')) {
+      context.handle(
+        _chosenRunIdMeta,
+        chosenRunId.isAcceptableOrUnknown(
+          data['chosen_run_id']!,
+          _chosenRunIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_chosenRunIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LanguageGenerationChoice map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LanguageGenerationChoice(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      )!,
+      previousRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}previous_run_id'],
+      ),
+      candidateRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}candidate_run_id'],
+      )!,
+      chosenRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chosen_run_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LanguageGenerationChoicesTable createAlias(String alias) {
+    return $LanguageGenerationChoicesTable(attachedDatabase, alias);
+  }
+}
+
+class LanguageGenerationChoice extends DataClass
+    implements Insertable<LanguageGenerationChoice> {
+  final String id;
+  final String taskId;
+  final String? previousRunId;
+  final String candidateRunId;
+  final String chosenRunId;
+  final DateTime createdAt;
+  const LanguageGenerationChoice({
+    required this.id,
+    required this.taskId,
+    this.previousRunId,
+    required this.candidateRunId,
+    required this.chosenRunId,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['task_id'] = Variable<String>(taskId);
+    if (!nullToAbsent || previousRunId != null) {
+      map['previous_run_id'] = Variable<String>(previousRunId);
+    }
+    map['candidate_run_id'] = Variable<String>(candidateRunId);
+    map['chosen_run_id'] = Variable<String>(chosenRunId);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LanguageGenerationChoicesCompanion toCompanion(bool nullToAbsent) {
+    return LanguageGenerationChoicesCompanion(
+      id: Value(id),
+      taskId: Value(taskId),
+      previousRunId: previousRunId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previousRunId),
+      candidateRunId: Value(candidateRunId),
+      chosenRunId: Value(chosenRunId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LanguageGenerationChoice.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LanguageGenerationChoice(
+      id: serializer.fromJson<String>(json['id']),
+      taskId: serializer.fromJson<String>(json['taskId']),
+      previousRunId: serializer.fromJson<String?>(json['previousRunId']),
+      candidateRunId: serializer.fromJson<String>(json['candidateRunId']),
+      chosenRunId: serializer.fromJson<String>(json['chosenRunId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'taskId': serializer.toJson<String>(taskId),
+      'previousRunId': serializer.toJson<String?>(previousRunId),
+      'candidateRunId': serializer.toJson<String>(candidateRunId),
+      'chosenRunId': serializer.toJson<String>(chosenRunId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LanguageGenerationChoice copyWith({
+    String? id,
+    String? taskId,
+    Value<String?> previousRunId = const Value.absent(),
+    String? candidateRunId,
+    String? chosenRunId,
+    DateTime? createdAt,
+  }) => LanguageGenerationChoice(
+    id: id ?? this.id,
+    taskId: taskId ?? this.taskId,
+    previousRunId: previousRunId.present
+        ? previousRunId.value
+        : this.previousRunId,
+    candidateRunId: candidateRunId ?? this.candidateRunId,
+    chosenRunId: chosenRunId ?? this.chosenRunId,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  LanguageGenerationChoice copyWithCompanion(
+    LanguageGenerationChoicesCompanion data,
+  ) {
+    return LanguageGenerationChoice(
+      id: data.id.present ? data.id.value : this.id,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      previousRunId: data.previousRunId.present
+          ? data.previousRunId.value
+          : this.previousRunId,
+      candidateRunId: data.candidateRunId.present
+          ? data.candidateRunId.value
+          : this.candidateRunId,
+      chosenRunId: data.chosenRunId.present
+          ? data.chosenRunId.value
+          : this.chosenRunId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageGenerationChoice(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('previousRunId: $previousRunId, ')
+          ..write('candidateRunId: $candidateRunId, ')
+          ..write('chosenRunId: $chosenRunId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    taskId,
+    previousRunId,
+    candidateRunId,
+    chosenRunId,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LanguageGenerationChoice &&
+          other.id == this.id &&
+          other.taskId == this.taskId &&
+          other.previousRunId == this.previousRunId &&
+          other.candidateRunId == this.candidateRunId &&
+          other.chosenRunId == this.chosenRunId &&
+          other.createdAt == this.createdAt);
+}
+
+class LanguageGenerationChoicesCompanion
+    extends UpdateCompanion<LanguageGenerationChoice> {
+  final Value<String> id;
+  final Value<String> taskId;
+  final Value<String?> previousRunId;
+  final Value<String> candidateRunId;
+  final Value<String> chosenRunId;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LanguageGenerationChoicesCompanion({
+    this.id = const Value.absent(),
+    this.taskId = const Value.absent(),
+    this.previousRunId = const Value.absent(),
+    this.candidateRunId = const Value.absent(),
+    this.chosenRunId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LanguageGenerationChoicesCompanion.insert({
+    required String id,
+    required String taskId,
+    this.previousRunId = const Value.absent(),
+    required String candidateRunId,
+    required String chosenRunId,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       taskId = Value(taskId),
+       candidateRunId = Value(candidateRunId),
+       chosenRunId = Value(chosenRunId),
+       createdAt = Value(createdAt);
+  static Insertable<LanguageGenerationChoice> custom({
+    Expression<String>? id,
+    Expression<String>? taskId,
+    Expression<String>? previousRunId,
+    Expression<String>? candidateRunId,
+    Expression<String>? chosenRunId,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (taskId != null) 'task_id': taskId,
+      if (previousRunId != null) 'previous_run_id': previousRunId,
+      if (candidateRunId != null) 'candidate_run_id': candidateRunId,
+      if (chosenRunId != null) 'chosen_run_id': chosenRunId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LanguageGenerationChoicesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? taskId,
+    Value<String?>? previousRunId,
+    Value<String>? candidateRunId,
+    Value<String>? chosenRunId,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return LanguageGenerationChoicesCompanion(
+      id: id ?? this.id,
+      taskId: taskId ?? this.taskId,
+      previousRunId: previousRunId ?? this.previousRunId,
+      candidateRunId: candidateRunId ?? this.candidateRunId,
+      chosenRunId: chosenRunId ?? this.chosenRunId,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
+    if (previousRunId.present) {
+      map['previous_run_id'] = Variable<String>(previousRunId.value);
+    }
+    if (candidateRunId.present) {
+      map['candidate_run_id'] = Variable<String>(candidateRunId.value);
+    }
+    if (chosenRunId.present) {
+      map['chosen_run_id'] = Variable<String>(chosenRunId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageGenerationChoicesCompanion(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('previousRunId: $previousRunId, ')
+          ..write('candidateRunId: $candidateRunId, ')
+          ..write('chosenRunId: $chosenRunId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LanguageGenerationLinksTable extends LanguageGenerationLinks
+    with TableInfo<$LanguageGenerationLinksTable, LanguageGenerationLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LanguageGenerationLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentIdMeta = const VerificationMeta(
+    'contentId',
+  );
+  @override
+  late final GeneratedColumn<String> contentId = GeneratedColumn<String>(
+    'content_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _selectionOrderMeta = const VerificationMeta(
+    'selectionOrder',
+  );
+  @override
+  late final GeneratedColumn<int> selectionOrder = GeneratedColumn<int>(
+    'selection_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _runIdMeta = const VerificationMeta('runId');
+  @override
+  late final GeneratedColumn<String> runId = GeneratedColumn<String>(
+    'run_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_generation_runs (id)',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    kind,
+    contentId,
+    selectionOrder,
+    runId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'language_generation_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LanguageGenerationLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('content_id')) {
+      context.handle(
+        _contentIdMeta,
+        contentId.isAcceptableOrUnknown(data['content_id']!, _contentIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentIdMeta);
+    }
+    if (data.containsKey('selection_order')) {
+      context.handle(
+        _selectionOrderMeta,
+        selectionOrder.isAcceptableOrUnknown(
+          data['selection_order']!,
+          _selectionOrderMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_selectionOrderMeta);
+    }
+    if (data.containsKey('run_id')) {
+      context.handle(
+        _runIdMeta,
+        runId.isAcceptableOrUnknown(data['run_id']!, _runIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_runIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, contentId, runId};
+  @override
+  LanguageGenerationLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LanguageGenerationLink(
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      contentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_id'],
+      )!,
+      selectionOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}selection_order'],
+      )!,
+      runId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}run_id'],
+      )!,
+    );
+  }
+
+  @override
+  $LanguageGenerationLinksTable createAlias(String alias) {
+    return $LanguageGenerationLinksTable(attachedDatabase, alias);
+  }
+}
+
+class LanguageGenerationLink extends DataClass
+    implements Insertable<LanguageGenerationLink> {
+  final String kind;
+  final String contentId;
+  final int selectionOrder;
+  final String runId;
+  const LanguageGenerationLink({
+    required this.kind,
+    required this.contentId,
+    required this.selectionOrder,
+    required this.runId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['kind'] = Variable<String>(kind);
+    map['content_id'] = Variable<String>(contentId);
+    map['selection_order'] = Variable<int>(selectionOrder);
+    map['run_id'] = Variable<String>(runId);
+    return map;
+  }
+
+  LanguageGenerationLinksCompanion toCompanion(bool nullToAbsent) {
+    return LanguageGenerationLinksCompanion(
+      kind: Value(kind),
+      contentId: Value(contentId),
+      selectionOrder: Value(selectionOrder),
+      runId: Value(runId),
+    );
+  }
+
+  factory LanguageGenerationLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LanguageGenerationLink(
+      kind: serializer.fromJson<String>(json['kind']),
+      contentId: serializer.fromJson<String>(json['contentId']),
+      selectionOrder: serializer.fromJson<int>(json['selectionOrder']),
+      runId: serializer.fromJson<String>(json['runId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(kind),
+      'contentId': serializer.toJson<String>(contentId),
+      'selectionOrder': serializer.toJson<int>(selectionOrder),
+      'runId': serializer.toJson<String>(runId),
+    };
+  }
+
+  LanguageGenerationLink copyWith({
+    String? kind,
+    String? contentId,
+    int? selectionOrder,
+    String? runId,
+  }) => LanguageGenerationLink(
+    kind: kind ?? this.kind,
+    contentId: contentId ?? this.contentId,
+    selectionOrder: selectionOrder ?? this.selectionOrder,
+    runId: runId ?? this.runId,
+  );
+  LanguageGenerationLink copyWithCompanion(
+    LanguageGenerationLinksCompanion data,
+  ) {
+    return LanguageGenerationLink(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      contentId: data.contentId.present ? data.contentId.value : this.contentId,
+      selectionOrder: data.selectionOrder.present
+          ? data.selectionOrder.value
+          : this.selectionOrder,
+      runId: data.runId.present ? data.runId.value : this.runId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageGenerationLink(')
+          ..write('kind: $kind, ')
+          ..write('contentId: $contentId, ')
+          ..write('selectionOrder: $selectionOrder, ')
+          ..write('runId: $runId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, contentId, selectionOrder, runId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LanguageGenerationLink &&
+          other.kind == this.kind &&
+          other.contentId == this.contentId &&
+          other.selectionOrder == this.selectionOrder &&
+          other.runId == this.runId);
+}
+
+class LanguageGenerationLinksCompanion
+    extends UpdateCompanion<LanguageGenerationLink> {
+  final Value<String> kind;
+  final Value<String> contentId;
+  final Value<int> selectionOrder;
+  final Value<String> runId;
+  final Value<int> rowid;
+  const LanguageGenerationLinksCompanion({
+    this.kind = const Value.absent(),
+    this.contentId = const Value.absent(),
+    this.selectionOrder = const Value.absent(),
+    this.runId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LanguageGenerationLinksCompanion.insert({
+    required String kind,
+    required String contentId,
+    required int selectionOrder,
+    required String runId,
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       contentId = Value(contentId),
+       selectionOrder = Value(selectionOrder),
+       runId = Value(runId);
+  static Insertable<LanguageGenerationLink> custom({
+    Expression<String>? kind,
+    Expression<String>? contentId,
+    Expression<int>? selectionOrder,
+    Expression<String>? runId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (contentId != null) 'content_id': contentId,
+      if (selectionOrder != null) 'selection_order': selectionOrder,
+      if (runId != null) 'run_id': runId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LanguageGenerationLinksCompanion copyWith({
+    Value<String>? kind,
+    Value<String>? contentId,
+    Value<int>? selectionOrder,
+    Value<String>? runId,
+    Value<int>? rowid,
+  }) {
+    return LanguageGenerationLinksCompanion(
+      kind: kind ?? this.kind,
+      contentId: contentId ?? this.contentId,
+      selectionOrder: selectionOrder ?? this.selectionOrder,
+      runId: runId ?? this.runId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (contentId.present) {
+      map['content_id'] = Variable<String>(contentId.value);
+    }
+    if (selectionOrder.present) {
+      map['selection_order'] = Variable<int>(selectionOrder.value);
+    }
+    if (runId.present) {
+      map['run_id'] = Variable<String>(runId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LanguageGenerationLinksCompanion(')
+          ..write('kind: $kind, ')
+          ..write('contentId: $contentId, ')
+          ..write('selectionOrder: $selectionOrder, ')
+          ..write('runId: $runId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $LanguageQuickActionsTable extends LanguageQuickActions
     with TableInfo<$LanguageQuickActionsTable, LanguageQuickAction> {
   @override
@@ -29935,6 +32029,20 @@ class $LanguageQuickLookupsTable extends LanguageQuickLookups
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _promptSnapshotIdMeta = const VerificationMeta(
+    'promptSnapshotId',
+  );
+  @override
+  late final GeneratedColumn<String> promptSnapshotId = GeneratedColumn<String>(
+    'prompt_snapshot_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES language_prompt_snapshots (id)',
+    ),
+  );
   static const VerificationMeta _actionRevisionMeta = const VerificationMeta(
     'actionRevision',
   );
@@ -30103,6 +32211,7 @@ class $LanguageQuickLookupsTable extends LanguageQuickLookups
     actionId,
     actionName,
     prompt,
+    promptSnapshotId,
     actionRevision,
     schemaRevision,
     input,
@@ -30159,6 +32268,15 @@ class $LanguageQuickLookupsTable extends LanguageQuickLookups
       );
     } else if (isInserting) {
       context.missing(_promptMeta);
+    }
+    if (data.containsKey('prompt_snapshot_id')) {
+      context.handle(
+        _promptSnapshotIdMeta,
+        promptSnapshotId.isAcceptableOrUnknown(
+          data['prompt_snapshot_id']!,
+          _promptSnapshotIdMeta,
+        ),
+      );
     }
     if (data.containsKey('action_revision')) {
       context.handle(
@@ -30320,6 +32438,10 @@ class $LanguageQuickLookupsTable extends LanguageQuickLookups
         DriftSqlType.string,
         data['${effectivePrefix}prompt'],
       )!,
+      promptSnapshotId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt_snapshot_id'],
+      ),
       actionRevision: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}action_revision'],
@@ -30395,6 +32517,7 @@ class LanguageQuickLookup extends DataClass
   final String actionId;
   final String actionName;
   final String prompt;
+  final String? promptSnapshotId;
   final int actionRevision;
   final int schemaRevision;
   final String input;
@@ -30415,6 +32538,7 @@ class LanguageQuickLookup extends DataClass
     required this.actionId,
     required this.actionName,
     required this.prompt,
+    this.promptSnapshotId,
     required this.actionRevision,
     required this.schemaRevision,
     required this.input,
@@ -30438,6 +32562,9 @@ class LanguageQuickLookup extends DataClass
     map['action_id'] = Variable<String>(actionId);
     map['action_name'] = Variable<String>(actionName);
     map['prompt'] = Variable<String>(prompt);
+    if (!nullToAbsent || promptSnapshotId != null) {
+      map['prompt_snapshot_id'] = Variable<String>(promptSnapshotId);
+    }
     map['action_revision'] = Variable<int>(actionRevision);
     map['schema_revision'] = Variable<int>(schemaRevision);
     map['input'] = Variable<String>(input);
@@ -30462,6 +32589,9 @@ class LanguageQuickLookup extends DataClass
       actionId: Value(actionId),
       actionName: Value(actionName),
       prompt: Value(prompt),
+      promptSnapshotId: promptSnapshotId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptSnapshotId),
       actionRevision: Value(actionRevision),
       schemaRevision: Value(schemaRevision),
       input: Value(input),
@@ -30490,6 +32620,7 @@ class LanguageQuickLookup extends DataClass
       actionId: serializer.fromJson<String>(json['actionId']),
       actionName: serializer.fromJson<String>(json['actionName']),
       prompt: serializer.fromJson<String>(json['prompt']),
+      promptSnapshotId: serializer.fromJson<String?>(json['promptSnapshotId']),
       actionRevision: serializer.fromJson<int>(json['actionRevision']),
       schemaRevision: serializer.fromJson<int>(json['schemaRevision']),
       input: serializer.fromJson<String>(json['input']),
@@ -30515,6 +32646,7 @@ class LanguageQuickLookup extends DataClass
       'actionId': serializer.toJson<String>(actionId),
       'actionName': serializer.toJson<String>(actionName),
       'prompt': serializer.toJson<String>(prompt),
+      'promptSnapshotId': serializer.toJson<String?>(promptSnapshotId),
       'actionRevision': serializer.toJson<int>(actionRevision),
       'schemaRevision': serializer.toJson<int>(schemaRevision),
       'input': serializer.toJson<String>(input),
@@ -30538,6 +32670,7 @@ class LanguageQuickLookup extends DataClass
     String? actionId,
     String? actionName,
     String? prompt,
+    Value<String?> promptSnapshotId = const Value.absent(),
     int? actionRevision,
     int? schemaRevision,
     String? input,
@@ -30558,6 +32691,9 @@ class LanguageQuickLookup extends DataClass
     actionId: actionId ?? this.actionId,
     actionName: actionName ?? this.actionName,
     prompt: prompt ?? this.prompt,
+    promptSnapshotId: promptSnapshotId.present
+        ? promptSnapshotId.value
+        : this.promptSnapshotId,
     actionRevision: actionRevision ?? this.actionRevision,
     schemaRevision: schemaRevision ?? this.schemaRevision,
     input: input ?? this.input,
@@ -30582,6 +32718,9 @@ class LanguageQuickLookup extends DataClass
           ? data.actionName.value
           : this.actionName,
       prompt: data.prompt.present ? data.prompt.value : this.prompt,
+      promptSnapshotId: data.promptSnapshotId.present
+          ? data.promptSnapshotId.value
+          : this.promptSnapshotId,
       actionRevision: data.actionRevision.present
           ? data.actionRevision.value
           : this.actionRevision,
@@ -30619,6 +32758,7 @@ class LanguageQuickLookup extends DataClass
           ..write('actionId: $actionId, ')
           ..write('actionName: $actionName, ')
           ..write('prompt: $prompt, ')
+          ..write('promptSnapshotId: $promptSnapshotId, ')
           ..write('actionRevision: $actionRevision, ')
           ..write('schemaRevision: $schemaRevision, ')
           ..write('input: $input, ')
@@ -30644,6 +32784,7 @@ class LanguageQuickLookup extends DataClass
     actionId,
     actionName,
     prompt,
+    promptSnapshotId,
     actionRevision,
     schemaRevision,
     input,
@@ -30668,6 +32809,7 @@ class LanguageQuickLookup extends DataClass
           other.actionId == this.actionId &&
           other.actionName == this.actionName &&
           other.prompt == this.prompt &&
+          other.promptSnapshotId == this.promptSnapshotId &&
           other.actionRevision == this.actionRevision &&
           other.schemaRevision == this.schemaRevision &&
           other.input == this.input &&
@@ -30691,6 +32833,7 @@ class LanguageQuickLookupsCompanion
   final Value<String> actionId;
   final Value<String> actionName;
   final Value<String> prompt;
+  final Value<String?> promptSnapshotId;
   final Value<int> actionRevision;
   final Value<int> schemaRevision;
   final Value<String> input;
@@ -30712,6 +32855,7 @@ class LanguageQuickLookupsCompanion
     this.actionId = const Value.absent(),
     this.actionName = const Value.absent(),
     this.prompt = const Value.absent(),
+    this.promptSnapshotId = const Value.absent(),
     this.actionRevision = const Value.absent(),
     this.schemaRevision = const Value.absent(),
     this.input = const Value.absent(),
@@ -30734,6 +32878,7 @@ class LanguageQuickLookupsCompanion
     required String actionId,
     required String actionName,
     required String prompt,
+    this.promptSnapshotId = const Value.absent(),
     required int actionRevision,
     required int schemaRevision,
     required String input,
@@ -30774,6 +32919,7 @@ class LanguageQuickLookupsCompanion
     Expression<String>? actionId,
     Expression<String>? actionName,
     Expression<String>? prompt,
+    Expression<String>? promptSnapshotId,
     Expression<int>? actionRevision,
     Expression<int>? schemaRevision,
     Expression<String>? input,
@@ -30796,6 +32942,7 @@ class LanguageQuickLookupsCompanion
       if (actionId != null) 'action_id': actionId,
       if (actionName != null) 'action_name': actionName,
       if (prompt != null) 'prompt': prompt,
+      if (promptSnapshotId != null) 'prompt_snapshot_id': promptSnapshotId,
       if (actionRevision != null) 'action_revision': actionRevision,
       if (schemaRevision != null) 'schema_revision': schemaRevision,
       if (input != null) 'input': input,
@@ -30820,6 +32967,7 @@ class LanguageQuickLookupsCompanion
     Value<String>? actionId,
     Value<String>? actionName,
     Value<String>? prompt,
+    Value<String?>? promptSnapshotId,
     Value<int>? actionRevision,
     Value<int>? schemaRevision,
     Value<String>? input,
@@ -30842,6 +32990,7 @@ class LanguageQuickLookupsCompanion
       actionId: actionId ?? this.actionId,
       actionName: actionName ?? this.actionName,
       prompt: prompt ?? this.prompt,
+      promptSnapshotId: promptSnapshotId ?? this.promptSnapshotId,
       actionRevision: actionRevision ?? this.actionRevision,
       schemaRevision: schemaRevision ?? this.schemaRevision,
       input: input ?? this.input,
@@ -30875,6 +33024,9 @@ class LanguageQuickLookupsCompanion
     }
     if (prompt.present) {
       map['prompt'] = Variable<String>(prompt.value);
+    }
+    if (promptSnapshotId.present) {
+      map['prompt_snapshot_id'] = Variable<String>(promptSnapshotId.value);
     }
     if (actionRevision.present) {
       map['action_revision'] = Variable<int>(actionRevision.value);
@@ -30934,6 +33086,7 @@ class LanguageQuickLookupsCompanion
           ..write('actionId: $actionId, ')
           ..write('actionName: $actionName, ')
           ..write('prompt: $prompt, ')
+          ..write('promptSnapshotId: $promptSnapshotId, ')
           ..write('actionRevision: $actionRevision, ')
           ..write('schemaRevision: $schemaRevision, ')
           ..write('input: $input, ')
@@ -32422,7 +34575,7 @@ class $LearningExamAttemptsTable extends LearningExamAttempts
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-        defaultValue: const Constant('[]'),
+        defaultValue: const Constant("[]"),
       );
   static const VerificationMeta _hintUsedMeta = const VerificationMeta(
     'hintUsed',
@@ -34607,6 +36760,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LearningVocabularyGroupsTable(this);
   late final $LearningGroupItemsTable learningGroupItems =
       $LearningGroupItemsTable(this);
+  late final $LanguageGenerationTasksTable languageGenerationTasks =
+      $LanguageGenerationTasksTable(this);
+  late final $LanguagePromptSnapshotsTable languagePromptSnapshots =
+      $LanguagePromptSnapshotsTable(this);
+  late final $LanguageGenerationRunsTable languageGenerationRuns =
+      $LanguageGenerationRunsTable(this);
   late final $LearningEvidenceTable learningEvidence = $LearningEvidenceTable(
     this,
   );
@@ -34628,6 +36787,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LearningWritingNotesTable(this);
   late final $LearningWritingTasksTable learningWritingTasks =
       $LearningWritingTasksTable(this);
+  late final $LanguageGenerationChoicesTable languageGenerationChoices =
+      $LanguageGenerationChoicesTable(this);
+  late final $LanguageGenerationLinksTable languageGenerationLinks =
+      $LanguageGenerationLinksTable(this);
   late final $LanguageQuickActionsTable languageQuickActions =
       $LanguageQuickActionsTable(this);
   late final $LanguageQuickLookupsTable languageQuickLookups =
@@ -34700,6 +36863,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     learningLexicalForms,
     learningVocabularyGroups,
     learningGroupItems,
+    languageGenerationTasks,
+    languagePromptSnapshots,
+    languageGenerationRuns,
     learningEvidence,
     learningReviewSchedules,
     learningSentenceBatches,
@@ -34710,6 +36876,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     learningWritingEvaluations,
     learningWritingNotes,
     learningWritingTasks,
+    languageGenerationChoices,
+    languageGenerationLinks,
     languageQuickActions,
     languageQuickLookups,
     languageQuickLearningLinks,

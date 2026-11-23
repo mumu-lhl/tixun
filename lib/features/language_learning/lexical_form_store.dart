@@ -4,6 +4,7 @@ import "package:uuid/uuid.dart";
 import "../../core/database/database.dart";
 import "language_store.dart";
 import "lexical_form.dart";
+import "generation_store.dart";
 
 typedef FormPractice = ({
   LearningLexicalForm form,
@@ -80,6 +81,11 @@ extension LexicalFormStore on LanguageLearningStore {
           LearningEvidenceCompanion.insert(
             id: attemptId,
             senseId: exercise.sense.id,
+            generationRunId: Value(
+              (await LanguageGenerationStore(
+                db,
+              ).currentContentRun("vocabulary", exercise.sense.id))?.id,
+            ),
             formId: Value(exercise.form.id),
             skill: production
                 ? LexicalFormDraft.productionSkill
@@ -111,6 +117,11 @@ extension LexicalFormStore on LanguageLearningStore {
           LearningEvidenceCompanion.insert(
             id: attemptId ?? const Uuid().v4(),
             senseId: card.sense.id,
+            generationRunId: Value(
+              (await LanguageGenerationStore(
+                db,
+              ).currentContentRun("vocabulary", card.sense.id))?.id,
+            ),
             skill: "meaningRecognition",
             answer: Value(answer),
             correct: Value(correct),

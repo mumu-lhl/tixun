@@ -28,6 +28,8 @@ class LanguageQuickLookups extends Table {
   TextColumn get actionId => text().references(LanguageQuickActions, #id)();
   TextColumn get actionName => text()();
   TextColumn get prompt => text()();
+  TextColumn get promptSnapshotId =>
+      text().nullable().references(LanguagePromptSnapshots, #id)();
   IntColumn get actionRevision => integer()();
   IntColumn get schemaRevision => integer()();
   TextColumn get input => text()();

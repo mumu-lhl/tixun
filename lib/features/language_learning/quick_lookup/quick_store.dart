@@ -1,3 +1,6 @@
+import "dart:convert";
+
+import "package:crypto/crypto.dart";
 import "package:dio/dio.dart";
 import "package:drift/drift.dart";
 import "package:uuid/uuid.dart";
@@ -139,19 +142,34 @@ extension QuickLookupStore on LanguageLearningStore {
     };
   }
 
-  Future<LanguageQuickLookup?> quickLookup(String id) => (db.select(
-    db.languageQuickLookups,
-  )..where((row) => row.id.equals(id))).getSingleOrNull();
+  Future<LanguageQuickLookup?> _withPromptSnapshot(
+    LanguageQuickLookup? row,
+  ) async {
+    if (row == null || row.promptSnapshotId == null) return row;
+    final prompt = await (db.select(
+      db.languagePromptSnapshots,
+    )..where((p) => p.id.equals(row.promptSnapshotId!))).getSingle();
+    return row.copyWith(prompt: prompt.content);
+  }
 
-  Future<LanguageQuickLookup?> cachedQuickLookup(String key) =>
-      (db.select(db.languageQuickLookups)
-            ..where((row) => row.cacheKey.equals(key))
-            ..orderBy([
-              (row) => OrderingTerm.desc(row.createdAt),
-              (row) => OrderingTerm.desc(row.rowId),
-            ])
-            ..limit(1))
-          .getSingleOrNull();
+  Future<LanguageQuickLookup?> quickLookup(String id) async =>
+      _withPromptSnapshot(
+        await (db.select(
+          db.languageQuickLookups,
+        )..where((row) => row.id.equals(id))).getSingleOrNull(),
+      );
+
+  Future<LanguageQuickLookup?> cachedQuickLookup(String key) async =>
+      _withPromptSnapshot(
+        await (db.select(db.languageQuickLookups)
+              ..where((row) => row.cacheKey.equals(key))
+              ..orderBy([
+                (row) => OrderingTerm.desc(row.createdAt),
+                (row) => OrderingTerm.desc(row.rowId),
+              ])
+              ..limit(1))
+            .getSingleOrNull(),
+      );
 
   Future<LanguageQuickLookup> saveQuickLookup(
     QuickQuery query,
@@ -163,6 +181,16 @@ extension QuickLookupStore on LanguageLearningStore {
     () => db.transaction(() async {
       cancel?.checkCancelled();
       final id = const Uuid().v4();
+      final promptId = sha256.convert(utf8.encode(query.prompt)).toString();
+      await db
+          .into(db.languagePromptSnapshots)
+          .insert(
+            LanguagePromptSnapshotsCompanion.insert(
+              id: promptId,
+              content: query.prompt,
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
       final row = await db
           .into(db.languageQuickLookups)
           .insertReturning(
@@ -172,7 +200,8 @@ extension QuickLookupStore on LanguageLearningStore {
               actionName: query.actionName,
               actionRevision: query.actionRevision,
               schemaRevision: quickSchemaRevision,
-              prompt: query.prompt,
+              prompt: "",
+              promptSnapshotId: Value(promptId),
               input: query.input,
               sourceLanguage: query.sourceLanguage,
               targetLanguage: query.targetLanguage,
@@ -189,7 +218,7 @@ extension QuickLookupStore on LanguageLearningStore {
             ),
           );
       cancel?.checkCancelled();
-      return row;
+      return row.copyWith(prompt: query.prompt);
     }),
   );
 

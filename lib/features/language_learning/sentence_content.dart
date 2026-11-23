@@ -7,6 +7,7 @@ enum SentenceTopic { travel, dailyLife }
 enum SentenceLevel { beginner, intermediate }
 
 enum SentenceSkill {
+  meaningInContext,
   detail,
   sequence,
   condition,

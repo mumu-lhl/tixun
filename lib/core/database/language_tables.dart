@@ -94,6 +94,8 @@ class LearningGroupItems extends Table {
 
 class LearningEvidence extends Table {
   TextColumn get id => text()();
+  TextColumn get generationRunId =>
+      text().nullable().references(LanguageGenerationRuns, #id)();
   TextColumn get senseId => text().references(
     LearningLexicalSenses,
     #id,

@@ -1,22 +1,23 @@
 import "dart:convert";
 
 import "package:dio/dio.dart";
-import "package:uuid/uuid.dart";
 
 import "../../core/ai/ai_usage_store.dart";
 import "../../core/ai/chat_provider.dart";
 import "../../core/ai/prompt_settings.dart";
 import "../../core/database/database.dart";
-import "language_stream.dart";
+import "language_json_request.dart";
+import "generation_store.dart";
 import "language_store.dart";
 import "writing_feedback.dart";
 import "writing_store.dart";
+import "generation_provider.dart";
 
 class WritingAi {
   const WritingAi({
     required this.store,
     required this.provider,
-    required this.config,
+    required this._config,
     this.usageStore,
     this.prompts,
     required this.task,
@@ -24,7 +25,8 @@ class WritingAi {
 
   final LanguageLearningStore store;
   final ChatProvider provider;
-  final ProviderConfig config;
+  final ProviderConfig _config;
+  ProviderConfig get config => languageConfiguration(provider, _config);
   final AiUsageStore? usageStore;
   final PromptSettings? prompts;
   final WritingTask task;
@@ -34,14 +36,41 @@ class WritingAi {
     required String text,
     required String glossLanguage,
     required CancelToken cancel,
+    bool regenerate = false,
   }) async {
     cancel.checkCancelled();
-    final version = await store.snapshotWriting(text, taskId: task.id);
+    final previousVersion = await store.snapshotWriting(text, taskId: task.id);
     cancel.checkCancelled();
     final isMock = provider is MockChatProvider;
-    final existing = await store.writingFeedback(version);
+    final existing = await store.writingFeedback(previousVersion);
     cancel.checkCancelled();
-    if (existing != null && (!existing.isMock || isMock)) return version;
+    if (!regenerate && existing != null && (!existing.isMock || isMock)) {
+      return previousVersion;
+    }
+    final oldNotes = existing == null
+        ? const <LearningWritingNote>[]
+        : await store.writingNotes(previousVersion);
+    final original = existing == null
+        ? null
+        : GenerationOriginal(
+            output: jsonEncode({
+              "task": existing.taskScore,
+              "organization": existing.organizationScore,
+              "language": existing.languageScore,
+              "summary": existing.summary,
+              "notes": [
+                for (final n in oldNotes)
+                  {
+                    "quote": text.substring(n.startOffset, n.endOffset),
+                    "kind": n.kind,
+                    "comment": n.comment,
+                  },
+              ],
+            }),
+            model: existing.model,
+            kind: "writing_feedback",
+            contentId: previousVersion,
+          );
 
     final request = AiRequest(
       instructions: LanguagePrompt.writingFeedback.instructions(prompts),
@@ -57,93 +86,52 @@ class WritingAi {
         ),
       ],
     );
-    final started = DateTime.now();
-    final body = StringBuffer();
-    final reasoning = StringBuffer();
-    AiTokenUsage? usage;
-    var completed = false;
-    var status = "error";
-    var breakdownComplete = true;
-    final model = isMock ? "Mock" : config.model;
-    try {
-      final stream = isMock
-          ? Stream.value(
-              AiChunk(
-                completed: true,
-                text: jsonEncode({
-                  "task": 2,
-                  "organization": 2,
-                  "language": 2,
-                  "summary": glossLanguage == "zh"
-                      ? "这是演示反馈，未评估你的作文。请自行检查作文是否满足所有任务要求。"
-                      : "This is demo feedback, not an assessment. Check whether "
-                            "your draft addresses every part of the task.",
-                  "notes": [],
-                }),
-              ),
-            )
-          : boundedLanguageStream(
-              (transport) =>
-                  provider.start(config).complete(request, transport),
-              cancel,
-            );
-      await for (final chunk in stream) {
-        cancel.checkCancelled();
-        usage = chunk.usage ?? usage;
-        if (chunk.calls.isNotEmpty ||
-            (completed &&
-                (chunk.text.isNotEmpty || chunk.reasoning.isNotEmpty)) ||
-            body.length + chunk.text.length > 8500) {
-          throw const FormatException("Invalid writing feedback reply");
-        }
-        completed |= chunk.completed;
-        body.write(chunk.text);
-        breakdownComplete &= reasoning.length + chunk.reasoning.length <= 32000;
-        if (breakdownComplete) reasoning.write(chunk.reasoning);
-      }
-      cancel.checkCancelled();
-      if (!completed) {
-        status = "incomplete";
-        throw const FormatException("Incomplete writing feedback reply");
-      }
-      final feedback = WritingFeedback.parse(body.toString(), text);
-      await store.saveWritingFeedback(
-        versionId: version,
-        feedback: feedback,
-        model: model,
-        promptVersion: _promptVersion,
-        isMock: isMock,
-        cancel: cancel,
-      );
-      status = "complete";
-      return version;
-    } on DioException catch (error) {
-      if (CancelToken.isCancel(error)) status = "cancelled";
-      rethrow;
-    } finally {
-      final recorder = usageStore;
-      if (!isMock && recorder != null) {
-        try {
-          await recorder.record(
-            AiUsageCapture(
-              actionId: const Uuid().v4(),
-              providerKind: config.kind,
-              endpoint: config.baseUrl,
-              model: model,
-              feature: "language_writing",
-              status: cancel.isCancelled ? "cancelled" : status,
-              occurredAt: started,
-              durationMs: DateTime.now().difference(started).inMilliseconds,
-              usage: usage,
-            ),
-            request: breakdownComplete ? request : null,
-            response: body.toString(),
-            reasoning: reasoning.toString(),
+    LanguageGenerationRun? generation;
+    final feedback = isMock
+        ? WritingFeedback.parse(
+            jsonEncode({
+              "task": 2,
+              "organization": 2,
+              "language": 2,
+              "summary": glossLanguage == "zh"
+                  ? "这是演示反馈，未评估你的作文。请自行检查作文是否满足所有任务要求。"
+                  : "This is demo feedback, not an assessment. Check whether your draft addresses every part of the task.",
+              "notes": [],
+            }),
+            text,
+          )
+        : await requestLanguageText(
+            provider: provider,
+            config: config,
+            usageStore: usageStore,
+            feature: "language_writing",
+            original: original,
+            request: request,
+            cancel: cancel,
+            maxChars: 8500,
+            outputFormat: "json",
+            onCaptured: (run) => generation = run,
+            parse: (raw) => WritingFeedback.parse(raw, text),
           );
-        } catch (_) {
-          // Usage accounting must not obscure an evaluation result.
-        }
-      }
+    cancel.checkCancelled();
+    final linked = await LanguageGenerationStore(store.db)
+        .linkedContent("writing_feedback", generation?.id);
+    if (linked != null && await store.writingFeedback(linked) != null) {
+      return linked;
     }
+    final version = regenerate
+        ? await store.snapshotWriting(text, taskId: task.id, forceNew: true)
+        : previousVersion;
+    await store.saveWritingFeedback(
+      versionId: version,
+      feedback: feedback,
+      model: isMock ? "Mock" : (generation?.model ?? config.model),
+      promptVersion: _promptVersion,
+      isMock: isMock,
+      cancel: cancel,
+    );
+    await LanguageGenerationStore(store.db)
+        .link("writing_feedback", version, generation?.id);
+    return version;
   }
 }

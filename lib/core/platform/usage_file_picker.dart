@@ -8,11 +8,16 @@ import "package:path_provider/path_provider.dart";
 class UsageFilePicker {
   static const _channel = MethodChannel("org.tixun/backup_files");
 
-  static Future<bool> save(String contents, {required String extension}) async {
+  static Future<bool> save(
+    String contents, {
+    required String extension,
+    String namePrefix = "tixun-ai-usage",
+    String label = "AI usage",
+  }) async {
     if (!{"csv", "jsonl"}.contains(extension)) {
       throw ArgumentError.value(extension, "extension");
     }
-    final name = "tixun-ai-usage.$extension";
+    final name = "$namePrefix.$extension";
     if (Platform.isAndroid) {
       final cache = await getTemporaryDirectory();
       final source = File(p.join(cache.path, name));
@@ -34,7 +39,7 @@ class UsageFilePicker {
       suggestedName: name,
       acceptedTypeGroups: [
         XTypeGroup(
-          label: "AI usage",
+          label: label,
           extensions: [extension],
           mimeTypes: [extension == "csv" ? "text/csv" : "application/json"],
         ),

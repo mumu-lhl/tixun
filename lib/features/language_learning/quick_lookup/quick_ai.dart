@@ -9,6 +9,7 @@ import "../../../core/database/database.dart";
 import "../language_json_request.dart";
 import "../language_store.dart";
 import "quick_models.dart";
+import "../generation_store.dart";
 import "quick_store.dart";
 
 class QuickLookupAi {
@@ -26,6 +27,7 @@ class QuickLookupAi {
     QuickQuery query,
     CancelToken cancel, {
     bool regenerate = false,
+    LanguageQuickLookup? original,
   }) async {
     final task = compileQuickPrompt(query.prompt);
     if (query.input.trim().isEmpty ||
@@ -67,6 +69,7 @@ class QuickLookupAi {
         instructions: "$_instructions\n\nTask instructions:\n$task",
         messages: [AiMessage.user(jsonEncode(query.data))],
       );
+      LanguageGenerationRun? generation;
       final answer = provider is MockChatProvider
           ? _mockAnswer(query.glossLanguage)
           : await requestLanguageJson(
@@ -74,6 +77,20 @@ class QuickLookupAi {
               config: config,
               usageStore: usageStore,
               feature: "language_quick_lookup",
+              original: original == null
+                  ? null
+                  : GenerationOriginal(
+                      output: jsonEncode({
+                        "summary": original.summary,
+                        "content": original.content,
+                        ...jsonDecode(original.candidates)
+                            as Map<String, dynamic>,
+                      }),
+                      model: original.model,
+                      kind: "quick_lookup",
+                      contentId: original.id,
+                    ),
+              onCaptured: (run) => generation = run,
               request: request,
               cancel: cancel,
               maxChars: 26000,
@@ -82,15 +99,26 @@ class QuickLookupAi {
               captureLocalBreakdown: false,
             );
       cancel.checkCancelled();
-      return await store.saveQuickLookup(
+      final saved = await store.saveQuickLookup(
         query,
         answer,
         config: provider is MockChatProvider
             ? config.copyWith(kind: "mock", model: "Mock")
-            : config,
+            : generation == null
+            ? config
+            : config.copyWith(
+                kind: generation!.provider,
+                baseUrl: generation!.endpoint,
+                model: generation!.model,
+                thinking: generation!.thinking,
+                effort: generation!.effort,
+              ),
         key: cacheKey,
         cancel: cancel,
       );
+      await LanguageGenerationStore(store.db)
+          .link("quick_lookup", saved.id, generation?.id);
+      return saved;
     } finally {
       _active[store.db] = null;
     }

@@ -39,6 +39,7 @@ class SentenceBatchDialog extends StatefulWidget {
     this.suggestedCount,
     this.exclusions = const [],
     this.reused = const [],
+    this.contextVocabulary = const [],
   });
 
   final LanguageLearningStore store;
@@ -51,6 +52,7 @@ class SentenceBatchDialog extends StatefulWidget {
   final int? suggestedCount;
   final List<String> exclusions;
   final List<SentenceCard> reused;
+  final List<LanguageCard> contextVocabulary;
 
   @override
   State<SentenceBatchDialog> createState() => _SentenceBatchDialogState();
@@ -80,6 +82,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
     try {
       final proposal = await widget.ai.propose(
         topic: widget.topic,
+        vocabulary: widget.contextVocabulary,
         style: widget.style,
         level: widget.level,
         glossLanguage: widget.glossLanguage,
@@ -94,6 +97,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
       if (!mounted || cancel.isCancelled) return;
       setState(() {
         _proposal = proposal;
+        _selected.clear();
         _selected.addAll(proposal.cards.map((card) => card.id));
       });
     } catch (error) {
@@ -199,7 +203,11 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                 for (final card in proposal.cards)
                   CheckboxListTile(
                     title: Text(card.text),
-                    subtitle: Text("${card.hint}\n${card.translation}"),
+                    subtitle: Text(
+                      widget.focus == SentenceSkill.meaningInContext
+                          ? card.question
+                          : "${card.hint}\n${card.translation}",
+                    ),
                     value: _selected.contains(card.id),
                     onChanged: _saving
                         ? null
@@ -240,13 +248,18 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                   : _generate,
               child: Text(l10n.languageSentenceGenerateAction),
             )
-          else
+          else ...[
+            TextButton(
+              onPressed: _pending != null || _saving ? null : _generate,
+              child: Text(l10n.regenerate),
+            ),
             FilledButton(
               onPressed: _saving || _selected.isEmpty
                   ? null
                   : () => _save(proposal),
               child: Text(l10n.languageSentenceSaveAndStart),
             ),
+          ],
         ],
       ),
     );
@@ -255,9 +268,19 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
 
 Future<SentenceBatch?> chooseSavedSentenceBatch(
   BuildContext context,
-  LanguageLearningStore store,
-) {
-  final batches = store.savedSentenceBatches();
+  LanguageLearningStore store, {
+  bool contextUnderstanding = false,
+}) {
+  final batches = store.savedSentenceBatches().then(
+    (rows) => contextUnderstanding
+        ? rows
+              .where(
+                (r) => openSavedSentenceBatch(r).cards
+                    .every((c) => c.skill == SentenceSkill.meaningInContext),
+              )
+              .toList()
+        : rows,
+  );
   return showDialog<SentenceBatch>(
     context: context,
     builder: (context) {

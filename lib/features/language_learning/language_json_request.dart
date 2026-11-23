@@ -7,6 +7,8 @@ import "../../core/ai/ai_usage_store.dart";
 import "../../core/ai/chat_provider.dart";
 import "../../core/database/database.dart";
 import "language_stream.dart";
+import "generation_store.dart";
+import "generation_provider.dart";
 
 Object? decodeLanguageJson(String raw) {
   final trimmed = raw.trim();
@@ -18,18 +20,27 @@ Object? decodeLanguageJson(String raw) {
 }
 
 /// Run one bounded direct request. The feature owns schema validation and storage.
-Future<T> requestLanguageJson<T>({
+Future<T> requestLanguageText<T>({
   required ChatProvider provider,
   required ProviderConfig config,
   required AiUsageStore? usageStore,
   required String feature,
   required AiRequest request,
   required CancelToken cancel,
-  required T Function(Object?) parse,
+  required T Function(String) parse,
+  String outputFormat = "markdown",
+  void Function(LanguageGenerationRun)? onCaptured,
+  GenerationOriginal? original,
   int maxChars = 28000,
   String cancelledStatus = "cancelled",
   bool captureLocalBreakdown = true,
 }) async {
+  final session = provider is LanguageGenerationProvider ? provider : null;
+  config = session?.configuration() ?? config;
+  request = session?.prepare(feature, request) ?? request;
+  final history =
+      session?.history ??
+      (usageStore == null ? null : LanguageGenerationStore(usageStore.db));
   cancel.checkCancelled();
   final started = DateTime.now();
   final body = StringBuffer(), reasoning = StringBuffer();
@@ -59,7 +70,24 @@ Future<T> requestLanguageJson<T>({
       status = "incomplete";
       throw const FormatException("Language generation reply was interrupted");
     }
-    final value = parse(decodeLanguageJson(body.toString()));
+    final raw = body.toString();
+    final value = parse(raw);
+    if (history != null) {
+      final chosen = await history.capture(
+        feature: feature,
+        request: request,
+        config: config,
+        output: raw,
+        format: outputFormat,
+        cancel: cancel,
+        compare: session?.compare,
+        original: original,
+      );
+      cancel.checkCancelled();
+      onCaptured?.call(chosen);
+      status = "complete";
+      return chosen.output == raw ? value : parse(chosen.output);
+    }
     status = "complete";
     return value;
   } on DioException catch (error) {
@@ -90,3 +118,32 @@ Future<T> requestLanguageJson<T>({
     }
   }
 }
+
+Future<T> requestLanguageJson<T>({
+  required ChatProvider provider,
+  required ProviderConfig config,
+  required AiUsageStore? usageStore,
+  required String feature,
+  required AiRequest request,
+  required CancelToken cancel,
+  required T Function(Object?) parse,
+  int maxChars = 28000,
+  String cancelledStatus = "cancelled",
+  bool captureLocalBreakdown = true,
+  void Function(LanguageGenerationRun)? onCaptured,
+  GenerationOriginal? original,
+}) => requestLanguageText(
+  provider: provider,
+  config: config,
+  usageStore: usageStore,
+  feature: feature,
+  request: request,
+  cancel: cancel,
+  parse: (raw) => parse(decodeLanguageJson(raw)),
+  maxChars: maxChars,
+  cancelledStatus: cancelledStatus,
+  captureLocalBreakdown: captureLocalBreakdown,
+  outputFormat: "json",
+  onCaptured: onCaptured,
+  original: original,
+);
