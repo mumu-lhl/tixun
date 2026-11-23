@@ -186,34 +186,46 @@ class _AppSelectFieldState<T> extends State<AppSelectField<T>> {
                       ),
                       child: _row(label, textStyle, enabled, colors),
                     )
-                  : InputDecorator(
-                      // The placeholder is already rendered as the child, so
-                      // the decorator must leave it room below the label.
-                      isFocused: open,
-                      decoration: widget.decoration
-                          .copyWith(
-                            enabled: enabled,
-                            suffixIcon: AnimatedRotation(
-                              turns: open ? .5 : 0,
-                              duration: MediaQuery.disableAnimationsOf(context)
-                                  ? Duration.zero
-                                  : const Duration(milliseconds: 180),
-                              curve: Curves.easeOutCubic,
-                              child: const Icon(Icons.expand_more_rounded),
+                  : Padding(
+                      // Outlined floating labels paint above the border. Reserve
+                      // that space when an expanding or scrolling parent clips.
+                      padding: EdgeInsets.only(
+                        top:
+                            widget.decoration.labelText != null ||
+                                widget.decoration.label != null
+                            ? MediaQuery.textScalerOf(context).scale(8)
+                            : 0,
+                      ),
+                      child: InputDecorator(
+                        // The placeholder is already rendered as the child, so
+                        // the decorator must leave it room below the label.
+                        isFocused: open,
+                        decoration: widget.decoration
+                            .copyWith(
+                              enabled: enabled,
+                              suffixIcon: AnimatedRotation(
+                                turns: open ? .5 : 0,
+                                duration:
+                                    MediaQuery.disableAnimationsOf(context)
+                                    ? Duration.zero
+                                    : const Duration(milliseconds: 180),
+                                curve: Curves.easeOutCubic,
+                                child: const Icon(Icons.expand_more_rounded),
+                              ),
+                            )
+                            .applyDefaults(
+                              Theme.of(context).inputDecorationTheme,
                             ),
-                          )
-                          .applyDefaults(
-                            Theme.of(context).inputDecorationTheme,
+                        child: DefaultTextStyle(
+                          style: textStyle.copyWith(
+                            color: enabled
+                                ? colors.onSurface
+                                : colors.onSurfaceVariant,
                           ),
-                      child: DefaultTextStyle(
-                        style: textStyle.copyWith(
-                          color: enabled
-                              ? colors.onSurface
-                              : colors.onSurfaceVariant,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          child: label,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        child: label,
                       ),
                     ),
             ),
