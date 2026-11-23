@@ -77,7 +77,7 @@ dart run drift_dev schema generate test/fixtures test/generated_migrations
 
 ## 持续集成
 
-普通 push / PR 执行静态分析、完整 Flutter 测试、Android Debug APK、Linux 正式构建、GUI 启动冒烟和完整 Native GUI 回归，并上传程序、截图与日志。手动及复用工作流默认开启 `full_gui`；手动取消该选项可只跑冒烟，`run_tests=false` 则显式跳过单元测试及完整 GUI 回归；Nightly 还通过 `run_gui=false` 跳过 GUI 启动冒烟。依赖的静态分析/测试 job 失败时，构建与 GUI job 会被跳过，需先查看前置失败日志。二十三个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 执行，CI 分成三个并行 job，各 job 内顺序执行；每个测试有独立日志、240 秒超时，单个 job 在首个失败时停止。脚本默认本地顺序运行全部测试，也可使用 `TIXUN_GUI_SHARD_COUNT` 和从 0 开始的 `TIXUN_GUI_SHARD_INDEX` 选择分片。其中 9 个是 Visual 集成测试（`visual_flow`、`visual_player_flow`、`visual_drag_flow`、`visual_quiz_flow`、`assessment_flow`、`visual_circuit_flow`、`visual_chem_geo_flow`、`visual_constraints_flow`、`visual_drag_answer_flow`）。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
+普通 push / PR 执行静态分析、完整 Flutter 测试、Android Debug APK、Linux 正式构建、GUI 启动冒烟和完整 Native GUI 回归，并上传程序、截图与日志。手动及复用工作流默认开启 `full_gui`；手动取消该选项可只跑冒烟，`run_tests=false` 则显式跳过单元测试及完整 GUI 回归；`run_checks=false` 跳过整个格式、分析及自动检查 job。检查、Android、Linux 和 GUI job 并行执行，检查失败仍会使普通 CI 失败，但不阻塞构建。Release 和 Nightly 设置 `run_checks=false`、`run_tests=false`、`run_gui=false`，只运行正式构建及产物校验，不重复 push 的检查，也不等待 push 检查完成。二十三个 GUI 测试入口由 [scripts/gui_tests.sh](scripts/gui_tests.sh) 执行，CI 分成三个并行 job，各 job 内顺序执行；每个测试有独立日志、240 秒超时，单个 job 在首个失败时停止。脚本默认本地顺序运行全部测试，也可使用 `TIXUN_GUI_SHARD_COUNT` 和从 0 开始的 `TIXUN_GUI_SHARD_INDEX` 选择分片。其中 9 个是 Visual 集成测试（`visual_flow`、`visual_player_flow`、`visual_drag_flow`、`visual_quiz_flow`、`assessment_flow`、`visual_circuit_flow`、`visual_chem_geo_flow`、`visual_constraints_flow`、`visual_drag_answer_flow`）。纯文档修改不触发完整构建。CI 还接受 `nightly_tag` 输入（字符串，默认空），仅 Nightly 传入，用于将标签写入构建。
 
 ### 聊天 A2UI Express
 
@@ -102,7 +102,7 @@ flutter test -j 4 test/features/a2ui \
 
 ## 按版本标签发布
 
-推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用 CI 运行静态分析、单元测试及正式构建（不运行 GUI 冒烟或 GUI 回归），最后将 Android Release APK（Universal 与三个 ABI）、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
+推送 `v` 开头的版本标签会运行 [Publish release](.github/workflows/release.yml)：先校验版本，再复用 CI 运行正式构建和签名、产物校验（不重复格式、分析、单元测试或 GUI 检查），最后将 Android Release APK（Universal 与三个 ABI）、Linux x86_64 压缩包和 `SHA256SUMS` 发布到 GitHub Releases。无需额外配置发布 Token。
 
 例如，发布下一个版本（先更新并提交版本号）：
 

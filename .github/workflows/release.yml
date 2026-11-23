@@ -37,7 +37,9 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       android_release: true
+      run_checks: false
       run_gui: false
+      run_tests: false
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

@@ -15,6 +15,10 @@ on:
         description: Run the complete native GUI regression suite
         type: boolean
         default: true
+      run_checks:
+        description: Run formatting, analysis, and automated checks
+        type: boolean
+        default: true
       run_tests:
         description: Run unit and GUI test suites
         type: boolean
@@ -44,6 +48,10 @@ on:
         default: true
       run_gui:
         description: Run Linux GUI smoke and regression tests
+        type: boolean
+        default: true
+      run_checks:
+        description: Run formatting, analysis, and automated checks
         type: boolean
         default: true
       run_tests:
@@ -79,6 +87,7 @@ env:
 jobs:
   checks:
     name: Analyze and test
+    if: format('{0}', inputs.run_checks) != 'false'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -118,7 +127,6 @@ jobs:
     name: ${{ inputs.android_release && 'Android Release APK and signature' || 'Android Debug APK' }}
     outputs:
       artifact_name: ${{ steps.artifact.outputs.artifact_name }}
-    needs: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -211,7 +219,6 @@ jobs:
     outputs:
       artifact_name: ${{ steps.artifact.outputs.artifact_name }}
       release_suffix: ${{ steps.artifact.outputs.release_suffix }}
-    needs: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -275,7 +282,6 @@ jobs:
 
   gui:
     name: Native GUI regressions (${{ matrix.display }}/3)
-    needs: checks
     if: format('{0}', inputs.run_gui) != 'false' && (github.event_name == 'push' || github.event_name == 'pull_request' || inputs.full_gui) && format('{0}', inputs.run_tests) != 'false'
     strategy:
       fail-fast: false

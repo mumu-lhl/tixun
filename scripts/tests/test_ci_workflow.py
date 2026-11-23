@@ -1,4 +1,4 @@
-"""Guard when the reusable CI actually runs native GUI regressions."""
+"""Guard reusable CI check, publication, and native GUI policies."""
 from pathlib import Path
 import re
 from types import SimpleNamespace
@@ -7,7 +7,7 @@ import unittest
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml"
 
 
-class NativeGuiPolicyTests(unittest.TestCase):
+class WorkflowPolicyTests(unittest.TestCase):
     def test_manual_and_reusable_workflows_default_to_full_gui(self):
         source = WORKFLOW.read_text()
         defaults = re.findall(
@@ -41,6 +41,28 @@ class NativeGuiPolicyTests(unittest.TestCase):
         self.assertFalse(enabled("push", True, True, False))
         self.assertFalse(enabled("workflow_dispatch", True, True, False))
 
+    def test_checks_default_on_and_only_skip_when_explicitly_disabled(self):
+        source = WORKFLOW.read_text()
+        defaults = re.findall(
+            r"      run_checks:\n(?:        [^\n]*\n)*?        default: (true|false)", source,
+        )
+        self.assertEqual(defaults, ['true', 'true'])
+        condition = re.search(r"  checks:\n(?:.*\n)*?    if: ([^\n]+)", source).group(1)
+        for value, expected in [(None, True), (True, True), (False, False)]:
+            with self.subTest(run_checks=value):
+                actual = eval(condition, {'__builtins__': {}}, {
+                    'inputs': SimpleNamespace(run_checks=value),
+                    'format': lambda _, item: str(item).lower() if item is not None else '',
+                })
+                self.assertEqual(actual, expected)
+
+    def test_native_jobs_start_without_waiting_for_checks(self):
+        source = WORKFLOW.read_text()
+        for job in ('android', 'linux', 'gui'):
+            with self.subTest(job=job):
+                body = re.search(rf'^  {job}:\n(.*?)(?=^  [\w-]+:\n|\Z)', source, re.M | re.S).group(1)
+                self.assertNotRegex(body, r'(?m)^    needs:')
+
     def test_gui_display_is_one_based_without_changing_shard_indices(self):
         source = WORKFLOW.read_text()
         self.assertIn('name: Native GUI regressions (${{ matrix.display }}/3)', source)
@@ -49,15 +71,13 @@ class NativeGuiPolicyTests(unittest.TestCase):
         self.assertIn('TIXUN_GUI_SHARD_INDEX: ${{ matrix.shard }}', source)
         self.assertIn('name: tixun-linux-gui-regressions-${{ matrix.shard }}', source)
 
-    def test_release_skips_all_gui_steps_but_keeps_unit_tests(self):
-        release = (WORKFLOW.parent / 'release.yml').read_text()
-        inputs = re.search(r'    with:\n(.*?)    secrets:', release, re.S).group(1)
-        self.assertIn('run_gui: false', inputs)
-        self.assertNotIn('run_tests:', inputs)
-        nightly = (WORKFLOW.parent / 'nightly.yml').read_text()
-        nightly_inputs = re.search(r'    with:\n(.*?)    secrets:', nightly, re.S).group(1)
-        self.assertIn('run_gui: false', nightly_inputs)
-        self.assertIn('run_tests: false', nightly_inputs)
+    def test_publications_skip_repeated_checks_and_tests(self):
+        for filename in ('release.yml', 'nightly.yml'):
+            with self.subTest(workflow=filename):
+                publication = (WORKFLOW.parent / filename).read_text()
+                inputs = re.search(r'    with:\n(.*?)    secrets:', publication, re.S).group(1)
+                for option in ('run_checks', 'run_tests', 'run_gui'):
+                    self.assertIn(f'{option}: false', inputs)
         source = WORKFLOW.read_text()
         self.assertRegex(source, r"- name: Verify bubblewrap user namespaces\n\s+if: format\('\{0\}', inputs.run_gui\) != 'false'")
         self.assertIn("TIXUN_GUI_SHARD_COUNT: '3'", source)
