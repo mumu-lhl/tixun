@@ -5132,6 +5132,15 @@
           "sql": "CREATE TABLE IF NOT EXISTS \"visual_study_links\" (\"visual_id\" TEXT NOT NULL REFERENCES visual_scenes (id) ON DELETE CASCADE, \"knowledge_id\" TEXT NULL REFERENCES knowledge_items (id) ON DELETE CASCADE, \"mistake_id\" TEXT NULL REFERENCES mistakes (id) ON DELETE CASCADE, PRIMARY KEY (\"visual_id\", \"knowledge_id\", \"mistake_id\"), CHECK ((knowledge_id IS NULL) <> (mistake_id IS NULL)));"
         }
       ]
+    },
+    {
+      "name": "timeline_events",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE \"timeline_events\" (\"id\" TEXT NOT NULL, \"title\" TEXT NOT NULL, \"start_date\" INTEGER NOT NULL, \"end_date\" INTEGER NULL, \"notes\" TEXT NOT NULL DEFAULT (''), \"updated_at\" INTEGER NOT NULL, PRIMARY KEY (\"id\"))"
+        }
+      ]
     }
   ]
 }

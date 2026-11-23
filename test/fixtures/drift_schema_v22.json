@@ -6659,6 +6659,24 @@
           "sql": "CREATE TABLE IF NOT EXISTS \"learning_sentence_batches\" (\"id\" TEXT NOT NULL, \"language\" TEXT NOT NULL, \"topic\" TEXT NOT NULL, \"style\" TEXT NOT NULL, \"gloss_language\" TEXT NOT NULL, \"model\" TEXT NOT NULL, \"prompt_version\" INTEGER NOT NULL, \"is_mock\" INTEGER NOT NULL CHECK (is_mock IN (0, 1)), \"cards\" TEXT NOT NULL, \"generated_at\" INTEGER NOT NULL, PRIMARY KEY(id));"
         }
       ]
+    },
+    {
+      "name": "timeline_events",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE \"timeline_events\" (\"id\" TEXT NOT NULL, \"title\" TEXT NOT NULL, \"start_date\" INTEGER NOT NULL, \"end_date\" INTEGER NULL, \"notes\" TEXT NOT NULL DEFAULT (''), \"updated_at\" INTEGER NOT NULL, PRIMARY KEY (\"id\"))"
+        }
+      ]
+    },
+    {
+      "name": "chat_context_events",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE \"chat_context_events\" (\"message_id\" TEXT NOT NULL REFERENCES chat_messages (id) ON DELETE CASCADE, \"sequence\" INTEGER NOT NULL, \"input_message_id\" TEXT NULL REFERENCES chat_messages (id) ON DELETE CASCADE, \"payload\" TEXT NOT NULL, PRIMARY KEY (\"message_id\", \"sequence\"))"
+        }
+      ]
     }
   ]
 }

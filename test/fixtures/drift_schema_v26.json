@@ -7715,6 +7715,51 @@
           "sql": "CREATE TABLE IF NOT EXISTS \"learning_writing_tasks\" (\"id\" TEXT NOT NULL, \"kind\" TEXT NOT NULL, \"profile\" TEXT NOT NULL, \"level\" TEXT NOT NULL, \"topic\" TEXT NOT NULL, \"title\" TEXT NOT NULL, \"prompt\" TEXT NOT NULL, \"passage\" TEXT NULL, \"model\" TEXT NOT NULL, \"prompt_version\" INTEGER NOT NULL, \"created_at\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
         }
       ]
+    },
+    {
+      "name": "language_quick_actions",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE \"language_quick_actions\" (\"id\" TEXT NOT NULL, \"name\" TEXT NOT NULL, \"icon\" TEXT NOT NULL, \"description\" TEXT NOT NULL, \"input_hint\" TEXT NOT NULL, \"prompt\" TEXT NOT NULL, \"source_language\" TEXT NOT NULL, \"target_language\" TEXT NOT NULL, \"gloss_language\" TEXT NOT NULL, \"detailed\" INTEGER NOT NULL CHECK (\"detailed\" IN (0, 1)), \"position\" INTEGER NOT NULL, \"built_in\" INTEGER NOT NULL CHECK (\"built_in\" IN (0, 1)), \"enabled\" INTEGER NOT NULL CHECK (\"enabled\" IN (0, 1)), \"deleted\" INTEGER NOT NULL DEFAULT (0) CHECK (\"deleted\" IN (0, 1)), \"revision\" INTEGER NOT NULL, \"created_at\" INTEGER NOT NULL, \"updated_at\" INTEGER NOT NULL, PRIMARY KEY (\"id\"))"
+        }
+      ]
+    },
+    {
+      "name": "language_quick_lookups",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE \"language_quick_lookups\" (\"id\" TEXT NOT NULL, \"action_id\" TEXT NOT NULL REFERENCES language_quick_actions (id), \"action_name\" TEXT NOT NULL, \"prompt\" TEXT NOT NULL, \"action_revision\" INTEGER NOT NULL, \"schema_revision\" INTEGER NOT NULL, \"input\" TEXT NOT NULL, \"source_language\" TEXT NOT NULL, \"target_language\" TEXT NOT NULL, \"gloss_language\" TEXT NOT NULL, \"level\" TEXT NOT NULL, \"detailed\" INTEGER NOT NULL CHECK (\"detailed\" IN (0, 1)), \"summary\" TEXT NOT NULL, \"content\" TEXT NOT NULL, \"candidates\" TEXT NOT NULL, \"provider\" TEXT NOT NULL, \"model\" TEXT NOT NULL, \"cache_key\" TEXT NOT NULL, \"created_at\" INTEGER NOT NULL, PRIMARY KEY (\"id\"))"
+        }
+      ]
+    },
+    {
+      "name": "language_quick_learning_links",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE \"language_quick_learning_links\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"lookup_id\" TEXT NOT NULL REFERENCES language_quick_lookups (id) ON DELETE CASCADE, \"sense_id\" TEXT NULL REFERENCES learning_lexical_senses (id) ON DELETE CASCADE, \"sentence_batch_id\" TEXT NULL REFERENCES learning_sentence_batches (id) ON DELETE CASCADE, UNIQUE (\"lookup_id\", \"sense_id\"), UNIQUE (\"lookup_id\", \"sentence_batch_id\"), CHECK ((sense_id IS NULL) <> (sentence_batch_id IS NULL)))"
+        }
+      ]
+    },
+    {
+      "name": "timeline_events",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE \"timeline_events\" (\"id\" TEXT NOT NULL, \"title\" TEXT NOT NULL, \"start_date\" INTEGER NOT NULL, \"end_date\" INTEGER NULL, \"notes\" TEXT NOT NULL DEFAULT (''), \"updated_at\" INTEGER NOT NULL, PRIMARY KEY (\"id\"))"
+        }
+      ]
+    },
+    {
+      "name": "chat_context_events",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE \"chat_context_events\" (\"message_id\" TEXT NOT NULL REFERENCES chat_messages (id) ON DELETE CASCADE, \"sequence\" INTEGER NOT NULL, \"input_message_id\" TEXT NULL REFERENCES chat_messages (id) ON DELETE CASCADE, \"payload\" TEXT NOT NULL, PRIMARY KEY (\"message_id\", \"sequence\"))"
+        }
+      ]
     }
   ]
 }
