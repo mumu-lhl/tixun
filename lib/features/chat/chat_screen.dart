@@ -30,6 +30,7 @@ import "../visual/visual_markdown.dart";
 import "../settings/tool_call_limit_setting.dart";
 import "reasoning_menu.dart";
 import "drawing_menu.dart";
+import "chat_actions_menu.dart";
 import "message_reasoning.dart";
 import "message_web_activity.dart";
 import "chat_web_settings.dart";
@@ -192,47 +193,62 @@ class ChatScreen extends ConsumerWidget {
                         }
                       },
                       itemBuilder: (ctx) => [
-                        if (c.selected != null)
-                          CheckedPopupMenuItem(
-                            key: const Key("chat-web-settings"),
-                            value: "web",
-                            checked: c.sessionWebEnabled,
-                            enabled: !c.busy,
-                            child: Text(ctx.l10n.aiWebAccess),
-                          ),
-                        ...drawingMenuItems(ctx, c),
-                        if (compact) const PopupMenuDivider(),
-                        if (compact)
-                          CheckedPopupMenuItem(
-                            value: "tools",
-                            checked: c.selected?.toolsEnabled == true,
-                            enabled: !c.busy && c.selected != null,
-                            child: Text(
-                              (c.selected?.toolsEnabled == true
-                                  ? ctx.l10n.manageMaterialTools
-                                  : ctx.l10n.enableMaterialTools),
+                        ChatActionsMenu(
+                          controller: c,
+                          rootItems: (ctx, settings) => [
+                            PopupMenuItem<String>(
+                              value: "tool-call-limit",
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.build_outlined),
+                                title: Text(
+                                  "${ctx.l10n.maxToolCalls}: ${c.maxToolCalls == 0 ? ctx.l10n.toolCallsUnlimited : c.maxToolCalls}",
+                                ),
+                              ),
                             ),
-                          ),
-                        if (compact)
-                          PopupMenuItem(
-                            value: "links",
-                            enabled: c.selected != null,
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.link),
-                              enabled: c.selected != null,
-                              title: Text(ctx.l10n.linkedLearningMaterial),
-                            ),
-                          ),
-                        if (compact)
-                          PopupMenuItem(
-                            value: "settings",
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.tune),
-                              title: Text(ctx.l10n.modelSettings),
-                            ),
-                          ),
+                            if (c.selected != null)
+                              CheckedPopupMenuItem(
+                                key: const Key("chat-web-settings"),
+                                value: "web",
+                                checked: c.sessionWebEnabled,
+                                enabled: !c.busy,
+                                child: Text(ctx.l10n.aiWebAccess),
+                              ),
+                            ...settings,
+                            if (compact) const PopupMenuDivider(),
+                            if (compact)
+                              CheckedPopupMenuItem(
+                                value: "tools",
+                                checked: c.selected?.toolsEnabled == true,
+                                enabled: !c.busy && c.selected != null,
+                                child: Text(
+                                  (c.selected?.toolsEnabled == true
+                                      ? ctx.l10n.manageMaterialTools
+                                      : ctx.l10n.enableMaterialTools),
+                                ),
+                              ),
+                            if (compact)
+                              PopupMenuItem(
+                                value: "links",
+                                enabled: c.selected != null,
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: const Icon(Icons.link),
+                                  enabled: c.selected != null,
+                                  title: Text(ctx.l10n.linkedLearningMaterial),
+                                ),
+                              ),
+                            if (compact)
+                              PopupMenuItem(
+                                value: "settings",
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: const Icon(Icons.tune),
+                                  title: Text(ctx.l10n.modelSettings),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ],

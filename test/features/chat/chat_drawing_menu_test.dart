@@ -54,9 +54,23 @@ void main() {
       final menu = find.byKey(const Key("chat-more"));
       expect(find.byKey(const Key("chat-drawing-menu")), findsNothing);
       expect(tester.getCenter(menu).dy, lessThan(100 * scale));
-      Future<void> choose(String value) async {
+      Future<void> openSettings({bool a2ui = false}) async {
         await tester.tap(menu);
         await tester.pumpAndSettle();
+        expect(find.byKey(const Key("chat-drawing-on")), findsNothing);
+        expect(find.byKey(const Key("chat-a2ui-on")), findsNothing);
+        await tester.tap(
+          find.byKey(
+            Key(a2ui ? "chat-a2ui-settings" : "chat-drawing-settings"),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key("chat-web-settings")), findsNothing);
+        expect(find.byKey(const Key("chat-menu-back")), findsOneWidget);
+      }
+
+      Future<void> choose(String value) async {
+        await openSettings();
         final choice = find.byKey(Key("chat-drawing-$value"));
         await tester.ensureVisible(choice);
         await tester.tap(choice);
@@ -67,8 +81,7 @@ void main() {
         String status, {
         bool followDefault = false,
       }) async {
-        await tester.tap(menu);
-        await tester.pumpAndSettle();
+        await openSettings();
         expect(find.textContaining(status), findsOneWidget);
         expect(
           find.textContaining("跟随默认"),
@@ -97,10 +110,16 @@ void main() {
               )
               .dx,
       ];
-      expect(labelStarts.length, greaterThan(5));
+      expect(labelStarts.length, greaterThan(2));
       for (final x in labelStarts) {
         expect(x, closeTo(labelStarts.first, .01));
       }
+      await tester.tap(find.byKey(const Key("chat-drawing-settings")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("chat-menu-back")));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key("chat-a2ui-settings")), findsOneWidget);
+      expect(find.byKey(const Key("chat-drawing-on")), findsNothing);
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       await expectStatus("绘图已关闭", followDefault: true);
@@ -143,15 +162,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(c.sessionDrawingOverride, true);
       await expectStatus("Drawing on");
-      await tester.tap(menu);
-      await tester.pumpAndSettle();
+      await openSettings();
       expect(find.text("Enable drawing for this chat"), findsOneWidget);
       await tester.ensureVisible(find.byKey(const Key("chat-drawing-default")));
       await tester.tap(find.byKey(const Key("chat-drawing-default")));
       await tester.pumpAndSettle();
       expect(c.sessionDrawingOverride, isNull);
-      await tester.tap(menu);
-      await tester.pumpAndSettle();
+      await openSettings(a2ui: true);
       final disable = find.byKey(const Key("chat-a2ui-off"));
       await tester.ensureVisible(disable);
       await tester.runAsync(() async {
@@ -166,11 +183,11 @@ void main() {
       await tester.pump();
       await tester.tap(menu);
       await tester.pumpAndSettle();
-      for (final choice in ["default", "on", "off"]) {
+      for (final page in ["drawing", "a2ui"]) {
         expect(
           tester
-              .widget<CheckedPopupMenuItem<String>>(
-                find.byKey(Key("chat-drawing-$choice")),
+              .widget<PopupMenuItem<String>>(
+                find.byKey(Key("chat-$page-settings")),
               )
               .enabled,
           false,
