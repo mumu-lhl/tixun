@@ -192,7 +192,7 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                               FilledButton.tonalIcon(
                                 key: const Key("start-practice"),
-                                onPressed: () => context.go("/practice"),
+                                onPressed: () => context.push("/practice"),
                                 icon: const Icon(Icons.edit_note, size: 18),
                                 label: Text(context.l10n.practice),
                               ),

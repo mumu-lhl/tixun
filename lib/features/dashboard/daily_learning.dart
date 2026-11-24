@@ -185,7 +185,7 @@ class _DailyActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = FilledButton.icon(
       key: const Key("today-review"),
-      onPressed: () => context.go(hasReviews ? "/review" : "/practice"),
+      onPressed: () => context.push(hasReviews ? "/review" : "/practice"),
       icon: Icon(hasReviews ? Icons.event_repeat : Icons.edit_note, size: 18),
       label: Text(
         hasReviews ? context.l10n.startReview : context.l10n.startPractice,
@@ -194,12 +194,12 @@ class _DailyActions extends StatelessWidget {
     final secondary = [
       TextButton(
         key: const Key("today-review-schedule"),
-        onPressed: () => context.go("/review"),
+        onPressed: () => context.push("/review"),
         child: Text(context.l10n.reviewSchedule, textAlign: TextAlign.center),
       ),
       TextButton(
         key: const Key("today-learning-insights"),
-        onPressed: () => context.go("/progress"),
+        onPressed: () => context.push("/progress"),
         child: Text(context.l10n.learningInsights, textAlign: TextAlign.center),
       ),
     ];
