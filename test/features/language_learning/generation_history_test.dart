@@ -25,10 +25,12 @@ const config = ProviderConfig(
 class ReplyProvider implements ChatProvider {
   String reply = '{"content":"original"}';
   ProviderConfig? used;
+  AiRequest? sent;
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) {
     used = config;
     return AiConversation((request, cancel) async* {
+      sent = request;
       yield AiChunk(
         text: reply,
         reasoning: "PRIVATE-REASONING",
@@ -78,6 +80,8 @@ void main() {
       parse: (v) => (v as Map)["content"] as String,
     );
     expect(await generate(), "original");
+    expect(transport.sent!.outputFormat, AiOutputFormat.jsonObject);
+    expect(transport.sent!.instructions, contains("compact"));
     selectedConfig = config.copyWith(model: "better-model", effort: "xhigh");
     transport.reply = '{"content":"new"}';
     expect(await generate(), "original");

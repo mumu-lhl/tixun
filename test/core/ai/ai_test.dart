@@ -270,6 +270,53 @@ data: [DONE]
       expect(limited["max_tokens"], 16);
     },
   );
+  test("JSON mode is explicit and limited to verified endpoints", () async {
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+    final config = (await db.config()).copyWith(
+      kind: "deepseek",
+      baseUrl: "https://api.deepseek.com",
+      model: "deepseek-flash",
+    );
+    final plain = AiRequest(instructions: "Task", messages: []);
+    final json = plain.copyWith(outputFormat: AiOutputFormat.jsonObject);
+    for (final base in [
+      "https://api.deepseek.com",
+      "https://api.deepseek.com/v1/",
+    ]) {
+      final body = encodeCompletion(config.copyWith(baseUrl: base), json);
+      expect(body["response_format"], {"type": "json_object"});
+      expect((body["messages"] as List).first["content"], contains("compact"));
+    }
+    expect(encodeCompletion(config, plain), isNot(contains("response_format")));
+    for (final other in [
+      config.copyWith(baseUrl: "https://proxy.example/v1"),
+      config.copyWith(baseUrl: "https://api.deepseek.com.evil.example"),
+      config.copyWith(kind: "compatible"),
+      config.copyWith(kind: "chatgpt"),
+    ]) {
+      expect(encodeCompletion(other, json), isNot(contains("response_format")));
+    }
+    expect(json.copyWith().instructions, json.instructions);
+    expect(
+      json.copyWith(outputFormat: AiOutputFormat.text).instructions,
+      "Task",
+    );
+    expect(
+      encodeCompletion(config, json.copyWith(webAccess: WebAccess.automatic)),
+      isNot(contains("response_format")),
+    );
+    final tool = AiTool(
+      name: "example",
+      description: "Example",
+      parameters: {"type": "object", "properties": {}},
+    );
+    expect(
+      encodeCompletion(config, json.copyWith(tools: [tool])),
+      isNot(contains("response_format")),
+    );
+  });
+
   test("AiMessage.withText preserves reasoningContent", () {
     const assistant = AiMessage.assistant("旧", reasoningContent: "想");
     final updated = assistant.withText("新");

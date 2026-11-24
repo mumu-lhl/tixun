@@ -363,6 +363,11 @@ Map<String, dynamic> encodeCompletion(
     if (config.kind == "deepseek" && request.enableConversationTitle)
       "title": {"enabled": true},
     "stream_options": {"include_usage": true},
+    if (request.outputFormat == AiOutputFormat.jsonObject &&
+        request.tools.isEmpty &&
+        !useWeb &&
+        AiOptions(config).jsonOutputAvailable)
+      "response_format": {"type": "json_object"},
     if (request.maxOutputTokens != null) "max_tokens": request.maxOutputTokens,
     if (config.kind == "deepseek")
       "thinking": {"type": config.thinking ? "enabled" : "disabled"},

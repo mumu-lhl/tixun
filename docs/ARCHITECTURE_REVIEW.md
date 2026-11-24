@@ -48,6 +48,8 @@ flowchart TD
   S --> DB[同一 SQLite 与托管附件目录]
 ```
 
+纯 JSON 生成通过 `AiRequest.outputFormat = AiOutputFormat.jsonObject` 声明意图，统一要求紧凑 JSON，同时保留字符串中的有意义空白。语言学习请求复用该约定；题目小分表整理也显式声明。Chat Completions 仅对 DeepSeek 官方端点、无本地工具且未启用服务端联网的请求发送 `response_format: {"type":"json_object"}`；其他路线保留提示词约束，不假定所有兼容接口支持该参数。JSON Output 不代替业务结构校验；空白、截断和无效结果不得作为成功结果保存，也不自动重试收费请求。
+
 ## 必须保持的约定
 
 - 每个学习请求独立创建 Conversation，在该请求内顺序调用。Opaque 推理状态不跨运行共享、不进入数据库或备份。DeepSeek 阅读链接的签名不是推理状态：它随完整会话上下文保存在本机（及其完整备份），仅在兼容的会话历史中、联网仍开启时原样回传。搜索词、待读取的 URL 和来源是展示数据，不会触发客户端联网；点击来源才在系统浏览器打开。

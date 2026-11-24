@@ -110,18 +110,33 @@ class AiMessage {
   };
 }
 
+enum AiOutputFormat { text, jsonObject }
+
+const _compactJsonInstructions =
+    "Return exactly one valid JSON object in compact form: no indentation, "
+    "formatting newlines, Markdown fences, or surrounding commentary. "
+    "Preserve meaningful spaces and escaped newlines inside string values. "
+    "Follow the task-specific JSON fields and types. "
+    'Formatting example only (use the task schema): {"key":"value","items":[1,2]}.';
+
 /// Protocol-neutral input. Provider-specific state belongs to AiConversation.
 class AiRequest {
   AiRequest({
-    required this.instructions,
+    required String instructions,
+    this.outputFormat = AiOutputFormat.text,
     required List<AiMessage> messages,
     List<AiTool> tools = const [],
     this.maxOutputTokens,
     this.enableConversationTitle = false,
     this.webAccess = WebAccess.off,
-  }) : messages = List.unmodifiable(messages),
+  }) : _taskInstructions = instructions,
+       messages = List.unmodifiable(messages),
        tools = List.unmodifiable(tools);
-  final String instructions;
+  final String _taskInstructions;
+  final AiOutputFormat outputFormat;
+  String get instructions => outputFormat == AiOutputFormat.jsonObject
+      ? "$_taskInstructions\n\n$_compactJsonInstructions"
+      : _taskInstructions;
   final List<AiMessage> messages;
   final List<AiTool> tools;
 
@@ -133,13 +148,15 @@ class AiRequest {
 
   AiRequest copyWith({
     String? instructions,
+    AiOutputFormat? outputFormat,
     List<AiMessage>? messages,
     List<AiTool>? tools,
     int? maxOutputTokens,
     bool? enableConversationTitle,
     WebAccess? webAccess,
   }) => AiRequest(
-    instructions: instructions ?? this.instructions,
+    instructions: instructions ?? _taskInstructions,
+    outputFormat: outputFormat ?? this.outputFormat,
     messages: messages ?? this.messages,
     tools: tools ?? this.tools,
     maxOutputTokens: maxOutputTokens ?? this.maxOutputTokens,

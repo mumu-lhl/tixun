@@ -9,6 +9,15 @@ import "../database/database.dart";
 class AiOptions {
   const AiOptions(this.config);
   final ProviderConfig config;
+
+  /// Only verified official endpoints opt into provider-enforced JSON output.
+  bool get jsonOutputAvailable {
+    if (config.kind != "deepseek") return false;
+    final base = config.baseUrl.replaceFirst(RegExp(r"/+$"), "");
+    return base == "https://api.deepseek.com" ||
+        base == "https://api.deepseek.com/v1";
+  }
+
   bool get webAvailable {
     if (config.kind == "chatgpt") return config.model.startsWith("gpt-");
     if (config.kind != "deepseek" || config.model != "deepseek-flash") {

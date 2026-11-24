@@ -30,15 +30,10 @@ class LanguageGenerationProvider implements ChatProvider {
     final definition = feature == "language_vocabulary_revision"
         ? LanguagePrompt.vocabulary
         : LanguagePrompt.values.where((p) => p.id == feature).firstOrNull;
-    return AiRequest(
+    return request.copyWith(
       instructions: definition == null
-          ? request.instructions
+          ? null
           : "${definition.instructions(promptSettings())}${feature == 'language_vocabulary_revision' ? '\n$vocabularyRevisionContract' : ''}",
-      messages: request.messages,
-      tools: request.tools,
-      maxOutputTokens: request.maxOutputTokens,
-      webAccess: request.webAccess,
-      enableConversationTitle: request.enableConversationTitle,
     );
   }
 }

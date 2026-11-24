@@ -38,6 +38,9 @@ Future<T> requestLanguageText<T>({
   final session = provider is LanguageGenerationProvider ? provider : null;
   config = session?.configuration() ?? config;
   request = session?.prepare(feature, request) ?? request;
+  if (outputFormat == "json") {
+    request = request.copyWith(outputFormat: AiOutputFormat.jsonObject);
+  }
   final history =
       session?.history ??
       (usageStore == null ? null : LanguageGenerationStore(usageStore.db));
@@ -71,6 +74,10 @@ Future<T> requestLanguageText<T>({
       throw const FormatException("Language generation reply was interrupted");
     }
     final raw = body.toString();
+    if (request.outputFormat == AiOutputFormat.jsonObject &&
+        raw.trim().isEmpty) {
+      throw const FormatException("Empty JSON generation reply");
+    }
     final value = parse(raw);
     if (history != null) {
       final chosen = await history.capture(
