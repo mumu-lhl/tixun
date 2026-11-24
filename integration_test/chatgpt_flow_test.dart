@@ -108,7 +108,14 @@ void main() {
       await click(t, find.byKey(const Key("send-message")));
       await ready(t, () => !c.busy && c.messages.length == 2);
       expect(c.messages.last.status, "complete");
-      expect(find.textContaining("Using ChatGPT plan"), findsWidgets);
+      expect(
+        find.textContaining("先找出已知条件，再独立尝试。", findRichText: true),
+        findsWidgets,
+      );
+      expect(
+        find.byKey(ValueKey("message-usage-${c.messages.last.id}")),
+        findsOneWidget,
+      );
       await guiCapture("chatgpt", "chat-phone");
       scope.read(routerProvider).go("/settings/chatgpt");
       await t.pumpAndSettle();

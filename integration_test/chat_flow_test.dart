@@ -162,13 +162,13 @@ void main() {
       expect(find.byKey(const Key("chat-scroll-bottom")), findsNothing);
       await resizeGui(tester, 1280, 900);
       expect(tester.takeException(), isNull);
-      await c.newSession();
+      final tableSession = await c.db.createSession();
       await c.db
           .into(c.db.chatMessages)
           .insert(
             ChatMessagesCompanion.insert(
               id: "readable-table",
-              sessionId: c.selected!.id,
+              sessionId: tableSession.id,
               role: "assistant",
               content: r"""| 知识点 | 核心解释 | 公式 | 条件 | 易错点 | 例子 |
 | --- | --- | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ void main() {
               createdAt: DateTime.now(),
             ),
           );
-      await c.selectSession(c.selected!);
+      await c.selectSession(tableSession);
       await resizeGui(tester, 390, 844);
       await tester.pumpAndSettle();
       expect(tester.getSize(find.byType(Table)).width, greaterThan(390));

@@ -47,7 +47,8 @@ String promptDescription(BuildContext context, PromptDefinition prompt) =>
       "variant" => context.l10n.usedWhenStartingRelatedPractice,
       "split" => context.l10n.usedToRequestSplittingSuggestions,
       "language_vocabulary" => context.l10n.languagePromptVocabularyDesc,
-      "language_context_understanding" => context.l10n.languagePromptContextDesc,
+      "language_context_understanding" =>
+        context.l10n.languagePromptContextDesc,
       "language_sentence_batch" => context.l10n.languagePromptSentenceBatchDesc,
       "language_sentence_check" => context.l10n.languagePromptSentenceCheckDesc,
       "language_explanation" => context.l10n.languagePromptExplanationDesc,

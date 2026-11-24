@@ -488,7 +488,13 @@ void main() {
       await t.tap(find.byKey(const Key("ai-create-knowledge")));
       await t.pumpAndSettle();
       await guiCapture("writing", "create-knowledge-desktop-english");
-      expect(find.text("Create knowledge with AI"), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text("Create knowledge with AI"),
+        ),
+        findsOneWidget,
+      );
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox.shrink());
       await t.pumpAndSettle();
