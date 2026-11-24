@@ -9,7 +9,7 @@ import "generation_store.dart";
 import "../../core/database/database.dart";
 
 const vocabularyRevisionContract =
-    "Revise learning material for the supplied exact lexical sense. Preserve form, type, and meaning exactly. Supply a fresh natural example and translation; do not invent a different sense.";
+    "Revise learning material for the supplied exact lexical sense. Preserve form, type, and meaning exactly. This is revision, not candidate selection: return exactly one entry, without groupTitle. Supply a fresh natural example and translation in glossLanguage; do not invent a different sense. Omit forms unless correcting inflections for this same sense.";
 
 /// Supplies live settings at request start, while each captured run retains
 /// the immutable configuration actually used for that request.
