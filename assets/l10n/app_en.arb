@@ -475,6 +475,7 @@
   "markdownTable": "Table",
   "markdownDivider": "Horizontal rule",
   "@@locale": "en",
+  "languageRecallRetry": "Recall missed words again",
   "forkFromHere": "Branch from this message",
   "chatBranchTitle": "{title} · Branch",
   "cannotForkMessage": "Choose a completed message from a conversation that is not deleted.",

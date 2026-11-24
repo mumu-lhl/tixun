@@ -55,6 +55,9 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   String _attemptId = _uuid.v4();
   bool _revealed = false;
   bool _saving = false;
+  bool _retrying = false;
+  bool _continueAfterRetry = false;
+  final List<LanguageCard> _retryCards = [];
   LearningEvidenceData? _result;
   CancelToken? _regenerating;
 
@@ -84,6 +87,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   });
 
   void _nextBatch() => setState(() {
+    _retrying = false;
+    _retryCards.clear();
     _offset += languageBatchSize;
     _current = 0;
     _studyIndex = 0;
@@ -179,8 +184,9 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
             );
           }
           final cards = snapshot.requireData;
-          final canContinue =
-              widget.dueBefore == null && cards.length == languageBatchSize;
+          final canContinue = _retrying
+              ? _continueAfterRetry
+              : widget.dueBefore == null && cards.length == languageBatchSize;
           final nextBatch = OutlinedButton(
             onPressed: _nextBatch,
             child: Text(l10n.languageNextBatch),
@@ -195,6 +201,23 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                       ? l10n.languageNoCards
                       : l10n.languageBatchComplete,
                 ),
+                if (_retryCards.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: FilledButton(
+                      onPressed: () => setState(() {
+                        _batch = Future.value(List.of(_retryCards));
+                        _retryCards.clear();
+                        _retrying = true;
+                        _continueAfterRetry = canContinue;
+                        _current = 0;
+                        _resetCard();
+                      }),
+                      child: Text(l10n.languageRecallRetry),
+                    ),
+                  ),
+                ],
                 if (canContinue) nextBatch,
               ],
             );
@@ -436,7 +459,13 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                             rating: rating,
                             groupPrompt: widget.group != null,
                           );
-                          if (mounted) _advance();
+                          if (mounted) {
+                            if (rating == RecallRating.forgot ||
+                                rating == RecallRating.fuzzy) {
+                              _retryCards.add(card);
+                            }
+                            _advance();
+                          }
                         }),
                   child: Text(_rating(l10n, rating)),
                 ),

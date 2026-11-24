@@ -524,17 +524,28 @@ class LanguageLearningStore extends DatabaseNotifier {
         db.learningReviewSchedules,
       )..where((row) => row.senseId.equals(senseId))).getSingle();
       final interval = schedule.intervalDays;
-      final days = switch (rating) {
+      final proposedDays = switch (rating) {
         RecallRating.forgot => 1,
         RecallRating.fuzzy => 2,
         RecallRating.remembered => (interval * 2).clamp(3, 90),
         RecallRating.easy => (interval * 3).clamp(7, 180),
       };
+      // Immediate retries are practice, not evidence of delayed retention.
+      final immediate =
+          schedule.repetitions > 0 &&
+          time.difference(schedule.updatedAt) < const Duration(days: 1);
+      final days = immediate && proposedDays > interval
+          ? interval
+          : proposedDays;
+      final proposedDue = time.add(Duration(days: days));
+      final due = immediate && proposedDue.isAfter(schedule.dueAt)
+          ? schedule.dueAt
+          : proposedDue;
       await (db.update(
         db.learningReviewSchedules,
       )..where((row) => row.senseId.equals(senseId))).write(
         LearningReviewSchedulesCompanion(
-          dueAt: Value(time.add(Duration(days: days))),
+          dueAt: Value(due),
           intervalDays: Value(days),
           repetitions: Value(schedule.repetitions + 1),
           updatedAt: Value(time),

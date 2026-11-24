@@ -475,6 +475,7 @@
   "markdownTable": "表格",
   "markdownDivider": "分隔线",
   "@@locale": "zh",
+  "languageRecallRetry": "重新回忆未记牢的词",
   "forkFromHere": "从这里创建聊天分支",
   "chatBranchTitle": "{title} · 分支",
   "cannotForkMessage": "请从未删除会话中的已完成消息创建分支。",

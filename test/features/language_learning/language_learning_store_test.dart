@@ -25,6 +25,52 @@ void main() {
   );
 
   test(
+    "immediate recall retries cannot postpone a delayed retention check",
+    () async {
+      final start = DateTime(2026, 1, 1);
+      await save("Recall", const VocabularyEntry(form: "run", meaning: "move"));
+      final card = (await store.cards(language: "en")).single;
+      Future<void> recall(String id, RecallRating rating, DateTime time) =>
+          store.recordRecall(
+            attemptId: id,
+            senseId: card.sense.id,
+            rating: rating,
+            groupPrompt: false,
+            now: time,
+          );
+      Future<LearningReviewSchedule> schedule() =>
+          db.select(db.learningReviewSchedules).getSingle();
+
+      await recall("forgot", RecallRating.forgot, start);
+      final due = start.add(const Duration(days: 1));
+      expect((await schedule()).dueAt, due);
+      await recall(
+        "retry",
+        RecallRating.easy,
+        start.add(const Duration(minutes: 10)),
+      );
+      expect((await schedule()).intervalDays, 1);
+      expect((await schedule()).dueAt, due);
+      await recall(
+        "retry",
+        RecallRating.easy,
+        start.add(const Duration(minutes: 20)),
+      );
+      expect((await schedule()).repetitions, 2);
+      await recall(
+        "delayed",
+        RecallRating.remembered,
+        start.add(const Duration(days: 2)),
+      );
+      expect((await schedule()).intervalDays, 3);
+      expect((await schedule()).dueAt, start.add(const Duration(days: 5)));
+      final evidence = await store.recentEvidence("en").first;
+      expect(evidence, hasLength(3));
+      expect(evidence.every((row) => row.correct == null), isTrue);
+    },
+  );
+
+  test(
     "sharing and deleting groups preserve sense-level review and evidence",
     () async {
       await save(
