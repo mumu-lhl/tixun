@@ -4,6 +4,7 @@ import "package:dio/dio.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
 import "package:tixun/core/ai/chat_provider.dart";
+import "package:tixun/core/ai/prompt_settings.dart";
 import "package:tixun/core/database/database.dart";
 import "package:tixun/core/l10n/generated/app_localizations.dart";
 import "package:tixun/features/language_learning/language_store.dart";
@@ -29,6 +30,7 @@ class _VocabularyProvider implements ChatProvider {
   bool duplicate = false;
   int requests = 0;
   late Map parameters;
+  late String instructions;
 
   @override
   AiConversation start(
@@ -40,6 +42,7 @@ class _VocabularyProvider implements ChatProvider {
       isFalse,
     );
     requests++;
+    instructions = request.instructions;
     parameters = jsonDecode(request.messages.single.text) as Map;
     yield AiChunk(
       completed: completed,
@@ -154,6 +157,52 @@ void main() {
     store.dispose();
     await db.close();
   });
+
+  for (final level in VocabularyLevel.values) {
+    test(
+      "new $level vocabulary prioritizes usefulness even with custom preferences",
+      () async {
+        final provider = _VocabularyProvider(completed: true);
+        final proposal =
+            await VocabularyAi(
+              provider,
+              prompts: PromptSettings().update(
+                "language_vocabulary",
+                "Use concise definitions.",
+              ),
+            ).propose(
+              config: _config,
+              topic: "Work",
+              groupType: VocabularyGroupType.topic,
+              level: level,
+              glossLanguage: "en",
+              existingExpressions: const [],
+              cancel: CancelToken(),
+              count: 2,
+            );
+        expect(provider.parameters["level"], level.name);
+        expect(provider.instructions, contains("At every level, prioritize"));
+        expect(
+          provider.instructions,
+          contains("Difficulty must not mean rarity"),
+        );
+        expect(provider.instructions, contains("beginner:"));
+        expect(provider.instructions, contains("intermediate:"));
+        expect(provider.instructions, contains("advanced:"));
+        expect(
+          provider.instructions,
+          contains("Unless the supplied topic explicitly requires them"),
+        );
+        expect(
+          provider.instructions,
+          contains("Do not invent frequency ranks"),
+        );
+        expect(provider.instructions, contains("Use concise definitions."));
+        expect(proposal.entries, hasLength(2));
+        expect(await store.cards(language: "en"), isEmpty);
+      },
+    );
+  }
 
   test("expansion filters the full group and paraphrased duplicates within one response", () async {
     await store.saveEntries(

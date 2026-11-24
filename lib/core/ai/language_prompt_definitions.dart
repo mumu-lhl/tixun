@@ -51,7 +51,25 @@ const _languagePromptDefinitions = [
         "Explain one sense and translate its example in the "
         "specified gloss language. Form and example are English. "
         "Do not create cloze exercises or blanked-out examples. Avoid excluded expressions, match the "
-        "requested level and focus, and return at most count entries.",
+        "requested level and focus, and return at most count entries. "
+        "When selecting new candidates, apply these rules to words and all "
+        "multiword expressions, including the chosen sense: "
+        "At every level, prioritize useful contemporary English that learners "
+        "are likely to encounter in everyday life, work, news and general reading. "
+        "Difficulty must not mean rarity. "
+        "beginner: choose high-frequency everyday words and simple expressions. "
+        "intermediate: choose common words with useful additional senses, "
+        "phrasal verbs and collocations used across familiar situations. "
+        "advanced: choose widely used precise or abstract expressions, common "
+        "formal language and nuanced senses or collocations of familiar words; "
+        "do not make the list harder by selecting obscure vocabulary. "
+        "Unless the supplied topic explicitly requires them, avoid archaic or "
+        "literary-only words, rare idioms, niche slang and specialist jargon. "
+        "For specialist topics, prefer expressions commonly used in that field "
+        "rather than marginal terminology. Use natural representative examples "
+        "of the selected sense. Do not invent frequency ranks or claim corpus "
+        "verification. These selection rules do not require replacing an "
+        "existing form or sense when revising its explanation.",
   ),
   PromptDefinition(
     "language_sentence_batch",
