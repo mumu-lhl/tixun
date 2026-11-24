@@ -145,7 +145,6 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
             children: [
               if (proposal == null) ...[
                 Text(l10n.languageSentenceGenerateNotice),
-                const SizedBox(height: 12),
                 if (widget.reused.isNotEmpty)
                   Text(l10n.languageSentenceReused(widget.reused.length)),
                 AppSelectField<int>(

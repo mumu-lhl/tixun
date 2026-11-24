@@ -179,6 +179,7 @@ class _SentencePracticeState extends State<SentencePractice> {
     children: [
       if (widget.recommendation case final plan?) ...[
         Text(l10n.languageNextSkill(sentenceSkillLabel(l10n, plan.skill))),
+        const SizedBox(height: 8),
         Text(
           plan.diagnostic
               ? l10n.languageSentenceDiagnostic
@@ -187,13 +188,15 @@ class _SentencePracticeState extends State<SentencePractice> {
                   plan.performance.checked,
                 ),
         ),
-        if (widget.batchAi case final ai?)
+        if (widget.batchAi case final ai?) ...[
+          const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: _planning ? null : () => _generate(ai, plan: plan),
             icon: const Icon(Icons.auto_awesome_outlined),
             label: Text(l10n.languageSentencePrepareRecommendation),
           ),
-        const SizedBox(height: 12),
+        ],
+        const SizedBox(height: 16),
       ],
       AppSelectField<SentenceStyle>(
         initialValue: _style,
@@ -250,11 +253,13 @@ class _SentencePracticeState extends State<SentencePractice> {
         onChanged: (value) => setState(() => _level = value),
       ),
       const SizedBox(height: 12),
-      if (widget.batchAi case final ai?)
+      if (widget.batchAi case final ai?) ...[
         FilledButton(
           onPressed: () => _generate(ai),
           child: Text(l10n.languageSentenceGenerate),
         ),
+        const SizedBox(height: 12),
+      ],
       OutlinedButton(
         onPressed: () async => _start(
           await chooseSavedSentenceBatch(
@@ -275,6 +280,7 @@ class _SentencePracticeState extends State<SentencePractice> {
         l10n.languageSentenceDone,
         style: Theme.of(context).textTheme.headlineSmall,
       ),
+      const SizedBox(height: 8),
       Text(
         l10n.languageSentenceSelfRated(
           _results.where((r) => r.$4 == SentenceRating.understood).length,
@@ -297,7 +303,7 @@ class _SentencePracticeState extends State<SentencePractice> {
       const SizedBox(height: 8),
       Text(l10n.languageSentenceSmallSample),
       const SizedBox(height: 16),
-      if (widget.batchAi case final ai?)
+      if (widget.batchAi case final ai?) ...[
         FilledButton(
           onPressed: _planning
               ? null
@@ -316,6 +322,8 @@ class _SentencePracticeState extends State<SentencePractice> {
                 },
           child: Text(l10n.languageSentencePrepareRecommendation),
         ),
+        const SizedBox(height: 12),
+      ],
       OutlinedButton(
         onPressed: () => setState(() => _batch = null),
         child: Text(l10n.languageSentenceAnother),
@@ -513,7 +521,9 @@ class _SentenceStepState extends State<_SentenceStep> {
           ),
         if (widget.batch.generatedBy case final model?) ...[
           Text(sentenceSource(l10n, model)),
+          const SizedBox(height: 4),
           Text(l10n.languageSentenceGeneratedNotice, style: style.bodySmall),
+          const SizedBox(height: 16),
         ],
         quickSelectableText(
           card.text,
@@ -569,9 +579,14 @@ class _SentenceStepState extends State<_SentenceStep> {
               ),
           ],
         ),
-        if (widget.explanation.provider is! MockChatProvider)
+        if (widget.explanation.provider is! MockChatProvider) ...[
+          const SizedBox(height: 8),
           Text(l10n.languageSentenceExplainNotice, style: style.bodySmall),
-        if (_pending != null) const LinearProgressIndicator(),
+        ],
+        if (_pending != null) ...[
+          const SizedBox(height: 12),
+          const LinearProgressIndicator(),
+        ],
         if (_help.contains(SentenceHelp.hint)) ...[
           const SizedBox(height: 8),
           Text(card.hint),
@@ -584,7 +599,10 @@ class _SentenceStepState extends State<_SentenceStep> {
           const SizedBox(height: 8),
           SelectableText(text),
         ],
-        if (_error case final error?) Text(error),
+        if (_error case final error?) ...[
+          const SizedBox(height: 12),
+          Text(error),
+        ],
         const SizedBox(height: 16),
         if (_showCheck) ...[
           Text(card.question, style: style.titleMedium),
@@ -626,7 +644,10 @@ class _SentenceStepState extends State<_SentenceStep> {
                       card.choices[card.correctIndex],
                     ),
             ),
-            if (card.checkExplanation.isNotEmpty) Text(card.checkExplanation),
+            if (card.checkExplanation.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(card.checkExplanation),
+            ],
           ],
         ] else if (card.choices.isNotEmpty)
           Align(
@@ -640,6 +661,7 @@ class _SentenceStepState extends State<_SentenceStep> {
           ),
         const SizedBox(height: 16),
         Text(l10n.languageSentenceRate, style: style.titleMedium),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,

@@ -123,6 +123,18 @@ void main() {
       await tap(find.text("Language quick lookup"));
       final historyRow = find.text("pleasure");
       expect(historyRow, findsOneWidget);
+      final firstCard = find.ancestor(
+        of: historyRow,
+        matching: find.byType(Card),
+      );
+      final secondCard = find.ancestor(
+        of: find.text("old custom input"),
+        matching: find.byType(Card),
+      );
+      expect(
+        tester.getTopLeft(secondCard).dy - tester.getBottomLeft(firstCard).dy,
+        greaterThanOrEqualTo(8),
+      );
       expect(find.byType(LearningMarkdown), findsNothing);
       await tap(historyRow);
       expect(find.byType(LearningMarkdown), findsOneWidget);

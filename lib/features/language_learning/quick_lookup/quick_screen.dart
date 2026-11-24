@@ -369,10 +369,10 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
         if (_actionsFailed)
           TextButton(onPressed: _refreshActions, child: Text(l10n.retry)),
         if (current != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           if (quickDescription(context, current).isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 12),
               child: Text(quickDescription(context, current)),
             ),
           TextField(
@@ -387,7 +387,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
               counterText: "",
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Align(
             alignment: AlignmentDirectional.centerEnd,
             child: ValueListenableBuilder(
@@ -412,10 +412,13 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
           ),
         ],
         if (_cancel != null) ...[
+          const SizedBox(height: 16),
           const LinearProgressIndicator(),
+          const SizedBox(height: 8),
           Text(l10n.quickLoading),
         ],
-        if (_error != null)
+        if (_error != null) ...[
+          const SizedBox(height: 12),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(_error!),
@@ -426,7 +429,9 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
               child: Text(l10n.retry),
             ),
           ),
-        if (_result case final row?)
+        ],
+        if (_result case final row?) ...[
+          const SizedBox(height: 16),
           Card(
             key: const ValueKey("quick-current-result"),
             child: Column(
@@ -437,6 +442,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
               ],
             ),
           ),
+        ],
       ],
     );
   }
@@ -593,7 +599,10 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                       SliverToBoxAdapter(child: _historyControls(context)),
                       SliverList.builder(
                         itemCount: _rows.length,
-                        itemBuilder: (_, index) => _historyItem(_rows[index]),
+                        itemBuilder: (_, index) => Padding(
+                          padding: EdgeInsets.only(top: index == 0 ? 0 : 12),
+                          child: _historyItem(_rows[index]),
+                        ),
                       ),
                       SliverToBoxAdapter(
                         child: _loadingHistory

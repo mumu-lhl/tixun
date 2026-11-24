@@ -321,6 +321,73 @@ void main() {
     },
   );
 
+  for (final (width, scale) in [(320.0, 1.6), (1200.0, 1.0)]) {
+    for (final contextMode in [false, true]) {
+      testWidgets("practice spacing $width/$scale context=$contextMode", (
+        tester,
+      ) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = Size(width, 1000);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
+        Widget page({SentenceBatch? batch}) => MaterialApp(
+          locale: const Locale("en"),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+          home: SentencePractice(
+            key: ValueKey(batch),
+            store: store,
+            explanation: explanation,
+            batchAi: SentenceBatchAi(provider: provider, config: _config),
+            contextUnderstanding: contextMode,
+            initialBatch: batch,
+          ),
+        );
+        await tester.pumpWidget(page());
+        await tester.pumpAndSettle();
+        final generate = find.widgetWithText(
+          FilledButton,
+          "Generate an AI batch",
+        );
+        final saved = find.widgetWithText(
+          OutlinedButton,
+          "Saved sentence batches",
+        );
+        expect(
+          tester.getTopLeft(saved).dy - tester.getBottomLeft(generate).dy,
+          greaterThanOrEqualTo(8),
+        );
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(
+          page(batch: SentenceBatch([_card()], generatedBy: "test-model")),
+        );
+        await tester.pumpAndSettle();
+        final source = find.text("AI-generated · test-model");
+        expect(source, findsOneWidget);
+        final sentence = find.text(_card().text);
+        expect(
+          tester.getTopLeft(sentence).dy - tester.getBottomLeft(source).dy,
+          greaterThan(16),
+        );
+        final rating = find.text("How well did you understand it?");
+        await tester.ensureVisible(rating);
+        await tester.pumpAndSettle();
+        final unclear = find.widgetWithText(OutlinedButton, "Not yet clear");
+        expect(
+          tester.getTopLeft(unclear).dy - tester.getBottomLeft(rating).dy,
+          greaterThanOrEqualTo(8),
+        );
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
   testWidgets(
     "AI batch saves only confirmed cards and reopens offline without scoring",
     (tester) async {

@@ -30,7 +30,7 @@ class QuickResult extends StatelessWidget {
     final l10n = context.l10n;
     final candidates = QuickCandidates.fromLookup(row);
     return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -38,12 +38,16 @@ class QuickResult extends StatelessWidget {
             [row.actionName, row.provider, row.model].join(" · "),
             style: Theme.of(context).textTheme.labelMedium,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
           LearningMarkdown(row.content),
           const SizedBox(height: 8),
-          if (row.targetLanguage != "en") Text(l10n.quickEnglishStudyOnly),
+          if (row.targetLanguage != "en") ...[
+            Text(l10n.quickEnglishStudyOnly),
+            const SizedBox(height: 8),
+          ],
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (candidates.vocabulary.isNotEmpty &&
