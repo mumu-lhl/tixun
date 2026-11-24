@@ -10,6 +10,7 @@ import "../../core/ai/prompt_settings.dart";
 import "../../core/database/database.dart";
 import "language_json_request.dart";
 import "generation_provider.dart";
+import "language_skills.dart";
 import "generation_store.dart";
 import "language_store.dart";
 import "lexical_form.dart";
@@ -88,6 +89,7 @@ class VocabularyAi {
             config: config,
             usageStore: usageStore,
             feature: "language_vocabulary",
+            learnerFocus: {if (focus != null) sentenceAbility(focus)},
             onCaptured: (run) {
               generated = run;
               generationIds.add(run.id);

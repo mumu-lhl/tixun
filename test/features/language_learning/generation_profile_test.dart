@@ -20,6 +20,7 @@ import "package:tixun/features/language_learning/next_practice.dart";
 import "package:tixun/features/language_learning/sentence_content.dart";
 
 import "package:tixun/features/language_learning/sentence_store.dart";
+import "package:tixun/features/language_learning/sentence_batch_ai.dart";
 import "package:tixun/features/language_learning/sentence_batch_store.dart";
 import "package:tixun/features/language_learning/writing_store.dart";
 import "package:tixun/features/language_learning/writing_feedback.dart";
@@ -27,6 +28,255 @@ import "package:tixun/features/language_learning/writing_feedback.dart";
 import "generation_history_test.dart" show ReplyProvider, config;
 
 void main() {
+  test(
+    "current target survives the summary budget and old mistakes lose priority",
+    () {
+      final now = DateTime.now();
+      final target = LanguageSkill.condition;
+      final profile = LanguageProfile(
+        language: "en",
+        exam: ExamProfile.zhejiang2026,
+        due: 0,
+        evidence: [
+          for (final skill in LanguageSkill.values)
+            for (var i = 0; i < (skill == target ? 18 : 3); i++)
+              LanguageObservation(
+                id: "${skill.name}-$i",
+                skill: skill,
+                kind: EvidenceKind.independent,
+                verified: true,
+                correct: skill == target && i < 6,
+                at: now.subtract(Duration(minutes: i)),
+                basis: "${skill.name} material $i",
+              ),
+        ],
+      );
+      final withoutFocus = generationProfile(
+        profile,
+        "language_sentence_batch",
+      );
+      expect(
+        (withoutFocus["skills"] as List).any((r) => r["skill"] == target.name),
+        isFalse,
+      );
+      final focused = generationProfile(
+        profile,
+        "language_sentence_batch",
+        focus: {target},
+      );
+      final rows = focused["skills"] as List;
+      expect(rows, hasLength(6));
+      expect(rows.first["skill"], target.name);
+      expect(rows.first["signal"], "observedSuccess");
+      expect(rows.first["recentDifficulties"], isEmpty);
+      expect(rows.first["recentOutcomes"], hasLength(3));
+      expect(
+        rows.first["recentOutcomes"].every((r) => r["correct"] == true),
+        isTrue,
+      );
+      expect(profile.skills[target]!.observations, hasLength(18));
+      expect(profile.skills[target]!.weak, isTrue);
+      expect(profile.skills[target]!.verifiedRecentWeak, isFalse);
+    },
+  );
+
+  test("later repeated success is visible without erasing or confirming the earlier error", () {
+    final now = DateTime.now();
+    final profile = LanguageProfile(
+      language: "en",
+      exam: ExamProfile.zhejiang2026,
+      due: 0,
+      evidence: [
+        LanguageObservation(
+          id: "first",
+          skill: LanguageSkill.formProduction,
+          kind: EvidenceKind.independent,
+          verified: true,
+          correct: false,
+          at: now.subtract(const Duration(days: 2)),
+          basis: "went",
+          response: "goed",
+          expected: "went",
+        ),
+        LanguageObservation(
+          id: "retry",
+          skill: LanguageSkill.formProduction,
+          kind: EvidenceKind.repeat,
+          verified: true,
+          correct: true,
+          at: now,
+          basis: "went",
+          response: "went",
+          expected: "went",
+        ),
+      ],
+    );
+    final row =
+        (generationProfile(profile, "language_vocabulary")["skills"] as List)
+            .single;
+    expect(row["signal"], "insufficientEvidence");
+    expect(row["verifiedIndependentCorrect"], 0);
+    expect(row["recentOutcomes"].first["correct"], true);
+    expect(row["recentOutcomes"].first["kind"], "repeat");
+    expect(row["recentDifficulties"].single["response"], "goed");
+  });
+
+  test("non-independent recent work cannot turn old failures into success", () {
+    final now = DateTime.now();
+    for (final kind in [
+      EvidenceKind.repeat,
+      EvidenceKind.assisted,
+      EvidenceKind.selfReport,
+    ]) {
+      for (final correct in [true, false]) {
+        final profile = LanguageProfile(
+          language: "en",
+          exam: ExamProfile.zhejiang2026,
+          due: 0,
+          evidence: [
+            for (var i = 0; i < 3; i++)
+              LanguageObservation(
+                id: "old-$i",
+                skill: LanguageSkill.formProduction,
+                kind: EvidenceKind.independent,
+                correct: false,
+                at: now.subtract(Duration(days: i + 1)),
+                basis: "went",
+              ),
+            for (var i = 0; i < 6; i++)
+              LanguageObservation(
+                id: "practice-$i",
+                skill: LanguageSkill.formProduction,
+                kind: kind,
+                correct: kind == EvidenceKind.selfReport ? null : correct,
+                at: now.subtract(Duration(minutes: i)),
+                basis: "went",
+              ),
+          ],
+        );
+        final row =
+            (generationProfile(profile, "language_vocabulary")["skills"]
+                    as List)
+                .single;
+        expect(row["signal"], "insufficientEvidence");
+        expect(row["verifiedIndependentCorrect"], 0);
+        expect(row["recentOutcomes"].first["kind"], kind.name);
+      }
+    }
+  });
+
+  test("saved practice changes the plan and focused generator transport, not mastery", () async {
+    final db = AppDatabase.memory();
+    final store = LanguageLearningStore(db);
+    addTearDown(() async {
+      store.dispose();
+      await db.close();
+    });
+    final cards = [
+      for (var i = 0; i < 3; i++)
+        SentenceCard(
+          id: "place-$i",
+          text: "The key is in room $i.",
+          translation: "钥匙在房间里。",
+          hint: "Find the place.",
+          question: "Where is it?",
+          choices: ["room $i", "outside"],
+          correctIndex: 0,
+          skill: SentenceSkill.detail,
+          level: SentenceLevel.beginner,
+        ),
+    ];
+    await store.saveSentenceBatch(
+      SentenceBatchProposal(
+        id: "source",
+        topic: SentenceTopic.dailyLife,
+        style: SentenceStyle.written,
+        glossLanguage: "en",
+        model: "real-model",
+        promptVersion: 1,
+        isMock: false,
+        generatedAt: DateTime.now(),
+        cards: cards,
+      ),
+      cards.map((c) => c.id).toSet(),
+    );
+    for (final card in cards) {
+      await store.recordSentence(
+        batchId: "run",
+        card: card,
+        rating: SentenceRating.understood,
+        helpUsed: {},
+        selectedIndex: 0,
+      );
+    }
+    final profile = await store.readLanguageProfile("en");
+    final plan = sentencePlan(
+      profile,
+      recommendLanguage(
+        profile,
+        LanguageGoal.communication,
+        restrictTo: {LanguageSkill.detail},
+      ),
+      [],
+    );
+    expect(plan.level, SentenceLevel.intermediate);
+    expect(plan.diagnostic, isFalse);
+    expect(plan.performance.checked, 0);
+    final transport = ReplyProvider()
+      ..reply = jsonEncode({
+        "language": "en",
+        "sentences": [
+          for (var i = 0; i < plan.count; i++)
+            {
+              "text":
+                  "Although the drawer was empty, the spare key remained in locker $i.",
+              "translation": "备用钥匙还在柜子里。",
+              "hint": "Find the location.",
+              "level": "intermediate",
+              "skill": "detail",
+              "check": {
+                "question": "Where was the key?",
+                "choices": ["locker $i", "drawer", "outside"],
+                "correctIndex": 0,
+                "explanation": "The sentence locates the key in the locker.",
+              },
+            },
+        ],
+      });
+    final provider = LanguageGenerationProvider(
+      provider: () => transport,
+      configuration: () => config,
+      promptSettings: () => PromptSettings(),
+      history: LanguageGenerationStore(db),
+      compare: (_, _, _) async => true,
+    );
+    final proposal = await SentenceBatchAi(provider: provider, config: config)
+        .propose(
+          topic: SentenceTopic.dailyLife,
+          style: plan.style,
+          level: plan.level,
+          glossLanguage: "en",
+          count: plan.count,
+          focus: plan.skill,
+          cancel: CancelToken(),
+        );
+    expect(proposal.cards, hasLength(plan.count));
+    final task = jsonDecode(transport.sent!.messages.first.text);
+    expect(task, containsPair("focus", "detail"));
+    expect(task, containsPair("level", "intermediate"));
+    expect(task, containsPair("count", plan.count));
+    final summary =
+        jsonDecode(
+              transport.sent!.messages.last.text,
+            )["learnerProfile"]["skills"]
+            as List;
+    expect(summary.first["skill"], "detail");
+    expect(summary.first["verifiedIndependent"], 0);
+    expect(summary.first["recentOutcomes"].first["level"], "beginner");
+    expect(summary.first["recentOutcomes"].first["verified"], false);
+    expect(await provider.history.exportJsonl(), contains("recentOutcomes"));
+  });
+
   test(
     "sentence context follows content identity, never a later revision",
     () async {
@@ -48,9 +298,13 @@ void main() {
         level: SentenceLevel.beginner,
         checkExplanation: "It names the hall.",
       );
-      Future<void> save(int revision) => store.saveSentenceBatch(
+      Future<void> save(
+        int revision, {
+        String batchId = "saved",
+        SentenceLevel level = SentenceLevel.beginner,
+      }) => store.saveSentenceBatch(
         SentenceBatchProposal(
-          id: "saved",
+          id: batchId,
           topic: SentenceTopic.dailyLife,
           style: SentenceStyle.written,
           glossLanguage: "zh",
@@ -68,7 +322,7 @@ void main() {
               choices: card.choices,
               correctIndex: card.correctIndex,
               skill: card.skill,
-              level: card.level,
+              level: level,
               revision: revision,
               checkExplanation: card.checkExplanation,
             ),
@@ -92,6 +346,17 @@ void main() {
       expect(row.expected, "hall");
       expect(row.feedback, "It names the hall.");
       expect(row.verified, isFalse);
+      expect(row.level, SentenceLevel.beginner);
+      await save(1, batchId: "conflicting", level: SentenceLevel.intermediate);
+      row = (await store.readLanguageProfile("en"))
+          .skills[LanguageSkill.detail]!
+          .observations
+          .single;
+      expect(row.expected, isNull);
+      expect(row.level, isNull);
+      await (db.delete(
+        db.learningSentenceBatches,
+      )..where((b) => b.id.equals("conflicting"))).go();
       await db.customStatement(
         """UPDATE learning_sentence_batches SET cards = replace(cards, '"revision":1', '"revision":2')""",
       );
@@ -100,6 +365,7 @@ void main() {
           .observations
           .single;
       expect(row.expected, isNull);
+      expect(row.level, isNull);
       expect(row.response, "kitchen");
     },
   );
@@ -123,9 +389,9 @@ void main() {
         promptVersion: 1,
         isMock: false,
         feedback: const WritingFeedback(
-          task: 2,
-          organization: 2,
-          language: 1,
+          task: 3,
+          organization: 3,
+          language: 3,
           summary: "Review agreement.",
           notes: [
             WritingNote(3, 5, WritingNoteKind.issue, "Use goes with he."),

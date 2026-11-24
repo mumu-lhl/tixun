@@ -2,6 +2,7 @@ import "dart:convert";
 
 import "../../core/ai/chat_provider.dart";
 import "generation_profile.dart";
+import "language_skills.dart";
 import "language_profile_store.dart";
 import "language_store.dart";
 import "../../core/ai/prompt_settings.dart";
@@ -31,7 +32,11 @@ class LanguageGenerationProvider implements ChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       provider().start(config, apiKeyOverride: apiKeyOverride);
 
-  Future<AiRequest> prepare(String feature, AiRequest request) async {
+  Future<AiRequest> prepare(
+    String feature,
+    AiRequest request, {
+    Set<LanguageSkill> focus = const {},
+  }) async {
     final definition = feature == "language_vocabulary_revision"
         ? LanguagePrompt.vocabulary
         : LanguagePrompt.values.where((p) => p.id == feature).firstOrNull;
@@ -58,7 +63,9 @@ class LanguageGenerationProvider implements ChatProvider {
       messages: [
         ...request.messages,
         AiMessage.user(
-          jsonEncode({"learnerProfile": generationProfile(profile, feature)}),
+          jsonEncode({
+            "learnerProfile": generationProfile(profile, feature, focus: focus),
+          }),
         ),
       ],
     );

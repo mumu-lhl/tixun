@@ -14,6 +14,7 @@ import "language_json_request.dart";
 import "language_store.dart";
 import "sentence_content.dart";
 import "generation_provider.dart";
+import "language_skills.dart";
 
 class ExamAi {
   const ExamAi({
@@ -61,6 +62,10 @@ class ExamAi {
       config: config,
       usageStore: usageStore,
       feature: "language_exam_generation",
+      learnerFocus: {
+        examAbility(target.kind),
+        if (target.skill != null) sentenceAbility(target.skill!),
+      },
       original: replacing == null
           ? null
           : GenerationOriginal(

@@ -13,6 +13,7 @@ import "language_store.dart";
 import "sentence_batch_store.dart";
 import "sentence_content.dart";
 import "generation_provider.dart";
+import "language_skills.dart";
 
 class SentenceBatchAi {
   const SentenceBatchAi({
@@ -76,6 +77,7 @@ class SentenceBatchAi {
           feature: contextMode
               ? "language_context_understanding"
               : "language_sentence_batch",
+          learnerFocus: {if (focus != null) sentenceAbility(focus)},
           onCaptured: (run) {
             generationIds.add(run.id);
             generatedModels.add(run.model);

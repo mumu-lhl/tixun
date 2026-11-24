@@ -200,6 +200,8 @@ class _LanguageProfileScreenState extends State<LanguageProfileScreen> {
                         ? l10n.languageTentativeWeakness
                         : plan.diagnostic
                         ? l10n.languageSentenceDiagnostic
+                        : evidence.uncertain
+                        ? l10n.languagePracticeAdjustment
                         : l10n.languageNextSkillReason(
                             evidence.correct,
                             evidence.independent,

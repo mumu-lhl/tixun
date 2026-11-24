@@ -183,6 +183,8 @@ class _SentencePracticeState extends State<SentencePractice> {
         Text(
           plan.diagnostic
               ? l10n.languageSentenceDiagnostic
+              : plan.performance.checked < 3
+              ? l10n.languagePracticeAdjustment
               : l10n.languageNextSkillReason(
                   plan.performance.correct,
                   plan.performance.checked,

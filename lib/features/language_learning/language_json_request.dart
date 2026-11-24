@@ -9,6 +9,7 @@ import "../../core/database/database.dart";
 import "language_stream.dart";
 import "generation_store.dart";
 import "generation_provider.dart";
+import "language_skills.dart";
 
 Object? decodeLanguageJson(String raw) {
   final trimmed = raw.trim();
@@ -29,6 +30,7 @@ Future<T> requestLanguageText<T>({
   required CancelToken cancel,
   required T Function(String) parse,
   String outputFormat = "markdown",
+  Set<LanguageSkill> learnerFocus = const {},
   void Function(LanguageGenerationRun)? onCaptured,
   GenerationOriginal? original,
   int maxChars = 28000,
@@ -38,7 +40,9 @@ Future<T> requestLanguageText<T>({
   final session = provider is LanguageGenerationProvider ? provider : null;
   config = session?.configuration() ?? config;
   cancel.checkCancelled();
-  request = session == null ? request : await session.prepare(feature, request);
+  request = session == null
+      ? request
+      : await session.prepare(feature, request, focus: learnerFocus);
   cancel.checkCancelled();
   if (outputFormat == "json") {
     request = request.copyWith(outputFormat: AiOutputFormat.jsonObject);
@@ -136,6 +140,7 @@ Future<T> requestLanguageJson<T>({
   required AiRequest request,
   required CancelToken cancel,
   required T Function(Object?) parse,
+  Set<LanguageSkill> learnerFocus = const {},
   int maxChars = 28000,
   String cancelledStatus = "cancelled",
   bool captureLocalBreakdown = true,
@@ -153,6 +158,7 @@ Future<T> requestLanguageJson<T>({
   cancelledStatus: cancelledStatus,
   captureLocalBreakdown: captureLocalBreakdown,
   outputFormat: "json",
+  learnerFocus: learnerFocus,
   onCaptured: onCaptured,
   original: original,
 );

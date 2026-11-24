@@ -8,6 +8,8 @@ import "package:tixun/core/ai/prompt_settings.dart";
 import "package:tixun/core/database/database.dart";
 import "package:tixun/core/l10n/generated/app_localizations.dart";
 import "package:tixun/features/language_learning/language_store.dart";
+import "package:tixun/features/language_learning/language_skills.dart";
+import "package:tixun/features/language_learning/exam_material.dart";
 import "package:tixun/features/language_learning/next_practice.dart";
 import "package:tixun/features/language_learning/sentence_batch_ai.dart";
 import "package:tixun/features/language_learning/sentence_batch_store.dart";
@@ -390,6 +392,73 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     }
+  }
+
+  for (final (width, scale) in [(320.0, 1.6), (1200.0, 1.0)]) {
+    testWidgets(
+      "training adjustment is not shown as confirmed mastery at $width",
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = Size(width, 1000);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
+        final profile = LanguageProfile(
+          language: "en",
+          exam: ExamProfile.zhejiang2026,
+          due: 0,
+          evidence: [
+            for (var i = 0; i < 3; i++)
+              LanguageObservation(
+                id: "new-$i",
+                skill: LanguageSkill.detail,
+                kind: EvidenceKind.independent,
+                verified: false,
+                correct: true,
+                level: SentenceLevel.beginner,
+                at: DateTime.now().subtract(Duration(minutes: i)),
+                basis: "item $i",
+              ),
+          ],
+        );
+        final plan = sentencePlan(
+          profile,
+          recommendLanguage(
+            profile,
+            LanguageGoal.communication,
+            restrictTo: {LanguageSkill.detail},
+          ),
+          [],
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale("en"),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            ),
+            home: SentencePractice(
+              store: store,
+              explanation: explanation,
+              batchAi: SentenceBatchAi(provider: provider, config: _config),
+              recommendation: plan,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            "Based on recent unaided answers; mastery is not yet confirmed.",
+          ),
+          findsOneWidget,
+        );
+        expect(find.text("Intermediate"), findsOneWidget);
+        expect(find.text("Prepare recommended practice"), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets(

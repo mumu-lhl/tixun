@@ -21,6 +21,7 @@ class SentencePlan {
     required this.level,
     required this.style,
     required this.exclusions,
+    required this.diagnostic,
   });
 
   final SentenceSkill skill;
@@ -30,7 +31,7 @@ class SentencePlan {
   final SentenceStyle style;
   final List<String> exclusions;
 
-  bool get diagnostic => performance.checked < 3;
+  final bool diagnostic;
 }
 
 /// Uses the same evidence and selection policy as the profile page, restricted
@@ -63,6 +64,7 @@ SentencePlan sentencePlan(
   final row = profile.skills[recommendation.skill]!;
   return SentencePlan(
     skill: skill,
+    diagnostic: recommendation.diagnostic,
     count: recommendation.count,
     level: recommendation.level,
     style: skill == SentenceSkill.intention

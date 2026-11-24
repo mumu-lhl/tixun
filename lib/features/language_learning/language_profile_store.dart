@@ -204,7 +204,9 @@ Future<List<LanguageObservation>> _sentences(
           (previous.question != card.question ||
               previous.choices.join("\\u0000") !=
                   card.choices.join("\\u0000") ||
-              previous.correctIndex != card.correctIndex)) {
+              previous.correctIndex != card.correctIndex ||
+              previous.level != card.level ||
+              previous.skill != card.skill)) {
         ambiguous.add(key);
       }
       cards[key] = card;
@@ -215,7 +217,7 @@ Future<List<LanguageObservation>> _sentences(
   }
   final results = <LanguageObservation>[];
   for (final row in rows) {
-    final card =
+    final snapshot =
         cards[(
           row.read<String>("sentence_id"),
           row.read<int>("revision"),
@@ -223,6 +225,7 @@ Future<List<LanguageObservation>> _sentences(
         )];
     final skill = SentenceSkill.values.asNameMap()[row.read<String>("skill")];
     if (skill == null) continue;
+    final card = snapshot?.skill == skill ? snapshot : null;
     final correct = row.readNullable<bool>("correct");
     results.add(
       LanguageObservation(
@@ -239,6 +242,7 @@ Future<List<LanguageObservation>> _sentences(
             ? card.choices[card.correctIndex]
             : null,
         feedback: card?.checkExplanation,
+        level: card?.level,
         correct: correct,
         verified: false,
         kind: correct == null
@@ -317,6 +321,7 @@ Future<List<LanguageObservation>> _exams(
             response: answers[i],
             expected: item.answers.join(" / "),
             task: paper.target.kind.name,
+            level: paper.target.level,
             profile: profile,
             correct: item.matches(answers[i]),
             verified:

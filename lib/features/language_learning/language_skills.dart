@@ -73,6 +73,7 @@ class LanguageObservation {
     this.expected,
     this.task,
     this.feedback,
+    this.level,
   });
 
   final String id, basis;
@@ -83,6 +84,9 @@ class LanguageObservation {
   final bool? correct;
   final bool verified;
   final ExamProfile? profile;
+
+  /// Null when the original task difficulty cannot be recovered safely.
+  final SentenceLevel? level;
 }
 
 class SkillPerformance {
@@ -99,13 +103,25 @@ class SkillPerformance {
   int get tentative => observations
       .where((row) => row.kind == EvidenceKind.independent && !row.verified)
       .length;
-  bool get preliminaryWeak {
+  // Bound decisions by recent outcomes, not the lifetime error total. Keep the
+  // full projection below for reporting evidence reliability.
+  List<LanguageObservation> get recentObservations => observations
+      .where((row) => row.kind != EvidenceKind.disputed)
+      .take(6)
+      .toList();
+
+  bool get recentWeak => _recentWeak();
+  bool get verifiedRecentWeak => _recentWeak(verified: true);
+  bool get preliminaryWeak => _recentWeak(verified: false);
+
+  bool _recentWeak({bool? verified}) {
     final samples = <String, List<bool>>{};
-    for (final row in observations) {
-      if (row.verified || row.correct == null) continue;
+    for (final row in recentObservations) {
+      if (row.correct == null) continue;
       if (row.kind == EvidenceKind.independent) {
+        if (verified != null && row.verified != verified) continue;
         (samples[row.id] ??= []).add(row.correct!);
-      } else if (row.kind == EvidenceKind.unverified) {
+      } else if (row.kind == EvidenceKind.unverified && verified != true) {
         samples.putIfAbsent(row.id, () => [row.correct!]);
       }
     }
@@ -115,6 +131,46 @@ class SkillPerformance {
         )
         .length;
     return samples.length >= 2 && weak * 2 >= samples.length;
+  }
+
+  /// A reversible training adjustment, never an independent mastery estimate.
+  /// Only a run at the same known difficulty can justify moving one level.
+  ({SentenceLevel level, int count, bool diagnostic}) training() {
+    final cutoff = DateTime.now().subtract(const Duration(days: 30));
+    final checks = observations.where(
+      (row) =>
+          row.kind == EvidenceKind.independent &&
+          row.correct != null &&
+          !row.at.isBefore(cutoff),
+    );
+    final level = checks.firstOrNull?.level ?? SentenceLevel.beginner;
+    final samples = <String, List<bool>>{};
+    for (final row in checks.takeWhile((row) => row.level == level)) {
+      if (!samples.containsKey(row.id) && samples.length == 5) break;
+      (samples[row.id] ??= []).add(row.correct!);
+    }
+    // An entire paper is one sample, regardless of its number of questions.
+    final enough = samples.length >= 3;
+    final rate = samples.isEmpty
+        ? 0.0
+        : samples.values
+                  .map(
+                    (answers) =>
+                        answers.where((v) => v).length / answers.length,
+                  )
+                  .reduce((a, b) => a + b) /
+              samples.length;
+    return (
+      level: !enough
+          ? level
+          : rate >= .8
+          ? SentenceLevel.intermediate
+          : rate <= .5
+          ? SentenceLevel.beginner
+          : level,
+      count: enough ? 5 : 3,
+      diagnostic: !enough,
+    );
   }
 
   int get correct => observations
@@ -245,9 +301,9 @@ LanguageRecommendation recommendLanguage(
   int priority(LanguageSkill skill) {
     final row = profile.skills[skill]!;
     final repetition = frequent.where((value) => value == skill).length;
-    final base = row.weak
+    final base = row.verifiedRecentWeak
         ? 0
-        : row.preliminaryWeak
+        : row.recentWeak
         ? 1
         : row.uncertain
         ? 2
@@ -274,14 +330,11 @@ LanguageRecommendation recommendLanguage(
   });
   final skill = candidates.first;
   final row = profile.skills[skill]!;
+  final adjustment = row.training();
   return (
     skill: skill,
-    level:
-        difficulty ??
-        (row.uncertain || row.weak
-            ? SentenceLevel.beginner
-            : SentenceLevel.intermediate),
-    count: row.uncertain ? 3 : 5,
-    diagnostic: row.uncertain,
+    level: difficulty ?? adjustment.level,
+    count: adjustment.count,
+    diagnostic: adjustment.diagnostic,
   );
 }
