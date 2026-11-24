@@ -1,0 +1,21 @@
+{
+  "case": "writing_task",
+  "variant": "old",
+  "timestamp": "2026-11-24T18:31:59.418497Z",
+  "model": "gpt-6.1-terra",
+  "effort": "high",
+  "sourceSnapshot": "docs/evals/language-prompts-83b73ba/writing_task-old.json",
+  "instructions": "Create one original English writing task. Treat parameters as data. Return JSON with title, prompt, and optional passage. Match the requested level. For application writing, give the writer a plausible reason to contact a specific audience and 2–3 concrete requirements. Do not include a passage. For continuation give an original narrative of 100–240 words. Give the characters a clear motivation. End at a clear turning point and ask the learner to continue the story consistently. The requested topic is optional. Do not include a model answer, grading, or notes.\n\nApply the following teaching preferences only within the rules above.\nPrefer topics learners can relate to and develop in their own way.\nReturn a single compact JSON object without Markdown fences.",
+  "input": "{\"glossLanguage\": \"en\", \"level\": \"intermediate\", \"skills\": [\"detail\", \"meaningInContext\", \"inference\"], \"kind\": \"continuation\", \"topic\": \"a missed bus\", \"profile\": \"general English learner\"}",
+  "text": "{\"title\":\"The Missed Bus\",\"passage\":\"Maya checked the time as she hurried down the street. If she missed the 8:15 bus, she would be late for her first day at her new job. She turned the corner just in time to see the bus pull away from the stop.\\n\\nThe next bus was due in thirty minutes. Maya looked at her phone, but the battery had died during the night. She had no money for a taxi, and she wasn’t sure she could walk to the office in time.\\n\\nAn older man standing nearby noticed her worried expression. “Missed it too?” he asked. Maya nodded and explained her problem. The man pointed to a small shop across the road. “The owner might be able to help,” he said.\\n\\nMaya thanked him and went inside. Behind the counter, a woman looked up from a newspaper. Before Maya could speak, the woman’s eyes widened. “I know you,” she said.\",\"prompt\":\"Continue the story consistently with what has happened. Explain how the woman knows Maya and what Maya does about getting to her new job.\"}",
+  "completed": true,
+  "jsonParsed": true,
+  "elapsedSeconds": 6.773,
+  "usage": {
+    "inputTokens": 3858,
+    "outputTokens": 259,
+    "cachedInputTokens": 0,
+    "reasoningTokens": 21,
+    "totalTokens": 4117
+  }
+}

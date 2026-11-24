@@ -1,0 +1,20 @@
+{
+  "old": {
+    "requests": 13,
+    "jsonObjectsParsed": 12,
+    "jsonExpected": 12,
+    "promptTokens": 4643,
+    "completionTokens": 4829,
+    "meanSeconds": 2.419,
+    "allFinishStop": true
+  },
+  "new": {
+    "requests": 13,
+    "jsonObjectsParsed": 12,
+    "jsonExpected": 12,
+    "promptTokens": 5788,
+    "completionTokens": 4939,
+    "meanSeconds": 2.926,
+    "allFinishStop": true
+  }
+}

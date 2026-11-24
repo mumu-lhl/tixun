@@ -25,7 +25,7 @@
 
 两组定向回归共 53 项通过，涵盖提示词偏好持久化与边界、词汇生成、句子理解、新情境、试卷、写作、速查缓存及追问。它们验证工程兼容性，不证明教学质量提升。
 
-本轮未调用付费模型做 A/B 评测，不宣称 token 节省或模型效果提升。此前小样本评测见 LANGUAGE_LEARNING_DESIGN.md，其结果不能直接外推到本轮。
+实现提交后的探索性真实评测见 [DeepSeek 记录](evals/language-prompts-83b73ba/REPORT.md)与 [ChatGPT 订阅记录](evals/language-prompts-chatgpt-83b73ba/REPORT.md)。DeepSeek 评测曾错误使用 Pi 保存的凭据，用户纠正后已停止并删除脚本回退；后续只用题训保存的 ChatGPT 订阅。小样本不证明总体教学质量提升，也不宣称 token 节省。此前评测见 LANGUAGE_LEARNING_DESIGN.md，不能直接外推。
 
 后续真实模型评测应固定输入、模型版本和采样参数，记录完整输出、输入/输出 token 与延迟，随机隐藏版本后评审：
 - 中英文释义 × 混合等级 × 句子/对话：语言是否正确、检查是否充分、提示是否泄题。
