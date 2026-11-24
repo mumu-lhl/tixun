@@ -18,14 +18,17 @@ class LexicalFormDraft {
   final String surface;
   final Inflection inflection;
 
+  static String normalizeSurface(String value) =>
+      value.trim().replaceAll(RegExp(r"\s+"), " ").toLowerCase();
+
   static const recognitionSkill = "formRecognition";
   static const productionSkill = "formProduction";
 
   void validate(String lemma) {
-    final form = surface.trim();
-    if (form.isEmpty ||
-        !RegExp(r"^[a-zA-Z][a-zA-Z'-]{0,79}$").hasMatch(form) ||
-        form.toLowerCase() == lemma.trim().toLowerCase()) {
+    final form = normalizeSurface(surface);
+    if (lemma.trim().isEmpty ||
+        form.length > 80 ||
+        !RegExp(r"^[a-zA-Z]+(?:[ '-][a-zA-Z]+)*$").hasMatch(form)) {
       throw const FormatException("Invalid English inflection");
     }
   }
@@ -46,7 +49,7 @@ Future<void> insertLexicalForm(
           id: const Uuid().v4(),
           senseId: senseId,
           surface: surface,
-          normalizedSurface: surface.toLowerCase(),
+          normalizedSurface: LexicalFormDraft.normalizeSurface(surface),
           inflection: form.inflection.name,
           createdAt: DateTime.now(),
         ),

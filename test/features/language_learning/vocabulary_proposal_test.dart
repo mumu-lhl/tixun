@@ -8,6 +8,7 @@ import "package:tixun/core/ai/prompt_settings.dart";
 import "package:tixun/core/database/database.dart";
 import "package:tixun/core/l10n/generated/app_localizations.dart";
 import "package:tixun/features/language_learning/language_store.dart";
+import "package:tixun/features/language_learning/lexical_form_store.dart";
 import "package:tixun/features/language_learning/vocabulary_ai.dart";
 import "package:tixun/features/language_learning/vocabulary_proposal_dialog.dart";
 
@@ -28,6 +29,7 @@ class _VocabularyProvider implements ChatProvider {
 
   final bool completed;
   bool duplicate = false;
+  String? response;
   int requests = 0;
   late Map parameters;
   late String instructions;
@@ -47,15 +49,16 @@ class _VocabularyProvider implements ChatProvider {
     yield AiChunk(
       completed: completed,
       text:
+          response ??
           '{"language":"en","groupTitle":" Station English ","entries":['
-          '{"form":"platform","type":"word","meaning":"a boarding area",'
-          '"partOfSpeech":"n.","example":"The train leaves from platform two.",'
-          '"translation":"We board at platform two.",'
-          '"application":"Please wait on the ___ until the doors open.",'
-          '"applicationAnswer":"platform"},'
-          '{"form":"${duplicate ? "platform" : "ticket"}","type":"word","meaning":"a pass for a journey",'
-          '"partOfSpeech":"n.","example":"I bought a ticket at the station.",'
-          '"translation":"I paid for my trip at the station."}]}',
+              '{"form":"platform","type":"word","meaning":"a boarding area",'
+              '"partOfSpeech":"n.","example":"The train leaves from platform two.",'
+              '"translation":"We board at platform two.",'
+              '"application":"Please wait on the ___ until the doors open.",'
+              '"applicationAnswer":"platform","forms":[{"surface":"platforms","inflection":"plural"}]},'
+              '{"form":"${duplicate ? "platform" : "ticket"}","type":"word","meaning":"a pass for a journey",'
+              '"partOfSpeech":"n.","example":"I bought a ticket at the station.",'
+              '"translation":"I paid for my trip at the station."}]}',
     );
   });
 }
@@ -270,6 +273,136 @@ void main() {
     expect(await store.cards(language: "en"), isEmpty);
   });
 
+  test(
+    "generated unchanged and periphrastic forms save with their senses",
+    () async {
+      final provider = _VocabularyProvider(completed: true)
+        ..response = jsonEncode({
+          "language": "en",
+          "entries": [
+            {
+              "form": "cut",
+              "type": "word",
+              "partOfSpeech": "v.",
+              "meaning": "divide with a blade",
+              "example": "I cut the paper.",
+              "translation": "I divided the paper.",
+              "forms": [
+                {"surface": "cut", "inflection": "past"},
+                {"surface": "cut", "inflection": "pastParticiple"},
+                {"surface": "CUT", "inflection": "past"},
+              ],
+            },
+            {
+              "form": "useful",
+              "type": "word",
+              "partOfSpeech": "adj.",
+              "meaning": "helpful",
+              "example": "This tool is useful.",
+              "translation": "This tool helps.",
+              "forms": [
+                {"surface": "more useful", "inflection": "comparative"},
+                {"surface": "most useful", "inflection": "superlative"},
+              ],
+            },
+          ],
+        });
+      final proposal = await VocabularyAi(provider).propose(
+        config: _config,
+        topic: "Everyday",
+        groupType: VocabularyGroupType.topic,
+        level: VocabularyLevel.intermediate,
+        glossLanguage: "en",
+        existingExpressions: const [],
+        cancel: CancelToken(),
+        count: 2,
+      );
+      expect(provider.requests, 1);
+      expect(proposal.entries.first.forms, hasLength(2));
+      expect(await store.cards(language: "en"), isEmpty);
+      await store.saveEntries(
+        language: "en",
+        groupTitle: "Everyday",
+        groupType: VocabularyGroupType.topic,
+        entries: proposal.entries,
+        provenance: proposal.provenance,
+      );
+      final cards = await store.cards(language: "en");
+      final cut = cards.singleWhere((card) => card.item.form == "cut");
+      final useful = cards.singleWhere((card) => card.item.form == "useful");
+      expect(
+        (await store.lexicalForms(cut.sense.id))
+            .map((f) => f.inflection)
+            .toSet(),
+        {"past", "pastParticiple"},
+      );
+      expect(
+        (await store.lexicalForms(useful.sense.id))
+            .map((f) => f.surface)
+            .toSet(),
+        {"more useful", "most useful"},
+      );
+      final exercises = await store.formPractice("en");
+      final comparative = exercises.singleWhere(
+        (e) => e.form.surface == "more useful",
+      );
+      expect(
+        await store.recordFormPractice(
+          attemptId: "spaced",
+          exercise: comparative,
+          answer: " MORE   USEFUL ",
+          production: true,
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  for (final forms in [
+    [
+      {"surface": "cuts", "inflection": "unknown"},
+    ],
+    [
+      {"surface": "", "inflection": "plural"},
+    ],
+    [
+      {"surface": "cuts", "inflection": 1},
+    ],
+    "cuts",
+  ]) {
+    test("rejects malformed generated forms: $forms", () async {
+      final provider = _VocabularyProvider(completed: true)
+        ..response = jsonEncode({
+          "language": "en",
+          "entries": [
+            {
+              "form": "cut",
+              "type": "word",
+              "meaning": "an incision",
+              "example": "It is a small cut.",
+              "translation": "A small incision.",
+              "forms": forms,
+            },
+          ],
+        });
+      await expectLater(
+        VocabularyAi(provider).propose(
+          config: _config,
+          topic: "Everyday",
+          groupType: VocabularyGroupType.topic,
+          level: VocabularyLevel.intermediate,
+          glossLanguage: "en",
+          existingExpressions: const [],
+          cancel: CancelToken(),
+          count: 1,
+        ),
+        throwsFormatException,
+      );
+      expect(await store.cards(language: "en"), isEmpty);
+      expect(provider.requests, 1);
+    });
+  }
+
   testWidgets("preview saves only selected candidates and creates no Chat", (
     tester,
   ) async {
@@ -322,6 +455,10 @@ void main() {
       expect(saved.item.form, "platform");
       expect(saved.sense.meaning, "a place to board");
       expect(saved.sense.partOfSpeech, "n.");
+      expect(
+        (await store.lexicalForms(saved.sense.id)).single.surface,
+        "platforms",
+      );
       expect(saved.sense.aiModel, _config.model);
       expect(
         saved.sense.application,

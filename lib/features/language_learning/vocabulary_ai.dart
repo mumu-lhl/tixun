@@ -12,6 +12,7 @@ import "language_json_request.dart";
 import "generation_provider.dart";
 import "generation_store.dart";
 import "language_store.dart";
+import "lexical_form.dart";
 import "sentence_content.dart";
 
 enum VocabularyLevel { beginner, intermediate, advanced }
@@ -39,7 +40,7 @@ class VocabularyAi {
   final PromptSettings? prompts;
   static const maximumEntries = 20;
   static const _perRequest = 6;
-  static const promptVersion = 7;
+  static const promptVersion = 8;
 
   Future<VocabularyProposal> propose({
     required ProviderConfig config,
@@ -308,12 +309,37 @@ class VocabularyAi {
       if (!seen.add(normalizeLanguageText(form))) {
         continue;
       }
+      final rawForms = row["forms"];
+      if (rawForms != null && (rawForms is! List || rawForms.length > 16)) {
+        throw const FormatException("Invalid vocabulary inflections");
+      }
+      final forms = <LexicalFormDraft>[];
+      final seenForms = <String>{};
+      for (final value in (rawForms as List? ?? const [])) {
+        if (value is! Map ||
+            value["surface"] is! String ||
+            value["inflection"] is! String) {
+          throw const FormatException("Invalid vocabulary inflection");
+        }
+        final inflection = Inflection.values.asNameMap()[value["inflection"]];
+        if (inflection == null || type != LexicalType.word) {
+          throw const FormatException("Invalid vocabulary inflection type");
+        }
+        final draft = LexicalFormDraft(value["surface"] as String, inflection);
+        draft.validate(form);
+        if (seenForms.add(
+          "${inflection.name}:${LexicalFormDraft.normalizeSurface(draft.surface)}",
+        )) {
+          forms.add(draft);
+        }
+      }
       entries.add(
         VocabularyEntry(
           form: form,
           meaning: meaning,
           type: type,
           partOfSpeech: partOfSpeech,
+          forms: List.unmodifiable(forms),
           example: example,
           translation: translation,
           application: application,

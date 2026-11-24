@@ -6,6 +6,8 @@ import "../../core/ui/app_menu.dart";
 import "../../core/l10n/generated/app_localizations.dart";
 import "../../core/ui/actions.dart";
 import "language_store.dart";
+import "lexical_form.dart";
+import "lexical_form_screen.dart" show inflectionLabel;
 
 String vocabularyGroupLabel(AppLocalizations l10n, VocabularyGroupType type) =>
     switch (type) {
@@ -80,6 +82,11 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
   );
   var _groupType = VocabularyGroupType.topic;
   late var _lexicalType = widget.initial?.type ?? LexicalType.word;
+  late final _formSurfaces = [
+    for (final form in widget.initial?.forms ?? <LexicalFormDraft>[])
+      TextEditingController(text: form.surface),
+  ];
+  late final _selectedForms = [for (final _ in _formSurfaces) true];
   var _saving = false;
   var _dirty = false;
   var _confirmingClose = false;
@@ -122,6 +129,7 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
       _translation,
       _application,
       _answer,
+      ..._formSurfaces,
     ]) {
       c.dispose();
     }
@@ -141,6 +149,14 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
       translation: _translation.text,
       application: _application.text,
       applicationAnswer: _answer.text,
+      forms: [
+        for (var i = 0; i < _formSurfaces.length; i++)
+          if (_selectedForms[i] && _lexicalType == LexicalType.word)
+            LexicalFormDraft(
+              _formSurfaces[i].text.trim(),
+              widget.initial!.forms[i].inflection,
+            ),
+      ],
     );
     final store = widget.store;
     if (store == null) {
@@ -241,6 +257,50 @@ class _VocabularyEditorState extends State<_VocabularyEditor> {
                 ),
                 field(_example, l10n.languageExample),
                 field(_translation, l10n.languageTranslation),
+                if (_formSurfaces.isNotEmpty &&
+                    _lexicalType == LexicalType.word) ...[
+                  Text(l10n.languageForms),
+                  for (var i = 0; i < _formSurfaces.length; i++)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: _selectedForms[i],
+                          onChanged: _saving
+                              ? null
+                              : (value) => setState(() {
+                                  _selectedForms[i] = value!;
+                                  _dirty = true;
+                                }),
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _formSurfaces[i],
+                            enabled: !_saving && _selectedForms[i],
+                            maxLength: 80,
+                            decoration: InputDecoration(
+                              labelText: inflectionLabel(
+                                l10n,
+                                widget.initial!.forms[i].inflection,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (!_selectedForms[i]) return null;
+                              try {
+                                LexicalFormDraft(
+                                  value ?? "",
+                                  widget.initial!.forms[i].inflection,
+                                ).validate(_expression.text);
+                                return null;
+                              } on FormatException {
+                                return l10n.languageInvalidForm;
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ],
             ),
           ),

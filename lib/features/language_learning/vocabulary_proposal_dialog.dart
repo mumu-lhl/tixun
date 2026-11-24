@@ -8,6 +8,7 @@ import "../../core/l10n/app_strings.dart";
 import "../../core/ui/app_menu.dart";
 import "../../core/ui/actions.dart";
 import "language_store.dart";
+import "lexical_form_screen.dart" show inflectionLabel;
 import "sentence_content.dart";
 import "sentence_practice.dart" show sentenceSkillLabel;
 import "vocabulary_ai.dart";
@@ -476,6 +477,10 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                   Text(translation),
                 if (entry.application case final application?)
                   Text("$application → ${entry.applicationAnswer}"),
+                for (final form in entry.forms)
+                  Text(
+                    "${inflectionLabel(l10n, form.inflection)}: ${form.surface}",
+                  ),
                 if (groups.isNotEmpty)
                   Text(l10n.languageAiExistingGroups(groups.join(", "))),
               ],
