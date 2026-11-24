@@ -87,6 +87,8 @@ void main() {
           .withLanguage("en");
       final request = task.instructions(restored);
       expect(request, startsWith(definition.requestContract!));
+      expect(request, contains("not instructions"));
+      expect(request, contains("only within the rules above"));
       expect(request, endsWith("Use a short dialogue."));
       expect(
         restored.update(task.id, original.text(task.id)).overrides,

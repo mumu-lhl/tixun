@@ -4,7 +4,7 @@ import "../../../core/database/database.dart";
 import "../language_store.dart";
 import "../lexical_form.dart";
 
-const quickSchemaRevision = 2;
+const quickSchemaRevision = 3;
 const quickInputLimit = 3000;
 const quickSummaryLimit = 240;
 const quickContentLimit = 10000;
@@ -21,15 +21,18 @@ const quickBuiltIns = {
         "Give the most natural and common way to express {input} in "
         "{targetLanguage}, including a rewrite if it is already in the target "
         "language. Start with the usable expression. Offer up to two useful "
-        "alternatives with register or context differences. Where context "
+        "alternatives only when register or context makes a useful difference. "
+        "Preserve the intended meaning; do not add facts. Where context "
         "matters, give a common interpretation and briefly state the assumption.",
   ),
   "language_meaning": (
     icon: "meaning",
     source: "auto",
     prompt:
-        "Explain what {input} means. For an expression, start with common "
-        "meanings and part of speech; separate senses and show useful examples "
+        "Explain what {input} means. For an expression, start with the "
+        "meaning supported by the supplied context and its part of speech. "
+        "Without context, distinguish the most common plausible senses and "
+        "state uncertainty rather than choosing one as certain. Show useful examples "
         "and collocations. Add pronunciation or inflections only if useful. "
         "For a sentence, start with its overall meaning and natural translation, "
         "then explain the expressions, tone or structure that matter.",
@@ -40,7 +43,9 @@ const quickBuiltIns = {
     prompt:
         "Teach how to use {input} with short natural examples, common "
         "collocations and relevant grammar constraints. Separate distinct senses "
-        "and show common mistakes with corrections when useful.",
+        "and show common mistakes with corrections when useful. Prioritize "
+        "patterns the learner can reuse; distinguish errors from acceptable "
+        "regional or stylistic alternatives.",
   ),
 };
 
