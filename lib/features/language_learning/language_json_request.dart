@@ -37,7 +37,9 @@ Future<T> requestLanguageText<T>({
 }) async {
   final session = provider is LanguageGenerationProvider ? provider : null;
   config = session?.configuration() ?? config;
-  request = session?.prepare(feature, request) ?? request;
+  cancel.checkCancelled();
+  request = session == null ? request : await session.prepare(feature, request);
+  cancel.checkCancelled();
   if (outputFormat == "json") {
     request = request.copyWith(outputFormat: AiOutputFormat.jsonObject);
   }

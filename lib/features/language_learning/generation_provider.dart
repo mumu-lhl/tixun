@@ -1,4 +1,9 @@
+import "dart:convert";
+
 import "../../core/ai/chat_provider.dart";
+import "generation_profile.dart";
+import "language_profile_store.dart";
+import "language_store.dart";
 import "../../core/ai/prompt_settings.dart";
 import "generation_store.dart";
 import "../../core/database/database.dart";
@@ -26,14 +31,36 @@ class LanguageGenerationProvider implements ChatProvider {
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>
       provider().start(config, apiKeyOverride: apiKeyOverride);
 
-  AiRequest prepare(String feature, AiRequest request) {
+  Future<AiRequest> prepare(String feature, AiRequest request) async {
     final definition = feature == "language_vocabulary_revision"
         ? LanguagePrompt.vocabulary
         : LanguagePrompt.values.where((p) => p.id == feature).firstOrNull;
-    return request.copyWith(
+    request = request.copyWith(
       instructions: definition == null
           ? null
           : "${definition.instructions(promptSettings())}${feature == 'language_vocabulary_revision' ? '\n$vocabularyRevisionContract' : ''}",
+    );
+    // These generators currently produce English only. Explanations, revisions,
+    // scoring and lookup must not receive unrelated learner history.
+    if (!const {
+      "language_vocabulary",
+      "language_sentence_batch",
+      "language_context_understanding",
+      "language_exam_generation",
+      "language_writing_task",
+    }.contains(feature)) {
+      return request;
+    }
+    final profile = await LanguageLearningStore(history.db)
+        .readLanguageProfile("en");
+    return request.copyWith(
+      instructions: "${request.instructions}\n$generationProfileInstructions",
+      messages: [
+        ...request.messages,
+        AiMessage.user(
+          jsonEncode({"learnerProfile": generationProfile(profile, feature)}),
+        ),
+      ],
     );
   }
 }
