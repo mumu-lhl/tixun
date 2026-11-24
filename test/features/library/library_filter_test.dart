@@ -55,6 +55,41 @@ void main() {
     }
   });
 
+  for (final isMistake in [false, true]) {
+    testWidgets("Empty library preserves subject (mistakes: $isMistake)", (
+      t,
+    ) async {
+      await controller.setSubjectFilter("化学");
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      await t.pumpWidget(
+        UncontrolledProviderScope(
+          container: scope,
+          child: MaterialApp(
+            theme: appTheme(Brightness.light),
+            home: Scaffold(body: LibraryScreen(isMistake: isMistake)),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      final l10n = t.element(find.byType(LibraryScreen)).l10n;
+      for (final size in [const Size(390, 720), const Size(1440, 900)]) {
+        t.view.physicalSize = size;
+        await t.pumpAndSettle();
+        expect(
+          find.text(isMistake ? l10n.noMistakesYet : l10n.noKnowledgeNotesYet),
+          findsOneWidget,
+        );
+        expect(find.text(l10n.clearSubjectFilter), findsNothing);
+        expect(controller.subjectFilter, "化学");
+        expect(t.takeException(), isNull);
+      }
+      await t.pumpWidget(const SizedBox.shrink());
+      await t.pumpAndSettle();
+    });
+  }
+
   testWidgets("Combine library filters across phone and desktop widths", (
     t,
   ) async {

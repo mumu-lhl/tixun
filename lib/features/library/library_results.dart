@@ -69,14 +69,6 @@ extension _LibraryResults on _LibraryScreenState {
                             l10nArgument(context.subjectName(subjectFilter)),
                           ),
                         ),
-                        TextButton(
-                          onPressed: () => act(context, () async {
-                            await ref
-                                .read(appControllerProvider)
-                                .setSubjectFilter("");
-                          }),
-                          child: Text(context.l10n.clearSubjectFilter),
-                        ),
                       ],
                       if (hasFilters)
                         TextButton.icon(
