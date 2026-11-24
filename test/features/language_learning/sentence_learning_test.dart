@@ -175,17 +175,15 @@ void main() {
       await record("one", daily);
       await record("repeat", daily);
       await record("assisted", travel, helped: true);
-      final prior = suggestSentences(await store.sentenceEvidence("en").first);
+      final prior = await suggestSentences(store);
       expect(prior.diagnostic, isTrue);
 
       await record("independent", travel);
-      final suggestion = suggestSentences(
-        await store.sentenceEvidence("en").first,
-      );
-      expect(suggestion.skill, SentenceSkill.detail);
-      expect(suggestion.performance.checked, 2);
+      final suggestion = await suggestSentences(store);
+      expect(suggestion.skill, SentenceSkill.sequence);
+      expect(suggestion.performance.checked, 0);
       expect(suggestion.performance.correct, 0);
-      expect(suggestion.performance.assisted, 1);
+      expect(suggestion.performance.assisted, 0);
       expect(suggestion.exclusions, containsAll([daily.text, travel.text]));
       expect(await store.savedForSentencePlan(suggestion), isEmpty);
     },
@@ -204,14 +202,20 @@ void main() {
           selectedIndex: (card.correctIndex + 1) % card.choices.length,
         );
       }
-      final plan = suggestSentences(await store.sentenceEvidence("en").first);
-      expect(plan.skill, SentenceSkill.detail);
-      expect(plan.diagnostic, isFalse);
+      final plan = await suggestSentences(store);
+      expect(plan.skill, SentenceSkill.sequence);
+      expect(plan.diagnostic, isTrue);
       expect(await store.savedForSentencePlan(plan), isEmpty);
       provider.response = jsonEncode({
         "language": "en",
         "sentences": [
-          for (final room in ["kitchen", "hall", "studio", "cellar", "garage"])
+          for (final room in [
+            "kitchen",
+            "hall",
+            "studio",
+            "cellar",
+            "garage",
+          ].take(plan.count))
             {
               "text": "The spare key is in the $room.",
               "hint": "Look for a place.",
@@ -242,7 +246,7 @@ void main() {
       expect(provider.lastRequest!.tools, isEmpty);
       expect(
         provider.lastRequest!.messages.single.text,
-        contains('"focus":"detail"'),
+        contains('"focus":"sequence"'),
       );
       expect(provider.lastRequest!.messages.single.text, contains('"exclude"'));
       expect(
@@ -265,8 +269,8 @@ void main() {
         helpUsed: const {},
         selectedIndex: 0,
       );
-      final next = suggestSentences(await store.sentenceEvidence("en").first);
-      expect(next.skill, isNot(plan.skill));
+      final next = await suggestSentences(store);
+      expect(next.performance.checked, 0);
       expect(next.exclusions, contains(saved.first.text));
       expect(await db.select(db.chatMessages).get(), isEmpty);
     },

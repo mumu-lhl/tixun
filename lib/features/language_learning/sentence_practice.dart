@@ -311,10 +311,7 @@ class _SentencePracticeState extends State<SentencePractice> {
                   setState(() => _planning = true);
                   SentencePlan? plan;
                   await act(context, () async {
-                    final history = await widget.store
-                        .sentenceEvidence("en")
-                        .first;
-                    plan = suggestSentences(history);
+                    plan = await suggestSentences(widget.store);
                   });
                   if (!mounted) return;
                   setState(() => _planning = false);

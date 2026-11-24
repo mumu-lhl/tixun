@@ -7,6 +7,7 @@ import "language_skills.dart";
 import "language_store.dart";
 import "lexical_form.dart";
 import "sentence_content.dart";
+import "sentence_batch_store.dart";
 
 extension LanguageProfileStore on LanguageLearningStore {
   Stream<LanguageProfile> languageProfile(
@@ -22,6 +23,8 @@ extension LanguageProfileStore on LanguageLearningStore {
           db.learningEvidence,
           db.learningReviewSchedules,
           db.learningSentenceAttempts,
+          db.learningSentenceBatches,
+          db.learningWritingNotes,
           db.learningExamAttempts,
           db.learningExamMaterials,
           db.learningWritingEvaluations,
@@ -91,7 +94,7 @@ Future<List<LanguageObservation>> _words(
   final rows = await db
       .customSelect(
         """
-    SELECT e.*, i.form AS lemma, s.source, f.surface,
+    SELECT e.*, i.form AS lemma, s.source, f.surface, f.inflection,
            EXISTS (
              SELECT 1 FROM learning_evidence old
              LEFT JOIN learning_lexical_forms previous_form ON previous_form.id = old.form_id
@@ -130,6 +133,12 @@ Future<List<LanguageObservation>> _words(
         skill: skill,
         at: row.read("occurred_at"),
         basis: row.readNullable<String>("surface") ?? row.read<String>("lemma"),
+        response: row.readNullable<String>("answer"),
+        expected: skill == LanguageSkill.formRecognition
+            ? row.read<String>("lemma")
+            : row.readNullable<String>("surface"),
+        task:
+            row.readNullable<String>("inflection") ?? row.read<String>("skill"),
         correct: correct,
         verified:
             skill != LanguageSkill.wordApplication ||
@@ -171,8 +180,47 @@ Future<List<LanguageObservation>> _sentences(
         variables: [Variable(language)],
       )
       .get();
+  final ids = rows.map((r) => r.read<String>("sentence_id")).toSet();
+  final batches = ids.isEmpty
+      ? <LearningSentenceBatch>[]
+      : await db
+            .customSelect(
+              "SELECT b.* FROM learning_sentence_batches b WHERE b.language = ? AND b.is_mock = 0 AND EXISTS (SELECT 1 FROM json_each(b.cards) c WHERE json_extract(c.value, '\$.id') IN (${List.filled(ids.length, '?').join(',')}))",
+              variables: [
+                Variable(language),
+                for (final id in ids) Variable(id),
+              ],
+            )
+            .map((row) => db.learningSentenceBatches.map(row.data))
+            .get();
+  // Runs have fresh batch IDs; match immutable content identity instead.
+  final cards = <(String, int, String), SentenceCard>{};
+  final ambiguous = <(String, int, String)>{};
+  for (final batch in batches) {
+    for (final card in openSavedSentenceBatch(batch).cards) {
+      final key = (card.id, card.revision, card.text);
+      final previous = cards[key];
+      if (previous != null &&
+          (previous.question != card.question ||
+              previous.choices.join("\\u0000") !=
+                  card.choices.join("\\u0000") ||
+              previous.correctIndex != card.correctIndex)) {
+        ambiguous.add(key);
+      }
+      cards[key] = card;
+    }
+  }
+  for (final key in ambiguous) {
+    cards.remove(key);
+  }
   final results = <LanguageObservation>[];
   for (final row in rows) {
+    final card =
+        cards[(
+          row.read<String>("sentence_id"),
+          row.read<int>("revision"),
+          row.read<String>("sentence"),
+        )];
     final skill = SentenceSkill.values.asNameMap()[row.read<String>("skill")];
     if (skill == null) continue;
     final correct = row.readNullable<bool>("correct");
@@ -182,6 +230,15 @@ Future<List<LanguageObservation>> _sentences(
         skill: sentenceAbility(skill),
         at: row.read("occurred_at"),
         basis: row.read("sentence"),
+        response: row.readNullable<String>("answer"),
+        task: card == null ? skill.name : "${skill.name}: ${card.question}",
+        expected:
+            card != null &&
+                card.correctIndex >= 0 &&
+                card.correctIndex < card.choices.length
+            ? card.choices[card.correctIndex]
+            : null,
+        feedback: card?.checkExplanation,
         correct: correct,
         verified: false,
         kind: correct == null
@@ -257,6 +314,9 @@ Future<List<LanguageObservation>> _exams(
             skill: skill,
             at: record.submittedAt,
             basis: [paper.paper.title, item.prompt].join(" · "),
+            response: answers[i],
+            expected: item.answers.join(" / "),
+            task: paper.target.kind.name,
             profile: profile,
             correct: item.matches(answers[i]),
             verified:
@@ -298,6 +358,30 @@ Future<List<LanguageObservation>> _writing(
             ..orderBy([OrderingTerm.desc(evaluation.createdAt)])
             ..limit(30))
           .get();
+  final notes =
+      await (db.select(db.learningWritingNotes)
+            ..where(
+              (n) =>
+                  n.versionId.isIn(rows.map((r) => r.readTable(version).id)) &
+                  n.kind.equals("issue"),
+            )
+            ..orderBy([(n) => OrderingTerm.asc(n.position)]))
+          .get();
+  final issues = <String, List<(String, String)>>{};
+  for (final row in rows) {
+    final draft = row.readTable(version);
+    for (final note in notes.where((n) => n.versionId == draft.id).take(2)) {
+      if (note.startOffset < 0 ||
+          note.endOffset > draft.content.length ||
+          note.startOffset >= note.endOffset) {
+        continue;
+      }
+      (issues[draft.id] ??= []).add((
+        draft.content.substring(note.startOffset, note.endOffset),
+        note.comment,
+      ));
+    }
+  }
   return [
     for (final row in rows)
       for (final skill in const [
@@ -310,6 +394,13 @@ Future<List<LanguageObservation>> _writing(
           skill: skill,
           at: row.readTable(evaluation).createdAt,
           basis: row.readTable(evaluation).summary,
+          task: "writing",
+          response: issues[row.readTable(version).id]
+              ?.map((n) => n.$1)
+              .join("\n"),
+          feedback: issues[row.readTable(version).id]
+              ?.map((n) => n.$2)
+              .join("\n"),
           profile: row.readTableOrNull(task) == null ? null : exam,
           kind: EvidenceKind.unverified,
           verified: false,

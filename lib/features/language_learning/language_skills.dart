@@ -69,9 +69,14 @@ class LanguageObservation {
     this.correct,
     this.profile,
     this.verified = true,
+    this.response,
+    this.expected,
+    this.task,
+    this.feedback,
   });
 
   final String id, basis;
+  final String? response, expected, task, feedback;
   final LanguageSkill skill;
   final EvidenceKind kind;
   final DateTime at;
@@ -181,6 +186,7 @@ LanguageRecommendation recommendLanguage(
   LanguageGoal goal, {
   SentenceLevel? difficulty,
   Set<LanguageSkill> skip = const {},
+  Set<LanguageSkill>? restrictTo,
 }) {
   final allowed = switch (goal) {
     LanguageGoal.communication => [
@@ -216,14 +222,19 @@ LanguageRecommendation recommendLanguage(
   };
   final available = allowed
       .where(
-        (skill) => switch (skill) {
-          LanguageSkill.wordApplication => profile.hasApplications,
-          LanguageSkill.formRecognition ||
-          LanguageSkill.formProduction => profile.hasForms,
-          _ => true,
-        },
+        (skill) =>
+            (restrictTo == null || restrictTo.contains(skill)) &&
+            switch (skill) {
+              LanguageSkill.wordApplication => profile.hasApplications,
+              LanguageSkill.formRecognition ||
+              LanguageSkill.formProduction => profile.hasForms,
+              _ => true,
+            },
       )
       .toList();
+  if (available.isEmpty) {
+    throw ArgumentError.value(restrictTo, "restrictTo", "No available skills");
+  }
   final options = available.where((skill) => !skip.contains(skill)).toList();
   final candidates = options.isEmpty ? available : options;
   final latest = [

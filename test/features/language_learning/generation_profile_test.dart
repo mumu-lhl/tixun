@@ -12,9 +12,241 @@ import "package:tixun/features/language_learning/generation_store.dart";
 import "package:tixun/features/language_learning/language_skills.dart";
 import "package:tixun/features/language_learning/exam_material.dart";
 
+import "package:tixun/features/language_learning/language_store.dart";
+import "package:tixun/features/language_learning/language_profile_store.dart";
+import "package:tixun/features/language_learning/lexical_form.dart";
+import "package:tixun/features/language_learning/lexical_form_store.dart";
+import "package:tixun/features/language_learning/next_practice.dart";
+import "package:tixun/features/language_learning/sentence_content.dart";
+
+import "package:tixun/features/language_learning/sentence_store.dart";
+import "package:tixun/features/language_learning/sentence_batch_store.dart";
+import "package:tixun/features/language_learning/writing_store.dart";
+import "package:tixun/features/language_learning/writing_feedback.dart";
+
 import "generation_history_test.dart" show ReplyProvider, config;
 
 void main() {
+  test(
+    "sentence context follows content identity, never a later revision",
+    () async {
+      final db = AppDatabase.memory();
+      final store = LanguageLearningStore(db);
+      addTearDown(() async {
+        store.dispose();
+        await db.close();
+      });
+      const card = SentenceCard(
+        id: "key",
+        text: "The key is in the hall.",
+        translation: "钥匙在大厅",
+        hint: "Find the place.",
+        question: "Where?",
+        choices: ["hall", "kitchen"],
+        correctIndex: 0,
+        skill: SentenceSkill.detail,
+        level: SentenceLevel.beginner,
+        checkExplanation: "It names the hall.",
+      );
+      Future<void> save(int revision) => store.saveSentenceBatch(
+        SentenceBatchProposal(
+          id: "saved",
+          topic: SentenceTopic.dailyLife,
+          style: SentenceStyle.written,
+          glossLanguage: "zh",
+          model: "real-model",
+          promptVersion: 1,
+          isMock: false,
+          generatedAt: DateTime(2026),
+          cards: [
+            SentenceCard(
+              id: card.id,
+              text: card.text,
+              translation: card.translation,
+              hint: card.hint,
+              question: card.question,
+              choices: card.choices,
+              correctIndex: card.correctIndex,
+              skill: card.skill,
+              level: card.level,
+              revision: revision,
+              checkExplanation: card.checkExplanation,
+            ),
+          ],
+        ),
+        {card.id},
+      );
+      await save(1);
+      await store.recordSentence(
+        batchId: "fresh-run",
+        card: card,
+        rating: SentenceRating.unclear,
+        helpUsed: {},
+        selectedIndex: 1,
+      );
+      var row = (await store.readLanguageProfile("en"))
+          .skills[LanguageSkill.detail]!
+          .observations
+          .single;
+      expect(row.response, "kitchen");
+      expect(row.expected, "hall");
+      expect(row.feedback, "It names the hall.");
+      expect(row.verified, isFalse);
+      await db.customStatement(
+        """UPDATE learning_sentence_batches SET cards = replace(cards, '"revision":1', '"revision":2')""",
+      );
+      row = (await store.readLanguageProfile("en"))
+          .skills[LanguageSkill.detail]!
+          .observations
+          .single;
+      expect(row.expected, isNull);
+      expect(row.response, "kitchen");
+    },
+  );
+
+  test(
+    "writing sends anchored issues without turning suggestions into errors",
+    () async {
+      final db = AppDatabase.memory();
+      final store = LanguageLearningStore(db);
+      addTearDown(() async {
+        store.dispose();
+        await db.close();
+      });
+      final version = await store.snapshotWriting(
+        "He go home.",
+        taskId: "task",
+      );
+      await store.saveWritingFeedback(
+        versionId: version,
+        model: "real-model",
+        promptVersion: 1,
+        isMock: false,
+        feedback: const WritingFeedback(
+          task: 2,
+          organization: 2,
+          language: 1,
+          summary: "Review agreement.",
+          notes: [
+            WritingNote(3, 5, WritingNoteKind.issue, "Use goes with he."),
+            WritingNote(
+              6,
+              10,
+              WritingNoteKind.suggestion,
+              "Optional stylistic change.",
+            ),
+          ],
+        ),
+      );
+      final profile = await store.readLanguageProfile("en");
+      final rows =
+          generationProfile(profile, "language_writing_task")["skills"] as List;
+      for (final row in rows) {
+        expect(row["verifiedIndependent"], 0);
+        expect(row["recentDifficulties"].single["response"], "go");
+        expect(
+          row["recentDifficulties"].single["feedback"],
+          "Use goes with he.",
+        );
+        expect(row["recentDifficulties"].single["kind"], "unverified");
+      }
+    },
+  );
+
+  test(
+    "wrong form reaches generation as a concrete contrast and is archived",
+    () async {
+      final db = AppDatabase.memory();
+      final store = LanguageLearningStore(db);
+      addTearDown(() async {
+        store.dispose();
+        await db.close();
+      });
+      await store.saveEntries(
+        language: "en",
+        groupTitle: "Verbs",
+        groupType: VocabularyGroupType.topic,
+        entries: const [
+          VocabularyEntry(
+            form: "go",
+            meaning: "move",
+            forms: [LexicalFormDraft("went", Inflection.past)],
+          ),
+        ],
+      );
+      final exercise = (await store.formPractice("en")).single;
+      await store.recordFormPractice(
+        attemptId: "error",
+        exercise: exercise,
+        answer: "goed",
+        production: true,
+      );
+      final transport = ReplyProvider();
+      final provider = LanguageGenerationProvider(
+        provider: () => transport,
+        configuration: () => config,
+        promptSettings: () => PromptSettings(),
+        history: LanguageGenerationStore(db),
+        compare: (_, _, _) async => true,
+      );
+      await requestLanguageJson(
+        provider: provider,
+        config: config,
+        usageStore: null,
+        feature: "language_vocabulary",
+        request: AiRequest(
+          instructions: "task",
+          messages: [const AiMessage.user('{"count":3}')],
+        ),
+        cancel: CancelToken(),
+        parse: (value) => value,
+      );
+      final rows =
+          jsonDecode(
+                transport.sent!.messages.last.text,
+              )["learnerProfile"]["skills"]
+              as List;
+      final form = rows.singleWhere((r) => r["skill"] == "formProduction");
+      expect(form["signal"], "insufficientEvidence");
+      expect(
+        form["recentDifficulties"].single,
+        containsPair("response", "goed"),
+      );
+      expect(
+        form["recentDifficulties"].single,
+        containsPair("expected", "went"),
+      );
+      expect(form["recentDifficulties"].single, containsPair("task", "past"));
+      expect(await provider.history.exportJsonl(), contains("goed"));
+    },
+  );
+
+  test(
+    "follow-up and profile use one policy with explicit delivery constraints",
+    () async {
+      final db = AppDatabase.memory();
+      final store = LanguageLearningStore(db);
+      addTearDown(() async {
+        store.dispose();
+        await db.close();
+      });
+      final profile = await store.readLanguageProfile("en");
+      final recommendation = recommendLanguage(
+        profile,
+        LanguageGoal.communication,
+        restrictTo: {
+          for (final skill in SentenceSkill.values) sentenceAbility(skill),
+        },
+      );
+      final plan = await suggestSentences(store);
+      expect(sentenceAbility(plan.skill), recommendation.skill);
+      expect(plan.level, recommendation.level);
+      expect(plan.count, recommendation.count);
+      expect(plan.diagnostic, recommendation.diagnostic);
+      expect(plan.performance.checked, 0);
+    },
+  );
+
   test(
     "bounded summary distinguishes evidence reliability and training scope",
     () {

@@ -6,7 +6,6 @@ import "language_skills.dart";
 import "language_store.dart";
 import "lexical_form_screen.dart";
 import "next_practice.dart";
-import "sentence_content.dart";
 import "sentence_store.dart";
 import "vocabulary_batch.dart";
 
@@ -88,23 +87,5 @@ Future<void> openLanguageRecommendation(
   }
   final evidence = await store.sentenceEvidence(profile.language).first;
   if (!context.mounted) return;
-  final related = profile.skills[skill]!;
-  sentences(
-    SentencePlan(
-      skill: sentenceSkill,
-      count: plan.count,
-      level: plan.level,
-      style: sentenceSkill == SentenceSkill.intention
-          ? SentenceStyle.dialogue
-          : SentenceStyle.written,
-      exclusions: evidence.map((row) => row.sentence).toSet().take(40).toList(),
-      performance: (
-        correct: related.correct,
-        checked: related.independent,
-        assisted: related.count(EvidenceKind.assisted),
-        selfRated: related.count(EvidenceKind.selfReport),
-        lastPracticed: related.latest,
-      ),
-    ),
-  );
+  sentences(sentencePlan(profile, plan, evidence.map((row) => row.sentence)));
 }
