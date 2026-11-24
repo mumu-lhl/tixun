@@ -1,0 +1,18 @@
+{
+  "old": {
+    "requests": 13,
+    "completed": 13,
+    "jsonParsed": 12,
+    "inputTokens": 52146,
+    "outputTokens": 4043,
+    "meanSeconds": 8.166
+  },
+  "new": {
+    "requests": 13,
+    "completed": 13,
+    "jsonParsed": 12,
+    "inputTokens": 53288,
+    "outputTokens": 3704,
+    "meanSeconds": 7.516
+  }
+}
