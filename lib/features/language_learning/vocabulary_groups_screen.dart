@@ -123,103 +123,128 @@ class _VocabularyGroupsState extends ConsumerState<VocabularyGroupsScreen> {
       ),
       body: LanguageDataBuilder<List<LearningVocabularyGroup>>(
         load: _groups,
-        builder: (context, groups) => languagePage(
-          children: [
-            if (groups.isEmpty) Text(l10n.languageNoGroups),
-            for (final group in groups)
-              Card(
-                key: ValueKey("vocabulary-group-${group.id}"),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => VocabularyBatch(
-                        store: _store,
-                        language: "en",
-                        mode: _mode,
-                        group: group,
-                        ai: VocabularyAi(
-                          languageGenerationProvider(
-                            context,
-                            ref.read(appControllerProvider),
-                          ),
-                          usageStore: AiUsageStore(
-                            ref.read(appControllerProvider).db,
-                          ),
-                          prompts: ref.read(appControllerProvider).prompts,
-                        ),
-                        config: ref.read(appControllerProvider).config,
-                      ),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 8, 20),
+        builder: (context, groups) => LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth.clamp(0.0, 1200.0);
+            final available = width - (constraints.maxWidth < 560 ? 36 : 48);
+            final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+            // Keep two columns on ordinary phones, but give large text room.
+            final minWidth = (width < 560 ? 156 : 240) * scale.clamp(1.0, 2.5);
+            final columns = ((available + 12) / (minWidth + 12)).floor().clamp(
+              1,
+              4,
+            );
+            return languagePage(
+              maxWidth: 1200,
+              children: [
+                if (groups.isEmpty) Text(l10n.languageNoGroups),
+                for (var i = 0; i < groups.length; i += columns)
+                  IntrinsicHeight(
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  group.title,
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  vocabularyGroupLabel(
-                                    l10n,
-                                    VocabularyGroupType.values.byName(
-                                      group.groupType,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                        for (var column = 0; column < columns; column++) ...[
+                          if (column > 0) const SizedBox(width: 12),
+                          Expanded(
+                            child: i + column < groups.length
+                                ? _groupCard(context, groups[i + column])
+                                : const SizedBox.shrink(),
                           ),
-                        ),
-                        PopupMenuButton<String>(
-                          key: ValueKey("vocabulary-menu-${group.id}"),
-                          tooltip: l10n.languageGroupActions,
-                          popUpAnimationStyle: menuAnimation(context),
-                          itemBuilder: (_) => [
-                            PopupMenuItem(
-                              value: "add",
-                              child: Text(l10n.languageAdd),
-                            ),
-                            PopupMenuItem(
-                              value: "expand",
-                              child: Text(l10n.languageAiExpand),
-                            ),
-                            PopupMenuItem(
-                              value: "delete",
-                              child: Text(l10n.delete),
-                            ),
-                          ],
-                          onSelected: (value) async {
-                            switch (value) {
-                              case "add":
-                                await addVocabularyEntry(
-                                  context,
-                                  _store,
-                                  "en",
-                                  group: group,
-                                );
-                              case "expand":
-                                await _generate(group);
-                              case "delete":
-                                await _delete(group);
-                            }
-                          },
-                        ),
+                        ],
                       ],
                     ),
                   ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _groupCard(BuildContext context, LearningVocabularyGroup group) {
+    final l10n = context.l10n;
+    return Card(
+      key: ValueKey("vocabulary-group-${group.id}"),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => VocabularyBatch(
+              store: _store,
+              language: "en",
+              mode: _mode,
+              group: group,
+              ai: VocabularyAi(
+                languageGenerationProvider(
+                  context,
+                  ref.read(appControllerProvider),
+                ),
+                usageStore: AiUsageStore(ref.read(appControllerProvider).db),
+                prompts: ref.read(appControllerProvider).prompts,
+              ),
+              config: ref.read(appControllerProvider).config,
+            ),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 8, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      vocabularyGroupLabel(
+                        l10n,
+                        VocabularyGroupType.values.byName(group.groupType),
+                      ),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    key: ValueKey("vocabulary-menu-${group.id}"),
+                    tooltip: l10n.languageGroupActions,
+                    popUpAnimationStyle: menuAnimation(context),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: "add",
+                        child: Text(l10n.languageAdd),
+                      ),
+                      PopupMenuItem(
+                        value: "expand",
+                        child: Text(l10n.languageAiExpand),
+                      ),
+                      PopupMenuItem(value: "delete", child: Text(l10n.delete)),
+                    ],
+                    onSelected: (value) async {
+                      switch (value) {
+                        case "add":
+                          await addVocabularyEntry(
+                            context,
+                            _store,
+                            "en",
+                            group: group,
+                          );
+                        case "expand":
+                          await _generate(group);
+                        case "delete":
+                          await _delete(group);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(
+                  group.title,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

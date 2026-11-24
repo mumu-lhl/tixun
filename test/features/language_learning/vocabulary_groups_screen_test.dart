@@ -15,9 +15,16 @@ import "package:tixun/features/language_learning/vocabulary_batch.dart";
 import "package:tixun/features/language_learning/vocabulary_groups_screen.dart";
 
 void main() {
-  for (final width in [320.0, 1200.0]) {
+  for (final (width, textScale, columns) in [
+    (320.0, 1.6, 1),
+    (390.0, 1.0, 2),
+    (390.0, 2.0, 1),
+    (800.0, 1.0, 3),
+    (1200.0, 1.0, 4),
+    (1200.0, 1.6, 2),
+  ]) {
     testWidgets(
-      "vocabulary cards open in the bottom mode and create empty groups at $width",
+      "vocabulary groups at width $width and text scale $textScale use $columns columns and retain actions",
       (tester) async {
         late AppController c;
         late Directory root;
@@ -49,7 +56,7 @@ void main() {
         );
         tester.view.devicePixelRatio = 1;
         tester.view.physicalSize = Size(width, 900);
-        tester.platformDispatcher.textScaleFactorTestValue = 1.6;
+        tester.platformDispatcher.textScaleFactorTestValue = textScale;
         addTearDown(tester.view.reset);
         addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
         await tester.pumpWidget(
@@ -66,6 +73,23 @@ void main() {
         );
         await tester.runAsync(() => c.language.groups("en").first);
         await tester.pumpAndSettle();
+        final cards = find.byWidgetPredicate(
+          (widget) =>
+              widget is Card &&
+              widget.key.toString().contains("vocabulary-group-"),
+        );
+        final first = tester.getRect(cards.at(0));
+        for (var i = 1; i < columns; i++) {
+          final next = tester.getRect(cards.at(i));
+          expect(next.top, closeTo(first.top, .1));
+          expect(next.height, closeTo(first.height, .1));
+          expect(next.left, greaterThan(first.right));
+        }
+        expect(
+          tester.getRect(cards.at(columns)).top,
+          greaterThan(first.bottom),
+        );
+        expect(tester.takeException(), isNull);
         expect(find.text("Add"), findsNothing);
         expect(find.text("Generate vocabulary"), findsNothing);
         final modeY = tester.getCenter(find.text("Practice")).dy;
