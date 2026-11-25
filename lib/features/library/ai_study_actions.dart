@@ -1,6 +1,9 @@
+import "dart:async";
+
 import "package:tixun/core/l10n/app_error.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_smart_dialog/flutter_smart_dialog.dart";
 import "package:go_router/go_router.dart";
 
 import "../../app/controller.dart";
@@ -16,6 +19,9 @@ Future<void> startAiStudyWriting(
   bool mistake = false,
 }) async {
   final c = ref.read(appControllerProvider);
+  final reviewBranch = source != null && knowledge == null && !mistake;
+  final route = ModalRoute.of(context);
+  final branchMessage = context.l10n.studyWritingBranchReady;
   if (c.busy) {
     throw const AppFormatException(
       AppErrorCode.stopGenerationBeforeOrganizingMaterial,
@@ -28,13 +34,16 @@ Future<void> startAiStudyWriting(
             : context.l10n.mergeIntoExistingKnowledgeWith
       : mistake
       ? context.l10n.organizeAsAMistakeWith
-      : context.l10n.createKnowledgeWithAI;
+      : source == null
+      ? context.l10n.createKnowledgeWithAI
+      : context.l10n.organizeAsKnowledgeWithAI;
   final instruction = await showDialog<String>(
     context: context,
     builder: (_) => _WritingRequest(
       title: title,
       target: knowledge?.title,
       requiredInput: source == null,
+      reviewBranch: reviewBranch,
       initial: knowledge != null && source == null
           ? context.l10n.improveTheStructurePreserveThe
           : "",
@@ -47,6 +56,18 @@ Future<void> startAiStudyWriting(
     mistake: mistake,
     instruction: instruction,
   );
+  if (source != null) {
+    // Preparing the branch can unmount the originating message menu.
+    if (route?.isCurrent != true) return;
+    if (reviewBranch) {
+      unawaited(
+        SmartDialog.showToast(branchMessage, alignment: Alignment.topCenter),
+      );
+    } else {
+      await c.send(prompt);
+    }
+    return;
+  }
   if (!context.mounted) return; // The prepared draft remains available.
   context.go("/chat");
   await c.send(prompt);
@@ -56,12 +77,13 @@ class _WritingRequest extends StatefulWidget {
   const _WritingRequest({
     required this.title,
     required this.requiredInput,
+    required this.reviewBranch,
     required this.initial,
     this.target,
   });
   final String title, initial;
   final String? target;
-  final bool requiredInput;
+  final bool requiredInput, reviewBranch;
   @override
   State<_WritingRequest> createState() => _WritingRequestState();
 }
@@ -96,9 +118,9 @@ class _WritingRequestState extends State<_WritingRequest> {
             minLines: 2,
             maxLines: 5,
             decoration: InputDecoration(
-              labelText: (widget.requiredInput
+              labelText: widget.requiredInput
                   ? context.l10n.whatWouldYouLikeToCreateOrChange
-                  : context.l10n.instructionsOptional),
+                  : context.l10n.instructionsOptional,
               errorText: error,
             ),
           ),
@@ -124,7 +146,11 @@ class _WritingRequestState extends State<_WritingRequest> {
           }
           Navigator.pop(context, input.text.trim());
         },
-        child: Text(context.l10n.startOrganizing),
+        child: Text(
+          widget.reviewBranch
+              ? context.l10n.studyWritingCreateBranch
+              : context.l10n.startOrganizing,
+        ),
       ),
     ],
   );

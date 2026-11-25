@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:io";
 
+import "package:flutter/foundation.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -58,6 +59,92 @@ void main() {
     await c.db.close();
     await root.delete(recursive: true);
   });
+  testWidgets("Dragging a user message scrolls the phone conversation", (
+    t,
+  ) async {
+    t.view.physicalSize = const Size(360, 640);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final message = List.filled(24, "请讲解二次函数的顶点公式。").join("\n");
+    await t.runAsync(() => c.send(message));
+    router.go("/chat");
+    await t.pumpWidget(
+      UncontrolledProviderScope(container: scope, child: const TixunApp()),
+    );
+    await t.pumpAndSettle();
+    final list = find.byKey(PageStorageKey("messages-${c.selected!.id}"));
+    final position = t.widget<ListView>(list).controller!.position;
+    for (final delta in [-100.0, 100.0]) {
+      position.jumpTo(position.maxScrollExtent / 2);
+      await t.pumpAndSettle();
+      final visible = t.getRect(find.text(message)).intersect(t.getRect(list));
+      expect(visible.height, greaterThan(100));
+      final before = position.pixels;
+      await t.dragFrom(visible.center, Offset(0, delta));
+      await t.pumpAndSettle();
+      expect((before - position.pixels) * delta, greaterThan(0));
+    }
+    await t.pumpWidget(const SizedBox.shrink());
+  });
+
+  for (final width in [390.0, 1200.0]) {
+    testWidgets("Knowledge branch opens with a draft and toast at $width", (
+      t,
+    ) async {
+      t.view.physicalSize = Size(width, 844);
+      t.view.devicePixelRatio = 1;
+      t.platformDispatcher.textScaleFactorTestValue = width < 600 ? 1.25 : 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+      await t.runAsync(() => c.send("请解释二次函数"));
+      await t.runAsync(() => c.draft("原对话草稿"));
+      final originalId = c.selected!.id;
+      final source = c.messages.last;
+      router.go("/chat");
+      await t.pumpWidget(
+        UncontrolledProviderScope(container: scope, child: const TixunApp()),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip(c.l10n.saveLearningMaterial).last);
+      await t.pumpAndSettle();
+      await t.tap(find.text(c.l10n.organizeAsKnowledgeWithAI));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key("start-ai-study-writing")));
+
+      final toast = find.text(c.l10n.studyWritingBranchReady);
+      for (var i = 0; i < 100 && toast.evaluate().isEmpty; i++) {
+        await t.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await t.pump(const Duration(milliseconds: 10));
+      }
+      expect(toast, findsOneWidget);
+      expect(c.selected!.id, isNot(originalId));
+      expect(c.messages.last.content, source.content);
+      expect(c.busy, isFalse);
+      expect(
+        t
+            .widget<TextField>(find.byKey(const Key("chat-input")))
+            .controller!
+            .text,
+        contains(c.l10n.organizeForkedContext),
+      );
+      expect(
+        c.allSessions.singleWhere((s) => s.id == originalId).draft,
+        "原对话草稿",
+      );
+      await t.pump(const Duration(seconds: 3));
+      await t.pumpAndSettle();
+      expect(toast, findsNothing);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
   testWidgets("A photo can be added after typing on a narrow phone", (t) async {
     t.view.physicalSize = const Size(320, 720);
     t.view.devicePixelRatio = 1;

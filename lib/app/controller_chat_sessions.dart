@@ -511,6 +511,7 @@ extension _ChatSessions on AppController {
     ChatMessage message, {
     String? editedText,
     bool inheritStudyLinks = true,
+    Future<void> Function(ChatSession branch)? prepare,
   }) async {
     final parent = await (db.select(
       db.chatSessions,
@@ -521,8 +522,8 @@ extension _ChatSessions on AppController {
         l10n.cannotForkMessage,
       );
     }
-    final branch =
-        await ChatBranchStore(
+    Future<ChatSession> createBranch() =>
+        ChatBranchStore(
           db,
           practice,
           copySettings: preferences.copyChatSettings,
@@ -532,6 +533,13 @@ extension _ChatSessions on AppController {
           editedText: editedText,
           inheritStudyLinks: inheritStudyLinks,
         );
+    final branch = prepare == null
+        ? await createBranch()
+        : await db.transaction(() async {
+            final branch = await createBranch();
+            await prepare(branch);
+            return branch;
+          });
     await _loadSession(branch);
     search = "";
     await reload();

@@ -184,41 +184,73 @@ extension _PracticeSetup on AppController {
         await study.checkImageFile(image.originalPath!);
       }
     }
-    if (source == null) {
-      await newSession();
-    } else {
+    final title = knowledgeId != null
+        ? l10n.aiKnowledgeMerge
+        : mistake
+        ? l10n.aiMistakeNotes
+        : l10n.aiKnowledgeNotes;
+    final category = mistake
+        ? StudyToolCategory.mistakes
+        : StudyToolCategory.knowledge;
+    final task = StudyWriteTask(
+      operation: operation,
+      prompt: text,
+      knowledgeId: knowledgeId,
+      sourceSessionId: original?.id,
+    );
+    if (source != null) {
       if (busy) {
         throw AppFormatException(
           AppErrorCode.stopGenerationBeforeOrganizingMaterial,
           l10n.stopGenerationBeforeOrganizingMaterial,
         );
       }
-      await _forkSession(source, inheritStudyLinks: false);
+      await _forkSession(
+        source,
+        inheritStudyLinks: false,
+        prepare: (branch) async {
+          final reasoning = await db.preference("ai_reasoning:${branch.id}");
+          if (!AiOptions(AiOptions.forSession(config, reasoning ?? ""))
+              .toolsAvailable) {
+            throw AiFailure.localized(
+              AppErrorCode.materialToolsRequireModelWithoutThinking,
+              l10n.materialToolsRequireModelWithoutThinking,
+            );
+          }
+          await (db.update(
+            db.chatSessions,
+          )..where((row) => row.id.equals(branch.id))).write(
+            ChatSessionsCompanion(
+              title: Value(title),
+              mode: const Value("direct"),
+              stage: const Value("diagnosing"),
+              subject: Value(subject),
+              toolsEnabled: const Value(true),
+            ),
+          );
+          await db.setPreference(
+            studyToolCategoriesKey(branch.id),
+            category.name,
+          );
+          await task.save(db, branch.id);
+          if (target != null) {
+            await study.linkChat(branch.id, knowledgeId: target.id);
+          }
+          await db.saveDraft(branch.id, text);
+        },
+      );
+      return text;
     }
+    await newSession();
     await mode("direct");
     await setSessionSubject(selected!, subject);
-    await renameSession(
-      selected!,
-      knowledgeId != null
-          ? l10n.aiKnowledgeMerge
-          : mistake
-          ? l10n.aiMistakeNotes
-          : l10n.aiKnowledgeNotes,
-    );
-    await setStudyToolCategories({
-      mistake ? StudyToolCategory.mistakes : StudyToolCategory.knowledge,
-    });
+    await renameSession(selected!, title);
+    await setStudyToolCategories({category});
     await draft(text);
     if (target != null) {
       await study.linkChat(selected!.id, knowledgeId: target.id);
     }
-    // Forking already copied the prefix's attachment references.
-    await StudyWriteTask(
-      operation: operation,
-      prompt: text,
-      knowledgeId: knowledgeId,
-      sourceSessionId: original?.id,
-    ).save(db, selected!.id);
+    await task.save(db, selected!.id);
     return text;
   }
 

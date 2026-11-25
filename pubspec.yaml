@@ -46,6 +46,7 @@ dependencies:
   a2ui_flutter: 0.4.0
   a2ui_core: 0.8.0
   json_schema_builder: ^0.1.7
+  flutter_smart_dialog: ^5.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

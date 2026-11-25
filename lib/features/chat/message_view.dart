@@ -61,9 +61,11 @@ class MessageView extends ConsumerWidget {
                             bottomRight: Radius.circular(6),
                           ),
                         ),
-                        child: SelectableText(
-                          message.content,
-                          style: Theme.of(context).textTheme.bodyLarge,
+                        child: SelectionArea(
+                          child: Text(
+                            message.content,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
                         ),
                       ),
                     ),

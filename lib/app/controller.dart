@@ -425,7 +425,7 @@ class AppController extends ChangeNotifier {
           ._prepareModulePracticeImpl(moduleId, mistake: mistake);
 
   /// Called only after the UI's task dialog authorizes this focused session.
-  /// Preparation persists a draft; callers open Chat before awaiting send.
+  /// Preparation persists a draft before opening a branch for review.
   Future<String> prepareStudyWriting({
     String? sourceMessageId,
     String? knowledgeId,

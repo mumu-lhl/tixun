@@ -44,7 +44,10 @@ class _Writer implements ChatProvider {
               completed: true,
             );
           } else {
-            yield const AiChunk(text: "已处理，请查看执行结果。", completed: true);
+            yield const AiChunk(
+              text: "已处理，请查看执行结果。指数函数的底数须大于零且不等于一。",
+              completed: true,
+            );
           }
         } else if (task.contains("update_knowledge")) {
           final match = RegExp(r'"knowledge_id":"([^"]+)"')
@@ -138,11 +141,22 @@ void main() {
         final original = c.selected!.id;
         final source = c.messages.last;
         final originalHistory = c.messages.toList();
+        String? firstBranchDraft;
+        void recordBranchDraft() {
+          final selected = c.selected;
+          if (selected != null && selected.id != original) {
+            firstBranchDraft ??= selected.draft;
+          }
+        }
+
+        c.addListener(recordBranchDraft);
         final prompt = await c.prepareStudyWriting(
           sourceMessageId: source.id,
           mistake: mistake,
           instruction: "保留适用条件",
         );
+        c.removeListener(recordBranchDraft);
+        expect(firstBranchDraft, prompt);
         expect(c.selected!.id, isNot(original));
         expect(c.studyToolCategories, {
           mistake ? StudyToolCategory.mistakes : StudyToolCategory.knowledge,
@@ -163,6 +177,10 @@ void main() {
         c.decideTool(true);
         await pending;
         expect(c.messages.last.status, "complete");
+        if (!mistake) {
+          expect(c.messages.last.content, "已保存到知识库。");
+          expect(provider.requests, hasLength(2));
+        }
         final id = mistake
             ? (await c.study.searchMistakes()).single.id
             : (await c.study.searchKnowledge()).single.id;

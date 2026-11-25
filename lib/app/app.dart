@@ -13,6 +13,7 @@ import "package:dynamic_color/dynamic_color.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_smart_dialog/flutter_smart_dialog.dart";
 import "package:go_router/go_router.dart";
 
 import "../core/l10n/app_strings.dart";
@@ -43,9 +44,12 @@ class TixunApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => DynamicColorBuilder(
     builder: (lightDynamic, darkDynamic) => MaterialApp.router(
       // Keep legacy package widgets themed and localized during their migration.
-      builder: (context, child) =>
-          // ignore: deprecated_member_use
-          MaterialUiCompatibilityBridge(child: child!),
+      builder: FlutterSmartDialog.init(
+        initType: const {SmartInitType.toast},
+        builder: (context, child) =>
+            // ignore: deprecated_member_use
+            MaterialUiCompatibilityBridge(child: child!),
+      ),
       title: "题训 TiXun",
       debugShowCheckedModeBanner: false,
       theme: appTheme(

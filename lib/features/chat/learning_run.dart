@@ -197,6 +197,8 @@ class LearningRun {
         request: _,
         exam: _,
       ) = prepared;
+      final writingOperation = studyTask?.operation;
+      var knowledgeSaved = false;
       final conversation = provider.start(requestConfig);
       var selectedKnowledgeRead = false;
       var callsUsed = 0;
@@ -504,6 +506,12 @@ class LearningRun {
           if (call.name == "create_visual" && result["ok"] == true) {
             visualCreated = true;
           }
+          if (call.name == writingOperation &&
+              (call.name == "create_knowledge" ||
+                  call.name == "update_knowledge") &&
+              result["ok"] == true) {
+            knowledgeSaved = true;
+          }
           // A successful study write already landed: remember it so an
           // empty final text does not report the round as failed (which
           // would invite a retry that re-executes the same write).
@@ -526,6 +534,12 @@ class LearningRun {
         await contextRun?.results(
           request.messages.skip(request.messages.length - calls.length),
         );
+        if (knowledgeSaved) {
+          text = lookupAppLocalizations(
+            Locale(requestPrompts.language == "en" ? "en" : "zh"),
+          ).studyKnowledgeSaved;
+          break;
+        }
         if (quizCreated || regionsCreated) {
           final notice = quizCreated
               ? "先独立尝试下面的题目。提交后查看参考答案与解析。"
