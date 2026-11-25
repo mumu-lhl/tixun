@@ -43,7 +43,14 @@ void main() {
               language: "en",
               groupTitle: "Group $i",
               groupType: VocabularyGroupType.topic,
-              entries: [VocabularyEntry(form: "word$i", meaning: "Meaning $i")],
+              entries: [
+                VocabularyEntry(form: "word$i", meaning: "Meaning $i"),
+                if (i == 9)
+                  const VocabularyEntry(
+                    form: "extra",
+                    meaning: "Extra meaning",
+                  ),
+              ],
             );
           }
         });
@@ -98,6 +105,19 @@ void main() {
         expect(tester.getCenter(find.text("Practice")).dy, modeY);
         await tester.tap(find.text("Practice"));
         await tester.pumpAndSettle();
+        if (width == 390 && textScale == 1) {
+          await tester.tap(find.byTooltip("Words per practice round"));
+          await tester.pumpAndSettle();
+          await tester.runAsync(() async {
+            await tester.tap(
+              find.widgetWithText(CheckedPopupMenuItem<int>, "1 word"),
+            );
+            await c.preferences.whenIdle;
+            await c.preferences.load();
+          });
+          await tester.pumpAndSettle();
+          expect(c.preferences.vocabularyPracticeSize, 1);
+        }
         await tester.scrollUntilVisible(
           find.text("Group 9"),
           220,
@@ -110,6 +130,34 @@ void main() {
           tester.widget<VocabularyBatch>(find.byType(VocabularyBatch)).mode,
           VocabularyMode.recall,
         );
+        if (width == 390 && textScale == 1) {
+          Future<void> settleBatch() async {
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 100)),
+            );
+            await tester.pumpAndSettle();
+          }
+
+          await settleBatch();
+          expect(find.text("1 / 1"), findsOneWidget);
+          final firstWord = find.text("word9").evaluate().isNotEmpty
+              ? "word9"
+              : "extra";
+          await tester.tap(find.text("Skip card"));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text("Next batch"));
+          await settleBatch();
+          expect(find.text("1 / 1"), findsOneWidget);
+          expect(find.text(firstWord), findsNothing);
+          expect(
+            find.text(firstWord == "word9" ? "extra" : "word9"),
+            findsOneWidget,
+          );
+          await tester.tap(find.text("Skip card"));
+          await tester.pumpAndSettle();
+          expect(find.text("Batch complete"), findsOneWidget);
+          expect(find.text("Next batch"), findsNothing);
+        }
         await tester.pageBack();
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const Key("create-vocabulary-group")));

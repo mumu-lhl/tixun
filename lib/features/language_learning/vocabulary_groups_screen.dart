@@ -79,10 +79,36 @@ class _VocabularyGroupsState extends ConsumerState<VocabularyGroupsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final practiceSize = ref.watch(
+      appControllerProvider.select((c) => c.preferences.vocabularyPracticeSize),
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.languageGroups),
         actions: [
+          if (_mode == VocabularyMode.recall)
+            PopupMenuButton<int>(
+              tooltip: l10n.languageVocabularyPracticeSize,
+              icon: const Icon(Icons.tune),
+              popUpAnimationStyle: menuAnimation(context),
+              onSelected: (count) => act(
+                context,
+                () => ref
+                    .read(appControllerProvider)
+                    .preferences
+                    .setVocabularyPracticeSize(count),
+              ),
+              itemBuilder: (_) => [
+                for (final count in AppPreferences.vocabularyPracticeSizes)
+                  CheckedPopupMenuItem(
+                    value: count,
+                    checked: count == practiceSize,
+                    child: Text(
+                      l10n.languageVocabularyPracticeSizeOption(count),
+                    ),
+                  ),
+              ],
+            ),
           IconButton(
             key: const Key("create-vocabulary-group"),
             tooltip: l10n.languageCreateGroup,
@@ -147,7 +173,11 @@ class _VocabularyGroupsState extends ConsumerState<VocabularyGroupsScreen> {
                           if (column > 0) const SizedBox(width: 12),
                           Expanded(
                             child: i + column < groups.length
-                                ? _groupCard(context, groups[i + column])
+                                ? _groupCard(
+                                    context,
+                                    groups[i + column],
+                                    practiceSize,
+                                  )
                                 : const SizedBox.shrink(),
                           ),
                         ],
@@ -162,7 +192,11 @@ class _VocabularyGroupsState extends ConsumerState<VocabularyGroupsScreen> {
     );
   }
 
-  Widget _groupCard(BuildContext context, LearningVocabularyGroup group) {
+  Widget _groupCard(
+    BuildContext context,
+    LearningVocabularyGroup group,
+    int practiceSize,
+  ) {
     final l10n = context.l10n;
     return Card(
       key: ValueKey("vocabulary-group-${group.id}"),
@@ -175,6 +209,9 @@ class _VocabularyGroupsState extends ConsumerState<VocabularyGroupsScreen> {
               language: "en",
               mode: _mode,
               group: group,
+              batchSize: _mode == VocabularyMode.recall
+                  ? practiceSize
+                  : languageBatchSize,
               ai: VocabularyAi(
                 languageGenerationProvider(
                   context,

@@ -440,6 +440,7 @@ class LanguageLearningStore extends DatabaseNotifier {
     DateTime? dueBefore,
     bool contextsOnly = false,
     int offset = 0,
+    int limit = languageBatchSize,
   }) async {
     final q =
         _queue(
@@ -456,7 +457,7 @@ class LanguageLearningStore extends DatabaseNotifier {
             ),
             OrderingTerm.asc(db.learningLexicalSenses.id),
           ])
-          ..limit(languageBatchSize, offset: offset);
+          ..limit(limit, offset: offset);
     return (await q.get())
         .map(
           (row) => LanguageCard(

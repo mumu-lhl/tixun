@@ -28,6 +28,7 @@ class VocabularyBatch extends StatefulWidget {
     required this.mode,
     this.group,
     this.dueBefore,
+    this.batchSize = languageBatchSize,
     this.ai,
     this.config,
   });
@@ -39,6 +40,7 @@ class VocabularyBatch extends StatefulWidget {
   final VocabularyMode mode;
   final LearningVocabularyGroup? group;
   final DateTime? dueBefore;
+  final int batchSize;
 
   @override
   State<VocabularyBatch> createState() => _VocabularyBatchState();
@@ -58,7 +60,6 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   bool _retrying = false;
   bool _continueAfterRetry = false;
   final List<LanguageCard> _retryCards = [];
-  LearningEvidenceData? _result;
   CancelToken? _regenerating;
 
   @override
@@ -72,13 +73,13 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     groupId: widget.group?.id,
     dueBefore: widget.dueBefore,
     offset: _offset,
+    limit: widget.batchSize + (widget.dueBefore == null ? 1 : 0),
   );
 
   void _resetCard() {
     _recognized = null;
     _attemptId = _uuid.v4();
     _revealed = false;
-    _result = null;
   }
 
   void _advance() => setState(() {
@@ -89,7 +90,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   void _nextBatch() => setState(() {
     _retrying = false;
     _retryCards.clear();
-    _offset += languageBatchSize;
+    _offset += widget.batchSize;
     _current = 0;
     _studyIndex = 0;
     _resetCard();
@@ -183,10 +184,13 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               ),
             );
           }
-          final cards = snapshot.requireData;
+          final loaded = snapshot.requireData;
+          final cards = loaded.length > widget.batchSize
+              ? loaded.sublist(0, widget.batchSize)
+              : loaded;
           final canContinue = _retrying
               ? _continueAfterRetry
-              : widget.dueBefore == null && cards.length == languageBatchSize;
+              : loaded.length > widget.batchSize;
           final nextBatch = OutlinedButton(
             onPressed: _nextBatch,
             child: Text(l10n.languageNextBatch),
@@ -228,14 +232,27 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
             content = Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text("${_current + 1} / ${cards.length}"),
+                if (widget.mode == VocabularyMode.recall)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text("${_current + 1} / ${cards.length}"),
+                      ),
+                      TextButton(
+                        onPressed: _saving ? null : _advance,
+                        child: Text(l10n.languageSkipCard),
+                      ),
+                    ],
+                  )
+                else
+                  Text("${_current + 1} / ${cards.length}"),
                 const SizedBox(height: 12),
                 if (widget.mode == VocabularyMode.recall)
                   _recall(card)
                 else
                   _recognition(card, cards),
-                const SizedBox(height: 12),
-                if (_result == null)
+                if (widget.mode != VocabularyMode.recall) ...[
+                  const SizedBox(height: 12),
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: TextButton(
@@ -243,6 +260,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                       child: Text(l10n.languageSkip),
                     ),
                   ),
+                ],
               ],
             );
           }
@@ -443,33 +461,31 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
           revealed: _revealed,
         ),
         if (_revealed)
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final rating in RecallRating.values)
-                OutlinedButton(
-                  onPressed: _saving
-                      ? null
-                      : () => _save(() async {
-                          await widget.store.recordRecall(
-                            attemptId: _attemptId,
-                            senseId: card.sense.id,
-                            rating: rating,
-                            groupPrompt: widget.group != null,
-                          );
-                          if (mounted) {
-                            if (rating == RecallRating.forgot ||
-                                rating == RecallRating.fuzzy) {
-                              _retryCards.add(card);
-                            }
-                            _advance();
-                          }
-                        }),
-                  child: Text(_rating(l10n, rating)),
-                ),
-            ],
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              spacing: 8,
+              children: [
+                for (var i = 0; i < RecallRating.values.length; i += 2)
+                  IntrinsicHeight(
+                    child: Row(
+                      spacing: 8,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _ratingButton(card, RecallRating.values[i]),
+                        ),
+                        Expanded(
+                          child: _ratingButton(
+                            card,
+                            RecallRating.values[i + 1],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           )
         else
           FilledButton(
@@ -479,6 +495,27 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
       ],
     );
   }
+
+  Widget _ratingButton(LanguageCard card, RecallRating rating) =>
+      OutlinedButton(
+        onPressed: _saving
+            ? null
+            : () => _save(() async {
+                await widget.store.recordRecall(
+                  attemptId: _attemptId,
+                  senseId: card.sense.id,
+                  rating: rating,
+                  groupPrompt: widget.group != null,
+                );
+                if (!mounted) return;
+                if (rating == RecallRating.forgot ||
+                    rating == RecallRating.fuzzy) {
+                  _retryCards.add(card);
+                }
+                _advance();
+              }),
+        child: Text(_rating(context.l10n, rating), textAlign: TextAlign.center),
+      );
 
   String _rating(AppLocalizations l10n, RecallRating rating) =>
       switch (rating) {

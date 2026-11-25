@@ -3,6 +3,8 @@ import "package:tixun/core/l10n/app_error.dart";
 import "app_notice.dart";
 import "../features/a2ui/a2ui_tools.dart";
 import "../features/language_learning/language_subject.dart";
+import "../features/language_learning/language_store.dart"
+    show languageBatchSize;
 
 import "dart:convert";
 import "dart:ui" show PlatformDispatcher;
@@ -64,6 +66,18 @@ class AppPreferences extends DatabaseNotifier {
   set prompts(PromptSettings value) => _prompts = value;
   static const _studyLevelKey = "language_en_level";
   static const _feedbackLanguageKey = "language_feedback_language";
+  static const _vocabularyPracticeSizeKey = "language_vocabulary_practice_size";
+  static const vocabularyPracticeSizes = [
+    1,
+    5,
+    10,
+    15,
+    languageBatchSize,
+    30,
+    50,
+  ];
+  int _vocabularyPracticeSize = languageBatchSize;
+  int get vocabularyPracticeSize => _vocabularyPracticeSize;
   LanguageStudySettings _languageStudy = (
     level: EnglishStudyLevel.mixed,
     feedbackLanguage: LanguageFeedbackLanguage.app,
@@ -94,6 +108,12 @@ class AppPreferences extends DatabaseNotifier {
     _subjectSettings = await _readSubjectSettings();
     final studyLevel = await db.preference(_studyLevelKey);
     final feedbackLanguage = await db.preference(_feedbackLanguageKey);
+    final practiceSize = int.tryParse(
+      await db.preference(_vocabularyPracticeSizeKey) ?? "",
+    );
+    _vocabularyPracticeSize = vocabularyPracticeSizes.contains(practiceSize)
+        ? practiceSize!
+        : languageBatchSize;
     _languageStudy = (
       level: EnglishStudyLevel.values.firstWhere(
         (value) => value.name == studyLevel,
@@ -247,6 +267,15 @@ class AppPreferences extends DatabaseNotifier {
         _languageStudy = settings;
         changed();
       });
+
+  Future<void> setVocabularyPracticeSize(int count) => runOperation(() async {
+    if (!vocabularyPracticeSizes.contains(count)) {
+      throw ArgumentError.value(count, "count");
+    }
+    await db.setPreference(_vocabularyPracticeSizeKey, count.toString());
+    _vocabularyPracticeSize = count;
+    changed();
+  });
 
   Future<void> setLanguage(String value) => runOperation(() async {
     if (!["zh", "en", "system"].contains(value)) {
