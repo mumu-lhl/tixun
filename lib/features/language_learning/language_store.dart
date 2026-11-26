@@ -3,8 +3,12 @@ import "package:uuid/uuid.dart";
 
 import "../../core/database/database.dart";
 import "../../core/database/database_notifier.dart";
+import "fsrs.dart";
 import "lexical_form.dart";
 import "generation_store.dart";
+import "vocabulary_review_settings.dart";
+
+export "fsrs.dart" show RecallRating;
 
 const languageBatchSize = 20;
 String normalizeLanguageText(String value) =>
@@ -14,7 +18,7 @@ enum LexicalType { word, phrase, phrasalVerb, collocation, idiom }
 
 enum VocabularyGroupType { topic, concept, function, contrast }
 
-enum RecallRating { forgot, fuzzy, remembered, easy }
+enum RecallKind { scheduled, retry, practice }
 
 class VocabularyEntry {
   const VocabularyEntry({
@@ -62,10 +66,11 @@ class VocabularyProvenance {
 }
 
 class LanguageCard {
-  const LanguageCard(this.item, this.sense);
+  const LanguageCard(this.item, this.sense, {this.isNew = false});
 
   final LearningLexicalItem item;
   final LearningLexicalSense sense;
+  final bool isNew;
 }
 
 class LanguageLearningStore extends DatabaseNotifier {
@@ -424,14 +429,27 @@ class LanguageLearningStore extends DatabaseNotifier {
     changed();
   });
 
-  Stream<int> dueCount(String language) {
+  Stream<int> dueCount(String language, {DateTime? now}) =>
+      _dueCount(language, now).watchSingle();
+
+  Future<int> countDue(String language, {DateTime? now}) =>
+      _dueCount(language, now).getSingle();
+
+  Selectable<int> _dueCount(String language, DateTime? now) {
     final count = db.learningLexicalSenses.id.count();
-    final q = _queue(language, includeCards: false)
-      ..where(
-        db.learningReviewSchedules.dueAt.isSmallerOrEqual(currentDateAndTime),
-      )
+    final q = _queue(language, includeCards: false);
+    q
+      ..where(_isDue(now))
       ..addColumns([count]);
-    return q.watchSingle().map((row) => row.read(count)!);
+    return q.map((row) => row.read(count)!);
+  }
+
+  Expression<bool> _isDue(DateTime? now) {
+    final review = db.learningReviewSchedules;
+    return review.repetitions.isBiggerThanValue(0) &
+        review.dueAt.isSmallerOrEqual(
+          now == null ? currentDateAndTime : Variable(now),
+        );
   }
 
   Future<List<LanguageCard>> cards({
@@ -468,6 +486,58 @@ class LanguageLearningStore extends DatabaseNotifier {
         .toList();
   }
 
+  Future<List<LanguageCard>> recallCards({
+    required String language,
+    required DateTime now,
+    required int limit,
+    String? groupId,
+    bool allGroups = false,
+    bool dueOnly = false,
+    bool practiceOnly = false,
+    Set<String> seen = const {},
+  }) async {
+    final sense = db.learningLexicalSenses;
+    final review = db.learningReviewSchedules;
+    final isNew = review.repetitions.equals(0);
+    final q = _queue(language, groupId: groupId)..addColumns([isNew]);
+    if (allGroups) {
+      final membership = db.learningGroupItems;
+      q.where(
+        existsQuery(
+          db.selectOnly(membership)
+            ..addColumns([membership.senseId])
+            ..where(membership.senseId.equalsExp(sense.id)),
+        ),
+      );
+    }
+    if (!practiceOnly) {
+      q.where(dueOnly ? _isDue(now) : _isDue(now) | isNew);
+    }
+    if (seen.isNotEmpty) q.where(sense.id.isNotIn(seen));
+    q
+      ..orderBy([
+        if (!practiceOnly) OrderingTerm.asc(isNew),
+        OrderingTerm.asc(
+          practiceOnly
+              ? sense.createdAt
+              : CaseWhenExpression(
+                  cases: [CaseWhen(isNew, then: sense.createdAt)],
+                  orElse: review.dueAt,
+                ),
+        ),
+        OrderingTerm.asc(sense.id),
+      ])
+      ..limit(limit);
+    return [
+      for (final row in await q.get())
+        LanguageCard(
+          row.readTable(db.learningLexicalItems),
+          row.readTable(sense),
+          isNew: row.read(isNew)!,
+        ),
+    ];
+  }
+
   JoinedSelectStatement _queue(
     String language, {
     String? groupId,
@@ -493,9 +563,7 @@ class LanguageLearningStore extends DatabaseNotifier {
         ? db.select(s).join(joins)
         : db.selectOnly(s).join(joins);
     query.where(i.language.equals(language));
-    if (dueBefore != null) {
-      query.where(r.dueAt.isSmallerOrEqualValue(dueBefore));
-    }
+    if (dueBefore != null) query.where(_isDue(dueBefore));
     if (contextsOnly) query.where(s.application.isNotNull());
     return query;
   }
@@ -505,51 +573,81 @@ class LanguageLearningStore extends DatabaseNotifier {
     required String senseId,
     required RecallRating rating,
     required bool groupPrompt,
+    RecallKind kind = RecallKind.scheduled,
+    DateTime? selectedAt,
     DateTime? now,
   }) => runOperation(() async {
-    final time = now ?? DateTime.now();
+    final time = (now ?? DateTime.now()).toUtc();
     await db.transaction(() async {
+      final schedule = await (db.select(
+        db.learningReviewSchedules,
+      )..where((row) => row.senseId.equals(senseId))).getSingle();
+      final eligibilityTime = selectedAt != null && selectedAt.isBefore(time)
+          ? selectedAt
+          : time;
+      final actualKind =
+          kind == RecallKind.scheduled &&
+              schedule.repetitions > 0 &&
+              schedule.dueAt.isAfter(eligibilityTime)
+          ? RecallKind.practice
+          : kind;
       final inserted = await _insertEvidence(
         LearningEvidenceCompanion.insert(
           id: attemptId,
           senseId: senseId,
           skill: "meaningRecall",
           rating: Value(rating.name),
+          recallKind: Value(actualKind.name),
           answerRevealed: const Value(true),
           groupPrompt: Value(groupPrompt),
           occurredAt: time,
         ),
       );
-      if (!inserted) return;
-      final schedule = await (db.select(
-        db.learningReviewSchedules,
-      )..where((row) => row.senseId.equals(senseId))).getSingle();
-      final interval = schedule.intervalDays;
-      final proposedDays = switch (rating) {
-        RecallRating.forgot => 1,
-        RecallRating.fuzzy => 2,
-        RecallRating.remembered => (interval * 2).clamp(3, 90),
-        RecallRating.easy => (interval * 3).clamp(7, 180),
+      if (!inserted || actualKind != RecallKind.scheduled) return;
+      final settings = await loadVocabularyReviewSettings(db);
+      final memory = switch (schedule) {
+        LearningReviewSchedule(
+          fsrsVersion: Fsrs.version,
+          stability: final double stability,
+          difficulty: final double difficulty,
+        )
+            when stability.isFinite &&
+                stability >= .001 &&
+                difficulty >= 1 &&
+                difficulty <= 10 =>
+          (stability: stability, difficulty: difficulty),
+        _ => null,
       };
-      // Immediate retries are practice, not evidence of delayed retention.
-      final immediate =
-          schedule.repetitions > 0 &&
-          time.difference(schedule.updatedAt) < const Duration(days: 1);
-      final days = immediate && proposedDays > interval
-          ? interval
-          : proposedDays;
-      final proposedDue = time.add(Duration(days: days));
-      final due = immediate && proposedDue.isAfter(schedule.dueAt)
-          ? schedule.dueAt
-          : proposedDue;
+      final result = settings.enabled
+          ? Fsrs(
+              retentionPercent: settings.retentionPercent,
+              maximumInterval: settings.maximumInterval,
+            ).review(
+              rating: rating,
+              now: time,
+              previous: memory,
+              lastReview: schedule.updatedAt,
+            )
+          : null;
+      final days =
+          result?.intervalDays ??
+          switch (rating) {
+            RecallRating.again => 1,
+            RecallRating.hard => 2,
+            RecallRating.good => (schedule.intervalDays * 2).clamp(3, 90),
+            RecallRating.easy => (schedule.intervalDays * 3).clamp(7, 180),
+          };
       await (db.update(
         db.learningReviewSchedules,
       )..where((row) => row.senseId.equals(senseId))).write(
         LearningReviewSchedulesCompanion(
-          dueAt: Value(due),
+          dueAt: Value(result?.dueAt ?? time.add(Duration(days: days))),
           intervalDays: Value(days),
           repetitions: Value(schedule.repetitions + 1),
           updatedAt: Value(time),
+          fsrsVersion: Value(result == null ? null : Fsrs.version),
+          stability: Value(result?.memory.stability),
+          difficulty: Value(result?.memory.difficulty),
         ),
       );
     });

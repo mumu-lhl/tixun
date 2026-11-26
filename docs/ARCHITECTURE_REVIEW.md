@@ -1,6 +1,6 @@
 # 架构调整与接口约定
 
-当前说明更新于 2026-11-23。沿用 Flutter、Riverpod、go_router、Drift 和本地附件目录；数据库已演进至 schema v30，通过显式迁移保留旧学习数据。下方接口约定继续适用，末尾保留早期调整的历史验收记录。
+当前说明更新于 2026-11-25。沿用 Flutter、Riverpod、go_router、Drift 和本地附件目录。数据库已演进至 schema v31，通过显式迁移保留旧学习数据。下方接口约定继续适用，末尾保留早期调整的历史验收记录。
 
 ## 当前职责
 
@@ -18,6 +18,7 @@
 | `features/chat/learning_run.dart` | 学习上下文、教学提示、用量汇总、三分钟超时、用户可设的累计工具调用次数上限（默认 8，0 不限；批量逐个计数，包含协议加载；无额外固定轮数限制）、结束判定和受控工具执行。Android/Linux 隔离运行器可用时才提供 Python 工具；通过进度与结果返回给调用方，考试过程中不会把原始模型答案当进度发布。 |
 | `core/python/python_runtime.dart` / `python_workspace_store.dart` | Linux 使用独立 CPython 进程和 bubblewrap：只读根文件系统、当前会话工作区可写、超时/停止终止隔离进程；隔离不限制读取和网络，缺少 bwrap/user namespace 时失败关闭。Android 使用隔离 UID 服务、Zig/JNI launcher 和有界管道，不继承应用文件及网络权限；工作区以有界虚拟文件系统快照传输，不共享应用目录。V2230A / Android 13 已通过真实包执行、工作区同步、直接 libc 越界读写拒绝、网络拒绝、超时/停止、崩溃恢复及审批 UI 回归；工作区管理与传输验证由本地 Store 提供。 |
 | `features/language_learning/exam_store.dart`、`sentence_batch_store.dart` | 专项保存结构校验后的材料快照与整篇作答，句子批次保留内容 ID、技能和可选理解检测。两条生成路径通过单次 `AiRequest` 请求并独立记账，复用已保存内容时使用本地查询。 |
+| `features/language_learning/language_store.dart`、`fsrs.dart` | 义项共用复习日程，正式评分与日程在同一事务写入。FSRS-6 试用从设置启用。单组与全部词汇的练习队列先取到期旧词，再取新词。同轮重练和自由练习保留独立的证据类型。[调研与验收](FSRS_VOCABULARY_RESEARCH.md) |
 | `features/chat/chat_context_store.dart` | 按消息及轮次保存应用级模型上下文，并根据当前策略重放。完整备份包含上下文，永久删除随消息级联。参见 [AI 会话上下文](AI_CONTEXT_MIGRATION_PLAN.md)。 |
 | `features/chat/chat_branch_store.dart` | 事务复制截至指定消息（含该消息）的聊天前缀，保留图片、公开图形和练习关联；新建消息 ID，正文和顺序不变，原聊天与草稿不动。仅复用覆盖范围完全在分支内的摘要；会话偏好复制委托 AppPreferences。整理知识从分支追加授权指令，仍保留写入确认与版本校验。 |
 | `app/controller.dart` | 保留页面状态、会话/草稿、附件入口与任务准备；负责创建回复记录、节流保存进度、保存最终状态。委托 LearningRun 执行推理，不了解 tool_calls、finish_reason 或 Responses 私有字段。 |

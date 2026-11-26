@@ -81,6 +81,7 @@ class _LanguageLearningScreenState
       _store,
       VocabularyMode.recall,
       dueBefore: DateTime.now(),
+      batchSize: _preferences.vocabularyPracticeSize,
     );
     if (mounted) _refreshDue();
   }
@@ -439,6 +440,7 @@ Future<void> _openBatch(
   VocabularyMode mode, {
   LearningVocabularyGroup? group,
   DateTime? dueBefore,
+  int batchSize = languageBatchSize,
 }) => Navigator.of(context).push(
   MaterialPageRoute<void>(
     builder: (_) => VocabularyBatch(
@@ -447,6 +449,7 @@ Future<void> _openBatch(
       mode: mode,
       group: group,
       dueBefore: dueBefore,
+      batchSize: batchSize,
     ),
   ),
 );

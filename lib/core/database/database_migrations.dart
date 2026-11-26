@@ -53,6 +53,21 @@ extension _DatabaseMigrations on AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from >= 22 && from < 31) {
+        await m.addColumn(learningEvidence, learningEvidence.recallKind);
+        await m.addColumn(
+          learningReviewSchedules,
+          learningReviewSchedules.fsrsVersion,
+        );
+        await m.addColumn(
+          learningReviewSchedules,
+          learningReviewSchedules.stability,
+        );
+        await m.addColumn(
+          learningReviewSchedules,
+          learningReviewSchedules.difficulty,
+        );
+      }
       if (from < 30) {
         await m.createTable(languagePromptSnapshots);
         await m.createTable(languageGenerationTasks);

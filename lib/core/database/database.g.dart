@@ -25168,6 +25168,17 @@ class $LearningEvidenceTable extends LearningEvidence
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _recallKindMeta = const VerificationMeta(
+    'recallKind',
+  );
+  @override
+  late final GeneratedColumn<String> recallKind = GeneratedColumn<String>(
+    'recall_kind',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _answerMeta = const VerificationMeta('answer');
   @override
   late final GeneratedColumn<String> answer = GeneratedColumn<String>(
@@ -25240,6 +25251,7 @@ class $LearningEvidenceTable extends LearningEvidence
     formId,
     skill,
     rating,
+    recallKind,
     answer,
     correct,
     answerRevealed,
@@ -25298,6 +25310,12 @@ class $LearningEvidenceTable extends LearningEvidence
       context.handle(
         _ratingMeta,
         rating.isAcceptableOrUnknown(data['rating']!, _ratingMeta),
+      );
+    }
+    if (data.containsKey('recall_kind')) {
+      context.handle(
+        _recallKindMeta,
+        recallKind.isAcceptableOrUnknown(data['recall_kind']!, _recallKindMeta),
       );
     }
     if (data.containsKey('answer')) {
@@ -25371,6 +25389,10 @@ class $LearningEvidenceTable extends LearningEvidence
         DriftSqlType.string,
         data['${effectivePrefix}rating'],
       ),
+      recallKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recall_kind'],
+      ),
       answer: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}answer'],
@@ -25408,6 +25430,7 @@ class LearningEvidenceData extends DataClass
   final String? formId;
   final String skill;
   final String? rating;
+  final String? recallKind;
   final String? answer;
   final bool? correct;
   final bool answerRevealed;
@@ -25420,6 +25443,7 @@ class LearningEvidenceData extends DataClass
     this.formId,
     required this.skill,
     this.rating,
+    this.recallKind,
     this.answer,
     this.correct,
     required this.answerRevealed,
@@ -25440,6 +25464,9 @@ class LearningEvidenceData extends DataClass
     map['skill'] = Variable<String>(skill);
     if (!nullToAbsent || rating != null) {
       map['rating'] = Variable<String>(rating);
+    }
+    if (!nullToAbsent || recallKind != null) {
+      map['recall_kind'] = Variable<String>(recallKind);
     }
     if (!nullToAbsent || answer != null) {
       map['answer'] = Variable<String>(answer);
@@ -25467,6 +25494,9 @@ class LearningEvidenceData extends DataClass
       rating: rating == null && nullToAbsent
           ? const Value.absent()
           : Value(rating),
+      recallKind: recallKind == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recallKind),
       answer: answer == null && nullToAbsent
           ? const Value.absent()
           : Value(answer),
@@ -25491,6 +25521,7 @@ class LearningEvidenceData extends DataClass
       formId: serializer.fromJson<String?>(json['formId']),
       skill: serializer.fromJson<String>(json['skill']),
       rating: serializer.fromJson<String?>(json['rating']),
+      recallKind: serializer.fromJson<String?>(json['recallKind']),
       answer: serializer.fromJson<String?>(json['answer']),
       correct: serializer.fromJson<bool?>(json['correct']),
       answerRevealed: serializer.fromJson<bool>(json['answerRevealed']),
@@ -25508,6 +25539,7 @@ class LearningEvidenceData extends DataClass
       'formId': serializer.toJson<String?>(formId),
       'skill': serializer.toJson<String>(skill),
       'rating': serializer.toJson<String?>(rating),
+      'recallKind': serializer.toJson<String?>(recallKind),
       'answer': serializer.toJson<String?>(answer),
       'correct': serializer.toJson<bool?>(correct),
       'answerRevealed': serializer.toJson<bool>(answerRevealed),
@@ -25523,6 +25555,7 @@ class LearningEvidenceData extends DataClass
     Value<String?> formId = const Value.absent(),
     String? skill,
     Value<String?> rating = const Value.absent(),
+    Value<String?> recallKind = const Value.absent(),
     Value<String?> answer = const Value.absent(),
     Value<bool?> correct = const Value.absent(),
     bool? answerRevealed,
@@ -25537,6 +25570,7 @@ class LearningEvidenceData extends DataClass
     formId: formId.present ? formId.value : this.formId,
     skill: skill ?? this.skill,
     rating: rating.present ? rating.value : this.rating,
+    recallKind: recallKind.present ? recallKind.value : this.recallKind,
     answer: answer.present ? answer.value : this.answer,
     correct: correct.present ? correct.value : this.correct,
     answerRevealed: answerRevealed ?? this.answerRevealed,
@@ -25553,6 +25587,9 @@ class LearningEvidenceData extends DataClass
       formId: data.formId.present ? data.formId.value : this.formId,
       skill: data.skill.present ? data.skill.value : this.skill,
       rating: data.rating.present ? data.rating.value : this.rating,
+      recallKind: data.recallKind.present
+          ? data.recallKind.value
+          : this.recallKind,
       answer: data.answer.present ? data.answer.value : this.answer,
       correct: data.correct.present ? data.correct.value : this.correct,
       answerRevealed: data.answerRevealed.present
@@ -25576,6 +25613,7 @@ class LearningEvidenceData extends DataClass
           ..write('formId: $formId, ')
           ..write('skill: $skill, ')
           ..write('rating: $rating, ')
+          ..write('recallKind: $recallKind, ')
           ..write('answer: $answer, ')
           ..write('correct: $correct, ')
           ..write('answerRevealed: $answerRevealed, ')
@@ -25593,6 +25631,7 @@ class LearningEvidenceData extends DataClass
     formId,
     skill,
     rating,
+    recallKind,
     answer,
     correct,
     answerRevealed,
@@ -25609,6 +25648,7 @@ class LearningEvidenceData extends DataClass
           other.formId == this.formId &&
           other.skill == this.skill &&
           other.rating == this.rating &&
+          other.recallKind == this.recallKind &&
           other.answer == this.answer &&
           other.correct == this.correct &&
           other.answerRevealed == this.answerRevealed &&
@@ -25623,6 +25663,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
   final Value<String?> formId;
   final Value<String> skill;
   final Value<String?> rating;
+  final Value<String?> recallKind;
   final Value<String?> answer;
   final Value<bool?> correct;
   final Value<bool> answerRevealed;
@@ -25636,6 +25677,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     this.formId = const Value.absent(),
     this.skill = const Value.absent(),
     this.rating = const Value.absent(),
+    this.recallKind = const Value.absent(),
     this.answer = const Value.absent(),
     this.correct = const Value.absent(),
     this.answerRevealed = const Value.absent(),
@@ -25650,6 +25692,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     this.formId = const Value.absent(),
     required String skill,
     this.rating = const Value.absent(),
+    this.recallKind = const Value.absent(),
     this.answer = const Value.absent(),
     this.correct = const Value.absent(),
     this.answerRevealed = const Value.absent(),
@@ -25667,6 +25710,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     Expression<String>? formId,
     Expression<String>? skill,
     Expression<String>? rating,
+    Expression<String>? recallKind,
     Expression<String>? answer,
     Expression<bool>? correct,
     Expression<bool>? answerRevealed,
@@ -25681,6 +25725,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
       if (formId != null) 'form_id': formId,
       if (skill != null) 'skill': skill,
       if (rating != null) 'rating': rating,
+      if (recallKind != null) 'recall_kind': recallKind,
       if (answer != null) 'answer': answer,
       if (correct != null) 'correct': correct,
       if (answerRevealed != null) 'answer_revealed': answerRevealed,
@@ -25697,6 +25742,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     Value<String?>? formId,
     Value<String>? skill,
     Value<String?>? rating,
+    Value<String?>? recallKind,
     Value<String?>? answer,
     Value<bool?>? correct,
     Value<bool>? answerRevealed,
@@ -25711,6 +25757,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
       formId: formId ?? this.formId,
       skill: skill ?? this.skill,
       rating: rating ?? this.rating,
+      recallKind: recallKind ?? this.recallKind,
       answer: answer ?? this.answer,
       correct: correct ?? this.correct,
       answerRevealed: answerRevealed ?? this.answerRevealed,
@@ -25740,6 +25787,9 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
     }
     if (rating.present) {
       map['rating'] = Variable<String>(rating.value);
+    }
+    if (recallKind.present) {
+      map['recall_kind'] = Variable<String>(recallKind.value);
     }
     if (answer.present) {
       map['answer'] = Variable<String>(answer.value);
@@ -25771,6 +25821,7 @@ class LearningEvidenceCompanion extends UpdateCompanion<LearningEvidenceData> {
           ..write('formId: $formId, ')
           ..write('skill: $skill, ')
           ..write('rating: $rating, ')
+          ..write('recallKind: $recallKind, ')
           ..write('answer: $answer, ')
           ..write('correct: $correct, ')
           ..write('answerRevealed: $answerRevealed, ')
@@ -25846,6 +25897,39 @@ class $LearningReviewSchedulesTable extends LearningReviewSchedules
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _fsrsVersionMeta = const VerificationMeta(
+    'fsrsVersion',
+  );
+  @override
+  late final GeneratedColumn<String> fsrsVersion = GeneratedColumn<String>(
+    'fsrs_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stabilityMeta = const VerificationMeta(
+    'stability',
+  );
+  @override
+  late final GeneratedColumn<double> stability = GeneratedColumn<double>(
+    'stability',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _difficultyMeta = const VerificationMeta(
+    'difficulty',
+  );
+  @override
+  late final GeneratedColumn<double> difficulty = GeneratedColumn<double>(
+    'difficulty',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     senseId,
@@ -25853,6 +25937,9 @@ class $LearningReviewSchedulesTable extends LearningReviewSchedules
     intervalDays,
     repetitions,
     updatedAt,
+    fsrsVersion,
+    stability,
+    difficulty,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -25908,6 +25995,27 @@ class $LearningReviewSchedulesTable extends LearningReviewSchedules
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('fsrs_version')) {
+      context.handle(
+        _fsrsVersionMeta,
+        fsrsVersion.isAcceptableOrUnknown(
+          data['fsrs_version']!,
+          _fsrsVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('stability')) {
+      context.handle(
+        _stabilityMeta,
+        stability.isAcceptableOrUnknown(data['stability']!, _stabilityMeta),
+      );
+    }
+    if (data.containsKey('difficulty')) {
+      context.handle(
+        _difficultyMeta,
+        difficulty.isAcceptableOrUnknown(data['difficulty']!, _difficultyMeta),
+      );
+    }
     return context;
   }
 
@@ -25937,6 +26045,18 @@ class $LearningReviewSchedulesTable extends LearningReviewSchedules
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      fsrsVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fsrs_version'],
+      ),
+      stability: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}stability'],
+      ),
+      difficulty: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}difficulty'],
+      ),
     );
   }
 
@@ -25953,12 +26073,18 @@ class LearningReviewSchedule extends DataClass
   final int intervalDays;
   final int repetitions;
   final DateTime updatedAt;
+  final String? fsrsVersion;
+  final double? stability;
+  final double? difficulty;
   const LearningReviewSchedule({
     required this.senseId,
     required this.dueAt,
     required this.intervalDays,
     required this.repetitions,
     required this.updatedAt,
+    this.fsrsVersion,
+    this.stability,
+    this.difficulty,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -25968,6 +26094,15 @@ class LearningReviewSchedule extends DataClass
     map['interval_days'] = Variable<int>(intervalDays);
     map['repetitions'] = Variable<int>(repetitions);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || fsrsVersion != null) {
+      map['fsrs_version'] = Variable<String>(fsrsVersion);
+    }
+    if (!nullToAbsent || stability != null) {
+      map['stability'] = Variable<double>(stability);
+    }
+    if (!nullToAbsent || difficulty != null) {
+      map['difficulty'] = Variable<double>(difficulty);
+    }
     return map;
   }
 
@@ -25978,6 +26113,15 @@ class LearningReviewSchedule extends DataClass
       intervalDays: Value(intervalDays),
       repetitions: Value(repetitions),
       updatedAt: Value(updatedAt),
+      fsrsVersion: fsrsVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fsrsVersion),
+      stability: stability == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stability),
+      difficulty: difficulty == null && nullToAbsent
+          ? const Value.absent()
+          : Value(difficulty),
     );
   }
 
@@ -25992,6 +26136,9 @@ class LearningReviewSchedule extends DataClass
       intervalDays: serializer.fromJson<int>(json['intervalDays']),
       repetitions: serializer.fromJson<int>(json['repetitions']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      fsrsVersion: serializer.fromJson<String?>(json['fsrsVersion']),
+      stability: serializer.fromJson<double?>(json['stability']),
+      difficulty: serializer.fromJson<double?>(json['difficulty']),
     );
   }
   @override
@@ -26003,6 +26150,9 @@ class LearningReviewSchedule extends DataClass
       'intervalDays': serializer.toJson<int>(intervalDays),
       'repetitions': serializer.toJson<int>(repetitions),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'fsrsVersion': serializer.toJson<String?>(fsrsVersion),
+      'stability': serializer.toJson<double?>(stability),
+      'difficulty': serializer.toJson<double?>(difficulty),
     };
   }
 
@@ -26012,12 +26162,18 @@ class LearningReviewSchedule extends DataClass
     int? intervalDays,
     int? repetitions,
     DateTime? updatedAt,
+    Value<String?> fsrsVersion = const Value.absent(),
+    Value<double?> stability = const Value.absent(),
+    Value<double?> difficulty = const Value.absent(),
   }) => LearningReviewSchedule(
     senseId: senseId ?? this.senseId,
     dueAt: dueAt ?? this.dueAt,
     intervalDays: intervalDays ?? this.intervalDays,
     repetitions: repetitions ?? this.repetitions,
     updatedAt: updatedAt ?? this.updatedAt,
+    fsrsVersion: fsrsVersion.present ? fsrsVersion.value : this.fsrsVersion,
+    stability: stability.present ? stability.value : this.stability,
+    difficulty: difficulty.present ? difficulty.value : this.difficulty,
   );
   LearningReviewSchedule copyWithCompanion(
     LearningReviewSchedulesCompanion data,
@@ -26032,6 +26188,13 @@ class LearningReviewSchedule extends DataClass
           ? data.repetitions.value
           : this.repetitions,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      fsrsVersion: data.fsrsVersion.present
+          ? data.fsrsVersion.value
+          : this.fsrsVersion,
+      stability: data.stability.present ? data.stability.value : this.stability,
+      difficulty: data.difficulty.present
+          ? data.difficulty.value
+          : this.difficulty,
     );
   }
 
@@ -26042,14 +26205,25 @@ class LearningReviewSchedule extends DataClass
           ..write('dueAt: $dueAt, ')
           ..write('intervalDays: $intervalDays, ')
           ..write('repetitions: $repetitions, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('fsrsVersion: $fsrsVersion, ')
+          ..write('stability: $stability, ')
+          ..write('difficulty: $difficulty')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(senseId, dueAt, intervalDays, repetitions, updatedAt);
+  int get hashCode => Object.hash(
+    senseId,
+    dueAt,
+    intervalDays,
+    repetitions,
+    updatedAt,
+    fsrsVersion,
+    stability,
+    difficulty,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -26058,7 +26232,10 @@ class LearningReviewSchedule extends DataClass
           other.dueAt == this.dueAt &&
           other.intervalDays == this.intervalDays &&
           other.repetitions == this.repetitions &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.fsrsVersion == this.fsrsVersion &&
+          other.stability == this.stability &&
+          other.difficulty == this.difficulty);
 }
 
 class LearningReviewSchedulesCompanion
@@ -26068,6 +26245,9 @@ class LearningReviewSchedulesCompanion
   final Value<int> intervalDays;
   final Value<int> repetitions;
   final Value<DateTime> updatedAt;
+  final Value<String?> fsrsVersion;
+  final Value<double?> stability;
+  final Value<double?> difficulty;
   final Value<int> rowid;
   const LearningReviewSchedulesCompanion({
     this.senseId = const Value.absent(),
@@ -26075,6 +26255,9 @@ class LearningReviewSchedulesCompanion
     this.intervalDays = const Value.absent(),
     this.repetitions = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.fsrsVersion = const Value.absent(),
+    this.stability = const Value.absent(),
+    this.difficulty = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LearningReviewSchedulesCompanion.insert({
@@ -26083,6 +26266,9 @@ class LearningReviewSchedulesCompanion
     this.intervalDays = const Value.absent(),
     this.repetitions = const Value.absent(),
     required DateTime updatedAt,
+    this.fsrsVersion = const Value.absent(),
+    this.stability = const Value.absent(),
+    this.difficulty = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : senseId = Value(senseId),
        dueAt = Value(dueAt),
@@ -26093,6 +26279,9 @@ class LearningReviewSchedulesCompanion
     Expression<int>? intervalDays,
     Expression<int>? repetitions,
     Expression<DateTime>? updatedAt,
+    Expression<String>? fsrsVersion,
+    Expression<double>? stability,
+    Expression<double>? difficulty,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -26101,6 +26290,9 @@ class LearningReviewSchedulesCompanion
       if (intervalDays != null) 'interval_days': intervalDays,
       if (repetitions != null) 'repetitions': repetitions,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (fsrsVersion != null) 'fsrs_version': fsrsVersion,
+      if (stability != null) 'stability': stability,
+      if (difficulty != null) 'difficulty': difficulty,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -26111,6 +26303,9 @@ class LearningReviewSchedulesCompanion
     Value<int>? intervalDays,
     Value<int>? repetitions,
     Value<DateTime>? updatedAt,
+    Value<String?>? fsrsVersion,
+    Value<double?>? stability,
+    Value<double?>? difficulty,
     Value<int>? rowid,
   }) {
     return LearningReviewSchedulesCompanion(
@@ -26119,6 +26314,9 @@ class LearningReviewSchedulesCompanion
       intervalDays: intervalDays ?? this.intervalDays,
       repetitions: repetitions ?? this.repetitions,
       updatedAt: updatedAt ?? this.updatedAt,
+      fsrsVersion: fsrsVersion ?? this.fsrsVersion,
+      stability: stability ?? this.stability,
+      difficulty: difficulty ?? this.difficulty,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -26141,6 +26339,15 @@ class LearningReviewSchedulesCompanion
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (fsrsVersion.present) {
+      map['fsrs_version'] = Variable<String>(fsrsVersion.value);
+    }
+    if (stability.present) {
+      map['stability'] = Variable<double>(stability.value);
+    }
+    if (difficulty.present) {
+      map['difficulty'] = Variable<double>(difficulty.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -26155,6 +26362,9 @@ class LearningReviewSchedulesCompanion
           ..write('intervalDays: $intervalDays, ')
           ..write('repetitions: $repetitions, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('fsrsVersion: $fsrsVersion, ')
+          ..write('stability: $stability, ')
+          ..write('difficulty: $difficulty, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

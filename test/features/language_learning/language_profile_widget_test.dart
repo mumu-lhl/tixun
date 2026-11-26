@@ -18,14 +18,24 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       final db = AppDatabase.memory();
       final store = LanguageLearningStore(db);
-      await tester.runAsync(
-        () => store.saveEntries(
+      await tester.runAsync(() async {
+        final learnedAt = DateTime.now().subtract(const Duration(days: 10));
+        await store.saveEntries(
           language: "en",
           groupTitle: "Foundation",
           groupType: VocabularyGroupType.topic,
           entries: const [VocabularyEntry(form: "go", meaning: "去")],
-        ),
-      );
+          now: learnedAt,
+        );
+        final card = (await store.cards(language: "en")).single;
+        await store.recordRecall(
+          attemptId: "foundation-recall",
+          senseId: card.sense.id,
+          rating: RecallRating.good,
+          groupPrompt: false,
+          now: learnedAt,
+        );
+      });
       LanguageGoal? goal;
       LanguageRecommendation? chosen;
       var reviews = 0;

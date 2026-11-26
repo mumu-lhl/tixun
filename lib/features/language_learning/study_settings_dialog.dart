@@ -4,6 +4,7 @@ import "../../app/preferences.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/app_menu.dart";
 import "../../core/ui/actions.dart";
+import "vocabulary_review_dialog.dart";
 
 Future<void> editLanguageStudy(
   BuildContext context,
@@ -66,6 +67,14 @@ Future<void> editLanguageStudy(
                 settings = (level: settings.level, feedbackLanguage: value);
               }
             },
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.schedule),
+              label: Text(l10n.languageVocabularyReviewSettings),
+              onPressed: () => editVocabularyReview(dialogContext, preferences),
+            ),
           ),
         ],
       ),

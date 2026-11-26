@@ -108,6 +108,7 @@ class LearningEvidence extends Table {
   )();
   TextColumn get skill => text()();
   TextColumn get rating => text().nullable()();
+  TextColumn get recallKind => text().nullable()();
   TextColumn get answer => text().nullable()();
   BoolColumn get correct => boolean().nullable()();
   BoolColumn get answerRevealed =>
@@ -128,6 +129,9 @@ class LearningReviewSchedules extends Table {
   IntColumn get intervalDays => integer().withDefault(const Constant(0))();
   IntColumn get repetitions => integer().withDefault(const Constant(0))();
   DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get fsrsVersion => text().nullable()();
+  RealColumn get stability => real().nullable()();
+  RealColumn get difficulty => real().nullable()();
   @override
   Set<Column> get primaryKey => {senseId};
 }

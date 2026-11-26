@@ -1,5 +1,7 @@
 import "../../support/exam_bundled.dart";
 
+import "dart:io";
+
 import "package:flutter/rendering.dart";
 
 import "package:tixun/features/language_learning/exam_store.dart";
@@ -21,6 +23,11 @@ import "package:tixun/features/language_learning/exam_ai.dart";
 import "package:tixun/features/language_learning/exam_material.dart";
 import "package:tixun/features/language_learning/exam_paper_screen.dart";
 import "package:tixun/features/language_learning/sentence_content.dart";
+import "package:tixun/app/controller.dart";
+import "package:tixun/core/platform/attachment_store.dart";
+import "package:tixun/core/platform/key_store.dart";
+import "package:tixun/features/language_learning/study_settings_dialog.dart";
+import "package:tixun/features/language_learning/vocabulary_groups_screen.dart";
 
 const config = ProviderConfig(
   id: 1,
@@ -44,7 +51,10 @@ class _WaitingProvider implements ChatProvider {
       });
 }
 
-void main({Future<void> Function(WidgetTester, String)? capture}) {
+void main({
+  Future<void> Function(WidgetTester, String)? capture,
+  Future<void> Function(WidgetTester, Finder, String)? enterText,
+}) {
   late AppDatabase db;
   late LanguageLearningStore store;
   setUp(() {
@@ -57,26 +67,231 @@ void main({Future<void> Function(WidgetTester, String)? capture}) {
     await db.close();
   });
 
-  Widget app(Widget page, {double scale = 1, ThemeData? theme}) =>
-      ProviderScope(
-        child: MaterialApp(
-          theme: theme,
-          locale: const Locale("en"),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: TextScaler.linear(scale)),
-            child: child!,
-          ),
-          home: page,
-        ),
-      );
+  Widget app(
+    Widget page, {
+    double scale = 1,
+    ThemeData? theme,
+    Locale locale = const Locale("en"),
+  }) => ProviderScope(
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: theme,
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(scale)),
+        child: child!,
+      ),
+      home: page,
+    ),
+  );
   Future<void> flush(WidgetTester tester) async {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 150)),
     );
     await tester.pumpAndSettle();
+  }
+
+  for (final (width, locale) in [
+    (360.0, const Locale("zh")),
+    (1200.0, const Locale("en")),
+  ]) {
+    testWidgets("FSRS settings and all-group vocabulary work at width $width", (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      late AppController controller;
+      late Directory root;
+      await tester.runAsync(() async {
+        root = await Directory.systemTemp.createTemp("tixun-fsrs-ui-");
+        controller = AppController(
+          db,
+          AttachmentStore(root),
+          MemoryKeyStore(),
+          MockChatProvider(),
+          demo: true,
+        );
+        await controller.initialize(seed: false);
+        await controller.preferences.setVocabularyPracticeSize(1);
+        for (final group in ["Group A", "Group B"]) {
+          await controller.language.saveEntries(
+            language: "en",
+            groupTitle: group,
+            groupType: VocabularyGroupType.topic,
+            entries: [
+              const VocabularyEntry(form: "shared", meaning: "Shared meaning"),
+              VocabularyEntry(
+                form: group == "Group A" ? "alpha" : "beta",
+                meaning: "Meaning of $group",
+              ),
+            ],
+          );
+        }
+      });
+      addTearDown(
+        () => tester.runAsync(() async {
+          await controller.preferences.whenIdle;
+          await controller.language.whenIdle;
+          controller.dispose();
+          await root.delete(recursive: true);
+        }),
+      );
+      final prefs = controller.preferences;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [appControllerProvider.overrideWith((_) => controller)],
+          child: app(
+            Builder(
+              builder: (context) => Scaffold(
+                body: Column(
+                  children: [
+                    TextButton(
+                      onPressed: () => editLanguageStudy(context, prefs),
+                      child: const Text("Settings"),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const VocabularyGroupsScreen(),
+                        ),
+                      ),
+                      child: const Text("Vocabulary"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            locale: locale,
+            scale: 1.6,
+            theme: appTheme(Brightness.light),
+          ),
+        ),
+      );
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(Scaffold).first),
+      );
+      Future<void> tap(Finder finder) async {
+        await tester.ensureVisible(finder);
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.runAsync(() async {
+          await tester.tap(finder);
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pump(const Duration(milliseconds: 500));
+        await flush(tester);
+      }
+
+      Future<void> settings() async {
+        await tap(find.text("Settings"));
+        await tap(find.text(l10n.languageVocabularyReviewSettings));
+      }
+
+      await settings();
+      expect(find.text(l10n.languageReviewRetention(90)), findsOneWidget);
+      await tap(find.byType(Switch));
+      final slider = find.byType(Slider);
+      await tester.ensureVisible(slider);
+      await tester.pumpAndSettle();
+      await tester.tapAt(
+        tester.getRect(slider).centerRight - const Offset(12, 0),
+      );
+      await flush(tester);
+      expect(find.text(l10n.languageReviewRetention(97)), findsOneWidget);
+      await tap(find.text(l10n.languageReviewAdvanced));
+      final maximum = find.byKey(const Key("vocabulary-review-maximum"));
+      final typeText = enterText == null
+          ? tester.enterText
+          : (Finder field, String text) => enterText(tester, field, text);
+      if (capture != null) {
+        await capture(tester, "fsrs-settings-${width.toInt()}");
+      }
+      final save = find.byKey(const Key("save-vocabulary-review-settings"));
+      await tester.ensureVisible(maximum);
+      await typeText(maximum, "36501");
+      await tap(save);
+      expect(find.text(l10n.languageReviewMaximumInvalid), findsOneWidget);
+      expect(prefs.vocabularyReview.enabled, isFalse);
+      await tester.ensureVisible(maximum);
+      await typeText(maximum, "1");
+      expect(tester.widget<TextField>(maximum).controller!.text, "1");
+      await tap(save);
+      await tester.runAsync(() => prefs.whenIdle);
+      await flush(tester);
+      expect(prefs.vocabularyReview.maximumInterval, 1);
+      expect(prefs.vocabularyReview.retentionPercent, 97);
+      expect(prefs.vocabularyReview.enabled, isTrue);
+      await tap(find.widgetWithText(TextButton, l10n.cancel));
+
+      await tap(find.text("Vocabulary"));
+      await tap(find.text(l10n.languagePracticeMode));
+      await tap(find.text(l10n.languagePracticeAllWords));
+      final groupBatch = find.byType(VocabularyBatch);
+      expect(tester.widget<VocabularyBatch>(groupBatch).allGroups, isTrue);
+      final seen = <String>{};
+      for (var round = 0; round < 3; round++) {
+        final words = ["shared", "alpha", "beta"];
+        final visible = words.singleWhere(
+          (word) => find.text(word).evaluate().isNotEmpty,
+        );
+        expect(seen.add(visible), isTrue);
+        expect(find.text(l10n.languageNewVocabularyCard), findsOneWidget);
+        await tap(find.text(l10n.languageReveal));
+        if (round == 0 && capture != null) {
+          await capture(tester, "fsrs-${width.toInt()}");
+        }
+        await tap(find.text(l10n.languageRemembered));
+        if (round < 2) await tap(find.text(l10n.languageNextBatch));
+      }
+      expect(find.text(l10n.languageNextBatch), findsNothing);
+      final schedules = await tester.runAsync(
+        () => controller.db.select(controller.db.learningReviewSchedules).get(),
+      );
+      expect(schedules, hasLength(3));
+      expect(
+        schedules!.every(
+          (row) =>
+              row.intervalDays == 1 &&
+              row.repetitions == 1 &&
+              row.fsrsVersion != null,
+        ),
+        isTrue,
+      );
+      await tap(find.byTooltip(l10n.languageFreePractice));
+      await tap(find.text(l10n.languageReveal));
+      await tap(find.text(l10n.languageRemembered));
+      final afterPractice = await tester.runAsync(
+        () => controller.db.select(controller.db.learningReviewSchedules).get(),
+      );
+      expect(afterPractice, schedules);
+      for (var back = 0; back < 3; back++) {
+        await tap(find.byType(BackButton));
+      }
+      await settings();
+      expect(find.text(l10n.languageReviewRetention(97)), findsOneWidget);
+      await tap(find.text(l10n.languageReviewReset));
+      await tap(save);
+      await tester.runAsync(() => prefs.whenIdle);
+      await flush(tester);
+      expect(prefs.vocabularyReview.retentionPercent, 90);
+      expect(prefs.vocabularyReview.maximumInterval, 180);
+      expect(prefs.vocabularyReview.enabled, isTrue);
+      expect(
+        await tester.runAsync(
+          () =>
+              controller.db.select(controller.db.learningReviewSchedules).get(),
+        ),
+        schedules,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
   }
 
   testWidgets(

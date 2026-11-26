@@ -41,7 +41,7 @@ void main() {
       Future<LearningReviewSchedule> schedule() =>
           db.select(db.learningReviewSchedules).getSingle();
 
-      await recall("forgot", RecallRating.forgot, start);
+      await recall("forgot", RecallRating.again, start);
       final due = start.add(const Duration(days: 1));
       expect((await schedule()).dueAt, due);
       await recall(
@@ -56,10 +56,10 @@ void main() {
         RecallRating.easy,
         start.add(const Duration(minutes: 20)),
       );
-      expect((await schedule()).repetitions, 2);
+      expect((await schedule()).repetitions, 1);
       await recall(
         "delayed",
-        RecallRating.remembered,
+        RecallRating.good,
         start.add(const Duration(days: 2)),
       );
       expect((await schedule()).intervalDays, 3);
@@ -77,14 +77,11 @@ void main() {
         "Exercise",
         const VocabularyEntry(form: "run", meaning: "move quickly on foot"),
       );
-      final first = (await store.cards(
-        language: "en",
-        dueBefore: start,
-      )).single;
+      final first = (await store.cards(language: "en")).single;
       await store.recordRecall(
         attemptId: "recall-1",
         senseId: first.sense.id,
-        rating: RecallRating.remembered,
+        rating: RecallRating.good,
         groupPrompt: true,
         now: start,
       );
@@ -112,14 +109,19 @@ void main() {
         language: "en",
         groupId: morning.id,
       )).single;
+      final dueAt = start.add(const Duration(days: 3));
       final ready = (await store.cards(
         language: "en",
-        dueBefore: start,
+        dueBefore: dueAt,
       )).single;
       expect(shared.sense.id, first.sense.id);
       expect(ready.item.id, first.item.id);
-      expect(ready.sense.meaning, "manage");
-      expect(await store.dueCount("en").first, 1);
+      expect(ready.sense.meaning, first.sense.meaning);
+      expect(await store.dueCount("en", now: dueAt).first, 1);
+      expect(
+        (await store.cards(language: "en")).map((c) => c.sense.meaning),
+        contains("manage"),
+      );
       expect(await store.cards(language: "fr"), isEmpty);
     },
   );
@@ -159,11 +161,11 @@ void main() {
         usedHelp: false,
         groupPrompt: false,
       );
-      expect(await store.cards(language: "en", dueBefore: start), hasLength(2));
+      expect(await store.cards(language: "en", dueBefore: start), isEmpty);
       await store.recordRecall(
         attemptId: "recall-1",
         senseId: card.sense.id,
-        rating: RecallRating.fuzzy,
+        rating: RecallRating.hard,
         groupPrompt: true,
         now: start,
       );
@@ -175,7 +177,7 @@ void main() {
       expect(evidence["context-1"]!.rating, isNull);
       expect(evidence["context-2"]!.correct, isFalse);
       expect(evidence["recall-1"]!.correct, isNull);
-      expect(evidence["recall-1"]!.rating, RecallRating.fuzzy.name);
+      expect(evidence["recall-1"]!.rating, RecallRating.hard.name);
       expect(evidence["recall-1"]!.groupPrompt, isTrue);
     },
   );

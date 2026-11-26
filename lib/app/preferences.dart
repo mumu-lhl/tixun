@@ -5,6 +5,7 @@ import "../features/a2ui/a2ui_tools.dart";
 import "../features/language_learning/language_subject.dart";
 import "../features/language_learning/language_store.dart"
     show languageBatchSize;
+import "../features/language_learning/vocabulary_review_settings.dart";
 
 import "dart:convert";
 import "dart:ui" show PlatformDispatcher;
@@ -78,6 +79,8 @@ class AppPreferences extends DatabaseNotifier {
   ];
   int _vocabularyPracticeSize = languageBatchSize;
   int get vocabularyPracticeSize => _vocabularyPracticeSize;
+  VocabularyReviewSettings _vocabularyReview = defaultVocabularyReviewSettings;
+  VocabularyReviewSettings get vocabularyReview => _vocabularyReview;
   LanguageStudySettings _languageStudy = (
     level: EnglishStudyLevel.mixed,
     feedbackLanguage: LanguageFeedbackLanguage.app,
@@ -114,6 +117,7 @@ class AppPreferences extends DatabaseNotifier {
     _vocabularyPracticeSize = vocabularyPracticeSizes.contains(practiceSize)
         ? practiceSize!
         : languageBatchSize;
+    _vocabularyReview = await loadVocabularyReviewSettings(db);
     _languageStudy = (
       level: EnglishStudyLevel.values.firstWhere(
         (value) => value.name == studyLevel,
@@ -276,6 +280,13 @@ class AppPreferences extends DatabaseNotifier {
     _vocabularyPracticeSize = count;
     changed();
   });
+
+  Future<void> setVocabularyReview(VocabularyReviewSettings settings) =>
+      runOperation(() async {
+        await saveVocabularyReviewSettings(db, settings);
+        _vocabularyReview = settings;
+        changed();
+      });
 
   Future<void> setLanguage(String value) => runOperation(() async {
     if (!["zh", "en", "system"].contains(value)) {

@@ -33,7 +33,8 @@ void main() {
       groupType: VocabularyGroupType.topic,
       entries: const [VocabularyEntry(form: "ticket", meaning: "车票")],
     );
-    expect(await store.dueCount("en").first, 1);
+    expect(await store.dueCount("en").first, 0);
+    expect(await store.cards(language: "en"), hasLength(1));
   });
 
   test(

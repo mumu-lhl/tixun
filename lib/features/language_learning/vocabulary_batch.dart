@@ -28,6 +28,8 @@ class VocabularyBatch extends StatefulWidget {
     required this.mode,
     this.group,
     this.dueBefore,
+    this.allGroups = false,
+    this.practiceOnly = false,
     this.batchSize = languageBatchSize,
     this.ai,
     this.config,
@@ -40,6 +42,7 @@ class VocabularyBatch extends StatefulWidget {
   final VocabularyMode mode;
   final LearningVocabularyGroup? group;
   final DateTime? dueBefore;
+  final bool allGroups, practiceOnly;
   final int batchSize;
 
   @override
@@ -60,6 +63,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   bool _retrying = false;
   bool _continueAfterRetry = false;
   final List<LanguageCard> _retryCards = [];
+  final Set<String> _seen = {};
+  late DateTime _selectedAt;
   CancelToken? _regenerating;
 
   @override
@@ -68,13 +73,27 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     super.dispose();
   }
 
-  Future<List<LanguageCard>> _load() => widget.store.cards(
-    language: widget.language,
-    groupId: widget.group?.id,
-    dueBefore: widget.dueBefore,
-    offset: _offset,
-    limit: widget.batchSize + (widget.dueBefore == null ? 1 : 0),
-  );
+  Future<List<LanguageCard>> _load() {
+    if (widget.mode == VocabularyMode.recall) {
+      _selectedAt = widget.dueBefore ?? DateTime.now();
+      return widget.store.recallCards(
+        language: widget.language,
+        groupId: widget.group?.id,
+        allGroups: widget.allGroups,
+        dueOnly: widget.dueBefore != null,
+        practiceOnly: widget.practiceOnly,
+        now: _selectedAt,
+        seen: _seen,
+        limit: widget.batchSize + 1,
+      );
+    }
+    return widget.store.cards(
+      language: widget.language,
+      groupId: widget.group?.id,
+      offset: _offset,
+      limit: widget.batchSize + 1,
+    );
+  }
 
   void _resetCard() {
     _recognized = null;
@@ -87,10 +106,15 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     _resetCard();
   });
 
+  void _advanceRecall(LanguageCard card) {
+    _seen.add(card.sense.id);
+    _advance();
+  }
+
   void _nextBatch() => setState(() {
     _retrying = false;
     _retryCards.clear();
-    _offset += widget.batchSize;
+    if (widget.mode != VocabularyMode.recall) _offset += widget.batchSize;
     _current = 0;
     _studyIndex = 0;
     _resetCard();
@@ -139,11 +163,38 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final title = widget.group?.title ?? l10n.languageReview;
+    final title = widget.practiceOnly
+        ? l10n.languageFreePractice
+        : widget.group?.title ??
+              (widget.allGroups
+                  ? l10n.languagePracticeAllWords
+                  : l10n.languageReview);
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
         actions: [
+          if (widget.mode == VocabularyMode.recall &&
+              widget.dueBefore == null &&
+              !widget.practiceOnly)
+            IconButton(
+              tooltip: l10n.languageFreePractice,
+              icon: const Icon(Icons.style_outlined),
+              onPressed: _saving
+                  ? null
+                  : () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => VocabularyBatch(
+                          store: widget.store,
+                          language: widget.language,
+                          group: widget.group,
+                          allGroups: widget.allGroups,
+                          batchSize: widget.batchSize,
+                          mode: VocabularyMode.recall,
+                          practiceOnly: true,
+                        ),
+                      ),
+                    ),
+            ),
           if (widget.ai != null &&
               widget.ai!.provider is! MockChatProvider &&
               widget.mode == VocabularyMode.study)
@@ -201,8 +252,11 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _offset == 0 && cards.isEmpty
-                      ? l10n.languageNoCards
+                  _offset == 0 && _seen.isEmpty && cards.isEmpty
+                      ? widget.mode == VocabularyMode.recall &&
+                                !widget.practiceOnly
+                            ? l10n.languageNoScheduledCards
+                            : l10n.languageNoCards
                       : l10n.languageBatchComplete,
                 ),
                 if (_retryCards.isNotEmpty) ...[
@@ -236,10 +290,24 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text("${_current + 1} / ${cards.length}"),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("${_current + 1} / ${cards.length}"),
+                            Text(
+                              _retrying
+                                  ? l10n.languageRecallRetry
+                                  : widget.practiceOnly
+                                  ? l10n.languageFreePractice
+                                  : card.isNew
+                                  ? l10n.languageNewVocabularyCard
+                                  : l10n.languageDueVocabularyCard,
+                            ),
+                          ],
+                        ),
                       ),
                       TextButton(
-                        onPressed: _saving ? null : _advance,
+                        onPressed: _saving ? null : () => _advanceRecall(card),
                         child: Text(l10n.languageSkipCard),
                       ),
                     ],
@@ -460,7 +528,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
           store: widget.store,
           revealed: _revealed,
         ),
-        if (_revealed)
+        if (_revealed) ...[
+          Text(l10n.languageRecallRatingHelp, textAlign: TextAlign.center),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
@@ -486,8 +555,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                   ),
               ],
             ),
-          )
-        else
+          ),
+        ] else
           FilledButton(
             onPressed: () => setState(() => _revealed = true),
             child: Text(l10n.languageReveal),
@@ -506,22 +575,27 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                   senseId: card.sense.id,
                   rating: rating,
                   groupPrompt: widget.group != null,
+                  selectedAt: _selectedAt,
+                  kind: _retrying
+                      ? RecallKind.retry
+                      : widget.practiceOnly
+                      ? RecallKind.practice
+                      : RecallKind.scheduled,
                 );
                 if (!mounted) return;
-                if (rating == RecallRating.forgot ||
-                    rating == RecallRating.fuzzy) {
+                if (rating == RecallRating.again) {
                   _retryCards.add(card);
                 }
-                _advance();
+                _advanceRecall(card);
               }),
         child: Text(_rating(context.l10n, rating), textAlign: TextAlign.center),
       );
 
   String _rating(AppLocalizations l10n, RecallRating rating) =>
       switch (rating) {
-        RecallRating.forgot => l10n.languageForgot,
-        RecallRating.fuzzy => l10n.languageFuzzy,
-        RecallRating.remembered => l10n.languageRemembered,
+        RecallRating.again => l10n.languageForgot,
+        RecallRating.hard => l10n.languageFuzzy,
+        RecallRating.good => l10n.languageRemembered,
         RecallRating.easy => l10n.languageEasy,
       };
 }

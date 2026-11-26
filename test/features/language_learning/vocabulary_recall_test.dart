@@ -61,8 +61,10 @@ void main() {
       }
 
       Future<void> tap(String label) async {
-        await tester.ensureVisible(find.text(label));
-        await tester.tap(find.text(label));
+        final target = find.text(label);
+        await Scrollable.ensureVisible(tester.element(target), alignment: .5);
+        await tester.pumpAndSettle();
+        await tester.tap(target);
         await settle();
       }
 

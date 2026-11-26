@@ -222,7 +222,7 @@ void main() {
     await store.recordRecall(
       attemptId: "before",
       senseId: card.sense.id,
-      rating: RecallRating.remembered,
+      rating: RecallRating.good,
       groupPrompt: false,
     );
     final firstInterval =
@@ -251,7 +251,7 @@ void main() {
     await store.recordRecall(
       attemptId: "after",
       senseId: card.sense.id,
-      rating: RecallRating.remembered,
+      rating: RecallRating.good,
       groupPrompt: false,
     );
     final evidence = await db.select(db.learningEvidence).get();

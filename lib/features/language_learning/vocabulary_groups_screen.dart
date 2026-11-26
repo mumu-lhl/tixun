@@ -164,6 +164,16 @@ class _VocabularyGroupsState extends ConsumerState<VocabularyGroupsScreen> {
               maxWidth: 1200,
               children: [
                 if (groups.isEmpty) Text(l10n.languageNoGroups),
+                if (_mode == VocabularyMode.recall && groups.isNotEmpty)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: FilledButton.icon(
+                      onPressed: () =>
+                          _openVocabulary(context, practiceSize: practiceSize),
+                      icon: const Icon(Icons.layers_outlined),
+                      label: Text(l10n.languagePracticeAllWords),
+                    ),
+                  ),
                 for (var i = 0; i < groups.length; i += columns)
                   IntrinsicHeight(
                     child: Row(
@@ -192,6 +202,37 @@ class _VocabularyGroupsState extends ConsumerState<VocabularyGroupsScreen> {
     );
   }
 
+  Future<void> _openVocabulary(
+    BuildContext context, {
+    LearningVocabularyGroup? group,
+    required int practiceSize,
+  }) {
+    final controller = ref.read(appControllerProvider);
+    final mode = _mode;
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => VocabularyBatch(
+          store: _store,
+          language: "en",
+          mode: mode,
+          group: group,
+          allGroups: group == null,
+          batchSize: mode == VocabularyMode.recall
+              ? practiceSize
+              : languageBatchSize,
+          ai: mode == VocabularyMode.study
+              ? VocabularyAi(
+                  languageGenerationProvider(context, controller),
+                  usageStore: AiUsageStore(controller.db),
+                  prompts: controller.prompts,
+                )
+              : null,
+          config: controller.config,
+        ),
+      ),
+    );
+  }
+
   Widget _groupCard(
     BuildContext context,
     LearningVocabularyGroup group,
@@ -202,28 +243,8 @@ class _VocabularyGroupsState extends ConsumerState<VocabularyGroupsScreen> {
       key: ValueKey("vocabulary-group-${group.id}"),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => VocabularyBatch(
-              store: _store,
-              language: "en",
-              mode: _mode,
-              group: group,
-              batchSize: _mode == VocabularyMode.recall
-                  ? practiceSize
-                  : languageBatchSize,
-              ai: VocabularyAi(
-                languageGenerationProvider(
-                  context,
-                  ref.read(appControllerProvider),
-                ),
-                usageStore: AiUsageStore(ref.read(appControllerProvider).db),
-                prompts: ref.read(appControllerProvider).prompts,
-              ),
-              config: ref.read(appControllerProvider).config,
-            ),
-          ),
-        ),
+        onTap: () =>
+            _openVocabulary(context, group: group, practiceSize: practiceSize),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 8, 16),
           child: Column(

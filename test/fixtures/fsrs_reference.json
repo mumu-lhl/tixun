@@ -1,0 +1,302 @@
+{
+  "reference": "Py-FSRS 6.3.3",
+  "generate": "python scripts/generate_fsrs_reference.py",
+  "scenarios": [
+    {
+      "name": "first again",
+      "retention": 90,
+      "cap": 180,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "again",
+          "stability": 0.212,
+          "difficulty": 6.4133,
+          "days": 1,
+          "due": "2026-01-02T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "first hard",
+      "retention": 90,
+      "cap": 180,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "hard",
+          "stability": 1.2931,
+          "difficulty": 5.112170705601056,
+          "days": 1,
+          "due": "2026-01-02T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "first good",
+      "retention": 90,
+      "cap": 180,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "good",
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "days": 2,
+          "due": "2026-01-03T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "first easy",
+      "retention": 90,
+      "cap": 180,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "easy",
+          "stability": 8.2956,
+          "difficulty": 1.0,
+          "days": 8,
+          "due": "2026-01-09T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "same day hard",
+      "retention": 90,
+      "cap": 180,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "good",
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "days": 2,
+          "due": "2026-01-03T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-01T12:00:00+00:00",
+          "rating": "hard",
+          "stability": 2.3065,
+          "difficulty": 4.752858488532557,
+          "days": 2,
+          "due": "2026-01-03T12:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "early hard",
+      "retention": 90,
+      "cap": 180,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "good",
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "days": 2,
+          "due": "2026-01-03T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-02T00:00:00+00:00",
+          "rating": "hard",
+          "stability": 5.318792767488077,
+          "difficulty": 4.752858488532557,
+          "days": 5,
+          "due": "2026-01-07T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "on time then overdue",
+      "retention": 90,
+      "cap": 180,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "good",
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "days": 2,
+          "due": "2026-01-03T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-03T00:00:00+00:00",
+          "rating": "good",
+          "stability": 10.964332335820698,
+          "difficulty": 2.111214235785395,
+          "days": 11,
+          "due": "2026-01-14T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-31T00:00:00+00:00",
+          "rating": "hard",
+          "stability": 49.37613414691689,
+          "difficulty": 4.748284761594571,
+          "days": 49,
+          "due": "2026-03-21T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "lapse then delayed retry",
+      "retention": 90,
+      "cap": 180,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "easy",
+          "stability": 8.2956,
+          "difficulty": 1.0,
+          "days": 8,
+          "due": "2026-01-09T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-11T00:00:00+00:00",
+          "rating": "again",
+          "stability": 1.4253096209625484,
+          "difficulty": 7.0269895692968385,
+          "days": 1,
+          "due": "2026-01-12T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-12T00:00:00+00:00",
+          "rating": "good",
+          "stability": 3.6353286551299067,
+          "difficulty": 7.0151909490243805,
+          "days": 4,
+          "due": "2026-01-16T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-21T20:00:00+00:00",
+          "rating": "easy",
+          "stability": 24.640219046043214,
+          "difficulty": 6.003035225586943,
+          "days": 25,
+          "due": "2026-02-15T20:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "cap 180",
+      "retention": 90,
+      "cap": 180,
+      "initial": {
+        "stability": 275,
+        "difficulty": 4,
+        "last_review": "2026-01-01T00:00:00+00:00"
+      },
+      "ratings": [
+        {
+          "at": "2026-01-02T00:00:00+00:00",
+          "rating": "easy",
+          "stability": 279.01685068864725,
+          "difficulty": 1.9803079692968384,
+          "days": 180,
+          "due": "2026-07-01T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "one day cap",
+      "retention": 90,
+      "cap": 1,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "easy",
+          "stability": 8.2956,
+          "difficulty": 1.0,
+          "days": 1,
+          "due": "2026-01-02T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-02T00:00:00+00:00",
+          "rating": "good",
+          "stability": 13.485062611471017,
+          "difficulty": 1.0,
+          "days": 1,
+          "due": "2026-01-03T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "70% retention",
+      "retention": 70,
+      "cap": 36500,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "good",
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "days": 21,
+          "due": "2026-01-22T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-07T00:00:00+00:00",
+          "rating": "good",
+          "stability": 19.89210120412423,
+          "difficulty": 2.111214235785395,
+          "days": 185,
+          "due": "2026-07-11T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "97% retention",
+      "retention": 97,
+      "cap": 36500,
+      "initial": null,
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "good",
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "days": 1,
+          "due": "2026-01-02T00:00:00+00:00"
+        },
+        {
+          "at": "2026-01-07T00:00:00+00:00",
+          "rating": "good",
+          "stability": 19.89210120412423,
+          "difficulty": 2.111214235785395,
+          "days": 4,
+          "due": "2026-01-11T00:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "name": "half to even",
+      "retention": 90,
+      "cap": 180,
+      "initial": {
+        "stability": 2.5,
+        "difficulty": 4,
+        "last_review": "2026-01-01T00:00:00+00:00"
+      },
+      "ratings": [
+        {
+          "at": "2026-01-01T00:00:00+00:00",
+          "rating": "hard",
+          "stability": 2.5,
+          "difficulty": 6.002148769296838,
+          "days": 2,
+          "due": "2026-01-03T00:00:00+00:00"
+        }
+      ]
+    }
+  ]
+}

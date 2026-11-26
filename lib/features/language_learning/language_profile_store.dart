@@ -39,24 +39,12 @@ extension LanguageProfileStore on LanguageLearningStore {
   Future<LanguageProfile> readLanguageProfile(
     String language, {
     ExamProfile exam = ExamProfile.zhejiang2026,
+    DateTime? now,
   }) => db.transaction(() async {
     return LanguageProfile(
       language: language,
       exam: exam,
-      due:
-          (await db
-                  .customSelect(
-                    """
-        SELECT COUNT(*) AS due
-        FROM learning_review_schedules r
-        JOIN learning_lexical_senses s ON s.id = r.sense_id
-        JOIN learning_lexical_items i ON i.id = s.item_id
-        WHERE i.language = ? AND r.due_at <= unixepoch()
-      """,
-                    variables: [Variable(language)],
-                  )
-                  .getSingle())
-              .read<int>("due"),
+      due: await countDue(language, now: now),
       hasApplications: await _available(db, language, forms: false),
       hasForms: await _available(db, language, forms: true),
       evidence: [

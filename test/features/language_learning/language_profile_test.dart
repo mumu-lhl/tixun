@@ -61,7 +61,8 @@ void main() {
       );
     }
     expect(await db.select(db.learningLexicalForms).get(), hasLength(6));
-    expect(await store.dueCount("en").first, 4);
+    expect(await store.cards(language: "en"), hasLength(4));
+    expect(await store.dueCount("en").first, 0);
     final exercises = await store.formPractice("en");
     final saw = exercises.singleWhere((e) => e.form.surface == "saw");
     expect(saw.item.form, "see");
