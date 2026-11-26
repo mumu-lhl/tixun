@@ -11,7 +11,6 @@ import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
 import "language_course.dart";
-import "language_data.dart";
 import "language_profile_screen.dart";
 import "language_recommendation.dart";
 import "language_skills.dart";
@@ -53,8 +52,6 @@ class _LanguageLearningScreenState
     return value == LanguageFeedbackLanguage.app ? null : value.name;
   }
 
-  Stream<List<LearningEvidenceData>> _loadEvidence() =>
-      _store.recentEvidence(_language);
   late Stream<int> _due = _store.dueCount(_language);
   late final Timer _dueRefresh;
 
@@ -395,34 +392,6 @@ class _LanguageLearningScreenState
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(l10n.languageEvidence, style: theme.titleLarge),
-                  LanguageDataBuilder<List<LearningEvidenceData>>(
-                    load: _loadEvidence,
-                    builder: (context, records) {
-                      if (records.isEmpty) return Text(l10n.languageNoEvidence);
-                      final recall = records
-                          .where((row) => row.rating != null)
-                          .length;
-                      final contexts = records.where(
-                        (row) => row.correct != null && !row.answerRevealed,
-                      );
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(l10n.languageRecallEvidence(recall)),
-                          Text(
-                            l10n.languageContextEvidence(
-                              contexts
-                                  .where((row) => row.correct == true)
-                                  .length,
-                              contexts.length,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
                   ),
                 ],
               ),
