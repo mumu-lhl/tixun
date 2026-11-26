@@ -149,6 +149,7 @@ class LearningSentenceBatches extends Table {
   BoolColumn get isMock => boolean()();
   TextColumn get cards => text()();
   DateTimeColumn get generatedAt => dateTime()();
+  TextColumn get kind => text().withDefault(const Constant("sentence"))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -162,7 +163,8 @@ class LearningSentenceAttempts extends Table {
   TextColumn get language => text()();
   TextColumn get sentence => text()();
   TextColumn get skill => text()();
-  TextColumn get rating => text()();
+  TextColumn get rating => text().nullable()();
+  TextColumn get targetSenseId => text().nullable()();
   TextColumn get answer => text().nullable()();
   BoolColumn get correct => boolean().nullable()();
   IntColumn get helpBeforeAnswer => integer().nullable()();

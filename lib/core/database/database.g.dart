@@ -26527,6 +26527,16 @@ class $LearningSentenceBatchesTable extends LearningSentenceBatches
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant("sentence"),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -26539,6 +26549,7 @@ class $LearningSentenceBatchesTable extends LearningSentenceBatches
     isMock,
     cards,
     generatedAt,
+    kind,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -26638,6 +26649,12 @@ class $LearningSentenceBatchesTable extends LearningSentenceBatches
     } else if (isInserting) {
       context.missing(_generatedAtMeta);
     }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
     return context;
   }
 
@@ -26687,6 +26704,10 @@ class $LearningSentenceBatchesTable extends LearningSentenceBatches
         DriftSqlType.dateTime,
         data['${effectivePrefix}generated_at'],
       )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
     );
   }
 
@@ -26708,6 +26729,7 @@ class LearningSentenceBatch extends DataClass
   final bool isMock;
   final String cards;
   final DateTime generatedAt;
+  final String kind;
   const LearningSentenceBatch({
     required this.id,
     required this.language,
@@ -26719,6 +26741,7 @@ class LearningSentenceBatch extends DataClass
     required this.isMock,
     required this.cards,
     required this.generatedAt,
+    required this.kind,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -26733,6 +26756,7 @@ class LearningSentenceBatch extends DataClass
     map['is_mock'] = Variable<bool>(isMock);
     map['cards'] = Variable<String>(cards);
     map['generated_at'] = Variable<DateTime>(generatedAt);
+    map['kind'] = Variable<String>(kind);
     return map;
   }
 
@@ -26748,6 +26772,7 @@ class LearningSentenceBatch extends DataClass
       isMock: Value(isMock),
       cards: Value(cards),
       generatedAt: Value(generatedAt),
+      kind: Value(kind),
     );
   }
 
@@ -26767,6 +26792,7 @@ class LearningSentenceBatch extends DataClass
       isMock: serializer.fromJson<bool>(json['isMock']),
       cards: serializer.fromJson<String>(json['cards']),
       generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
+      kind: serializer.fromJson<String>(json['kind']),
     );
   }
   @override
@@ -26783,6 +26809,7 @@ class LearningSentenceBatch extends DataClass
       'isMock': serializer.toJson<bool>(isMock),
       'cards': serializer.toJson<String>(cards),
       'generatedAt': serializer.toJson<DateTime>(generatedAt),
+      'kind': serializer.toJson<String>(kind),
     };
   }
 
@@ -26797,6 +26824,7 @@ class LearningSentenceBatch extends DataClass
     bool? isMock,
     String? cards,
     DateTime? generatedAt,
+    String? kind,
   }) => LearningSentenceBatch(
     id: id ?? this.id,
     language: language ?? this.language,
@@ -26808,6 +26836,7 @@ class LearningSentenceBatch extends DataClass
     isMock: isMock ?? this.isMock,
     cards: cards ?? this.cards,
     generatedAt: generatedAt ?? this.generatedAt,
+    kind: kind ?? this.kind,
   );
   LearningSentenceBatch copyWithCompanion(
     LearningSentenceBatchesCompanion data,
@@ -26829,6 +26858,7 @@ class LearningSentenceBatch extends DataClass
       generatedAt: data.generatedAt.present
           ? data.generatedAt.value
           : this.generatedAt,
+      kind: data.kind.present ? data.kind.value : this.kind,
     );
   }
 
@@ -26844,7 +26874,8 @@ class LearningSentenceBatch extends DataClass
           ..write('promptVersion: $promptVersion, ')
           ..write('isMock: $isMock, ')
           ..write('cards: $cards, ')
-          ..write('generatedAt: $generatedAt')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('kind: $kind')
           ..write(')'))
         .toString();
   }
@@ -26861,6 +26892,7 @@ class LearningSentenceBatch extends DataClass
     isMock,
     cards,
     generatedAt,
+    kind,
   );
   @override
   bool operator ==(Object other) =>
@@ -26875,7 +26907,8 @@ class LearningSentenceBatch extends DataClass
           other.promptVersion == this.promptVersion &&
           other.isMock == this.isMock &&
           other.cards == this.cards &&
-          other.generatedAt == this.generatedAt);
+          other.generatedAt == this.generatedAt &&
+          other.kind == this.kind);
 }
 
 class LearningSentenceBatchesCompanion
@@ -26890,6 +26923,7 @@ class LearningSentenceBatchesCompanion
   final Value<bool> isMock;
   final Value<String> cards;
   final Value<DateTime> generatedAt;
+  final Value<String> kind;
   final Value<int> rowid;
   const LearningSentenceBatchesCompanion({
     this.id = const Value.absent(),
@@ -26902,6 +26936,7 @@ class LearningSentenceBatchesCompanion
     this.isMock = const Value.absent(),
     this.cards = const Value.absent(),
     this.generatedAt = const Value.absent(),
+    this.kind = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LearningSentenceBatchesCompanion.insert({
@@ -26915,6 +26950,7 @@ class LearningSentenceBatchesCompanion
     required bool isMock,
     required String cards,
     required DateTime generatedAt,
+    this.kind = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        language = Value(language),
@@ -26937,6 +26973,7 @@ class LearningSentenceBatchesCompanion
     Expression<bool>? isMock,
     Expression<String>? cards,
     Expression<DateTime>? generatedAt,
+    Expression<String>? kind,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -26950,6 +26987,7 @@ class LearningSentenceBatchesCompanion
       if (isMock != null) 'is_mock': isMock,
       if (cards != null) 'cards': cards,
       if (generatedAt != null) 'generated_at': generatedAt,
+      if (kind != null) 'kind': kind,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -26965,6 +27003,7 @@ class LearningSentenceBatchesCompanion
     Value<bool>? isMock,
     Value<String>? cards,
     Value<DateTime>? generatedAt,
+    Value<String>? kind,
     Value<int>? rowid,
   }) {
     return LearningSentenceBatchesCompanion(
@@ -26978,6 +27017,7 @@ class LearningSentenceBatchesCompanion
       isMock: isMock ?? this.isMock,
       cards: cards ?? this.cards,
       generatedAt: generatedAt ?? this.generatedAt,
+      kind: kind ?? this.kind,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -27015,6 +27055,9 @@ class LearningSentenceBatchesCompanion
     if (generatedAt.present) {
       map['generated_at'] = Variable<DateTime>(generatedAt.value);
     }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -27034,6 +27077,7 @@ class LearningSentenceBatchesCompanion
           ..write('isMock: $isMock, ')
           ..write('cards: $cards, ')
           ..write('generatedAt: $generatedAt, ')
+          ..write('kind: $kind, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -27124,9 +27168,20 @@ class $LearningSentenceAttemptsTable extends LearningSentenceAttempts
   late final GeneratedColumn<String> rating = GeneratedColumn<String>(
     'rating',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetSenseIdMeta = const VerificationMeta(
+    'targetSenseId',
+  );
+  @override
+  late final GeneratedColumn<String> targetSenseId = GeneratedColumn<String>(
+    'target_sense_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _answerMeta = const VerificationMeta('answer');
   @override
@@ -27194,6 +27249,7 @@ class $LearningSentenceAttemptsTable extends LearningSentenceAttempts
     sentence,
     skill,
     rating,
+    targetSenseId,
     answer,
     correct,
     helpBeforeAnswer,
@@ -27270,8 +27326,15 @@ class $LearningSentenceAttemptsTable extends LearningSentenceAttempts
         _ratingMeta,
         rating.isAcceptableOrUnknown(data['rating']!, _ratingMeta),
       );
-    } else if (isInserting) {
-      context.missing(_ratingMeta);
+    }
+    if (data.containsKey('target_sense_id')) {
+      context.handle(
+        _targetSenseIdMeta,
+        targetSenseId.isAcceptableOrUnknown(
+          data['target_sense_id']!,
+          _targetSenseIdMeta,
+        ),
+      );
     }
     if (data.containsKey('answer')) {
       context.handle(
@@ -27353,7 +27416,11 @@ class $LearningSentenceAttemptsTable extends LearningSentenceAttempts
       rating: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}rating'],
-      )!,
+      ),
+      targetSenseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_sense_id'],
+      ),
       answer: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}answer'],
@@ -27392,7 +27459,8 @@ class LearningSentenceAttempt extends DataClass
   final String language;
   final String sentence;
   final String skill;
-  final String rating;
+  final String? rating;
+  final String? targetSenseId;
   final String? answer;
   final bool? correct;
   final int? helpBeforeAnswer;
@@ -27406,7 +27474,8 @@ class LearningSentenceAttempt extends DataClass
     required this.language,
     required this.sentence,
     required this.skill,
-    required this.rating,
+    this.rating,
+    this.targetSenseId,
     this.answer,
     this.correct,
     this.helpBeforeAnswer,
@@ -27423,7 +27492,12 @@ class LearningSentenceAttempt extends DataClass
     map['language'] = Variable<String>(language);
     map['sentence'] = Variable<String>(sentence);
     map['skill'] = Variable<String>(skill);
-    map['rating'] = Variable<String>(rating);
+    if (!nullToAbsent || rating != null) {
+      map['rating'] = Variable<String>(rating);
+    }
+    if (!nullToAbsent || targetSenseId != null) {
+      map['target_sense_id'] = Variable<String>(targetSenseId);
+    }
     if (!nullToAbsent || answer != null) {
       map['answer'] = Variable<String>(answer);
     }
@@ -27447,7 +27521,12 @@ class LearningSentenceAttempt extends DataClass
       language: Value(language),
       sentence: Value(sentence),
       skill: Value(skill),
-      rating: Value(rating),
+      rating: rating == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rating),
+      targetSenseId: targetSenseId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetSenseId),
       answer: answer == null && nullToAbsent
           ? const Value.absent()
           : Value(answer),
@@ -27475,7 +27554,8 @@ class LearningSentenceAttempt extends DataClass
       language: serializer.fromJson<String>(json['language']),
       sentence: serializer.fromJson<String>(json['sentence']),
       skill: serializer.fromJson<String>(json['skill']),
-      rating: serializer.fromJson<String>(json['rating']),
+      rating: serializer.fromJson<String?>(json['rating']),
+      targetSenseId: serializer.fromJson<String?>(json['targetSenseId']),
       answer: serializer.fromJson<String?>(json['answer']),
       correct: serializer.fromJson<bool?>(json['correct']),
       helpBeforeAnswer: serializer.fromJson<int?>(json['helpBeforeAnswer']),
@@ -27494,7 +27574,8 @@ class LearningSentenceAttempt extends DataClass
       'language': serializer.toJson<String>(language),
       'sentence': serializer.toJson<String>(sentence),
       'skill': serializer.toJson<String>(skill),
-      'rating': serializer.toJson<String>(rating),
+      'rating': serializer.toJson<String?>(rating),
+      'targetSenseId': serializer.toJson<String?>(targetSenseId),
       'answer': serializer.toJson<String?>(answer),
       'correct': serializer.toJson<bool?>(correct),
       'helpBeforeAnswer': serializer.toJson<int?>(helpBeforeAnswer),
@@ -27511,7 +27592,8 @@ class LearningSentenceAttempt extends DataClass
     String? language,
     String? sentence,
     String? skill,
-    String? rating,
+    Value<String?> rating = const Value.absent(),
+    Value<String?> targetSenseId = const Value.absent(),
     Value<String?> answer = const Value.absent(),
     Value<bool?> correct = const Value.absent(),
     Value<int?> helpBeforeAnswer = const Value.absent(),
@@ -27525,7 +27607,10 @@ class LearningSentenceAttempt extends DataClass
     language: language ?? this.language,
     sentence: sentence ?? this.sentence,
     skill: skill ?? this.skill,
-    rating: rating ?? this.rating,
+    rating: rating.present ? rating.value : this.rating,
+    targetSenseId: targetSenseId.present
+        ? targetSenseId.value
+        : this.targetSenseId,
     answer: answer.present ? answer.value : this.answer,
     correct: correct.present ? correct.value : this.correct,
     helpBeforeAnswer: helpBeforeAnswer.present
@@ -27548,6 +27633,9 @@ class LearningSentenceAttempt extends DataClass
       sentence: data.sentence.present ? data.sentence.value : this.sentence,
       skill: data.skill.present ? data.skill.value : this.skill,
       rating: data.rating.present ? data.rating.value : this.rating,
+      targetSenseId: data.targetSenseId.present
+          ? data.targetSenseId.value
+          : this.targetSenseId,
       answer: data.answer.present ? data.answer.value : this.answer,
       correct: data.correct.present ? data.correct.value : this.correct,
       helpBeforeAnswer: data.helpBeforeAnswer.present
@@ -27571,6 +27659,7 @@ class LearningSentenceAttempt extends DataClass
           ..write('sentence: $sentence, ')
           ..write('skill: $skill, ')
           ..write('rating: $rating, ')
+          ..write('targetSenseId: $targetSenseId, ')
           ..write('answer: $answer, ')
           ..write('correct: $correct, ')
           ..write('helpBeforeAnswer: $helpBeforeAnswer, ')
@@ -27590,6 +27679,7 @@ class LearningSentenceAttempt extends DataClass
     sentence,
     skill,
     rating,
+    targetSenseId,
     answer,
     correct,
     helpBeforeAnswer,
@@ -27608,6 +27698,7 @@ class LearningSentenceAttempt extends DataClass
           other.sentence == this.sentence &&
           other.skill == this.skill &&
           other.rating == this.rating &&
+          other.targetSenseId == this.targetSenseId &&
           other.answer == this.answer &&
           other.correct == this.correct &&
           other.helpBeforeAnswer == this.helpBeforeAnswer &&
@@ -27624,7 +27715,8 @@ class LearningSentenceAttemptsCompanion
   final Value<String> language;
   final Value<String> sentence;
   final Value<String> skill;
-  final Value<String> rating;
+  final Value<String?> rating;
+  final Value<String?> targetSenseId;
   final Value<String?> answer;
   final Value<bool?> correct;
   final Value<int?> helpBeforeAnswer;
@@ -27640,6 +27732,7 @@ class LearningSentenceAttemptsCompanion
     this.sentence = const Value.absent(),
     this.skill = const Value.absent(),
     this.rating = const Value.absent(),
+    this.targetSenseId = const Value.absent(),
     this.answer = const Value.absent(),
     this.correct = const Value.absent(),
     this.helpBeforeAnswer = const Value.absent(),
@@ -27655,7 +27748,8 @@ class LearningSentenceAttemptsCompanion
     required String language,
     required String sentence,
     required String skill,
-    required String rating,
+    this.rating = const Value.absent(),
+    this.targetSenseId = const Value.absent(),
     this.answer = const Value.absent(),
     this.correct = const Value.absent(),
     this.helpBeforeAnswer = const Value.absent(),
@@ -27669,7 +27763,6 @@ class LearningSentenceAttemptsCompanion
        language = Value(language),
        sentence = Value(sentence),
        skill = Value(skill),
-       rating = Value(rating),
        helpUsed = Value(helpUsed),
        occurredAt = Value(occurredAt);
   static Insertable<LearningSentenceAttempt> custom({
@@ -27681,6 +27774,7 @@ class LearningSentenceAttemptsCompanion
     Expression<String>? sentence,
     Expression<String>? skill,
     Expression<String>? rating,
+    Expression<String>? targetSenseId,
     Expression<String>? answer,
     Expression<bool>? correct,
     Expression<int>? helpBeforeAnswer,
@@ -27697,6 +27791,7 @@ class LearningSentenceAttemptsCompanion
       if (sentence != null) 'sentence': sentence,
       if (skill != null) 'skill': skill,
       if (rating != null) 'rating': rating,
+      if (targetSenseId != null) 'target_sense_id': targetSenseId,
       if (answer != null) 'answer': answer,
       if (correct != null) 'correct': correct,
       if (helpBeforeAnswer != null) 'help_before_answer': helpBeforeAnswer,
@@ -27714,7 +27809,8 @@ class LearningSentenceAttemptsCompanion
     Value<String>? language,
     Value<String>? sentence,
     Value<String>? skill,
-    Value<String>? rating,
+    Value<String?>? rating,
+    Value<String?>? targetSenseId,
     Value<String?>? answer,
     Value<bool?>? correct,
     Value<int?>? helpBeforeAnswer,
@@ -27731,6 +27827,7 @@ class LearningSentenceAttemptsCompanion
       sentence: sentence ?? this.sentence,
       skill: skill ?? this.skill,
       rating: rating ?? this.rating,
+      targetSenseId: targetSenseId ?? this.targetSenseId,
       answer: answer ?? this.answer,
       correct: correct ?? this.correct,
       helpBeforeAnswer: helpBeforeAnswer ?? this.helpBeforeAnswer,
@@ -27767,6 +27864,9 @@ class LearningSentenceAttemptsCompanion
     if (rating.present) {
       map['rating'] = Variable<String>(rating.value);
     }
+    if (targetSenseId.present) {
+      map['target_sense_id'] = Variable<String>(targetSenseId.value);
+    }
     if (answer.present) {
       map['answer'] = Variable<String>(answer.value);
     }
@@ -27799,6 +27899,7 @@ class LearningSentenceAttemptsCompanion
           ..write('sentence: $sentence, ')
           ..write('skill: $skill, ')
           ..write('rating: $rating, ')
+          ..write('targetSenseId: $targetSenseId, ')
           ..write('answer: $answer, ')
           ..write('correct: $correct, ')
           ..write('helpBeforeAnswer: $helpBeforeAnswer, ')

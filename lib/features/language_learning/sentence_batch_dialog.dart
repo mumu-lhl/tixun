@@ -39,6 +39,7 @@ class SentenceBatchDialog extends StatefulWidget {
     this.suggestedCount,
     this.exclusions = const [],
     this.reused = const [],
+    this.kind = SentencePracticeKind.sentence,
     this.contextVocabulary = const [],
   });
 
@@ -52,6 +53,7 @@ class SentenceBatchDialog extends StatefulWidget {
   final int? suggestedCount;
   final List<String> exclusions;
   final List<SentenceCard> reused;
+  final SentencePracticeKind kind;
   final List<LanguageCard> contextVocabulary;
 
   @override
@@ -74,6 +76,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
   }
 
   Future<void> _generate() async {
+    if (_pending != null || _saving) return;
     final cancel = CancelToken();
     setState(() {
       _pending = cancel;
@@ -82,6 +85,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
     try {
       final proposal = await widget.ai.propose(
         topic: widget.topic,
+        kind: widget.kind,
         vocabulary: widget.contextVocabulary,
         style: widget.style,
         level: widget.level,
@@ -113,15 +117,20 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
   }
 
   Future<void> _save(SentenceBatchProposal proposal) async {
+    if (_pending != null || _saving || _selected.isEmpty) return;
     setState(() => _saving = true);
     await act(context, () async {
       await widget.store.saveSentenceBatch(proposal, _selected);
       if (!mounted) return;
       Navigator.of(context).pop(
-        SentenceBatch([
-          ...widget.reused,
-          ...proposal.cards.where((card) => _selected.contains(card.id)),
-        ], generatedBy: proposal.model),
+        SentenceBatch(
+          [
+            ...widget.reused,
+            ...proposal.cards.where((card) => _selected.contains(card.id)),
+          ],
+          generatedBy: proposal.model,
+          kind: proposal.kind,
+        ),
       );
     });
     if (mounted) setState(() => _saving = false);
@@ -131,6 +140,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final proposal = _proposal;
+    final busy = _pending != null || _saving;
     return PopScope(
       canPop: !_saving,
       child: AlertDialog(
@@ -202,13 +212,11 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                 for (final card in proposal.cards)
                   CheckboxListTile(
                     title: Text(card.text),
-                    subtitle: Text(
-                      widget.focus == SentenceSkill.meaningInContext
-                          ? card.question
-                          : "${card.hint}\n${card.translation}",
-                    ),
+                    subtitle: widget.kind == SentencePracticeKind.newContext
+                        ? Text(card.question)
+                        : null,
                     value: _selected.contains(card.id),
-                    onChanged: _saving
+                    onChanged: busy
                         ? null
                         : (selected) => setState(() {
                             if (selected == true) {
@@ -219,7 +227,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                           }),
                   ),
               ],
-              if (_pending != null || _saving) const LinearProgressIndicator(),
+              if (busy) const LinearProgressIndicator(),
               if (_error case final error?) Text(error),
             ],
           ),
@@ -249,11 +257,11 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
             )
           else ...[
             TextButton(
-              onPressed: _pending != null || _saving ? null : _generate,
+              onPressed: busy ? null : _generate,
               child: Text(l10n.regenerate),
             ),
             FilledButton(
-              onPressed: _saving || _selected.isEmpty
+              onPressed: busy || _selected.isEmpty
                   ? null
                   : () => _save(proposal),
               child: Text(l10n.languageSentenceSaveAndStart),
@@ -268,18 +276,9 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
 Future<SentenceBatch?> chooseSavedSentenceBatch(
   BuildContext context,
   LanguageLearningStore store, {
-  bool contextUnderstanding = false,
+  required SentencePracticeKind kind,
 }) {
-  final batches = store.savedSentenceBatches().then(
-    (rows) => contextUnderstanding
-        ? rows
-              .where(
-                (r) => openSavedSentenceBatch(r).cards
-                    .every((c) => c.skill == SentenceSkill.meaningInContext),
-              )
-              .toList()
-        : rows,
-  );
+  final batches = store.savedSentenceBatches(kind: kind);
   return showDialog<SentenceBatch>(
     context: context,
     builder: (context) {

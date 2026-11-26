@@ -22,6 +22,7 @@ class SentenceBatchProposal {
     required this.generatedAt,
     required this.cards,
     this.requestedCount,
+    this.kind = SentencePracticeKind.sentence,
     this.generationIds = const [],
   });
 
@@ -33,6 +34,7 @@ class SentenceBatchProposal {
   final DateTime generatedAt;
   final List<SentenceCard> cards;
   final int? requestedCount;
+  final SentencePracticeKind kind;
   final List<String> generationIds;
 }
 
@@ -53,6 +55,12 @@ extension SentenceBatchStore on LanguageLearningStore {
             "level": card.level.name,
             "revision": card.revision,
             if (card.skill != null) "skill": card.skill!.name,
+            if (card.target case final target?)
+              "target": {
+                "senseId": target.senseId,
+                "form": target.form,
+                "meaning": target.meaning,
+              },
             if (card.choices.isNotEmpty) ...{
               "question": card.question,
               "choices": card.choices,
@@ -76,6 +84,7 @@ extension SentenceBatchStore on LanguageLearningStore {
               promptVersion: proposal.promptVersion,
               isMock: proposal.isMock,
               cards: jsonEncode(cards),
+              kind: Value(proposal.kind.name),
               generatedAt: proposal.generatedAt,
             ),
             mode: InsertMode.insertOrIgnore,
@@ -132,17 +141,24 @@ extension SentenceBatchStore on LanguageLearningStore {
     }),
   );
 
-  Future<List<LearningSentenceBatch>> savedSentenceBatches({int limit = 40}) =>
-      (db.select(db.learningSentenceBatches)
-            ..where(
-              (row) => row.language.equals("en") & row.isMock.equals(false),
-            )
-            ..orderBy([
-              (row) => OrderingTerm.desc(row.generatedAt),
-              (row) => OrderingTerm.desc(row.rowId),
-            ])
-            ..limit(limit))
-          .get();
+  Future<List<LearningSentenceBatch>> savedSentenceBatches({
+    SentencePracticeKind kind = SentencePracticeKind.sentence,
+    int? limit,
+  }) {
+    final query = db.select(db.learningSentenceBatches)
+      ..where(
+        (row) =>
+            row.language.equals("en") &
+            row.isMock.equals(false) &
+            row.kind.equals(kind.name),
+      )
+      ..orderBy([
+        (row) => OrderingTerm.desc(row.generatedAt),
+        (row) => OrderingTerm.desc(row.rowId),
+      ]);
+    if (limit != null) query.limit(limit);
+    return query.get();
+  }
 }
 
 SentenceBatch openSavedSentenceBatch(LearningSentenceBatch row) {
@@ -151,6 +167,7 @@ SentenceBatch openSavedSentenceBatch(LearningSentenceBatch row) {
   return SentenceBatch(
     cards.map((value) {
       final card = value as Map<String, dynamic>;
+      final target = card["target"] as Map<String, dynamic>?;
       return SentenceCard(
         id: card["id"] as String,
         text: card["text"] as String,
@@ -159,6 +176,13 @@ SentenceBatch openSavedSentenceBatch(LearningSentenceBatch row) {
         level: SentenceLevel.values.byName(card["level"] as String),
         revision: card["revision"] as int,
         language: row.language,
+        target: target == null
+            ? null
+            : (
+                senseId: target["senseId"] as String,
+                form: target["form"] as String,
+                meaning: target["meaning"] as String,
+              ),
         skill: SentenceSkill.values.asNameMap()[card["skill"]],
         question: card["question"] as String? ?? "",
         choices: (card["choices"] as List?)?.cast<String>() ?? const [],
@@ -167,5 +191,6 @@ SentenceBatch openSavedSentenceBatch(LearningSentenceBatch row) {
       );
     }),
     generatedBy: row.isMock ? "Mock" : row.model,
+    kind: SentencePracticeKind.values.byName(row.kind),
   );
 }

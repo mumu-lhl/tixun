@@ -577,6 +577,36 @@ class LanguageLearningStore extends DatabaseNotifier {
         .toList();
   }
 
+  Future<List<LanguageCard>> contextTargets({
+    String? groupId,
+    required int limit,
+  }) async {
+    final sense = db.learningLexicalSenses;
+    final attempt = db.learningSentenceAttempts;
+    final lastAnswered = subqueryExpression(
+      db.selectOnly(attempt)
+        ..addColumns([attempt.occurredAt.max()])
+        ..where(
+          attempt.targetSenseId.equalsExp(sense.id) &
+              attempt.correct.isNotNull(),
+        ),
+    );
+    final query = _queue("en", groupId: groupId)
+      ..orderBy([
+        OrderingTerm.asc(lastAnswered),
+        OrderingTerm.asc(sense.createdAt),
+        OrderingTerm.asc(sense.id),
+      ])
+      ..limit(limit);
+    return [
+      for (final row in await query.get())
+        LanguageCard(
+          row.readTable(db.learningLexicalItems),
+          row.readTable(sense),
+        ),
+    ];
+  }
+
   Future<List<LanguageCard>> recallCards({
     required String language,
     required DateTime now,

@@ -10,6 +10,10 @@ extension _DatabaseMigrations on AppDatabase {
     );
   }
 
+  Future<void> _createSentenceTargetIndex() => customStatement(
+    "CREATE INDEX learning_sentence_target ON learning_sentence_attempts(target_sense_id, occurred_at) WHERE correct IS NOT NULL",
+  );
+
   MigrationStrategy get _migrationStrategy => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
@@ -21,6 +25,7 @@ extension _DatabaseMigrations on AppDatabase {
       await _createExamIndexes();
       await _createLanguageExamIndexes();
       await _createLanguageQuickSearch();
+      await _createSentenceTargetIndex();
       await _createTimelineIndex();
       await _createVisualIndexes();
       await _createA2uiIndexes();
@@ -145,6 +150,32 @@ extension _DatabaseMigrations on AppDatabase {
         await customStatement(
           "CREATE INDEX learning_due ON learning_review_schedules(due_at)",
         );
+      }
+      if (from < 34) {
+        if (from >= 22) {
+          await m.addColumn(
+            learningSentenceBatches,
+            learningSentenceBatches.kind,
+          );
+          await m.alterTable(
+            TableMigration(
+              learningSentenceAttempts,
+              newColumns: [learningSentenceAttempts.targetSenseId],
+            ),
+          );
+          // Older unlinked batches have no reliable proof of their kind.
+          await customStatement("""
+            UPDATE learning_sentence_batches AS b SET kind = 'newContext'
+            WHERE EXISTS (
+              SELECT 1 FROM language_generation_links l
+              JOIN language_generation_runs r ON r.id = l.run_id
+              JOIN language_generation_tasks t ON t.id = r.task_id
+              WHERE l.kind = 'sentence_batch' AND l.content_id = b.id
+                AND t.feature = 'language_context_understanding'
+            )
+          """);
+        }
+        await _createSentenceTargetIndex();
       }
       if (from >= 14 && from < 20) {
         await m.addColumn(aiUsageEvents, aiUsageEvents.tokenBreakdownJson);

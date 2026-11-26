@@ -1,8 +1,10 @@
 import "../../support/exam_bundled.dart";
 
 import "dart:io";
+import "dart:ui" show PointerDeviceKind;
 
 import "package:flutter/rendering.dart";
+import "package:flutter/services.dart";
 
 import "package:tixun/features/language_learning/exam_store.dart";
 import "package:tixun/app/theme.dart";
@@ -16,6 +18,7 @@ import "package:tixun/features/language_learning/language_store.dart";
 import "package:tixun/features/language_learning/writing_ai.dart";
 import "package:tixun/features/language_learning/writing_store.dart";
 import "package:tixun/features/language_learning/writing_practice.dart";
+import "package:tixun/features/language_learning/sentence_batch_ai.dart";
 import "package:tixun/features/language_learning/sentence_practice.dart";
 import "package:tixun/features/language_learning/sentence_explanation.dart";
 import "package:tixun/features/language_learning/vocabulary_batch.dart";
@@ -467,9 +470,18 @@ void main({
             config: config,
           ),
         ),
-        "vocabulary": SentencePractice(
+        "context-setup": SentencePractice(
           store: store,
-          contextUnderstanding: true,
+          kind: SentencePracticeKind.newContext,
+          batchAi: SentenceBatchAi(provider: provider, config: config),
+          explanation: SentenceExplanation(
+            store: store,
+            provider: provider,
+            config: config,
+          ),
+        ),
+        "context-answer": SentencePractice(
+          store: store,
           initialBatch: SentenceBatch([
             const SentenceCard(
               id: "context-station",
@@ -486,7 +498,7 @@ void main({
               skill: SentenceSkill.meaningInContext,
               level: SentenceLevel.beginner,
             ),
-          ]),
+          ], kind: SentencePracticeKind.newContext),
           explanation: SentenceExplanation(
             store: store,
             provider: provider,
@@ -501,7 +513,9 @@ void main({
         "exam": ExamPaperScreen(ai: exam, material: material!),
       };
       for (final entry in pages.entries) {
-        await tester.pumpWidget(app(entry.value, scale: 1.6));
+        await tester.pumpWidget(
+          app(entry.value, scale: 1.6, theme: appTheme(Brightness.light)),
+        );
         await flush(tester);
         expect(tester.takeException(), isNull, reason: entry.key);
         final l10n = AppLocalizations.of(
@@ -538,7 +552,32 @@ void main({
           expectCentered("The station is busy.");
           expect(find.text(l10n.languageRemembered), findsOneWidget);
         }
-        if (entry.key == "vocabulary") {
+        if (entry.key == "context-setup") {
+          final source = find.text(l10n.languageContextAllVocabulary);
+          expect(source, findsOneWidget);
+          if (width == 1200) {
+            await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+            await tester.pumpAndSettle();
+            await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          } else {
+            await tester.tap(source);
+          }
+          await tester.pumpAndSettle();
+          final group = find.widgetWithText(MenuItemButton, "Travel");
+          expect(group, findsOneWidget);
+          final mouse = await tester.createGesture(
+            kind: PointerDeviceKind.mouse,
+          );
+          await mouse.addPointer(location: tester.getCenter(group));
+          await tester.pumpAndSettle();
+          await mouse.down(tester.getCenter(group));
+          await tester.pump();
+          await mouse.up();
+          await mouse.removePointer();
+          await tester.pumpAndSettle();
+          expect(find.text("Travel"), findsOneWidget);
+        }
+        if (entry.key == "context-answer") {
           expect(find.byType(TextField), findsNothing);
           final option = tester.renderObject<RenderParagraph>(
             find.text("A place where trains stop."),
@@ -559,7 +598,9 @@ void main({
             find.text(l10n.languageSentenceCheckAnswer),
           );
           await tester.pumpAndSettle();
-          await tester.tap(find.text(l10n.languageSentenceCheckAnswer));
+          await tester.runAsync(() async {
+            await tester.tap(find.text(l10n.languageSentenceCheckAnswer));
+          });
           await flush(tester);
           expect(find.text(l10n.languageSentenceCorrect), findsOneWidget);
         }

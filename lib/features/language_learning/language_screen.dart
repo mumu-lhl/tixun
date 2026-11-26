@@ -83,17 +83,26 @@ class _LanguageLearningScreenState
     if (mounted) _refreshDue();
   }
 
-  void _practiceContexts() => _openSentences(contextUnderstanding: true);
+  void _practiceContexts() =>
+      _openSentences(kind: SentencePracticeKind.newContext);
 
-  void _practiceSentences([SentencePlan? plan]) => _openSentences(plan: plan);
+  void _practiceSentences([SentencePlan? plan]) => _openSentences(
+    plan: plan,
+    kind: plan?.skill == SentenceSkill.meaningInContext
+        ? SentencePracticeKind.newContext
+        : SentencePracticeKind.sentence,
+  );
 
-  void _openSentences({SentencePlan? plan, bool contextUnderstanding = false}) {
+  void _openSentences({
+    SentencePlan? plan,
+    required SentencePracticeKind kind,
+  }) {
     final controller = ref.read(appControllerProvider);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SentencePractice(
           store: _store,
-          contextUnderstanding: contextUnderstanding,
+          kind: kind,
           recommendation: plan,
           initialLevel: switch (_preferences.languageStudy.level) {
             EnglishStudyLevel.mixed => null,

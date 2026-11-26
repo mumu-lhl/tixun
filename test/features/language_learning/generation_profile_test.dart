@@ -1,5 +1,6 @@
 import "dart:convert";
 
+import "package:drift/drift.dart" show Value;
 import "package:flutter_test/flutter_test.dart";
 import "package:dio/dio.dart";
 import "package:tixun/features/language_learning/language_json_request.dart";
@@ -612,7 +613,7 @@ void main() {
               language: "en",
               sentence: "If it rains, stay home.",
               skill: "condition",
-              rating: "unclear",
+              rating: const Value("unclear"),
               helpUsed: 0,
               occurredAt: DateTime(2026),
             ),

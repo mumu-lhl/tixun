@@ -36,13 +36,18 @@ class SentencePlan {
 
 /// Uses the same evidence and selection policy as the profile page, restricted
 /// to skills this practice screen can deliver.
-Future<SentencePlan> suggestSentences(LanguageLearningStore store) async {
+Future<SentencePlan> suggestSentences(
+  LanguageLearningStore store, {
+  bool includeNewContexts = true,
+}) async {
   final profile = await store.readLanguageProfile("en");
   final recommendation = recommendLanguage(
     profile,
     LanguageGoal.communication,
     restrictTo: {
-      for (final skill in SentenceSkill.values) sentenceAbility(skill),
+      for (final skill in SentenceSkill.values)
+        if (includeNewContexts || skill != SentenceSkill.meaningInContext)
+          sentenceAbility(skill),
     },
   );
   final recent = await store.sentenceEvidence("en").first;

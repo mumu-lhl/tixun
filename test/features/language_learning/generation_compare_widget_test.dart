@@ -1,3 +1,5 @@
+import "dart:convert";
+
 import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -11,9 +13,13 @@ import "package:tixun/features/language_learning/generation_ui.dart";
 import "../../support/quick_lookup.dart" show quickTestConfig;
 
 void main() {
-  for (final width in [320.0, 1200.0]) {
+  for (final (width, hideSolutions) in [
+    (320.0, true),
+    (1200.0, true),
+    (1200.0, false),
+  ]) {
     testWidgets(
-      "generation comparison retains both candidates and lets readers choose at $width",
+      "generation comparison retains both candidates at $width (hideSolutions: $hideSolutions)",
       (tester) async {
         final db = AppDatabase.memory();
         addTearDown(db.close);
@@ -24,20 +30,41 @@ void main() {
             instructions: "prompt",
             messages: [const AiMessage.user("input")],
           );
+          String output(String version) => !hideSolutions
+              ? "$version material"
+              : jsonEncode({
+                  "sentences": [
+                    {
+                      "text": "$version material",
+                      "hint": "Private $version hint",
+                      "translation": "Private $version translation",
+                      "target": {"meaning": "Private $version meaning"},
+                      "check": {
+                        "question": "$version question",
+                        "choices": ["$version option A", "$version option B"],
+                        "correctIndex": 1,
+                        "explanation": "Private $version explanation",
+                      },
+                    },
+                  ],
+                });
+          final feature = hideSolutions
+              ? "language_context_understanding"
+              : "test";
           original = await store.capture(
-            feature: "test",
+            feature: feature,
             request: request,
             config: quickTestConfig,
-            output: "Original material",
-            format: "markdown",
+            output: output("Original"),
+            format: hideSolutions ? "json" : "markdown",
             cancel: CancelToken(),
           );
           candidate = await store.capture(
-            feature: "test",
+            feature: feature,
             request: request,
             config: quickTestConfig.copyWith(model: "better-model"),
-            output: "New material",
-            format: "markdown",
+            output: output("New"),
+            format: hideSolutions ? "json" : "markdown",
             cancel: CancelToken(),
           );
         });
@@ -62,6 +89,7 @@ void main() {
                       original,
                       candidate,
                       CancelToken(),
+                      hideSolutions: hideSolutions,
                     );
                   },
                   child: const Text("Compare"),
@@ -72,8 +100,20 @@ void main() {
         );
         await tester.tap(find.text("Compare"));
         await tester.pumpAndSettle();
-        expect(find.text("Original material"), findsOneWidget);
-        expect(find.text("New material"), findsOneWidget);
+        for (final version in ["Original", "New"]) {
+          expect(find.textContaining("$version material"), findsOneWidget);
+          if (hideSolutions) {
+            expect(find.textContaining("$version question"), findsOneWidget);
+            expect(find.textContaining("$version option A"), findsOneWidget);
+            expect(find.textContaining("$version option B"), findsOneWidget);
+          }
+        }
+        if (hideSolutions) {
+          expect(find.textContaining("correctIndex"), findsNothing);
+          expect(find.textContaining("Private"), findsNothing);
+          expect(original.output, contains("Private Original explanation"));
+          expect(candidate.output, contains("Private New explanation"));
+        }
         await tester.tap(find.text("Use original"));
         await tester.pumpAndSettle();
         expect(chosen, false);

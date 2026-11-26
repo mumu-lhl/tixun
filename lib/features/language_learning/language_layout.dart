@@ -4,9 +4,11 @@ import "package:material_ui/material_ui.dart";
 
 Widget languagePage({
   required List<Widget> children,
+  Key? key,
   double maxWidth = 760,
   double gap = 12,
 }) => LayoutBuilder(
+  key: key,
   builder: (context, constraints) {
     final inset = math.max(
       constraints.maxWidth < 560 ? 18.0 : 24.0,

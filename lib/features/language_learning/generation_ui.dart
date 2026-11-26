@@ -27,8 +27,28 @@ ChatProvider languageGenerationProvider(
     promptSettings: () => c.prompts,
     history: LanguageGenerationStore(c.db),
     compare: compareVersions
-        ? (old, fresh, cancel) =>
-              compareLanguageGenerations(context, old, fresh, cancel)
+        ? (old, fresh, cancel) async {
+            final task = await (c.db.select(
+              c.db.languageGenerationTasks,
+            )..where((row) => row.id.equals(fresh.taskId))).getSingle();
+            cancel.checkCancelled();
+            if (!context.mounted) {
+              cancel.cancel();
+              cancel.checkCancelled();
+              return false;
+            }
+            return compareLanguageGenerations(
+              context,
+              old,
+              fresh,
+              cancel,
+              hideSolutions: const {
+                "language_sentence_batch",
+                "language_context_understanding",
+                "language_sentence_check",
+              }.contains(task.feature),
+            );
+          }
         : null,
   );
 }
@@ -62,12 +82,38 @@ String generationText(String output, String format) {
   return readable(data);
 }
 
+String _practicePreview(String output) {
+  Object? data;
+  try {
+    data = jsonDecode(output);
+  } on FormatException {
+    return "";
+  }
+  if (data is! Map) return "";
+  final rows = data["sentences"];
+  String preview(Object? row) {
+    if (row is! Map) return "";
+    final check = row["check"];
+    return [
+      if (row["text"] is String) row["text"] as String,
+      if (check is Map) ...[
+        if (check["question"] is String) check["question"] as String,
+        if (check["choices"] case final List choices)
+          ...choices.whereType<String>(),
+      ],
+    ].join("\n");
+  }
+
+  return rows is List ? rows.map(preview).join("\n\n") : preview(data);
+}
+
 Future<bool> compareLanguageGenerations(
   BuildContext context,
   LanguageGenerationRun original,
   LanguageGenerationRun candidate,
-  CancelToken cancel,
-) async {
+  CancelToken cancel, {
+  bool hideSolutions = false,
+}) async {
   if (!context.mounted) {
     cancel.cancel();
     cancel.checkCancelled();
@@ -95,7 +141,11 @@ Future<bool> compareLanguageGenerations(
                     : 'off'}",
               ),
               const SizedBox(height: 12),
-              SelectableText(generationText(run.output, run.format)),
+              SelectableText(
+                hideSolutions
+                    ? _practicePreview(run.output)
+                    : generationText(run.output, run.format),
+              ),
             ],
           ),
         ),

@@ -1,5 +1,7 @@
 import "package:uuid/uuid.dart";
 
+enum SentencePracticeKind { sentence, newContext }
+
 enum SentenceStyle { written, dialogue }
 
 enum SentenceTopic { travel, dailyLife }
@@ -35,6 +37,8 @@ enum SentenceHelp {
 
 enum SentenceRating { unclear, partial, understood }
 
+typedef SentenceTarget = ({String senseId, String form, String meaning});
+
 class SentenceCard {
   const SentenceCard({
     required this.id,
@@ -46,6 +50,7 @@ class SentenceCard {
     required this.correctIndex,
     required this.skill,
     required this.level,
+    this.target,
     this.checkExplanation = "",
     this.revision = 1,
     this.language = "en",
@@ -60,6 +65,7 @@ class SentenceCard {
     this.revision = 1,
     this.language = "en",
     this.skill,
+    this.target,
   }) : choices = const [],
        question = "",
        checkExplanation = "",
@@ -75,15 +81,20 @@ class SentenceCard {
   final int revision, correctIndex;
   final List<String> choices;
   final SentenceSkill? skill;
+  final SentenceTarget? target;
   final SentenceLevel level;
 }
 
 class SentenceBatch {
-  SentenceBatch(Iterable<SentenceCard> cards, {this.generatedBy})
-    : id = const Uuid().v4(),
-      cards = List.unmodifiable(cards);
+  SentenceBatch(
+    Iterable<SentenceCard> cards, {
+    this.generatedBy,
+    this.kind = SentencePracticeKind.sentence,
+  }) : id = const Uuid().v4(),
+       cards = List.unmodifiable(cards);
 
   final String id;
   final List<SentenceCard> cards;
   final String? generatedBy;
+  final SentencePracticeKind kind;
 }

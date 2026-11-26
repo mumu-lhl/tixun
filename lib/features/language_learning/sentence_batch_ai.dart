@@ -28,7 +28,7 @@ class SentenceBatchAi {
   ProviderConfig get config => languageConfiguration(provider, _config);
   final AiUsageStore? usageStore;
   final PromptSettings? prompts;
-  static const _promptVersion = 2;
+  static const _promptVersion = 4;
   static const maximumCount = 20;
   static const _chunkSize = 5;
 
@@ -39,6 +39,7 @@ class SentenceBatchAi {
     required String glossLanguage,
     required int count,
     required CancelToken cancel,
+    SentencePracticeKind kind = SentencePracticeKind.sentence,
     SentenceSkill? focus,
     Iterable<String> exclude = const [],
     List<LanguageCard> vocabulary = const [],
@@ -46,7 +47,7 @@ class SentenceBatchAi {
     if (count < 1 || count > maximumCount) {
       throw const FormatException("Invalid sentence batch count");
     }
-    final contextMode = focus == SentenceSkill.meaningInContext;
+    final contextMode = kind == SentencePracticeKind.newContext;
     if (contextMode && vocabulary.isEmpty) {
       throw const FormatException("Context understanding requires vocabulary");
     }
@@ -54,8 +55,9 @@ class SentenceBatchAi {
     final id = const Uuid().v4();
     final generationIds = <String>[];
     final generatedModels = <String>{};
+    final exclusions = exclude.take(40).toList();
     final excluded = {
-      ...exclude.take(40).map(normalizeLanguageText),
+      ...exclusions.map(normalizeLanguageText),
       if (contextMode)
         ...vocabulary
             .map((c) => normalizeLanguageText(c.sense.example ?? ""))
@@ -69,6 +71,11 @@ class SentenceBatchAi {
     }
     while (cards.length < count) {
       final requested = math.min(count - cards.length, _chunkSize);
+      final targets = <SentenceTarget>[
+        if (contextMode)
+          for (var i = 0; i < requested; i++)
+            _target(vocabulary[(cards.length + i) % vocabulary.length]),
+      ];
       try {
         final batch = await requestLanguageJson(
           provider: provider,
@@ -93,9 +100,13 @@ class SentenceBatchAi {
                 jsonEncode({
                   "topic": topic.name,
                   if (contextMode)
-                    "vocabulary": [
-                      for (final c in vocabulary)
-                        {"form": c.item.form, "meaning": c.sense.meaning},
+                    "targets": [
+                      for (final (index, target) in targets.indexed)
+                        {
+                          "targetIndex": index,
+                          "form": target.form,
+                          "meaning": target.meaning,
+                        },
                     ],
                   "style": style.name,
                   "level": level?.name ?? "mixed",
@@ -117,7 +128,7 @@ class SentenceBatchAi {
           cancel: cancel,
           maxChars: 13000,
           parse: (value) {
-            final batch = _parse(
+            return _parse(
               value,
               id,
               requested,
@@ -128,42 +139,17 @@ class SentenceBatchAi {
                 ...excluded,
                 for (final card in cards) normalizeLanguageText(card.text),
               },
+              targets: targets,
+              seenContexts: {
+                if (contextMode)
+                  for (final text in [
+                    ...exclusions,
+                    for (final v in vocabulary) ?v.sense.example,
+                    for (final c in cards) c.text,
+                  ])
+                    _contextWords(text),
+              },
             );
-            String words(String value) => RegExp(
-              r"[\p{L}\p{N}]+",
-              unicode: true,
-            ).allMatches(value.toLowerCase()).map((m) => m.group(0)).join(" ");
-            if (contextMode &&
-                batch.any(
-                  (c) => vocabulary.any(
-                    (v) =>
-                        v.sense.example != null &&
-                        words(c.text) == words(v.sense.example!),
-                  ),
-                )) {
-              throw const FormatException(
-                "A new context must differ from saved examples",
-              );
-            }
-            if (contextMode &&
-                batch.any(
-                  (c) =>
-                      c.choices.length < 3 ||
-                      c.skill != SentenceSkill.meaningInContext ||
-                      c.text.contains("_") ||
-                      c.question.contains("_") ||
-                      !vocabulary.any(
-                        (v) => RegExp(
-                          "(?<![A-Za-z0-9_])${RegExp.escape(v.item.form)}(?![A-Za-z0-9_])",
-                          caseSensitive: false,
-                        ).hasMatch(c.text),
-                      ),
-                )) {
-              throw const FormatException(
-                "Expected a new-context interpretation task, not cloze",
-              );
-            }
-            return batch;
           },
         );
         cards.addAll(batch);
@@ -191,6 +177,7 @@ class SentenceBatchAi {
       generatedAt: DateTime.now(),
       cards: List.unmodifiable(cards),
       requestedCount: count,
+      kind: kind,
     );
   }
 
@@ -242,8 +229,10 @@ class SentenceBatchAi {
     int offset,
     SentenceLevel? requestedLevel,
     SentenceSkill? focus,
-    Set<String> seen,
-  ) {
+    Set<String> seen, {
+    required List<SentenceTarget> targets,
+    required Set<String> seenContexts,
+  }) {
     if (data is! Map ||
         data["language"] != "en" ||
         data["sentences"] is! List) {
@@ -254,17 +243,20 @@ class SentenceBatchAi {
       throw const FormatException("Invalid sentence batch size");
     }
     final cards = <SentenceCard>[];
-    for (final row in rows) {
+    for (final (index, row) in rows.indexed) {
+      final target = targets.isEmpty ? null : targets[index];
       if (row is! Map ||
           row.keys.any(
-            (key) => !const {
-              "text",
-              "hint",
-              "translation",
-              "level",
-              "skill",
-              "check",
-            }.contains(key),
+            (key) =>
+                !(target != null && key == "targetIndex") &&
+                !const {
+                  "text",
+                  "hint",
+                  "translation",
+                  "level",
+                  "skill",
+                  "check",
+                }.contains(key),
           )) {
         throw const FormatException("Invalid sentence fields");
       }
@@ -285,6 +277,16 @@ class SentenceBatchAi {
       final translation = _text(row["translation"]);
       final hint = _text(row["hint"]);
       final check = row["check"];
+      if (target != null &&
+          (row["targetIndex"] is! int ||
+              row["targetIndex"] != index ||
+              skill != SentenceSkill.meaningInContext ||
+              check == null ||
+              text.contains("_") ||
+              !_containsForm(text, target.form) ||
+              !seenContexts.add(_contextWords(text)))) {
+        throw const FormatException("Invalid or repeated target context");
+      }
       if (check == null) {
         cards.add(
           SentenceCard.study(
@@ -298,20 +300,27 @@ class SentenceBatchAi {
         );
         continue;
       }
-      cards.add(
-        _withCheck(
-          SentenceCard.study(
-            id: cardId,
-            text: text,
-            translation: translation,
-            hint: hint,
-            level: level,
-            skill: skill,
-          ),
-          skill,
-          check,
+      final checked = _withCheck(
+        SentenceCard.study(
+          id: cardId,
+          text: text,
+          translation: translation,
+          hint: hint,
+          level: level,
+          skill: skill,
+          target: target,
         ),
+        skill,
+        check,
       );
+      if (target != null &&
+          (checked.question.contains("_") ||
+              !_containsForm(checked.question, target.form))) {
+        throw const FormatException(
+          "Expected a question about the target form",
+        );
+      }
+      cards.add(checked);
     }
     if (focus != null &&
         cards
@@ -369,6 +378,7 @@ class SentenceBatchAi {
       level: card.level,
       skill: skill,
       language: card.language,
+      target: card.target,
       revision: revision,
       question: question,
       choices: choices,
@@ -376,6 +386,25 @@ class SentenceBatchAi {
       checkExplanation: _text(check["explanation"]),
     );
   }
+
+  static SentenceTarget _target(LanguageCard card) => (
+    senseId: card.sense.id,
+    form: card.item.form,
+    meaning: card.sense.meaning,
+  );
+
+  static String _contextWords(String text) => RegExp(
+    r"[\p{L}\p{N}]+",
+    unicode: true,
+  ).allMatches(text.toLowerCase()).map((m) => m.group(0)).join(" ");
+
+  static bool _containsForm(String text, String form) => RegExp(
+    r"(?<![\p{Script=Latin}\p{M}\p{N}_])" +
+        RegExp.escape(form) +
+        r"(?![\p{Script=Latin}\p{M}\p{N}_])",
+    unicode: true,
+    caseSensitive: false,
+  ).hasMatch(text);
 
   static String _text(Object? value) {
     if (value is! String || value.trim().isEmpty || value.length > 420) {

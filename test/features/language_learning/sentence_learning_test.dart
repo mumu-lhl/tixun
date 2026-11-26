@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:convert";
 
 import "package:dio/dio.dart";
@@ -35,6 +36,7 @@ class _Provider implements ChatProvider {
   AiRequest? lastRequest;
   bool complete = true;
   bool offline = false;
+  Future<void>? pause;
   String response = "The library closes earlier on Saturdays.";
 
   @override
@@ -46,6 +48,7 @@ class _Provider implements ChatProvider {
         );
         calls++;
         lastRequest = request;
+        await pause;
         if (offline) throw const AiFailure("Offline");
         yield AiChunk(text: response, completed: complete);
       });
@@ -336,6 +339,9 @@ void main() {
         tester.view.physicalSize = Size(width, 1000);
         addTearDown(tester.view.resetDevicePixelRatio);
         addTearDown(tester.view.resetPhysicalSize);
+        final kind = contextMode
+            ? SentencePracticeKind.newContext
+            : SentencePracticeKind.sentence;
         Widget page({SentenceBatch? batch}) => MaterialApp(
           locale: const Locale("en"),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -350,7 +356,7 @@ void main() {
             store: store,
             explanation: explanation,
             batchAi: SentenceBatchAi(provider: provider, config: _config),
-            contextUnderstanding: contextMode,
+            kind: kind,
             initialBatch: batch,
           ),
         );
@@ -371,7 +377,13 @@ void main() {
         expect(tester.takeException(), isNull);
 
         await tester.pumpWidget(
-          page(batch: SentenceBatch([_card()], generatedBy: "test-model")),
+          page(
+            batch: SentenceBatch(
+              [_card()],
+              generatedBy: "test-model",
+              kind: kind,
+            ),
+          ),
         );
         await tester.pumpAndSettle();
         final source = find.text("AI-generated · test-model");
@@ -382,13 +394,19 @@ void main() {
           greaterThan(16),
         );
         final rating = find.text("How well did you understand it?");
-        await tester.ensureVisible(rating);
-        await tester.pumpAndSettle();
-        final unclear = find.widgetWithText(OutlinedButton, "Not yet clear");
-        expect(
-          tester.getTopLeft(unclear).dy - tester.getBottomLeft(rating).dy,
-          greaterThanOrEqualTo(8),
-        );
+        if (contextMode) {
+          expect(rating, findsNothing);
+          expect(find.text("Skip"), findsOneWidget);
+          expect(find.text("When does it close?"), findsOneWidget);
+        } else {
+          await tester.ensureVisible(rating);
+          await tester.pumpAndSettle();
+          final unclear = find.widgetWithText(OutlinedButton, "Not yet clear");
+          expect(
+            tester.getTopLeft(unclear).dy - tester.getBottomLeft(rating).dy,
+            greaterThanOrEqualTo(8),
+          );
+        }
         expect(tester.takeException(), isNull);
       });
     }
@@ -461,8 +479,99 @@ void main() {
     );
   }
 
+  for (final (width, scale) in [(320.0, 1.6), (1200.0, 1.0)]) {
+    testWidgets(
+      "preview hides help and locks selection during regeneration at $width",
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = Size(width, 900);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
+        const sentence = "She caught the last bus home.";
+        const hint = "Notice which bus she caught.";
+        const translation = "She went home on the final bus.";
+        provider.response = jsonEncode({
+          "language": "en",
+          "sentences": [
+            {
+              "text": sentence,
+              "hint": hint,
+              "translation": translation,
+              "level": "beginner",
+              "skill": "detail",
+              "check": {
+                "question": "Which bus did she catch?",
+                "choices": ["The last bus", "The first bus", "A school bus"],
+                "correctIndex": 0,
+                "explanation": "The sentence says 'last'.",
+              },
+            },
+            {
+              "text": "The bus dropped her off outside her house.",
+              "hint": "Notice the stop.",
+              "translation": "She got off in front of her home.",
+              "level": "beginner",
+            },
+          ],
+        });
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale("en"),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            ),
+            home: SentencePractice(
+              store: store,
+              explanation: explanation,
+              batchAi: SentenceBatchAi(provider: provider, config: _config),
+            ),
+          ),
+        );
+        await tester.tap(find.text("Generate an AI batch"));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text("Generate preview"));
+        await tester.pumpAndSettle();
+        final card = find.widgetWithText(CheckboxListTile, sentence);
+        final save = find.widgetWithText(
+          FilledButton,
+          "Save selected and practise",
+        );
+        expect(card, findsOneWidget);
+        expect(find.textContaining(hint), findsNothing);
+        expect(find.textContaining(translation), findsNothing);
+        expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+
+        await tester.ensureVisible(card);
+        await tester.tap(card);
+        await tester.pumpAndSettle();
+        expect(tester.widget<CheckboxListTile>(card).value, isFalse);
+
+        final regenerating = Completer<void>();
+        provider.pause = regenerating.future;
+        provider.complete = false;
+        await tester.tap(find.widgetWithText(TextButton, "Regenerate"));
+        await tester.pump();
+        expect(find.byType(LinearProgressIndicator), findsOneWidget);
+        expect(tester.widget<FilledButton>(save).onPressed, isNull);
+        expect(tester.widget<CheckboxListTile>(card).onChanged, isNull);
+
+        regenerating.complete();
+        await tester.pumpAndSettle();
+        expect(find.textContaining("Could not generate"), findsOneWidget);
+        expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+        expect(tester.widget<CheckboxListTile>(card).onChanged, isNotNull);
+        expect(tester.widget<CheckboxListTile>(card).value, isFalse);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets(
-    "AI batch saves only confirmed cards and reopens offline without scoring",
+    "sentence understanding generates from an empty library and reopens offline",
     (tester) async {
       const kept = "The shop opens at ten.";
       const skipped = "My sister walks to work.";
@@ -503,6 +612,10 @@ void main() {
 
       expect(find.text("Start offline batch"), findsNothing);
       expect(find.text("Saved sentence batches"), findsOneWidget);
+      await tester.runAsync(() async {
+        expect(await store.cards(language: "en"), isEmpty);
+        expect(await store.savedSentenceBatches(), isEmpty);
+      });
       await tap("Generate an AI batch");
       expect(provider.calls, 0);
       await tap("Generate preview");
@@ -516,6 +629,8 @@ void main() {
 
       provider.complete = true;
       await tap("Generate preview");
+      final request = jsonDecode(provider.lastRequest!.messages.single.text);
+      expect(request, isNot(contains("targets")));
       expect(find.text(kept), findsOneWidget);
       expect(find.text(skipped), findsOneWidget);
       await tester.runAsync(() async {
@@ -561,6 +676,241 @@ void main() {
       expect(find.text(kept), findsOneWidget);
       expect(find.text(skipped), findsNothing);
       expect(provider.calls, 2);
+    },
+  );
+
+  testWidgets("context generation uses the selected group and both senses", (
+    tester,
+  ) async {
+    late List<LanguageCard> senses;
+    await tester.runAsync(() async {
+      await store.saveEntries(
+        language: "en",
+        groupTitle: "Unrelated",
+        groupType: VocabularyGroupType.topic,
+        entries: const [VocabularyEntry(form: "ticket", meaning: "车票")],
+      );
+      await store.saveEntries(
+        language: "en",
+        groupTitle: "Two senses",
+        groupType: VocabularyGroupType.topic,
+        entries: const [
+          VocabularyEntry(form: "station", meaning: "车站"),
+          VocabularyEntry(form: "station", meaning: "广播电台"),
+        ],
+      );
+      final group = (await store.groupNamed("en", "Two senses"))!;
+      senses = await store.contextTargets(groupId: group.id, limit: 2);
+    });
+    expect(
+      senses.map((card) => card.sense.meaning),
+      unorderedEquals(["车站", "广播电台"]),
+    );
+    provider.response = jsonEncode({
+      "language": "en",
+      "sentences": [
+        for (final (i, card) in senses.indexed)
+          {
+            "targetIndex": i,
+            "text": card.sense.meaning == "车站"
+                ? "At the station, commuters waited beside the tracks."
+                : "The station aired our interview on its morning show.",
+            "hint": "What happens in this scene?",
+            "translation": "Look at how station is used.",
+            "level": "beginner",
+            "skill": "meaningInContext",
+            "check": {
+              "question": "What does station refer to here?",
+              "choices": ["A rail stop", "A broadcaster", "A military post"],
+              "correctIndex": card.sense.meaning == "车站" ? 0 : 1,
+              "explanation": "Which activities are described?",
+            },
+          },
+      ],
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale("en"),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: SentencePractice(
+          store: store,
+          explanation: explanation,
+          batchAi: SentenceBatchAi(provider: provider, config: _config),
+          kind: SentencePracticeKind.newContext,
+        ),
+      ),
+    );
+    await tester.runAsync(() => store.groups("en").first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("All English vocabulary"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Two senses"));
+    await tester.pumpAndSettle();
+    expect(find.text("Two senses"), findsOneWidget);
+    await tester.runAsync(() async {
+      await tester.tap(find.text("Generate an AI batch"));
+      await store.contextTargets(limit: 1);
+    });
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Generate preview"));
+    await tester.pumpAndSettle();
+    final request = jsonDecode(provider.lastRequest!.messages.single.text);
+    expect(request["targets"], [
+      for (final (i, card) in senses.indexed)
+        {"targetIndex": i, "form": "station", "meaning": card.sense.meaning},
+    ]);
+    expect(provider.calls, 1);
+    expect(find.byType(CheckboxListTile), findsNWidgets(2));
+    await tester.runAsync(() async {
+      await tester.tap(find.text("Save selected and practise"));
+      await store.whenIdle;
+      final history = await store.savedSentenceBatches(
+        kind: SentencePracticeKind.newContext,
+      );
+      expect(
+        openSavedSentenceBatch(history.single).cards
+            .map((card) => (card.target!.senseId, card.target!.meaning)),
+        senses.map((card) => (card.sense.id, card.sense.meaning)),
+      );
+    });
+    await tester.pumpAndSettle();
+    expect(find.text("What does station refer to here?"), findsOneWidget);
+  });
+
+  testWidgets(
+    "offline context history stays reachable and checks persist before continuing",
+    (tester) async {
+      const target = (senseId: "station-rail", form: "station", meaning: "车站");
+      SentenceCard contextCard(String id, String text) => SentenceCard(
+        id: id,
+        text: text,
+        question: "What is meant by station?",
+        hint: "Notice the platform.",
+        translation: "车站",
+        checkExplanation: "The next train stops here.",
+        level: SentenceLevel.beginner,
+        skill: SentenceSkill.meaningInContext,
+        choices: const ["A train stop", "A radio broadcaster"],
+        correctIndex: 0,
+        target: target,
+      );
+      final first = contextCard(
+        "first",
+        "They met at the station by platform two.",
+      );
+      final second = contextCard(
+        "second",
+        "His train left the station before sunrise.",
+      );
+      Future<void> save(
+        String id,
+        SentencePracticeKind kind,
+        List<SentenceCard> cards,
+      ) => store.saveSentenceBatch(
+        SentenceBatchProposal(
+          id: id,
+          topic: SentenceTopic.travel,
+          style: SentenceStyle.written,
+          glossLanguage: "en",
+          model: "test-model",
+          promptVersion: 4,
+          isMock: false,
+          generatedAt: DateTime.utc(
+            2025,
+            1,
+            kind == SentencePracticeKind.newContext ? 1 : 2,
+          ),
+          kind: kind,
+          cards: cards,
+        ),
+        cards.map((card) => card.id).toSet(),
+      );
+      provider.offline = true;
+      await tester.runAsync(() async {
+        await save("older-context", SentencePracticeKind.newContext, [
+          first,
+          second,
+        ]);
+        for (var i = 0; i < 41; i++) {
+          // Skill alone cannot make an ordinary or quick lookup sentence a new context.
+          final id = i == 0 ? "quick:station" : "ordinary:$i";
+          await save(id, SentencePracticeKind.sentence, [
+            contextCard(id, "Unrelated station example $i."),
+          ]);
+        }
+        expect(await store.savedSentenceBatches(), hasLength(41));
+        final contexts = await store.savedSentenceBatches(
+          kind: SentencePracticeKind.newContext,
+        );
+        expect(
+          openSavedSentenceBatch(contexts.single).cards.first.target,
+          target,
+        );
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale("en"),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SentencePractice(
+            store: store,
+            explanation: explanation,
+            kind: SentencePracticeKind.newContext,
+          ),
+        ),
+      );
+      await tester.runAsync(() async {
+        await tester.tap(find.text("Saved sentence batches"));
+        await tester.pump();
+        await store.savedSentenceBatches(kind: SentencePracticeKind.newContext);
+      });
+      await tester.pumpAndSettle();
+      expect(find.textContaining("Unrelated station"), findsNothing);
+      expect(find.text(first.text), findsOneWidget);
+      await tester.runAsync(() async => tester.tap(find.text(first.text)));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text("What is meant by station?"), findsOneWidget);
+      expect(find.text("How well did you understand it?"), findsNothing);
+      expect(find.text(first.checkExplanation), findsNothing);
+
+      Future<void> tapVisible(String label) async {
+        await tester.ensureVisible(find.text(label));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+      }
+
+      await tapVisible("Show a hint");
+      await tapVisible("A train stop");
+      await tester.runAsync(() async {
+        await tester.tap(find.text("Check answer"));
+        await store.whenIdle;
+        final attempt = await db
+            .select(db.learningSentenceAttempts)
+            .getSingle();
+        expect(attempt.targetSenseId, target.senseId);
+        expect(attempt.correct, isTrue);
+        expect(attempt.helpBeforeAnswer, SentenceHelp.hint.flag);
+        expect(attempt.rating, isNull);
+      });
+      await tester.pumpAndSettle();
+      expect(find.text(first.checkExplanation), findsOneWidget);
+      await tapVisible("Continue");
+      expect(find.text(second.text), findsOneWidget);
+      await tapVisible("A radio broadcaster");
+      await tapVisible("Skip");
+      expect(find.text("Skipped: 1"), findsOneWidget);
+      expect(find.text("With help: 1/1 correct"), findsOneWidget);
+      expect(find.textContaining("Self-rated"), findsNothing);
+      await tester.runAsync(() async {
+        expect(
+          await db.select(db.learningSentenceAttempts).get(),
+          hasLength(1),
+        );
+      });
+      expect(provider.calls, 0);
     },
   );
 

@@ -11,12 +11,13 @@ extension SentenceLearningStore on LanguageLearningStore {
   Future<void> recordSentence({
     required String batchId,
     required SentenceCard card,
-    required SentenceRating rating,
+    SentenceRating? rating,
     required Set<SentenceHelp> helpUsed,
     int? selectedIndex,
     Set<SentenceHelp> helpBeforeAnswer = const {},
   }) => runOperation(() async {
     final hasAnswer = selectedIndex != null && card.choices.isNotEmpty;
+    if (!hasAnswer && rating == null) return;
     await db
         .into(db.learningSentenceAttempts)
         .insert(
@@ -28,7 +29,8 @@ extension SentenceLearningStore on LanguageLearningStore {
             language: card.language,
             sentence: card.text,
             skill: card.skill?.name ?? "unscored",
-            rating: rating.name,
+            rating: Value(rating?.name),
+            targetSenseId: Value(card.target?.senseId),
             answer: Value(hasAnswer ? card.choices[selectedIndex] : null),
             correct: Value(
               hasAnswer ? selectedIndex == card.correctIndex : null,

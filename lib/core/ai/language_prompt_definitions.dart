@@ -106,7 +106,7 @@ const _languagePromptDefinitions = [
         "least half the batch. When focus is set, include checks on "
         "that skill for at least half, and vary the remaining content. "
         "Use exactly count items and the requested style. Set each level to "
-        "beginner, intermediate or advanced; mixed permits varied levels, "
+        "beginner or intermediate; mixed permits either level, "
         "not a literal level value. Otherwise match the requested level. "
         "Choose skill only from skills. "
         "Each example is 1–2 sentences or two short turns. Hints and "
@@ -123,7 +123,7 @@ const _languagePromptDefinitions = [
     "调整新情境中词义和用法的理解练习。",
     "使用新的自然情境，考查词汇在语境中的意思或用法。选项要有合理干扰，但只有一个明确正确的解释。",
     group: PromptGroup.language,
-    requestContract: "Create new English contexts using the supplied vocabulary. Return JSON with language \"en\" and sentences, exactly count items. Each item has text (a complete new sentence or short scene), hint, translation, level, skill \"meaningInContext\", and a mandatory check: {question, choices (3 or 4 meaning or usage interpretations in glossLanguage), correctIndex (zero based), explanation}. Use at least one supplied vocabulary form verbatim in every context. Ask what that word or expression means or how it is used in this context. The text must be sufficient to choose one answer. Never ask the learner to complete or reconstruct a sentence, supply a missing word, or recall a saved example. Do not use blanks, underscores, or omitted-word placeholders. Do not recycle exclude examples. Hints, translation, questions, choices and explanations use glossLanguage. When it is en, translation is a simple English paraphrase. Use level beginner, intermediate or advanced; mixed permits varied levels, not a literal level value. Hints must not disclose the answer. Distractors should be plausible in other contexts but ruled out here; explain the decisive clue.",
+    requestContract: "Create new English contexts testing the supplied target senses, not just matching their spelling. Return JSON with language \"en\" and sentences, exactly count items. Each item has targetIndex, text (a complete new sentence or short scene), hint, translation, level, skill \"meaningInContext\", and a mandatory check: {question, choices (3 or 4 meaning or usage interpretations in glossLanguage), correctIndex (zero based), explanation}. Use each targetIndex exactly once, in order. Use its form verbatim with its supplied meaning, not another sense of the same form. Name the target in the question and ask what it means or how it is used here. Match the requested style. The text must be sufficient to choose one answer. Never ask the learner to complete or reconstruct a sentence, supply a missing word, or recall a saved example. Do not use blanks, underscores, or omitted-word placeholders. Do not recycle exclude examples. Hints, translation, questions, choices and explanations use glossLanguage. When it is en, translation is a simple English paraphrase. Use level beginner or intermediate; mixed permits either level, not a literal level value. Otherwise match the requested level. Hints must not disclose the answer. Distractors should be plausible in other contexts but ruled out here; explain the decisive clue.",
   ),
   PromptDefinition(
     "language_sentence_check",
