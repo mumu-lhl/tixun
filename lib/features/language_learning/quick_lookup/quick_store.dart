@@ -132,7 +132,7 @@ extension QuickLookupStore on LanguageLearningStore {
       SELECT l.action_id, l.action_name, max(l.rowid)
       FROM language_quick_lookups l
       JOIN language_quick_actions a ON a.id = l.action_id
-      WHERE a.deleted
+      WHERE a.deleted AND l.deleted_at IS NULL
       GROUP BY l.action_id
       ORDER BY max(l.rowid) DESC
     """).get();
@@ -154,15 +154,17 @@ extension QuickLookupStore on LanguageLearningStore {
 
   Future<LanguageQuickLookup?> quickLookup(String id) async =>
       _withPromptSnapshot(
-        await (db.select(
-          db.languageQuickLookups,
-        )..where((row) => row.id.equals(id))).getSingleOrNull(),
+        await (db.select(db.languageQuickLookups)
+              ..where((row) => row.id.equals(id) & row.deletedAt.isNull()))
+            .getSingleOrNull(),
       );
 
   Future<LanguageQuickLookup?> cachedQuickLookup(String key) async =>
       _withPromptSnapshot(
         await (db.select(db.languageQuickLookups)
-              ..where((row) => row.cacheKey.equals(key))
+              ..where(
+                (row) => row.cacheKey.equals(key) & row.deletedAt.isNull(),
+              )
               ..orderBy([
                 (row) => OrderingTerm.desc(row.createdAt),
                 (row) => OrderingTerm.desc(row.rowId),
@@ -222,13 +224,42 @@ extension QuickLookupStore on LanguageLearningStore {
     }),
   );
 
-  Future<void> deleteQuickLookup(String id) => runOperation(() async {
-    await (db.delete(
-      db.languageQuickLookups,
-    )..where((row) => row.id.equals(id))).go();
-  });
+  Future<void> trashQuickLookups(Set<String> ids) =>
+      _setQuickLookupTrash(ids, DateTime.now());
+
+  Future<void> restoreQuickLookups(Set<String> ids) =>
+      _setQuickLookupTrash(ids, null);
+
+  Future<void> _setQuickLookupTrash(Set<String> ids, DateTime? deletedAt) =>
+      runOperation(() async {
+        await (db.update(db.languageQuickLookups)..where(
+              (row) =>
+                  row.id.isIn(ids) &
+                  (deletedAt == null
+                      ? row.deletedAt.isNotNull()
+                      : row.deletedAt.isNull()),
+            ))
+            .write(LanguageQuickLookupsCompanion(deletedAt: Value(deletedAt)));
+      });
+
+  Future<void> deleteTrashedQuickLookups(Set<String> ids) => runOperation(
+    () => db.transaction(() async {
+      final deleted =
+          await (db.delete(db.languageQuickLookups)
+                ..where((row) => row.id.isIn(ids) & row.deletedAt.isNotNull()))
+              .goAndReturn();
+      if (deleted.isEmpty) return;
+      await (db.delete(db.languageGenerationLinks)..where(
+            (link) =>
+                link.kind.equals("quick_lookup") &
+                link.contentId.isIn(deleted.map((row) => row.id)),
+          ))
+          .go();
+    }),
+  );
 
   Future<List<QuickHistoryRow>> quickHistory({
+    bool trashed = false,
     String? actionId,
     String search = "",
     QuickCursor? before,
@@ -237,7 +268,9 @@ extension QuickLookupStore on LanguageLearningStore {
     final query = trimmed.length <= quickSearchLimit
         ? trimmed
         : trimmed.substring(0, quickSearchLimit);
-    final conditions = <String>[];
+    final conditions = [
+      trashed ? "deleted_at IS NOT NULL" : "deleted_at IS NULL",
+    ];
     final parameters = <Variable>[];
     if (actionId != null) {
       conditions.add("action_id = ?");
@@ -263,11 +296,10 @@ extension QuickLookupStore on LanguageLearningStore {
       conditions.add("(created_at, rowid) < (?, ?)");
       parameters.addAll([Variable(before.time), Variable(before.rowId)]);
     }
-    final where = conditions.isEmpty ? "" : 'WHERE ${conditions.join(' AND ')}';
     final rows = await db.customSelect("""
       SELECT rowid, id, action_id, action_name, input, summary, created_at
       FROM language_quick_lookups
-      $where
+      WHERE ${conditions.join(' AND ')}
       ORDER BY created_at DESC, rowid DESC
       LIMIT $quickPageSize
     """, variables: parameters).get();

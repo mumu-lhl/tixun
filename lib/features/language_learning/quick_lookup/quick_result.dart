@@ -23,7 +23,7 @@ class QuickResult extends StatelessWidget {
   final ValueChanged<List<VocabularyEntry>> onVocabulary;
   final ValueChanged<QuickSentence?> onSentence;
   final VoidCallback? onDiscuss, onRegenerate;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +79,7 @@ class QuickResult extends StatelessWidget {
                     case "retry":
                       onRegenerate?.call();
                     case "delete":
-                      onDelete();
+                      onDelete?.call();
                   }
                 },
                 itemBuilder: (context) => [
@@ -100,7 +100,11 @@ class QuickResult extends StatelessWidget {
                     enabled: onRegenerate != null,
                     child: Text(l10n.quickRegenerate),
                   ),
-                  PopupMenuItem(value: "delete", child: Text(l10n.delete)),
+                  PopupMenuItem(
+                    value: "delete",
+                    enabled: onDelete != null,
+                    child: Text(l10n.moveToTrash),
+                  ),
                 ],
               ),
             ],
@@ -111,12 +115,36 @@ class QuickResult extends StatelessWidget {
   }
 }
 
+class QuickHistorySelectionTile extends StatelessWidget {
+  const QuickHistorySelectionTile({
+    required this.row,
+    required this.selected,
+    required this.onChanged,
+    super.key,
+  });
+
+  final QuickHistoryRow row;
+  final bool selected;
+  final ValueChanged<bool?>? onChanged;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: CheckboxListTile(
+      value: selected,
+      onChanged: onChanged,
+      title: Text(row.input, maxLines: 2, overflow: TextOverflow.ellipsis),
+      subtitle: Text(row.summary, maxLines: 2, overflow: TextOverflow.ellipsis),
+    ),
+  );
+}
+
 class QuickHistoryTile extends StatelessWidget {
   const QuickHistoryTile({
     required this.row,
     required this.detail,
     required this.answer,
     required this.onToggle,
+    required this.onSelect,
     super.key,
   });
 
@@ -124,6 +152,7 @@ class QuickHistoryTile extends StatelessWidget {
   final Future<LanguageQuickLookup?>? detail;
   final Widget Function(LanguageQuickLookup) answer;
   final VoidCallback onToggle;
+  final VoidCallback? onSelect;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -141,6 +170,7 @@ class QuickHistoryTile extends StatelessWidget {
             detail == null ? Icons.expand_more : Icons.expand_less,
           ),
           onTap: onToggle,
+          onLongPress: onSelect,
         ),
         if (detail != null)
           FutureBuilder(

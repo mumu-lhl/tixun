@@ -12,6 +12,41 @@ import "../../generated_migrations/schema.dart";
 import "../../support/quick_lookup.dart";
 
 void main() {
+  test("v32 lookup history starts outside Trash after upgrade", () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(32);
+    final raw = schema.rawDatabase;
+    raw.execute("""
+      INSERT INTO language_quick_actions
+      (id, name, icon, description, input_hint, prompt, source_language, target_language,
+       gloss_language, detailed, position, built_in, enabled, revision, created_at, updated_at)
+      VALUES ('action', 'Meaning', 'meaning', '', '', 'prompt', 'auto', 'en',
+              'zh', 0, 0, 1, 1, 1, 1, 1)
+      """);
+    raw.execute("""
+      INSERT INTO language_quick_lookups
+      (id, action_id, action_name, prompt, action_revision, schema_revision, input,
+       source_language, target_language, gloss_language, level, detailed, summary,
+       content, candidates, provider, model, cache_key, created_at)
+      VALUES ('lookup', 'action', 'Meaning', 'prompt', 1, 1, 'pleasure',
+              'auto', 'en', 'zh', 'beginner', 0, 'summary',
+              'content', '{}', 'mock', 'model', 'key', 1)
+      """);
+    final db = AppDatabase(schema.newConnection());
+    final store = LanguageLearningStore(db);
+    addTearDown(() async {
+      store.dispose();
+      await db.close();
+    });
+
+    await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+    expect((await store.quickHistory()).single.id, "lookup");
+    expect(await store.quickHistory(trashed: true), isEmpty);
+    expect((await store.cachedQuickLookup("key"))?.content, "content");
+    await store.trashQuickLookups({"lookup"});
+    expect((await store.quickHistory(trashed: true)).single.id, "lookup");
+  });
+
   test(
     "v31 vocabulary remains active with its FSRS state after upgrade",
     () async {
@@ -150,8 +185,21 @@ void main() {
       entries: const [VocabularyEntry(form: "pleasure", meaning: "愉悦")],
     );
     expect(await db.select(db.languageQuickLearningLinks).get(), hasLength(1));
-    await store.deleteQuickLookup(lookup.id);
+    await store.trashQuickLookups({lookup.id});
     expect(await store.quickHistory(search: "MY PLEASURE"), isEmpty);
+    expect(
+      (await store.quickHistory(
+        trashed: true,
+        search: "MY PLEASURE",
+      )).single.id,
+      lookup.id,
+    );
+    expect(await db.select(db.languageQuickLearningLinks).get(), hasLength(1));
+    await store.deleteTrashedQuickLookups({lookup.id});
+    expect(
+      await store.quickHistory(trashed: true, search: "MY PLEASURE"),
+      isEmpty,
+    );
     expect(await db.select(db.languageQuickLearningLinks).get(), isEmpty);
     expect(await db.select(db.learningLexicalSenses).get(), hasLength(1));
     expect(await db.customSelect("PRAGMA foreign_key_check").get(), isEmpty);

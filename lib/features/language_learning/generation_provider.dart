@@ -26,7 +26,7 @@ class LanguageGenerationProvider implements ChatProvider {
   final ProviderConfig Function() configuration;
   final PromptSettings Function() promptSettings;
   final LanguageGenerationStore history;
-  final GenerationComparison compare;
+  final GenerationComparison? compare;
 
   @override
   AiConversation start(ProviderConfig config, {String? apiKeyOverride}) =>

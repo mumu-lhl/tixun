@@ -53,6 +53,9 @@ extension _DatabaseMigrations on AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from >= 25 && from < 33) {
+        await m.addColumn(languageQuickLookups, languageQuickLookups.deletedAt);
+      }
       if (from >= 22 && from < 32) {
         await m.addColumn(
           learningLexicalSenses,

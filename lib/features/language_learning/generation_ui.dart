@@ -15,15 +15,21 @@ import "generation_store.dart";
 import "language_data.dart";
 import "language_layout.dart";
 
-ChatProvider languageGenerationProvider(BuildContext context, AppController c) {
+ChatProvider languageGenerationProvider(
+  BuildContext context,
+  AppController c, {
+  bool compareVersions = true,
+}) {
   if (c.provider is MockChatProvider) return c.provider;
   return LanguageGenerationProvider(
     provider: () => c.provider,
     configuration: () => c.config,
     promptSettings: () => c.prompts,
     history: LanguageGenerationStore(c.db),
-    compare: (old, fresh, cancel) =>
-        compareLanguageGenerations(context, old, fresh, cancel),
+    compare: compareVersions
+        ? (old, fresh, cancel) =>
+              compareLanguageGenerations(context, old, fresh, cancel)
+        : null,
   );
 }
 

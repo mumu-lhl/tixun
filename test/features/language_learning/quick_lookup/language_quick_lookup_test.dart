@@ -144,8 +144,33 @@ void main() {
       replacement.id,
       first.id,
     ]);
-    await store.deleteQuickLookup(replacement.id);
+    final nextPage = (await store.quickHistory()).first.cursor;
+    await store.trashQuickLookups({replacement.id, first.id});
+    expect(await store.quickHistory(search: "enjoyment"), isEmpty);
+    expect(await store.quickLookup(first.id), isNull);
+    expect(await store.cachedQuickLookup(first.cacheKey), isNull);
+    expect(await store.deletedQuickActionLabels(), isEmpty);
+    expect((await store.quickHistory(trashed: true)).map((row) => row.id), [
+      replacement.id,
+      first.id,
+    ]);
+    expect(
+      (await store.quickHistory(trashed: true, before: nextPage)).single.id,
+      first.id,
+    );
+
+    await store.restoreQuickLookups({first.id});
+    expect(await store.quickLookup(first.id), first);
+    expect(await store.cachedQuickLookup(first.cacheKey), first);
+    expect(await store.deletedQuickActionLabels(), {custom.id: "My task"});
     expect((await store.quickHistory(search: "enjoyment")).single.id, first.id);
+
+    await store.deleteTrashedQuickLookups({first.id, replacement.id});
+    expect(await store.quickHistory(trashed: true), isEmpty);
+    expect(
+      (await db.select(db.languageQuickLookups).get()).single.id,
+      first.id,
+    );
   });
 
   test(

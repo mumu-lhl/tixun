@@ -123,19 +123,22 @@ class QuickQuery {
     required this.detailed,
   });
 
-  QuickQuery.fromLookup(LanguageQuickLookup row)
-    : this(
-        actionId: row.actionId,
-        actionName: row.actionName,
-        actionRevision: row.actionRevision,
-        prompt: row.prompt,
-        input: row.input,
-        sourceLanguage: row.sourceLanguage,
-        targetLanguage: row.targetLanguage,
-        glossLanguage: row.glossLanguage,
-        level: row.level,
-        detailed: row.detailed,
-      );
+  QuickQuery.fromLookup(
+    LanguageQuickLookup row, {
+    LanguageQuickAction? action,
+    String? actionName,
+  }) : this(
+         actionId: row.actionId,
+         actionName: actionName ?? row.actionName,
+         actionRevision: action?.revision ?? row.actionRevision,
+         prompt: action?.prompt ?? row.prompt,
+         input: row.input,
+         sourceLanguage: row.sourceLanguage,
+         targetLanguage: row.targetLanguage,
+         glossLanguage: row.glossLanguage,
+         level: row.level,
+         detailed: row.detailed,
+       );
 
   final String actionId, actionName, prompt, input;
   final String sourceLanguage, targetLanguage, glossLanguage, level;

@@ -45,6 +45,7 @@ class LanguageQuickLookups extends Table {
   TextColumn get model => text()();
   TextColumn get cacheKey => text()();
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

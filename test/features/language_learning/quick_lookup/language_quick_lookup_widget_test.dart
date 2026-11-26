@@ -1,3 +1,5 @@
+import "dart:async";
+import "dart:convert";
 import "dart:io";
 
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -6,6 +8,7 @@ import "package:material_ui/material_ui.dart";
 import "package:tixun/app/app.dart";
 import "package:tixun/app/controller.dart";
 import "package:tixun/core/ai/ai_usage_store.dart";
+import "package:tixun/core/ai/chat_provider.dart";
 import "package:tixun/core/database/database.dart";
 import "package:tixun/core/platform/attachment_store.dart";
 import "package:tixun/core/platform/key_store.dart";
@@ -82,7 +85,8 @@ void main() {
       }
 
       Future<void> tap(Finder target) async {
-        await tester.ensureVisible(target);
+        await Scrollable.ensureVisible(tester.element(target), alignment: 0.3);
+        await tester.pump();
         await tester.runAsync(() => tester.tap(target));
         await settled();
       }
@@ -284,6 +288,165 @@ void main() {
         expect(saved.sourceLanguage, action.sourceLanguage);
         expect(saved.glossLanguage, action.glossLanguage);
       });
+
+      // Reopen with no composer result, so regeneration must use the chosen
+      // history entry. The deleted task must still work from its snapshot.
+      if (width == 360) {
+        tester.platformDispatcher.textScaleFactorTestValue = 1.45;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      }
+      router.go("/language");
+      await settled();
+      await tap(find.text("Language quick lookup"));
+      final store = controller.language;
+      final originalRows = (await tester.runAsync(() => store.quickHistory()))!;
+      final pleasure = originalRows.firstWhere((r) => r.input == "pleasure");
+      final oldCustom = originalRows.firstWhere(
+        (r) => r.input == "old custom input",
+      );
+      Finder row(String id) => find.byKey(ValueKey(id));
+      Finder checkbox(String id) =>
+          find.descendant(of: row(id), matching: find.byType(CheckboxListTile));
+
+      Future<void> revealInHistory(Finder target) async {
+        if (target.evaluate().isEmpty) {
+          await tester.scrollUntilVisible(
+            target,
+            160,
+            scrollable: find
+                .descendant(
+                  of: find.byType(CustomScrollView),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          );
+        }
+        await tester.ensureVisible(target);
+      }
+
+      Future<void> selectRows(List<String> ids) async {
+        await tap(find.byTooltip("Select lookups"));
+        for (final id in ids) {
+          await revealInHistory(checkbox(id));
+          await tap(checkbox(id));
+        }
+      }
+
+      await revealInHistory(row(oldCustom.id));
+      await tap(row(oldCustom.id));
+      await tap(
+        find.descendant(
+          of: row(oldCustom.id),
+          matching: find.byType(PopupMenuButton<String>),
+        ),
+      );
+      await tap(find.text("Regenerate"));
+      expect(provider.requests, hasLength(3));
+      expect(
+        provider.requests.last.instructions,
+        contains("Rephrase the input field in the user data"),
+      );
+      expect(find.text("Regenerated 1 of 1 lookup."), findsOneWidget);
+      final messenger = ScaffoldMessenger.of(tester.element(input));
+      messenger.removeCurrentSnackBar();
+      await settled();
+
+      await revealInHistory(row(pleasure.id));
+      await tester.longPress(
+        find.descendant(of: row(pleasure.id), matching: find.byType(ListTile)),
+      );
+      await settled();
+      expect(
+        tester.widget<CheckboxListTile>(checkbox(pleasure.id)).value,
+        true,
+      );
+      expect(find.text("Selected: 1"), findsOneWidget);
+      await revealInHistory(checkbox(oldCustom.id));
+      await tap(checkbox(oldCustom.id));
+      final regenerate = find.widgetWithText(FilledButton, "Regenerate");
+      final move = find.widgetWithText(OutlinedButton, "Move to Trash");
+      expect(tester.getSize(regenerate).height, tester.getSize(move).height);
+      expect(find.text("Selected: 2"), findsOneWidget);
+      await tap(regenerate);
+      expect(provider.requests, hasLength(5));
+      expect(
+        [
+          for (final request in provider.requests.skip(3))
+            (jsonDecode(request.messages.single.text) as Map)["input"],
+        ],
+        ["pleasure", "old custom input"],
+      );
+      expect(find.text("Regenerated 2 of 2 lookups."), findsOneWidget);
+      final afterBatch = (await tester.runAsync(() => store.quickHistory()))!;
+      expect(afterBatch, hasLength(5));
+      expect(
+        afterBatch.map((r) => r.id),
+        containsAll([pleasure.id, oldCustom.id]),
+      );
+      messenger.removeCurrentSnackBar();
+      await settled();
+
+      // The first item completes, the second remains in progress, and the
+      // third must never be submitted after stopping.
+      final pending = StreamController<AiChunk>();
+      final normalReply = provider.reply;
+      provider.reply = (cancel) =>
+          provider.requests.length == 7 ? pending.stream : normalReply(cancel);
+      await selectRows(afterBatch.take(3).map((r) => r.id).toList());
+      await tap(regenerate);
+      expect(provider.requests, hasLength(7));
+      expect(find.text("Regenerating lookup 2 of 3…"), findsOneWidget);
+      await tap(find.text("Stop generating"));
+      expect(provider.requests, hasLength(7));
+      expect(
+        find.text("Generation stopped. Regenerated 1 of 3 lookups."),
+        findsOneWidget,
+      );
+      expect(await tester.runAsync(() => store.quickHistory()), hasLength(6));
+      unawaited(pending.close());
+      messenger.removeCurrentSnackBar();
+      await settled();
+
+      await selectRows([pleasure.id, oldCustom.id]);
+      expect(find.text("Delete permanently"), findsNothing);
+      await tap(move);
+      expect(row(pleasure.id), findsNothing);
+      expect(row(oldCustom.id), findsNothing);
+      final trashed = (await tester.runAsync(
+        () => store.quickHistory(trashed: true),
+      ))!;
+      expect(
+        trashed.map((r) => r.id),
+        unorderedEquals([pleasure.id, oldCustom.id]),
+      );
+      await tap(find.byTooltip("Lookup Trash"));
+      await tap(checkbox(pleasure.id));
+      await tap(find.text("Restore"));
+      expect(checkbox(pleasure.id), findsNothing);
+
+      await tap(checkbox(oldCustom.id));
+      final permanently = find.text("Delete permanently");
+      await tap(permanently);
+      final dialog = find.byType(AlertDialog);
+      expect(dialog, findsOneWidget);
+      expect(find.textContaining("This cannot be undone."), findsOneWidget);
+      await tap(find.descendant(of: dialog, matching: find.text("Cancel")));
+      expect(checkbox(oldCustom.id), findsOneWidget);
+      await tap(permanently);
+      await tap(find.descendant(of: dialog, matching: permanently));
+      expect(find.text("Trash is empty"), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await settled();
+      await tester.runAsync(() async {
+        expect(await store.quickLookup(pleasure.id), isNotNull);
+        expect(await store.quickHistory(trashed: true), isEmpty);
+        expect(
+          (await controller.db.select(controller.db.languageQuickLookups).get())
+              .map((row) => row.id),
+          isNot(contains(oldCustom.id)),
+        );
+      });
+      expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await settled();

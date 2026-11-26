@@ -32464,6 +32464,17 @@ class $LanguageQuickLookupsTable extends LanguageQuickLookups
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -32486,6 +32497,7 @@ class $LanguageQuickLookupsTable extends LanguageQuickLookups
     model,
     cacheKey,
     createdAt,
+    deletedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -32672,6 +32684,12 @@ class $LanguageQuickLookupsTable extends LanguageQuickLookups
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -32761,6 +32779,10 @@ class $LanguageQuickLookupsTable extends LanguageQuickLookups
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -32792,6 +32814,7 @@ class LanguageQuickLookup extends DataClass
   final String model;
   final String cacheKey;
   final DateTime createdAt;
+  final DateTime? deletedAt;
   const LanguageQuickLookup({
     required this.id,
     required this.actionId,
@@ -32813,6 +32836,7 @@ class LanguageQuickLookup extends DataClass
     required this.model,
     required this.cacheKey,
     required this.createdAt,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -32839,6 +32863,9 @@ class LanguageQuickLookup extends DataClass
     map['model'] = Variable<String>(model);
     map['cache_key'] = Variable<String>(cacheKey);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     return map;
   }
 
@@ -32866,6 +32893,9 @@ class LanguageQuickLookup extends DataClass
       model: Value(model),
       cacheKey: Value(cacheKey),
       createdAt: Value(createdAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -32895,6 +32925,7 @@ class LanguageQuickLookup extends DataClass
       model: serializer.fromJson<String>(json['model']),
       cacheKey: serializer.fromJson<String>(json['cacheKey']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
   @override
@@ -32921,6 +32952,7 @@ class LanguageQuickLookup extends DataClass
       'model': serializer.toJson<String>(model),
       'cacheKey': serializer.toJson<String>(cacheKey),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
 
@@ -32945,6 +32977,7 @@ class LanguageQuickLookup extends DataClass
     String? model,
     String? cacheKey,
     DateTime? createdAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
   }) => LanguageQuickLookup(
     id: id ?? this.id,
     actionId: actionId ?? this.actionId,
@@ -32968,6 +33001,7 @@ class LanguageQuickLookup extends DataClass
     model: model ?? this.model,
     cacheKey: cacheKey ?? this.cacheKey,
     createdAt: createdAt ?? this.createdAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   LanguageQuickLookup copyWithCompanion(LanguageQuickLookupsCompanion data) {
     return LanguageQuickLookup(
@@ -33007,6 +33041,7 @@ class LanguageQuickLookup extends DataClass
       model: data.model.present ? data.model.value : this.model,
       cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -33032,13 +33067,14 @@ class LanguageQuickLookup extends DataClass
           ..write('provider: $provider, ')
           ..write('model: $model, ')
           ..write('cacheKey: $cacheKey, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     actionId,
     actionName,
@@ -33059,7 +33095,8 @@ class LanguageQuickLookup extends DataClass
     model,
     cacheKey,
     createdAt,
-  );
+    deletedAt,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -33083,7 +33120,8 @@ class LanguageQuickLookup extends DataClass
           other.provider == this.provider &&
           other.model == this.model &&
           other.cacheKey == this.cacheKey &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.deletedAt == this.deletedAt);
 }
 
 class LanguageQuickLookupsCompanion
@@ -33108,6 +33146,7 @@ class LanguageQuickLookupsCompanion
   final Value<String> model;
   final Value<String> cacheKey;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> deletedAt;
   final Value<int> rowid;
   const LanguageQuickLookupsCompanion({
     this.id = const Value.absent(),
@@ -33130,6 +33169,7 @@ class LanguageQuickLookupsCompanion
     this.model = const Value.absent(),
     this.cacheKey = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LanguageQuickLookupsCompanion.insert({
@@ -33153,6 +33193,7 @@ class LanguageQuickLookupsCompanion
     required String model,
     required String cacheKey,
     required DateTime createdAt,
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        actionId = Value(actionId),
@@ -33194,6 +33235,7 @@ class LanguageQuickLookupsCompanion
     Expression<String>? model,
     Expression<String>? cacheKey,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -33217,6 +33259,7 @@ class LanguageQuickLookupsCompanion
       if (model != null) 'model': model,
       if (cacheKey != null) 'cache_key': cacheKey,
       if (createdAt != null) 'created_at': createdAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -33242,6 +33285,7 @@ class LanguageQuickLookupsCompanion
     Value<String>? model,
     Value<String>? cacheKey,
     Value<DateTime>? createdAt,
+    Value<DateTime?>? deletedAt,
     Value<int>? rowid,
   }) {
     return LanguageQuickLookupsCompanion(
@@ -33265,6 +33309,7 @@ class LanguageQuickLookupsCompanion
       model: model ?? this.model,
       cacheKey: cacheKey ?? this.cacheKey,
       createdAt: createdAt ?? this.createdAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -33332,6 +33377,9 @@ class LanguageQuickLookupsCompanion
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -33361,6 +33409,7 @@ class LanguageQuickLookupsCompanion
           ..write('model: $model, ')
           ..write('cacheKey: $cacheKey, ')
           ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

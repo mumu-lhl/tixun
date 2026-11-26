@@ -1,5 +1,3 @@
-import "../generation_ui.dart";
-
 import "dart:async";
 
 import "package:dio/dio.dart";
@@ -15,8 +13,10 @@ import "../../../core/l10n/app_error.dart";
 import "../../../core/database/database.dart";
 import "../../../core/l10n/app_error_localization.dart";
 import "../../../core/l10n/app_strings.dart";
+import "../../../core/l10n/generated/app_localizations.dart";
 import "../../../core/ui/app_menu.dart";
 import "../../../core/ui/actions.dart";
+import "../generation_ui.dart";
 import "quick_action_editor.dart";
 import "quick_ai.dart";
 import "quick_labels.dart";
@@ -24,6 +24,7 @@ import "quick_learning.dart";
 import "quick_models.dart";
 import "quick_result.dart";
 import "quick_store.dart";
+import "quick_trash_screen.dart";
 
 class QuickLookupScreen extends ConsumerStatefulWidget {
   const QuickLookupScreen({super.key, this.initialInput = ""});
@@ -44,6 +45,9 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   String? _expandedId;
   Future<LanguageQuickLookup?>? _detail;
   final _rows = <QuickHistoryRow>[];
+  final _selected = <String>{};
+  var _selecting = false;
+  var _movingHistory = false;
   List<LanguageQuickAction>? _actions;
   Map<String, String> _deletedLabels = {};
   late String? _actionId = widget.initialInput.isEmpty
@@ -63,7 +67,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   CancelToken? _cancel;
   LanguageQuickLookup? _result;
   QuickQuery? _failedQuery;
-  var _failedRegen = false;
+  ({int current, int total})? _regenerating;
   String? _error;
 
   @override
@@ -155,7 +159,10 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
       _search.clear();
       _keyword = "";
       _searchFocus.unfocus();
-      setState(() => _searchOpen = false);
+      setState(() {
+        _selected.clear();
+        _searchOpen = false;
+      });
       unawaited(_refreshHistory());
     } else {
       setState(() => _searchOpen = true);
@@ -165,10 +172,38 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
 
   void _searchChanged(String text) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 200), () {
+    _debounce = Timer(
+      const Duration(milliseconds: 200),
+      () => _applySearch(text),
+    );
+  }
+
+  void _applySearch(String text) {
+    if (text == _keyword) return;
+    setState(() {
       _keyword = text;
-      unawaited(_refreshHistory());
+      _selected.clear();
     });
+    unawaited(_refreshHistory());
+  }
+
+  void _toggleSelection({String? firstId}) => setState(() {
+    _selecting = !_selecting;
+    _selected.clear();
+    if (firstId != null) _selected.add(firstId);
+    _expandedId = null;
+    _detail = null;
+  });
+
+  Future<void> _openTrash() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => QuickLookupTrashScreen(store: _store),
+      ),
+    );
+    if (!mounted) return;
+    await _refreshActions();
+    if (mounted) await _refreshHistory();
   }
 
   Future<void> _manageActions() async {
@@ -206,8 +241,8 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
     );
   }
 
-  Future<void> _lookup(QuickQuery query, {bool regenerate = false}) async {
-    if (_cancel != null) return;
+  Future<void> _lookup(QuickQuery query) async {
+    if (_cancel != null || _movingHistory) return;
     final cancel = CancelToken();
     setState(() {
       _cancel = cancel;
@@ -215,40 +250,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
       _failedQuery = null;
     });
     try {
-      if (regenerate) {
-        final actions = await _store.quickActions();
-        final current = actions
-            .where((a) => a.id == query.actionId)
-            .firstOrNull;
-        if (!mounted || cancel.isCancelled) return;
-        if (current != null) {
-          query = QuickQuery(
-            actionId: current.id,
-            actionName: current.name,
-            actionRevision: current.revision,
-            prompt: current.prompt,
-            input: query.input,
-            sourceLanguage: query.sourceLanguage,
-            targetLanguage: query.targetLanguage,
-            glossLanguage: query.glossLanguage,
-            level: query.level,
-            detailed: query.detailed,
-          );
-        }
-      }
-      final provider = languageGenerationProvider(context, _controller);
-      final row =
-          await QuickLookupAi(
-            _store,
-            provider,
-            _controller.config,
-            AiUsageStore(_controller.db),
-          ).lookup(
-            query,
-            cancel,
-            regenerate: regenerate,
-            original: regenerate ? _result : null,
-          );
+      final row = await _lookupAi().lookup(query, cancel);
       if (!mounted) return;
       setState(() => _result = row);
       await _refreshHistory();
@@ -256,42 +258,131 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
       if (!mounted || cancel.isCancelled) return;
       final l10n = context.l10n;
       setState(() {
-        _error = switch (error) {
-          LocalizedAppFailure() => failureText(l10n, error),
-          FormatException() => l10n.quickInvalidResponse,
-          _ => l10n.quickUnavailable,
-        };
+        _error = _lookupError(l10n, error);
         _failedQuery = query;
-        _failedRegen = regenerate;
       });
     } finally {
       if (mounted) setState(() => _cancel = null);
     }
   }
 
-  Future<void> _removeLookup(LanguageQuickLookup row) async {
-    if (!await confirmQuickDelete(context, context.l10n.quickRemoveLookup) ||
-        !mounted) {
-      return;
+  String _lookupError(AppLocalizations l10n, Object error) => switch (error) {
+    LocalizedAppFailure() => failureText(l10n, error),
+    FormatException() => l10n.quickInvalidResponse,
+    _ => l10n.quickUnavailable,
+  };
+
+  QuickLookupAi _lookupAi() => QuickLookupAi(
+    _store,
+    languageGenerationProvider(context, _controller, compareVersions: false),
+    _controller.config,
+    AiUsageStore(_controller.db),
+  );
+
+  Future<void> _regenerate(List<String> ids) async {
+    if (!_canMoveHistory || ids.isEmpty) return;
+    final cancel = CancelToken();
+    final total = ids.length;
+    FocusScope.of(context).unfocus();
+    final ai = _lookupAi();
+    setState(() {
+      _cancel = cancel;
+      _regenerating = (current: 1, total: total);
+      _error = null;
+      _failedQuery = null;
+    });
+
+    var completed = 0;
+    var failed = 0;
+    Object? lastError;
+    LanguageQuickLookup? latest;
+    try {
+      final actions = {
+        for (final action in await _store.quickActions()) action.id: action,
+      };
+      for (final (index, id) in ids.indexed) {
+        if (!mounted || cancel.isCancelled) break;
+        setState(() => _regenerating = (current: index + 1, total: total));
+        try {
+          final original = await _store.quickLookup(id);
+          if (!mounted || cancel.isCancelled) break;
+          if (original == null) {
+            failed++;
+            continue;
+          }
+          final current = actions[original.actionId];
+          latest = await ai.lookup(
+            QuickQuery.fromLookup(
+              original,
+              action: current,
+              actionName: current == null ? null : quickName(context, current),
+            ),
+            cancel,
+            regenerate: true,
+            original: original,
+          );
+          completed++;
+        } catch (error) {
+          if (cancel.isCancelled) break;
+          lastError = error;
+          failed++;
+        }
+      }
+    } catch (error) {
+      if (!cancel.isCancelled) {
+        lastError = error;
+        failed = total;
+      }
     }
+    if (!mounted) return;
+    setState(() {
+      if (latest != null) _result = latest;
+      _selected.clear();
+      _selecting = false;
+    });
+    if (completed > 0) await _refreshHistory();
+    if (!mounted) return;
+    setState(() {
+      _cancel = null;
+      _regenerating = null;
+    });
+    final l10n = context.l10n;
+    final summary = l10n.quickRegenerationSummary(completed, total, failed);
+    final message = cancel.isCancelled && completed + failed < total
+        ? "${l10n.generationStopped} $summary"
+        : total == 1 && lastError != null
+        ? _lookupError(l10n, lastError)
+        : summary;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool get _canMoveHistory =>
+      !_movingHistory && !_usingResult && _cancel == null;
+
+  Future<void> _moveToTrash(Set<String> ids) async {
+    if (ids.isEmpty || !_canMoveHistory) return;
+    setState(() => _movingHistory = true);
     await act(context, () async {
-      await _store.deleteQuickLookup(row.id);
+      await _store.trashQuickLookups(ids);
       if (!mounted) return;
       setState(() {
-        if (_expandedId == row.id) {
+        if (ids.contains(_expandedId)) {
           _expandedId = null;
           _detail = null;
         }
-        if (_result?.id == row.id) _result = null;
+        if (ids.contains(_result?.id)) _result = null;
+        _selected.removeAll(ids);
+        if (_selected.isEmpty) _selecting = false;
       });
       await _refreshActions();
-      if (!mounted) return;
-      await _refreshHistory();
+      if (mounted) await _refreshHistory();
     });
+    if (mounted) setState(() => _movingHistory = false);
   }
 
   Future<void> _withResult(Future<void> Function() use) async {
-    if (_usingResult) return;
+    if (_usingResult || _movingHistory || _regenerating != null) return;
     setState(() => _usingResult = true);
     try {
       await act(context, use);
@@ -311,19 +402,8 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
         ? null
         : () =>
               _withResult(() => discussQuickLookup(context, _controller, row)),
-    onRegenerate: _cancel != null
-        ? null
-        : () {
-            unawaited(
-              _scroll.animateTo(
-                0,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOut,
-              ),
-            );
-            unawaited(_lookup(QuickQuery.fromLookup(row), regenerate: true));
-          },
-    onDelete: () => _withResult(() => _removeLookup(row)),
+    onRegenerate: _canMoveHistory ? () => _regenerate([row.id]) : null,
+    onDelete: _canMoveHistory ? () => _moveToTrash({row.id}) : null,
   );
 
   Widget _composer(BuildContext context) {
@@ -392,7 +472,8 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             alignment: AlignmentDirectional.centerEnd,
             child: ValueListenableBuilder(
               valueListenable: _input,
-              builder: (context, value, _) => _cancel != null
+              builder: (context, value, _) =>
+                  _cancel != null && _regenerating == null
                   ? OutlinedButton(
                       onPressed: () => _cancel?.cancel(),
                       child: Text(l10n.stopGenerating),
@@ -400,7 +481,9 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                   : FilledButton(
                       onPressed:
                           value.text.trim().isEmpty ||
-                              value.text.length > quickInputLimit
+                              value.text.length > quickInputLimit ||
+                              _movingHistory ||
+                              _cancel != null
                           ? null
                           : () {
                               FocusScope.of(context).unfocus();
@@ -411,7 +494,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             ),
           ),
         ],
-        if (_cancel != null) ...[
+        if (_cancel != null && _regenerating == null) ...[
           const SizedBox(height: 16),
           const LinearProgressIndicator(),
           const SizedBox(height: 8),
@@ -425,7 +508,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             trailing: TextButton(
               onPressed: _failedQuery == null || _cancel != null
                   ? null
-                  : () => _lookup(_failedQuery!, regenerate: _failedRegen),
+                  : () => _lookup(_failedQuery!),
               child: Text(l10n.retry),
             ),
           ),
@@ -472,11 +555,11 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                         FilteringTextInputFormatter.deny(RegExp(r"\x00")),
                       ],
                       textInputAction: TextInputAction.search,
+                      readOnly: _regenerating != null,
                       onChanged: _searchChanged,
                       onSubmitted: (text) {
                         _debounce?.cancel();
-                        _keyword = text;
-                        unawaited(_refreshHistory());
+                        _applySearch(text);
                       },
                       decoration: InputDecoration(
                         hintText: l10n.quickHistorySearch,
@@ -490,8 +573,25 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             ),
             IconButton(
               tooltip: _searchOpen ? l10n.close : l10n.quickHistorySearch,
-              onPressed: _toggleSearch,
+              onPressed: _regenerating == null ? _toggleSearch : null,
               icon: Icon(_searchOpen ? Icons.close : Icons.search),
+            ),
+            IconButton(
+              tooltip: _selecting ? l10n.cancel : l10n.quickSelectHistory,
+              onPressed:
+                  _movingHistory ||
+                      _regenerating != null ||
+                      (!_selecting && _rows.isEmpty)
+                  ? null
+                  : _toggleSelection,
+              icon: Icon(_selecting ? Icons.close : Icons.checklist),
+            ),
+            IconButton(
+              tooltip: l10n.quickTrash,
+              onPressed: _movingHistory || _regenerating != null
+                  ? null
+                  : _openTrash,
+              icon: const Icon(Icons.delete_outline),
             ),
           ],
         ),
@@ -520,14 +620,17 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                       child: Text(entry.value, overflow: TextOverflow.ellipsis),
                     ),
                 ],
-                onChanged: (value) {
-                  _debounce?.cancel();
-                  setState(() {
-                    _filterId = value == "" ? null : value;
-                    _keyword = _search.text;
-                  });
-                  unawaited(_refreshHistory());
-                },
+                onChanged: _regenerating != null
+                    ? null
+                    : (value) {
+                        _debounce?.cancel();
+                        setState(() {
+                          _filterId = value == "" ? null : value;
+                          _keyword = _search.text;
+                          _selected.clear();
+                        });
+                        unawaited(_refreshHistory());
+                      },
               ),
             ),
           ),
@@ -537,32 +640,121 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
     );
   }
 
-  Widget _historyItem(QuickHistoryRow row) => QuickHistoryTile(
-    key: ValueKey(row.id),
-    row: row,
-    detail: _expandedId == row.id ? _detail : null,
-    answer: _answer,
-    onToggle: () => setState(() {
-      final expanding = _expandedId != row.id;
-      _expandedId = expanding ? row.id : null;
-      _detail = expanding ? _store.quickLookup(row.id) : null;
-    }),
-  );
+  Widget _historyItem(QuickHistoryRow row) {
+    if (_selecting) {
+      return QuickHistorySelectionTile(
+        key: ValueKey(row.id),
+        row: row,
+        selected: _selected.contains(row.id),
+        onChanged: _movingHistory || _regenerating != null
+            ? null
+            : (checked) => setState(() {
+                if (checked == true) {
+                  _selected.add(row.id);
+                } else {
+                  _selected.remove(row.id);
+                }
+              }),
+      );
+    }
+    return QuickHistoryTile(
+      key: ValueKey(row.id),
+      row: row,
+      detail: _expandedId == row.id ? _detail : null,
+      answer: _answer,
+      onSelect: _movingHistory || _regenerating != null
+          ? null
+          : () => _toggleSelection(firstId: row.id),
+      onToggle: () => setState(() {
+        final expanding = _expandedId != row.id;
+        _expandedId = expanding ? row.id : null;
+        _detail = expanding ? _store.quickLookup(row.id) : null;
+      }),
+    );
+  }
+
+  Widget _historyActionBar(BuildContext context) {
+    final l10n = context.l10n;
+    final progress = _regenerating;
+    final canApply = _canMoveHistory && _selected.isNotEmpty;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 4,
+          children: [
+            if (progress != null) ...[
+              LinearProgressIndicator(
+                value: (progress.current - 1) / progress.total,
+              ),
+              Text(
+                l10n.quickRegenerationProgress(
+                  progress.current,
+                  progress.total,
+                ),
+              ),
+              OutlinedButton(
+                onPressed: _cancel!.isCancelled
+                    ? null
+                    : () => setState(() => _cancel!.cancel()),
+                child: Text(l10n.stopGenerating),
+              ),
+            ] else ...[
+              Text(l10n.selected(_selected.length.toString())),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton(
+                    onPressed: canApply
+                        ? () => _regenerate(_selected.toList())
+                        : null,
+                    child: Text(l10n.quickRegenerate),
+                  ),
+                  OutlinedButton(
+                    onPressed: canApply
+                        ? () => _moveToTrash(Set.of(_selected))
+                        : null,
+                    child: Text(l10n.moveToTrash),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return PopScope(
-      canPop: !_searchOpen,
+      canPop:
+          !_searchOpen &&
+          !_selecting &&
+          !_movingHistory &&
+          _regenerating == null,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _searchOpen) _toggleSearch();
+        if (didPop || _movingHistory || _regenerating != null) return;
+        if (_selecting) {
+          _toggleSelection();
+        } else if (_searchOpen) {
+          _toggleSearch();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.quickLookup),
           leading: BackButton(
             onPressed: () {
-              if (_searchOpen) {
+              if (_movingHistory || _regenerating != null) return;
+              if (_selecting) {
+                _toggleSelection();
+              } else if (_searchOpen) {
                 _toggleSearch();
               } else if (context.canPop()) {
                 context.pop();
@@ -573,12 +765,17 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
           ),
           actions: [
             IconButton(
-              onPressed: _actions == null ? null : _manageActions,
+              onPressed: _actions == null || _regenerating != null
+                  ? null
+                  : _manageActions,
               tooltip: l10n.quickActions,
               icon: const Icon(Icons.tune),
             ),
           ],
         ),
+        bottomNavigationBar: _selecting || _regenerating != null
+            ? _historyActionBar(context)
+            : null,
         body: LayoutBuilder(
           builder: (context, constraints) {
             final sides = (constraints.maxWidth - 760) / 2;
