@@ -97,6 +97,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
       final current = group == null
           ? const <String>[]
           : await widget.store.groupExpressions(group.id);
+      final trashed = await widget.store.trashedExpressions("en");
       token.checkCancelled();
       final proposal = await widget.ai.propose(
         config: widget.config,
@@ -106,6 +107,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
         level: _level,
         glossLanguage: gloss,
         existingExpressions: current,
+        localExclusions: trashed,
         cancel: token,
         count: _count,
         focus: _focus,
@@ -188,7 +190,10 @@ class _ProposalDialogState extends State<_ProposalDialog> {
   Future<void> _save() async {
     final proposal = _proposal;
     if (_saving || proposal == null || _chosen.isEmpty) return;
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
     await act(context, () async {
       if (!await _resolveGroup()) return;
       await widget.store.saveEntries(
@@ -353,6 +358,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                     ),
                     Text(l10n.languageAiReviewNotice),
                     Text(proposal.provenance.model),
+                    if (_error case final error?) Text(error),
                     if (proposal.entries.length < (proposal.requested ?? 0))
                       Text(
                         l10n.languageSentencePartialBatch(
@@ -432,11 +438,18 @@ class _ProposalDialogState extends State<_ProposalDialog> {
         );
         return;
       }
+      final trashed = await widget.store.trashedExpressions("en");
+      if (!mounted) return;
+      if (trashed.contains(normalizeLanguageText(edited.form))) {
+        setState(() => _error = context.l10n.languageWordInTrash);
+        return;
+      }
       final matches = await widget.store.existingGroupsForEntries("en", [
         edited,
       ]);
       if (!mounted) return;
       setState(() {
+        _error = null;
         _entries[_entries.indexOf(entry)] = edited;
         _matches.remove(entry);
         _matches.addAll(matches);

@@ -20,6 +20,8 @@ import "vocabulary_ai.dart";
 
 enum VocabularyMode { study, recall, recognition }
 
+enum _VocabularyAction { regenerate, trash }
+
 class VocabularyBatch extends StatefulWidget {
   const VocabularyBatch({
     super.key,
@@ -66,6 +68,13 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
   final Set<String> _seen = {};
   late DateTime _selectedAt;
   CancelToken? _regenerating;
+  bool _selecting = false;
+  final _selectedCards = <String, LanguageCard>{};
+
+  bool get _canRegenerate =>
+      widget.config != null &&
+      widget.ai != null &&
+      widget.ai!.provider is! MockChatProvider;
 
   @override
   void dispose() {
@@ -128,36 +137,81 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     if (mounted) setState(() => _saving = false);
   }
 
-  Future<void> _regenerate(LanguageCard card) async {
-    if (_saving || widget.ai == null || widget.config == null) return;
+  Future<void> _regenerate(List<LanguageCard> cards) async {
+    if (_saving || !_canRegenerate || cards.isEmpty) return;
     final cancel = CancelToken();
+    final glossLanguage = Localizations.localeOf(context).languageCode;
     setState(() {
       _saving = true;
       _regenerating = cancel;
     });
     await act(context, () async {
-      final result = await widget.ai!.revise(
-        config: widget.config!,
-        card: card,
-        glossLanguage: Localizations.localeOf(context).languageCode,
-        cancel: cancel,
-      );
-      cancel.checkCancelled();
-      if (result.generation != null) {
-        await widget.store.reviseVocabulary(
-          card,
-          result.entry,
-          result.generation!,
-        );
+      for (final card in cards) {
+        try {
+          final result = await widget.ai!.revise(
+            config: widget.config!,
+            card: card,
+            glossLanguage: glossLanguage,
+            cancel: cancel,
+          );
+          cancel.checkCancelled();
+          if (result.generation != null) {
+            await widget.store.reviseVocabulary(
+              card,
+              result.entry,
+              result.generation!,
+            );
+          }
+          if (!mounted) return;
+          setState(() => _selectedCards.remove(card.sense.id));
+        } catch (_) {
+          if (cancel.isCancelled) return;
+          rethrow;
+        }
       }
-      if (mounted) setState(() => _batch = _load());
     });
     if (mounted) {
       setState(() {
         _saving = false;
         _regenerating = null;
+        if (_selectedCards.isEmpty) _selecting = false;
+        _batch = _load();
       });
     }
+  }
+
+  Future<void> _trash(List<LanguageCard> cards) async {
+    if (_saving || cards.isEmpty) return;
+    await _save(() async {
+      final l10n = context.l10n;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.languageMoveWordsToTrash),
+          content: Text(l10n.languageMoveWordsToTrashConfirm(cards.length)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.languageMoveWordsToTrash),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+      await widget.store.moveToTrash(cards.map((card) => card.sense.id));
+      if (!mounted) return;
+      setState(() {
+        _selectedCards.clear();
+        _selecting = false;
+        _studyIndex = 0;
+        _offset = 0;
+        _batch = _load();
+      });
+    });
   }
 
   @override
@@ -195,8 +249,21 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                       ),
                     ),
             ),
-          if (widget.ai != null &&
-              widget.ai!.provider is! MockChatProvider &&
+          if (widget.mode == VocabularyMode.study &&
+              !_showFlashcards &&
+              _regenerating == null)
+            IconButton(
+              tooltip: _selecting ? l10n.cancel : l10n.languageSelectWords,
+              icon: Icon(_selecting ? Icons.close : Icons.checklist),
+              onPressed: _saving
+                  ? null
+                  : () => setState(() {
+                      _selecting = !_selecting;
+                      _selectedCards.clear();
+                    }),
+            ),
+          if (_canRegenerate &&
+              _showFlashcards &&
               widget.mode == VocabularyMode.study)
             FutureBuilder<List<LanguageCard>>(
               future: _batch,
@@ -206,9 +273,9 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                   tooltip: l10n.languageRegenerateCompare,
                   onPressed: _saving || cards.isEmpty
                       ? null
-                      : () => _regenerate(
+                      : () => _regenerate([
                           cards[_studyIndex.clamp(0, cards.length - 1)],
-                        ),
+                        ]),
                   icon: const Icon(Icons.refresh),
                 );
               },
@@ -221,6 +288,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
             ),
         ],
       ),
+      bottomNavigationBar: _selecting ? _selectionBar() : null,
       body: FutureBuilder<List<LanguageCard>>(
         future: _batch,
         builder: (context, snapshot) {
@@ -243,7 +311,7 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               ? _continueAfterRetry
               : loaded.length > widget.batchSize;
           final nextBatch = OutlinedButton(
-            onPressed: _nextBatch,
+            onPressed: _saving ? null : _nextBatch,
             child: Text(l10n.languageNextBatch),
           );
           final Widget content;
@@ -362,6 +430,44 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     );
   }
 
+  Widget _selectionBar() {
+    final l10n = context.l10n;
+    final canAct = !_saving && _selectedCards.isNotEmpty;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 4,
+          children: [
+            Text(l10n.languageSelectedWords(_selectedCards.length)),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (_canRegenerate)
+                  OutlinedButton(
+                    onPressed: canAct
+                        ? () => _regenerate(_selectedCards.values.toList())
+                        : null,
+                    child: Text(l10n.languageRegenerateCompare),
+                  ),
+                OutlinedButton(
+                  onPressed: canAct
+                      ? () => _trash(_selectedCards.values.toList())
+                      : null,
+                  child: Text(l10n.languageMoveWordsToTrash),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _study(List<LanguageCard> cards, {Widget? nextBatch}) {
     final l10n = context.l10n;
     return Column(
@@ -382,10 +488,16 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
               ),
             ],
             selected: {_showFlashcards},
-            onSelectionChanged: (values) =>
-                setState(() => _showFlashcards = values.single),
+            onSelectionChanged: _saving
+                ? null
+                : (values) => setState(() {
+                    _showFlashcards = values.single;
+                    _selecting = false;
+                    _selectedCards.clear();
+                  }),
           ),
         ),
+        if (_regenerating != null) const LinearProgressIndicator(),
         if (_showFlashcards) ...[
           _VocabularyFlashcard(
             key: ValueKey(cards[_studyIndex].sense.id),
@@ -397,18 +509,55 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
           for (final card in cards)
             Card(
               key: ValueKey(card.sense.id),
-              child: ExpansionTile(
-                shape: const Border(),
-                collapsedShape: const Border(),
-                title: Text(card.item.form),
-                subtitle: Text(card.sense.meaning),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: VocabularyDetails(card: card, store: widget.store),
-                  ),
-                ],
-              ),
+              child: _selecting
+                  ? CheckboxListTile(
+                      value: _selectedCards.containsKey(card.sense.id),
+                      onChanged: _saving
+                          ? null
+                          : (checked) => setState(() {
+                              if (checked == true) {
+                                _selectedCards[card.sense.id] = card;
+                              } else {
+                                _selectedCards.remove(card.sense.id);
+                              }
+                            }),
+                      title: Text(card.item.form),
+                      subtitle: Text(card.sense.meaning),
+                    )
+                  : ExpansionTile(
+                      shape: const Border(),
+                      collapsedShape: const Border(),
+                      leading: PopupMenuButton<_VocabularyAction>(
+                        tooltip: l10n.moreActions,
+                        enabled: !_saving,
+                        itemBuilder: (_) => [
+                          if (_canRegenerate)
+                            PopupMenuItem(
+                              value: _VocabularyAction.regenerate,
+                              child: Text(l10n.languageRegenerateCompare),
+                            ),
+                          PopupMenuItem(
+                            value: _VocabularyAction.trash,
+                            child: Text(l10n.languageMoveWordsToTrash),
+                          ),
+                        ],
+                        onSelected: (action) => switch (action) {
+                          _VocabularyAction.regenerate => _regenerate([card]),
+                          _VocabularyAction.trash => _trash([card]),
+                        },
+                      ),
+                      title: Text(card.item.form),
+                      subtitle: Text(card.sense.meaning),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: VocabularyDetails(
+                            card: card,
+                            store: widget.store,
+                          ),
+                        ),
+                      ],
+                    ),
             ),
         if (!_showFlashcards) ?nextBatch,
       ],

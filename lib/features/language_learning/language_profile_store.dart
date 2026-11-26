@@ -68,7 +68,7 @@ Future<bool> _available(
       : "JOIN learning_lexical_senses s ON s.item_id = i.id";
   return (await db
           .customSelect(
-            "SELECT 1 FROM learning_lexical_items i $content WHERE i.language = ? LIMIT 1",
+            "SELECT 1 FROM learning_lexical_items i $content WHERE i.language = ? AND s.deleted_at IS NULL LIMIT 1",
             variables: [Variable(language)],
           )
           .getSingleOrNull()) !=

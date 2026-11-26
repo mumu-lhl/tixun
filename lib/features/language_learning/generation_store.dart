@@ -240,6 +240,12 @@ class LanguageGenerationStore {
   Future<void> link(String kind, String contentId, String? runId) async {
     if (runId == null) return;
     await db.transaction(() async {
+      if (kind == "vocabulary") {
+        final sense = await (db.select(
+          db.learningLexicalSenses,
+        )..where((s) => s.id.equals(contentId))).getSingleOrNull();
+        if (sense == null || sense.deletedAt != null) return;
+      }
       final links = db.languageGenerationLinks;
       final previous =
           await (db.select(links)

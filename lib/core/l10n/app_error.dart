@@ -18,6 +18,7 @@ enum AppErrorCode {
   errorModelDidNotFinish,
   errorStudyFieldRequired,
   errorStudyFieldTooLong,
+  languageWordInTrash,
 
   materialToolsRequireModelWithoutThinking,
   materialToolsRequireToolCapableModel,

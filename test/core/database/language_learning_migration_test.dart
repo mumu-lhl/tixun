@@ -12,6 +12,45 @@ import "../../generated_migrations/schema.dart";
 import "../../support/quick_lookup.dart";
 
 void main() {
+  test(
+    "v31 vocabulary remains active with its FSRS state after upgrade",
+    () async {
+      final verifier = SchemaVerifier(GeneratedHelper());
+      final schema = await verifier.schemaAt(31);
+      final raw = schema.rawDatabase;
+      raw.execute(
+        "INSERT INTO learning_lexical_items(id,language,form,normalized_form,created_at) VALUES('go','en','go','go',1)",
+      );
+      raw.execute(
+        "INSERT INTO learning_lexical_senses(id,item_id,meaning,created_at) VALUES('sense','go','去',1)",
+      );
+      raw.execute(
+        "INSERT INTO learning_vocabulary_groups(id,language,title,created_at) VALUES('group','en','Travel',1)",
+      );
+      raw.execute(
+        "INSERT INTO learning_group_items(group_id,sense_id) VALUES('group','sense')",
+      );
+      raw.execute(
+        "INSERT INTO learning_review_schedules(sense_id,due_at,repetitions,updated_at,fsrs_version,stability,difficulty) VALUES('sense',100,3,1,'6',4.5,2.1)",
+      );
+      final db = AppDatabase(schema.newConnection());
+      final store = LanguageLearningStore(db);
+      addTearDown(() async {
+        store.dispose();
+        await db.close();
+      });
+
+      await verifier.migrateAndValidate(db, AppDatabase.latestSchemaVersion);
+      final active = await store.cards(language: "en", groupId: "group");
+      expect(active.single.sense.deletedAt, isNull);
+      expect(await store.trashedCards("en").first, isEmpty);
+      final progress = await db.select(db.learningReviewSchedules).getSingle();
+      expect(progress.stability, 4.5);
+      expect(progress.difficulty, 2.1);
+      expect(progress.repetitions, 3);
+    },
+  );
+
   test("v21 upgrade preserves study data and enables offline vocabulary", () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final schema = await verifier.schemaAt(21);

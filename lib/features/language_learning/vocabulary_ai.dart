@@ -51,6 +51,7 @@ class VocabularyAi {
     required String glossLanguage,
     required List<String> existingExpressions,
     required CancelToken cancel,
+    Set<String> localExclusions = const {},
     int count = _perRequest,
     SentenceSkill? focus,
     bool generateGroupTitle = false,
@@ -66,6 +67,7 @@ class VocabularyAi {
     String? groupTitle;
     final entries = <VocabularyEntry>[];
     final exclusions = existingExpressions.map(normalizeLanguageText).toSet();
+    final blocked = {...exclusions, ...localExclusions};
     if (mock) {
       if (generateGroupTitle) {
         groupTitle = glossLanguage == "zh" ? "旅行英语" : "Travel English";
@@ -73,8 +75,7 @@ class VocabularyAi {
       entries.addAll(
         _parse(decodeLanguageJson(_mockReply(glossLanguage).text), _perRequest)
             .where(
-              (entry) =>
-                  !exclusions.contains(normalizeLanguageText(entry.form)),
+              (entry) => !blocked.contains(normalizeLanguageText(entry.form)),
             )
             .take(count),
       );
@@ -121,9 +122,7 @@ class VocabularyAi {
               entries: _parse(value, size)
                   .where(
                     (entry) =>
-                        !exclusions.contains(
-                          normalizeLanguageText(entry.form),
-                        ) &&
+                        !blocked.contains(normalizeLanguageText(entry.form)) &&
                         !entries.any(
                           (earlier) =>
                               normalizeLanguageText(earlier.form) ==

@@ -16,6 +16,7 @@ import "vocabulary_ai.dart";
 import "vocabulary_batch.dart";
 import "vocabulary_editor.dart";
 import "vocabulary_proposal_dialog.dart";
+import "vocabulary_trash_screen.dart";
 
 class VocabularyGroupsScreen extends ConsumerStatefulWidget {
   const VocabularyGroupsScreen({super.key});
@@ -86,6 +87,16 @@ class _VocabularyGroupsState extends ConsumerState<VocabularyGroupsScreen> {
       appBar: AppBar(
         title: Text(l10n.languageGroups),
         actions: [
+          IconButton(
+            tooltip: l10n.languageVocabularyTrash,
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    VocabularyTrashScreen(store: _store, language: "en"),
+              ),
+            ),
+          ),
           if (_mode == VocabularyMode.recall)
             PopupMenuButton<int>(
               tooltip: l10n.languageVocabularyPracticeSize,

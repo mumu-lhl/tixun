@@ -53,6 +53,12 @@ extension _DatabaseMigrations on AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
+      if (from >= 22 && from < 32) {
+        await m.addColumn(
+          learningLexicalSenses,
+          learningLexicalSenses.deletedAt,
+        );
+      }
       if (from >= 22 && from < 31) {
         await m.addColumn(learningEvidence, learningEvidence.recallKind);
         await m.addColumn(

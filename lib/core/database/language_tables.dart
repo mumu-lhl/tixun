@@ -35,6 +35,7 @@ class LearningLexicalSenses extends Table {
   IntColumn get aiPromptVersion => integer().nullable()();
   DateTimeColumn get aiGeneratedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
   @override
   Set<Column> get primaryKey => {id};
   @override

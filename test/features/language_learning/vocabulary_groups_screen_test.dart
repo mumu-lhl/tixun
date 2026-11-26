@@ -195,6 +195,11 @@ void main() {
         expect(tester.takeException(), isNull);
         await tester.tapAt(const Offset(10, 10));
         await tester.pumpAndSettle();
+        if (width == 390 && textScale == 1) {
+          await tester.tap(find.byTooltip("Vocabulary trash"));
+          await tester.pumpAndSettle();
+          expect(find.text("Vocabulary trash"), findsOneWidget);
+        }
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump(const Duration(seconds: 1));
       },

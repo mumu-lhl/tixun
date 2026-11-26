@@ -140,7 +140,8 @@ extension QuickLearningStore on LanguageLearningStore {
               ..where(
                 items.normalizedForm.equals(normalizeLanguageText(entry.form)) &
                     items.language.equals(language) &
-                    items.lexicalType.equals(entry.type.name),
+                    items.lexicalType.equals(entry.type.name) &
+                    senses.deletedAt.isNull(),
               )
               ..orderBy([OrderingTerm.asc(senses.createdAt)]))
             .get();

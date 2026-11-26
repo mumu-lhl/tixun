@@ -47,6 +47,7 @@ String? _generalErrorText(
     l10n.restoreTheDeletedSourceConversation,
   AppErrorCode.describeWhatYouWantTo => l10n.describeWhatYouWantTo,
   AppErrorCode.chooseAVisionCapableModel => l10n.chooseAVisionCapableModel,
+  AppErrorCode.languageWordInTrash => l10n.languageWordInTrash,
 
   AppErrorCode.secureStorageUnavailableLinux =>
     l10n.secureStorageUnavailableLinux,

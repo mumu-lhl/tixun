@@ -30,6 +30,7 @@ extension LexicalFormStore on LanguageLearningStore {
               ])
               ..where(
                 items.language.equals(language) &
+                    senses.deletedAt.isNull() &
                     senses.source.equals("mock").not(),
               )
               ..orderBy([

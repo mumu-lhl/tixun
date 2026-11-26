@@ -3,6 +3,7 @@ import "package:uuid/uuid.dart";
 
 import "../../core/database/database.dart";
 import "../../core/database/database_notifier.dart";
+import "../../core/l10n/app_error.dart";
 import "fsrs.dart";
 import "lexical_form.dart";
 import "generation_store.dart";
@@ -19,6 +20,11 @@ enum LexicalType { word, phrase, phrasalVerb, collocation, idiom }
 enum VocabularyGroupType { topic, concept, function, contrast }
 
 enum RecallKind { scheduled, retry, practice }
+
+const _wordInTrash = AppFormatException(
+  AppErrorCode.languageWordInTrash,
+  "Vocabulary is in the trash",
+);
 
 class VocabularyEntry {
   const VocabularyEntry({
@@ -121,7 +127,7 @@ class LanguageLearningStore extends DatabaseNotifier {
   Future<List<String>> groupExpressions(String groupId) async {
     final rows = await db
         .customSelect(
-          "SELECT DISTINCT i.form FROM learning_group_items g JOIN learning_lexical_senses s ON s.id = g.sense_id JOIN learning_lexical_items i ON i.id = s.item_id WHERE g.group_id = ?",
+          "SELECT DISTINCT i.form FROM learning_group_items g JOIN learning_lexical_senses s ON s.id = g.sense_id JOIN learning_lexical_items i ON i.id = s.item_id WHERE g.group_id = ? AND s.deleted_at IS NULL",
           variables: [Variable(groupId)],
           readsFrom: {
             db.learningGroupItems,
@@ -132,6 +138,85 @@ class LanguageLearningStore extends DatabaseNotifier {
         .get();
     return rows.map((r) => r.read<String>("form")).toList();
   }
+
+  JoinedSelectStatement _trashed(String language) {
+    final items = db.learningLexicalItems;
+    final senses = db.learningLexicalSenses;
+    return db.select(senses).join([
+      innerJoin(items, items.id.equalsExp(senses.itemId)),
+    ])..where(items.language.equals(language) & senses.deletedAt.isNotNull());
+  }
+
+  Stream<List<LanguageCard>> trashedCards(String language) =>
+      (_trashed(language)..orderBy([
+            OrderingTerm.desc(db.learningLexicalSenses.deletedAt),
+            OrderingTerm.asc(db.learningLexicalItems.normalizedForm),
+            OrderingTerm.asc(db.learningLexicalSenses.id),
+          ]))
+          .watch()
+          .map(
+            (rows) => [
+              for (final row in rows)
+                LanguageCard(
+                  row.readTable(db.learningLexicalItems),
+                  row.readTable(db.learningLexicalSenses),
+                ),
+            ],
+          );
+
+  Future<Set<String>> trashedExpressions(String language) async => {
+    for (final row in await _trashed(language).get())
+      row.readTable(db.learningLexicalItems).normalizedForm,
+  };
+
+  Future<void> moveToTrash(Iterable<String> senseIds) =>
+      _setTrash(senseIds, DateTime.now());
+
+  Future<void> restoreVocabulary(Iterable<String> senseIds) =>
+      _setTrash(senseIds, null);
+
+  Future<void> _setTrash(Iterable<String> senseIds, DateTime? deletedAt) =>
+      runOperation(() async {
+        await (db.update(db.learningLexicalSenses)..where(
+              (s) =>
+                  s.id.isIn(senseIds) &
+                  (deletedAt == null
+                      ? s.deletedAt.isNotNull()
+                      : s.deletedAt.isNull()),
+            ))
+            .write(LearningLexicalSensesCompanion(deletedAt: Value(deletedAt)));
+        changed();
+      });
+
+  Future<void> deleteTrashedVocabulary(Iterable<String> senseIds) =>
+      runOperation(() async {
+        await db.transaction(() async {
+          final senses = db.learningLexicalSenses;
+          final deleted =
+              await (db.delete(senses)..where(
+                    (s) => s.id.isIn(senseIds) & s.deletedAt.isNotNull(),
+                  ))
+                  .goAndReturn();
+          if (deleted.isEmpty) return;
+          await (db.delete(db.languageGenerationLinks)..where(
+                (link) =>
+                    link.kind.equals("vocabulary") &
+                    link.contentId.isIn(deleted.map((s) => s.id)),
+              ))
+              .go();
+          await (db.delete(db.learningLexicalItems)..where(
+                (item) =>
+                    item.id.isIn(deleted.map((s) => s.itemId)) &
+                    existsQuery(
+                      db.selectOnly(senses)
+                        ..addColumns([senses.id])
+                        ..where(senses.itemId.equalsExp(item.id)),
+                    ).not(),
+              ))
+              .go();
+        });
+        changed();
+      });
 
   Future<void> saveEntries({
     required String language,
@@ -152,6 +237,12 @@ class LanguageLearningStore extends DatabaseNotifier {
       throw ArgumentError("A group title, expression and meaning are required");
     }
     await db.transaction(() async {
+      if (provenance != null) {
+        final trashed = await trashedExpressions(language);
+        if (entries.any((entry) => trashed.contains(entry._key.$1))) {
+          throw _wordInTrash;
+        }
+      }
       final existing = await groupNamed(language, title);
       final groupId = existing?.id ?? _uuid.v4();
       if (existing == null) {
@@ -205,9 +296,7 @@ class LanguageLearningStore extends DatabaseNotifier {
       final current = await (db.select(
         db.learningLexicalSenses,
       )..where((s) => s.id.equals(card.sense.id))).getSingle();
-      if (current.example != card.sense.example ||
-          current.exampleTranslation != card.sense.exampleTranslation ||
-          current.application != card.sense.application) {
+      if (current.deletedAt != null || current != card.sense) {
         throw StateError("Vocabulary changed while generating");
       }
       if (run.provider == null) {
@@ -275,6 +364,7 @@ class LanguageLearningStore extends DatabaseNotifier {
             ))
             .getSingleOrNull();
     final senseId = sense?.id ?? _uuid.v4();
+    if (sense?.deletedAt != null) throw _wordInTrash;
     final partOfSpeech = _optional(entry.partOfSpeech);
     final application = _optional(entry.application);
     final answer = _optional(entry.applicationAnswer);
@@ -402,6 +492,7 @@ class LanguageLearningStore extends DatabaseNotifier {
           ])
           ..where(
             item.language.equals(language) &
+                sense.deletedAt.isNull() &
                 item.normalizedForm.isIn(entries.map((entry) => entry._key.$1)),
           )
           ..orderBy([OrderingTerm.asc(group.title)]);
@@ -562,7 +653,7 @@ class LanguageLearningStore extends DatabaseNotifier {
     final query = includeCards
         ? db.select(s).join(joins)
         : db.selectOnly(s).join(joins);
-    query.where(i.language.equals(language));
+    query.where(i.language.equals(language) & s.deletedAt.isNull());
     if (dueBefore != null) query.where(_isDue(dueBefore));
     if (contextsOnly) query.where(s.application.isNotNull());
     return query;
@@ -579,6 +670,7 @@ class LanguageLearningStore extends DatabaseNotifier {
   }) => runOperation(() async {
     final time = (now ?? DateTime.now()).toUtc();
     await db.transaction(() async {
+      await _activeSense(senseId);
       final schedule = await (db.select(
         db.learningReviewSchedules,
       )..where((row) => row.senseId.equals(senseId))).getSingle();
@@ -662,9 +754,7 @@ class LanguageLearningStore extends DatabaseNotifier {
     required bool groupPrompt,
   }) => runOperation(() async {
     final result = await db.transaction(() async {
-      final sense = await (db.select(
-        db.learningLexicalSenses,
-      )..where((row) => row.id.equals(senseId))).getSingle();
+      final sense = await _activeSense(senseId);
       final expected = sense.applicationAnswer;
       if (sense.application == null ||
           expected == null ||
@@ -692,6 +782,14 @@ class LanguageLearningStore extends DatabaseNotifier {
     changed();
     return result;
   });
+
+  Future<LearningLexicalSense> _activeSense(String id) async {
+    final sense = await (db.select(
+      db.learningLexicalSenses,
+    )..where((row) => row.id.equals(id))).getSingle();
+    if (sense.deletedAt != null) throw _wordInTrash;
+    return sense;
+  }
 
   Future<bool> _insertEvidence(LearningEvidenceCompanion evidence) async {
     final generation = await LanguageGenerationStore(db)

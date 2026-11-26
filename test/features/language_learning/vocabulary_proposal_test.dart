@@ -138,12 +138,18 @@ Future<void> _openProposal(
     await tester.tap(
       find.widgetWithText(FilledButton, "Add vocabulary with AI"),
     );
-    await tester.pump();
-    // Let the native SQLite and stream work finish on the real event loop.
-    await store.existingGroupsForEntries("en", const [
-      VocabularyEntry(form: "platform", meaning: "a boarding area"),
-    ]);
   });
+  await tester.pump();
+  for (
+    var i = 0;
+    i < 100 && find.byType(LinearProgressIndicator).evaluate().isNotEmpty;
+    i++
+  ) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+    await tester.pump();
+  }
   await tester.pumpAndSettle();
 }
 
@@ -160,6 +166,53 @@ void main() {
     store.dispose();
     await db.close();
   });
+
+  testWidgets(
+    "AI preview excludes normalized trash matches from another group",
+    (tester) async {
+      final provider = _VocabularyProvider(completed: true)
+        ..response = jsonEncode({
+          "language": "en",
+          "entries": [
+            {
+              "form": " PLATform ",
+              "type": "word",
+              "partOfSpeech": "n.",
+              "meaning": "a stage",
+              "example": "She stepped onto the platform.",
+              "translation": "She went up onto the stage.",
+            },
+            {
+              "form": "ticket",
+              "type": "word",
+              "partOfSpeech": "n.",
+              "meaning": "a pass for a journey",
+              "example": "I bought a ticket.",
+              "translation": "I paid the fare.",
+            },
+          ],
+        });
+      await tester.runAsync(() async {
+        await store.saveEntries(
+          language: "en",
+          groupTitle: "Travel",
+          groupType: VocabularyGroupType.topic,
+          entries: const [
+            VocabularyEntry(form: "platform", meaning: "boarding area"),
+          ],
+        );
+        final card = (await store.cards(language: "en")).single;
+        await store.moveToTrash([card.sense.id]);
+      });
+      await _openProposal(tester, store, provider, title: "Station");
+      expect(find.text("ticket — a pass for a journey"), findsOneWidget);
+      expect(
+        find.textContaining(RegExp("platform", caseSensitive: false)),
+        findsNothing,
+      );
+      expect(provider.parameters["exclude"], isEmpty);
+    },
+  );
 
   for (final level in VocabularyLevel.values) {
     test(

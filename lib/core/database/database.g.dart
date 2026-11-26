@@ -22067,6 +22067,17 @@ class $LearningLexicalSensesTable extends LearningLexicalSenses
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -22083,6 +22094,7 @@ class $LearningLexicalSensesTable extends LearningLexicalSenses
     aiPromptVersion,
     aiGeneratedAt,
     createdAt,
+    deletedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -22203,6 +22215,12 @@ class $LearningLexicalSensesTable extends LearningLexicalSenses
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -22272,6 +22290,10 @@ class $LearningLexicalSensesTable extends LearningLexicalSenses
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -22297,6 +22319,7 @@ class LearningLexicalSense extends DataClass
   final int? aiPromptVersion;
   final DateTime? aiGeneratedAt;
   final DateTime createdAt;
+  final DateTime? deletedAt;
   const LearningLexicalSense({
     required this.id,
     required this.itemId,
@@ -22312,6 +22335,7 @@ class LearningLexicalSense extends DataClass
     this.aiPromptVersion,
     this.aiGeneratedAt,
     required this.createdAt,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -22348,6 +22372,9 @@ class LearningLexicalSense extends DataClass
       map['ai_generated_at'] = Variable<DateTime>(aiGeneratedAt);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     return map;
   }
 
@@ -22385,6 +22412,9 @@ class LearningLexicalSense extends DataClass
           ? const Value.absent()
           : Value(aiGeneratedAt),
       createdAt: Value(createdAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -22412,6 +22442,7 @@ class LearningLexicalSense extends DataClass
       aiPromptVersion: serializer.fromJson<int?>(json['aiPromptVersion']),
       aiGeneratedAt: serializer.fromJson<DateTime?>(json['aiGeneratedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
   @override
@@ -22432,6 +22463,7 @@ class LearningLexicalSense extends DataClass
       'aiPromptVersion': serializer.toJson<int?>(aiPromptVersion),
       'aiGeneratedAt': serializer.toJson<DateTime?>(aiGeneratedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
 
@@ -22450,6 +22482,7 @@ class LearningLexicalSense extends DataClass
     Value<int?> aiPromptVersion = const Value.absent(),
     Value<DateTime?> aiGeneratedAt = const Value.absent(),
     DateTime? createdAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
   }) => LearningLexicalSense(
     id: id ?? this.id,
     itemId: itemId ?? this.itemId,
@@ -22473,6 +22506,7 @@ class LearningLexicalSense extends DataClass
         ? aiGeneratedAt.value
         : this.aiGeneratedAt,
     createdAt: createdAt ?? this.createdAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   LearningLexicalSense copyWithCompanion(LearningLexicalSensesCompanion data) {
     return LearningLexicalSense(
@@ -22502,6 +22536,7 @@ class LearningLexicalSense extends DataClass
           ? data.aiGeneratedAt.value
           : this.aiGeneratedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -22521,7 +22556,8 @@ class LearningLexicalSense extends DataClass
           ..write('aiModel: $aiModel, ')
           ..write('aiPromptVersion: $aiPromptVersion, ')
           ..write('aiGeneratedAt: $aiGeneratedAt, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
@@ -22542,6 +22578,7 @@ class LearningLexicalSense extends DataClass
     aiPromptVersion,
     aiGeneratedAt,
     createdAt,
+    deletedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -22560,7 +22597,8 @@ class LearningLexicalSense extends DataClass
           other.aiModel == this.aiModel &&
           other.aiPromptVersion == this.aiPromptVersion &&
           other.aiGeneratedAt == this.aiGeneratedAt &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.deletedAt == this.deletedAt);
 }
 
 class LearningLexicalSensesCompanion
@@ -22579,6 +22617,7 @@ class LearningLexicalSensesCompanion
   final Value<int?> aiPromptVersion;
   final Value<DateTime?> aiGeneratedAt;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> deletedAt;
   final Value<int> rowid;
   const LearningLexicalSensesCompanion({
     this.id = const Value.absent(),
@@ -22595,6 +22634,7 @@ class LearningLexicalSensesCompanion
     this.aiPromptVersion = const Value.absent(),
     this.aiGeneratedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LearningLexicalSensesCompanion.insert({
@@ -22612,6 +22652,7 @@ class LearningLexicalSensesCompanion
     this.aiPromptVersion = const Value.absent(),
     this.aiGeneratedAt = const Value.absent(),
     required DateTime createdAt,
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        itemId = Value(itemId),
@@ -22632,6 +22673,7 @@ class LearningLexicalSensesCompanion
     Expression<int>? aiPromptVersion,
     Expression<DateTime>? aiGeneratedAt,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -22649,6 +22691,7 @@ class LearningLexicalSensesCompanion
       if (aiPromptVersion != null) 'ai_prompt_version': aiPromptVersion,
       if (aiGeneratedAt != null) 'ai_generated_at': aiGeneratedAt,
       if (createdAt != null) 'created_at': createdAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -22668,6 +22711,7 @@ class LearningLexicalSensesCompanion
     Value<int?>? aiPromptVersion,
     Value<DateTime?>? aiGeneratedAt,
     Value<DateTime>? createdAt,
+    Value<DateTime?>? deletedAt,
     Value<int>? rowid,
   }) {
     return LearningLexicalSensesCompanion(
@@ -22685,6 +22729,7 @@ class LearningLexicalSensesCompanion
       aiPromptVersion: aiPromptVersion ?? this.aiPromptVersion,
       aiGeneratedAt: aiGeneratedAt ?? this.aiGeneratedAt,
       createdAt: createdAt ?? this.createdAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -22734,6 +22779,9 @@ class LearningLexicalSensesCompanion
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -22757,6 +22805,7 @@ class LearningLexicalSensesCompanion
           ..write('aiPromptVersion: $aiPromptVersion, ')
           ..write('aiGeneratedAt: $aiGeneratedAt, ')
           ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
