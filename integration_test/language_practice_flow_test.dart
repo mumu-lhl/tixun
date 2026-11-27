@@ -38,6 +38,24 @@ void main() {
       await tester.pumpAndSettle();
     },
     capture: (tester, name) async {
+      if (name.startsWith("generation-")) {
+        final window = await guiWindow();
+        if (window != null) {
+          final width = name.endsWith("360") ? "360" : "1200";
+          expect(
+            (await Process.run("xdotool", [
+              "windowsize",
+              window,
+              width,
+              "800",
+            ])).exitCode,
+            0,
+          );
+          await tester.pump(const Duration(milliseconds: 250));
+          await guiCapture("language", name);
+        }
+        return;
+      }
       await resizeGui(tester, name.endsWith("360") ? 360 : 1200, 800);
       if (name.startsWith("fsrs-")) {
         await tester.pump(const Duration(milliseconds: 250));

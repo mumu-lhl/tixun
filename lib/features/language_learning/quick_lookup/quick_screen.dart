@@ -6,6 +6,9 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:material_ui/material_ui.dart";
 
+import "../generation_activity.dart";
+import "../generation_progress.dart";
+
 import "../../../app/controller.dart";
 import "../../../app/preferences.dart";
 import "../../../core/ai/ai_usage_store.dart";
@@ -36,6 +39,7 @@ class QuickLookupScreen extends ConsumerStatefulWidget {
 }
 
 class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   late final _controller = ref.read(appControllerProvider);
   late final _store = _controller.language;
   late final _input = TextEditingController(text: widget.initialInput);
@@ -67,7 +71,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   CancelToken? _cancel;
   LanguageQuickLookup? _result;
   QuickQuery? _failedQuery;
-  ({int current, int total})? _regenerating;
+  ({int current, int total, int completed})? _regenerating;
   String? _error;
 
   @override
@@ -250,7 +254,10 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
       _failedQuery = null;
     });
     try {
-      final row = await _lookupAi().lookup(query, cancel);
+      final row = await trackLanguageGeneration(
+        _activity,
+        () => _lookupAi().lookup(query, cancel),
+      );
       if (!mounted) return;
       setState(() => _result = row);
       await _refreshHistory();
@@ -287,7 +294,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
     final ai = _lookupAi();
     setState(() {
       _cancel = cancel;
-      _regenerating = (current: 1, total: total);
+      _regenerating = (current: 1, total: total, completed: 0);
       _error = null;
       _failedQuery = null;
     });
@@ -302,7 +309,13 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
       };
       for (final (index, id) in ids.indexed) {
         if (!mounted || cancel.isCancelled) break;
-        setState(() => _regenerating = (current: index + 1, total: total));
+        setState(
+          () => _regenerating = (
+            current: index + 1,
+            total: total,
+            completed: completed,
+          ),
+        );
         try {
           final original = await _store.quickLookup(id);
           if (!mounted || cancel.isCancelled) break;
@@ -311,17 +324,31 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             continue;
           }
           final current = actions[original.actionId];
-          latest = await ai.lookup(
-            QuickQuery.fromLookup(
-              original,
-              action: current,
-              actionName: current == null ? null : quickName(context, current),
+          latest = await trackLanguageGeneration(
+            _activity,
+            () => ai.lookup(
+              QuickQuery.fromLookup(
+                original,
+                action: current,
+                actionName: current == null
+                    ? null
+                    : quickName(context, current),
+              ),
+              cancel,
+              regenerate: true,
+              original: original,
             ),
-            cancel,
-            regenerate: true,
-            original: original,
           );
           completed++;
+          if (mounted) {
+            setState(
+              () => _regenerating = (
+                current: index + 1,
+                total: total,
+                completed: completed,
+              ),
+            );
+          }
         } catch (error) {
           if (cancel.isCancelled) break;
           lastError = error;
@@ -496,7 +523,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
         ],
         if (_cancel != null && _regenerating == null) ...[
           const SizedBox(height: 16),
-          const LinearProgressIndicator(),
+          LanguageGenerationActivity(activity: _activity),
           const SizedBox(height: 8),
           Text(l10n.quickLoading),
         ],
@@ -686,8 +713,10 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
           spacing: 4,
           children: [
             if (progress != null) ...[
-              LinearProgressIndicator(
-                value: (progress.current - 1) / progress.total,
+              LanguageGenerationProgress(
+                label: l10n.languageGenerationLookup,
+                completed: progress.completed,
+                total: progress.total,
               ),
               Text(
                 l10n.quickRegenerationProgress(
@@ -695,6 +724,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                   progress.total,
                 ),
               ),
+              LanguageGenerationActivity(activity: _activity),
               OutlinedButton(
                 onPressed: _cancel!.isCancelled
                     ? null

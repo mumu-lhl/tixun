@@ -1,6 +1,9 @@
 import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
+import "generation_activity.dart";
+import "generation_progress.dart";
+
 import "language_layout.dart";
 import "language_data.dart";
 
@@ -31,6 +34,7 @@ class ExamPaperScreen extends StatefulWidget {
 }
 
 class _ExamPaperScreenState extends State<ExamPaperScreen> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   late var _material = widget.material;
   ExamPaper get _paper => _material.paper;
   late final _answers = List.filled(_paper.items.length, "");
@@ -103,10 +107,9 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
         widget.glossLanguage ?? Localizations.localeOf(context).languageCode;
     setState(() => _review = cancel);
     try {
-      final review = await widget.ai.review(
-        _material,
-        glossLanguage: gloss,
-        cancel: cancel,
+      final review = await trackLanguageGeneration(
+        _activity,
+        () => widget.ai.review(_material, glossLanguage: gloss, cancel: cancel),
       );
       if (mounted && !cancel.isCancelled) {
         setState(() {
@@ -138,14 +141,17 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
     final cancel = CancelToken();
     setState(() => _review = cancel);
     await act(context, () async {
-      final fresh = await widget.ai.acquire(
-        _material.target,
-        glossLanguage:
-            widget.glossLanguage ??
-            Localizations.localeOf(context).languageCode,
-        cancel: cancel,
-        reuse: false,
-        replacing: _material,
+      final fresh = await trackLanguageGeneration(
+        _activity,
+        () => widget.ai.acquire(
+          _material.target,
+          glossLanguage:
+              widget.glossLanguage ??
+              Localizations.localeOf(context).languageCode,
+          cancel: cancel,
+          reuse: false,
+          replacing: _material,
+        ),
       );
       if (!mounted || cancel.isCancelled) return;
       await Navigator.of(context).push(
@@ -227,7 +233,8 @@ class _ExamPaperScreenState extends State<ExamPaperScreen> {
                         ),
                       ),
                     ),
-                    if (_review != null) const LinearProgressIndicator(),
+                    if (_review != null)
+                      LanguageGenerationActivity(activity: _activity),
                   ],
                   if (_material.row.reviewIssue case final issue?) Text(issue),
                   for (final paragraph in _paper.paragraphs)

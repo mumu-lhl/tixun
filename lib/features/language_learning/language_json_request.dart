@@ -10,6 +10,7 @@ import "language_stream.dart";
 import "generation_store.dart";
 import "generation_provider.dart";
 import "language_skills.dart";
+import "generation_activity.dart";
 
 Object? decodeLanguageJson(String raw) {
   final trimmed = raw.trim();
@@ -36,6 +37,7 @@ Future<T> requestLanguageText<T>({
   int maxChars = 28000,
   String cancelledStatus = "cancelled",
   bool captureLocalBreakdown = true,
+  int? expectedCount,
 }) async {
   final session = provider is LanguageGenerationProvider ? provider : null;
   config = session?.configuration() ?? config;
@@ -58,6 +60,11 @@ Future<T> requestLanguageText<T>({
   var status = "error";
   AiTokenUsage? usage;
   try {
+    reportLanguageGeneration(
+      feature,
+      GenerationPhase.generating,
+      total: expectedCount,
+    );
     await for (final chunk in boundedLanguageStream(
       (transport) => provider.start(config).complete(request, transport),
       cancel,
@@ -80,11 +87,22 @@ Future<T> requestLanguageText<T>({
       throw const FormatException("Language generation reply was interrupted");
     }
     final raw = body.toString();
+    reportLanguageGeneration(
+      feature,
+      GenerationPhase.validating,
+      total: expectedCount,
+    );
     if (request.outputFormat == AiOutputFormat.jsonObject &&
         raw.trim().isEmpty) {
       throw const FormatException("Empty JSON generation reply");
     }
     final value = parse(raw);
+    reportLanguageGeneration(
+      feature,
+      GenerationPhase.saving,
+      completed: expectedCount,
+      total: expectedCount,
+    );
     if (history != null) {
       final chosen = await history.capture(
         feature: feature,
@@ -99,7 +117,20 @@ Future<T> requestLanguageText<T>({
       cancel.checkCancelled();
       onCaptured?.call(chosen);
       status = "complete";
-      return chosen.output == raw ? value : parse(chosen.output);
+      if (chosen.output == raw) return value;
+      reportLanguageGeneration(
+        feature,
+        GenerationPhase.validating,
+        total: expectedCount,
+      );
+      final selected = parse(chosen.output);
+      reportLanguageGeneration(
+        feature,
+        GenerationPhase.saving,
+        completed: expectedCount,
+        total: expectedCount,
+      );
+      return selected;
     }
     status = "complete";
     return value;
@@ -144,6 +175,7 @@ Future<T> requestLanguageJson<T>({
   int maxChars = 28000,
   String cancelledStatus = "cancelled",
   bool captureLocalBreakdown = true,
+  int? expectedCount,
   void Function(LanguageGenerationRun)? onCaptured,
   GenerationOriginal? original,
 }) => requestLanguageText(
@@ -157,6 +189,7 @@ Future<T> requestLanguageJson<T>({
   maxChars: maxChars,
   cancelledStatus: cancelledStatus,
   captureLocalBreakdown: captureLocalBreakdown,
+  expectedCount: expectedCount,
   outputFormat: "json",
   learnerFocus: learnerFocus,
   onCaptured: onCaptured,

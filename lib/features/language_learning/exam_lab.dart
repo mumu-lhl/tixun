@@ -2,6 +2,8 @@ import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
 import "language_layout.dart";
+import "generation_activity.dart";
+import "generation_progress.dart";
 import "language_data.dart";
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
@@ -34,6 +36,7 @@ class ExamLab extends StatefulWidget {
 }
 
 class _ExamLabState extends State<ExamLab> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   Stream<List<LearningExamMaterialRow>> _load() =>
       widget.ai.store.examLibrary(widget.kind);
   CancelToken? _request;
@@ -79,11 +82,14 @@ class _ExamLabState extends State<ExamLab> {
         widget.glossLanguage ?? Localizations.localeOf(context).languageCode;
     setState(() => _request = request);
     try {
-      final material = await widget.ai.acquire(
-        options.target,
-        glossLanguage: gloss,
-        cancel: request,
-        reuse: options.reuse,
+      final material = await trackLanguageGeneration(
+        _activity,
+        () => widget.ai.acquire(
+          options.target,
+          glossLanguage: gloss,
+          cancel: request,
+          reuse: options.reuse,
+        ),
       );
       if (mounted && !request.isCancelled) await _open(material);
     } catch (error) {
@@ -109,7 +115,7 @@ class _ExamLabState extends State<ExamLab> {
             label: Text(l10n.languageExamPrepare),
           ),
           if (_request != null) ...[
-            const LinearProgressIndicator(),
+            LanguageGenerationActivity(activity: _activity),
             TextButton(
               onPressed: () => _request?.cancel(),
               child: Text(l10n.cancel),

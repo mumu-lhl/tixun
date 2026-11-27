@@ -12,6 +12,8 @@ import "language_store.dart";
 import "sentence_batch_ai.dart";
 import "sentence_batch_store.dart";
 import "sentence_content.dart";
+import "generation_progress.dart";
+import "generation_activity.dart";
 
 String sentenceSource(AppLocalizations l10n, String model) =>
     model == "Mock" ? l10n.languageAiMockSource : l10n.languageAiSource(model);
@@ -61,6 +63,7 @@ class SentenceBatchDialog extends StatefulWidget {
 }
 
 class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   final _selected = <String>{};
   late int _count = widget.suggestedCount ?? 2;
   bool _customCount = false;
@@ -68,6 +71,7 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
   CancelToken? _pending;
   String? _error;
   bool _saving = false;
+  int _completed = 0;
 
   @override
   void dispose() {
@@ -81,22 +85,31 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
     setState(() {
       _pending = cancel;
       _error = null;
+      _completed = 0;
     });
     try {
-      final proposal = await widget.ai.propose(
-        topic: widget.topic,
-        kind: widget.kind,
-        vocabulary: widget.contextVocabulary,
-        style: widget.style,
-        level: widget.level,
-        glossLanguage: widget.glossLanguage,
-        count: _count,
-        focus: widget.focus,
-        exclude: [
-          ...widget.exclusions,
-          ...widget.reused.map((card) => card.text),
-        ],
-        cancel: cancel,
+      final proposal = await trackLanguageGeneration(
+        _activity,
+        () => widget.ai.propose(
+          topic: widget.topic,
+          kind: widget.kind,
+          vocabulary: widget.contextVocabulary,
+          style: widget.style,
+          level: widget.level,
+          glossLanguage: widget.glossLanguage,
+          count: _count,
+          focus: widget.focus,
+          exclude: [
+            ...widget.exclusions,
+            ...widget.reused.map((card) => card.text),
+          ],
+          cancel: cancel,
+          onProgress: (completed, _) {
+            if (mounted && !cancel.isCancelled) {
+              setState(() => _completed = completed);
+            }
+          },
+        ),
       );
       if (!mounted || cancel.isCancelled) return;
       setState(() {
@@ -227,7 +240,16 @@ class _SentenceBatchDialogState extends State<SentenceBatchDialog> {
                           }),
                   ),
               ],
-              if (busy) const LinearProgressIndicator(),
+              if (_pending != null)
+                LanguageGenerationActivity(
+                  activity: _activity,
+                  completed: _completed,
+                  total: _count,
+                )
+              else if (_saving)
+                LanguageGenerationProgress(
+                  label: l10n.languageGenerationSaving,
+                ),
               if (_error case final error?) Text(error),
             ],
           ),

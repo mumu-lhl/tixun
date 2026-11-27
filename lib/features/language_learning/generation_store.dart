@@ -1,5 +1,7 @@
 import "dart:convert";
 
+import "generation_activity.dart";
+
 import "package:crypto/crypto.dart";
 import "package:dio/dio.dart";
 import "package:drift/drift.dart";
@@ -163,12 +165,14 @@ class LanguageGenerationStore {
       db.languageGenerationRuns,
     )..where((r) => r.id.equals(id))).getSingle();
     cancel.checkCancelled();
-    final useNew =
-        previous == null ||
-        compare == null ||
-        await compare(previous, candidate, cancel);
+    var useNew = true;
+    if (previous != null && compare != null) {
+      reportLanguageGeneration(feature, GenerationPhase.comparing);
+      useNew = await compare(previous, candidate, cancel);
+      reportLanguageGeneration(feature, GenerationPhase.saving);
+    }
     cancel.checkCancelled();
-    final chosen = useNew ? candidate : previous;
+    final chosen = useNew ? candidate : previous!;
     await db.transaction(() async {
       cancel.checkCancelled();
       // An older request finishing its dialog must not replace a newer choice.

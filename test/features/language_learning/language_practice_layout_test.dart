@@ -682,6 +682,11 @@ void main({
       );
       await tester.pump();
       expect(provider.started, isTrue);
+      expect(find.text("Generating writing feedback"), findsOneWidget);
+      if (capture != null) {
+        await capture(tester, "generation-360");
+        await capture(tester, "generation-1200");
+      }
       await tester.binding.handlePopRoute();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));

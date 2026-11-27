@@ -3,6 +3,9 @@ import "dart:async";
 import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
+import "generation_activity.dart";
+import "generation_progress.dart";
+
 import "language_layout.dart";
 import "language_data.dart";
 
@@ -31,6 +34,7 @@ class WritingPractice extends StatefulWidget {
 }
 
 class _WritingPracticeState extends State<WritingPractice> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   final _controller = TextEditingController();
   Stream<List<WritingHistory>> _loadHistory() =>
       widget.store.writingHistory(taskId: widget.ai.task.id);
@@ -101,11 +105,14 @@ class _WritingPracticeState extends State<WritingPractice> {
       await widget.store.saveWritingDraft(draft, taskId: widget.ai.task.id);
       if (!mounted) return;
       setState(() => _saved = draft);
-      await widget.ai.evaluate(
-        text: draft,
-        glossLanguage: gloss,
-        cancel: cancel,
-        regenerate: regenerate,
+      await trackLanguageGeneration(
+        _activity,
+        () => widget.ai.evaluate(
+          text: draft,
+          glossLanguage: gloss,
+          cancel: cancel,
+          regenerate: regenerate,
+        ),
       );
     } catch (error) {
       if (mounted && !cancel.isCancelled) {
@@ -235,7 +242,12 @@ class _WritingPracticeState extends State<WritingPractice> {
                             ),
                         ],
                       ),
-                      if (_busy) const LinearProgressIndicator(),
+                      if (_pending != null)
+                        LanguageGenerationActivity(activity: _activity)
+                      else if (_saving)
+                        LanguageGenerationProgress(
+                          label: l10n.languageGenerationSaving,
+                        ),
                       const SizedBox(height: 8),
                       Text(l10n.languageWritingPrivacy),
                       const SizedBox(height: 24),

@@ -303,24 +303,34 @@ void main() {
   });
 
   test("large vocabulary proposals split requests and preview only complete chunks", () async {
-    Future<VocabularyProposal> propose(_ChunkProvider provider) =>
-        VocabularyAi(provider).propose(
-          config: _config,
-          topic: "Practice",
-          groupType: VocabularyGroupType.topic,
-          level: VocabularyLevel.beginner,
-          glossLanguage: "en",
-          existingExpressions: const [],
-          cancel: CancelToken(),
-          count: 10,
-        );
+    Future<VocabularyProposal> propose(
+      _ChunkProvider provider,
+      List<int> progress,
+    ) => VocabularyAi(provider).propose(
+      config: _config,
+      topic: "Practice",
+      groupType: VocabularyGroupType.topic,
+      level: VocabularyLevel.beginner,
+      glossLanguage: "en",
+      existingExpressions: const [],
+      cancel: CancelToken(),
+      count: 10,
+      onProgress: (completed, total) {
+        expect(total, 10);
+        progress.add(completed);
+      },
+    );
     final provider = _ChunkProvider();
-    final complete = await propose(provider);
+    final completedProgress = <int>[];
+    final complete = await propose(provider, completedProgress);
     expect(provider.counts, [6, 4]);
+    expect(completedProgress, [6, 10]);
     expect(complete.entries, hasLength(10));
     expect(complete.entries.first.application, contains("___"));
     final interrupted = _ChunkProvider()..interruptSecond = true;
-    final partial = await propose(interrupted);
+    final partialProgress = <int>[];
+    final partial = await propose(interrupted, partialProgress);
+    expect(partialProgress, [6]);
     expect(partial.requested, 10);
     expect(partial.entries, hasLength(6));
     expect(await store.cards(language: "en"), isEmpty);

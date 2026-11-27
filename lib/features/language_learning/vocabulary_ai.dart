@@ -55,6 +55,7 @@ class VocabularyAi {
     int count = _perRequest,
     SentenceSkill? focus,
     bool generateGroupTitle = false,
+    void Function(int completed, int total)? onProgress,
   }) async {
     if (count < 1 || count > maximumEntries) {
       throw const FormatException("Invalid vocabulary candidate count");
@@ -79,6 +80,7 @@ class VocabularyAi {
             )
             .take(count),
       );
+      onProgress?.call(entries.length, count);
     } else {
       while (entries.length < count) {
         cancel.checkCancelled();
@@ -140,6 +142,7 @@ class VocabularyAi {
           }
           groupTitle ??= batch.title;
           entries.addAll(batch.entries);
+          onProgress?.call(entries.length, count);
           if (batch.entries.length < size) break;
         } catch (_) {
           cancel.checkCancelled();

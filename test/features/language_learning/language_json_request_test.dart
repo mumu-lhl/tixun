@@ -1,8 +1,10 @@
 import "package:dio/dio.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:tixun/core/ai/chat_provider.dart";
 import "package:tixun/core/database/database.dart";
 import "package:tixun/features/language_learning/language_json_request.dart";
+import "package:tixun/features/language_learning/generation_activity.dart";
 
 class _Reply implements ChatProvider {
   _Reply(this.chunks);
@@ -82,4 +84,44 @@ void main() {
       await expectLater(generate(_Reply(chunks)), throwsFormatException);
     }
   });
+
+  test(
+    "progress follows real request and validation, and resets after failure",
+    () async {
+      final activity = ValueNotifier<GenerationActivity?>(null);
+      final phases = <GenerationPhase>[];
+      activity.addListener(() {
+        final value = activity.value;
+        if (value != null) phases.add(value.phase);
+      });
+      await trackLanguageGeneration(
+        activity,
+        () => generate(
+          _Reply([const AiChunk(text: '{"text":"valid"}', completed: true)]),
+        ),
+      );
+      expect(phases, [
+        GenerationPhase.generating,
+        GenerationPhase.validating,
+        GenerationPhase.saving,
+      ]);
+      expect(activity.value, isNull);
+      phases.clear();
+      await expectLater(
+        trackLanguageGeneration(
+          activity,
+          () => generate(
+            _Reply([const AiChunk(text: '{"text":', completed: true)]),
+          ),
+        ),
+        throwsFormatException,
+      );
+      expect(phases, [GenerationPhase.generating, GenerationPhase.validating]);
+      expect(activity.value, isNull);
+      phases.clear();
+      await trackLanguageGeneration(activity, () async => "cached");
+      expect(phases, isEmpty);
+      activity.dispose();
+    },
+  );
 }

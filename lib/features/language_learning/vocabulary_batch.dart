@@ -2,6 +2,10 @@ import "dart:async";
 import "dart:math";
 
 import "package:material_ui/material_ui.dart";
+
+import "generation_activity.dart";
+import "generation_progress.dart";
+
 import "package:uuid/uuid.dart";
 import "package:dio/dio.dart";
 
@@ -52,6 +56,7 @@ class VocabularyBatch extends StatefulWidget {
 }
 
 class _VocabularyBatchState extends State<VocabularyBatch> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   static const _uuid = Uuid();
   late Future<List<LanguageCard>> _batch = _load();
   bool? _recognized;
@@ -148,11 +153,14 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
     await act(context, () async {
       for (final card in cards) {
         try {
-          final result = await widget.ai!.revise(
-            config: widget.config!,
-            card: card,
-            glossLanguage: glossLanguage,
-            cancel: cancel,
+          final result = await trackLanguageGeneration(
+            _activity,
+            () => widget.ai!.revise(
+              config: widget.config!,
+              card: card,
+              glossLanguage: glossLanguage,
+              cancel: cancel,
+            ),
           );
           cancel.checkCancelled();
           if (result.generation != null) {
@@ -497,7 +505,8 @@ class _VocabularyBatchState extends State<VocabularyBatch> {
                   }),
           ),
         ),
-        if (_regenerating != null) const LinearProgressIndicator(),
+        if (_regenerating != null)
+          LanguageGenerationActivity(activity: _activity),
         if (_showFlashcards) ...[
           _VocabularyFlashcard(
             key: ValueKey(cards[_studyIndex].sense.id),

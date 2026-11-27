@@ -43,6 +43,7 @@ class SentenceBatchAi {
     SentenceSkill? focus,
     Iterable<String> exclude = const [],
     List<LanguageCard> vocabulary = const [],
+    void Function(int completed, int total)? onProgress,
   }) async {
     if (count < 1 || count > maximumCount) {
       throw const FormatException("Invalid sentence batch count");
@@ -153,6 +154,7 @@ class SentenceBatchAi {
           },
         );
         cards.addAll(batch);
+        onProgress?.call(cards.length, count);
       } catch (_) {
         cancel.checkCancelled();
         if (cards.isEmpty) rethrow;

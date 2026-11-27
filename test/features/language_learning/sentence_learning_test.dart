@@ -237,6 +237,7 @@ void main() {
         ],
       });
       final ai = SentenceBatchAi(provider: provider, config: _config);
+      final progress = <int>[];
       final proposal = await ai.propose(
         topic: SentenceTopic.dailyLife,
         style: plan.style,
@@ -246,7 +247,12 @@ void main() {
         cancel: CancelToken(),
         focus: plan.skill,
         exclude: plan.exclusions,
+        onProgress: (completed, total) {
+          expect(total, plan.count);
+          progress.add(completed);
+        },
       );
+      expect(progress, [plan.count]);
       expect(provider.calls, 1);
       expect(provider.lastRequest!.tools, isEmpty);
       expect(

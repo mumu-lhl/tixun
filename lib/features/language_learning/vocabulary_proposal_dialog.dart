@@ -13,6 +13,8 @@ import "sentence_content.dart";
 import "sentence_practice.dart" show sentenceSkillLabel;
 import "vocabulary_ai.dart";
 import "vocabulary_editor.dart";
+import "generation_progress.dart";
+import "generation_activity.dart";
 
 Future<void> showVocabularyProposal(
   BuildContext context, {
@@ -51,6 +53,7 @@ class _ProposalDialog extends StatefulWidget {
 }
 
 class _ProposalDialogState extends State<_ProposalDialog> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   late final _topic = TextEditingController(text: widget.group?.title);
   VocabularyGroupType _kind = VocabularyGroupType.topic;
   late VocabularyLevel _level = widget.initialLevel;
@@ -65,6 +68,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
   bool _withAi = false;
   String? _error;
   String? _customTitle;
+  int _completed = 0;
 
   String get _title =>
       widget.group?.title ??
@@ -91,6 +95,7 @@ class _ProposalDialogState extends State<_ProposalDialog> {
     setState(() {
       _running = token;
       _error = null;
+      _completed = 0;
     });
     try {
       final group = widget.group;
@@ -99,18 +104,26 @@ class _ProposalDialogState extends State<_ProposalDialog> {
           : await widget.store.groupExpressions(group.id);
       final trashed = await widget.store.trashedExpressions("en");
       token.checkCancelled();
-      final proposal = await widget.ai.propose(
-        config: widget.config,
-        topic: group?.title ?? _topic.text.trim(),
-        generateGroupTitle: group == null && _topic.text.trim().isEmpty,
-        groupType: _groupType,
-        level: _level,
-        glossLanguage: gloss,
-        existingExpressions: current,
-        localExclusions: trashed,
-        cancel: token,
-        count: _count,
-        focus: _focus,
+      final proposal = await trackLanguageGeneration(
+        _activity,
+        () => widget.ai.propose(
+          config: widget.config,
+          topic: group?.title ?? _topic.text.trim(),
+          generateGroupTitle: group == null && _topic.text.trim().isEmpty,
+          groupType: _groupType,
+          level: _level,
+          glossLanguage: gloss,
+          existingExpressions: current,
+          localExclusions: trashed,
+          cancel: token,
+          count: _count,
+          focus: _focus,
+          onProgress: (completed, _) {
+            if (mounted && !token.isCancelled) {
+              setState(() => _completed = completed);
+            }
+          },
+        ),
       );
       token.checkCancelled();
       final matches = await widget.store.existingGroupsForEntries(
@@ -343,7 +356,16 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                             : null,
                       ),
                     ],
-                    if (running != null) const LinearProgressIndicator(),
+                    if (running != null)
+                      LanguageGenerationActivity(
+                        activity: _activity,
+                        completed: _completed,
+                        total: _count,
+                      )
+                    else if (_saving)
+                      LanguageGenerationProgress(
+                        label: l10n.languageGenerationSaving,
+                      ),
                     if (_error case final error?) Text(error),
                   ],
                 )
@@ -357,6 +379,16 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Text(l10n.languageAiReviewNotice),
+                    if (running != null)
+                      LanguageGenerationActivity(
+                        activity: _activity,
+                        completed: _completed,
+                        total: _count,
+                      )
+                    else if (_saving)
+                      LanguageGenerationProgress(
+                        label: l10n.languageGenerationSaving,
+                      ),
                     Text(proposal.provenance.model),
                     if (_error case final error?) Text(error),
                     if (proposal.entries.length < (proposal.requested ?? 0))

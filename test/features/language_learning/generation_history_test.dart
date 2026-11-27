@@ -1,6 +1,7 @@
 import "dart:convert";
 
 import "package:dio/dio.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:tixun/core/ai/chat_provider.dart";
 import "package:tixun/core/ai/prompt_settings.dart";
@@ -9,6 +10,7 @@ import "package:tixun/features/language_learning/generation_store.dart";
 import "package:tixun/features/language_learning/language_store.dart";
 import "package:tixun/features/language_learning/generation_provider.dart";
 import "package:tixun/features/language_learning/language_json_request.dart";
+import "package:tixun/features/language_learning/generation_activity.dart";
 
 const config = ProviderConfig(
   id: 1,
@@ -54,12 +56,14 @@ void main() {
     var selectedConfig = config;
     var useNew = false;
     var comparisons = 0;
+    final activity = ValueNotifier<GenerationActivity?>(null);
     final provider = LanguageGenerationProvider(
       provider: () => transport,
       configuration: () => selectedConfig,
       promptSettings: () => PromptSettings(),
       history: history,
       compare: (old, fresh, cancel) async {
+        expect(activity.value?.phase, GenerationPhase.comparing);
         comparisons++;
         expect(old.output, contains("original"));
         expect(fresh.model, "better-model");
@@ -79,17 +83,18 @@ void main() {
       cancel: CancelToken(),
       parse: (v) => (v as Map)["content"] as String,
     );
-    expect(await generate(), "original");
+    expect(await trackLanguageGeneration(activity, generate), "original");
     expect(transport.sent!.outputFormat, AiOutputFormat.jsonObject);
     expect(transport.sent!.instructions, contains("compact"));
     selectedConfig = config.copyWith(model: "better-model", effort: "xhigh");
     transport.reply = '{"content":"new"}';
-    expect(await generate(), "original");
+    expect(await trackLanguageGeneration(activity, generate), "original");
     expect(transport.used!.model, "better-model");
     expect(await db.select(db.languagePromptSnapshots).get(), hasLength(1));
     expect(await db.select(db.languageGenerationRuns).get(), hasLength(2));
     useNew = true;
-    expect(await generate(), "new");
+    expect(await trackLanguageGeneration(activity, generate), "new");
+    activity.dispose();
     expect(comparisons, 2);
     final runs = await db.select(db.languageGenerationRuns).get();
     expect(runs.first.model, "original-model");

@@ -2,6 +2,8 @@ import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
 import "language_layout.dart";
+import "generation_activity.dart";
+import "generation_progress.dart";
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
@@ -38,6 +40,7 @@ class WrittenExamLab extends StatefulWidget {
 }
 
 class _WrittenExamLabState extends State<WrittenExamLab> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   static const _profile = WrittenExamProfile.zhejiang2026;
   late var _history = widget.ai.store.writtenExamHistory();
   CancelToken? _request;
@@ -68,17 +71,20 @@ class _WrittenExamLabState extends State<WrittenExamLab> {
       final selected = <String>{};
       for (final spec in _profile.sections) {
         if (spec.kind case final kind?) {
-          final material = await widget.ai.acquire(
-            ExamTarget(
-              kind: kind,
-              profile: _profile.exam,
-              level: SentenceLevel.intermediate,
-              count: spec.count,
+          final material = await trackLanguageGeneration(
+            _activity,
+            () => widget.ai.acquire(
+              ExamTarget(
+                kind: kind,
+                profile: _profile.exam,
+                level: SentenceLevel.intermediate,
+                count: spec.count,
+              ),
+              glossLanguage: gloss,
+              cancel: cancel,
+              excludeIds: selected,
+              fresh: true,
             ),
-            glossLanguage: gloss,
-            cancel: cancel,
-            excludeIds: selected,
-            fresh: true,
           );
           selected.add(material.row.id);
           objectives.add(material);
@@ -90,12 +96,15 @@ class _WrittenExamLabState extends State<WrittenExamLab> {
           if (saved != null) {
             essays.add(saved);
           } else {
-            final made = await widget.writing.generate(
-              kind: spec.writing!,
-              level: SentenceLevel.intermediate,
-              topic: "",
-              cancel: cancel,
-              profile: _profile.exam,
+            final made = await trackLanguageGeneration(
+              _activity,
+              () => widget.writing.generate(
+                kind: spec.writing!,
+                level: SentenceLevel.intermediate,
+                topic: "",
+                cancel: cancel,
+                profile: _profile.exam,
+              ),
             );
             essays.add(await widget.ai.store.mockEssayRow(made.id));
           }
@@ -209,9 +218,12 @@ class _WrittenExamLabState extends State<WrittenExamLab> {
                       child: Text(l10n.languageExamPrepare),
                     )
                   else ...[
-                    LinearProgressIndicator(
-                      value: _ready / _profile.sections.length,
+                    LanguageGenerationProgress(
+                      label: l10n.languageExamPrepare,
+                      completed: _ready,
+                      total: _profile.sections.length,
                     ),
+                    LanguageGenerationActivity(activity: _activity),
                     TextButton(
                       onPressed: () => _request?.cancel(),
                       child: Text(l10n.cancel),

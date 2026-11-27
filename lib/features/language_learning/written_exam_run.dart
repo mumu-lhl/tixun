@@ -4,6 +4,8 @@ import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
 import "language_layout.dart";
+import "generation_activity.dart";
+import "generation_progress.dart";
 import "../../core/l10n/app_strings.dart";
 import "../../core/ui/actions.dart";
 import "exam_labels.dart";
@@ -38,6 +40,7 @@ class WrittenExamRun extends StatefulWidget {
 }
 
 class _WrittenExamRunState extends State<WrittenExamRun> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   late var _run = widget.initial;
   late var _position = _run.row.currentSection;
   late var _answers = _run.sections[_position].answers;
@@ -161,27 +164,30 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
     final token = CancelToken();
     setState(() => _feedback = token);
     try {
-      await act(context, () async {
-        final String version;
-        try {
-          version = await widget.writing(
-            isolatedWrittenTask(_run, section.writing!),
-            section.answers.single,
-            token,
-          );
-        } catch (_) {
+      await act(
+        context,
+        () => trackLanguageGeneration(_activity, () async {
+          final String version;
+          try {
+            version = await widget.writing(
+              isolatedWrittenTask(_run, section.writing!),
+              section.answers.single,
+              token,
+            );
+          } catch (_) {
+            if (token.isCancelled) return;
+            rethrow;
+          }
           if (token.isCancelled) return;
-          rethrow;
-        }
-        if (token.isCancelled) return;
-        await widget.store.attachWrittenFeedback(
-          _run.row.id,
-          section.row.position,
-          version,
-        );
-        final refreshed = await widget.store.writtenExam(_run.row.id);
-        if (mounted) setState(() => _run = refreshed);
-      });
+          await widget.store.attachWrittenFeedback(
+            _run.row.id,
+            section.row.position,
+            version,
+          );
+          final refreshed = await widget.store.writtenExam(_run.row.id);
+          if (mounted) setState(() => _run = refreshed);
+        }),
+      );
     } finally {
       if (mounted) setState(() => _feedback = null);
     }
@@ -441,6 +447,7 @@ class _WrittenExamRunState extends State<WrittenExamRun> {
                   : l10n.cancel,
             ),
           ),
+        if (_feedback != null) LanguageGenerationActivity(activity: _activity),
       ],
     ];
   }

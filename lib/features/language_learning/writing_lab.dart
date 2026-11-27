@@ -2,6 +2,8 @@ import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
 import "language_layout.dart";
+import "generation_activity.dart";
+import "generation_progress.dart";
 import "language_data.dart";
 import "../../core/database/database.dart";
 import "../../core/l10n/app_strings.dart";
@@ -24,6 +26,7 @@ class WritingLab extends StatefulWidget {
 }
 
 class _WritingLabState extends State<WritingLab> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   Stream<List<LearningWritingTaskRow>> _load() =>
       widget.ai.store.savedWritingTasks();
   CancelToken? _pending;
@@ -65,11 +68,14 @@ class _WritingLabState extends State<WritingLab> {
     final cancel = CancelToken();
     setState(() => _pending = cancel);
     try {
-      final task = await widget.ai.generate(
-        kind: input.kind,
-        level: input.level,
-        topic: input.topic,
-        cancel: cancel,
+      final task = await trackLanguageGeneration(
+        _activity,
+        () => widget.ai.generate(
+          kind: input.kind,
+          level: input.level,
+          topic: input.topic,
+          cancel: cancel,
+        ),
       );
       if (mounted && !cancel.isCancelled) await _open(task);
     } catch (error) {
@@ -86,12 +92,15 @@ class _WritingLabState extends State<WritingLab> {
     final cancel = CancelToken();
     setState(() => _pending = cancel);
     await act(context, () async {
-      final task = await widget.ai.generate(
-        kind: WritingTaskKind.values.byName(row.kind),
-        level: SentenceLevel.values.byName(row.level),
-        topic: row.topic,
-        cancel: cancel,
-        replacing: row,
+      final task = await trackLanguageGeneration(
+        _activity,
+        () => widget.ai.generate(
+          kind: WritingTaskKind.values.byName(row.kind),
+          level: SentenceLevel.values.byName(row.level),
+          topic: row.topic,
+          cancel: cancel,
+          replacing: row,
+        ),
       );
       if (mounted && !cancel.isCancelled) await _open(task);
     });
@@ -112,7 +121,7 @@ class _WritingLabState extends State<WritingLab> {
             label: Text(l10n.languageGenerateWritingTask),
           ),
           if (_pending != null) ...[
-            const LinearProgressIndicator(),
+            LanguageGenerationActivity(activity: _activity),
             TextButton(
               onPressed: () => _pending?.cancel(),
               child: Text(l10n.cancel),

@@ -62,6 +62,7 @@ class ExamAi {
       config: config,
       usageStore: usageStore,
       feature: "language_exam_generation",
+      expectedCount: target.count,
       learnerFocus: {
         examAbility(target.kind),
         if (target.skill != null) sentenceAbility(target.skill!),

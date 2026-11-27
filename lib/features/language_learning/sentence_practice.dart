@@ -1,6 +1,9 @@
 import "package:dio/dio.dart";
 import "package:material_ui/material_ui.dart";
 
+import "generation_activity.dart";
+import "generation_progress.dart";
+
 import "language_layout.dart";
 
 import "../../core/ai/chat_provider.dart";
@@ -427,6 +430,7 @@ class _SentenceStep extends StatefulWidget {
 }
 
 class _SentenceStepState extends State<_SentenceStep> {
+  final _activity = ValueNotifier<GenerationActivity?>(null);
   late var _card = widget.card;
   final _help = <SentenceHelp>{};
   final _helpWhenChecked = <SentenceHelp>{};
@@ -458,15 +462,18 @@ class _SentenceStepState extends State<_SentenceStep> {
       _error = null;
     });
     try {
-      final text = await widget.explanation.explain(
-        card: _card,
-        glossLanguage:
-            widget.feedbackLanguage ??
-            Localizations.localeOf(context).languageCode,
-        simpler: simpler,
-        regenerate: regenerate,
-        originalText: regenerate ? _explanation : null,
-        cancel: token,
+      final text = await trackLanguageGeneration(
+        _activity,
+        () => widget.explanation.explain(
+          card: _card,
+          glossLanguage:
+              widget.feedbackLanguage ??
+              Localizations.localeOf(context).languageCode,
+          simpler: simpler,
+          regenerate: regenerate,
+          originalText: regenerate ? _explanation : null,
+          cancel: token,
+        ),
       );
       if (!mounted || token.isCancelled) return;
       setState(() {
@@ -495,18 +502,17 @@ class _SentenceStepState extends State<_SentenceStep> {
       _error = null;
     });
     try {
-      final candidate = await ai.checkSaved(
-        _card,
-        cancel: token,
-        glossLanguage:
-            widget.feedbackLanguage ??
-            Localizations.localeOf(context).languageCode,
-      );
-      if (!mounted || token.isCancelled) return;
-      final checked = await widget.store.attachQuickSentenceCheck(
-        candidate,
-        token,
-      );
+      final checked = await trackLanguageGeneration(_activity, () async {
+        final candidate = await ai.checkSaved(
+          _card,
+          cancel: token,
+          glossLanguage:
+              widget.feedbackLanguage ??
+              Localizations.localeOf(context).languageCode,
+        );
+        token.checkCancelled();
+        return widget.store.attachQuickSentenceCheck(candidate, token);
+      });
       if (mounted && !token.isCancelled) {
         setState(() {
           _card = checked;
@@ -682,7 +688,7 @@ class _SentenceStepState extends State<_SentenceStep> {
         ],
         if (_pending != null) ...[
           const SizedBox(height: 12),
-          const LinearProgressIndicator(),
+          LanguageGenerationActivity(activity: _activity),
         ],
         if (_help.contains(SentenceHelp.hint)) ...[
           const SizedBox(height: 8),
