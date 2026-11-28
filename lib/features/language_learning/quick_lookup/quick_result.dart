@@ -14,6 +14,7 @@ class QuickResult extends StatelessWidget {
     required this.onVocabulary,
     required this.onSentence,
     required this.onDiscuss,
+    required this.onAutoAdd,
     required this.onRegenerate,
     required this.onDelete,
     super.key,
@@ -22,7 +23,7 @@ class QuickResult extends StatelessWidget {
   final LanguageQuickLookup row;
   final ValueChanged<List<VocabularyEntry>> onVocabulary;
   final ValueChanged<QuickSentence?> onSentence;
-  final VoidCallback? onDiscuss, onRegenerate;
+  final VoidCallback? onDiscuss, onRegenerate, onAutoAdd;
   final VoidCallback? onDelete;
 
   @override
@@ -76,6 +77,8 @@ class QuickResult extends StatelessWidget {
                       onVocabulary(candidates.vocabulary);
                     case "sentence":
                       onSentence(candidates.sentence);
+                    case "autoAdd":
+                      onAutoAdd?.call();
                     case "retry":
                       onRegenerate?.call();
                     case "delete":
@@ -94,6 +97,12 @@ class QuickResult extends StatelessWidget {
                     PopupMenuItem(
                       value: "sentence",
                       child: Text(l10n.quickAddSentence),
+                    ),
+                  if (row.targetLanguage == "en")
+                    PopupMenuItem(
+                      value: "autoAdd",
+                      enabled: onAutoAdd != null,
+                      child: Text(l10n.quickAutoAdd),
                     ),
                   PopupMenuItem(
                     value: "retry",

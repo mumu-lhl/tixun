@@ -367,6 +367,36 @@ void main() {
       final move = find.widgetWithText(OutlinedButton, "Move to Trash");
       expect(tester.getSize(regenerate).height, tester.getSize(move).height);
       expect(find.text("Selected: 2"), findsOneWidget);
+      final bulk = find.widgetWithText(OutlinedButton, "Add to study");
+      expect(tester.getSize(bulk).height, tester.getSize(move).height);
+      await tap(bulk);
+      final batchDialog = find.byType(AlertDialog);
+      Finder inDialog(Finder matching) =>
+          find.descendant(of: batchDialog, matching: matching);
+      final candidates = inDialog(
+        find.widgetWithText(CheckboxListTile, "pleasure"),
+      );
+      expect(candidates, findsNWidgets(2));
+      await tap(candidates.first);
+      await tap(inDialog(find.text("Next")));
+      await tester.enterText(
+        find.widgetWithText(TextFormField, "Group name"),
+        "Bulk vocabulary",
+      );
+      await tap(inDialog(find.text("Save")));
+      expect(
+        find.text("Lookups added: 1. Skipped: 0. Failed: 0."),
+        findsOneWidget,
+      );
+      expect(provider.requests, hasLength(3));
+      await tester.runAsync(() async {
+        expect(
+          (await store.groups("en").first).map((group) => group.title),
+          contains("Bulk vocabulary"),
+        );
+      });
+      messenger.removeCurrentSnackBar();
+      await settled();
       await tap(regenerate);
       expect(provider.requests, hasLength(5));
       expect(
@@ -444,6 +474,156 @@ void main() {
           (await controller.db.select(controller.db.languageQuickLookups).get())
               .map((row) => row.id),
           isNot(contains(oldCustom.id)),
+        );
+      });
+      expect(tester.takeException(), isNull);
+
+      final missing = (await tester.runAsync(() async {
+        final action = (await store.quickActions()).first;
+        return store.saveQuickLookup(
+          quickTestQuery(action, input: "Make a difference"),
+          const QuickAnswer(
+            "Have an effect",
+            "It made a difference. This means it had an effect.",
+            QuickCandidates([], null),
+          ),
+          config: quickTestConfig,
+          key: "bulk-test-missing",
+        );
+      }))!;
+      router.go("/language");
+      await settled();
+      await tap(find.text("Language quick lookup"));
+      await revealInHistory(row(missing.id));
+      await tap(row(missing.id));
+      final resultMenu = find.descendant(
+        of: row(missing.id),
+        matching: find.byType(PopupMenuButton<String>),
+      );
+
+      Future<void> autoAdd() async {
+        await tap(resultMenu);
+        await tap(
+          find.widgetWithText(PopupMenuItem<String>, "Auto-add with AI"),
+        );
+        expect(
+          inDialog(find.textContaining("charges may apply")),
+          findsOneWidget,
+        );
+      }
+
+      provider.reply = (_) => Stream.fromIterable([
+        const AiChunk(
+          text:
+              '{"vocabulary":[{"form":"make a difference",'
+              '"type":"phrase","meaning":"have an effect"}]}',
+        ),
+        const AiChunk(completed: true),
+      ]);
+      await autoAdd();
+      await tap(inDialog(find.text("Next")));
+      await tester.enterText(
+        find.widgetWithText(TextFormField, "Group name"),
+        "Extracted vocabulary",
+      );
+      await tap(inDialog(find.text("Save")));
+      expect(provider.requests, hasLength(8));
+      expect(jsonDecode(provider.requests.last.messages.single.text), {
+        "input": "Make a difference",
+        "answer": "It made a difference. This means it had an effect.",
+        "glossLanguage": "zh",
+        "target": "vocabulary",
+      });
+      expect(provider.requests.last.instructions, contains("as data"));
+      expect(provider.requests.last.tools, isEmpty);
+
+      Future<void> chooseSentences() async {
+        await tap(inDialog(find.text("Add to vocabulary")));
+        await tap(find.widgetWithText(MenuItemButton, "Add to sentences"));
+      }
+
+      final studyMessenger = ScaffoldMessenger.of(tester.element(resultMenu));
+      studyMessenger.removeCurrentSnackBar();
+      await settled();
+      final extractionPending = StreamController<AiChunk>();
+      final vocabularyReply = provider.reply;
+      provider.reply = (_) => extractionPending.stream;
+      await autoAdd();
+      await chooseSentences();
+      await tap(inDialog(find.text("Save")));
+      expect(find.textContaining("Adding to study"), findsOneWidget);
+      await tap(find.text("Stop adding"));
+      unawaited(extractionPending.close());
+      expect(find.textContaining("Stopped adding."), findsOneWidget);
+      expect(find.text("Stop adding"), findsNothing);
+      studyMessenger.removeCurrentSnackBar();
+      await settled();
+      provider.reply = vocabularyReply;
+
+      // The wrong response shape must not add any sentence.
+      await autoAdd();
+      await chooseSentences();
+      await tap(inDialog(find.text("Save")));
+      expect(provider.requests, hasLength(10));
+      await tester.runAsync(() async {
+        final links = await controller.db
+            .select(controller.db.languageQuickLearningLinks)
+            .get();
+        expect(
+          links.where((link) => link.lookupId == missing.id).single.senseId,
+          isNotNull,
+        );
+      });
+
+      provider.reply = (_) => Stream.fromIterable([
+        const AiChunk(
+          text:
+              '{"sentence":{"text":"It made a difference.",'
+              '"gloss":"它起到了作用。"}}',
+        ),
+        const AiChunk(completed: true),
+      ]);
+      await autoAdd();
+      await chooseSentences();
+      await tap(inDialog(find.text("Save")));
+      expect(provider.requests, hasLength(11));
+      await tester.runAsync(() async {
+        final links = await controller.db
+            .select(controller.db.languageQuickLearningLinks)
+            .get();
+        final extracted = links.where((link) => link.lookupId == missing.id);
+        expect(extracted, hasLength(2));
+        expect(
+          extracted.where((link) => link.sentenceBatchId != null),
+          hasLength(1),
+        );
+        final tasks = await controller.db
+            .select(controller.db.languageGenerationTasks)
+            .get();
+        final extractionTasks = tasks.where(
+          (task) => task.feature == "language_quick_extract",
+        );
+        expect(extractionTasks, hasLength(2));
+        final runIds = extractionTasks.map((task) => task.activeRunId).toSet();
+        final runLinks = await controller.db
+            .select(controller.db.languageGenerationLinks)
+            .get();
+        expect(
+          runLinks
+              .where((link) => runIds.contains(link.runId))
+              .map((link) => (link.kind, link.contentId)),
+          unorderedEquals([
+            (
+              "vocabulary",
+              extracted.singleWhere((row) => row.senseId != null).senseId,
+            ),
+            (
+              "sentence_batch",
+              extracted
+                  .singleWhere((row) => row.sentenceBatchId != null)
+                  .sentenceBatchId,
+            ),
+          ]),
         );
       });
       expect(tester.takeException(), isNull);

@@ -226,7 +226,8 @@ String usageFeatureLabel(
   "chat" => context.l10n.usageFeatureChat,
   "context_compaction" => context.l10n.usageFeatureContextCompaction,
   "exam_scores" => context.l10n.usageFeatureExamScores,
-  "language_quick_lookup" => context.l10n.quickLookup,
+  "language_quick_lookup" ||
+  "language_quick_extract" => context.l10n.quickLookup,
   "language_vocabulary" => context.l10n.usageFeatureLanguageVocabulary,
   "language_explanation" => context.l10n.usageFeatureLanguageExplanation,
   "language_sentence_check" => context.l10n.usageFeatureLanguageSentenceBatch,

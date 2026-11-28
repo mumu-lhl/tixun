@@ -98,10 +98,9 @@ Future<void> learnQuickVocabulary(
       ? await confirmLookupForms(context, edited.form, initial.forms)
       : const <LexicalFormDraft>[];
   if (!context.mounted) return;
-  await store.saveEntries(
-    language: row.targetLanguage,
-    groupTitle: group.title,
-    groupType: group.type,
+  await store.saveQuickVocabulary(
+    row,
+    (title: group.title, type: group.type),
     entries: [
       VocabularyEntry(
         form: edited.form,
@@ -114,19 +113,57 @@ Future<void> learnQuickVocabulary(
         applicationAnswer: edited.applicationAnswer,
       ),
     ],
-    quickLookupId: row.id,
-    provenance: VocabularyProvenance(
-      batchId: row.id,
-      model: row.model,
-      promptVersion: row.actionRevision,
-      generatedAt: row.createdAt,
-      mock: row.provider == "mock",
-    ),
   );
   if (context.mounted) _showSaved(context);
 }
 
+typedef QuickGroup = ({String title, VocabularyGroupType type});
+
+Future<QuickGroup?> chooseQuickGroup(
+  BuildContext context,
+  LanguageLearningStore store,
+) async {
+  final result =
+      await showDialog<
+        ({String title, VocabularyGroupType type, String meaning})
+      >(
+        context: context,
+        builder: (_) => _QuickVocabularyGroup(store, "en", null, const []),
+      );
+  return result == null ? null : (title: result.title, type: result.type);
+}
+
+SentenceLevel quickSentenceLevel(LanguageQuickLookup row) =>
+    row.level == "beginner"
+    ? SentenceLevel.beginner
+    : SentenceLevel.intermediate;
+
 extension QuickLearningStore on LanguageLearningStore {
+  Future<void> saveQuickVocabulary(
+    LanguageQuickLookup row,
+    QuickGroup group, {
+    required List<VocabularyEntry> entries,
+    LanguageGenerationRun? extraction,
+  }) => saveEntries(
+    language: row.targetLanguage,
+    groupTitle: group.title,
+    groupType: group.type,
+    entries: entries,
+    quickLookupId: row.id,
+    provenance: VocabularyProvenance(
+      batchId: row.id,
+      model: extraction?.model ?? row.model,
+      promptVersion: row.actionRevision,
+      generatedAt: extraction?.createdAt ?? row.createdAt,
+      mock: (extraction?.provider ?? row.provider) == "mock",
+      generationByForm: {
+        if (extraction != null)
+          for (final entry in entries)
+            normalizeLanguageText(entry.form): extraction.id,
+      },
+    ),
+  );
+
   Future<List<String>> quickExistingSenses(
     String language,
     VocabularyEntry entry,
@@ -151,8 +188,9 @@ extension QuickLearningStore on LanguageLearningStore {
   Future<void> saveQuickSentence(
     LanguageQuickLookup row,
     QuickSentence sentence,
-    SentenceLevel level,
-  ) async {
+    SentenceLevel level, {
+    LanguageGenerationRun? extraction,
+  }) async {
     if (row.targetLanguage != "en" || sentence.text.trim().isEmpty) {
       throw const FormatException("Invalid sentence");
     }
@@ -171,9 +209,10 @@ extension QuickLearningStore on LanguageLearningStore {
         topic: SentenceTopic.dailyLife,
         style: SentenceStyle.written,
         glossLanguage: row.glossLanguage,
-        model: row.model,
+        model: extraction?.model ?? row.model,
         promptVersion: row.actionRevision,
-        isMock: row.provider == "mock",
+        isMock: (extraction?.provider ?? row.provider) == "mock",
+        generationIds: [if (extraction != null) extraction.id],
         generatedAt: DateTime.now(),
         cards: [
           SentenceCard.study(
@@ -202,9 +241,7 @@ Future<void> learnQuickSentence(
         context: context,
         builder: (context) => _QuickSentenceEditor(
           candidate ?? QuickSentence(row.input.trim(), row.summary, ""),
-          row.level == "beginner"
-              ? SentenceLevel.beginner
-              : SentenceLevel.intermediate,
+          quickSentenceLevel(row),
         ),
       );
   if (!context.mounted || result == null) return;
@@ -227,7 +264,7 @@ class _QuickVocabularyGroup extends StatefulWidget {
 
   final LanguageLearningStore store;
   final String language;
-  final VocabularyEntry entry;
+  final VocabularyEntry? entry;
   final List<String> senses;
 
   @override
@@ -237,7 +274,7 @@ class _QuickVocabularyGroup extends StatefulWidget {
 class _QuickVocabularyGroupState extends State<_QuickVocabularyGroup> {
   final _form = GlobalKey<FormState>();
   late final _groups = widget.store.groups(widget.language).first;
-  late var _meaning = widget.entry.meaning.trim();
+  late var _meaning = widget.entry?.meaning.trim() ?? "";
   LearningVocabularyGroup? _group;
   String _title = "";
   var _type = VocabularyGroupType.topic;
@@ -266,13 +303,13 @@ class _QuickVocabularyGroupState extends State<_QuickVocabularyGroup> {
                       children: [
                         if (widget.senses.isNotEmpty)
                           AppSelectField<String>(
-                            initialValue: widget.entry.meaning.trim(),
+                            initialValue: widget.entry!.meaning.trim(),
                             decoration: InputDecoration(
                               labelText: l10n.quickChooseSense,
                             ),
                             items: [
                               for (final meaning in {
-                                widget.entry.meaning.trim(),
+                                widget.entry!.meaning.trim(),
                                 ...widget.senses,
                               })
                                 DropdownMenuItem(

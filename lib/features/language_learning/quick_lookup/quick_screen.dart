@@ -12,6 +12,7 @@ import "../generation_progress.dart";
 import "../../../app/controller.dart";
 import "../../../app/preferences.dart";
 import "../../../core/ai/ai_usage_store.dart";
+import "../../../core/ai/chat_provider.dart" show CancelGuard;
 import "../../../core/l10n/app_error.dart";
 import "../../../core/database/database.dart";
 import "../../../core/l10n/app_error_localization.dart";
@@ -20,8 +21,10 @@ import "../../../core/l10n/generated/app_localizations.dart";
 import "../../../core/ui/app_menu.dart";
 import "../../../core/ui/actions.dart";
 import "../generation_ui.dart";
+import "../language_store.dart" show VocabularyEntry;
 import "quick_action_editor.dart";
 import "quick_ai.dart";
+import "quick_batch_dialog.dart";
 import "quick_labels.dart";
 import "quick_learning.dart";
 import "quick_models.dart";
@@ -72,6 +75,8 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   LanguageQuickLookup? _result;
   QuickQuery? _failedQuery;
   ({int current, int total, int completed})? _regenerating;
+  ({int current, int total, int completed})? _adding;
+  bool get _runningBatch => _regenerating != null || _adding != null;
   String? _error;
 
   @override
@@ -246,7 +251,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   }
 
   Future<void> _lookup(QuickQuery query) async {
-    if (_cancel != null || _movingHistory) return;
+    if (!_canMoveHistory) return;
     final cancel = CancelToken();
     setState(() {
       _cancel = cancel;
@@ -409,13 +414,116 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   }
 
   Future<void> _withResult(Future<void> Function() use) async {
-    if (_usingResult || _movingHistory || _regenerating != null) return;
+    if (!_canMoveHistory) return;
     setState(() => _usingResult = true);
     try {
       await act(context, use);
     } finally {
       if (mounted) setState(() => _usingResult = false);
     }
+  }
+
+  Future<void> _addToStudy(List<String> ids, {bool automatic = false}) =>
+      _withResult(() async {
+        final rows = <LanguageQuickLookup>[];
+        for (final id in ids) {
+          final row = await _store.quickLookup(id);
+          if (!mounted) return;
+          if (row != null && row.targetLanguage == "en") rows.add(row);
+        }
+        final plan = await chooseQuickStudyItems(
+          context,
+          rows,
+          automatic: automatic,
+          unavailable: ids.length - rows.length,
+        );
+        if (!mounted || plan == null) return;
+        final group = plan.target == QuickLearningTarget.vocabulary
+            ? await chooseQuickGroup(context, _store)
+            : null;
+        if (!mounted ||
+            (plan.target == QuickLearningTarget.vocabulary && group == null)) {
+          return;
+        }
+        await _applyStudyPlan(plan, group);
+      });
+
+  Future<void> _applyStudyPlan(QuickStudyPlan plan, QuickGroup? group) async {
+    final cancel = CancelToken();
+    final total = plan.items.length;
+    late final ai = _lookupAi();
+    var saved = 0, skipped = 0, failed = 0;
+    Object? lastError;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _cancel = cancel;
+      _adding = (current: 1, total: total, completed: 0);
+    });
+    try {
+      for (final (index, item) in plan.items.indexed) {
+        if (!mounted || cancel.isCancelled) break;
+        setState(
+          () => _adding = (current: index + 1, total: total, completed: index),
+        );
+        try {
+          final extraction = item.candidates == null
+              ? await ai.extractForLearning(item.row, plan.target, cancel)
+              : null;
+          cancel.checkCancelled();
+          final candidates = item.candidates ?? extraction!.candidates;
+          if (group != null && candidates.vocabulary.isNotEmpty) {
+            await _store.saveQuickVocabulary(
+              item.row,
+              group,
+              // Inflections need the separate review offered by manual adding.
+              entries: [
+                for (final entry in candidates.vocabulary)
+                  VocabularyEntry(
+                    form: entry.form,
+                    meaning: entry.meaning,
+                    type: entry.type,
+                    example: entry.example,
+                    translation: entry.translation,
+                  ),
+              ],
+              extraction: extraction?.run,
+            );
+          } else if (group == null && candidates.sentence != null) {
+            await _store.saveQuickSentence(
+              item.row,
+              candidates.sentence!,
+              quickSentenceLevel(item.row),
+              extraction: extraction?.run,
+            );
+          } else {
+            skipped++;
+            continue;
+          }
+          saved++;
+        } catch (error) {
+          if (cancel.isCancelled) break;
+          lastError = error;
+          failed++;
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _cancel = null;
+          _adding = null;
+        });
+      }
+    }
+    if (!mounted) return;
+    final l10n = context.l10n;
+    final summary = l10n.quickBatchAdded(saved, skipped, failed);
+    final message = cancel.isCancelled && saved + skipped + failed < total
+        ? "${l10n.quickBatchStopped} $summary"
+        : total == 1 && lastError != null
+        ? _lookupError(l10n, lastError)
+        : summary;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _answer(LanguageQuickLookup row) => QuickResult(
@@ -429,6 +537,9 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
         ? null
         : () =>
               _withResult(() => discussQuickLookup(context, _controller, row)),
+    onAutoAdd: _canMoveHistory
+        ? () => _addToStudy([row.id], automatic: true)
+        : null,
     onRegenerate: _canMoveHistory ? () => _regenerate([row.id]) : null,
     onDelete: _canMoveHistory ? () => _moveToTrash({row.id}) : null,
   );
@@ -509,8 +620,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                       onPressed:
                           value.text.trim().isEmpty ||
                               value.text.length > quickInputLimit ||
-                              _movingHistory ||
-                              _cancel != null
+                              !_canMoveHistory
                           ? null
                           : () {
                               FocusScope.of(context).unfocus();
@@ -521,7 +631,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             ),
           ),
         ],
-        if (_cancel != null && _regenerating == null) ...[
+        if (_cancel != null && !_runningBatch) ...[
           const SizedBox(height: 16),
           LanguageGenerationActivity(activity: _activity),
           const SizedBox(height: 8),
@@ -582,7 +692,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                         FilteringTextInputFormatter.deny(RegExp(r"\x00")),
                       ],
                       textInputAction: TextInputAction.search,
-                      readOnly: _regenerating != null,
+                      readOnly: _runningBatch,
                       onChanged: _searchChanged,
                       onSubmitted: (text) {
                         _debounce?.cancel();
@@ -600,14 +710,14 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             ),
             IconButton(
               tooltip: _searchOpen ? l10n.close : l10n.quickHistorySearch,
-              onPressed: _regenerating == null ? _toggleSearch : null,
+              onPressed: _runningBatch ? null : _toggleSearch,
               icon: Icon(_searchOpen ? Icons.close : Icons.search),
             ),
             IconButton(
               tooltip: _selecting ? l10n.cancel : l10n.quickSelectHistory,
               onPressed:
                   _movingHistory ||
-                      _regenerating != null ||
+                      _runningBatch ||
                       (!_selecting && _rows.isEmpty)
                   ? null
                   : _toggleSelection,
@@ -615,9 +725,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             ),
             IconButton(
               tooltip: l10n.quickTrash,
-              onPressed: _movingHistory || _regenerating != null
-                  ? null
-                  : _openTrash,
+              onPressed: _movingHistory || _runningBatch ? null : _openTrash,
               icon: const Icon(Icons.delete_outline),
             ),
           ],
@@ -647,7 +755,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                       child: Text(entry.value, overflow: TextOverflow.ellipsis),
                     ),
                 ],
-                onChanged: _regenerating != null
+                onChanged: _runningBatch
                     ? null
                     : (value) {
                         _debounce?.cancel();
@@ -673,7 +781,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
         key: ValueKey(row.id),
         row: row,
         selected: _selected.contains(row.id),
-        onChanged: _movingHistory || _regenerating != null
+        onChanged: _movingHistory || _runningBatch
             ? null
             : (checked) => setState(() {
                 if (checked == true) {
@@ -689,7 +797,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
       row: row,
       detail: _expandedId == row.id ? _detail : null,
       answer: _answer,
-      onSelect: _movingHistory || _regenerating != null
+      onSelect: _movingHistory || _runningBatch
           ? null
           : () => _toggleSelection(firstId: row.id),
       onToggle: () => setState(() {
@@ -702,7 +810,8 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
 
   Widget _historyActionBar(BuildContext context) {
     final l10n = context.l10n;
-    final progress = _regenerating;
+    final progress = _adding ?? _regenerating;
+    final adding = _adding != null;
     final canApply = _canMoveHistory && _selected.isNotEmpty;
     return SafeArea(
       top: false,
@@ -714,22 +823,28 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
           children: [
             if (progress != null) ...[
               LanguageGenerationProgress(
-                label: l10n.languageGenerationLookup,
+                label: adding
+                    ? l10n.quickBatchAdding
+                    : l10n.languageGenerationLookup,
                 completed: progress.completed,
                 total: progress.total,
               ),
-              Text(
-                l10n.quickRegenerationProgress(
-                  progress.current,
-                  progress.total,
+              if (!adding) ...[
+                Text(
+                  l10n.quickRegenerationProgress(
+                    progress.current,
+                    progress.total,
+                  ),
                 ),
-              ),
-              LanguageGenerationActivity(activity: _activity),
+                LanguageGenerationActivity(activity: _activity),
+              ],
               OutlinedButton(
                 onPressed: _cancel!.isCancelled
                     ? null
                     : () => setState(() => _cancel!.cancel()),
-                child: Text(l10n.stopGenerating),
+                child: Text(
+                  adding ? l10n.quickStopAdding : l10n.stopGenerating,
+                ),
               ),
             ] else ...[
               Text(l10n.selected(_selected.length.toString())),
@@ -738,6 +853,12 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
+                  OutlinedButton(
+                    onPressed: canApply
+                        ? () => _addToStudy(_selected.toList())
+                        : null,
+                    child: Text(l10n.quickBatchAdd),
+                  ),
                   FilledButton(
                     onPressed: canApply
                         ? () => _regenerate(_selected.toList())
@@ -763,13 +884,9 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return PopScope(
-      canPop:
-          !_searchOpen &&
-          !_selecting &&
-          !_movingHistory &&
-          _regenerating == null,
+      canPop: !_searchOpen && !_selecting && !_movingHistory && !_runningBatch,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop || _movingHistory || _regenerating != null) return;
+        if (didPop || _movingHistory || _runningBatch) return;
         if (_selecting) {
           _toggleSelection();
         } else if (_searchOpen) {
@@ -781,7 +898,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
           title: Text(l10n.quickLookup),
           leading: BackButton(
             onPressed: () {
-              if (_movingHistory || _regenerating != null) return;
+              if (_movingHistory || _runningBatch) return;
               if (_selecting) {
                 _toggleSelection();
               } else if (_searchOpen) {
@@ -795,7 +912,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
           ),
           actions: [
             IconButton(
-              onPressed: _actions == null || _regenerating != null
+              onPressed: _actions == null || _runningBatch
                   ? null
                   : _manageActions,
               tooltip: l10n.quickActions,
@@ -803,7 +920,7 @@ class _QuickLookupScreenState extends ConsumerState<QuickLookupScreen> {
             ),
           ],
         ),
-        bottomNavigationBar: _selecting || _regenerating != null
+        bottomNavigationBar: _selecting || _runningBatch
             ? _historyActionBar(context)
             : null,
         body: LayoutBuilder(
