@@ -13,6 +13,7 @@ import "package:tixun/core/database/database.dart";
 import "package:tixun/core/platform/attachment_store.dart";
 import "package:tixun/core/platform/key_store.dart";
 import "package:tixun/core/ui/learning_markdown.dart";
+import "package:tixun/features/language_learning/fsrs.dart";
 import "package:tixun/features/language_learning/quick_lookup/quick_ai.dart";
 import "package:tixun/features/language_learning/quick_lookup/quick_action_editor.dart";
 import "package:tixun/features/language_learning/quick_lookup/quick_models.dart";
@@ -95,10 +96,15 @@ void main() {
       router.go("/language");
       await settled();
       expect(
-        find.widgetWithText(FilledButton, "Recommended practice"),
+        find.widgetWithText(ListTile, "Recommended practice"),
         findsOneWidget,
       );
       expect(find.text("Multilingual beginner courses"), findsOneWidget);
+      expect(find.text("Review due cards"), findsNothing);
+      expect(
+        find.textContaining("vocabulary cards due for review"),
+        findsNothing,
+      );
       await tap(find.text("Language quick lookup"));
       await settled();
       expect(find.byKey(const ValueKey("quick-search")), findsNothing);
@@ -289,6 +295,18 @@ void main() {
         expect(saved.glossLanguage, action.glossLanguage);
       });
 
+      await tester.runAsync(() async {
+        final sense = await controller.db
+            .select(controller.db.learningLexicalSenses)
+            .getSingle();
+        await controller.language.recordRecall(
+          attemptId: "previous-recall",
+          senseId: sense.id,
+          rating: RecallRating.again,
+          groupPrompt: false,
+          now: DateTime.now().subtract(const Duration(days: 7)),
+        );
+      });
       // Reopen with no composer result, so regeneration must use the chosen
       // history entry. The deleted task must still work from its snapshot.
       if (width == 360) {
@@ -297,6 +315,12 @@ void main() {
       }
       router.go("/language");
       await settled();
+      expect(find.widgetWithText(ListTile, "Review due cards"), findsOneWidget);
+      expect(
+        find.textContaining("vocabulary cards due for review"),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
       await tap(find.text("Language quick lookup"));
       final store = controller.language;
       final originalRows = (await tester.runAsync(() => store.quickHistory()))!;

@@ -275,81 +275,70 @@ class _LanguageLearningScreenState
                 children: [
                   Text(l10n.languageEnglish, style: theme.headlineMedium),
                   const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: _openProfile,
-                    icon: const Icon(Icons.tips_and_updates_outlined),
-                    label: Text(l10n.languageRecommendedPractice),
-                  ),
-                  const SizedBox(height: 12),
-                  StreamBuilder<int>(
-                    stream: _due,
-                    builder: (context, snapshot) {
-                      final count = snapshot.data;
-                      final hasDue = count != null && count > 0;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (count != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Text(l10n.languageDue(count)),
-                            ),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 8,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              if (snapshot.hasError)
-                                TextButton.icon(
-                                  onPressed: () => setState(
-                                    () => _due = _store.dueCount(_language),
-                                  ),
-                                  icon: const Icon(Icons.refresh),
-                                  label: Text(l10n.retry),
-                                ),
-                              if (hasDue)
-                                OutlinedButton.icon(
-                                  style: FilledButton.styleFrom(
-                                    minimumSize: const Size(0, 52),
-                                  ),
-                                  onPressed: _review,
-                                  icon: const Icon(Icons.schedule),
-                                  label: Text(l10n.languageReview),
-                                ),
-                              OutlinedButton(
-                                style: const ButtonStyle(
-                                  minimumSize: WidgetStatePropertyAll(
-                                    Size(0, 52),
-                                  ),
-                                ),
-                                onPressed: _practiceContexts,
-                                child: Text(l10n.languageNewContexts),
-                              ),
-                              OutlinedButton(
-                                onPressed: _practiceSentences,
-                                child: Text(l10n.languageSentencePractice),
-                              ),
-                            ],
-                          ),
-                        ],
-                      );
-                    },
+                  Card(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.tips_and_updates_outlined),
+                          title: Text(l10n.languageRecommendedPractice),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: _openProfile,
+                        ),
+                        StreamBuilder<int>(
+                          stream: _due,
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return ListTile(
+                                leading: const Icon(Icons.refresh),
+                                title: Text(l10n.languageReview),
+                                subtitle: Text(l10n.retry),
+                                onTap: _refreshDue,
+                              );
+                            }
+                            if ((snapshot.data ?? 0) == 0) {
+                              return const SizedBox.shrink();
+                            }
+                            return ListTile(
+                              leading: const Icon(Icons.schedule),
+                              title: Text(l10n.languageReview),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: _review,
+                            );
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.bubble_chart_outlined),
+                          title: Text(l10n.languageNewContexts),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: _practiceContexts,
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.subject),
+                          title: Text(l10n.languageSentencePractice),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: _practiceSentences,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () => context.push("/language/quick"),
-                        icon: const Icon(Icons.manage_search),
-                        label: Text(l10n.quickLookup),
-                      ),
-                      TextButton(
-                        onPressed: _foundations,
-                        child: Text(l10n.languageCourses),
-                      ),
-                    ],
+                  Card(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.manage_search),
+                          title: Text(l10n.quickLookup),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => context.push("/language/quick"),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.translate),
+                          title: Text(l10n.languageCourses),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: _foundations,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Card(
