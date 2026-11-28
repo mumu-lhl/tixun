@@ -406,6 +406,9 @@ class AppController extends ChangeNotifier {
   Future<Attachment> addImage(String path) =>
       _ChatSessions(this)._addImageImpl(path);
 
+  Future<void> attachExistingImage(String relativePath) =>
+      _ChatSessions(this)._attachExistingImageImpl(relativePath);
+
   Future<String> replaceDraftImage(Attachment image, Uint8List bytes) =>
       _ChatSessions(this)._replaceDraftImageImpl(image, bytes);
 

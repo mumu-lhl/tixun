@@ -40,18 +40,20 @@ mixin _StudyImages on DatabaseNotifier, _StudyQueries {
   /// references it, so purging one side never deletes the other's image.
   Future<void> attachExistingChatImage(String sessionId, String relativePath) =>
       runOperation(() async {
-        final info = await checkImageFile(relativePath);
-        await db
-            .into(db.attachments)
-            .insert(
-              AttachmentsCompanion.insert(
-                id: const Uuid().v4(),
-                sessionId: sessionId,
-                relativePath: relativePath,
-                mime: info.mime,
-                byteLength: info.bytes,
-              ),
-            );
+        await db.transaction(() async {
+          final info = await checkImageFile(relativePath);
+          await db
+              .into(db.attachments)
+              .insert(
+                AttachmentsCompanion.insert(
+                  id: const Uuid().v4(),
+                  sessionId: sessionId,
+                  relativePath: relativePath,
+                  mime: info.mime,
+                  byteLength: info.bytes,
+                ),
+              );
+        });
       });
 
   Future<StudyAttachment> importImage(

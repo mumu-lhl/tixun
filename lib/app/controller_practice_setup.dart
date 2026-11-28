@@ -67,7 +67,7 @@ extension _PracticeSetup on AppController {
         for (final image in preferredStudyImages(
           await study.images(item.id, isMistake: true),
         )) {
-          await addImage(files.resolve(image.relativePath).path);
+          await attachExistingImage(image.relativePath);
         }
       }
     }
@@ -303,7 +303,7 @@ extension _PracticeSetup on AppController {
       await study.linkChat(selected!.id, knowledgeId: link.knowledgeId);
     }
     for (final image in detail.images) {
-      await addImage(files.resolve(image.relativePath).path);
+      await attachExistingImage(image.relativePath);
     }
   }
 }

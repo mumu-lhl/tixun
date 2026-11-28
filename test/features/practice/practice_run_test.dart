@@ -221,12 +221,30 @@ void main() {
       sourceImages: c.attachments,
     );
     expect(result["ok"], true);
+    final sourceSession = c.selected!.id;
+    final sourceRun = c.messages.last.id;
+    final sourceImages = List<Attachment>.of(c.attachments);
+    final imageQuestion = result["question_id"] as String;
+    final imageAttempt = await c.practice.begin(imageQuestion);
+    await c.practice.submit(imageAttempt.id, ["A"]);
+    final sourcePath = c.attachments.single.relativePath;
+    final filesBefore = await Directory("${root.path}/attachments")
+        .list()
+        .length;
+    await c.prepareVariant(await c.practice.detail(imageQuestion));
+    expect(c.attachments.single.relativePath, sourcePath);
+    expect(
+      await Directory("${root.path}/attachments").list().length,
+      filesBefore,
+    );
+    await c.removeImage(c.attachments.single);
+    expect(await c.files.resolve(sourcePath).exists(), true);
     expect(
       (await c.practice.detail(result["question_id"] as String))
           .images
           .single
           .relativePath,
-      c.attachments.single.relativePath,
+      sourcePath,
     );
     final denied = await executeQuizTool(
       c.practice,
@@ -238,12 +256,71 @@ void main() {
           "image_indices": [3],
         }),
       ),
-      sessionId: c.selected!.id,
-      runId: c.messages.last.id,
+      sessionId: sourceSession,
+      runId: sourceRun,
       cancel: CancelToken(),
-      sourceImages: c.attachments,
+      sourceImages: sourceImages,
     );
     expect(denied["ok"], false);
+  });
+  test("Module practice shares managed images and draft removal preserves the source", () async {
+    final root = await Directory.systemTemp.createTemp("tixun-module-images");
+    final c = AppController(
+      AppDatabase.memory(),
+      AttachmentStore(root),
+      MemoryKeyStore(),
+      MockChatProvider(),
+    );
+    addTearDown(() async {
+      await c.shutdown();
+      await root.delete(recursive: true);
+    });
+    await c.initialize();
+    c.config = c.config.copyWith(vision: true);
+    final mistake = await c.study.saveMistake(
+      const MistakeDraft(title: "错题", question: "原题"),
+    );
+    final image = await c.study.importImage(
+      mistake.id,
+      "assets/demo/two_problems.png",
+      isMistake: true,
+    );
+    await c.prepareModulePractice("unclassified", mistake: true);
+    expect(c.attachments.single.relativePath, image.relativePath);
+    expect(await Directory("${root.path}/attachments").list().length, 1);
+    await c.removeImage(c.attachments.single);
+    expect(await c.files.resolve(image.relativePath).exists(), isTrue);
+    await c.attachExistingImage(image.relativePath);
+    await c.study.setDeleted(
+      mistake.id,
+      isMistake: true,
+      deleted: true,
+      expectedRevision: mistake.revision,
+    );
+    await c.study.purge({mistake.id: mistake.revision + 1}, isMistake: true);
+    expect(await c.files.resolve(image.relativePath).exists(), isTrue);
+    await c.send(c.selected!.draft);
+    expect(
+      (await c.db.images(c.selected!.id)).single.relativePath,
+      image.relativePath,
+    );
+    expect(await Directory("${root.path}/attachments").list().length, 1);
+    await c.newSession();
+    await expectLater(
+      c.attachExistingImage("attachments/missing.png"),
+      throwsFormatException,
+    );
+    expect(c.attachments, isEmpty);
+    expect(await c.db.images(c.selected!.id), isEmpty);
+    expect((await c.db.sessions()).any((s) => s.id == c.selected!.id), isFalse);
+    final invalid = File("${root.path}/attachments/invalid.png");
+    await invalid.writeAsString("not an image");
+    await expectLater(
+      c.attachExistingImage("attachments/invalid.png"),
+      throwsFormatException,
+    );
+    expect(c.attachments, isEmpty);
+    expect(await invalid.exists(), isTrue);
   });
   test("Replaying the same create_quiz call id returns the cached question instead of creating another", () async {
     final db = AppDatabase.memory();

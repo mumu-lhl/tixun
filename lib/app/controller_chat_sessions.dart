@@ -389,6 +389,29 @@ extension _ChatSessions on AppController {
     )..where((t) => t.id.equals(id))).getSingle());
   });
 
+  Future<void> _attachExistingImageImpl(String path) =>
+      study.runOperation(() async {
+        if (busy) {
+          throw const AppFormatException(
+            AppErrorCode.stopTheReplyBeforeAdding,
+            "请先停止生成，再添加图片。",
+          );
+        }
+        if (selected == null) await newSession();
+        final session = selected!;
+        final isNew = _unsavedSessionId == session.id;
+        await db.transaction(() async {
+          if (isNew) await _insertNewSession(session);
+          await study.attachExistingChatImage(session.id, path);
+        });
+        if (_unsavedSessionId == session.id) _unsavedSessionId = null;
+        if (selected?.id == session.id) {
+          attachments = await db.images(session.id);
+          if (messages.isEmpty) await reload();
+          changed();
+        }
+      });
+
   Future<String> _replaceDraftImageImpl(Attachment image, Uint8List bytes) =>
       study.runOperation(() async {
         if (busy || selected == null) {

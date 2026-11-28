@@ -157,9 +157,7 @@ class StudyImages extends ConsumerWidget {
                             }
                             await c.newSession();
                             await c.renameSession(c.selected!, "图片分题 · 检查与整理");
-                            await c.addImage(
-                              files.resolve(image.relativePath).path,
-                            );
+                            await c.attachExistingImage(image.relativePath);
                             await c.useToolReasoning();
                             await c.draft(c.prompts.text("split"));
                             if (context.mounted) context.go("/chat");
